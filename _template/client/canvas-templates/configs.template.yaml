@@ -1,0 +1,89 @@
+# =============================================================================
+# Canvas Template
+#
+# Defines the fields that appear in the Configuration Canvas editor
+# when a user creates this type of configuration.
+#
+# Field types: text, number, select, checkbox, textarea, tags, password, path
+# =============================================================================
+
+id: "my-app-configs"
+name: "App Configuration"
+toolType: "my-app"
+entityType: "configs"
+description: "Configure your tool settings through the Security-as-Code pipeline"
+
+sections:
+  - name: "General"
+    icon: "settings"
+    description: "Basic configuration settings"
+    fields:
+      - key: "name"
+        label: "Configuration Name"
+        fieldType: "text"
+        required: true
+        validation:
+          pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+          maxLength: 255
+          message: "Must start with a letter, alphanumeric/underscore/hyphen only"
+        helpText: "A unique name for this configuration"
+
+      - key: "description"
+        label: "Description"
+        fieldType: "textarea"
+        required: false
+        helpText: "Optional description of what this configuration does"
+
+      - key: "enabled"
+        label: "Enabled"
+        fieldType: "checkbox"
+        defaultValue: true
+        helpText: "Whether this configuration is active"
+
+  - name: "Connection"
+    icon: "link"
+    description: "How to connect to the tool"
+    fields:
+      - key: "endpoint"
+        label: "API Endpoint"
+        fieldType: "text"
+        required: true
+        validation:
+          pattern: "^https?://"
+          message: "Must be a valid URL starting with http:// or https://"
+        helpText: "The management API URL for your tool"
+
+      - key: "port"
+        label: "Port"
+        fieldType: "number"
+        defaultValue: 8089
+        validation:
+          min: 1
+          max: 65535
+
+      - key: "protocol"
+        label: "Protocol"
+        fieldType: "select"
+        defaultValue: "https"
+        options:
+          - label: "HTTPS"
+            value: "https"
+          - label: "HTTP"
+            value: "http"
+
+  - name: "Advanced"
+    icon: "sliders"
+    description: "Advanced settings"
+    fields:
+      - key: "timeout"
+        label: "Connection Timeout (seconds)"
+        fieldType: "number"
+        defaultValue: 30
+        validation:
+          min: 5
+          max: 300
+
+      - key: "tags"
+        label: "Tags"
+        fieldType: "tags"
+        helpText: "Tags for organizing this configuration"

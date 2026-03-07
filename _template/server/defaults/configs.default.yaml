@@ -1,0 +1,16 @@
+# Default configuration values
+# These are used when creating a new canvas from this template
+
+General:
+  name: ""
+  description: ""
+  enabled: true
+
+Connection:
+  endpoint: "https://localhost:8089"
+  port: 8089
+  protocol: "https"
+
+Advanced:
+  timeout: 30
+  tags: []

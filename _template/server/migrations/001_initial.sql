@@ -1,0 +1,19 @@
+-- =============================================================================
+-- App Database Migration: 001_initial
+--
+-- Create your app's tables here.
+-- ALL table names MUST use your app's prefix from manifest.yaml.
+-- The platform runs these migrations in order on install.
+-- =============================================================================
+
+-- Example:
+-- CREATE TABLE IF NOT EXISTS app_myapp_configs (
+--   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+--   name VARCHAR(255) NOT NULL,
+--   customer_id UUID NOT NULL REFERENCES "Customer"(id) ON DELETE CASCADE,
+--   data JSONB DEFAULT '{}',
+--   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+--   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+-- );
+--
+-- CREATE INDEX idx_app_myapp_configs_customer ON app_myapp_configs(customer_id);
