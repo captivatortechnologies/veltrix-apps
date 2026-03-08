@@ -1,0 +1,133 @@
+id: splunk-enterprise
+name: Splunk Enterprise
+version: 1.0.0
+vendor: Veltrix
+description: >
+  Manage Splunk Enterprise configurations as code.
+  Includes indexes, roles, BYOL infrastructure, and versioning.
+category: SIEM
+license: Apache-2.0
+homepage: https://github.com/veltrix/splunk-enterprise-app
+icon: "🔍"
+
+platform:
+  minVersion: "1.0.0"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: indexes
+      actions: [read, write, delete]
+      description: Manage Splunk index configurations
+    - resource: roles
+      actions: [read, write, delete]
+      description: Manage Splunk role configurations
+    - resource: byol
+      actions: [read, write, delete]
+      description: Manage BYOL infrastructure
+    - resource: versions
+      actions: [read, write]
+      description: Manage Splunk versions and upgrades
+
+database:
+  migrations: migrations
+  tablePrefix: splunk_
+
+pipeline:
+  configurationTypes:
+    - id: indexes
+      name: Index Configuration
+      description: Splunk Enterprise index definitions (retention, sizing, compression)
+      canvasTemplate: templates/indexes-canvas.yaml
+      defaultConfig: defaults/indexes.yaml
+      handlers:
+        validate: handlers/indexes/validate
+        deploy: handlers/indexes/deploy
+        rollback: handlers/indexes/rollback
+        healthCheck: handlers/indexes/healthCheck
+        driftDetect: handlers/indexes/driftDetect
+        getStatus: handlers/indexes/getStatus
+      targets:
+        componentTypes: [indexer, cluster-manager]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: roles
+      name: Role Configuration
+      description: Splunk Enterprise role definitions (capabilities, search filters)
+      canvasTemplate: templates/roles-canvas.yaml
+      defaultConfig: defaults/roles.yaml
+      handlers:
+        validate: handlers/roles/validate
+        deploy: handlers/roles/deploy
+        rollback: handlers/roles/rollback
+        healthCheck: handlers/roles/healthCheck
+        driftDetect: handlers/roles/driftDetect
+        getStatus: handlers/roles/getStatus
+      targets:
+        componentTypes: [search-head, cluster-manager]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/splunk-enterprise
+
+client:
+  entry: client/index
+  pages:
+    - path: /indexes
+      component: IndexesPage
+      label: Indexes
+      icon: database
+      sidebar: true
+    - path: /roles
+      component: RolesPage
+      label: Roles
+      icon: shield
+      sidebar: true
+    - path: /byol
+      component: BYOLPage
+      label: BYOL Infrastructure
+      icon: server
+      sidebar: true
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+settings:
+  - key: splunk_api_port
+    type: number
+    label: Splunk Management Port
+    description: Default management port for Splunk instances
+    default: 8089
+    required: false
+  - key: default_retention_days
+    type: number
+    label: Default Retention (days)
+    description: Default data retention period for new indexes
+    default: 90
+    required: false
+  - key: enable_tsidx_reduction
+    type: boolean
+    label: Enable TSIDX Reduction
+    description: Enable TSIDX reduction for new indexes by default
+    default: false
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated
