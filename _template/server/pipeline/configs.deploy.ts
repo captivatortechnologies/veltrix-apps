@@ -7,7 +7,8 @@
 // You receive:
 //   - ctx.component: the target host/server
 //   - ctx.credential: authentication credentials for the tool
-//   - ctx.connectivity: how to reach the component (SSH, HTTPS, Tailscale)
+//   - ctx.connectivity: legacy per-component connectivity (SSH, HTTPS, Tailscale)
+//   - ctx.connectivityProvider: platform-managed provider config (Tailscale, SSH, WireGuard, etc.)
 //   - ctx.canvas: the configuration data to deploy
 //   - ctx.strategy: DIRECT, CANARY, BLUE_GREEN, or ROLLING
 //
@@ -20,9 +21,24 @@ import type { DeployContext } from '../../../server/src/core/pipeline-engine/typ
 import type { DeployResult } from '../../../shared/types/pipeline'
 
 export default async function deploy(ctx: DeployContext): Promise<DeployResult> {
-  const { component, credential, connectivity, canvas } = ctx
+  const { component, credential, connectivity, connectivityProvider, canvas } = ctx
 
-  // Example: Deploy via HTTPS API
+  // Example: Use the platform-managed connectivity provider
+  // if (connectivityProvider) {
+  //   switch (connectivityProvider.providerType) {
+  //     case 'tailscale':
+  //       // Access device via Tailscale — config has tailnet, apiKey
+  //       break
+  //     case 'ssh':
+  //       // SSH into device — config has username, privateKey, port
+  //       break
+  //     case 'wireguard':
+  //       // Tunnel via WireGuard — config has endpoint, privateKey
+  //       break
+  //   }
+  // }
+
+  // Example: Deploy via HTTPS API (legacy connectivity)
   // if (connectivity?.httpsUrl && credential) {
   //   const response = await fetch(`${connectivity.httpsUrl}/api/config`, {
   //     method: 'PUT',

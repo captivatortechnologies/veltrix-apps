@@ -42,12 +42,31 @@ export default function Dashboard() {
           from your tool integration.
         </p>
         <ul className="mt-4 space-y-2 text-gray-600 dark:text-gray-300">
-          <li>1. Add components (hosts/servers) for your tool</li>
-          <li>2. Add credentials for authentication</li>
-          <li>3. Create a configuration canvas</li>
-          <li>4. Submit for approval and deploy through the pipeline</li>
+          <li>1. Configure remote connectivity (Settings tab)</li>
+          <li>2. Add components (hosts/servers) for your tool</li>
+          <li>3. Add credentials for authentication</li>
+          <li>4. Create a configuration canvas</li>
+          <li>5. Submit for approval and deploy through the pipeline</li>
         </ul>
       </div>
+
+      {/*
+        REMOTE CONNECTIVITY:
+        To add a Settings page with connectivity provider configuration,
+        import the shared component:
+
+          import { ConnectivityProvidersView } from '@/features/connectivity-providers'
+
+        Then render it in your app's settings/config area:
+          <ConnectivityProvidersView />
+
+        Supported providers: Tailscale, SSH, WireGuard, Cloudflare Tunnel,
+        ZeroTier, Nebula, OpenVPN, AWS SSM, HashiCorp Boundary.
+
+        In pipeline handlers, access the configured provider via:
+          ctx.connectivityProvider?.providerType  // 'tailscale', 'ssh', etc.
+          ctx.connectivityProvider?.config         // Provider-specific config
+      */}
     </div>
   )
 }

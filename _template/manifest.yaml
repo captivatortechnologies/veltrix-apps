@@ -103,6 +103,21 @@ client:
       sidebar: true                   # Show in sidebar navigation
 
 # =============================================================================
+# CONNECTIVITY (automatically provided by the platform)
+#
+# Every app that sets requiresConnectivity: true on a pipeline config type
+# automatically gets access to the customer's configured connectivity
+# provider (Tailscale, SSH, WireGuard, Cloudflare Tunnel, etc.) via
+# ctx.connectivityProvider in all pipeline handler contexts.
+#
+# The platform provides a shared Settings UI component that apps can embed:
+#   import { ConnectivityProvidersView } from '@/features/connectivity-providers'
+#
+# You do NOT need to build your own connectivity config — just import the
+# shared view in your app's Settings tab/page.
+# =============================================================================
+
+# =============================================================================
 # LIFECYCLE HOOKS (optional)
 # =============================================================================
 hooks:
