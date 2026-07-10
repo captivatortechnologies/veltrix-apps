@@ -60,6 +60,15 @@ export interface AppManifest {
   client?: {
     entry: string
     pages?: AppPageDeclaration[]
+    /**
+     * How the platform lays out this app's navigation (its client pages and
+     * one entry per configuration type):
+     *   - 'tabs' (default): a horizontal tab strip — best for a few items.
+     *   - 'sidebar': an embedded left rail, grouped into Pages and
+     *     Configurations — scales to many configuration types without the
+     *     tab strip overflowing.
+     */
+    navLayout?: 'tabs' | 'sidebar'
   }
 
   /**

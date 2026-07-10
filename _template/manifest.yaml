@@ -116,6 +116,13 @@ server:
 # from @veltrixsecops/ui.
 client:
   entry: client/index
+  # navLayout controls how the platform lays out this app's navigation (your
+  # client pages + one entry per configuration type):
+  #   tabs    (default) — a horizontal tab strip; best for a few items
+  #   sidebar           — an embedded left rail grouped into Pages and
+  #                       Configurations; use this when the app will have many
+  #                       configuration types (a tab strip can't hold them all)
+  navLayout: tabs
   pages:
     - path: "/"                       # Route beneath the app: /apps/my-app
       component: "Dashboard"          # Exported from client/index

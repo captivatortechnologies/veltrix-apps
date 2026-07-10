@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { authFetch } from '@veltrixsecops/app-sdk/client'
+import {
+  Badge,
+  Card,
+  CardBody,
+  CardHeader,
+  EmptyState,
+  Spinner,
+} from '@veltrixsecops/app-sdk/ui'
 
 interface ConfigTypeSummary {
   id: string
@@ -16,7 +24,9 @@ interface AppMeta {
 }
 
 /**
- * Shows what this app manages in a CrowdStrike Falcon tenant.
+ * Shows what this app manages in a CrowdStrike Falcon tenant, using the
+ * platform design-system components from @veltrixsecops/app-sdk/ui — so the
+ * page matches the platform look and picks up the app's brand color.
  * Authoring/editing happens in the platform's Configuration Canvas.
  */
 export default function OverviewPage() {
@@ -33,32 +43,47 @@ export default function OverviewPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <p>Loading CrowdStrike Falcon app details…</p>
-  if (error) return <p role="alert">Failed to load app details: {error}</p>
-  if (!meta) return <p>No app details available.</p>
+  if (loading) return <Spinner label="Loading CrowdStrike Falcon app details…" />
+  if (error) {
+    return (
+      <EmptyState
+        title="Failed to load app details"
+        description={error}
+      />
+    )
+  }
+  if (!meta) return <EmptyState title="No app details available" />
 
   return (
-    <div>
-      <h2>
-        {meta.name} <small>v{meta.version}</small>
-      </h2>
-      <p>
-        Manages CrowdStrike Falcon configuration as code through the Falcon APIs. Create a
-        configuration in the Configuration Canvas and deploy it through the pipeline — validate,
-        deploy, health check, drift detection, and rollback are all handled per configuration
-        type.
-      </p>
-      <h3>Configuration Types</h3>
-      <ul>
+    <Card>
+      <CardHeader actions={<Badge variant="primary">v{meta.version}</Badge>}>
+        <h2>{meta.name}</h2>
+      </CardHeader>
+      <CardBody>
+        <p>
+          Manages CrowdStrike Falcon configuration as code through the Falcon APIs. Create a
+          configuration in the Configuration Canvas and deploy it through the pipeline — validate,
+          deploy, health check, drift detection, and rollback are all handled per configuration
+          type.
+        </p>
+
+        <h3>Configuration Types</h3>
         {meta.configurationTypes.map((ct) => (
-          <li key={ct.id}>
-            <strong>{ct.name}</strong>
-            {ct.description ? <> — {ct.description}</> : null}
-            <br />
-            <small>Targets: {ct.componentTypes.join(', ')}</small>
-          </li>
+          <Card key={ct.id} variant="bordered" padding="md">
+            <CardBody>
+              <strong>{ct.name}</strong>
+              {ct.description ? <p>{ct.description}</p> : null}
+              <div>
+                {ct.componentTypes.map((type) => (
+                  <Badge key={type} variant="secondary" size="sm">
+                    {type}
+                  </Badge>
+                ))}
+              </div>
+            </CardBody>
+          </Card>
         ))}
-      </ul>
-    </div>
+      </CardBody>
+    </Card>
   )
 }

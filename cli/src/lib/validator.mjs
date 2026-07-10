@@ -27,6 +27,8 @@ const CATEGORIES = new Set(['SIEM', 'EDR', 'SOAR', 'IAM', 'NETWORK', 'CLOUD', 'C
 // App UI & navigation contract (mirrors @veltrixsecops/app-sdk)
 const APP_PAGE_LAYOUTS = ['standard', 'full-bleed', 'canvas']
 const APP_PAGE_NAV = ['sidebar', 'tab', 'hidden']
+// How the app's navigation (pages + configuration types) is laid out
+const APP_NAV_LAYOUTS = ['tabs', 'sidebar']
 // Configuration Canvas contract (mirrors the platform's canvas renderer)
 const CANVAS_FIELD_TYPES = new Set([
   'text',
@@ -367,6 +369,12 @@ export function validateApp(appDirArg) {
     err(`server.routes.prefix must be "/api/apps/${manifest.id}" (got "${prefix}")`)
   }
   if (manifest.client?.entry) requireFile(manifest.client.entry, 'client.entry')
+  if (
+    manifest.client?.navLayout !== undefined &&
+    !APP_NAV_LAYOUTS.includes(manifest.client.navLayout)
+  ) {
+    err(`client.navLayout must be one of ${APP_NAV_LAYOUTS.join(' | ')} (got "${manifest.client.navLayout}")`)
+  }
 
   // --- App UI & navigation contract ---
   const declaredPermissions = new Set(

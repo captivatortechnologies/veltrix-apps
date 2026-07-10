@@ -1,6 +1,6 @@
 id: crowdstrike-edr
 name: CrowdStrike Falcon
-version: 1.1.0
+version: 1.2.0
 vendor: Veltrix
 description: >
   Manage CrowdStrike Falcon configurations as code through the Falcon
@@ -104,6 +104,10 @@ server:
 
 client:
   entry: client/index
+  # Embedded left sidebar (grouped Pages / Configurations) rather than a top
+  # tab strip — this app will grow to many configuration types, which a
+  # horizontal tab bar can't hold.
+  navLayout: sidebar
   pages:
     - path: /overview
       component: OverviewPage
