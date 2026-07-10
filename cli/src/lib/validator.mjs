@@ -69,6 +69,8 @@ const SECRET_ASSIGNMENT_RE =
   /\b(client_secret|api_?key|password|access_token|auth_token)\s*[:=]\s*['"][A-Za-z0-9+/_-]{20,}['"]/i
 // Minimum SDK version whose ./client subpath (authFetch, host runtime) exists
 const SDK_CLIENT_MIN = [1, 2]
+// Navbar logos render at ~28px height — anything bigger than this is unoptimized
+const MAX_LOGO_BYTES = 128 * 1024
 
 export function validateApp(appDirArg) {
   const errors = []
@@ -168,6 +170,51 @@ export function validateApp(appDirArg) {
   if (typeof manifest.icon === 'string' && /[\\/]/.test(manifest.icon)) {
     // Path-style icons must exist; emoji icons pass through untouched
     requireFile(manifest.icon.replace(/^\.\//, ''), 'manifest.icon')
+  }
+
+  // Branding — rendered by the platform in the app navbar and as scoped CSS
+  // variables; logos are served to browsers, so they are size/type/script
+  // checked here rather than trusted.
+  if (manifest.branding) {
+    const HEX_COLOR_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/
+    for (const key of ['primaryColor', 'accentColor']) {
+      const value = manifest.branding[key]
+      if (value !== undefined && !HEX_COLOR_RE.test(String(value))) {
+        err(`branding: ${key} must be a #RGB or #RRGGBB hex color (got "${value}")`)
+      }
+    }
+    for (const key of ['logo', 'logoDark']) {
+      const ref = manifest.branding[key]
+      if (ref === undefined) continue
+      if (typeof ref !== 'string' || !ref.trim()) {
+        err(`branding: ${key} must be a repo-relative file path`)
+        continue
+      }
+      if (ref.split(/[\\/]/).includes('..')) {
+        err(`branding: ${key} must not contain '..' path segments: "${ref}"`)
+        continue
+      }
+      const ext = path.extname(ref).toLowerCase()
+      if (ext !== '.svg' && ext !== '.png') {
+        err(`branding: ${key} must be an .svg (preferred) or .png file (got "${ref}")`)
+      }
+      const full = path.join(appDir, ref.replace(/^\.\//, ''))
+      if (!fs.existsSync(full) || !fs.statSync(full).isFile()) {
+        err(`branding: ${key} points to a missing file: "${ref}"`)
+        continue
+      }
+      if (fs.statSync(full).size > MAX_LOGO_BYTES) {
+        err(
+          `branding: ${key} exceeds ${MAX_LOGO_BYTES / 1024} KB — navbar logos render at ~28px height; use a small optimized asset`,
+        )
+      }
+      if (ext === '.svg') {
+        const svg = fs.readFileSync(full, 'utf8')
+        if (/<script|\bon[a-z]+\s*=|javascript:|<foreignObject/i.test(svg)) {
+          err(`branding: ${key} SVG contains scripting or event handlers — not allowed in logos`)
+        }
+      }
+    }
   }
 
   // Permissions

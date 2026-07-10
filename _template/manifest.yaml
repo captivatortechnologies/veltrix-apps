@@ -23,6 +23,20 @@ platform:
   minVersion: "1.0.0"
 
 # =============================================================================
+# Branding (optional) — your vendor identity, applied by the platform in
+# defined slots only: the app's navbar (logo + accent) and scoped CSS
+# variables (--veltrix-app-primary / --veltrix-app-accent) that your pages
+# can use. The platform decides where brand color appears, so use it
+# meaningfully — it never themes the whole product shell.
+#   - Colors: #RGB or #RRGGBB hex
+#   - Logos: .svg (preferred) or .png, max 128 KB, rendered at ~28px height —
+#     use a wide/landscape mark with transparent background; no scripts in SVGs
+# =============================================================================
+branding:
+  primaryColor: "#4F6DF5"
+  logo: ./assets/logo.svg
+
+# =============================================================================
 # PERMISSIONS
 # =============================================================================
 permissions:

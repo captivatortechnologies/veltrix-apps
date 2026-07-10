@@ -264,3 +264,50 @@ test('hidden files warn', () => {
   const result = validateApp(makeApp({ '.secret-config': 'x' }))
   assert.equal(warningsMatching(result, /hidden file/).length, 1)
 })
+
+const LOGO_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10"/></svg>'
+
+test('branding: valid colors and logo pass', () => {
+  const result = validateApp(
+    makeApp({
+      'manifest.yaml': MANIFEST + 'branding:\n  primaryColor: "#FC0000"\n  logo: ./assets/logo.svg\n',
+      'assets/logo.svg': LOGO_SVG,
+    }),
+  )
+  assert.deepEqual(result.errors, [])
+})
+
+test('branding: invalid hex color is an error', () => {
+  const result = validateApp(
+    makeApp({ 'manifest.yaml': MANIFEST + 'branding:\n  primaryColor: "red"\n' }),
+  )
+  assert.equal(errorsMatching(result, /branding: primaryColor must be a #RGB/).length, 1)
+})
+
+test('branding: missing or non-svg/png logo is an error', () => {
+  const result = validateApp(
+    makeApp({ 'manifest.yaml': MANIFEST + 'branding:\n  logo: ./assets/logo.gif\n' }),
+  )
+  assert.equal(errorsMatching(result, /branding: logo must be an \.svg/).length, 1)
+  assert.equal(errorsMatching(result, /branding: logo points to a missing file/).length, 1)
+})
+
+test('branding: SVG logos with scripting are errors', () => {
+  const result = validateApp(
+    makeApp({
+      'manifest.yaml': MANIFEST + 'branding:\n  logo: ./assets/logo.svg\n',
+      'assets/logo.svg': '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"><rect/></svg>',
+    }),
+  )
+  assert.equal(errorsMatching(result, /branding: logo SVG contains scripting/).length, 1)
+})
+
+test('branding: oversized logos are errors', () => {
+  const result = validateApp(
+    makeApp({
+      'manifest.yaml': MANIFEST + 'branding:\n  logo: ./assets/logo.svg\n',
+      'assets/logo.svg': LOGO_SVG + '<!--' + 'x'.repeat(130 * 1024) + '-->',
+    }),
+  )
+  assert.equal(errorsMatching(result, /branding: logo exceeds 128 KB/).length, 1)
+})
