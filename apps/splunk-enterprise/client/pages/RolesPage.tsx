@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { authFetch } from '@veltrixsecops/app-sdk/client'
 
 interface RoleConfig {
   id: string
@@ -17,7 +18,7 @@ export default function RolesPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/apps/splunk-enterprise/roles', { credentials: 'include' })
+    authFetch('/api/apps/splunk-enterprise/roles')
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then(setConfigs)
       .catch((e: Error) => setError(e.message))

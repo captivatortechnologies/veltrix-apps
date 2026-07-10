@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { authFetch } from '@veltrixsecops/app-sdk/client'
 
 interface ByolInfrastructure {
   id: string
@@ -17,7 +18,7 @@ export default function BYOLPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/apps/splunk-enterprise/byol', { credentials: 'include' })
+    authFetch('/api/apps/splunk-enterprise/byol')
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then(setInfrastructure)
       .catch((e: Error) => setError(e.message))

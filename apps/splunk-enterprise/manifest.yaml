@@ -1,6 +1,6 @@
 id: splunk-enterprise
 name: Splunk Enterprise
-version: 1.1.0
+version: 1.1.1
 vendor: Veltrix
 description: >
   Manage Splunk Enterprise configurations as code.
@@ -113,17 +113,23 @@ client:
       component: IndexesPage
       label: Indexes
       icon: database
-      sidebar: true
+      nav: sidebar
+      order: 1
+      layout: standard
     - path: /roles
       component: RolesPage
       label: Roles
       icon: shield
-      sidebar: true
+      nav: sidebar
+      order: 2
+      layout: standard
     - path: /byol
       component: BYOLPage
       label: BYOL Infrastructure
       icon: server
-      sidebar: true
+      nav: sidebar
+      order: 3
+      layout: standard
 
 hooks:
   onInstall: hooks/onInstall
