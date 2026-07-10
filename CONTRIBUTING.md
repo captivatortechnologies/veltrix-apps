@@ -127,13 +127,27 @@ if (ctx.connectivityProvider) {
 ## Rules (enforced by CI)
 
 - **App ID**: must match `/^[a-z0-9][a-z0-9-]*[a-z0-9]$/` and equal the directory name
-- **Version**: semver; must be bumped whenever the app's files change
+- **Version**: semver; must be bumped whenever the app's files change; `package.json` version must equal `manifest.version`
 - **Package size**: maximum 50 MB zipped
-- **No executables**: `.sh`, `.bat`, `.exe`, `.cmd`, `.ps1` files are rejected
+- **No executables**: `.sh`, `.bat`, `.exe`, `.cmd`, `.ps1` files are rejected; symlinks are rejected; hidden files are flagged
 - **Import boundaries**: no relative imports escaping your app directory; no `@prisma/client` — use `ctx.platform` / `ctx.db` from the SDK
+- **In-process safety**: apps run inside the platform server — `child_process`, `vm`, `worker_threads`, `cluster`, `eval()`, `new Function()`, and `process.exit()` are rejected; `fs`/`os` imports are flagged for review
+- **Canvas templates**: `canvas.yaml` and `defaults.yaml` are schema-checked (field types, select options, regex validity, defaults matching declared fields)
+- **Client bundle**: if the app declares `client.entry`, it must compile with the packager's bundler (`veltrix validate` runs the same dry-run CI does)
 - **Database tables**: `database.tablePrefix` required when using migrations (lowercase, ends with `_`, unique across apps)
 - **API routes**: namespaced under `/api/apps/<your-app-id>/`
-- **No secrets**: never commit credentials, API keys, or tokens (CI runs a secret scan)
+- **No secrets**: never commit credentials, API keys, or tokens (the validator scans for key/token shapes, and CI additionally runs TruffleHog)
+- **Reproducible packages**: `veltrix package` is deterministic — the same source always produces the same sha256
+
+### How validation rules evolve
+
+New checks land as **warnings first** and are promoted to errors in a later
+release, announced in release notes — mirroring the warn→fail lifecycle
+Splunk uses for Cloud vetting checks. Deprecation warnings (like the old
+`sidebar:` page flag) always name the replacement. If a check blocks
+something you believe is legitimate, open an issue referencing the exact
+message; category prefixes (`security:`, `canvas:`, `packaging:`, `client:`,
+`settings:`, `layout:`) identify which rule family fired.
 
 ## Questions?
 

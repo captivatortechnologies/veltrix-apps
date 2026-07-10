@@ -88,6 +88,9 @@ jobs:
               npx esbuild $TS_FILES --format=cjs --platform=node --target=node20 \
                 --outdir="$STAGING" --outbase="$STAGING" --log-level=warning
             fi
+            # Bundle the client entry (if declared) into the hermetic browser
+            # bundle the platform serves for the app's custom pages.
+            node scripts/bundle-app-client.mjs "$STAGING" || { FAILED=1; rm -rf "$STAGING"; continue; }
             (cd "$STAGING" && zip -qr "$GITHUB_WORKSPACE/dist/apps/$APP.zip" .)
             rm -rf "$STAGING"
 

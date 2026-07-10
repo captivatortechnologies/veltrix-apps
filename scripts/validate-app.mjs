@@ -9,7 +9,7 @@
 // ============================================================================
 
 import path from 'node:path'
-import { validateApp, printResults } from '../cli/src/lib/validator.mjs'
+import { validateApp, checkClientBundle, printResults } from '../cli/src/lib/validator.mjs'
 
 const targets = process.argv.slice(2)
 if (targets.length === 0) {
@@ -20,6 +20,9 @@ if (targets.length === 0) {
 let failed = false
 for (const target of targets) {
   const result = validateApp(target)
+  const bundle = await checkClientBundle(target, result.manifest)
+  result.errors.push(...bundle.errors)
+  result.warnings.push(...bundle.warnings)
   if (printResults(path.basename(path.resolve(target)), result)) failed = true
 }
 process.exit(failed ? 1 : 0)
