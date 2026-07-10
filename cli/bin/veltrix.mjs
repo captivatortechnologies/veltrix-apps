@@ -114,12 +114,14 @@ sandbox
 
 program
   .command('dev')
-  .description('Watch an app directory and live-sync it into a tenant sandbox')
+  .description('Watch an app directory and live-sync it into a tenant sandbox (two-way)')
   .argument('[dir]', 'App directory', '.')
   .requiredOption('--sandbox <name>', 'Sandbox to sync into (see `veltrix sandbox create`)')
   .option('--create', 'Create the sandbox first if it does not exist')
   .option('--run <spec>', 'Invoke <configTypeId>:<handler> after each successful sync')
   .option('--logs', 'Stream live sandbox logs when the platform supports it')
+  .option('--no-pull', 'Disable reverse sync — do not apply portal edits to local files (one-way)')
+  .option('--force-pull', 'On conflict, overwrite local files with the sandbox version')
   .option('--profile <name>', 'Profile name', 'default')
   .action(devCommand)
 

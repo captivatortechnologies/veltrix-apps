@@ -1,18 +1,30 @@
 // ============================================================================
-// `veltrix dev [dir] --sandbox <name>` — the live development loop.
+// `veltrix dev [dir] --sandbox <name>` — the two-way live development loop.
 //
 //   startup:  local validate → resolve (or --create) the sandbox → full sync
-//   watch:    chokidar → 300 ms debounce → local validate → manifest POST
+//   push:     chokidar → 300 ms debounce → local validate → manifest POST
 //             (server answers {upload, delete}) → tar.gz delta PUT → print
 //             the server's validation summary
+//   pull:     (on by default; --no-pull disables) subscribe to
+//             `sandbox:file-changed` over Socket.IO; apply portal edits to the
+//             local workspace under an echo guard + conflict rule, and
+//             reconcile by hash-diff on every (re)connect. See
+//             lib/reverse-sync.mjs and lib/reverse-sync-session.mjs.
 //   extras:   --run <configTypeId>:<handler> invokes the handler after each
-//             successful sync; --logs streams sandbox events over Socket.IO
-//             when the platform accepts the connection (falls back silently)
+//             successful sync; --logs streams sandbox log/status events (over
+//             the same socket reverse sync uses).
+//
+// Every upload carries a per-process `originClientId` so the platform can
+// attribute the file-changed events it emits and each peer ignores its own
+// echoes. `baseline` (path → sha we last wrote/synced) is shared between the
+// push and pull halves: it powers the echo guard and reconciliation.
 //
 // Resilience: connection errors, 409s and transient 5xxs trigger one
 // automatic full resync (the protocol is stateless client-side — POSTing
 // the full manifest again IS the resync). A deleted sandbox is recreated
-// when --create was passed; an expired sandbox (410) ends the session.
+// when --create was passed; an expired sandbox (410) ends the session. If the
+// realtime handshake or file API is unavailable (older platform), reverse sync
+// degrades to one-way with a single notice — the push loop keeps working.
 // ============================================================================
 
 import fs from 'node:fs'
@@ -40,11 +52,29 @@ import {
   toPosix,
 } from '../lib/sync.mjs'
 import { connectLiveLogs } from '../lib/live-logs.mjs'
+import { startReverseSync } from '../lib/reverse-sync-session.mjs'
+import { makeOriginClientId } from '../lib/reverse-sync.mjs'
 import { c, printRunResult, formatLogEntry } from '../lib/output.mjs'
 import { requireProfile, failWith } from './sandbox.mjs'
 
 const DEBOUNCE_MS = 300
 const RESYNC_BACKOFF_MS = 1000
+
+/**
+ * Reset the shared baseline map to exactly the given manifest entries (the
+ * sandbox state we now know we match after a successful forward sync). Kept as
+ * an in-place mutation so the reverse-sync session's reference stays valid.
+ */
+function refreshBaseline(baseline, entries) {
+  const seen = new Set()
+  for (const entry of entries) {
+    baseline.set(entry.path, entry.sha256)
+    seen.add(entry.path)
+  }
+  for (const key of [...baseline.keys()]) {
+    if (!seen.has(key)) baseline.delete(key)
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -99,13 +129,14 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
  * manifest, so every pass doubles as a full resync. If the server requests
  * a file that vanished locally mid-walk, rebuild the manifest once.
  */
-async function syncOnce(profile, sandbox, appDir) {
+async function syncOnce(ctx, sandbox) {
+  const { profile, appDir, originClientId } = ctx
   const startedAt = Date.now()
 
   const build = async () => {
     const rules = loadIgnoreRules(appDir)
     const entries = buildManifest(appDir, rules)
-    const diff = await postManifest(profile, sandbox.id, entries)
+    const diff = await postManifest(profile, sandbox.id, entries, { originClientId })
     return { entries, diff, ...selectUploadEntries(entries, diff.upload) }
   }
 
@@ -120,13 +151,14 @@ async function syncOnce(profile, sandbox, appDir) {
   let response = null
   if (pass.selected.length > 0) {
     const tarball = await createTarball(appDir, pass.selected.map((entry) => entry.path))
-    response = await putFiles(profile, sandbox.id, tarball)
+    response = await putFiles(profile, sandbox.id, tarball, { originClientId })
   }
 
   return {
     uploaded: pass.selected.length,
     deleted: pass.diff.delete.length,
     totalFiles: pass.entries.length,
+    entries: pass.entries,
     response,
     durationMs: Date.now() - startedAt,
   }
@@ -174,9 +206,9 @@ function isRecoverable(error) {
  * (fatal 410, unrecoverable failures).
  */
 async function syncWithRecovery(ctx) {
-  const { profile, appDir, options } = ctx
+  const { profile, options } = ctx
   try {
-    return await syncOnce(profile, ctx.sandbox, appDir)
+    return await syncOnce(ctx, ctx.sandbox)
   } catch (error) {
     if (error instanceof ApiError && error.status === 410) throw error // expired: fatal
 
@@ -184,13 +216,13 @@ async function syncWithRecovery(ctx) {
       if (!options.create) throw error
       console.log(c.yellow(`⚠ Sandbox "${options.sandbox}" is gone — recreating (--create)`))
       ctx.sandbox = await createSandbox(profile, options.sandbox, ctx.appId)
-      return syncOnce(profile, ctx.sandbox, appDir)
+      return syncOnce(ctx, ctx.sandbox)
     }
 
     if (isRecoverable(error)) {
       console.log(c.dim(`  sync interrupted (${error.message}) — full resync in ${RESYNC_BACKOFF_MS / 1000}s`))
       await sleep(RESYNC_BACKOFF_MS)
-      return syncOnce(profile, ctx.sandbox, appDir)
+      return syncOnce(ctx, ctx.sandbox)
     }
 
     throw error
@@ -230,9 +262,18 @@ export async function devCommand(dir, options) {
   const appDir = path.resolve(dir)
   const runSpec = options.run ? parseRunSpec(options.run) : null
 
+  const pullEnabled = options.pull !== false // reverse sync is on by default (--no-pull disables)
+  const forcePull = Boolean(options.forcePull)
+
   console.log(c.bold(`veltrix dev`))
   console.log(c.dim(`  app:     ${appDir}`))
   console.log(c.dim(`  sandbox: ${options.sandbox} @ ${profile.url}`))
+  console.log(
+    c.dim(
+      `  sync:    ↑ local → sandbox` +
+        (pullEnabled ? `, ↓ sandbox → local${forcePull ? ' (--force-pull)' : ''}` : ' (one-way, --no-pull)'),
+    ),
+  )
 
   // 1. The app must be locally valid before anything touches the network.
   if (!runLocalValidation(appDir)) process.exit(1)
@@ -267,34 +308,79 @@ export async function devCommand(dir, options) {
     )
   }
 
-  const ctx = { profile, appDir, appId, options, runSpec, sandbox, state: { runUnsupported: false } }
+  // `baseline` is the sha-per-path map shared with reverse sync: it records
+  // what we last wrote/synced, powering both the echo guard and reconciliation.
+  const baseline = new Map()
+  const ctx = {
+    profile,
+    appDir,
+    appId,
+    options,
+    runSpec,
+    sandbox,
+    originClientId: makeOriginClientId(),
+    baseline,
+    state: { runUnsupported: false },
+  }
 
   // 3. Initial full sync.
   console.log(c.dim('Performing initial sync…'))
   try {
     const outcome = await syncWithRecovery(ctx)
+    refreshBaseline(baseline, outcome.entries)
     printSyncOutcome(outcome)
     if (outcome.response?.validation?.valid !== false) await invokeRun(ctx)
   } catch (error) {
     failWith(error)
   }
 
-  // 4. Optional live event stream (degrades to sync-response output).
-  let liveLogs = null
-  if (options.logs) {
-    liveLogs = connectLiveLogs(profile, {
-      sandboxId: ctx.sandbox.id,
-      onConnected: () => console.log(c.dim('⇢ live log stream connected')),
-      onUnavailable: (reason) =>
-        console.log(c.dim(`⇢ live logs unavailable (${reason}) — showing sync results only`)),
-      onEvent: (eventName, payload) => {
+  // 4a. Reverse sync (default): apply portal edits to the local workspace.
+  let reverseSync = null
+  const logEventHandler = options.logs
+    ? (eventName, payload) => {
         if (eventName === 'sandbox:log') {
           console.log(`  ${c.dim('⇢')} ${formatLogEntry(payload.entry ?? payload)}`)
         } else if (eventName === 'sandbox:status' && payload.status === 'ERROR') {
           console.log(`  ${c.dim('⇢')} ${c.red('sandbox ERROR')}${payload.message ? ` — ${payload.message}` : ''}`)
         }
-        // sandbox:synced mirrors the sync HTTP response we already print.
+      }
+    : null
+
+  if (pullEnabled) {
+    reverseSync = startReverseSync(profile, {
+      sandboxId: ctx.sandbox.id,
+      appDir,
+      originClientId: ctx.originClientId,
+      baseline,
+      forcePull,
+      loadLocalManifest: () => buildManifest(appDir, loadIgnoreRules(appDir)),
+      onApplied: ({ path: p }) => console.log(`  ${c.green('↓')} ${p} ${c.dim('(from sandbox)')}`),
+      onDeleted: ({ path: p }) => console.log(`  ${c.red('✕')} ${p} ${c.dim('(deleted in sandbox)')}`),
+      onConflict: ({ path: p, reason }) =>
+        console.log(`  ${c.yellow('⚠ conflict')}: ${p} ${c.dim(`(${reason} — skipped; --force-pull to overwrite)`)}`),
+      onReconcile: ({ pulled, removed, conflicts, why }) => {
+        const parts = []
+        if (pulled > 0) parts.push(`↓ ${pulled} pulled`)
+        if (removed > 0) parts.push(`✕ ${removed} removed`)
+        if (conflicts > 0) parts.push(`⚠ ${conflicts} conflict${conflicts === 1 ? '' : 's'}`)
+        console.log(c.dim(`  reconciled on ${why}: ${parts.join(', ')}`))
       },
+      onError: ({ message }) => console.log(`  ${c.yellow('⚠')} reverse-sync: ${message}`),
+      onUnavailable: (reason) =>
+        console.log(c.dim(`⇢ live pull unavailable (${reason}) — sync remains one-way`)),
+      onLog: logEventHandler,
+    })
+  }
+
+  // 4b. Legacy log-only stream when reverse sync is off but --logs is on.
+  let liveLogs = null
+  if (!pullEnabled && options.logs) {
+    liveLogs = connectLiveLogs(profile, {
+      sandboxId: ctx.sandbox.id,
+      onConnected: () => console.log(c.dim('⇢ live log stream connected')),
+      onUnavailable: (reason) =>
+        console.log(c.dim(`⇢ live logs unavailable (${reason}) — showing sync results only`)),
+      onEvent: (eventName, payload) => logEventHandler?.(eventName, payload),
     })
   }
 
@@ -331,6 +417,7 @@ export async function devCommand(dir, options) {
     try {
       if (!runLocalValidation(appDir)) return // keep watching
       const outcome = await syncWithRecovery(ctx)
+      refreshBaseline(baseline, outcome.entries)
       printSyncOutcome(outcome)
       if (outcome.response?.validation?.valid !== false) await invokeRun(ctx)
     } catch (error) {
@@ -369,6 +456,7 @@ export async function devCommand(dir, options) {
   // 6. Clean shutdown.
   const shutdown = async (code = 0) => {
     clearTimeout(debounceTimer)
+    reverseSync?.close()
     liveLogs?.close()
     try {
       await watcher.close()
