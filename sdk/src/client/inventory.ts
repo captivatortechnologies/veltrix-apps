@@ -66,6 +66,37 @@ function toInventoryItem(raw: RawInventoryItem): InventoryItem {
   }
 }
 
+/**
+ * A platform Tool. Each installed app is upserted as a Tool keyed by its
+ * manifest `name`, and inventory items (components) belong to a tool.
+ */
+export interface Tool {
+  id: string
+  name: string
+  vendor?: string
+}
+
+/**
+ * Resolve the platform Tool for an app by its manifest name (the platform
+ * upserts `Tool.name === app name`). The tool id is required by the platform
+ * when creating an inventory item, so call this once and pass the id as
+ * `toolId` to {@link addInventoryItem}. Returns null when no tool matches.
+ *
+ * GET /api/tools (the endpoint is paginated — `{ data, pagination }` — or a
+ * bare array; both are handled).
+ */
+export async function resolveTool(name: string): Promise<Tool | null> {
+  const res = await authFetch('/api/tools')
+  if (!res.ok) throw await inventoryError(res)
+  const body = (await res.json()) as unknown
+  const tools: Tool[] = Array.isArray(body)
+    ? (body as Tool[])
+    : Array.isArray((body as { data?: unknown })?.data)
+      ? ((body as { data: Tool[] }).data)
+      : []
+  return tools.find((tool) => tool.name === name) ?? null
+}
+
 /** List the customer's inventory (deployment targets). GET /api/components */
 export async function listInventory(): Promise<InventoryItem[]> {
   const res = await authFetch(INVENTORY_API)

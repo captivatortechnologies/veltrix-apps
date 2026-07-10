@@ -3,6 +3,7 @@ import {
   addInventoryItem,
   listInventory,
   removeInventoryItem,
+  resolveTool,
   updateInventoryItem,
 } from '../inventory'
 
@@ -126,5 +127,31 @@ describe('removeInventoryItem', () => {
   it('throws on a real error status', async () => {
     mockFetch({ ok: false, status: 404, textBody: JSON.stringify({ error: 'Component not found' }) })
     await expect(removeInventoryItem('missing')).rejects.toThrow('Component not found')
+  })
+})
+
+describe('resolveTool', () => {
+  it('resolves a tool by name from a paginated { data } response', async () => {
+    const fetchMock = mockFetch({
+      jsonBody: { data: [{ id: 'tool-1', name: 'Splunk Enterprise', vendor: 'Veltrix' }], pagination: {} },
+    })
+    const tool = await resolveTool('Splunk Enterprise')
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/tools')
+    expect(tool).toEqual({ id: 'tool-1', name: 'Splunk Enterprise', vendor: 'Veltrix' })
+  })
+
+  it('resolves a tool from a bare array response', async () => {
+    mockFetch({ jsonBody: [{ id: 'tool-2', name: 'CrowdStrike Falcon' }] })
+    expect(await resolveTool('CrowdStrike Falcon')).toEqual({ id: 'tool-2', name: 'CrowdStrike Falcon' })
+  })
+
+  it('returns null when no tool matches the name', async () => {
+    mockFetch({ jsonBody: { data: [{ id: 'tool-1', name: 'Splunk Enterprise' }] } })
+    expect(await resolveTool('Nope')).toBeNull()
+  })
+
+  it('throws on a non-2xx response', async () => {
+    mockFetch({ ok: false, status: 500, textBody: 'boom' })
+    await expect(resolveTool('x')).rejects.toThrow('boom')
   })
 })

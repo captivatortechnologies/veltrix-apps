@@ -1,7 +1,7 @@
 {
   "name": "veltrix-app-splunk-enterprise",
   "private": true,
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Veltrix app: manage Splunk Enterprise configurations as code (indexes, roles, HEC tokens, BYOL infrastructure, version tracking)",
   "scripts": {
     "typecheck": "tsc --noEmit"
@@ -10,7 +10,7 @@
     "@types/jest": "^29.5.14",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
-    "@veltrixsecops/app-sdk": "^2.1.0",
+    "@veltrixsecops/app-sdk": "^2.3.0",
     "fastify": "^5.0.0",
     "typescript": "^5.6.0"
   }

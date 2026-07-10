@@ -28,7 +28,9 @@ export {
   addInventoryItem,
   updateInventoryItem,
   removeInventoryItem,
+  resolveTool,
 } from './inventory'
+export type { Tool } from './inventory'
 export type { InventoryItem, InventoryItemInput } from '../types/platform'
 
 /** Name of the global the platform installs before loading app bundles. */
