@@ -83,10 +83,12 @@ Every Veltrix app follows one canonical folder structure — the CLI scaffolds i
 apps/<app-id>/
 ├── manifest.yaml                          # App contract
 ├── package.json / tsconfig.json / README.md
-├── handlers/<configTypeId>/               # validate, deploy, rollback,
-│                                          # healthCheck, driftDetect, getStatus
-├── templates/<configTypeId>-canvas.yaml   # Canvas form schema
-├── defaults/<configTypeId>.yaml           # Default field values
+├── config-types/<configTypeId>/           # Everything for one configuration type:
+│   ├── canvas.yaml                        #   form schema
+│   ├── defaults.yaml                      #   default values
+│   ├── validate.ts, deploy.ts, rollback.ts,
+│   ├── healthCheck.ts, driftDetect.ts, getStatus.ts
+│   └── __tests__/
 ├── lib/                                   # Shared app code (API clients)
 ├── hooks/                                 # onInstall.ts, onUninstall.ts, ...
 ├── migrations/                            # SQL (with database.tablePrefix)
@@ -97,7 +99,7 @@ apps/<app-id>/
 
 ```ts
 import { conventionalPaths } from '@veltrixsecops/app-sdk'
-conventionalPaths('indexes').handlers.deploy // 'handlers/indexes/deploy'
+conventionalPaths('indexes').handlers.deploy // 'config-types/indexes/deploy'
 ```
 
 ## Package layout

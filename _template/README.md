@@ -8,16 +8,16 @@ apps/<app-id>/
 ├── package.json                  # @veltrixsecops/app-sdk + tooling devDeps
 ├── tsconfig.json
 ├── README.md                     # What the app manages, credentials, fields
-├── handlers/<configTypeId>/      # Six pipeline handlers per configuration type
-│   ├── validate.ts
+├── config-types/<configTypeId>/  # THE unit of extension — everything for one
+│   ├── canvas.yaml               #   configuration type in one folder:
+│   ├── defaults.yaml             #   form schema, default values,
+│   ├── validate.ts               #   and the six pipeline handlers
 │   ├── deploy.ts
 │   ├── rollback.ts
 │   ├── healthCheck.ts
 │   ├── driftDetect.ts            # optional in the manifest, recommended
 │   ├── getStatus.ts
 │   └── __tests__/                # Tests live next to the code they cover
-├── templates/<configTypeId>-canvas.yaml   # Configuration Canvas form schema
-├── defaults/<configTypeId>.yaml           # Default field values
 ├── lib/                          # Shared app code (API client used by all handlers)
 ├── hooks/                        # Lifecycle hooks (camelCase): onInstall.ts, onUninstall.ts, ...
 ├── migrations/                   # SQL migrations (only with manifest `database`; tablePrefix enforced)
@@ -25,6 +25,8 @@ apps/<app-id>/
 ├── client/index.tsx              # Client entry + client/pages/*.tsx (optional)
 └── assets/                       # Icons/logos (optional)
 ```
+
+Adding a configuration type = adding one `config-types/<id>/` folder and one manifest entry.
 
 Quick start:
 

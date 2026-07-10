@@ -144,19 +144,20 @@ export function validateApp(appDirArg) {
   }
 
   // --- Canonical layout conventions (warnings — see _template/README.md) ---
+  // Everything for one configuration type is colocated in config-types/<id>/
   const stripRef = (p) => String(p ?? '').replace(/^\.\//, '')
   if (Array.isArray(configTypes)) {
     configTypes.forEach((ct) => {
       if (!ct?.id) return
-      if (ct.canvasTemplate && stripRef(ct.canvasTemplate) !== `templates/${ct.id}-canvas.yaml`) {
-        warn(`layout: canvasTemplate for "${ct.id}" should be "templates/${ct.id}-canvas.yaml" (got "${ct.canvasTemplate}")`)
+      if (ct.canvasTemplate && stripRef(ct.canvasTemplate) !== `config-types/${ct.id}/canvas.yaml`) {
+        warn(`layout: canvasTemplate for "${ct.id}" should be "config-types/${ct.id}/canvas.yaml" (got "${ct.canvasTemplate}")`)
       }
-      if (ct.defaultConfig && stripRef(ct.defaultConfig) !== `defaults/${ct.id}.yaml`) {
-        warn(`layout: defaultConfig for "${ct.id}" should be "defaults/${ct.id}.yaml" (got "${ct.defaultConfig}")`)
+      if (ct.defaultConfig && stripRef(ct.defaultConfig) !== `config-types/${ct.id}/defaults.yaml`) {
+        warn(`layout: defaultConfig for "${ct.id}" should be "config-types/${ct.id}/defaults.yaml" (got "${ct.defaultConfig}")`)
       }
       for (const [handler, ref] of Object.entries(ct.handlers ?? {})) {
         if (!ref) continue
-        const expected = `handlers/${ct.id}/${handler}`
+        const expected = `config-types/${ct.id}/${handler}`
         if (stripRef(ref).replace(/\.(ts|js|mjs|cjs)$/, '') !== expected) {
           warn(`layout: handlers.${handler} for "${ct.id}" should be "${expected}" (got "${ref}")`)
         }

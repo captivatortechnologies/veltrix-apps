@@ -52,19 +52,20 @@ pipeline:
     - id: "configs"                    # Unique within this app
       name: "App Configuration"
       description: "Main configuration for this tool"
-      # Canonical layout: templates/<configTypeId>-canvas.yaml, defaults/<configTypeId>.yaml
-      canvasTemplate: templates/configs-canvas.yaml
-      defaultConfig: defaults/configs.yaml
+      # Canonical layout: everything for one configuration type is colocated
+      # in config-types/<configTypeId>/
+      canvasTemplate: config-types/configs/canvas.yaml
+      defaultConfig: config-types/configs/defaults.yaml
 
-      # Pipeline handlers — canonical layout: handlers/<configTypeId>/<handler>
+      # Pipeline handlers — config-types/<configTypeId>/<handler>
       # (extensionless; resolved like require(), .ts in dev / compiled .js in packages)
       handlers:
-        validate: handlers/configs/validate
-        deploy: handlers/configs/deploy
-        rollback: handlers/configs/rollback
-        healthCheck: handlers/configs/healthCheck
-        driftDetect: handlers/configs/driftDetect
-        getStatus: handlers/configs/getStatus
+        validate: config-types/configs/validate
+        deploy: config-types/configs/deploy
+        rollback: config-types/configs/rollback
+        healthCheck: config-types/configs/healthCheck
+        driftDetect: config-types/configs/driftDetect
+        getStatus: config-types/configs/getStatus
 
       # What infrastructure this configuration targets
       targets:

@@ -11,12 +11,16 @@
 export const APP_LAYOUT = {
   /** The app contract. Always at the app root. */
   manifest: 'manifest.yaml',
-  /** Pipeline handlers: handlers/<configTypeId>/<handlerName> (extensionless in the manifest). */
-  handlersDir: 'handlers',
-  /** Canvas form schemas: templates/<configTypeId>-canvas.yaml */
-  templatesDir: 'templates',
-  /** Default field values: defaults/<configTypeId>.yaml */
-  defaultsDir: 'defaults',
+  /**
+   * The unit of extension: config-types/<configTypeId>/ colocates everything
+   * for one configuration type — canvas.yaml, defaults.yaml, the six pipeline
+   * handlers (extensionless in the manifest), and __tests__/.
+   */
+  configTypesDir: 'config-types',
+  /** Canvas form schema filename inside a config-type folder. */
+  canvasFile: 'canvas.yaml',
+  /** Default field values filename inside a config-type folder. */
+  defaultsFile: 'defaults.yaml',
   /** Lifecycle hooks (camelCase): hooks/onInstall, hooks/onUninstall, ... */
   hooksDir: 'hooks',
   /** Shared app code used by multiple handlers (API clients, parsers). */
@@ -50,20 +54,21 @@ export type HandlerName = (typeof HANDLER_NAMES)[number]
  * generating or checking a manifest programmatically.
  *
  * @example
- * conventionalPaths('indexes').handlers.deploy // 'handlers/indexes/deploy'
+ * conventionalPaths('indexes').handlers.deploy // 'config-types/indexes/deploy'
  */
 export function conventionalPaths(configTypeId: string): {
   canvasTemplate: string
   defaultConfig: string
   handlers: Record<HandlerName, string>
 } {
+  const base = `${APP_LAYOUT.configTypesDir}/${configTypeId}`
   const handlers = {} as Record<HandlerName, string>
   for (const name of HANDLER_NAMES) {
-    handlers[name] = `${APP_LAYOUT.handlersDir}/${configTypeId}/${name}`
+    handlers[name] = `${base}/${name}`
   }
   return {
-    canvasTemplate: `${APP_LAYOUT.templatesDir}/${configTypeId}-canvas.yaml`,
-    defaultConfig: `${APP_LAYOUT.defaultsDir}/${configTypeId}.yaml`,
+    canvasTemplate: `${base}/${APP_LAYOUT.canvasFile}`,
+    defaultConfig: `${base}/${APP_LAYOUT.defaultsFile}`,
     handlers,
   }
 }

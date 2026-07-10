@@ -51,12 +51,16 @@ apps/my-security-tool/
 ├── package.json                           # SDK + tooling devDependencies
 ├── tsconfig.json
 ├── README.md                              # What the app manages + credential setup
-├── handlers/<configTypeId>/               # Six pipeline handlers per configuration type:
-│   └── __tests__/                         #   validate, deploy, rollback,
-│                                          #   healthCheck, driftDetect, getStatus
-│                                          #   (+ tests next to the code they cover)
-├── templates/<configTypeId>-canvas.yaml   # Canvas form schema per type
-├── defaults/<configTypeId>.yaml           # Default field values per type
+├── config-types/<configTypeId>/           # THE unit of extension — everything for
+│   ├── canvas.yaml                        #   one configuration type in one folder:
+│   ├── defaults.yaml                      #   form schema, default values, and the
+│   ├── validate.ts                        #   six pipeline handlers
+│   ├── deploy.ts
+│   ├── rollback.ts
+│   ├── healthCheck.ts
+│   ├── driftDetect.ts
+│   ├── getStatus.ts
+│   └── __tests__/                         # Tests next to the code they cover
 ├── lib/                                   # Shared app code (API clients, parsers)
 ├── hooks/                                 # Lifecycle hooks (camelCase): onInstall.ts, ...
 ├── migrations/                            # SQL migrations (optional, tablePrefix enforced)
@@ -65,7 +69,7 @@ apps/my-security-tool/
 └── assets/                                # Icons, logos (optional)
 ```
 
-Manifest references use the conventional paths, extensionless for code (e.g. `handlers/indexes/deploy`, `templates/indexes-canvas.yaml`, `hooks/onInstall`).
+Adding a configuration type = one new `config-types/<id>/` folder + one manifest entry. Manifest references use the conventional paths, extensionless for code (e.g. `config-types/indexes/deploy`, `config-types/indexes/canvas.yaml`, `hooks/onInstall`).
 
 ## Submission & review
 
