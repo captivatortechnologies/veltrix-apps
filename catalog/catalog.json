@@ -1,8 +1,24 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-10T03:00:09.785Z",
+  "generatedAt": "2026-07-10T04:19:48.933Z",
   "apps": [
+    {
+      "appId": "splunk-cloud",
+      "name": "Splunk Cloud Platform",
+      "version": "1.0.0",
+      "vendor": "Veltrix",
+      "description": "Manage Splunk Cloud Platform configurations as code through the Admin Config Service (ACS) API. Includes index management, HTTP Event Collector (HEC) tokens, and IP allow lists.",
+      "category": "SIEM",
+      "icon": "☁️",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-cloud",
+      "available": true,
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-cloud-v1.0.0/splunk-cloud.zip",
+      "sha256": "f0f36c34f51fb0910b66a09ff193ea36141ef573dde29b446bd3c8cea40b6173",
+      "sizeBytes": 93034,
+      "publishedAt": "2026-07-10T04:19:48.919Z"
+    },
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
