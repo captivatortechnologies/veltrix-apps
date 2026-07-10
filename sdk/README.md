@@ -87,6 +87,7 @@ apps/<app-id>/
 │                                          # healthCheck, driftDetect, getStatus
 ├── templates/<configTypeId>-canvas.yaml   # Canvas form schema
 ├── defaults/<configTypeId>.yaml           # Default field values
+├── lib/                                   # Shared app code (API clients)
 ├── hooks/                                 # onInstall.ts, onUninstall.ts, ...
 ├── migrations/                            # SQL (with database.tablePrefix)
 ├── server/index.ts                        # Route module (AppRouteContext)

@@ -19,6 +19,8 @@ export const APP_LAYOUT = {
   defaultsDir: 'defaults',
   /** Lifecycle hooks (camelCase): hooks/onInstall, hooks/onUninstall, ... */
   hooksDir: 'hooks',
+  /** Shared app code used by multiple handlers (API clients, parsers). */
+  libDir: 'lib',
   /** SQL migrations (requires manifest `database.tablePrefix`). */
   migrationsDir: 'migrations',
   /** Fastify route module receiving (fastify, AppRouteContext). */
@@ -27,6 +29,8 @@ export const APP_LAYOUT = {
   clientEntry: 'client/index',
   /** Icons and logos (optional). */
   assetsDir: 'assets',
+  /** Tests live next to the code they cover: handlers/<id>/__tests__/ */
+  testsDirName: '__tests__',
 } as const
 
 /** The six pipeline handler names, in lifecycle order. */

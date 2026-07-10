@@ -52,10 +52,12 @@ apps/my-security-tool/
 ├── tsconfig.json
 ├── README.md                              # What the app manages + credential setup
 ├── handlers/<configTypeId>/               # Six pipeline handlers per configuration type:
-│                                          #   validate, deploy, rollback,
+│   └── __tests__/                         #   validate, deploy, rollback,
 │                                          #   healthCheck, driftDetect, getStatus
+│                                          #   (+ tests next to the code they cover)
 ├── templates/<configTypeId>-canvas.yaml   # Canvas form schema per type
 ├── defaults/<configTypeId>.yaml           # Default field values per type
+├── lib/                                   # Shared app code (API clients, parsers)
 ├── hooks/                                 # Lifecycle hooks (camelCase): onInstall.ts, ...
 ├── migrations/                            # SQL migrations (optional, tablePrefix enforced)
 ├── server/index.ts                        # Route module (AppRouteContext)

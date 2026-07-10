@@ -14,9 +14,11 @@ apps/<app-id>/
 │   ├── rollback.ts
 │   ├── healthCheck.ts
 │   ├── driftDetect.ts            # optional in the manifest, recommended
-│   └── getStatus.ts
+│   ├── getStatus.ts
+│   └── __tests__/                # Tests live next to the code they cover
 ├── templates/<configTypeId>-canvas.yaml   # Configuration Canvas form schema
 ├── defaults/<configTypeId>.yaml           # Default field values
+├── lib/                          # Shared app code (API client used by all handlers)
 ├── hooks/                        # Lifecycle hooks (camelCase): onInstall.ts, onUninstall.ts, ...
 ├── migrations/                   # SQL migrations (only with manifest `database`; tablePrefix enforced)
 ├── server/index.ts               # Fastify route module (AppRouteContext)
