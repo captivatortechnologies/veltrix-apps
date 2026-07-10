@@ -87,15 +87,12 @@ jobs:
             if gh release view "$TAG" >/dev/null 2>&1; then
               echo "::warning::Release $TAG already exists — bump manifest.version to publish a new package. Skipping."
             else
+              NOTES=$(printf 'Automated release of the `%s` app, version `%s`.\n\nInstall via the Veltrix App Management UI, or by URL:\n`https://github.com/%s/releases/download/%s/%s.zip`\n\nThe SHA-256 checksum is attached as `%s.zip.sha256` and published in the marketplace catalog.' \
+                "$APP" "$VERSION" "${{ github.repository }}" "$TAG" "$APP" "$APP")
               gh release create "$TAG" \
                 "dist/apps/$APP.zip" "dist/apps/$APP.zip.sha256" \
                 --title "$APP v$VERSION" \
-                --notes "Automated release of the \`$APP\` app, version \`$VERSION\`.
-
-Install via the Veltrix App Management UI, or by URL:
-\`https://github.com/${{ github.repository }}/releases/download/$TAG/$APP.zip\`
-
-SHA-256 checksum is attached as \`$APP.zip.sha256\` and published in the marketplace catalog."
+                --notes "$NOTES"
               echo "Released $TAG"
             fi
           done <<< "${{ steps.detect.outputs.apps }}"
