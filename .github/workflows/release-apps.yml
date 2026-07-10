@@ -19,6 +19,8 @@ concurrency:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   release:
@@ -126,6 +128,16 @@ jobs:
             git commit -m "chore(catalog): update marketplace catalog [skip ci]"
             git push
           fi
+
+      # Pushes made with GITHUB_TOKEN don't trigger other workflows, so the
+      # catalog commit above can't fire deploy-catalog.yml — deploy here.
+      - name: Upload catalog Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: catalog/
+
+      - name: Deploy catalog to GitHub Pages
+        uses: actions/deploy-pages@v4
 
       - name: Summary
         if: steps.detect.outputs.apps != ''
