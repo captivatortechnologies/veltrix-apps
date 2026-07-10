@@ -1,6 +1,17 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { authFetch } from '@veltrixsecops/app-sdk/client'
-import { Card, CardHeader, CardBody, Button, Badge, DataTable, type DataTableColumn } from '@veltrixsecops/app-sdk/ui'
+import {
+  Card,
+  CardHeader,
+  CardBody,
+  Button,
+  Badge,
+  Input,
+  Select,
+  FormDialog,
+  DataTable,
+  type DataTableColumn,
+} from '@veltrixsecops/app-sdk/ui'
 
 interface ByolInfrastructure {
   id: string
@@ -14,10 +25,42 @@ interface ByolInfrastructure {
   updatedAt?: string
 }
 
+interface FormState {
+  name: string
+  deploymentType: string
+  environmentType: string
+  hosting_type: string
+  indexerCount: string
+  searchHeadCount: string
+}
+
+const BLANK_FORM: FormState = {
+  name: '',
+  deploymentType: 'single',
+  environmentType: 'production',
+  hosting_type: 'kubernetes',
+  indexerCount: '1',
+  searchHeadCount: '1',
+}
+
+const DEPLOYMENT_OPTIONS = [
+  { value: 'single', label: 'Single instance' },
+  { value: 'distributed', label: 'Distributed' },
+  { value: 'clustered', label: 'Clustered' },
+]
+
+const ENVIRONMENT_OPTIONS = [
+  { value: 'production', label: 'Production' },
+  { value: 'development', label: 'Development' },
+]
+
+const API = '/api/apps/splunk-enterprise/byol'
+
 const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'danger' | 'default'> = {
   active: 'success',
   running: 'success',
   provisioning: 'warning',
+  stopped: 'warning',
   failed: 'danger',
   error: 'danger',
 }
@@ -28,18 +71,45 @@ function formatDate(value?: string): string {
   return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString()
 }
 
+function toForm(row: ByolInfrastructure): FormState {
+  return {
+    name: row.name ?? '',
+    deploymentType: row.deploymentType ?? 'single',
+    environmentType: row.environmentType ?? 'production',
+    hosting_type: row.hosting_type ?? 'kubernetes',
+    indexerCount: String(row.indexerCount ?? 1),
+    searchHeadCount: String(row.searchHeadCount ?? 1),
+  }
+}
+
+async function errorText(res: Response): Promise<string> {
+  return res
+    .json()
+    .then((b: { error?: string }) => b?.error || `HTTP ${res.status}`)
+    .catch(() => `HTTP ${res.status}`)
+}
+
 /**
- * Lists the customer's BYOL Splunk infrastructure from the app API.
+ * Manage the customer's BYOL Splunk infrastructure — full CRUD plus lifecycle
+ * (start / stop / restart) over the app's /byol routes. Lifecycle actions
+ * record desired state; no real cloud orchestration runs from here.
  */
 export default function BYOLPage() {
   const [infrastructure, setInfrastructure] = useState<ByolInfrastructure[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  const loadInfrastructure = useCallback(() => {
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editing, setEditing] = useState<ByolInfrastructure | null>(null)
+  const [form, setForm] = useState<FormState>(BLANK_FORM)
+  const [submitting, setSubmitting] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
+  const [busyId, setBusyId] = useState<string | null>(null)
+
+  const load = useCallback(() => {
     setIsLoading(true)
     setError(null)
-    return authFetch('/api/apps/splunk-enterprise/byol')
+    return authFetch(API)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then((data: ByolInfrastructure[]) => setInfrastructure(data))
       .catch((e: Error) => setError(e.message))
@@ -47,8 +117,99 @@ export default function BYOLPage() {
   }, [])
 
   useEffect(() => {
-    void loadInfrastructure()
-  }, [loadInfrastructure])
+    void load()
+  }, [load])
+
+  const openCreate = () => {
+    setEditing(null)
+    setForm(BLANK_FORM)
+    setFormError(null)
+    setDialogOpen(true)
+  }
+
+  const openEdit = (row: ByolInfrastructure) => {
+    setEditing(row)
+    setForm(toForm(row))
+    setFormError(null)
+    setDialogOpen(true)
+  }
+
+  // Memoized so FormDialog's focus effect doesn't steal focus from fields on each keystroke.
+  const closeDialog = useCallback(() => {
+    if (submitting) return
+    setDialogOpen(false)
+  }, [submitting])
+
+  const setField = <K extends keyof FormState>(key: K, value: FormState[K]) =>
+    setForm((prev) => ({ ...prev, [key]: value }))
+
+  const handleSubmit = async () => {
+    if (!form.name.trim()) {
+      setFormError('Name is required')
+      return
+    }
+    const indexerCount = Number(form.indexerCount)
+    const searchHeadCount = Number(form.searchHeadCount)
+    if (form.deploymentType === 'distributed') {
+      if (indexerCount < 3) {
+        setFormError('Distributed deployments require at least 3 indexers')
+        return
+      }
+      if (searchHeadCount < 2) {
+        setFormError('Distributed deployments require at least 2 search heads')
+        return
+      }
+    }
+    setSubmitting(true)
+    setFormError(null)
+    const payload = {
+      name: form.name.trim(),
+      deploymentType: form.deploymentType,
+      environmentType: form.environmentType,
+      hosting_type: form.hosting_type.trim(),
+      indexerCount,
+      searchHeadCount,
+    }
+    try {
+      const res = await authFetch(editing ? `${API}/${editing.id}` : API, {
+        method: editing ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error(await errorText(res))
+      setDialogOpen(false)
+      await load()
+    } catch (e) {
+      setFormError((e as Error).message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleDelete = async (row: ByolInfrastructure) => {
+    if (!window.confirm(`Delete BYOL infrastructure "${row.name}"? This cannot be undone.`)) return
+    try {
+      const res = await authFetch(`${API}/${row.id}`, { method: 'DELETE' })
+      if (!res.ok && res.status !== 204) throw new Error(await errorText(res))
+      await load()
+    } catch (e) {
+      setError((e as Error).message)
+    }
+  }
+
+  const handleLifecycle = async (row: ByolInfrastructure, action: 'start' | 'stop' | 'restart') => {
+    setBusyId(row.id)
+    setError(null)
+    try {
+      const res = await authFetch(`${API}/${row.id}/${action}`, { method: 'POST' })
+      if (!res.ok) throw new Error(await errorText(res))
+      await load()
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setBusyId(null)
+    }
+  }
 
   const columns: DataTableColumn<ByolInfrastructure>[] = [
     { key: 'name', header: 'Name', render: (row) => <strong>{row.name}</strong> },
@@ -75,15 +236,63 @@ export default function BYOLPage() {
       ),
     },
     { key: 'updatedAt', header: 'Updated', render: (row) => formatDate(row.updatedAt) },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      render: (row) => {
+        const isRunning = row.status === 'running'
+        const isBusy = busyId === row.id
+        return (
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={isRunning || isBusy}
+              onClick={() => void handleLifecycle(row, 'start')}
+            >
+              Start
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!isRunning || isBusy}
+              onClick={() => void handleLifecycle(row, 'stop')}
+            >
+              Stop
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!isRunning || isBusy}
+              onClick={() => void handleLifecycle(row, 'restart')}
+            >
+              Restart
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>
+              Edit
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => void handleDelete(row)}>
+              Delete
+            </Button>
+          </div>
+        )
+      },
+    },
   ]
 
   return (
     <Card variant="bordered">
       <CardHeader
         actions={
-          <Button variant="secondary" size="sm" onClick={() => void loadInfrastructure()} isLoading={isLoading}>
-            Refresh
-          </Button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button variant="secondary" size="sm" onClick={() => void load()} isLoading={isLoading}>
+              Refresh
+            </Button>
+            <Button variant="primary" size="sm" onClick={openCreate}>
+              New infrastructure
+            </Button>
+          </div>
         }
       >
         <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>BYOL Splunk Infrastructure</h2>
@@ -98,12 +307,73 @@ export default function BYOLPage() {
             rowKey={(row) => row.id}
             isLoading={isLoading}
             emptyState={{
-              title: 'No BYOL infrastructure provisioned yet',
-              description: 'Provision infrastructure from the platform to see it here.',
+              title: 'No BYOL infrastructure yet',
+              description: 'Create a BYOL deployment to manage its topology and lifecycle here.',
             }}
           />
         )}
       </CardBody>
+
+      <FormDialog
+        isOpen={dialogOpen}
+        onClose={closeDialog}
+        title={editing ? `Edit "${editing.name}"` : 'New BYOL infrastructure'}
+        description="Define the deployment topology for a Bring-Your-Own-License Splunk environment."
+        onSubmit={handleSubmit}
+        submitText={editing ? 'Save changes' : 'Create infrastructure'}
+        isSubmitting={submitting}
+        submitDisabled={!form.name.trim()}
+        error={formError}
+        size="md"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <Input
+            label="Name"
+            value={form.name}
+            onChange={(e) => setField('name', e.target.value)}
+            placeholder="e.g. Production cluster"
+            fullWidth
+            autoFocus
+          />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Select
+              label="Deployment type"
+              value={form.deploymentType}
+              onChange={(value) => setField('deploymentType', value)}
+              options={DEPLOYMENT_OPTIONS}
+            />
+            <Select
+              label="Environment"
+              value={form.environmentType}
+              onChange={(value) => setField('environmentType', value)}
+              options={ENVIRONMENT_OPTIONS}
+            />
+          </div>
+          <Input
+            label="Hosting type"
+            value={form.hosting_type}
+            onChange={(e) => setField('hosting_type', e.target.value)}
+            placeholder="e.g. kubernetes"
+            fullWidth
+          />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Input
+              label="Indexers"
+              type="number"
+              value={form.indexerCount}
+              onChange={(e) => setField('indexerCount', e.target.value)}
+              fullWidth
+            />
+            <Input
+              label="Search heads"
+              type="number"
+              value={form.searchHeadCount}
+              onChange={(e) => setField('searchHeadCount', e.target.value)}
+              fullWidth
+            />
+          </div>
+        </div>
+      </FormDialog>
     </Card>
   )
 }

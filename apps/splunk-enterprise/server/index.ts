@@ -80,6 +80,47 @@ function readRoleDefault(body: any): { data: Record<string, unknown>; error?: st
   }
 }
 
+/**
+ * Editable scalar fields for a BYOL infrastructure record, coerced from a
+ * request body. Region associations (indexerRegions / searchHeadRegions) and
+ * the splunkUpgrade relation are intentionally NOT written here.
+ * TODO regions: manage indexer/search-head region relation rows in a later pass.
+ */
+function readByol(body: any): { data: Record<string, unknown>; error?: string } {
+  const name = typeof body?.name === 'string' ? body.name.trim() : ''
+  if (!name) return { data: {}, error: 'Name is required' }
+  if (name.length > 120) return { data: {}, error: 'Name must be 120 characters or fewer' }
+
+  const deploymentType = typeof body?.deploymentType === 'string' ? body.deploymentType.trim() : 'single'
+  const environmentType = typeof body?.environmentType === 'string' ? body.environmentType.trim() : 'production'
+  const hostingType =
+    typeof body?.hosting_type === 'string' && body.hosting_type.trim() ? body.hosting_type.trim() : 'kubernetes'
+
+  const indexerCount = toInt(body?.indexerCount, 1)
+  const searchHeadCount = toInt(body?.searchHeadCount, 1)
+  if (indexerCount < 1) return { data: {}, error: 'indexerCount must be at least 1' }
+  if (searchHeadCount < 1) return { data: {}, error: 'searchHeadCount must be at least 1' }
+
+  if (deploymentType === 'distributed') {
+    if (indexerCount < 3) return { data: {}, error: 'Distributed deployments require at least 3 indexers' }
+    if (searchHeadCount < 2) return { data: {}, error: 'Distributed deployments require at least 2 search heads' }
+  }
+
+  const data: Record<string, unknown> = {
+    name,
+    deploymentType,
+    environmentType,
+    hosting_type: hostingType,
+    indexerCount,
+    searchHeadCount,
+  }
+  // cloudProviderId is optional (String?); only set when explicitly provided.
+  if (typeof body?.cloudProviderId === 'string' && body.cloudProviderId.trim()) {
+    data.cloudProviderId = body.cloudProviderId.trim()
+  }
+  return { data }
+}
+
 export default async function registerRoutes(
   fastify: FastifyInstance,
   ctx: AppRouteContext,
@@ -286,6 +327,102 @@ export default async function registerRoutes(
       reply.send(infra)
     },
   })
+
+  fastify.get('/byol/:id', {
+    preHandler: [hasPermission('byol', 'read')],
+    handler: async (request: FastifyRequest, reply: FastifyReply) => {
+      const customerId = customerOf(request)
+      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+      const { id } = request.params as { id: string }
+
+      const infra = await db.byolInfrastructure.findFirst({
+        where: { id, customerId },
+        include: {
+          indexerRegions: true,
+          searchHeadRegions: true,
+          splunkUpgrade: { include: { currentVersion: true } },
+        },
+      })
+      if (!infra) return reply.status(404).send({ error: 'BYOL infrastructure not found' })
+      reply.send(infra)
+    },
+  })
+
+  fastify.post('/byol', {
+    preHandler: [hasPermission('byol', 'write')],
+    handler: async (request: FastifyRequest, reply: FastifyReply) => {
+      const customerId = customerOf(request)
+      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+
+      const { data, error } = readByol(request.body)
+      if (error) return reply.status(400).send({ error })
+
+      const created = await db.byolInfrastructure.create({
+        data: { ...data, customerId },
+      })
+      reply.status(201).send(created)
+    },
+  })
+
+  fastify.put('/byol/:id', {
+    preHandler: [hasPermission('byol', 'write')],
+    handler: async (request: FastifyRequest, reply: FastifyReply) => {
+      const customerId = customerOf(request)
+      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+      const { id } = request.params as { id: string }
+
+      const { data, error } = readByol(request.body)
+      if (error) return reply.status(400).send({ error })
+
+      const existing = await db.byolInfrastructure.findFirst({ where: { id, customerId } })
+      if (!existing) return reply.status(404).send({ error: 'BYOL infrastructure not found' })
+
+      const updated = await db.byolInfrastructure.update({ where: { id }, data })
+      reply.send(updated)
+    },
+  })
+
+  fastify.delete('/byol/:id', {
+    preHandler: [hasPermission('byol', 'delete')],
+    handler: async (request: FastifyRequest, reply: FastifyReply) => {
+      const customerId = customerOf(request)
+      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+      const { id } = request.params as { id: string }
+
+      const existing = await db.byolInfrastructure.findFirst({ where: { id, customerId } })
+      if (!existing) return reply.status(404).send({ error: 'BYOL infrastructure not found' })
+
+      await db.byolInfrastructure.delete({ where: { id } })
+      reply.status(204).send()
+    },
+  })
+
+  // Lifecycle transitions. No real cloud orchestration exists for BYOL in the
+  // legacy platform, so these routes only record the DESIRED state on the
+  // record (start/restart -> running, stop -> stopped). Real provisioning is
+  // out of scope; the platform/UI reflect this status.
+  const registerLifecycle = (action: 'start' | 'stop' | 'restart', nextStatus: string) =>
+    fastify.post(`/byol/:id/${action}`, {
+      preHandler: [hasPermission('byol', 'write')],
+      handler: async (request: FastifyRequest, reply: FastifyReply) => {
+        const customerId = customerOf(request)
+        if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+        const { id } = request.params as { id: string }
+
+        const existing = await db.byolInfrastructure.findFirst({ where: { id, customerId } })
+        if (!existing) return reply.status(404).send({ error: 'BYOL infrastructure not found' })
+
+        const updated = await db.byolInfrastructure.update({
+          where: { id },
+          data: { status: nextStatus },
+        })
+        reply.send(updated)
+      },
+    })
+
+  registerLifecycle('start', 'running')
+  registerLifecycle('stop', 'stopped')
+  registerLifecycle('restart', 'running')
 
   // --- Version Management Routes ---
 
