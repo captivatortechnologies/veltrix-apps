@@ -1,6 +1,6 @@
 id: crowdstrike-edr
 name: CrowdStrike Falcon
-version: 1.0.0
+version: 1.1.0
 vendor: Veltrix
 description: >
   Manage CrowdStrike Falcon configurations as code through the Falcon
@@ -14,6 +14,13 @@ icon: "🦅"
 
 platform:
   minVersion: "1.0.0"
+
+# Rendered by the platform in the app's navbar and exposed to pages as
+# --veltrix-app-primary / --veltrix-app-accent. CrowdStrike's brand red is
+# used as an accent in defined slots only — never as a page-wide theme.
+branding:
+  primaryColor: "#FC0000"
+  logo: ./assets/logo.svg
 
 permissions:
   platform:
