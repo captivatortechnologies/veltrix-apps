@@ -1,0 +1,148 @@
+id: splunk-cloud
+name: Splunk Cloud Platform
+version: 1.0.0
+vendor: Veltrix
+description: >
+  Manage Splunk Cloud Platform configurations as code through the
+  Admin Config Service (ACS) API. Includes index management, HTTP Event
+  Collector (HEC) tokens, and IP allow lists.
+category: SIEM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-cloud
+icon: "☁️"
+
+platform:
+  minVersion: "1.0.0"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: indexes
+      actions: [read, write, delete]
+      description: Manage Splunk Cloud index configurations via ACS
+    - resource: hec-tokens
+      actions: [read, write, delete]
+      description: Manage Splunk Cloud HTTP Event Collector tokens via ACS
+    - resource: ip-allowlists
+      actions: [read, write, delete]
+      description: Manage Splunk Cloud IP allow lists via ACS
+
+pipeline:
+  configurationTypes:
+    - id: indexes
+      name: Index Configuration
+      description: Splunk Cloud index definitions (datatype, searchable retention, sizing, DDAA/DDSS archival)
+      canvasTemplate: config-types/indexes/canvas.yaml
+      defaultConfig: config-types/indexes/defaults.yaml
+      handlers:
+        validate: config-types/indexes/validate
+        deploy: config-types/indexes/deploy
+        rollback: config-types/indexes/rollback
+        healthCheck: config-types/indexes/healthCheck
+        driftDetect: config-types/indexes/driftDetect
+        getStatus: config-types/indexes/getStatus
+      targets:
+        componentTypes: [splunk-cloud-stack]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: hec-tokens
+      name: HEC Token Configuration
+      description: HTTP Event Collector token definitions (default index, allowed indexes, acknowledgement)
+      canvasTemplate: config-types/hec-tokens/canvas.yaml
+      defaultConfig: config-types/hec-tokens/defaults.yaml
+      handlers:
+        validate: config-types/hec-tokens/validate
+        deploy: config-types/hec-tokens/deploy
+        rollback: config-types/hec-tokens/rollback
+        healthCheck: config-types/hec-tokens/healthCheck
+        driftDetect: config-types/hec-tokens/driftDetect
+        getStatus: config-types/hec-tokens/getStatus
+      targets:
+        componentTypes: [splunk-cloud-stack]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ip-allowlists
+      name: IP Allow List Configuration
+      description: Per-feature IP allow lists (search-api, hec, s2s, search-ui, idm-ui, idm-api, acs)
+      canvasTemplate: config-types/ip-allowlists/canvas.yaml
+      defaultConfig: config-types/ip-allowlists/defaults.yaml
+      handlers:
+        validate: config-types/ip-allowlists/validate
+        deploy: config-types/ip-allowlists/deploy
+        rollback: config-types/ip-allowlists/rollback
+        healthCheck: config-types/ip-allowlists/healthCheck
+        driftDetect: config-types/ip-allowlists/driftDetect
+        getStatus: config-types/ip-allowlists/getStatus
+      targets:
+        componentTypes: [splunk-cloud-stack]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/splunk-cloud
+
+client:
+  entry: client/index
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: cloud
+      sidebar: true
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      sidebar: true
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+settings:
+  - key: acs_base_url
+    type: string
+    label: ACS Base URL
+    description: >
+      Admin Config Service base URL. Use https://admin.splunkcloudgc.com
+      for FedRAMP Moderate (IL2) stacks.
+    default: https://admin.splunk.com
+    required: false
+  - key: experience
+    type: select
+    label: Splunk Cloud Experience
+    description: >
+      Victoria or Classic Experience. All configuration types in this app
+      are supported on both; the setting is recorded with deployments and
+      gates future Victoria-only capabilities (e.g. limits.conf).
+    default: victoria
+    required: false
+    options:
+      - label: Victoria
+        value: victoria
+      - label: Classic
+        value: classic
+  - key: request_timeout_seconds
+    type: number
+    label: ACS Request Timeout (seconds)
+    description: Timeout applied to each ACS API request
+    default: 30
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated
