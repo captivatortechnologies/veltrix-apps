@@ -39,7 +39,7 @@ On merge, CI publishes an immutable release `splunk-enterprise-v<new-version>`, 
    npm run typecheck
    cd ../.. && node scripts/validate-app.mjs apps/<your-app-id>
    ```
-   To run against a local platform, point the Veltrix server's `APPS_DIR` env var at your checkout of this repo — the AppRegistry auto-discovers apps from there.
+   The Veltrix platform itself is a hosted SaaS and is not open source yet, so community contributors can't run a full platform locally. The validator + typecheck cover the app contract; end-to-end behavior is exercised by maintainers against a staging tenant during review. (Veltrix team: point the server's `APPS_DIR` at a checkout of this repo's `apps/` directory for live development.)
 
 ## Directory structure
 

@@ -74,9 +74,22 @@ jobs:
             VERSION=$(node -e "const y=require('js-yaml');console.log(y.load(require('fs').readFileSync('apps/$APP/manifest.yaml','utf8')).version)")
             TAG="$APP-v$VERSION"
 
-            (cd "apps/$APP" && zip -qr "../../dist/apps/$APP.zip" . \
-              -x "*.git*" -x "node_modules/*" -x ".DS_Store" -x "__pycache__/*" \
-              -x "*.test.*" -x "__tests__/*")
+            # Stage the app and transpile server-side TypeScript to CommonJS JS.
+            # The hosted platform runs compiled code (no TypeScript loader), so
+            # packages must contain runnable .js next to the .ts sources.
+            STAGING=$(mktemp -d)
+            rsync -a \
+              --exclude node_modules --exclude .git --exclude __tests__ \
+              --exclude '*.test.*' --exclude .DS_Store --exclude __pycache__ \
+              "apps/$APP/" "$STAGING/"
+            TS_FILES=$(find "$STAGING" -name '*.ts' -not -path '*/client/*')
+            if [ -n "$TS_FILES" ]; then
+              # shellcheck disable=SC2086
+              npx esbuild $TS_FILES --format=cjs --platform=node --target=node20 \
+                --outdir="$STAGING" --outbase="$STAGING" --log-level=warning
+            fi
+            (cd "$STAGING" && zip -qr "$GITHUB_WORKSPACE/dist/apps/$APP.zip" .)
+            rm -rf "$STAGING"
 
             SIZE=$(stat -c%s "dist/apps/$APP.zip")
             if [ "$SIZE" -gt $((50 * 1024 * 1024)) ]; then

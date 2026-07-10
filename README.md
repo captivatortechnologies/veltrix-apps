@@ -4,6 +4,8 @@ The official app repository for the [Veltrix Security-as-Code platform](https://
 
 A **Veltrix app** packages everything needed to manage one security tool's configuration as code: pipeline handlers (validate → deploy → rollback → health-check → drift-detect → status), canvas templates, database migrations, lifecycle hooks, and optional UI pages. Apps in this repository are reviewed, packaged by CI, and installable from the Veltrix marketplace.
 
+> The Veltrix platform itself is a hosted SaaS (open-sourcing is planned, not yet available) — this repository is the platform's open-source surface. Apps are installed by tenants entirely through the platform UI; release packages ship with server-side handlers precompiled to JavaScript so they load at runtime on hosted instances.
+
 ## Available apps
 
 | App | Category | Description |
