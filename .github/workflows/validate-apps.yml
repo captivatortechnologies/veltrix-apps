@@ -1,0 +1,115 @@
+name: Validate Apps
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/**'
+      - '_template/**'
+      - 'scripts/**'
+
+jobs:
+  validate:
+    name: Validate changed apps
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install tooling
+        run: npm ci
+
+      - name: Detect changed apps
+        id: detect
+        run: |
+          CHANGED=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" -- apps/ \
+            | cut -d'/' -f2 | sort -u | grep -v '^$' || true)
+          echo "Changed apps: $CHANGED"
+          echo "apps<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$CHANGED" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+          if git diff --name-only "origin/${{ github.base_ref }}...HEAD" -- _template/ | grep -q .; then
+            echo "template_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "template_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate manifests and security rules
+        if: steps.detect.outputs.apps != ''
+        run: |
+          FAILED=0
+          while IFS= read -r APP; do
+            [ -z "$APP" ] && continue
+            [ -d "apps/$APP" ] || { echo "apps/$APP was deleted — skipping validation"; continue; }
+            node scripts/validate-app.mjs "apps/$APP" || FAILED=1
+          done <<< "${{ steps.detect.outputs.apps }}"
+          exit $FAILED
+
+      - name: Enforce version bump
+        if: steps.detect.outputs.apps != ''
+        run: |
+          FAILED=0
+          while IFS= read -r APP; do
+            [ -z "$APP" ] && continue
+            [ -d "apps/$APP" ] || continue
+            if git cat-file -e "origin/${{ github.base_ref }}:apps/$APP/manifest.yaml" 2>/dev/null; then
+              BASE_VERSION=$(git show "origin/${{ github.base_ref }}:apps/$APP/manifest.yaml" \
+                | node -e "const y=require('js-yaml');let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(y.load(s).version))")
+              HEAD_VERSION=$(node -e "const y=require('js-yaml');console.log(y.load(require('fs').readFileSync('apps/$APP/manifest.yaml','utf8')).version)")
+              if [ "$BASE_VERSION" = "$HEAD_VERSION" ]; then
+                echo "::error::apps/$APP changed but manifest.version is still $HEAD_VERSION — bump the version to release a new package"
+                FAILED=1
+              else
+                echo "apps/$APP: $BASE_VERSION -> $HEAD_VERSION"
+              fi
+            else
+              echo "apps/$APP is new (no version bump required)"
+            fi
+          done <<< "${{ steps.detect.outputs.apps }}"
+          exit $FAILED
+
+      - name: Typecheck apps against published SDK
+        if: steps.detect.outputs.apps != '' || steps.detect.outputs.template_changed == 'true'
+        run: |
+          if ! npm view @veltrixsecops/app-sdk version >/dev/null 2>&1; then
+            echo "::warning::@veltrixsecops/app-sdk is not published yet — skipping typecheck"
+            exit 0
+          fi
+          FAILED=0
+          DIRS="${{ steps.detect.outputs.apps }}"
+          TARGETS=""
+          while IFS= read -r APP; do
+            [ -n "$APP" ] && [ -d "apps/$APP" ] && TARGETS="$TARGETS apps/$APP"
+          done <<< "$DIRS"
+          if [ "${{ steps.detect.outputs.template_changed }}" = "true" ]; then
+            TARGETS="$TARGETS _template"
+          fi
+          for DIR in $TARGETS; do
+            echo "--- typecheck $DIR"
+            (cd "$DIR" && npm install --no-audit --no-fund && npx tsc -p tsconfig.json) || FAILED=1
+          done
+          exit $FAILED
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog scan (PR diff)
+        uses: trufflesecurity/trufflehog@main
+        with:
+          base: ${{ github.event.pull_request.base.sha }}
+          head: ${{ github.event.pull_request.head.sha }}
+          extra_args: --only-verified

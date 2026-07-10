@@ -1,0 +1,38 @@
+name: New app request
+description: Request a Veltrix app for a security tool
+title: "[App request]: "
+labels: ["app-request"]
+body:
+  - type: input
+    id: tool
+    attributes:
+      label: Security tool
+      description: Vendor and product (e.g. CrowdStrike Falcon, HashiCorp Vault)
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options: [SIEM, EDR, SOAR, IAM, NETWORK, CLOUD, COMPLIANCE, CUSTOM]
+    validations:
+      required: true
+  - type: textarea
+    id: configs
+    attributes:
+      label: What configuration should be managed as code?
+      description: Which of the tool's configurations would flow through the Veltrix pipeline (validate → approve → deploy → drift-detect)?
+      placeholder: e.g. detection rules, exclusion lists, sensor policies...
+    validations:
+      required: true
+  - type: textarea
+    id: api
+    attributes:
+      label: Tool API / automation surface
+      description: Links to the tool's configuration API docs, if known.
+  - type: checkboxes
+    id: build
+    attributes:
+      label: Contribution
+      options:
+        - label: I'm interested in building this app myself

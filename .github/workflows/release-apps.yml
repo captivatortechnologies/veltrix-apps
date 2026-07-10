@@ -1,0 +1,142 @@
+name: Release Apps
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/**'
+  workflow_dispatch:
+    inputs:
+      package_all:
+        description: 'Package and release all apps (not just changed ones)'
+        required: false
+        default: true
+        type: boolean
+
+concurrency:
+  group: release-apps
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Package, release, and update catalog
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install tooling
+        run: npm ci
+
+      - name: Detect apps to release
+        id: detect
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.package_all }}" = "true" ]; then
+            APPS=$(ls -d apps/*/manifest.yaml 2>/dev/null | cut -d'/' -f2 | sort -u || true)
+          else
+            if git rev-parse HEAD~1 >/dev/null 2>&1; then
+              APPS=$(git diff --name-only HEAD~1 HEAD -- apps/ | cut -d'/' -f2 | sort -u | grep -v '^$' || true)
+            else
+              APPS=$(ls -d apps/*/manifest.yaml 2>/dev/null | cut -d'/' -f2 | sort -u || true)
+            fi
+          fi
+          echo "Apps to release: $APPS"
+          echo "apps<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$APPS" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Validate, package, and release
+        if: steps.detect.outputs.apps != ''
+        run: |
+          mkdir -p dist/apps
+          FAILED=0
+          while IFS= read -r APP; do
+            [ -z "$APP" ] && continue
+            [ -f "apps/$APP/manifest.yaml" ] || { echo "apps/$APP has no manifest (deleted?) — skipping"; continue; }
+
+            echo "=== $APP ==="
+            node scripts/validate-app.mjs "apps/$APP" || { FAILED=1; continue; }
+
+            VERSION=$(node -e "const y=require('js-yaml');console.log(y.load(require('fs').readFileSync('apps/$APP/manifest.yaml','utf8')).version)")
+            TAG="$APP-v$VERSION"
+
+            (cd "apps/$APP" && zip -qr "../../dist/apps/$APP.zip" . \
+              -x "*.git*" -x "node_modules/*" -x ".DS_Store" -x "__pycache__/*" \
+              -x "*.test.*" -x "__tests__/*")
+
+            SIZE=$(stat -c%s "dist/apps/$APP.zip")
+            if [ "$SIZE" -gt $((50 * 1024 * 1024)) ]; then
+              echo "::error::$APP package exceeds 50 MB ($SIZE bytes)"
+              rm "dist/apps/$APP.zip"; FAILED=1; continue
+            fi
+
+            (cd dist/apps && sha256sum "$APP.zip" > "$APP.zip.sha256")
+
+            if gh release view "$TAG" >/dev/null 2>&1; then
+              echo "::warning::Release $TAG already exists — bump manifest.version to publish a new package. Skipping."
+            else
+              gh release create "$TAG" \
+                "dist/apps/$APP.zip" "dist/apps/$APP.zip.sha256" \
+                --title "$APP v$VERSION" \
+                --notes "Automated release of the \`$APP\` app, version \`$VERSION\`.
+
+Install via the Veltrix App Management UI, or by URL:
+\`https://github.com/${{ github.repository }}/releases/download/$TAG/$APP.zip\`
+
+SHA-256 checksum is attached as \`$APP.zip.sha256\` and published in the marketplace catalog."
+              echo "Released $TAG"
+            fi
+          done <<< "${{ steps.detect.outputs.apps }}"
+          exit $FAILED
+
+      - name: Update apps-latest compatibility alias
+        if: steps.detect.outputs.apps != ''
+        run: |
+          if ! gh release view apps-latest >/dev/null 2>&1; then
+            gh release create apps-latest \
+              --title "Community Apps (Latest)" \
+              --notes "Rolling alias with the newest package of every app. Prefer the immutable per-app releases (\`<app-id>-v<version>\`) — this alias exists for backward compatibility." \
+              --latest=false
+          fi
+          for ZIP in dist/apps/*.zip; do
+            [ -e "$ZIP" ] || continue
+            gh release upload apps-latest "$ZIP" --clobber
+          done
+
+      - name: Rebuild marketplace catalog
+        run: node scripts/build-catalog.mjs --repo "${{ github.repository }}"
+
+      - name: Commit catalog
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add catalog/catalog.json
+          if git diff --cached --quiet; then
+            echo "Catalog unchanged"
+          else
+            git commit -m "chore(catalog): update marketplace catalog [skip ci]"
+            git push
+          fi
+
+      - name: Summary
+        if: steps.detect.outputs.apps != ''
+        run: |
+          echo "## Released Apps" >> "$GITHUB_STEP_SUMMARY"
+          for F in dist/apps/*.zip; do
+            [ -e "$F" ] || continue
+            NAME=$(basename "$F" .zip)
+            SIZE=$(stat -c%s "$F")
+            echo "- **$NAME** ($(numfmt --to=iec "$SIZE"))" >> "$GITHUB_STEP_SUMMARY"
+          done

@@ -1,0 +1,10 @@
+# Default owners for everything in the repo — required reviewers on all PRs.
+* @layamba25
+
+# Per-app maintainers (add community maintainers per line as apps gain them)
+/apps/splunk-enterprise/ @layamba25
+
+# Platform contract surfaces — changes here affect every app
+/_template/ @layamba25
+/scripts/ @layamba25
+/.github/ @layamba25

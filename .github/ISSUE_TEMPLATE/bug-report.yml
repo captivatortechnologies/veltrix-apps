@@ -1,0 +1,33 @@
+name: App bug report
+description: Report a problem with an app in this repository
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: app
+    attributes:
+      label: App
+      options:
+        - splunk-enterprise
+        - _template
+        - other / repo tooling
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Include the pipeline stage (validate/deploy/rollback/health-check/drift/status), error output, and what you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce

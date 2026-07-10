@@ -1,0 +1,14 @@
+{
+  "name": "veltrix-apps",
+  "private": true,
+  "type": "module",
+  "description": "Veltrix community apps monorepo — validation and catalog tooling",
+  "scripts": {
+    "validate": "node scripts/validate-app.mjs",
+    "catalog": "node scripts/build-catalog.mjs"
+  },
+  "devDependencies": {
+    "js-yaml": "^4.1.0"
+  },
+  "license": "Apache-2.0"
+}
