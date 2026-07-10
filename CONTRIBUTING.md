@@ -39,7 +39,22 @@ On merge, CI publishes an immutable release `splunk-enterprise-v<new-version>`, 
    npm run typecheck
    cd ../.. && node scripts/validate-app.mjs apps/<your-app-id>
    ```
-   The Veltrix platform itself is a hosted SaaS and is not open source yet, so community contributors can't run a full platform locally. The validator + typecheck cover the app contract; end-to-end behavior is exercised by maintainers against a staging tenant during review. (Veltrix team: point the server's `APPS_DIR` at a checkout of this repo's `apps/` directory for live development.)
+   The validator + typecheck enforce the app contract (the same rules CI runs). For end-to-end behavior, develop against a sandbox in your own tenant — see the next section.
+
+### Develop against your tenant (sandbox dev loop)
+
+The Veltrix platform is a hosted SaaS, so instead of running it locally you run your work-in-progress app inside a **sandbox** in your own tenant, synced live from your editor by the [Veltrix CLI](cli/README.md):
+
+```bash
+npm install -g @veltrixsecops/cli
+veltrix login                                            # API key from Settings → Keys & Tokens
+veltrix sandbox create my-tool-dev --app my-security-tool
+veltrix dev apps/my-security-tool --sandbox my-tool-dev  # watch + live sync
+```
+
+Saves land in the sandbox within a second or two: the platform validates the manifest, transpiles server-side TypeScript, and reports results back to your terminal. Add `--run <configTypeId>:<handler>` to invoke a pipeline handler after each sync, and `--logs` to stream sandbox events when the platform supports it. Sandboxed apps are isolated to your tenant, can only target components an admin tagged for sandbox use, and never receive production credentials.
+
+> Sandbox development requires a tenant with the sandbox feature enabled (`SANDBOX_ENABLED`) and an API key with the `sandbox:read` / `sandbox:write` scopes. If your tenant doesn't have it yet, the validator + typecheck still cover the full app contract, and maintainers exercise end-to-end behavior against a staging tenant during review. (Veltrix team: pointing the server's `APPS_DIR` at a checkout of this repo's `apps/` directory also works for platform-side development.)
 
 ## Directory structure (canonical — all apps use this exact layout)
 

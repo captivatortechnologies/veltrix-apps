@@ -38,7 +38,8 @@ https://captivatortechnologies.github.io/veltrix-apps/catalog.json
    npm ci
    node scripts/validate-app.mjs apps/<your-app-id>
    ```
-5. Open a pull request — see [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide and review criteria.
+5. Develop live against your own tenant with the [Veltrix CLI](cli/)'s sandbox dev loop (`veltrix dev`) — see [CONTRIBUTING.md](CONTRIBUTING.md#develop-against-your-tenant-sandbox-dev-loop).
+6. Open a pull request — see [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide and review criteria.
 
 ## Release model
 
@@ -52,7 +53,7 @@ https://captivatortechnologies.github.io/veltrix-apps/catalog.json
 apps/<app-id>/     # One directory per app (manifest.yaml + handlers + ...)
 _template/         # Starting point for new apps
 sdk/               # @veltrixsecops/app-sdk — the typed app contract
-cli/               # @veltrixsecops/cli — validate, package, login, (soon) dev
+cli/               # @veltrixsecops/cli — validate, package, login, sandbox dev loop
 scripts/           # Validation + catalog generation used by CI and locally
 catalog/           # Generated marketplace catalog (committed by CI)
 .github/workflows/ # PR validation, release packaging, catalog + npm publishing
