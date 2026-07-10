@@ -51,19 +51,26 @@ async function send(profile, method, apiPath, { body, headers } = {}) {
 }
 
 /** JSON request. `body` (when given) is JSON-serialized. */
-export async function apiRequest(profile, method, apiPath, body) {
+export async function apiRequest(profile, method, apiPath, body, extraHeaders = {}) {
   const hasBody = body !== undefined
   return send(profile, method, apiPath, {
     body: hasBody ? JSON.stringify(body) : undefined,
-    headers: hasBody ? { 'Content-Type': 'application/json' } : {},
+    headers: { ...(hasBody ? { 'Content-Type': 'application/json' } : {}), ...extraHeaders },
   })
 }
 
 /** Raw binary upload (Buffer body), default Content-Type application/gzip. */
-export async function apiUpload(profile, method, apiPath, buffer, contentType = 'application/gzip') {
+export async function apiUpload(
+  profile,
+  method,
+  apiPath,
+  buffer,
+  contentType = 'application/gzip',
+  extraHeaders = {},
+) {
   return send(profile, method, apiPath, {
     body: buffer,
-    headers: { 'Content-Type': contentType },
+    headers: { 'Content-Type': contentType, ...extraHeaders },
   })
 }
 
