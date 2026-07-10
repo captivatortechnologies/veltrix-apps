@@ -1,13 +1,13 @@
 // ========================================================================
-// @veltrix/app-sdk
+// @veltrixsecops/app-sdk
 //
 // The official SDK for building Veltrix Security-as-Code apps.
 // Import pipeline helpers, hooks, and types to build your app.
 //
 // Usage:
-//   import { defineValidator, defineDeployer } from '@veltrix/app-sdk/pipeline'
-//   import { useAppContext, usePipelineStatus } from '@veltrix/app-sdk/hooks'
-//   import type { PipelineContext, DeployContext } from '@veltrix/app-sdk'
+//   import { defineValidator, defineDeployer } from '@veltrixsecops/app-sdk/pipeline'
+//   import { useAppContext, usePipelineStatus } from '@veltrixsecops/app-sdk/hooks'
+//   import type { PipelineContext, DeployContext } from '@veltrixsecops/app-sdk'
 // ========================================================================
 
 // Pipeline handler helpers
@@ -45,7 +45,16 @@ export type {
   ConfigStatus,
   ComponentConfigStatus,
   CanvasSnapshot,
+  CanvasSectionSnapshot,
   DeploymentStrategy,
+  EnvironmentRef,
+  UserRef,
+  ComponentRef,
+  CredentialRef,
+  ConnectivityRef,
+  ConnectivityProviderRef,
+  PlatformDataApi,
+  DeploymentSummary,
   ValidateHandler,
   DeployHandler,
   RollbackHandler,
@@ -62,7 +71,25 @@ export type {
   Tag,
   User,
   Customer,
+  PlatformDatabaseClient,
+  AppHookContext,
+  AppRouteContext,
 } from './types/platform'
+
+// Manifest types
+export type {
+  AppManifest,
+  AppConfigurationTypeManifest,
+  AppPermissionDeclaration,
+  AppPageDeclaration,
+  AppSettingDeclaration,
+  AppSource,
+  AppStatusType,
+  AppInstallationStatus,
+  AppListItem,
+  AppDetail,
+  AppInstallationDetail,
+} from './types/manifest'
 
 // Hooks types
 export type { AppContextValue, PipelineStatusData } from './hooks'

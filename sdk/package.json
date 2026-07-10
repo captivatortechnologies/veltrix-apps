@@ -1,42 +1,84 @@
 {
-  "name": "@veltrix/app-sdk",
-  "version": "1.0.0",
-  "description": "SDK for building Veltrix Security-as-Code apps",
-  "main": "dist/index.js",
+  "name": "@veltrixsecops/app-sdk",
+  "version": "1.0.1",
+  "description": "Official SDK for building Veltrix Security-as-Code apps — typed pipeline handler contracts, lifecycle hook types, manifest types, and React hooks.",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     },
     "./pipeline": {
-      "types": "./dist/pipeline/index.d.ts",
-      "import": "./dist/pipeline/index.js",
-      "require": "./dist/pipeline/index.cjs"
+      "import": {
+        "types": "./dist/pipeline/index.d.ts",
+        "default": "./dist/pipeline/index.js"
+      },
+      "require": {
+        "types": "./dist/pipeline/index.d.cts",
+        "default": "./dist/pipeline/index.cjs"
+      }
     },
     "./hooks": {
-      "types": "./dist/hooks/index.d.ts",
-      "import": "./dist/hooks/index.js",
-      "require": "./dist/hooks/index.cjs"
+      "import": {
+        "types": "./dist/hooks/index.d.ts",
+        "default": "./dist/hooks/index.js"
+      },
+      "require": {
+        "types": "./dist/hooks/index.d.cts",
+        "default": "./dist/hooks/index.cjs"
+      }
     }
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch"
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run typecheck && npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "peerDependencies": {
     "react": ">=18.0.0"
   },
-  "devDependencies": {
-    "typescript": "^5.6.0",
-    "@types/node": "^20.0.0",
-    "@types/react": "^18.0.0"
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
   },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.6.0"
+  },
+  "keywords": [
+    "veltrix",
+    "security-as-code",
+    "secops",
+    "app-sdk",
+    "pipeline",
+    "plugin"
+  ],
   "license": "MIT",
+  "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/sdk",
   "repository": {
     "type": "git",
-    "url": "https://github.com/veltrix/veltrix"
+    "url": "https://github.com/captivatortechnologies/veltrix-apps.git",
+    "directory": "sdk"
   }
 }

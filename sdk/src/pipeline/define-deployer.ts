@@ -5,7 +5,7 @@ import type { DeployContext, DeployResult } from '../types/pipeline'
  *
  * @example
  * ```ts
- * import { defineDeployer } from '@veltrix/app-sdk/pipeline'
+ * import { defineDeployer } from '@veltrixsecops/app-sdk/pipeline'
  *
  * export default defineDeployer(async (ctx) => {
  *   const { component, credential, connectivity, canvas } = ctx

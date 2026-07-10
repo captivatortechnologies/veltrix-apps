@@ -28,7 +28,7 @@ export const AppContext = createContext<AppContextValue | null>(null)
  *
  * @example
  * ```tsx
- * import { useAppContext } from '@veltrix/app-sdk/hooks'
+ * import { useAppContext } from '@veltrixsecops/app-sdk/hooks'
  *
  * function MyComponent() {
  *   const { appId, settings, getComponents } = useAppContext()

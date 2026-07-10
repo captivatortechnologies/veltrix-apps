@@ -20,7 +20,7 @@ export interface PipelineStatusData {
  *
  * @example
  * ```tsx
- * import { usePipelineStatus } from '@veltrix/app-sdk/hooks'
+ * import { usePipelineStatus } from '@veltrixsecops/app-sdk/hooks'
  *
  * function Dashboard() {
  *   const { data, isLoading } = usePipelineStatus('my-app')

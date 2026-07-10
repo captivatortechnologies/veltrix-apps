@@ -5,7 +5,7 @@ import type { PipelineContext, ValidationResult } from '../types/pipeline'
  *
  * @example
  * ```ts
- * import { defineValidator } from '@veltrix/app-sdk/pipeline'
+ * import { defineValidator } from '@veltrixsecops/app-sdk/pipeline'
  *
  * export default defineValidator(async (ctx) => {
  *   const errors = []

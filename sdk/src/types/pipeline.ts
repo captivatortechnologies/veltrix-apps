@@ -1,9 +1,11 @@
 // ========================================================================
 // Pipeline types for app developers
-// These define the handler contracts apps must implement
+// These define the handler contracts apps must implement.
+//
+// This file mirrors the platform's pipeline-engine contract
+// (server/src/core/pipeline-engine/types.ts). The platform constructs
+// every context; apps only consume them.
 // ========================================================================
-
-import type { Component, Credential, Connectivity, Tag, User } from './platform'
 
 // --- Shared result types ---
 
@@ -81,6 +83,11 @@ export interface ConfigStatus {
 
 // --- Canvas snapshot ---
 
+export interface CanvasSectionSnapshot {
+  name: string
+  fields: Record<string, unknown>
+}
+
 export interface CanvasSnapshot {
   id: string
   canvasId: string
@@ -88,14 +95,87 @@ export interface CanvasSnapshot {
   name: string
   toolType: string
   entityType: string
-  sections: Array<{
-    name: string
-    fields: Record<string, unknown>
-  }>
+  sections: CanvasSectionSnapshot[]
   snapshot: Record<string, unknown>
 }
 
 export type DeploymentStrategy = 'DIRECT' | 'CANARY' | 'BLUE_GREEN' | 'ROLLING'
+
+// --- Reference types (lightweight refs passed to handlers) ---
+
+export interface EnvironmentRef {
+  id: string
+  name: string
+}
+
+export interface UserRef {
+  id: string
+  email: string
+  name: string | null
+}
+
+export interface ComponentRef {
+  id: string
+  hostname: string
+  port: string
+  type: string[]
+  toolId: string
+}
+
+export interface CredentialRef {
+  id: string
+  name: string
+  username: string
+  password: string
+  apiToken: string | null
+  certificate: string | null
+}
+
+export interface ConnectivityRef {
+  id: string
+  status: string
+  sshCommand: string | null
+  httpsUrl: string | null
+  tailscaleDeviceIP: string | null
+}
+
+/** Provider-aware connectivity passed to handlers when a ConnectivityProvider is configured */
+export interface ConnectivityProviderRef {
+  id: string
+  providerType: string // 'tailscale' | 'ssh' | 'wireguard' | 'cloudflare_tunnel' | etc.
+  name: string
+  status: string
+  config: Record<string, unknown> // Unmasked config for handler use (server-side only)
+}
+
+// --- Platform data access ---
+
+/** Summary of a deployment record, returned by PlatformDataApi */
+export interface DeploymentSummary {
+  id: string
+  canvasId: string
+  status: string
+  healthScore: number | null
+  startedAt: string
+  completedAt: string | null
+  environment: EnvironmentRef
+}
+
+/**
+ * Tenant-scoped, read-only access to platform data, provided on every
+ * handler context as `ctx.platform`. Apps must use this instead of
+ * querying the platform database directly — it is the only supported
+ * way to read platform records from an app.
+ */
+export interface PlatformDataApi {
+  /** Latest deployment for a canvas, optionally filtered by status (e.g. 'SUCCEEDED'). */
+  getLatestDeployment(
+    canvasId: string,
+    opts?: { status?: string },
+  ): Promise<DeploymentSummary | null>
+  /** Components for the current customer, optionally filtered by component types. */
+  listComponents(filter?: { types?: string[] }): Promise<ComponentRef[]>
+}
 
 // --- Handler contexts ---
 
@@ -104,38 +184,43 @@ export interface PipelineContext {
   customerId: string
   configTypeId: string
   canvas: CanvasSnapshot
-  environment: { id: string; name: string }
-  user: { id: string; email: string; name: string | null }
+  environment: EnvironmentRef
+  user: UserRef
   settings: Record<string, unknown>
+  platform: PlatformDataApi
 }
 
 export interface DeployContext extends PipelineContext {
-  component: Pick<Component, 'id' | 'hostname' | 'port' | 'type' | 'toolId'>
-  credential: Pick<Credential, 'id' | 'name' | 'username' | 'password' | 'apiToken' | 'certificate'> | null
-  connectivity: Pick<Connectivity, 'id' | 'status' | 'sshCommand' | 'httpsUrl' | 'tailscaleDeviceIP'> | null
+  component: ComponentRef
+  credential: CredentialRef | null
+  connectivity: ConnectivityRef | null
+  connectivityProvider: ConnectivityProviderRef | null
   previousConfig: CanvasSnapshot | null
   strategy: DeploymentStrategy
   canaryPercent?: number
 }
 
 export interface RollbackContext extends PipelineContext {
-  component: Pick<Component, 'id' | 'hostname' | 'port' | 'type' | 'toolId'>
-  credential: Pick<Credential, 'id' | 'name' | 'username' | 'password' | 'apiToken' | 'certificate'> | null
-  connectivity: Pick<Connectivity, 'id' | 'status' | 'sshCommand' | 'httpsUrl' | 'tailscaleDeviceIP'> | null
+  component: ComponentRef
+  credential: CredentialRef | null
+  connectivity: ConnectivityRef | null
+  connectivityProvider: ConnectivityProviderRef | null
   rollbackData: unknown
   targetVersion: CanvasSnapshot
 }
 
 export interface HealthCheckContext extends PipelineContext {
-  component: Pick<Component, 'id' | 'hostname' | 'port' | 'type' | 'toolId'>
-  credential: Pick<Credential, 'id' | 'name' | 'username' | 'password' | 'apiToken' | 'certificate'> | null
-  connectivity: Pick<Connectivity, 'id' | 'status' | 'sshCommand' | 'httpsUrl' | 'tailscaleDeviceIP'> | null
+  component: ComponentRef
+  credential: CredentialRef | null
+  connectivity: ConnectivityRef | null
+  connectivityProvider: ConnectivityProviderRef | null
 }
 
 export interface DriftContext extends PipelineContext {
-  component: Pick<Component, 'id' | 'hostname' | 'port' | 'type' | 'toolId'>
-  credential: Pick<Credential, 'id' | 'name' | 'username' | 'password' | 'apiToken' | 'certificate'> | null
-  connectivity: Pick<Connectivity, 'id' | 'status' | 'sshCommand' | 'httpsUrl' | 'tailscaleDeviceIP'> | null
+  component: ComponentRef
+  credential: CredentialRef | null
+  connectivity: ConnectivityRef | null
+  connectivityProvider: ConnectivityProviderRef | null
   deployedConfig: CanvasSnapshot
 }
 
