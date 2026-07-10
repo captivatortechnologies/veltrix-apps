@@ -8,6 +8,7 @@ on:
       - '_template/**'
       - 'scripts/**'
       - 'cli/**'
+      - 'sdk/**'
 
 jobs:
   validate:
@@ -77,13 +78,12 @@ jobs:
           done <<< "${{ steps.detect.outputs.apps }}"
           exit $FAILED
 
-      - name: Typecheck apps against published SDK
+      - name: Typecheck apps against in-repo SDK
         if: steps.detect.outputs.apps != '' || steps.detect.outputs.template_changed == 'true'
         run: |
-          if ! npm view @veltrixsecops/app-sdk version >/dev/null 2>&1; then
-            echo "::warning::@veltrixsecops/app-sdk is not published yet — skipping typecheck"
-            exit 0
-          fi
+          # Build the SDK from source so contract changes and the apps they
+          # affect are validated together in the same PR.
+          (cd sdk && npm ci --no-audit --no-fund && npm run build)
           FAILED=0
           DIRS="${{ steps.detect.outputs.apps }}"
           TARGETS=""
@@ -95,7 +95,10 @@ jobs:
           fi
           for DIR in $TARGETS; do
             echo "--- typecheck $DIR"
-            (cd "$DIR" && npm install --no-audit --no-fund && npx tsc -p tsconfig.json) || FAILED=1
+            (cd "$DIR" \
+              && npm install --no-audit --no-fund \
+              && npm install --no-save --no-audit --no-fund "$GITHUB_WORKSPACE/sdk" \
+              && npx tsc -p tsconfig.json) || FAILED=1
           done
           exit $FAILED
 

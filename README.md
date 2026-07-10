@@ -51,9 +51,11 @@ https://captivatortechnologies.github.io/veltrix-apps/catalog.json
 ```
 apps/<app-id>/     # One directory per app (manifest.yaml + handlers + ...)
 _template/         # Starting point for new apps
+sdk/               # @veltrixsecops/app-sdk — the typed app contract
+cli/               # @veltrixsecops/cli — validate, package, login, (soon) dev
 scripts/           # Validation + catalog generation used by CI and locally
 catalog/           # Generated marketplace catalog (committed by CI)
-.github/workflows/ # PR validation, release packaging, catalog deploy
+.github/workflows/ # PR validation, release packaging, catalog + npm publishing
 ```
 
 ## License

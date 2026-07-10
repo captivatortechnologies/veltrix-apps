@@ -1,0 +1,50 @@
+name: Publish CLI
+
+on:
+  push:
+    tags: ['cli-v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # npm provenance attestation
+
+jobs:
+  publish:
+    name: Publish @veltrixsecops/cli
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Verify tag matches package version
+        if: github.ref_type == 'tag'
+        run: |
+          PKG_VERSION=$(node -p "require('./cli/package.json').version")
+          TAG_VERSION="${GITHUB_REF_NAME#cli-v}"
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match cli/package.json version $PKG_VERSION"
+            exit 1
+          fi
+
+      - name: Install
+        working-directory: cli
+        run: npm ci --no-audit --no-fund
+
+      - name: Smoke test
+        working-directory: cli
+        run: |
+          node bin/veltrix.mjs --help
+          node bin/veltrix.mjs validate ../apps/splunk-enterprise
+
+      - name: Publish
+        working-directory: cli
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
