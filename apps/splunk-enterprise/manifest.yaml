@@ -1,6 +1,6 @@
 id: splunk-enterprise
 name: Splunk Enterprise
-version: 1.2.0
+version: 1.3.0
 vendor: Veltrix
 description: >
   Manage Splunk Enterprise configurations as code.
@@ -108,6 +108,9 @@ server:
 
 client:
   entry: client/index
+  # Sidebar layout: the app has many pages + configuration types, more than a
+  # tab strip holds cleanly (matches crowdstrike-edr).
+  navLayout: sidebar
   pages:
     - path: /indexes
       component: IndexesPage
@@ -116,19 +119,41 @@ client:
       nav: sidebar
       order: 1
       layout: standard
+    - path: /index-defaults
+      component: IndexDefaultsPage
+      label: Index Defaults
+      icon: sliders
+      nav: sidebar
+      order: 2
+      layout: standard
     - path: /roles
       component: RolesPage
       label: Roles
       icon: shield
       nav: sidebar
-      order: 2
+      order: 3
+      layout: standard
+    - path: /role-defaults
+      component: RoleDefaultsPage
+      label: Role Defaults
+      icon: sliders
+      nav: sidebar
+      parent: /roles
+      order: 4
       layout: standard
     - path: /byol
       component: BYOLPage
       label: BYOL Infrastructure
       icon: server
       nav: sidebar
-      order: 3
+      order: 5
+      layout: standard
+    - path: /versions
+      component: VersionsPage
+      label: Versions
+      icon: git-branch
+      nav: sidebar
+      order: 6
       layout: standard
 
 hooks:
