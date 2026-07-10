@@ -1,0 +1,7 @@
+# Default values used when creating a new IP allow list configuration canvas.
+# Keys are canvas section names; values are field defaults.
+
+IP Allowlist:
+  feature: "search-api"
+  subnets: []
+  removeUndeclared: false
