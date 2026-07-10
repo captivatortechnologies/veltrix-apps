@@ -7,6 +7,8 @@
 
 import React from 'react'
 
+const OverviewPage = React.lazy(() => import('./pages/OverviewPage'))
+const SetupGuidePage = React.lazy(() => import('./pages/SetupGuidePage'))
 const IndexesPage = React.lazy(() => import('./pages/IndexesPage'))
 const IndexDefaultsPage = React.lazy(() => import('./pages/IndexDefaultsPage'))
 const RolesPage = React.lazy(() => import('./pages/RolesPage'))
@@ -17,6 +19,8 @@ const VersionsPage = React.lazy(() => import('./pages/VersionsPage'))
 export default {
   id: 'splunk-enterprise',
   pages: {
+    OverviewPage,
+    SetupGuidePage,
     IndexesPage,
     IndexDefaultsPage,
     RolesPage,
@@ -25,6 +29,8 @@ export default {
     VersionsPage,
   },
   sidebarItems: [
+    { path: '/apps/splunk-enterprise/overview', label: 'Overview', icon: 'home' },
+    { path: '/apps/splunk-enterprise/setup', label: 'Setup Guide', icon: 'book' },
     { path: '/apps/splunk-enterprise/indexes', label: 'Indexes', icon: 'database' },
     { path: '/apps/splunk-enterprise/index-defaults', label: 'Index Defaults', icon: 'sliders' },
     { path: '/apps/splunk-enterprise/roles', label: 'Roles', icon: 'shield' },
