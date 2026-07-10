@@ -1,0 +1,11 @@
+# Default values used when creating a new role configuration canvas
+
+General:
+  name: ""
+  importedRoles: ["user"]
+  capabilities: ["search"]
+
+Search Restrictions:
+  srchFilter: ""
+  srchDiskQuota: 100
+  srchJobsQuota: 6

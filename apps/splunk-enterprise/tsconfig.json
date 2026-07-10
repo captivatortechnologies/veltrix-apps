@@ -8,16 +8,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "types": ["node", "jest"],
-    // Temporary monorepo wiring: resolve the SDK from source and @types from
-    // the server install. When this app moves to the standalone apps repo,
-    // remove "paths"/"typeRoots" and rely on its own npm install.
-    "paths": {
-      "@veltrixsecops/app-sdk": ["../../app-sdk/src/index.ts"],
-      "@veltrixsecops/app-sdk/*": ["../../app-sdk/src/*"],
-      "fastify": ["../../server/node_modules/fastify"]
-    },
-    "typeRoots": ["../../server/node_modules/@types", "./node_modules/@types"]
+    "types": ["node", "jest"]
   },
   "include": ["handlers/**/*.ts", "hooks/**/*.ts", "server/**/*.ts"],
   "exclude": ["node_modules", "client"]

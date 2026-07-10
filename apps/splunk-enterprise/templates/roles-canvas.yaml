@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template — Splunk Enterprise Roles
+#
+# Fields shown in the Configuration Canvas editor for role configurations.
+# Field keys must match what handlers/roles/validate.ts checks.
+# =============================================================================
+
+id: "splunk-enterprise-roles"
+name: "Role Configuration"
+toolType: "splunk-enterprise"
+entityType: "roles"
+description: "Define Splunk Enterprise roles (capabilities, search filters, quotas) as code"
+
+sections:
+  - name: "General"
+    icon: "shield"
+    description: "Role identity and inheritance"
+    fields:
+      - key: "name"
+        label: "Role Name"
+        fieldType: "text"
+        required: true
+        validation:
+          pattern: "^[a-z][a-z0-9_-]*$"
+          maxLength: 80
+          message: "Lowercase, must start with a letter. Reserved names (admin, power, user, ...) are rejected."
+        helpText: "Unique role name"
+
+      - key: "importedRoles"
+        label: "Imported Roles"
+        fieldType: "tags"
+        helpText: "Roles this role inherits from. A role cannot import itself."
+
+      - key: "capabilities"
+        label: "Capabilities"
+        fieldType: "tags"
+        helpText: "Splunk capabilities granted to this role (e.g. search, list_inputs)"
+
+  - name: "Search Restrictions"
+    icon: "filter"
+    description: "What this role can search"
+    fields:
+      - key: "srchFilter"
+        label: "Search Filter"
+        fieldType: "textarea"
+        helpText: "SPL filter applied to every search this role runs. Filters over 2000 characters trigger a warning."
+
+      - key: "srchDiskQuota"
+        label: "Search Disk Quota (MB)"
+        fieldType: "number"
+        defaultValue: 100
+        validation:
+          min: 0
+
+      - key: "srchJobsQuota"
+        label: "Concurrent Search Jobs"
+        fieldType: "number"
+        defaultValue: 6
+        validation:
+          min: 0
+        helpText: "Values above 100 trigger a review warning"

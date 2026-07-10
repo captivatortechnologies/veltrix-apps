@@ -1,0 +1,73 @@
+# =============================================================================
+# Canvas Template — Splunk Enterprise Indexes
+#
+# Fields shown in the Configuration Canvas editor for index configurations.
+# Field keys must match what handlers/indexes/validate.ts checks.
+# =============================================================================
+
+id: "splunk-enterprise-indexes"
+name: "Index Configuration"
+toolType: "splunk-enterprise"
+entityType: "indexes"
+description: "Define Splunk Enterprise indexes (retention, sizing, compression) as code"
+
+sections:
+  - name: "General"
+    icon: "database"
+    description: "Index identity"
+    fields:
+      - key: "name"
+        label: "Index Name"
+        fieldType: "text"
+        required: true
+        validation:
+          pattern: "^[a-z][a-z0-9_-]*$"
+          maxLength: 80
+          message: "Lowercase, must start with a letter; letters, digits, underscore, hyphen only. Reserved names (_internal, _audit, ...) are rejected."
+        helpText: "Unique index name as it will exist on the indexers"
+
+  - name: "Sizing"
+    icon: "hard-drive"
+    description: "Storage limits"
+    fields:
+      - key: "maxDataSizeMB"
+        label: "Maximum Index Size (MB)"
+        fieldType: "number"
+        defaultValue: 500000
+        validation:
+          min: 0
+          max: 10000000
+        helpText: "Total size cap for the index. Values above 1,000,000 MB trigger a review warning."
+
+      - key: "enableCompression"
+        label: "Enable Compression"
+        fieldType: "checkbox"
+        defaultValue: true
+        helpText: "Recommended for indexes over 100 GB"
+
+  - name: "Retention"
+    icon: "clock"
+    description: "Data lifecycle"
+    fields:
+      - key: "frozenTimeDays"
+        label: "Frozen Time (days)"
+        fieldType: "number"
+        defaultValue: 90
+        validation:
+          min: 0
+        helpText: "Days before data is frozen (deleted or archived). Under 7 days triggers a warning."
+
+      - key: "retentionPeriod"
+        label: "Retention Period (days)"
+        fieldType: "number"
+        defaultValue: 90
+        validation:
+          min: 0
+
+      - key: "searchablePeriod"
+        label: "Searchable Period (days)"
+        fieldType: "number"
+        defaultValue: 90
+        validation:
+          min: 0
+        helpText: "Must not exceed the retention period"

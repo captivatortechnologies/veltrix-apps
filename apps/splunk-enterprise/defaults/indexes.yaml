@@ -1,0 +1,13 @@
+# Default values used when creating a new index configuration canvas
+
+General:
+  name: ""
+
+Sizing:
+  maxDataSizeMB: 500000
+  enableCompression: true
+
+Retention:
+  frozenTimeDays: 90
+  retentionPeriod: 90
+  searchablePeriod: 90
