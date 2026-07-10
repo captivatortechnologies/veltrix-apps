@@ -137,11 +137,16 @@ conventionalPaths('indexes').handlers.deploy // 'config-types/indexes/deploy'
 
 ## Package layout
 
+> **2.0.0 (breaking):** the root entry no longer re-exports the React hooks — import them from
+> `@veltrixsecops/app-sdk/hooks`. Pipeline handlers run in a bare Node child process, so the contract
+> they import must never pull in React.
+
 | Entry point | Contents |
 |---|---|
-| `@veltrixsecops/app-sdk` | All types: handler contexts/results, manifest, platform refs, hook contexts |
+| `@veltrixsecops/app-sdk` | **React-free.** All types (handler contexts/results, manifest, platform refs, hook contexts), `APP_LAYOUT`/`HANDLER_NAMES`/`conventionalPaths()` — safe to load in a bare Node process, which is what the sandbox runner does |
 | `@veltrixsecops/app-sdk/pipeline` | `defineValidator`, `defineDeployer`, `defineRollbackHandler`, `defineHealthChecker`, `defineDriftDetector` |
 | `@veltrixsecops/app-sdk/hooks` | React hooks for app client pages (requires `react`) |
+| `@veltrixsecops/app-sdk/client` | Browser client contract: `authFetch`, `getHostRuntime`, `AppClientModule` |
 
 ## Building an app
 

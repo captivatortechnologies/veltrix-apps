@@ -2,15 +2,24 @@
 // @veltrixsecops/app-sdk
 //
 // The official SDK for building Veltrix Security-as-Code apps.
-// Import pipeline helpers, hooks, and types to build your app.
+//
+// This root entry is REACT-FREE and safe to load in a bare Node process.
+// Pipeline handlers execute inside the platform's sandbox runner — a child
+// process with a scrubbed environment and no React — so the contract they
+// import must never pull in a UI dependency. (Before 2.0 this entry
+// re-exported the React hooks, which made `require('@veltrixsecops/app-sdk')`
+// load React.) The platform can therefore import HANDLER_NAMES and the
+// handler contracts directly, instead of mirroring them server-side.
 //
 // Usage:
-//   import { defineValidator, defineDeployer } from '@veltrixsecops/app-sdk/pipeline'
-//   import { useAppContext, usePipelineStatus } from '@veltrixsecops/app-sdk/hooks'
 //   import type { PipelineContext, DeployContext } from '@veltrixsecops/app-sdk'
+//   import { HANDLER_NAMES, conventionalPaths } from '@veltrixsecops/app-sdk'
+//   import { defineValidator, defineDeployer } from '@veltrixsecops/app-sdk/pipeline'
+//   import { useAppContext, usePipelineStatus } from '@veltrixsecops/app-sdk/hooks'   // React
+//   import { authFetch } from '@veltrixsecops/app-sdk/client'                          // browser
 // ========================================================================
 
-// Pipeline handler helpers
+// Pipeline handler helpers (React-free)
 export {
   defineValidator,
   defineDeployer,
@@ -19,13 +28,10 @@ export {
   defineDriftDetector,
 } from './pipeline'
 
-// React hooks
-export {
-  useAppContext,
-  AppContext,
-  usePipelineStatus,
-  useAppBranding,
-} from './hooks'
+// NOTE: React hooks are NOT re-exported here. Import them from
+// '@veltrixsecops/app-sdk/hooks'; browser client helpers live in
+// '@veltrixsecops/app-sdk/client'. Keeping them off the root is what makes
+// this entry loadable in the sandbox runner's bare Node child process.
 
 // Pipeline types
 export type {
