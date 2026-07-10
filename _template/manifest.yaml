@@ -52,17 +52,19 @@ pipeline:
     - id: "configs"                    # Unique within this app
       name: "App Configuration"
       description: "Main configuration for this tool"
-      canvasTemplate: "./client/canvas-templates/configs.template.yaml"
-      defaultConfig: "./server/defaults/configs.default.yaml"
+      # Canonical layout: templates/<configTypeId>-canvas.yaml, defaults/<configTypeId>.yaml
+      canvasTemplate: templates/configs-canvas.yaml
+      defaultConfig: defaults/configs.yaml
 
-      # Pipeline handlers (TypeScript files the engine calls)
+      # Pipeline handlers — canonical layout: handlers/<configTypeId>/<handler>
+      # (extensionless; resolved like require(), .ts in dev / compiled .js in packages)
       handlers:
-        validate: "./server/pipeline/configs.validate.ts"
-        deploy: "./server/pipeline/configs.deploy.ts"
-        rollback: "./server/pipeline/configs.rollback.ts"
-        healthCheck: "./server/pipeline/configs.health-check.ts"
-        driftDetect: "./server/pipeline/configs.drift-detect.ts"
-        getStatus: "./server/pipeline/configs.status.ts"
+        validate: handlers/configs/validate
+        deploy: handlers/configs/deploy
+        rollback: handlers/configs/rollback
+        healthCheck: handlers/configs/healthCheck
+        driftDetect: handlers/configs/driftDetect
+        getStatus: handlers/configs/getStatus
 
       # What infrastructure this configuration targets
       targets:
@@ -79,14 +81,14 @@ pipeline:
 # DATABASE (optional - only if your app needs its own tables)
 # =============================================================================
 database:
-  migrations: "./server/migrations/"
+  migrations: migrations              # Canonical layout: migrations/*.sql at app root
   tablePrefix: "app_myapp_"           # All tables MUST be prefixed
 
 # =============================================================================
 # SERVER
 # =============================================================================
 server:
-  entry: "./server/index.ts"
+  entry: server/index
   routes:
     prefix: "/api/apps/my-app"        # All routes namespaced under this prefix
 
@@ -94,7 +96,7 @@ server:
 # CLIENT (optional - for custom UI pages)
 # =============================================================================
 client:
-  entry: "./client/index.tsx"
+  entry: client/index
   pages:
     - path: "/apps/my-app"
       component: "Dashboard"
@@ -120,9 +122,10 @@ client:
 # =============================================================================
 # LIFECYCLE HOOKS (optional)
 # =============================================================================
+# Canonical layout: hooks/<hookName>.ts (camelCase)
 hooks:
-  onInstall: "./server/hooks/on-install.ts"
-  onUninstall: "./server/hooks/on-uninstall.ts"
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
 
 # =============================================================================
 # PLATFORM EVENTS this app subscribes to (optional)

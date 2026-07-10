@@ -143,6 +143,44 @@ export function validateApp(appDirArg) {
     })
   }
 
+  // --- Canonical layout conventions (warnings — see _template/README.md) ---
+  const stripRef = (p) => String(p ?? '').replace(/^\.\//, '')
+  if (Array.isArray(configTypes)) {
+    configTypes.forEach((ct) => {
+      if (!ct?.id) return
+      if (ct.canvasTemplate && stripRef(ct.canvasTemplate) !== `templates/${ct.id}-canvas.yaml`) {
+        warn(`layout: canvasTemplate for "${ct.id}" should be "templates/${ct.id}-canvas.yaml" (got "${ct.canvasTemplate}")`)
+      }
+      if (ct.defaultConfig && stripRef(ct.defaultConfig) !== `defaults/${ct.id}.yaml`) {
+        warn(`layout: defaultConfig for "${ct.id}" should be "defaults/${ct.id}.yaml" (got "${ct.defaultConfig}")`)
+      }
+      for (const [handler, ref] of Object.entries(ct.handlers ?? {})) {
+        if (!ref) continue
+        const expected = `handlers/${ct.id}/${handler}`
+        if (stripRef(ref).replace(/\.(ts|js|mjs|cjs)$/, '') !== expected) {
+          warn(`layout: handlers.${handler} for "${ct.id}" should be "${expected}" (got "${ref}")`)
+        }
+      }
+    })
+  }
+  for (const [hook, ref] of Object.entries(manifest.hooks ?? {})) {
+    if (ref && stripRef(ref).replace(/\.(ts|js|mjs|cjs)$/, '') !== `hooks/${hook}`) {
+      warn(`layout: hooks.${hook} should be "hooks/${hook}" (got "${ref}")`)
+    }
+  }
+  if (manifest.server?.entry && stripRef(manifest.server.entry).replace(/\.(ts|js)$/, '') !== 'server/index') {
+    warn(`layout: server.entry should be "server/index" (got "${manifest.server.entry}")`)
+  }
+  if (manifest.client?.entry && stripRef(manifest.client.entry).replace(/\.(tsx|ts|jsx|js)$/, '') !== 'client/index') {
+    warn(`layout: client.entry should be "client/index" (got "${manifest.client.entry}")`)
+  }
+  if (manifest.database?.migrations && stripRef(manifest.database.migrations).replace(/\/$/, '') !== 'migrations') {
+    warn(`layout: database.migrations should be "migrations" (got "${manifest.database.migrations}")`)
+  }
+  if (!fs.existsSync(path.join(appDir, 'README.md'))) {
+    warn('layout: add a README.md documenting what the app manages and its required credentials')
+  }
+
   // Server / client / hooks
   requireFile(manifest.server?.entry, 'server.entry')
   const prefix = manifest.server?.routes?.prefix

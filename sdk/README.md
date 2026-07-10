@@ -75,6 +75,30 @@ export default async function onInstall({ db, appId }: AppHookContext): Promise<
 import { useAppContext, usePipelineStatus } from '@veltrixsecops/app-sdk/hooks'
 ```
 
+## Standard app layout
+
+Every Veltrix app follows one canonical folder structure — the CLI scaffolds it (`veltrix init`), `veltrix validate` warns on deviations, and the SDK exports it as constants (`APP_LAYOUT`, `HANDLER_NAMES`, `conventionalPaths(configTypeId)`):
+
+```
+apps/<app-id>/
+├── manifest.yaml                          # App contract
+├── package.json / tsconfig.json / README.md
+├── handlers/<configTypeId>/               # validate, deploy, rollback,
+│                                          # healthCheck, driftDetect, getStatus
+├── templates/<configTypeId>-canvas.yaml   # Canvas form schema
+├── defaults/<configTypeId>.yaml           # Default field values
+├── hooks/                                 # onInstall.ts, onUninstall.ts, ...
+├── migrations/                            # SQL (with database.tablePrefix)
+├── server/index.ts                        # Route module (AppRouteContext)
+├── client/index.tsx + client/pages/       # Optional UI
+└── assets/                                # Optional icons
+```
+
+```ts
+import { conventionalPaths } from '@veltrixsecops/app-sdk'
+conventionalPaths('indexes').handlers.deploy // 'handlers/indexes/deploy'
+```
+
 ## Package layout
 
 | Entry point | Contents |

@@ -13,6 +13,7 @@
 // ============================================================================
 
 import { Command } from 'commander'
+import { initCommand } from '../src/commands/init.mjs'
 import { loginCommand } from '../src/commands/login.mjs'
 import { logoutCommand } from '../src/commands/logout.mjs'
 import { whoamiCommand } from '../src/commands/whoami.mjs'
@@ -25,6 +26,13 @@ program
   .name('veltrix')
   .description('CLI for building and shipping Veltrix Security-as-Code apps')
   .version('0.1.0')
+
+program
+  .command('init')
+  .description('Scaffold a new app with the canonical Veltrix layout')
+  .argument('<app-id>', 'App id (lowercase, hyphens, e.g. crowdstrike-edr)')
+  .option('--dir <dir>', 'Parent directory to create the app in', '.')
+  .action(initCommand)
 
 program
   .command('login')

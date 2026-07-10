@@ -91,5 +91,9 @@ export type {
   AppInstallationDetail,
 } from './types/manifest'
 
+// Canonical app layout
+export { APP_LAYOUT, HANDLER_NAMES, conventionalPaths } from './structure'
+export type { HandlerName } from './structure'
+
 // Hooks types
 export type { AppContextValue, PipelineStatusData } from './hooks'

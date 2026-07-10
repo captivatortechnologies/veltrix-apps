@@ -41,24 +41,29 @@ On merge, CI publishes an immutable release `splunk-enterprise-v<new-version>`, 
    ```
    The Veltrix platform itself is a hosted SaaS and is not open source yet, so community contributors can't run a full platform locally. The validator + typecheck cover the app contract; end-to-end behavior is exercised by maintainers against a staging tenant during review. (Veltrix team: point the server's `APPS_DIR` at a checkout of this repo's `apps/` directory for live development.)
 
-## Directory structure
+## Directory structure (canonical — all apps use this exact layout)
+
+Every app follows one predictable structure. `veltrix init <app-id>` scaffolds it, `veltrix validate` warns on deviations, and the SDK exports it as `APP_LAYOUT`/`conventionalPaths()`:
 
 ```
 apps/my-security-tool/
-├── manifest.yaml              # App contract (required)
-├── package.json               # SDK + tooling devDependencies
+├── manifest.yaml                          # App contract (required)
+├── package.json                           # SDK + tooling devDependencies
 ├── tsconfig.json
-├── server/
-│   └── index.ts               # Server entry point & API routes (AppRouteContext)
-├── handlers/                  # Pipeline handlers per configuration type
-│   └── <configType>/{validate,deploy,rollback,healthCheck,driftDetect,getStatus}.ts
-├── hooks/                     # Lifecycle hooks (optional): onInstall, onUninstall, ...
-├── migrations/                # Database migrations (optional, tablePrefix enforced)
-├── templates/                 # Canvas templates (YAML form schemas)
-├── defaults/                  # Default configurations (optional)
-├── client/                    # Custom UI pages (optional)
-└── assets/                    # Icons, logos (optional)
+├── README.md                              # What the app manages + credential setup
+├── handlers/<configTypeId>/               # Six pipeline handlers per configuration type:
+│                                          #   validate, deploy, rollback,
+│                                          #   healthCheck, driftDetect, getStatus
+├── templates/<configTypeId>-canvas.yaml   # Canvas form schema per type
+├── defaults/<configTypeId>.yaml           # Default field values per type
+├── hooks/                                 # Lifecycle hooks (camelCase): onInstall.ts, ...
+├── migrations/                            # SQL migrations (optional, tablePrefix enforced)
+├── server/index.ts                        # Route module (AppRouteContext)
+├── client/index.tsx + client/pages/       # Custom UI pages (optional)
+└── assets/                                # Icons, logos (optional)
 ```
+
+Manifest references use the conventional paths, extensionless for code (e.g. `handlers/indexes/deploy`, `templates/indexes-canvas.yaml`, `hooks/onInstall`).
 
 ## Submission & review
 

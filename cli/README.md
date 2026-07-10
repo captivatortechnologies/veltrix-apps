@@ -8,6 +8,15 @@ npm install -g @veltrixsecops/cli
 
 ## Commands
 
+### `veltrix init <app-id>`
+
+Scaffolds a new app with the **canonical Veltrix app layout** (pulled fresh from the community repo's `_template/`) and rewrites its identity to your app id:
+
+```bash
+veltrix init crowdstrike-edr
+cd crowdstrike-edr && npm install
+```
+
 ### `veltrix validate [dir]`
 
 Validates an app directory against the platform contract — the **same rules CI enforces** on pull requests: manifest schema, handler completeness, no executables, size cap, import boundaries.
