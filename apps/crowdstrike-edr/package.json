@@ -1,0 +1,16 @@
+{
+  "name": "veltrix-app-crowdstrike-edr",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Veltrix app: manage CrowdStrike Falcon configurations as code via the Falcon APIs (host groups, prevention policies, custom IOCs)",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.0.0",
+    "@veltrixsecops/app-sdk": "^1.2.0",
+    "fastify": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}

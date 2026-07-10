@@ -1,0 +1,54 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Host Groups
+#
+# Fields shown in the Configuration Canvas editor for host group
+# configurations. Field keys must match what config-types/host-groups/
+# validate.ts checks. Each canvas section describes ONE host group —
+# add a section per group.
+# =============================================================================
+
+id: "crowdstrike-edr-host-groups"
+name: "Host Group Configuration"
+toolType: "crowdstrike-edr"
+entityType: "host-groups"
+description: "Define Falcon host groups (static or dynamic membership via FQL assignment rules) as code via the Host Group API"
+
+sections:
+  - name: "Host Group"
+    icon: "server"
+    description: "One section per host group — duplicate this section to manage multiple groups"
+    fields:
+      - key: "name"
+        label: "Group Name"
+        fieldType: "text"
+        required: true
+        validation:
+          maxLength: 255
+        helpText: "Unique host group name in the Falcon tenant"
+
+      - key: "description"
+        label: "Description"
+        fieldType: "textarea"
+        helpText: "What this group is for — shown in the Falcon console"
+
+      - key: "groupType"
+        label: "Group Type"
+        fieldType: "select"
+        required: true
+        defaultValue: "dynamic"
+        options:
+          - label: "Dynamic (FQL assignment rule)"
+            value: "dynamic"
+          - label: "Static (membership managed by hostname)"
+            value: "static"
+          - label: "Static by ID (membership pinned by device ID)"
+            value: "staticByID"
+        helpText: "Immutable after creation. Static group membership is curated in the Falcon console or via host actions — this app manages the group object itself."
+
+      - key: "assignmentRule"
+        label: "Assignment Rule (FQL)"
+        fieldType: "textarea"
+        helpText: >
+          Dynamic groups only: host FQL expression selecting members, e.g.
+          platform_name:'Windows'+tags:'SensorGroupingTags/production'.
+          Leave empty for static groups.

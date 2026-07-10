@@ -1,0 +1,14 @@
+# Default values used when creating a new custom IOC configuration canvas.
+# Keys are canvas section names; values are field defaults.
+
+Indicator:
+  type: "sha256"
+  value: ""
+  action: "detect"
+  severity: "medium"
+  platforms: "windows, mac, linux"
+  appliedGlobally: true
+  hostGroups: ""
+  expiration: ""
+  description: ""
+  tags: ""

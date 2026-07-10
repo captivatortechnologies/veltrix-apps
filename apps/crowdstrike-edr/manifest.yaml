@@ -1,0 +1,151 @@
+id: crowdstrike-edr
+name: CrowdStrike Falcon
+version: 1.0.0
+vendor: Veltrix
+description: >
+  Manage CrowdStrike Falcon configurations as code through the Falcon
+  APIs. Includes host groups, prevention policies, and custom IOCs
+  (indicators of compromise), with validation, drift detection, and
+  rollback handled by the Security-as-Code pipeline.
+category: EDR
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/crowdstrike-edr
+icon: "🦅"
+
+platform:
+  minVersion: "1.0.0"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: host-groups
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon host groups
+    - resource: prevention-policies
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon prevention policies
+    - resource: custom-iocs
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon custom IOCs (indicators of compromise)
+
+pipeline:
+  configurationTypes:
+    - id: host-groups
+      name: Host Group Configuration
+      description: Falcon host group definitions (static or dynamic membership via FQL assignment rules)
+      canvasTemplate: config-types/host-groups/canvas.yaml
+      defaultConfig: config-types/host-groups/defaults.yaml
+      handlers:
+        validate: config-types/host-groups/validate
+        deploy: config-types/host-groups/deploy
+        rollback: config-types/host-groups/rollback
+        healthCheck: config-types/host-groups/healthCheck
+        driftDetect: config-types/host-groups/driftDetect
+        getStatus: config-types/host-groups/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: prevention-policies
+      name: Prevention Policy Configuration
+      description: Falcon prevention policy definitions (platform, enablement, host group assignment, policy settings)
+      canvasTemplate: config-types/prevention-policies/canvas.yaml
+      defaultConfig: config-types/prevention-policies/defaults.yaml
+      handlers:
+        validate: config-types/prevention-policies/validate
+        deploy: config-types/prevention-policies/deploy
+        rollback: config-types/prevention-policies/rollback
+        healthCheck: config-types/prevention-policies/healthCheck
+        driftDetect: config-types/prevention-policies/driftDetect
+        getStatus: config-types/prevention-policies/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: custom-iocs
+      name: Custom IOC Configuration
+      description: Custom indicators of compromise (hashes, domains, IPs) with detect/prevent/allow actions
+      canvasTemplate: config-types/custom-iocs/canvas.yaml
+      defaultConfig: config-types/custom-iocs/defaults.yaml
+      handlers:
+        validate: config-types/custom-iocs/validate
+        deploy: config-types/custom-iocs/deploy
+        rollback: config-types/custom-iocs/rollback
+        healthCheck: config-types/custom-iocs/healthCheck
+        driftDetect: config-types/custom-iocs/driftDetect
+        getStatus: config-types/custom-iocs/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/crowdstrike-edr
+
+client:
+  entry: client/index
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+settings:
+  - key: falcon_region
+    type: select
+    label: Falcon Cloud Region
+    description: >
+      The CrowdStrike cloud your tenant lives in. "Auto" authenticates
+      against US-1 and follows the X-Cs-Region hint, which works for all
+      commercial clouds. GovCloud tenants (us-gov-1, us-gov-2) never
+      auto-discover and must be selected explicitly — or encode the region
+      in the component hostname, which always takes precedence.
+    default: auto
+    required: false
+    options:
+      - label: Auto-discover (commercial clouds)
+        value: auto
+      - label: US-1
+        value: us-1
+      - label: US-2
+        value: us-2
+      - label: EU-1
+        value: eu-1
+      - label: US-GOV-1
+        value: us-gov-1
+      - label: US-GOV-2
+        value: us-gov-2
+  - key: request_timeout_seconds
+    type: number
+    label: API Request Timeout (seconds)
+    description: Timeout applied to each Falcon API request
+    default: 30
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated

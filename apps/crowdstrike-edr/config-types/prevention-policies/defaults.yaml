@@ -1,0 +1,15 @@
+# Default values used when creating a new prevention policy configuration canvas.
+# Keys are canvas section names; values are field defaults.
+
+Prevention Policy:
+  name: ""
+  platform: "Windows"
+  description: ""
+  enabled: false
+  hostGroups: ""
+  settings: |
+    [
+      { "id": "NextGenAV", "value": { "enabled": true } },
+      { "id": "CloudAntiMalware", "value": { "detection": "MODERATE", "prevention": "MODERATE" } },
+      { "id": "OnSensorMLSlider", "value": { "detection": "MODERATE", "prevention": "MODERATE" } }
+    ]
