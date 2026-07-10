@@ -5,6 +5,7 @@ export default defineConfig({
     index: 'src/index.ts',
     'pipeline/index': 'src/pipeline/index.ts',
     'hooks/index': 'src/hooks/index.ts',
+    'client/index': 'src/client/index.ts',
   },
   format: ['esm', 'cjs'],
   dts: true,

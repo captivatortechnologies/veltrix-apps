@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { authFetch } from '../client'
 
 export interface PipelineStatusData {
   pendingApprovals: number
@@ -37,7 +38,8 @@ export function usePipelineStatus(appId: string) {
   const refresh = useCallback(async () => {
     try {
       setIsLoading(true)
-      const response = await fetch(`/api/pipeline/summary?appId=${appId}`)
+      // Platform APIs are bearer-token protected — plain fetch would 401
+      const response = await authFetch(`/api/pipeline/summary?appId=${appId}`)
       if (!response.ok) throw new Error(`Failed to fetch pipeline status`)
       const result = await response.json()
       setData(result)

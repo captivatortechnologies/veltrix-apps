@@ -3,7 +3,7 @@
 // These provide access to platform data and pipeline state
 // ========================================================================
 
-import { createContext, useContext } from 'react'
+import { createContext, useContext, type Context } from 'react'
 import type { Component, Credential, Tag, User, Customer } from '../types/platform'
 
 export interface AppContextValue {
@@ -21,7 +21,17 @@ export interface AppContextValue {
   settings: Record<string, unknown>
 }
 
-export const AppContext = createContext<AppContextValue | null>(null)
+// Anchor the context on the host runtime when running inside the platform,
+// so a bundle that inlined its own SDK copy still shares the host's context
+// (two createContext objects never match, even with identical shapes).
+const hostContext = (
+  (globalThis as Record<string, unknown>).__VELTRIX_APP_RUNTIME__ as
+    | { AppContext?: Context<AppContextValue | null> }
+    | undefined
+)?.AppContext
+
+export const AppContext: Context<AppContextValue | null> =
+  hostContext ?? createContext<AppContextValue | null>(null)
 
 /**
  * Access the app context in any app component.

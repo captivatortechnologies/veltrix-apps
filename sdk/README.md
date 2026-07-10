@@ -73,7 +73,24 @@ export default async function onInstall({ db, appId }: AppHookContext): Promise<
 
 ```tsx
 import { useAppContext, usePipelineStatus } from '@veltrixsecops/app-sdk/hooks'
+import { authFetch } from '@veltrixsecops/app-sdk/client'
 ```
+
+Your `client/index.tsx` default-exports an `AppClientModule` (`{ id, pages, sidebarItems }`;
+`pages` keys must match `manifest.client.pages[].component`). At packaging time the CLI
+compiles it into a hermetic browser bundle (`client/dist/index.mjs`): `react`, `react-dom`,
+`react/jsx-runtime`, and all `@veltrixsecops/app-sdk` imports are replaced with shims that
+read the platform-provided runtime from `globalThis.__VELTRIX_APP_RUNTIME__`, so your
+components render inside the host React tree with working hooks and shared context — never
+bundle your own copy of React.
+
+Two rules for app pages:
+
+- Use **`authFetch`** (not plain `fetch`) for calls to your app's server routes
+  (`/api/apps/<app-id>/...`) — they are bearer-token protected and a plain `fetch`
+  receives 401s.
+- Only import third-party client libraries if you accept them being compiled into your
+  bundle; keep pages lean.
 
 ## Standard app layout
 
