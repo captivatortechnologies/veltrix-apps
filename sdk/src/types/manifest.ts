@@ -104,13 +104,60 @@ export interface AppPermissionDeclaration {
   description?: string
 }
 
+// --- App UI & navigation contract ---
+//
+// The platform owns the chrome: breadcrumb, app header, navigation, permission
+// gating, error boundary and loading states are rendered identically for every
+// app. Apps own the page body and compose it from @veltrixsecops/ui.
+// Predictable shell, flexible body.
+
+/**
+ * How the platform frames an app page.
+ * - `standard`   — page header + padded content area (default; use for most pages)
+ * - `full-bleed` — content area with no padding/toolbar (custom canvases, maps)
+ * - `canvas`     — Configuration Canvas chrome (section rail + save/validate bar)
+ */
+export type AppPageLayout = 'standard' | 'full-bleed' | 'canvas'
+export const APP_PAGE_LAYOUTS = ['standard', 'full-bleed', 'canvas'] as const
+
+/**
+ * Where the page surfaces in navigation.
+ * - `sidebar` — an entry beneath the app in the sidebar
+ * - `tab`     — a tab within its `parent` page
+ * - `hidden`  — routable but not linked (details/drill-down pages)
+ */
+export type AppPageNav = 'sidebar' | 'tab' | 'hidden'
+export const APP_PAGE_NAV = ['sidebar', 'tab', 'hidden'] as const
+
+/** An app-scoped permission (declared in `permissions.app`) required to see a page. */
+export interface AppPagePermission {
+  resource: string
+  action: string
+}
+
 export interface AppPageDeclaration {
+  /** Route beneath the app, e.g. `/indexes` → `/apps/<app-id>/indexes` */
   path: string
+  /** Exported component name from the app's client entry */
   component: string
   label: string
+  description?: string
+  /** Icon name from the platform icon set; falls back to the app icon */
   icon?: string
+  /** @deprecated use `nav: 'sidebar' | 'hidden'` — kept for backward compatibility */
   sidebar?: boolean
+  /** Navigation placement. Defaults to `sidebar` when `sidebar: true`, else `hidden`. */
+  nav?: AppPageNav
+  /** Parent page `path` — required for `nav: 'tab'`, optional nesting for sidebar entries */
   parent?: string
+  /** Optional sidebar section label, for apps with many pages */
+  group?: string
+  /** Deterministic ordering within its group/parent (ascending; ties break on label) */
+  order?: number
+  /** Layout preset the platform renders around the page body */
+  layout?: AppPageLayout
+  /** Hide the page (and its nav entry) unless the user holds this app permission */
+  requiresPermission?: AppPagePermission
 }
 
 export interface AppSettingDeclaration {

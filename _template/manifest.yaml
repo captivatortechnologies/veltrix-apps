@@ -96,14 +96,34 @@ server:
 # =============================================================================
 # CLIENT (optional - for custom UI pages)
 # =============================================================================
+# The platform renders the chrome for every app page — breadcrumb, app header,
+# navigation, permission gating, loading + error states — so apps look and
+# navigate predictably. Your component renders the page body and composes it
+# from @veltrixsecops/ui.
 client:
   entry: client/index
   pages:
-    - path: "/apps/my-app"
-      component: "Dashboard"
-      label: "My App"
-      icon: "shield"
-      sidebar: true                   # Show in sidebar navigation
+    - path: "/"                       # Route beneath the app: /apps/my-app
+      component: "Dashboard"          # Exported from client/index
+      label: "Overview"
+      description: "What this app manages at a glance"
+      icon: "shield"                  # Platform icon set; falls back to the app icon
+      nav: sidebar                    # sidebar | tab | hidden
+      order: 1                        # Deterministic ordering
+      layout: standard                # standard | full-bleed | canvas
+
+    # A tab inside the Overview page, visible only to users holding the
+    # app permission it declares (must exist in permissions.app above).
+    - path: "/configs"
+      component: "ConfigsTab"
+      label: "Configurations"
+      nav: tab
+      parent: "/"
+      order: 1
+      layout: standard
+      requiresPermission:
+        resource: "my-app:configs"
+        action: "read"
 
 # =============================================================================
 # CONNECTIVITY (automatically provided by the platform)

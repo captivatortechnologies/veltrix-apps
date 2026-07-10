@@ -76,6 +76,10 @@ export type {
   AppRouteContext,
 } from './types/platform'
 
+// App UI & navigation contract
+export { APP_PAGE_LAYOUTS, APP_PAGE_NAV } from './types/manifest'
+export type { AppPageLayout, AppPageNav, AppPagePermission } from './types/manifest'
+
 // Manifest types
 export type {
   AppManifest,

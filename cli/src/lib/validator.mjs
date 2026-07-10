@@ -24,6 +24,9 @@ const CODE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'])
 // Extensionless manifest refs (handlers, entries) resolve like require() does
 const RESOLVE_CANDIDATES = ['', '.ts', '.tsx', '.js', '.mjs', '.cjs', '/index.ts', '/index.js']
 const CATEGORIES = new Set(['SIEM', 'EDR', 'SOAR', 'IAM', 'NETWORK', 'CLOUD', 'COMPLIANCE', 'CUSTOM'])
+// App UI & navigation contract (mirrors @veltrixsecops/app-sdk)
+const APP_PAGE_LAYOUTS = ['standard', 'full-bleed', 'canvas']
+const APP_PAGE_NAV = ['sidebar', 'tab', 'hidden']
 
 export function validateApp(appDirArg) {
   const errors = []
@@ -189,6 +192,52 @@ export function validateApp(appDirArg) {
     err(`server.routes.prefix must be "/api/apps/${manifest.id}" (got "${prefix}")`)
   }
   if (manifest.client?.entry) requireFile(manifest.client.entry, 'client.entry')
+
+  // --- App UI & navigation contract ---
+  const declaredPermissions = new Set(
+    (manifest.permissions?.app ?? []).flatMap((p) =>
+      (p?.actions ?? []).map((a) => `${p.resource}:${a}`),
+    ),
+  )
+  const pagePaths = new Set((manifest.client?.pages ?? []).map((p) => p?.path))
+  ;(manifest.client?.pages ?? []).forEach((page, i) => {
+    const label = `client.pages[${i}]${page?.label ? ` (${page.label})` : ''}`
+    if (!page?.path || !page.path.startsWith('/')) {
+      err(`${label}.path must start with "/" (got "${page?.path}")`)
+    }
+    if (!page?.component) err(`${label}.component is required`)
+    if (!page?.label) err(`${label}.label is required`)
+
+    if (page?.layout && !APP_PAGE_LAYOUTS.includes(page.layout)) {
+      err(`${label}.layout must be one of ${APP_PAGE_LAYOUTS.join(' | ')} (got "${page.layout}")`)
+    }
+    if (page?.nav && !APP_PAGE_NAV.includes(page.nav)) {
+      err(`${label}.nav must be one of ${APP_PAGE_NAV.join(' | ')} (got "${page.nav}")`)
+    }
+    if (page?.nav === 'tab' && !page.parent) {
+      err(`${label}.nav is "tab" so it must declare a "parent" page path`)
+    }
+    if (page?.parent && !pagePaths.has(page.parent)) {
+      err(`${label}.parent "${page.parent}" does not match any declared page path`)
+    }
+    if (page?.order !== undefined && typeof page.order !== 'number') {
+      err(`${label}.order must be a number`)
+    }
+    const rp = page?.requiresPermission
+    if (rp) {
+      if (!rp.resource || !rp.action) {
+        err(`${label}.requiresPermission needs both "resource" and "action"`)
+      } else if (!declaredPermissions.has(`${rp.resource}:${rp.action}`)) {
+        err(
+          `${label}.requiresPermission "${rp.resource}:${rp.action}" is not declared in ` +
+            'permissions.app — a page cannot require a permission the app does not expose',
+        )
+      }
+    }
+    if (page?.sidebar !== undefined && page?.nav === undefined) {
+      warn(`${label}: "sidebar" is deprecated — use nav: "${page.sidebar ? 'sidebar' : 'hidden'}"`)
+    }
+  })
   for (const [hook, rel] of Object.entries(manifest.hooks ?? {})) {
     requireFile(rel, `hooks.${hook}`)
   }
