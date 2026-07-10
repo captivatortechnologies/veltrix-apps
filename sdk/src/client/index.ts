@@ -33,6 +33,18 @@ export {
 export type { Tool } from './inventory'
 export type { InventoryItem, InventoryItemInput } from '../types/platform'
 
+// Access Servers — typed helpers over the platform's access-servers API (ZTNA
+// gateways) plus a reader over connectivity providers for the link picker.
+// Framework-free; they use the `authFetch` exported below internally.
+export {
+  listAccessServers,
+  addAccessServer,
+  updateAccessServer,
+  removeAccessServer,
+  listConnectivityProviders,
+} from './access-servers'
+export type { AccessServer, AccessServerInput, ConnectivityProviderRef } from '../types/platform'
+
 /** Name of the global the platform installs before loading app bundles. */
 export const HOST_RUNTIME_GLOBAL = '__VELTRIX_APP_RUNTIME__'
 

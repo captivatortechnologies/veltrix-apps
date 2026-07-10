@@ -9,7 +9,7 @@
 
 id: "my-app"                           # Unique slug (lowercase, hyphens only)
 name: "My Security App"
-version: "1.0.0"
+version: "1.1.0"
 vendor: "Your Company"
 description: "A brief description of what this app manages"
 category: "SIEM"                       # SIEM, EDR, SOAR, IAM, NETWORK, CLOUD, CUSTOM
@@ -145,6 +145,19 @@ client:
       requiresPermission:
         resource: "my-app:configs"
         action: "read"
+
+    # Access Servers — the built-in Zero-Trust Access (ZTNA) gateway surface
+    # available to every app via '@veltrixsecops/app-sdk/client'. A Settings-group
+    # item, rendered under the app's Settings section.
+    - path: "/access-servers"
+      component: "AccessServersPage"
+      label: "Access Servers"
+      description: "Zero-Trust Access gateways this app manages, each linkable to a ZTNA provider"
+      icon: "shield"
+      nav: sidebar
+      group: settings
+      order: 1
+      layout: standard
 
     # Inventory — the built-in deployment-target surface (servers, domains,
     # IP/CIDR ranges) available to every app via '@veltrixsecops/app-sdk/client'.

@@ -9,6 +9,7 @@ import React from 'react'
 
 const OverviewPage = React.lazy(() => import('./pages/OverviewPage'))
 const SetupGuidePage = React.lazy(() => import('./pages/SetupGuidePage'))
+const AccessServersPage = React.lazy(() => import('./pages/AccessServersPage'))
 const InventoryPage = React.lazy(() => import('./pages/InventoryPage'))
 const IndexesPage = React.lazy(() => import('./pages/IndexesPage'))
 const IndexDefaultsPage = React.lazy(() => import('./pages/IndexDefaultsPage'))
@@ -22,6 +23,7 @@ export default {
   pages: {
     OverviewPage,
     SetupGuidePage,
+    AccessServersPage,
     InventoryPage,
     IndexesPage,
     IndexDefaultsPage,
@@ -33,6 +35,7 @@ export default {
   sidebarItems: [
     { path: '/apps/splunk-enterprise/overview', label: 'Overview', icon: 'home' },
     { path: '/apps/splunk-enterprise/setup', label: 'Setup Guide', icon: 'book' },
+    { path: '/apps/splunk-enterprise/access-servers', label: 'Access Servers', icon: 'shield' },
     { path: '/apps/splunk-enterprise/inventory', label: 'Servers', icon: 'server' },
     { path: '/apps/splunk-enterprise/indexes', label: 'Indexes', icon: 'database' },
     { path: '/apps/splunk-enterprise/index-defaults', label: 'Index Defaults', icon: 'sliders' },

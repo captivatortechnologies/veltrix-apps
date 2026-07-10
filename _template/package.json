@@ -1,14 +1,14 @@
 {
   "name": "veltrix-app-template",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Template for building Veltrix Security-as-Code apps — copy this directory to start a new app",
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "@veltrixsecops/app-sdk": "^2.2.0",
+    "@veltrixsecops/app-sdk": "^2.4.0",
     "fastify": "^5.0.0",
     "typescript": "^5.6.0"
   }

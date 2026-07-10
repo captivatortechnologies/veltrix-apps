@@ -1,6 +1,6 @@
 id: splunk-cloud
 name: Splunk Cloud Platform
-version: 1.0.1
+version: 1.1.0
 vendor: Veltrix
 description: >
   Manage Splunk Cloud Platform configurations as code through the
@@ -102,11 +102,25 @@ client:
       label: Overview
       icon: cloud
       nav: sidebar
+      order: 1
+      layout: standard
     - path: /setup
       component: SetupGuidePage
       label: Setup Guide
       icon: book
       nav: sidebar
+      order: 2
+      layout: standard
+    # Access Servers — a Pages-group item (no group), ordered last in Pages so
+    # it renders immediately before the Configurations group.
+    - path: /access-servers
+      component: AccessServersPage
+      label: "Access Servers"
+      icon: shield
+      nav: sidebar
+      group: settings
+      order: 1
+      layout: standard
 
 hooks:
   onInstall: hooks/onInstall

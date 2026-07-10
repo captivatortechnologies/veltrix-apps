@@ -1,6 +1,6 @@
 id: splunk-enterprise
 name: Splunk Enterprise
-version: 1.8.0
+version: 1.9.0
 vendor: Veltrix
 description: >
   Manage Splunk Enterprise configurations as code.
@@ -125,6 +125,15 @@ client:
       icon: book
       nav: sidebar
       order: 2
+      layout: standard
+    # Access Servers — app-level Settings item (Settings nav group).
+    - path: /access-servers
+      component: AccessServersPage
+      label: "Access Servers"
+      icon: shield
+      nav: sidebar
+      group: settings
+      order: 1
       layout: standard
     - path: /inventory
       component: InventoryPage
