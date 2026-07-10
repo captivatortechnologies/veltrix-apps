@@ -5,8 +5,7 @@
 // Returns what's currently deployed and the health of each component.
 // =============================================================================
 
-import type { PipelineContext } from '../../../server/src/core/pipeline-engine/types'
-import type { ConfigStatus } from '../../../shared/types/pipeline'
+import type { PipelineContext, ConfigStatus } from '@veltrixsecops/app-sdk'
 
 export default async function getStatus(ctx: PipelineContext): Promise<ConfigStatus> {
   // Example: Query your tool for current config state

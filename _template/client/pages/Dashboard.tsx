@@ -7,8 +7,8 @@
 
 import React from 'react'
 
-// These would be imported from @veltrix/app-sdk in production:
-// import { useAppContext, useAppSettings, usePipelineStatus } from '@veltrix/app-sdk'
+// These would be imported from @veltrixsecops/app-sdk in production:
+// import { useAppContext, useAppSettings, usePipelineStatus } from '@veltrixsecops/app-sdk'
 
 export default function Dashboard() {
   return (

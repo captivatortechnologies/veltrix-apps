@@ -8,8 +8,7 @@
 // You receive ctx.targetVersion with the canvas snapshot to revert to.
 // =============================================================================
 
-import type { RollbackContext } from '../../../server/src/core/pipeline-engine/types'
-import type { RollbackResult } from '../../../shared/types/pipeline'
+import type { RollbackContext, RollbackResult } from '@veltrixsecops/app-sdk'
 
 export default async function rollback(ctx: RollbackContext): Promise<RollbackResult> {
   const { component, credential, connectivity, rollbackData, targetVersion } = ctx

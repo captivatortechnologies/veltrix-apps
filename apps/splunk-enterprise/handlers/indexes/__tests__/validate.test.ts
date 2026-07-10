@@ -1,5 +1,10 @@
 import validate from '../validate'
-import type { PipelineContext } from '../../../../../core/pipeline-engine/types'
+import type { PipelineContext, PlatformDataApi } from '@veltrixsecops/app-sdk'
+
+const stubPlatform: PlatformDataApi = {
+  getLatestDeployment: async () => null,
+  listComponents: async () => [],
+}
 
 function makeCtx(sections: Array<{ name: string; fields: Record<string, unknown> }>): PipelineContext {
   return {
@@ -19,6 +24,7 @@ function makeCtx(sections: Array<{ name: string; fields: Record<string, unknown>
     environment: { id: 'env-1', name: 'production' },
     user: { id: 'user-1', email: 'test@test.com', name: 'Test' },
     settings: {},
+    platform: stubPlatform,
   }
 }
 

@@ -1,4 +1,4 @@
-import type { HealthCheckContext, HealthCheckResult } from '../../../../core/pipeline-engine/types'
+import type { HealthCheckContext, HealthCheckResult } from '@veltrixsecops/app-sdk'
 
 /**
  * Health check for Splunk index configuration.

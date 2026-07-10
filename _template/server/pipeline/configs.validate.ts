@@ -9,8 +9,7 @@
 // Warnings are shown but don't block.
 // =============================================================================
 
-import type { PipelineContext } from '../../../server/src/core/pipeline-engine/types'
-import type { ValidationResult } from '../../../shared/types/pipeline'
+import type { PipelineContext, ValidationResult } from '@veltrixsecops/app-sdk'
 
 export default async function validate(ctx: PipelineContext): Promise<ValidationResult> {
   const errors: ValidationResult['errors'] = []

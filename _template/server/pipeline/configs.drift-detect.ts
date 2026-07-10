@@ -12,8 +12,7 @@
 // Return { hasDrift: true, diffs: [...] } with specific differences.
 // =============================================================================
 
-import type { DriftContext } from '../../../server/src/core/pipeline-engine/types'
-import type { DriftResult } from '../../../shared/types/pipeline'
+import type { DriftContext, DriftResult } from '@veltrixsecops/app-sdk'
 
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const { component, credential, connectivity, deployedConfig } = ctx

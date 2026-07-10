@@ -1,24 +1,15 @@
-import type { PipelineContext, ConfigStatus, ComponentConfigStatus } from '../../../../core/pipeline-engine/types'
-import prisma from '../../../../db'
+import type { PipelineContext, ConfigStatus, ComponentConfigStatus } from '@veltrixsecops/app-sdk'
 
 /**
  * Get the current deployment status of index configurations.
- * Queries deployment records and optionally checks live Splunk state.
+ * Reads deployment and component records through the platform data API.
  */
 export default async function getStatus(ctx: PipelineContext): Promise<ConfigStatus> {
-  const { canvas, customerId } = ctx
+  const { canvas, platform } = ctx
 
-  // Get the latest deployment for this canvas
-  const latestDeployment = await prisma.deployment.findFirst({
-    where: {
-      canvasId: canvas.canvasId,
-      customerId,
-      status: 'SUCCEEDED',
-    },
-    orderBy: { completedAt: 'desc' },
-    include: {
-      environment: { select: { id: true, name: true } },
-    },
+  // Get the latest successful deployment for this canvas
+  const latestDeployment = await platform.getLatestDeployment(canvas.canvasId, {
+    status: 'SUCCEEDED',
   })
 
   if (!latestDeployment) {
@@ -31,12 +22,8 @@ export default async function getStatus(ctx: PipelineContext): Promise<ConfigSta
   }
 
   // Get components targeted by this canvas
-  const components = await prisma.component.findMany({
-    where: {
-      customerId,
-      type: { hasSome: ['indexer', 'cluster-manager'] },
-    },
-    select: { id: true, hostname: true },
+  const components = await platform.listComponents({
+    types: ['indexer', 'cluster-manager'],
   })
 
   const componentStatuses: ComponentConfigStatus[] = components.map((comp) => ({
@@ -44,7 +31,7 @@ export default async function getStatus(ctx: PipelineContext): Promise<ConfigSta
     hostname: comp.hostname,
     deployed: true,
     version: String(canvas.version),
-    lastDeployedAt: latestDeployment.completedAt?.toISOString() || '',
+    lastDeployedAt: latestDeployment.completedAt || '',
     healthy: latestDeployment.healthScore ? latestDeployment.healthScore >= 80 : undefined,
     healthScore: latestDeployment.healthScore ?? undefined,
   }))
@@ -52,7 +39,7 @@ export default async function getStatus(ctx: PipelineContext): Promise<ConfigSta
   return {
     deployed: true,
     version: String(canvas.version),
-    lastDeployedAt: latestDeployment.completedAt?.toISOString() || latestDeployment.startedAt.toISOString(),
+    lastDeployedAt: latestDeployment.completedAt || latestDeployment.startedAt,
     componentStatuses,
   }
 }

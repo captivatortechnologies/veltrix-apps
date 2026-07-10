@@ -17,8 +17,7 @@
 // Optionally return rollbackData that will be passed to your rollback handler.
 // =============================================================================
 
-import type { DeployContext } from '../../../server/src/core/pipeline-engine/types'
-import type { DeployResult } from '../../../shared/types/pipeline'
+import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
 
 export default async function deploy(ctx: DeployContext): Promise<DeployResult> {
   const { component, credential, connectivity, connectivityProvider, canvas } = ctx

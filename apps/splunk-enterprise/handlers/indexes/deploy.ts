@@ -1,4 +1,4 @@
-import type { DeployContext, DeployResult } from '../../../../core/pipeline-engine/types'
+import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
 
 /**
  * Deploy index configuration to a Splunk component.

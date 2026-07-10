@@ -1,4 +1,4 @@
-import type { PipelineContext, ValidationResult } from '../../../../core/pipeline-engine/types'
+import type { PipelineContext, ValidationResult } from '@veltrixsecops/app-sdk'
 
 const RESERVED_ROLE_NAMES = ['admin', 'can_delete', 'power', 'splunk-system-role', 'user']
 const MAX_ROLE_NAME_LENGTH = 80

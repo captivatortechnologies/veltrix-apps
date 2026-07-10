@@ -1,15 +1,10 @@
-import { PrismaClient } from '@prisma/client'
-
-interface HookContext {
-  db: PrismaClient
-  appId: string
-}
+import type { AppHookContext } from '@veltrixsecops/app-sdk'
 
 /**
  * Install hook for Splunk Enterprise app.
  * Seeds default Splunk versions and creates default settings.
  */
-export default async function onInstall({ db, appId }: HookContext): Promise<void> {
+export default async function onInstall({ db, appId }: AppHookContext): Promise<void> {
   console.log(`[Splunk Enterprise] Running install hook for app "${appId}"`)
 
   // Seed default Splunk versions if none exist

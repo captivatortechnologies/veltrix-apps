@@ -1,4 +1,4 @@
-import type { DriftContext, DriftResult, DriftDiff } from '../../../../core/pipeline-engine/types'
+import type { DriftContext, DriftResult, DriftDiff } from '@veltrixsecops/app-sdk'
 
 /**
  * Detect drift between the deployed canvas config and what's actually running on Splunk.

@@ -10,8 +10,7 @@
 // Include individual check details for the deployment log.
 // =============================================================================
 
-import type { HealthCheckContext } from '../../../server/src/core/pipeline-engine/types'
-import type { HealthCheckResult } from '../../../shared/types/pipeline'
+import type { HealthCheckContext, HealthCheckResult } from '@veltrixsecops/app-sdk'
 
 export default async function healthCheck(ctx: HealthCheckContext): Promise<HealthCheckResult> {
   const { component, credential, connectivity } = ctx

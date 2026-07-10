@@ -6,32 +6,24 @@
 // and protected by app-level auth + permission middleware.
 // ========================================================================
 
-import { FastifyInstance } from 'fastify'
-import type { AppManifest } from '../../../../../shared/types/app'
-
-interface AppPluginContext {
-  appId: string
-  appDir: string
-  manifest: AppManifest
-  hasPermission: (resource: string, action: string) => any
-}
+import type { FastifyInstance } from 'fastify'
+import type { AppRouteContext } from '@veltrixsecops/app-sdk'
 
 export default async function registerRoutes(
   fastify: FastifyInstance,
-  ctx: AppPluginContext,
+  ctx: AppRouteContext,
 ) {
-  const { hasPermission } = ctx
+  const { hasPermission, db } = ctx
 
   // --- Index Configuration Routes ---
 
   fastify.get('/indexes', {
     preHandler: [hasPermission('indexes', 'read')],
     handler: async (request, reply) => {
-      const prisma = (await import('../../../db')).default
       const customerId = (request as any).user?.customerId
       if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
 
-      const configs = await prisma.splunkEnterpriseIndexesConfiguration.findMany({
+      const configs = await db.splunkEnterpriseIndexesConfiguration.findMany({
         where: { customerId },
         include: { environments: { include: { tag: true } } },
         orderBy: { updatedAt: 'desc' },
@@ -43,11 +35,10 @@ export default async function registerRoutes(
   fastify.get('/indexes/defaults', {
     preHandler: [hasPermission('indexes', 'read')],
     handler: async (request, reply) => {
-      const prisma = (await import('../../../db')).default
       const customerId = (request as any).user?.customerId
       if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
 
-      const defaults = await prisma.splunkEnterpriseIndexesDefaultConfiguration.findMany({
+      const defaults = await db.splunkEnterpriseIndexesDefaultConfiguration.findMany({
         where: { customerId },
         include: { environments: { include: { tag: true } } },
       })
@@ -60,11 +51,10 @@ export default async function registerRoutes(
   fastify.get('/roles', {
     preHandler: [hasPermission('roles', 'read')],
     handler: async (request, reply) => {
-      const prisma = (await import('../../../db')).default
       const customerId = (request as any).user?.customerId
       if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
 
-      const configs = await prisma.splunkEnterpriseRolesConfiguration.findMany({
+      const configs = await db.splunkEnterpriseRolesConfiguration.findMany({
         where: { customerId },
         include: { environments: { include: { tag: true } } },
         orderBy: { updatedAt: 'desc' },
@@ -76,11 +66,10 @@ export default async function registerRoutes(
   fastify.get('/roles/defaults', {
     preHandler: [hasPermission('roles', 'read')],
     handler: async (request, reply) => {
-      const prisma = (await import('../../../db')).default
       const customerId = (request as any).user?.customerId
       if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
 
-      const defaults = await prisma.splunkEnterpriseRolesDefaultConfiguration.findMany({
+      const defaults = await db.splunkEnterpriseRolesDefaultConfiguration.findMany({
         where: { customerId },
         include: { environments: { include: { tag: true } } },
       })
@@ -93,11 +82,10 @@ export default async function registerRoutes(
   fastify.get('/byol', {
     preHandler: [hasPermission('byol', 'read')],
     handler: async (request, reply) => {
-      const prisma = (await import('../../../db')).default
       const customerId = (request as any).user?.customerId
       if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
 
-      const infra = await prisma.byolInfrastructure.findMany({
+      const infra = await db.byolInfrastructure.findMany({
         where: { customerId },
         include: {
           indexerRegions: true,
@@ -114,9 +102,8 @@ export default async function registerRoutes(
 
   fastify.get('/versions', {
     preHandler: [hasPermission('versions', 'read')],
-    handler: async (request, reply) => {
-      const prisma = (await import('../../../db')).default
-      const versions = await prisma.splunkVersion.findMany({
+    handler: async (_request, reply) => {
+      const versions = await db.splunkVersion.findMany({
         where: { isActive: true },
         orderBy: { releaseDate: 'desc' },
       })
@@ -129,11 +116,10 @@ export default async function registerRoutes(
   fastify.get('/settings', {
     preHandler: [hasPermission('indexes', 'read')],
     handler: async (request, reply) => {
-      const prisma = (await import('../../../db')).default
       const customerId = (request as any).user?.customerId
       if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
 
-      const installation = await prisma.appInstallation.findFirst({
+      const installation = await db.appInstallation.findFirst({
         where: { app: { appId: ctx.appId }, customerId, enabled: true },
       })
 

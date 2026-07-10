@@ -1,4 +1,4 @@
-import type { PipelineContext, ValidationResult } from '../../../../core/pipeline-engine/types'
+import type { PipelineContext, ValidationResult } from '@veltrixsecops/app-sdk'
 
 const RESERVED_INDEX_NAMES = [
   '_internal', '_audit', '_introspection', '_telemetry',

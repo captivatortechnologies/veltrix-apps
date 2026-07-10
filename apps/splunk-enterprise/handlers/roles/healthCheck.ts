@@ -1,4 +1,4 @@
-import type { HealthCheckContext, HealthCheckResult } from '../../../../core/pipeline-engine/types'
+import type { HealthCheckContext, HealthCheckResult } from '@veltrixsecops/app-sdk'
 
 export default async function healthCheck(ctx: HealthCheckContext): Promise<HealthCheckResult> {
   const { component, credential, connectivity } = ctx

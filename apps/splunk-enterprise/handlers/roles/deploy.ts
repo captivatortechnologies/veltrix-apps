@@ -1,4 +1,4 @@
-import type { DeployContext, DeployResult } from '../../../../core/pipeline-engine/types'
+import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
 
 export default async function deploy(ctx: DeployContext): Promise<DeployResult> {
   const { component, credential, connectivity, canvas } = ctx

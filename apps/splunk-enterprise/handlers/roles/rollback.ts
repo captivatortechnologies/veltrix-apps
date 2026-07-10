@@ -1,4 +1,4 @@
-import type { RollbackContext, RollbackResult } from '../../../../core/pipeline-engine/types'
+import type { RollbackContext, RollbackResult } from '@veltrixsecops/app-sdk'
 
 export default async function rollback(ctx: RollbackContext): Promise<RollbackResult> {
   const { component, credential, connectivity, rollbackData } = ctx

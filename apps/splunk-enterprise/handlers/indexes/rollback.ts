@@ -1,4 +1,4 @@
-import type { RollbackContext, RollbackResult } from '../../../../core/pipeline-engine/types'
+import type { RollbackContext, RollbackResult } from '@veltrixsecops/app-sdk'
 
 /**
  * Rollback index configuration by restoring the previous state captured during deploy.
