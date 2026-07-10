@@ -56,25 +56,31 @@ veltrix sandbox delete crowdstrike-dev                         # confirms first;
 veltrix sandbox run crowdstrike-dev detections validate       # one-shot handler run in the sandbox
 ```
 
-### `veltrix dev [dir] --sandbox <name>` — the dev loop
+### `veltrix dev [dir] --sandbox <name>` — the two-way dev loop
 
 ```bash
 veltrix dev ./crowdstrike-edr --sandbox crowdstrike-dev --create
 ```
 
-On startup the app is validated locally (same rules as CI), the sandbox is resolved (`--create` makes it on the fly), and a full sync runs. Then the directory is watched: every save is validated locally, hashed, diffed against the server's manifest (sha256), and only changed files are uploaded as a tar.gz delta — deletes and renames propagate automatically. A typical session:
+`veltrix dev` keeps your local workspace and the sandbox in sync **both ways**:
+
+- **Push (local → sandbox).** On startup the app is validated locally (same rules as CI), the sandbox is resolved (`--create` makes it on the fly), and a full sync runs. Then the directory is watched: every save is validated locally, hashed, diffed against the server's manifest (sha256), and only changed files are uploaded as a tar.gz delta — deletes and renames propagate automatically.
+- **Pull (sandbox → local).** Edits made in the portal's in-browser sandbox editor are applied to your local files in near-real time, marked `↓ <path> (from sandbox)`. Reverse sync is **on by default**; pass `--no-pull` for the classic one-way watcher.
+
+A typical session:
 
 ```
 $ veltrix dev ./crowdstrike-edr --sandbox crowdstrike-dev --run detections:validate
 veltrix dev
   app:     /home/dev/crowdstrike-edr
   sandbox: crowdstrike-dev @ https://app.veltrixsecops.com
+  sync:    ↑ local → sandbox, ↓ sandbox → local
 Performing initial sync…
 ✔ ↑ 42 files in 910ms — server validation passed, 12 transpiled
 ✔ run detections:validate succeeded in 38ms
 Watching for changes… (Ctrl+C to stop)
 10:32:04 ✔ ↑ 1 file in 240ms — server validation passed, 12 transpiled
-✔ run detections:validate succeeded in 41ms
+  ↓ config-types/detections/validate.ts (from sandbox)
 10:33:17 ✔ ↑ 2 files, ✕ 1 deleted in 310ms — server validation passed
 ```
 
@@ -83,9 +89,25 @@ Flags:
 - `--create` — create the sandbox first if it doesn't exist
 - `--run <configTypeId>:<handler>` — invoke a pipeline handler after each successful sync and pretty-print the result + captured logs (on platforms without the sandbox runner yet, the CLI says so and keeps syncing)
 - `--logs` — stream live sandbox events over WebSocket when the platform supports it (falls back to sync-response output otherwise)
+- `--no-pull` — disable reverse sync; run the classic one-way (local → sandbox) watcher
+- `--force-pull` — on conflict, overwrite the local file with the sandbox version instead of skipping
 - `--profile <name>` — use a non-default login profile
 
 Local validation failures never interrupt the loop — errors print and the watcher waits for your next save. Connection drops and server-state mismatches recover with an automatic full resync.
+
+#### Reverse sync, conflicts, and echoes
+
+Both the portal editor and the CLI write to the same sandbox, which is the source of truth. Each writer stamps its edits with a per-process id, so neither re-applies its own change (a second guard ignores any change whose content already matches what you last wrote).
+
+When a portal edit arrives, the CLI applies it **only if your local file still matches the sandbox's previous content** — i.e. you have no unsaved changes to that file. Otherwise it prints a conflict and leaves your file untouched:
+
+```
+  ⚠ conflict: config-types/detections/validate.ts (local modified — skipped; --force-pull to overwrite)
+```
+
+Rerun with `--force-pull` (or edit the file to resolve it) to take the sandbox version. Files are written atomically (temp file + rename), so a partial write is never observed. If the CLI is offline when a portal edit lands, it reconciles on reconnect by hash-diffing the sandbox file list against your workspace and pulling the non-conflicting changes.
+
+> Reverse sync requires a platform with sandbox **live-edit** support (the realtime `sandbox:file-changed` events and the file read API). On older platforms the CLI prints `live pull unavailable — sync remains one-way` once and the push loop keeps working unchanged.
 
 ### `.veltrixignore`
 
