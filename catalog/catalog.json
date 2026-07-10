@@ -1,12 +1,28 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-10T14:50:34.683Z",
+  "generatedAt": "2026-07-10T14:56:13.599Z",
   "apps": [
+    {
+      "appId": "crowdstrike-edr",
+      "name": "CrowdStrike Falcon",
+      "version": "1.1.0",
+      "vendor": "Veltrix",
+      "description": "Manage CrowdStrike Falcon configurations as code through the Falcon APIs. Includes host groups, prevention policies, and custom IOCs (indicators of compromise), with validation, drift detection, and rollback handled by the Security-as-Code pipeline.",
+      "category": "EDR",
+      "icon": "🦅",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/crowdstrike-edr",
+      "available": true,
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/crowdstrike-edr-v1.1.0/crowdstrike-edr.zip",
+      "sha256": "d6445a77a167349712fc45b61356382e36f7d641368446fc74bf16e0eb5d4171",
+      "sizeBytes": 96078,
+      "publishedAt": "2026-07-10T14:56:13.583Z"
+    },
     {
       "appId": "splunk-cloud",
       "name": "Splunk Cloud Platform",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "vendor": "Veltrix",
       "description": "Manage Splunk Cloud Platform configurations as code through the Admin Config Service (ACS) API. Includes index management, HTTP Event Collector (HEC) tokens, and IP allow lists.",
       "category": "SIEM",
@@ -14,10 +30,10 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-cloud",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-cloud-v1.0.0/splunk-cloud.zip",
-      "sha256": "f0f36c34f51fb0910b66a09ff193ea36141ef573dde29b446bd3c8cea40b6173",
-      "sizeBytes": 93034,
-      "publishedAt": "2026-07-10T04:19:48.919Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-cloud-v1.0.1/splunk-cloud.zip",
+      "sha256": "0b488954901941336deaaa57909dbb9141d1c500e01c094ba55f5210b16130ac",
+      "sizeBytes": 96265,
+      "publishedAt": "2026-07-10T14:56:13.585Z"
     },
     {
       "appId": "splunk-enterprise",
@@ -31,9 +47,9 @@
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
       "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.1.1/splunk-enterprise.zip",
-      "sha256": "85c2a7c67af7d9ea598aab14fcc1c4451a1510a46171245f3634f1fe39dddb11",
+      "sha256": "be6e5e9f7abdaaca0a7baac2f28d5ae35fc24e2b2b26cdf234751eabecff5b0e",
       "sizeBytes": 91147,
-      "publishedAt": "2026-07-10T14:50:34.676Z"
+      "publishedAt": "2026-07-10T14:56:13.588Z"
     }
   ]
 }
