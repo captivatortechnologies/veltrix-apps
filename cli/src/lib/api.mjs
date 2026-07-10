@@ -1,16 +1,23 @@
 // ============================================================================
 // Minimal API client for the Veltrix platform.
 // Authenticates with `Authorization: ApiKey <key>`.
+//
+// Two entry points:
+//   apiRequest — JSON in / JSON out
+//   apiUpload  — raw binary body (e.g. application/gzip sync tarballs)
+// Both throw ApiError with the HTTP status and the server's {error} message
+// (status 0 = the platform could not be reached at all).
 // ============================================================================
 
 export class ApiError extends Error {
-  constructor(status, message) {
+  constructor(status, message, details) {
     super(message)
     this.status = status
+    this.details = details
   }
 }
 
-export async function apiRequest(profile, method, apiPath, body) {
+async function send(profile, method, apiPath, { body, headers } = {}) {
   const url = new URL(apiPath, profile.url.endsWith('/') ? profile.url : profile.url + '/')
 
   let response
@@ -19,9 +26,9 @@ export async function apiRequest(profile, method, apiPath, body) {
       method,
       headers: {
         Authorization: `ApiKey ${profile.apiKey}`,
-        ...(body ? { 'Content-Type': 'application/json' } : {}),
+        ...headers,
       },
-      body: body ? JSON.stringify(body) : undefined,
+      body,
     })
   } catch (e) {
     throw new ApiError(0, `Could not reach ${url.origin} — ${e.cause?.code || e.message}`)
@@ -36,9 +43,28 @@ export async function apiRequest(profile, method, apiPath, body) {
   }
 
   if (!response.ok) {
-    throw new ApiError(response.status, data.error || `HTTP ${response.status}`)
+    // The platform reports failures as {error}; Fastify's default 404 for an
+    // unknown route uses {message}. Surface whichever exists.
+    throw new ApiError(response.status, data.error || data.message || `HTTP ${response.status}`, data)
   }
   return data
+}
+
+/** JSON request. `body` (when given) is JSON-serialized. */
+export async function apiRequest(profile, method, apiPath, body) {
+  const hasBody = body !== undefined
+  return send(profile, method, apiPath, {
+    body: hasBody ? JSON.stringify(body) : undefined,
+    headers: hasBody ? { 'Content-Type': 'application/json' } : {},
+  })
+}
+
+/** Raw binary upload (Buffer body), default Content-Type application/gzip. */
+export async function apiUpload(profile, method, apiPath, buffer, contentType = 'application/gzip') {
+  return send(profile, method, apiPath, {
+    body: buffer,
+    headers: { 'Content-Type': contentType },
+  })
 }
 
 /** Verify the API key and return { customerId, type, scopes, ownership }. */

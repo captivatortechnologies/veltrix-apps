@@ -1,7 +1,7 @@
 {
   "name": "@veltrixsecops/cli",
-  "version": "0.2.0",
-  "description": "Veltrix CLI — validate, package, and develop Veltrix Security-as-Code apps from your local workspace",
+  "version": "0.3.0",
+  "description": "Veltrix CLI — validate, package, and live-develop Veltrix Security-as-Code apps against a tenant sandbox from your local workspace",
   "type": "module",
   "bin": {
     "veltrix": "bin/veltrix.mjs"
@@ -15,16 +15,18 @@
     "README.md"
   ],
   "scripts": {
-    "test": "node --test test/"
+    "test": "node --test"
   },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
+    "chokidar": "^4.0.3",
     "commander": "^12.1.0",
     "esbuild": "^0.28.1",
     "js-yaml": "^4.1.0",
+    "socket.io-client": "^4.8.1",
     "tar": "^7.5.0"
   },
   "keywords": [
