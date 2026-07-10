@@ -1,7 +1,13 @@
 import type { HealthCheckContext, HealthCheckResult } from '@veltrixsecops/app-sdk'
+import { buildSplunkUrl, buildAuthHeader } from '../../lib/splunkApi'
 
+/**
+ * Health check for Splunk role configuration.
+ * Verifies the instance is reachable, the authorization subsystem responds,
+ * and every role declared on the canvas exists on the component.
+ */
 export default async function healthCheck(ctx: HealthCheckContext): Promise<HealthCheckResult> {
-  const { component, credential, connectivity } = ctx
+  const { component, credential, connectivity, canvas } = ctx
   const checks: HealthCheckResult['checks'] = []
 
   if (!credential || !connectivity) {
@@ -32,6 +38,25 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
     return 'Authentication subsystem is healthy'
   }))
 
+  // Check 4: Canvas roles exist on the component
+  checks.push(await timedCheck('canvas_roles_present', async () => {
+    const expected = canvas.sections
+      .map((s) => s.fields?.name as string | undefined)
+      .filter((n): n is string => Boolean(n))
+    if (expected.length === 0) return 'No roles declared on canvas'
+
+    const missing: string[] = []
+    for (const name of expected) {
+      const res = await fetch(
+        `${baseUrl}/services/authorization/roles/${encodeURIComponent(name)}?output_mode=json`,
+        { method: 'GET', headers: auth, signal: AbortSignal.timeout(10_000) },
+      )
+      if (!res.ok) missing.push(name)
+    }
+    if (missing.length > 0) throw new Error(`Missing role(s): ${missing.join(', ')}`)
+    return `All ${expected.length} canvas role(s) exist`
+  }))
+
   const passedCount = checks.filter(c => c.passed).length
   return { healthy: passedCount === checks.length, score: Math.round((passedCount / checks.length) * 100), checks }
 }
@@ -44,15 +69,4 @@ async function timedCheck(name: string, fn: () => Promise<string>): Promise<Heal
   } catch (error) {
     return { name, passed: false, message: error instanceof Error ? error.message : 'Check failed', latencyMs: Date.now() - start }
   }
-}
-
-function buildSplunkUrl(component: HealthCheckContext['component'], connectivity: NonNullable<HealthCheckContext['connectivity']>): string {
-  if (connectivity.httpsUrl) return connectivity.httpsUrl
-  if (connectivity.tailscaleDeviceIP) return `https://${connectivity.tailscaleDeviceIP}:${component.port || '8089'}`
-  return `https://${component.hostname}:${component.port || '8089'}`
-}
-
-function buildAuthHeader(credential: NonNullable<HealthCheckContext['credential']>): Record<string, string> {
-  if (credential.apiToken) return { Authorization: `Bearer ${credential.apiToken}` }
-  return { Authorization: `Basic ${Buffer.from(`${credential.username}:${credential.password}`).toString('base64')}` }
 }

@@ -2,14 +2,16 @@
 # Canvas Template — Splunk Enterprise Roles
 #
 # Fields shown in the Configuration Canvas editor for role configurations.
-# Field keys must match what handlers/roles/validate.ts checks.
+# Field keys must match what config-types/roles/validate.ts checks and what
+# config-types/roles/deploy.ts maps to Splunk REST parameters
+# (/services/authorization/roles).
 # =============================================================================
 
 id: "splunk-enterprise-roles"
 name: "Role Configuration"
 toolType: "splunk-enterprise"
 entityType: "roles"
-description: "Define Splunk Enterprise roles (capabilities, search filters, quotas) as code"
+description: "Define Splunk Enterprise roles (capabilities, index access, search quotas) as code"
 
 sections:
   - name: "General"
@@ -21,29 +23,55 @@ sections:
         fieldType: "text"
         required: true
         validation:
-          pattern: "^[a-z][a-z0-9_-]*$"
           maxLength: 80
-          message: "Lowercase, must start with a letter. Reserved names (admin, power, user, ...) are rejected."
+          message: "No uppercase characters, spaces, colons, semicolons, or forward slashes. Reserved names (admin, power, user, can_delete, splunk-system-role) are rejected."
         helpText: "Unique role name"
 
       - key: "importedRoles"
         label: "Imported Roles"
         fieldType: "tags"
-        helpText: "Roles this role inherits from. A role cannot import itself."
+        helpText: "Roles this role inherits from (maps to imported_roles). A role cannot import itself; importing 'admin' triggers a review warning."
 
       - key: "capabilities"
         label: "Capabilities"
         fieldType: "tags"
-        helpText: "Splunk capabilities granted to this role (e.g. search, list_inputs)"
+        helpText: "Splunk capabilities granted to this role (e.g. search, list_inputs, schedule_search). Undocumented names and privileged capabilities (admin_all_objects, edit_roles, ...) trigger review warnings."
+
+      - key: "defaultApp"
+        label: "Default App"
+        fieldType: "text"
+        helpText: "Optional. Folder name of the app users with this role land in (maps to defaultApp)."
+
+  - name: "Index Access"
+    icon: "database"
+    description: "Which indexes this role can search"
+    fields:
+      - key: "srchIndexesAllowed"
+        label: "Allowed Indexes"
+        fieldType: "tags"
+        helpText: "Indexes this role may search (wildcards supported). '*' grants all non-internal indexes and triggers a review warning."
+
+      - key: "srchIndexesDefault"
+        label: "Default Indexes"
+        fieldType: "tags"
+        helpText: "Indexes searched when a search does not specify one"
 
   - name: "Search Restrictions"
     icon: "filter"
-    description: "What this role can search"
+    description: "What this role can search and how much it can consume"
     fields:
       - key: "srchFilter"
         label: "Search Filter"
         fieldType: "textarea"
         helpText: "SPL filter applied to every search this role runs. Filters over 2000 characters trigger a warning."
+
+      - key: "srchTimeWin"
+        label: "Search Time Window (seconds)"
+        fieldType: "number"
+        defaultValue: -1
+        validation:
+          min: -1
+        helpText: "Maximum time span of a search. -1 = unset (default), 0 = exempt from any window (triggers a warning), otherwise seconds."
 
       - key: "srchDiskQuota"
         label: "Search Disk Quota (MB)"
@@ -51,11 +79,20 @@ sections:
         defaultValue: 100
         validation:
           min: 0
+        helpText: "Disk space for a user's search jobs (Splunk default 100). 0 = unlimited."
 
       - key: "srchJobsQuota"
         label: "Concurrent Search Jobs"
         fieldType: "number"
+        defaultValue: 3
+        validation:
+          min: 0
+        helpText: "Concurrent historical searches per user (Splunk default 3). 0 = unlimited; values above 100 trigger a review warning."
+
+      - key: "rtSrchJobsQuota"
+        label: "Concurrent Real-Time Search Jobs"
+        fieldType: "number"
         defaultValue: 6
         validation:
           min: 0
-        helpText: "Values above 100 trigger a review warning"
+        helpText: "Concurrent real-time searches per user (Splunk default 6). 0 = unlimited; values above 100 trigger a review warning."

@@ -1,10 +1,12 @@
 id: splunk-enterprise
 name: Splunk Enterprise
-version: 1.0.1
+version: 1.1.0
 vendor: Veltrix
 description: >
   Manage Splunk Enterprise configurations as code.
-  Includes indexes, roles, BYOL infrastructure, and versioning.
+  Includes indexes, roles, HTTP Event Collector tokens,
+  BYOL infrastructure, and version tracking for current
+  Splunk release lines (9.4.x–10.4.x).
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise
@@ -26,6 +28,9 @@ permissions:
     - resource: roles
       actions: [read, write, delete]
       description: Manage Splunk role configurations
+    - resource: hec-tokens
+      actions: [read, write, delete]
+      description: Manage HTTP Event Collector token configurations
     - resource: byol
       actions: [read, write, delete]
       description: Manage BYOL infrastructure
@@ -42,15 +47,15 @@ pipeline:
     - id: indexes
       name: Index Configuration
       description: Splunk Enterprise index definitions (retention, sizing, compression)
-      canvasTemplate: templates/indexes-canvas.yaml
-      defaultConfig: defaults/indexes.yaml
+      canvasTemplate: config-types/indexes/canvas.yaml
+      defaultConfig: config-types/indexes/defaults.yaml
       handlers:
-        validate: handlers/indexes/validate
-        deploy: handlers/indexes/deploy
-        rollback: handlers/indexes/rollback
-        healthCheck: handlers/indexes/healthCheck
-        driftDetect: handlers/indexes/driftDetect
-        getStatus: handlers/indexes/getStatus
+        validate: config-types/indexes/validate
+        deploy: config-types/indexes/deploy
+        rollback: config-types/indexes/rollback
+        healthCheck: config-types/indexes/healthCheck
+        driftDetect: config-types/indexes/driftDetect
+        getStatus: config-types/indexes/getStatus
       targets:
         componentTypes: [indexer, cluster-manager]
         requiresCredential: true
@@ -59,17 +64,34 @@ pipeline:
     - id: roles
       name: Role Configuration
       description: Splunk Enterprise role definitions (capabilities, search filters)
-      canvasTemplate: templates/roles-canvas.yaml
-      defaultConfig: defaults/roles.yaml
+      canvasTemplate: config-types/roles/canvas.yaml
+      defaultConfig: config-types/roles/defaults.yaml
       handlers:
-        validate: handlers/roles/validate
-        deploy: handlers/roles/deploy
-        rollback: handlers/roles/rollback
-        healthCheck: handlers/roles/healthCheck
-        driftDetect: handlers/roles/driftDetect
-        getStatus: handlers/roles/getStatus
+        validate: config-types/roles/validate
+        deploy: config-types/roles/deploy
+        rollback: config-types/roles/rollback
+        healthCheck: config-types/roles/healthCheck
+        driftDetect: config-types/roles/driftDetect
+        getStatus: config-types/roles/getStatus
       targets:
         componentTypes: [search-head, cluster-manager]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: hec-tokens
+      name: HEC Token Configuration
+      description: HTTP Event Collector token definitions (routing, allowed indexes, acknowledgment)
+      canvasTemplate: config-types/hec-tokens/canvas.yaml
+      defaultConfig: config-types/hec-tokens/defaults.yaml
+      handlers:
+        validate: config-types/hec-tokens/validate
+        deploy: config-types/hec-tokens/deploy
+        rollback: config-types/hec-tokens/rollback
+        healthCheck: config-types/hec-tokens/healthCheck
+        driftDetect: config-types/hec-tokens/driftDetect
+        getStatus: config-types/hec-tokens/getStatus
+      targets:
+        componentTypes: [indexer, heavy-forwarder]
         requiresCredential: true
         requiresConnectivity: true
 

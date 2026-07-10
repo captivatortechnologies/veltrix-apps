@@ -58,6 +58,20 @@ describe('Splunk Roles Validate Handler', () => {
     expect(result.errors.some((e) => e.code === 'invalid_format')).toBe(true)
   })
 
+  // Splunk forbids uppercase characters, spaces, colons, semicolons,
+  // and forward slashes in role names (authorize.conf).
+  it.each([
+    ['uppercase characters', 'socAnalyst'],
+    ['a colon', 'soc:analyst'],
+    ['a semicolon', 'soc;analyst'],
+    ['a forward slash', 'soc/analyst'],
+    ['a space', 'soc analyst'],
+  ])('rejects role name containing %s', async (_label, name) => {
+    const result = await validate(makeCtx([{ name: 'sec1', fields: { name } }]))
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.code === 'invalid_format')).toBe(true)
+  })
+
   it('rejects reserved role names', async () => {
     const result = await validate(makeCtx([{ name: 'sec1', fields: { name: 'admin' } }]))
     expect(result.valid).toBe(false)
@@ -90,6 +104,55 @@ describe('Splunk Roles Validate Handler', () => {
     expect(result.errors.some((e) => e.code === 'circular_import')).toBe(true)
   })
 
+  it('warns when importing the admin role', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'sec1', fields: { name: 'my-role', importedRoles: ['admin'] } }]),
+    )
+    expect(result.valid).toBe(true)
+    expect(result.warnings.some((w) => w.code === 'privileged_import')).toBe(true)
+  })
+
+  it('warns on undocumented capability names', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'sec1', fields: { name: 'my-role', capabilities: ['serach'] } }]),
+    )
+    expect(result.valid).toBe(true)
+    expect(result.warnings.some((w) => w.code === 'unknown_capability')).toBe(true)
+  })
+
+  it('does not warn for documented capabilities', async () => {
+    const result = await validate(
+      makeCtx([{
+        name: 'sec1',
+        fields: { name: 'my-role', capabilities: ['search', 'rtsearch', 'schedule_search', 'list_inputs', 'get_metadata'] },
+      }]),
+    )
+    expect(result.warnings.some((w) => w.code === 'unknown_capability')).toBe(false)
+  })
+
+  it('warns on privileged capabilities', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'sec1', fields: { name: 'my-role', capabilities: ['admin_all_objects'] } }]),
+    )
+    expect(result.valid).toBe(true)
+    expect(result.warnings.some((w) => w.code === 'privileged_capability')).toBe(true)
+  })
+
+  it('warns on wildcard index access', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'sec1', fields: { name: 'my-role', srchIndexesAllowed: ['*'] } }]),
+    )
+    expect(result.valid).toBe(true)
+    expect(result.warnings.some((w) => w.code === 'broad_index_access')).toBe(true)
+  })
+
+  it('accepts scoped index access without warning', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'sec1', fields: { name: 'my-role', srchIndexesAllowed: ['security', 'firewall'] } }]),
+    )
+    expect(result.warnings.some((w) => w.code === 'broad_index_access')).toBe(false)
+  })
+
   it('warns on long search filter', async () => {
     const result = await validate(
       makeCtx([{ name: 'sec1', fields: { name: 'my-role', srchFilter: 'x'.repeat(2001) } }]),
@@ -119,5 +182,45 @@ describe('Splunk Roles Validate Handler', () => {
     )
     expect(result.valid).toBe(true)
     expect(result.warnings.some((w) => w.code === 'high_quota')).toBe(true)
+  })
+
+  it('rejects negative real-time jobs quota', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'sec1', fields: { name: 'my-role', rtSrchJobsQuota: -1 } }]),
+    )
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.code === 'invalid_value')).toBe(true)
+  })
+
+  it('warns on high real-time jobs quota', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'sec1', fields: { name: 'my-role', rtSrchJobsQuota: 200 } }]),
+    )
+    expect(result.valid).toBe(true)
+    expect(result.warnings.some((w) => w.code === 'high_quota')).toBe(true)
+  })
+
+  it('rejects srchTimeWin below -1', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'sec1', fields: { name: 'my-role', srchTimeWin: -5 } }]),
+    )
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.code === 'invalid_value')).toBe(true)
+  })
+
+  it('accepts srchTimeWin of -1 (unset) without warning', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'sec1', fields: { name: 'my-role', srchTimeWin: -1 } }]),
+    )
+    expect(result.valid).toBe(true)
+    expect(result.warnings.some((w) => w.code === 'unbounded_search_window')).toBe(false)
+  })
+
+  it('warns on srchTimeWin of 0 (exempt from any window)', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'sec1', fields: { name: 'my-role', srchTimeWin: 0 } }]),
+    )
+    expect(result.valid).toBe(true)
+    expect(result.warnings.some((w) => w.code === 'unbounded_search_window')).toBe(true)
   })
 })

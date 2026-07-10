@@ -1,8 +1,15 @@
 import type { DriftContext, DriftResult, DriftDiff } from '@veltrixsecops/app-sdk'
+import { buildSplunkUrl, buildAuthHeader } from '../../lib/splunkApi'
 
 /**
- * Detect drift between the deployed canvas config and what's actually running on Splunk.
- * Compares expected index settings with actual settings via Splunk REST API.
+ * Detect drift between the deployed canvas config and the live index
+ * settings on the Splunk component (/services/data/indexes/<name>).
+ *
+ * Severity policy:
+ *  - missing index / unreachable component ............ critical
+ *  - retention shorter than declared (data loss risk) .. critical
+ *  - sizing / retention / bucket-mode mismatches ........ warning
+ *  - cosmetic differences (journal codec) ............... info
  */
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const { component, credential, connectivity, deployedConfig } = ctx
@@ -16,23 +23,19 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const auth = buildAuthHeader(credential)
 
   for (const section of deployedConfig.sections) {
-    const indexName = section.fields.name as string
+    const fields = section.fields
+    const indexName = fields.name as string
     if (!indexName) continue
 
     try {
       const res = await fetch(
-        `${baseUrl}/services/data/indexes/${indexName}?output_mode=json`,
+        `${baseUrl}/services/data/indexes/${encodeURIComponent(indexName)}?output_mode=json`,
         { method: 'GET', headers: auth, signal: AbortSignal.timeout(15_000) },
       )
 
       if (!res.ok) {
         if (res.status === 404) {
-          diffs.push({
-            field: `${indexName}`,
-            expected: 'exists',
-            actual: 'missing',
-            severity: 'critical',
-          })
+          diffs.push({ field: indexName, expected: 'exists', actual: 'missing', severity: 'critical' })
         }
         continue
       }
@@ -40,51 +43,95 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
       const data = JSON.parse(await res.text())
       const actual = data?.entry?.[0]?.content || {}
 
-      // Compare maxDataSize
-      if (section.fields.maxDataSizeMB) {
-        const expectedMB = section.fields.maxDataSizeMB
-        const actualStr = actual.maxDataSize || actual.maxTotalDataSizeMB
-        if (actualStr && String(actualStr) !== String(expectedMB)) {
+      // Index disabled out-of-band
+      if (actual.disabled === true || actual.disabled === '1') {
+        diffs.push({ field: `${indexName}.disabled`, expected: false, actual: true, severity: 'critical' })
+      }
+
+      // Total size cap (canvas maxDataSizeMB → Splunk maxTotalDataSizeMB)
+      if (typeof fields.maxDataSizeMB === 'number') {
+        const actualMB = Number(actual.maxTotalDataSizeMB)
+        if (!Number.isNaN(actualMB) && actualMB !== fields.maxDataSizeMB) {
           diffs.push({
             field: `${indexName}.maxDataSizeMB`,
-            expected: expectedMB,
-            actual: actualStr,
+            expected: fields.maxDataSizeMB,
+            actual: actualMB,
             severity: 'warning',
           })
         }
       }
 
-      // Compare frozenTimePeriodInSecs
-      if (section.fields.frozenTimeDays) {
-        const expectedSecs = (section.fields.frozenTimeDays as number) * 86400
+      // Retention (canvas frozenTimeDays → Splunk frozenTimePeriodInSecs)
+      if (typeof fields.frozenTimeDays === 'number') {
+        const expectedSecs = fields.frozenTimeDays * 86400
         const actualSecs = Number(actual.frozenTimePeriodInSecs || 0)
         if (actualSecs !== expectedSecs) {
           diffs.push({
             field: `${indexName}.frozenTimeDays`,
-            expected: section.fields.frozenTimeDays,
+            expected: fields.frozenTimeDays,
             actual: Math.round(actualSecs / 86400),
+            // Shorter-than-declared retention means data is being deleted early
             severity: actualSecs < expectedSecs ? 'critical' : 'warning',
           })
         }
       }
 
-      // Compare compression
-      if (section.fields.enableCompression !== undefined) {
-        const expectedCompression = section.fields.enableCompression
-        const actualCompression = actual.enableOnlineBucketRepair !== 'false'
-        if (expectedCompression !== actualCompression) {
+      // Per-bucket size mode (canvas maxDataSizeMode → Splunk maxDataSize)
+      const mode = fields.maxDataSizeMode as string | undefined
+      if (mode) {
+        const expectedBucket =
+          mode === 'custom' ? String(fields.maxDataSizeCustomMB ?? '') : mode
+        const actualBucket = String(actual.maxDataSize ?? '')
+        if (expectedBucket && actualBucket && expectedBucket !== actualBucket) {
+          diffs.push({
+            field: `${indexName}.maxDataSizeMode`,
+            expected: expectedBucket,
+            actual: actualBucket,
+            severity: 'warning',
+          })
+        }
+      }
+
+      // Datatype cannot change after creation — a mismatch means the index
+      // was recreated out-of-band.
+      if (typeof fields.datatype === 'string' && actual.datatype && fields.datatype !== actual.datatype) {
+        diffs.push({
+          field: `${indexName}.datatype`,
+          expected: fields.datatype,
+          actual: actual.datatype,
+          severity: 'critical',
+        })
+      }
+
+      // Journal compression (canvas enableCompression=true deploys zstd)
+      if (fields.enableCompression === true) {
+        const actualCodec = String(actual.journalCompression ?? 'gzip')
+        if (actualCodec !== 'zstd') {
           diffs.push({
             field: `${indexName}.enableCompression`,
-            expected: expectedCompression,
-            actual: actualCompression,
+            expected: 'zstd',
+            actual: actualCodec,
             severity: 'info',
+          })
+        }
+      }
+
+      // TSIDX reduction
+      if (typeof fields.enableTsidxReduction === 'boolean') {
+        const actualReduction = actual.enableTsidxReduction === true || actual.enableTsidxReduction === '1'
+        if (actualReduction !== fields.enableTsidxReduction) {
+          diffs.push({
+            field: `${indexName}.enableTsidxReduction`,
+            expected: fields.enableTsidxReduction,
+            actual: actualReduction,
+            severity: 'warning',
           })
         }
       }
     } catch (error) {
       // Connection failure = potential drift
       diffs.push({
-        field: `${indexName}`,
+        field: indexName,
         expected: 'reachable',
         actual: `unreachable: ${error instanceof Error ? error.message : 'unknown'}`,
         severity: 'critical',
@@ -93,19 +140,4 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   }
 
   return { hasDrift: diffs.length > 0, diffs }
-}
-
-function buildSplunkUrl(
-  component: DriftContext['component'],
-  connectivity: NonNullable<DriftContext['connectivity']>,
-): string {
-  if (connectivity.httpsUrl) return connectivity.httpsUrl
-  if (connectivity.tailscaleDeviceIP) return `https://${connectivity.tailscaleDeviceIP}:${component.port || '8089'}`
-  return `https://${component.hostname}:${component.port || '8089'}`
-}
-
-function buildAuthHeader(credential: NonNullable<DriftContext['credential']>): Record<string, string> {
-  if (credential.apiToken) return { Authorization: `Bearer ${credential.apiToken}` }
-  const encoded = Buffer.from(`${credential.username}:${credential.password}`).toString('base64')
-  return { Authorization: `Basic ${encoded}` }
 }

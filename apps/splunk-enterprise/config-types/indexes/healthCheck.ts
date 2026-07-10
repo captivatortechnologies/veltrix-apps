@@ -1,11 +1,16 @@
 import type { HealthCheckContext, HealthCheckResult } from '@veltrixsecops/app-sdk'
+import { buildSplunkUrl, buildAuthHeader } from '../../lib/splunkApi'
+
+const MIN_FREE_DISK_PCT = 5
 
 /**
  * Health check for Splunk index configuration.
- * Verifies the Splunk instance is reachable and indexes are operational.
+ * Verifies the instance is reachable, splunkd reports healthy, the indexes
+ * declared on the canvas exist and are enabled, and index partitions have
+ * free disk space.
  */
 export default async function healthCheck(ctx: HealthCheckContext): Promise<HealthCheckResult> {
-  const { component, credential, connectivity } = ctx
+  const { component, credential, connectivity, canvas } = ctx
   const checks: HealthCheckResult['checks'] = []
 
   if (!credential || !connectivity) {
@@ -20,19 +25,20 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
   const auth = buildAuthHeader(credential)
 
   // Check 1: Splunk server info (is the instance reachable?)
-  const serverCheck = await timedCheck('server_reachable', async () => {
+  checks.push(await timedCheck('server_reachable', async () => {
     const res = await fetch(`${baseUrl}/services/server/info?output_mode=json`, {
       method: 'GET',
       headers: auth,
       signal: AbortSignal.timeout(10_000),
     })
     if (!res.ok) throw new Error(`Server returned ${res.status}`)
-    return 'Splunk instance is reachable'
-  })
-  checks.push(serverCheck)
+    const data = JSON.parse(await res.text())
+    const version = data?.entry?.[0]?.content?.version
+    return version ? `Splunk ${version} is reachable` : 'Splunk instance is reachable'
+  }))
 
   // Check 2: Splunkd service status
-  const serviceCheck = await timedCheck('splunkd_status', async () => {
+  checks.push(await timedCheck('splunkd_status', async () => {
     const res = await fetch(`${baseUrl}/services/server/health/splunkd?output_mode=json`, {
       method: 'GET',
       headers: auth,
@@ -45,32 +51,64 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
       throw new Error(`Splunkd health is ${health}`)
     }
     return `Splunkd health: ${health}`
-  })
-  checks.push(serviceCheck)
+  }))
 
-  // Check 3: Index data integrity
-  const indexCheck = await timedCheck('indexes_accessible', async () => {
-    const res = await fetch(`${baseUrl}/services/data/indexes?output_mode=json&count=1`, {
+  // Check 3: Canvas indexes exist and are enabled
+  checks.push(await timedCheck('canvas_indexes_present', async () => {
+    const expected = canvas.sections
+      .map((s) => s.fields?.name as string | undefined)
+      .filter((n): n is string => Boolean(n))
+    if (expected.length === 0) return 'No indexes declared on canvas'
+
+    const missing: string[] = []
+    const disabled: string[] = []
+    for (const name of expected) {
+      const res = await fetch(
+        `${baseUrl}/services/data/indexes/${encodeURIComponent(name)}?output_mode=json`,
+        { method: 'GET', headers: auth, signal: AbortSignal.timeout(10_000) },
+      )
+      if (!res.ok) {
+        missing.push(name)
+        continue
+      }
+      const data = JSON.parse(await res.text())
+      const content = data?.entry?.[0]?.content
+      if (content?.disabled === true || content?.disabled === '1') disabled.push(name)
+    }
+    if (missing.length > 0) throw new Error(`Missing index(es): ${missing.join(', ')}`)
+    if (disabled.length > 0) throw new Error(`Disabled index(es): ${disabled.join(', ')}`)
+    return `All ${expected.length} canvas index(es) exist and are enabled`
+  }))
+
+  // Check 4: Disk space on index partitions
+  checks.push(await timedCheck('disk_space', async () => {
+    const res = await fetch(`${baseUrl}/services/server/status/partitions-space?output_mode=json`, {
       method: 'GET',
       headers: auth,
       signal: AbortSignal.timeout(10_000),
     })
-    if (!res.ok) throw new Error(`Indexes endpoint returned ${res.status}`)
-    return 'Index data is accessible'
-  })
-  checks.push(indexCheck)
+    if (!res.ok) throw new Error(`Partitions endpoint returned ${res.status}`)
+    const data = JSON.parse(await res.text())
+    const entries: Array<{ content?: Record<string, unknown> }> = data?.entry || []
+    if (entries.length === 0) return 'No partition data reported'
 
-  // Check 4: Disk space
-  const diskCheck = await timedCheck('disk_space', async () => {
-    const res = await fetch(`${baseUrl}/services/server/status/resource-usage/hostwide?output_mode=json`, {
-      method: 'GET',
-      headers: auth,
-      signal: AbortSignal.timeout(10_000),
-    })
-    if (!res.ok) throw new Error(`Resource endpoint returned ${res.status}`)
-    return 'Disk space check passed'
-  })
-  checks.push(diskCheck)
+    let lowest = 100
+    let lowestMount = ''
+    for (const entry of entries) {
+      const capacity = Number(entry.content?.capacity)
+      const free = Number(entry.content?.free)
+      if (!capacity || Number.isNaN(free)) continue
+      const freePct = (free / capacity) * 100
+      if (freePct < lowest) {
+        lowest = freePct
+        lowestMount = String(entry.content?.mount_point ?? 'unknown')
+      }
+    }
+    if (lowest < MIN_FREE_DISK_PCT) {
+      throw new Error(`Partition ${lowestMount} has only ${lowest.toFixed(1)}% free disk space`)
+    }
+    return `Lowest partition free space: ${lowest.toFixed(1)}%`
+  }))
 
   const passedCount = checks.filter((c) => c.passed).length
   const score = Math.round((passedCount / checks.length) * 100)
@@ -98,19 +136,4 @@ async function timedCheck(
       latencyMs: Date.now() - start,
     }
   }
-}
-
-function buildSplunkUrl(
-  component: HealthCheckContext['component'],
-  connectivity: NonNullable<HealthCheckContext['connectivity']>,
-): string {
-  if (connectivity.httpsUrl) return connectivity.httpsUrl
-  if (connectivity.tailscaleDeviceIP) return `https://${connectivity.tailscaleDeviceIP}:${component.port || '8089'}`
-  return `https://${component.hostname}:${component.port || '8089'}`
-}
-
-function buildAuthHeader(credential: NonNullable<HealthCheckContext['credential']>): Record<string, string> {
-  if (credential.apiToken) return { Authorization: `Bearer ${credential.apiToken}` }
-  const encoded = Buffer.from(`${credential.username}:${credential.password}`).toString('base64')
-  return { Authorization: `Basic ${encoded}` }
 }

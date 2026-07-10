@@ -1,11 +1,19 @@
 # Default values used when creating a new role configuration canvas
+# Quota defaults mirror Splunk's own authorize.conf defaults.
 
 General:
   name: ""
   importedRoles: ["user"]
   capabilities: ["search"]
+  defaultApp: ""
+
+Index Access:
+  srchIndexesAllowed: []
+  srchIndexesDefault: []
 
 Search Restrictions:
   srchFilter: ""
+  srchTimeWin: -1
   srchDiskQuota: 100
-  srchJobsQuota: 6
+  srchJobsQuota: 3
+  rtSrchJobsQuota: 6

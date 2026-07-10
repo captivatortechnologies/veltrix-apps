@@ -1,0 +1,15 @@
+# Default values used when creating a new HEC token configuration canvas
+
+General:
+  name: ""
+  description: ""
+  enabled: true
+
+Routing:
+  defaultIndex: ""
+  allowedIndexes: []
+  defaultSourcetype: ""
+  defaultSource: ""
+
+Reliability:
+  useACK: false

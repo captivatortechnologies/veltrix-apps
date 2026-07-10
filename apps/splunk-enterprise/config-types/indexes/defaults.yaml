@@ -2,12 +2,22 @@
 
 General:
   name: ""
+  datatype: "event"
 
 Sizing:
   maxDataSizeMB: 500000
+  maxDataSizeMode: "auto"
   enableCompression: true
 
 Retention:
   frozenTimeDays: 90
+  coldToFrozenDir: ""
   retentionPeriod: 90
   searchablePeriod: 90
+  enableTsidxReduction: false
+  tsidxReductionPeriodDays: 30
+
+Storage Paths:
+  homePath: ""
+  coldPath: ""
+  thawedPath: ""

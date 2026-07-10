@@ -1,9 +1,39 @@
 import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
+import { buildSplunkUrl, buildAuthHeader, getEntityContent, postForm } from '../../lib/splunkApi'
 
 /**
- * Deploy index configuration to a Splunk component.
- * Uses the Splunk REST API to create/update indexes on the target.
+ * Deploy index configuration to a Splunk component via the REST API
+ * (/services/data/indexes).
+ *
+ * Canvas → Splunk REST parameter mapping:
+ *   maxDataSizeMB            → maxTotalDataSizeMB     (total index size cap)
+ *   frozenTimeDays           → frozenTimePeriodInSecs (days × 86400)
+ *   maxDataSizeMode(+CustomMB) → maxDataSize          (auto | auto_high_volume | <MB>)
+ *   enableCompression        → journalCompression     (zstd when enabled; gzip default otherwise)
+ *   enableTsidxReduction     → enableTsidxReduction
+ *   tsidxReductionPeriodDays → timePeriodInSecBeforeTsidxReduction (days × 86400)
+ *   datatype / homePath / coldPath / thawedPath → same names (create-only in Splunk)
+ *   coldToFrozenDir          → coldToFrozenDir
+ *
+ * Rollback data captures the pre-deploy state of every existing index and
+ * the names of indexes this deploy created, so rollback can restore or
+ * remove them respectively.
  */
+
+/** Settings Splunk only accepts at index creation time. */
+const CREATE_ONLY_KEYS = ['datatype', 'homePath', 'coldPath', 'thawedPath'] as const
+
+/** Writable settings we snapshot for rollback. */
+const ROLLBACK_KEYS = [
+  'maxTotalDataSizeMB',
+  'frozenTimePeriodInSecs',
+  'maxDataSize',
+  'journalCompression',
+  'coldToFrozenDir',
+  'enableTsidxReduction',
+  'timePeriodInSecBeforeTsidxReduction',
+] as const
+
 export default async function deploy(ctx: DeployContext): Promise<DeployResult> {
   const { component, credential, connectivity, canvas } = ctx
 
@@ -18,43 +48,35 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const auth = buildAuthHeader(credential)
 
   const rollbackSnapshot: Record<string, unknown>[] = []
+  const createdIndexes: string[] = []
   const deployedIndexes: string[] = []
 
   try {
     for (const section of canvas.sections) {
-      const indexName = section.fields.name as string
       const fields = section.fields
+      const indexName = fields.name as string
+      if (!indexName) continue
+
+      const indexPath = `/services/data/indexes/${encodeURIComponent(indexName)}`
 
       // Capture current state for rollback
-      const existing = await getExistingIndex(baseUrl, auth, indexName)
+      const existing = await getEntityContent(baseUrl, auth, indexPath)
       if (existing) {
-        rollbackSnapshot.push({ name: indexName, ...existing })
+        const snapshot: Record<string, unknown> = { name: indexName }
+        for (const key of ROLLBACK_KEYS) {
+          if (existing[key] !== undefined) snapshot[key] = existing[key]
+        }
+        rollbackSnapshot.push(snapshot)
       }
 
-      // Build Splunk REST API payload
-      const payload: Record<string, string> = {
-        name: indexName,
-      }
-      if (fields.maxDataSizeMB) payload.maxDataSize = `${fields.maxDataSizeMB}`
-      if (fields.frozenTimeDays) payload.frozenTimePeriodInSecs = `${(fields.frozenTimeDays as number) * 86400}`
-      if (fields.homePath) payload.homePath = fields.homePath as string
-      if (fields.coldPath) payload.coldPath = fields.coldPath as string
-      if (fields.thawedPath) payload.thawedPath = fields.thawedPath as string
+      const payload = buildIndexPayload(fields, !existing)
 
       if (existing) {
-        // Update existing index
-        await splunkRequest(`${baseUrl}/services/data/indexes/${indexName}`, {
-          method: 'POST',
-          headers: { ...auth, 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams(payload).toString(),
-        })
+        // Update existing index — Splunk rejects create-only args and `name` here
+        await postForm(baseUrl, auth, indexPath, payload)
       } else {
-        // Create new index
-        await splunkRequest(`${baseUrl}/services/data/indexes`, {
-          method: 'POST',
-          headers: { ...auth, 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams(payload).toString(),
-        })
+        await postForm(baseUrl, auth, '/services/data/indexes', { name: indexName, ...payload })
+        createdIndexes.push(indexName)
       }
 
       deployedIndexes.push(indexName)
@@ -63,80 +85,62 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     return {
       success: true,
       message: `Deployed ${deployedIndexes.length} index(es): ${deployedIndexes.join(', ')}`,
-      artifacts: { deployedIndexes },
-      rollbackData: { previousState: rollbackSnapshot },
+      artifacts: { deployedIndexes, createdIndexes },
+      rollbackData: { previousState: rollbackSnapshot, createdIndexes },
     }
   } catch (error) {
     return {
       success: false,
       message: `Deployment failed after ${deployedIndexes.length} index(es): ${error instanceof Error ? error.message : 'Unknown error'}`,
-      artifacts: { deployedIndexes, failedAt: canvas.sections[deployedIndexes.length]?.fields?.name },
+      artifacts: { deployedIndexes, createdIndexes, failedAt: canvas.sections[deployedIndexes.length]?.fields?.name },
+      // Expose what already changed so a rollback can still run after a partial failure
+      rollbackData: { previousState: rollbackSnapshot, createdIndexes },
     }
   }
 }
 
-// --- Helpers ---
+/** Map canvas fields to Splunk REST parameters. */
+function buildIndexPayload(
+  fields: Record<string, unknown>,
+  isCreate: boolean,
+): Record<string, string> {
+  const payload: Record<string, string> = {}
 
-function buildSplunkUrl(
-  component: DeployContext['component'],
-  connectivity: NonNullable<DeployContext['connectivity']>,
-): string {
-  if (connectivity.httpsUrl) return connectivity.httpsUrl
-  if (connectivity.tailscaleDeviceIP) return `https://${connectivity.tailscaleDeviceIP}:${component.port || '8089'}`
-  return `https://${component.hostname}:${component.port || '8089'}`
-}
-
-function buildAuthHeader(credential: NonNullable<DeployContext['credential']>): Record<string, string> {
-  if (credential.apiToken) {
-    return { Authorization: `Bearer ${credential.apiToken}` }
+  if (typeof fields.maxDataSizeMB === 'number') {
+    payload.maxTotalDataSizeMB = String(fields.maxDataSizeMB)
   }
-  const encoded = Buffer.from(`${credential.username}:${credential.password}`).toString('base64')
-  return { Authorization: `Basic ${encoded}` }
-}
-
-async function getExistingIndex(
-  baseUrl: string,
-  auth: Record<string, string>,
-  indexName: string,
-): Promise<Record<string, unknown> | null> {
-  try {
-    const res = await splunkRequest(
-      `${baseUrl}/services/data/indexes/${indexName}?output_mode=json`,
-      { method: 'GET', headers: auth },
-    )
-    const data = JSON.parse(res)
-    return data?.entry?.[0]?.content || null
-  } catch {
-    return null
+  if (typeof fields.frozenTimeDays === 'number') {
+    payload.frozenTimePeriodInSecs = String(fields.frozenTimeDays * 86400)
   }
-}
 
-async function splunkRequest(
-  url: string,
-  options: { method: string; headers: Record<string, string>; body?: string },
-): Promise<string> {
-  // Use Node's native fetch (Node 18+)
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 30_000)
+  // Per-bucket size: auto | auto_high_volume | explicit MB
+  const mode = fields.maxDataSizeMode as string | undefined
+  if (mode === 'auto' || mode === 'auto_high_volume') {
+    payload.maxDataSize = mode
+  } else if (mode === 'custom' && typeof fields.maxDataSizeCustomMB === 'number') {
+    payload.maxDataSize = String(fields.maxDataSizeCustomMB)
+  }
 
-  try {
-    const res = await fetch(url, {
-      method: options.method,
-      headers: options.headers,
-      body: options.body,
-      signal: controller.signal,
-      // Skip TLS verification for self-signed Splunk certs in non-prod
-      // @ts-ignore
-      ...(process.env.NODE_ENV !== 'production' && { rejectUnauthorized: false }),
-    })
+  // Splunk always compresses rawdata; this selects the journal codec.
+  if (fields.enableCompression === true) payload.journalCompression = 'zstd'
 
-    if (!res.ok) {
-      const text = await res.text()
-      throw new Error(`Splunk API ${res.status}: ${text}`)
+  if (typeof fields.coldToFrozenDir === 'string' && fields.coldToFrozenDir) {
+    payload.coldToFrozenDir = fields.coldToFrozenDir
+  }
+
+  if (typeof fields.enableTsidxReduction === 'boolean') {
+    payload.enableTsidxReduction = fields.enableTsidxReduction ? '1' : '0'
+    if (fields.enableTsidxReduction && typeof fields.tsidxReductionPeriodDays === 'number') {
+      payload.timePeriodInSecBeforeTsidxReduction = String(fields.tsidxReductionPeriodDays * 86400)
     }
-
-    return await res.text()
-  } finally {
-    clearTimeout(timeout)
   }
+
+  if (isCreate) {
+    for (const key of CREATE_ONLY_KEYS) {
+      const value = fields[key]
+      if (typeof value === 'string' && value) payload[key] = value
+    }
+  }
+
+  return payload
 }

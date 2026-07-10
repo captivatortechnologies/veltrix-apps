@@ -10,6 +10,6 @@
     "resolveJsonModule": true,
     "types": ["node", "jest"]
   },
-  "include": ["handlers/**/*.ts", "hooks/**/*.ts", "server/**/*.ts"],
+  "include": ["config-types/**/*.ts", "lib/**/*.ts", "hooks/**/*.ts", "server/**/*.ts"],
   "exclude": ["node_modules", "client"]
 }

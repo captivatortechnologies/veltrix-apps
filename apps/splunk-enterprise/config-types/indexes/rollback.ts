@@ -1,7 +1,26 @@
 import type { RollbackContext, RollbackResult } from '@veltrixsecops/app-sdk'
+import { buildSplunkUrl, buildAuthHeader, splunkRequest, postForm } from '../../lib/splunkApi'
+
+interface IndexRollbackData {
+  previousState?: Array<Record<string, unknown>>
+  createdIndexes?: string[]
+}
+
+/** Writable settings restored from the deploy-time snapshot. */
+const RESTORE_KEYS = [
+  'maxTotalDataSizeMB',
+  'frozenTimePeriodInSecs',
+  'maxDataSize',
+  'journalCompression',
+  'coldToFrozenDir',
+  'enableTsidxReduction',
+  'timePeriodInSecBeforeTsidxReduction',
+] as const
 
 /**
- * Rollback index configuration by restoring the previous state captured during deploy.
+ * Rollback index configuration:
+ *  - restores the previous settings of indexes that existed before the deploy
+ *  - deletes indexes the deploy created (they had no previous state)
  */
 export default async function rollback(ctx: RollbackContext): Promise<RollbackResult> {
   const { component, credential, connectivity, rollbackData } = ctx
@@ -10,8 +29,11 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
     return { success: false, message: 'Missing credential or connectivity for rollback' }
   }
 
-  const previousState = (rollbackData as { previousState?: Array<Record<string, unknown>> })?.previousState
-  if (!previousState || previousState.length === 0) {
+  const data = (rollbackData as IndexRollbackData) || {}
+  const previousState = data.previousState ?? []
+  const createdIndexes = data.createdIndexes ?? []
+
+  if (previousState.length === 0 && createdIndexes.length === 0) {
     return { success: false, message: 'No previous state available for rollback' }
   }
 
@@ -19,51 +41,35 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
   const auth = buildAuthHeader(credential)
 
   try {
+    // Restore modified indexes to their captured settings
     for (const indexState of previousState) {
       const name = indexState.name as string
       const payload: Record<string, string> = {}
-
-      if (indexState.maxDataSize) payload.maxDataSize = String(indexState.maxDataSize)
-      if (indexState.frozenTimePeriodInSecs) payload.frozenTimePeriodInSecs = String(indexState.frozenTimePeriodInSecs)
-
-      const res = await fetch(
-        `${baseUrl}/services/data/indexes/${name}`,
-        {
-          method: 'POST',
-          headers: { ...auth, 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams(payload).toString(),
-        },
-      )
-
-      if (!res.ok) {
-        const text = await res.text()
-        throw new Error(`Failed to rollback index "${name}": ${res.status} ${text}`)
+      for (const key of RESTORE_KEYS) {
+        if (indexState[key] !== undefined && indexState[key] !== null) {
+          payload[key] = String(indexState[key])
+        }
       }
+      if (Object.keys(payload).length === 0) continue
+      await postForm(baseUrl, auth, `/services/data/indexes/${encodeURIComponent(name)}`, payload)
     }
 
-    return {
-      success: true,
-      message: `Rolled back ${previousState.length} index(es) to previous state`,
+    // Remove indexes that were created by the deployment being rolled back
+    for (const name of createdIndexes) {
+      await splunkRequest(`${baseUrl}/services/data/indexes/${encodeURIComponent(name)}`, {
+        method: 'DELETE',
+        headers: auth,
+      })
     }
+
+    const actions: string[] = []
+    if (previousState.length > 0) actions.push(`restored ${previousState.length} index(es)`)
+    if (createdIndexes.length > 0) actions.push(`deleted ${createdIndexes.length} created index(es)`)
+    return { success: true, message: `Rollback complete: ${actions.join(', ')}` }
   } catch (error) {
     return {
       success: false,
       message: `Rollback failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
     }
   }
-}
-
-function buildSplunkUrl(
-  component: RollbackContext['component'],
-  connectivity: NonNullable<RollbackContext['connectivity']>,
-): string {
-  if (connectivity.httpsUrl) return connectivity.httpsUrl
-  if (connectivity.tailscaleDeviceIP) return `https://${connectivity.tailscaleDeviceIP}:${component.port || '8089'}`
-  return `https://${component.hostname}:${component.port || '8089'}`
-}
-
-function buildAuthHeader(credential: NonNullable<RollbackContext['credential']>): Record<string, string> {
-  if (credential.apiToken) return { Authorization: `Bearer ${credential.apiToken}` }
-  const encoded = Buffer.from(`${credential.username}:${credential.password}`).toString('base64')
-  return { Authorization: `Basic ${encoded}` }
 }
