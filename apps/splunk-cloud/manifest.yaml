@@ -1,6 +1,6 @@
 id: splunk-cloud
 name: Splunk Cloud Platform
-version: 1.0.0
+version: 1.0.1
 vendor: Veltrix
 description: >
   Manage Splunk Cloud Platform configurations as code through the
@@ -101,12 +101,12 @@ client:
       component: OverviewPage
       label: Overview
       icon: cloud
-      sidebar: true
+      nav: sidebar
     - path: /setup
       component: SetupGuidePage
       label: Setup Guide
       icon: book
-      sidebar: true
+      nav: sidebar
 
 hooks:
   onInstall: hooks/onInstall

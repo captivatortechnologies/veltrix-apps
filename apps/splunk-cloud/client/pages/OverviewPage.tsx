@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { authFetch } from '@veltrixsecops/app-sdk/client'
 
 interface ConfigTypeSummary {
   id: string
@@ -24,7 +25,8 @@ export default function OverviewPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/apps/splunk-cloud/meta', { credentials: 'include' })
+    // App routes are bearer-token protected — authFetch attaches the header
+    authFetch('/api/apps/splunk-cloud/meta')
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then(setMeta)
       .catch((e: Error) => setError(e.message))
