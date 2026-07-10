@@ -92,6 +92,22 @@ Two rules for app pages:
 - Only import third-party client libraries if you accept them being compiled into your
   bundle; keep pages lean.
 
+## Branding
+
+Declare your vendor identity in the manifest and the platform applies it in defined
+slots — the app's navbar (logo + accent color) and scoped CSS variables. The platform
+controls where brand color appears, so it stays meaningful rather than theming the shell:
+
+```yaml
+branding:
+  primaryColor: "#FC0000"     # #RGB or #RRGGBB
+  logo: ./assets/logo.svg     # svg (preferred) or png, <=128 KB, ~28px display height
+```
+
+In pages, prefer the CSS variables (`--veltrix-app-primary`, `--veltrix-app-accent`);
+use `useAppBranding()` from `./hooks` when you need the values programmatically.
+SVG logos must not contain scripts or event handlers — the validator rejects them.
+
 ## Standard app layout
 
 Every Veltrix app follows one canonical folder structure — the CLI scaffolds it (`veltrix init`), `veltrix validate` warns on deviations, and the SDK exports it as constants (`APP_LAYOUT`, `HANDLER_NAMES`, `conventionalPaths(configTypeId)`):

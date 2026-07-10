@@ -5,6 +5,7 @@
 
 import { createContext, useContext, type Context } from 'react'
 import type { Component, Credential, Tag, User, Customer } from '../types/platform'
+import type { AppBrandingDeclaration } from '../types/manifest'
 
 export interface AppContextValue {
   appId: string
@@ -19,6 +20,9 @@ export interface AppContextValue {
 
   // App settings
   settings: Record<string, unknown>
+
+  /** The app's manifest branding, resolved by the platform (null when unset). */
+  branding?: AppBrandingDeclaration | null
 }
 
 // Anchor the context on the host runtime when running inside the platform,

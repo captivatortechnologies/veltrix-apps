@@ -62,6 +62,14 @@ export interface AppManifest {
     pages?: AppPageDeclaration[]
   }
 
+  /**
+   * Vendor brand identity, applied by the platform in defined slots only —
+   * the app navbar (logo, accent) and scoped CSS variables. The platform,
+   * not the app, decides where brand color appears, so one vendor's palette
+   * never overwhelms the product shell.
+   */
+  branding?: AppBrandingDeclaration
+
   hooks?: {
     onInstall?: string
     onUninstall?: string
@@ -73,6 +81,26 @@ export interface AppManifest {
   events?: string[] // Platform events this app subscribes to
 
   settings?: AppSettingDeclaration[]
+}
+
+/**
+ * App brand identity. The platform renders it in a per-app navbar above the
+ * app's pages and exposes the colors to app pages as scoped CSS variables
+ * (--veltrix-app-primary, --veltrix-app-accent).
+ */
+export interface AppBrandingDeclaration {
+  /** Brand accent color as #RGB or #RRGGBB hex (e.g. CrowdStrike red). */
+  primaryColor?: string
+  /** Optional secondary color as #RGB or #RRGGBB hex. */
+  accentColor?: string
+  /**
+   * Vendor logo shown in the app navbar. Repo-relative .svg (preferred) or
+   * .png, at most 128 KB; rendered at 28px height, so use a wide/landscape
+   * mark with transparent background.
+   */
+  logo?: string
+  /** Optional logo variant for dark backgrounds; same constraints as logo. */
+  logoDark?: string
 }
 
 export interface AppConfigurationTypeManifest {

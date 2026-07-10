@@ -24,6 +24,7 @@ export {
   useAppContext,
   AppContext,
   usePipelineStatus,
+  useAppBranding,
 } from './hooks'
 
 // Pipeline types
@@ -83,6 +84,7 @@ export type { AppPageLayout, AppPageNav, AppPagePermission } from './types/manif
 // Manifest types
 export type {
   AppManifest,
+  AppBrandingDeclaration,
   AppConfigurationTypeManifest,
   AppPermissionDeclaration,
   AppPageDeclaration,

@@ -18,6 +18,8 @@
 import type { ComponentType, Context, LazyExoticComponent } from 'react'
 import type { AppContextValue } from '../hooks/use-app-context'
 
+export type { AppBrandingDeclaration } from '../types/manifest'
+
 /** Name of the global the platform installs before loading app bundles. */
 export const HOST_RUNTIME_GLOBAL = '__VELTRIX_APP_RUNTIME__'
 
