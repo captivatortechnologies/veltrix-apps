@@ -48,8 +48,20 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.package_all }}" = "true" ]; then
             APPS=$(ls -d apps/*/manifest.yaml 2>/dev/null | cut -d'/' -f2 | sort -u || true)
           else
-            if git rev-parse HEAD~1 >/dev/null 2>&1; then
-              APPS=$(git diff --name-only HEAD~1 HEAD -- apps/ | cut -d'/' -f2 | sort -u | grep -v '^$' || true)
+            # Diff the whole pushed range, not just the tip commit — a push with
+            # several commits must release every app it touched, not only the
+            # app changed by the last commit.
+            BEFORE="${{ github.event.before }}"
+            RANGE=""
+            if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
+               && git rev-parse -q --verify "$BEFORE^{commit}" >/dev/null 2>&1; then
+              RANGE="$BEFORE..${{ github.sha }}"
+            elif git rev-parse HEAD~1 >/dev/null 2>&1; then
+              RANGE="HEAD~1..HEAD"
+            fi
+            if [ -n "$RANGE" ]; then
+              echo "Detecting apps changed in $RANGE"
+              APPS=$(git diff --name-only "$RANGE" -- apps/ | cut -d'/' -f2 | sort -u | grep -v '^$' || true)
             else
               APPS=$(ls -d apps/*/manifest.yaml 2>/dev/null | cut -d'/' -f2 | sort -u || true)
             fi
