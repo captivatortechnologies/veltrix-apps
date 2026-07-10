@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-10T19:05:13.126Z",
+  "generatedAt": "2026-07-10T19:40:33.492Z",
   "apps": [
     {
       "appId": "crowdstrike-edr",
@@ -38,7 +38,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.4.0",
+      "version": "1.5.0",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Includes indexes, roles, HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x).",
       "category": "SIEM",
@@ -46,10 +46,26 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.4.0/splunk-enterprise.zip",
-      "sha256": "29b80036434a42ba2c36dbea8c62ae17fe45474af4d1ea8e48ad78dc920b525b",
-      "sizeBytes": 108350,
-      "publishedAt": "2026-07-10T19:05:13.117Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.5.0/splunk-enterprise.zip",
+      "sha256": "2dc733aac1809cd1c3677622d0fbe305ea8856e5fff4a88c5f529bae99cdf38d",
+      "sizeBytes": 112700,
+      "publishedAt": "2026-07-10T19:40:33.480Z"
+    },
+    {
+      "appId": "splunk-soar",
+      "name": "Splunk SOAR",
+      "version": "1.0.0",
+      "vendor": "Veltrix",
+      "description": "Connect Veltrix to Splunk SOAR (Security Orchestration, Automation and Response). Manages the SOAR instance connection — API endpoint (component), credential, TLS verification, request timeout, retries, and optional proxy — so the platform can reach your SOAR deployment.",
+      "category": "SOAR",
+      "icon": "🤖",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-soar",
+      "available": true,
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-soar-v1.0.0/splunk-soar.zip",
+      "sha256": "b5bd47e4c2e1f8a1d1fb0cc8e2de0269d8cd0f6b116a4c7d893334a22c3f0e25",
+      "sizeBytes": 30030,
+      "publishedAt": "2026-07-10T19:40:33.482Z"
     }
   ]
 }
