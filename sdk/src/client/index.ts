@@ -45,6 +45,18 @@ export {
 } from './access-servers'
 export type { AccessServer, AccessServerInput, ConnectivityProviderRef } from '../types/platform'
 
+// Credentials — typed helpers over the platform's credentials API. Paired with
+// a server (component) these form a "connection". Secrets are write-only:
+// `listCredentials` returns redacted summaries only. Framework-free; they use
+// the `authFetch` exported below internally.
+export {
+  listCredentials,
+  createCredential,
+  updateCredential,
+  removeCredential,
+} from './credentials'
+export type { Credential, CredentialSummary, CredentialInput } from '../types/platform'
+
 /** Name of the global the platform installs before loading app bundles. */
 export const HOST_RUNTIME_GLOBAL = '__VELTRIX_APP_RUNTIME__'
 

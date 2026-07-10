@@ -78,6 +78,8 @@ export type {
   AccessServerInput,
   ConnectivityProviderRef,
   Credential,
+  CredentialSummary,
+  CredentialInput,
   Connectivity,
   Tag,
   User,

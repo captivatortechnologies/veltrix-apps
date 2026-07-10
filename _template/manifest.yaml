@@ -9,7 +9,7 @@
 
 id: "my-app"                           # Unique slug (lowercase, hyphens only)
 name: "My Security App"
-version: "1.1.0"
+version: "1.2.0"
 vendor: "Your Company"
 description: "A brief description of what this app manages"
 category: "SIEM"                       # SIEM, EDR, SOAR, IAM, NETWORK, CLOUD, CUSTOM
@@ -157,6 +157,19 @@ client:
       nav: sidebar
       group: settings
       order: 1
+      layout: standard
+
+    # Connections — the built-in "server + credential" surface available to every
+    # app via '@veltrixsecops/app-sdk/client'. Pairs a server (component) with the
+    # credential used to reach it. A Settings-group item.
+    - path: "/connections"
+      component: "ConnectionsPage"
+      label: "Connections"
+      description: "Servers this app connects to, each with the credential used to authenticate"
+      icon: "link"
+      nav: sidebar
+      group: settings
+      order: 2
       layout: standard
 
     # Inventory — the built-in deployment-target surface (servers, domains,

@@ -17,6 +17,7 @@ const Dashboard = React.lazy(() => import('./pages/Dashboard'))
 const ConfigsTab = React.lazy(() => import('./pages/ConfigsTab'))
 const AccessServersPage = React.lazy(() => import('./pages/AccessServersPage'))
 const InventoryPage = React.lazy(() => import('./pages/InventoryPage'))
+const ConnectionsPage = React.lazy(() => import('./pages/ConnectionsPage'))
 
 export default {
   id: 'my-app',
@@ -25,5 +26,6 @@ export default {
     ConfigsTab,
     AccessServersPage,
     InventoryPage,
+    ConnectionsPage,
   },
 }

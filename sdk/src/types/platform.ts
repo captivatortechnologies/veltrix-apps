@@ -128,6 +128,46 @@ export interface Credential {
   customerId: string
 }
 
+/**
+ * A redacted view of a {@link Credential}, as returned by the SDK's
+ * `listCredentials` helper. Secret material (password / apiToken / certificate)
+ * is deliberately dropped so it never enters app code or logs — only whether a
+ * secret is present is surfaced, via {@link CredentialSummary.hasSecret}. Used
+ * to pair a credential with its server (a "connection") for display.
+ */
+export interface CredentialSummary {
+  id: string
+  /** Human-readable label. For connections this mirrors the server hostname. */
+  name: string
+  /** Account / client id the credential authenticates as. */
+  username: string
+  /** Auth kind (e.g. "password", "token"), or null when unspecified. */
+  type: string | null
+  /** The tool this credential belongs to. */
+  toolId: string
+  /** True when a write-only secret (apiToken or password) is stored. */
+  hasSecret: boolean
+}
+
+/**
+ * Input accepted by `createCredential` / `updateCredential`. Mirrors the
+ * platform credentials API body. `name`, `username`, and `password` are
+ * required by the platform on create (`password` may be an empty string for
+ * token-only auth); the write-only secret travels in `apiToken`. `toolId` is
+ * required on create — pass the id your app registers connections under.
+ */
+export interface CredentialInput {
+  name: string
+  username: string
+  password: string
+  apiToken?: string
+  type?: string
+  /** The tool this credential belongs to. Required by the platform on create. */
+  toolId?: string
+  /** IDs of existing platform tags to attach to the credential. */
+  tagIds?: string[]
+}
+
 export interface Connectivity {
   id: string
   componentId: string
