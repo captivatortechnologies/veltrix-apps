@@ -15,11 +15,13 @@ import React from 'react'
 // Lazy-load pages for code splitting
 const Dashboard = React.lazy(() => import('./pages/Dashboard'))
 const ConfigsTab = React.lazy(() => import('./pages/ConfigsTab'))
+const InventoryPage = React.lazy(() => import('./pages/InventoryPage'))
 
 export default {
   id: 'my-app',
   pages: {
     Dashboard,
     ConfigsTab,
+    InventoryPage,
   },
 }

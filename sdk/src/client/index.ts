@@ -20,6 +20,17 @@ import type { AppContextValue } from '../hooks/use-app-context'
 
 export type { AppBrandingDeclaration } from '../types/manifest'
 
+// Inventory — typed helpers over the platform's components API (deployment
+// targets: servers, domains, IP/CIDR ranges). Framework-free; they use the
+// `authFetch` exported below internally.
+export {
+  listInventory,
+  addInventoryItem,
+  updateInventoryItem,
+  removeInventoryItem,
+} from './inventory'
+export type { InventoryItem, InventoryItemInput } from '../types/platform'
+
 /** Name of the global the platform installs before loading app bundles. */
 export const HOST_RUNTIME_GLOBAL = '__VELTRIX_APP_RUNTIME__'
 

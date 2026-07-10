@@ -73,6 +73,8 @@ export type {
 // Platform types
 export type {
   Component,
+  InventoryItem,
+  InventoryItemInput,
   Credential,
   Connectivity,
   Tag,

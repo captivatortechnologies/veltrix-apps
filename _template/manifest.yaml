@@ -146,6 +146,18 @@ client:
         resource: "my-app:configs"
         action: "read"
 
+    # Inventory — the built-in deployment-target surface (servers, domains,
+    # IP/CIDR ranges) available to every app via '@veltrixsecops/app-sdk/client'.
+    - path: "/inventory"
+      component: "InventoryPage"
+      label: "Inventory"
+      description: "Deployment targets this app can deploy configuration to"
+      icon: "server"
+      nav: sidebar
+      group: config
+      order: 2
+      layout: standard
+
 # =============================================================================
 # CONNECTIVITY (automatically provided by the platform)
 #

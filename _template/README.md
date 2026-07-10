@@ -28,6 +28,36 @@ apps/<app-id>/
 
 Adding a configuration type = adding one `config-types/<id>/` folder and one manifest entry.
 
+## Inventory
+
+Every app shares a built-in **Inventory** — the deployment targets it can deploy
+configuration to: servers (hostname/port), domains, and IP/CIDR ranges. Inventory
+is a typed, convenient surface over the platform's components API, so you don't
+plumb `/api/components` by hand. Import the framework-free helpers from
+`@veltrixsecops/app-sdk/client`:
+
+```ts
+import {
+  listInventory,
+  addInventoryItem,
+  updateInventoryItem,
+  removeInventoryItem,
+  type InventoryItem,
+} from '@veltrixsecops/app-sdk/client'
+
+const targets = await listInventory() // InventoryItem[]: hostname, port, domains, ipRanges, tags, ...
+```
+
+Each `InventoryItem` carries `hostname`, `port`, `type`, `domains`, `ipRanges`,
+`tags`, and `connectivityProviderId`. The helpers use the platform's
+authenticated `authFetch` internally and throw an `Error` (with the platform's
+message) on any non-2xx response.
+
+This template ships a ready-made `client/pages/InventoryPage.tsx` (registered at
+`/inventory` in `manifest.yaml`) that lists inventory and adds servers — copy or
+adapt it. Note: creating a target requires a `toolId` (the tool the target
+belongs to); source it from your app before calling `addInventoryItem`.
+
 Quick start:
 
 ```bash

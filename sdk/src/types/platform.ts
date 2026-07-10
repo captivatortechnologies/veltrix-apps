@@ -14,6 +14,54 @@ export interface Component {
   customerId: string
 }
 
+/**
+ * An Inventory item — one deployment target an app can deploy configuration to.
+ *
+ * "Inventory" is the app-facing name for the platform's *components*: the
+ * servers (hostname/port), domains, and IP/CIDR ranges a customer has
+ * registered as deploy targets. This is a convenient, typed surface over the
+ * platform's components API (`/api/components`), enriched with `domains` and
+ * `ipRanges`. Use the helpers in `@veltrixsecops/app-sdk/client`
+ * (listInventory / addInventoryItem / updateInventoryItem / removeInventoryItem).
+ */
+export interface InventoryItem {
+  id: string
+  /** Server hostname or DNS name of the target. */
+  hostname: string
+  /** Management/API port, as a string (e.g. "8089"). */
+  port?: string
+  /** Component type tags (e.g. ["server"]) that classify the target. */
+  type?: string[]
+  /** DNS names this target is reachable at. */
+  domains?: string[]
+  /** IP addresses or CIDR ranges this target covers. */
+  ipRanges?: string[]
+  /** Platform tags attached to this target. */
+  tags?: { id: string; name: string }[]
+  /** Assigned connectivity provider, or null when none is configured. */
+  connectivityProviderId?: string | null
+}
+
+/**
+ * Input accepted by `addInventoryItem` / `updateInventoryItem`. Mirrors the
+ * platform components API create/update body: `hostname` and `port` identify
+ * the server, `domains`/`ipRanges` enrich it, and `tagIds` attaches existing
+ * platform tags. `toolId` is required by the platform on create — pass the
+ * tool id your app registers targets under.
+ */
+export interface InventoryItemInput {
+  hostname: string
+  port?: string
+  type?: string[]
+  domains?: string[]
+  ipRanges?: string[]
+  /** IDs of existing platform tags to attach to the target. */
+  tagIds?: string[]
+  /** The tool this target belongs to. Required by the platform on create. */
+  toolId?: string
+  connectivityProviderId?: string | null
+}
+
 export interface Credential {
   id: string
   name: string
