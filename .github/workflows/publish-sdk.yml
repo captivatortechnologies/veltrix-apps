@@ -1,12 +1,21 @@
 name: Publish SDK
 
+# Publishes @veltrixsecops/app-sdk to npm. Fully automated: a version bump to
+# sdk/package.json merged to main publishes the new version and creates the
+# matching sdk-v<version> tag + GitHub release — no manual tagging. The job is
+# idempotent (it skips when the version is already on npm), so re-runs, non-bump
+# sdk pushes, tag pushes, and manual dispatches are all safe.
 on:
   push:
-    tags: ['sdk-v*']
+    branches: [main]
+    paths:
+      - 'sdk/package.json'
+    tags:
+      - 'sdk-v*'
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write # create + push the sdk-v<version> tag and GitHub release
   id-token: write # npm provenance attestation
 
 jobs:
@@ -16,6 +25,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # need history + tags to create the release tag
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -23,23 +34,56 @@ jobs:
           node-version: 20
           registry-url: https://registry.npmjs.org
 
-      - name: Verify tag matches package version
-        if: github.ref_type == 'tag'
+      - name: Resolve version and publish decision
+        id: resolve
         run: |
-          PKG_VERSION=$(node -p "require('./sdk/package.json').version")
-          TAG_VERSION="${GITHUB_REF_NAME#sdk-v}"
-          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME does not match sdk/package.json version $PKG_VERSION"
-            exit 1
+          VERSION=$(node -p "require('./sdk/package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          # On a tag push the tag must match the package version.
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG_VERSION="${GITHUB_REF_NAME#sdk-v}"
+            if [ "$TAG_VERSION" != "$VERSION" ]; then
+              echo "::error::Tag $GITHUB_REF_NAME does not match sdk/package.json version $VERSION"
+              exit 1
+            fi
+          fi
+          # Idempotent: skip when this exact version is already published.
+          if npm view "@veltrixsecops/app-sdk@$VERSION" version >/dev/null 2>&1; then
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+            echo "@veltrixsecops/app-sdk@$VERSION is already on npm — nothing to publish."
+          else
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
+            echo "@veltrixsecops/app-sdk@$VERSION is not on npm — will publish."
           fi
 
       - name: Install
+        if: steps.resolve.outputs.already_published == 'false'
         working-directory: sdk
         run: npm ci --no-audit --no-fund
 
       # prepublishOnly runs typecheck + build
-      - name: Publish
+      - name: Publish to npm
+        if: steps.resolve.outputs.already_published == 'false'
         working-directory: sdk
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Tag the release and create GitHub release
+        # Only self-tag on the branch/dispatch path — a tag-triggered run already has its tag.
+        if: steps.resolve.outputs.already_published == 'false' && github.ref_type != 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="sdk-v${{ steps.resolve.outputs.version }}"
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "Tag $TAG already exists — skipping tag push."
+          else
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" \
+              --title "@veltrixsecops/app-sdk ${{ steps.resolve.outputs.version }}" \
+              --notes "Automated release of \`@veltrixsecops/app-sdk\` \`${{ steps.resolve.outputs.version }}\` on version bump."
+          fi
