@@ -1,0 +1,42 @@
+{
+  "name": "@veltrixsecops/cli",
+  "version": "0.1.0",
+  "description": "Veltrix CLI — validate, package, and develop Veltrix Security-as-Code apps from your local workspace",
+  "type": "module",
+  "bin": {
+    "veltrix": "./bin/veltrix.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test test/"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "commander": "^12.1.0",
+    "esbuild": "^0.28.1",
+    "js-yaml": "^4.1.0"
+  },
+  "keywords": [
+    "veltrix",
+    "security-as-code",
+    "secops",
+    "cli"
+  ],
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/cli",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/captivatortechnologies/veltrix-apps.git",
+    "directory": "cli"
+  }
+}
