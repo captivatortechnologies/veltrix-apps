@@ -1,0 +1,10 @@
+# Default values used when creating a new index configuration canvas.
+# Keys are canvas section names; values are field defaults.
+
+Index:
+  name: ""
+  datatype: "event"
+  searchableDays: 90
+  maxDataSizeMB: 0
+  splunkArchivalRetentionDays: 0
+  selfStorageBucketPath: ""
