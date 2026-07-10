@@ -1,6 +1,6 @@
 id: splunk-enterprise
 name: Splunk Enterprise
-version: 1.6.0
+version: 1.7.0
 vendor: Veltrix
 description: >
   Manage Splunk Enterprise configurations as code.
@@ -126,13 +126,21 @@ client:
       nav: sidebar
       order: 2
       layout: standard
+    - path: /inventory
+      component: InventoryPage
+      label: Servers
+      icon: server
+      nav: sidebar
+      group: config
+      order: 3
+      layout: standard
     - path: /indexes
       component: IndexesPage
       label: Indexes
       icon: database
       nav: sidebar
       group: config
-      order: 3
+      order: 4
       layout: standard
     - path: /index-defaults
       component: IndexDefaultsPage
@@ -140,7 +148,7 @@ client:
       icon: sliders
       nav: sidebar
       group: config
-      order: 4
+      order: 5
       layout: standard
     - path: /roles
       component: RolesPage
@@ -148,7 +156,7 @@ client:
       icon: shield
       nav: sidebar
       group: config
-      order: 5
+      order: 6
       layout: standard
     - path: /role-defaults
       component: RoleDefaultsPage
@@ -156,7 +164,7 @@ client:
       icon: sliders
       nav: sidebar
       group: config
-      order: 6
+      order: 7
       layout: standard
     - path: /byol
       component: BYOLPage
@@ -164,7 +172,7 @@ client:
       icon: server
       nav: sidebar
       group: config
-      order: 7
+      order: 8
       layout: standard
     - path: /versions
       component: VersionsPage
@@ -172,7 +180,7 @@ client:
       icon: git-branch
       nav: sidebar
       group: config
-      order: 8
+      order: 9
       layout: standard
 
 hooks:
