@@ -1,8 +1,9 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "CommonJS",
-    "moduleResolution": "node",
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
@@ -10,6 +11,13 @@
     "resolveJsonModule": true,
     "types": ["node", "jest"]
   },
-  "include": ["config-types/**/*.ts", "lib/**/*.ts", "hooks/**/*.ts", "server/**/*.ts"],
-  "exclude": ["node_modules", "client"]
+  "include": [
+    "config-types/**/*.ts",
+    "lib/**/*.ts",
+    "hooks/**/*.ts",
+    "server/**/*.ts",
+    "client/**/*.ts",
+    "client/**/*.tsx"
+  ],
+  "exclude": ["node_modules"]
 }

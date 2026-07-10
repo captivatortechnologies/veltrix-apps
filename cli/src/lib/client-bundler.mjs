@@ -30,10 +30,11 @@ const SHIM_PROPS = {
   '@veltrixsecops/app-sdk': 'sdk',
   '@veltrixsecops/app-sdk/hooks': 'sdk',
   '@veltrixsecops/app-sdk/client': 'sdk',
+  '@veltrixsecops/app-sdk/ui': 'ui',
 }
 
 const SHIM_FILTER =
-  /^(react|react-dom|react-dom\/client|react\/jsx-runtime|react\/jsx-dev-runtime|@veltrixsecops\/app-sdk(\/(hooks|client))?)$/
+  /^(react|react-dom|react-dom\/client|react\/jsx-runtime|react\/jsx-dev-runtime|@veltrixsecops\/app-sdk(\/(hooks|client|ui))?)$/
 
 function hostShimPlugin() {
   return {

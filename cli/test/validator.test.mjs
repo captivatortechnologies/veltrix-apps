@@ -311,3 +311,31 @@ test('branding: oversized logos are errors', () => {
   )
   assert.equal(errorsMatching(result, /branding: logo exceeds 128 KB/).length, 1)
 })
+
+test('SDK freshness: importing @veltrixsecops/app-sdk/ui with an old declared SDK version warns', () => {
+  const result = validateApp(
+    makeApp({
+      'package.json': JSON.stringify({
+        name: 'veltrix-app-fixture-app',
+        version: '1.0.0',
+        devDependencies: { '@veltrixsecops/app-sdk': '^2.0.0' },
+      }),
+      'client/index.tsx': "import { Button } from '@veltrixsecops/app-sdk/ui'\nexport default { id: 'fixture-app', pages: {} }\n",
+    }),
+  )
+  assert.equal(warningsMatching(result, /app imports @veltrixsecops\/app-sdk\/ui but declares "\^2\.0\.0"/).length, 1)
+})
+
+test('SDK freshness: declaring ^2.1.0 or newer while importing @veltrixsecops/app-sdk/ui does not warn', () => {
+  const result = validateApp(
+    makeApp({
+      'package.json': JSON.stringify({
+        name: 'veltrix-app-fixture-app',
+        version: '1.0.0',
+        devDependencies: { '@veltrixsecops/app-sdk': '^2.1.0' },
+      }),
+      'client/index.tsx': "import { Button } from '@veltrixsecops/app-sdk/ui'\nexport default { id: 'fixture-app', pages: {} }\n",
+    }),
+  )
+  assert.equal(warningsMatching(result, /app-sdk\/ui/).length, 0)
+})

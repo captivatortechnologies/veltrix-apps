@@ -6,6 +6,7 @@ export default defineConfig({
     'pipeline/index': 'src/pipeline/index.ts',
     'hooks/index': 'src/hooks/index.ts',
     'client/index': 'src/client/index.ts',
+    'ui/index': 'src/ui/index.tsx',
   },
   format: ['esm', 'cjs'],
   dts: true,

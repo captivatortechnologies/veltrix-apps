@@ -92,6 +92,48 @@ Two rules for app pages:
 - Only import third-party client libraries if you accept them being compiled into your
   bundle; keep pages lean.
 
+### UI components
+
+Build page bodies from the platform's design-system kit instead of hand-rolling raw
+HTML. Import from `@veltrixsecops/app-sdk/ui`:
+
+```tsx
+import { Button, Card, CardHeader, CardBody, Tabs, DataTable } from '@veltrixsecops/app-sdk/ui'
+
+function Configs() {
+  return (
+    <Card>
+      <CardHeader actions={<Button variant="primary">New</Button>}>Configurations</CardHeader>
+      <CardBody>
+        <Tabs
+          tabs={[
+            { key: 'indexes', label: 'Indexes', content: <p>…</p> },
+            { key: 'roles', label: 'Roles', content: <p>…</p> },
+          ]}
+        />
+      </CardBody>
+    </Card>
+  )
+}
+```
+
+These render in the platform design system and pick up the tenant theme (light/dark) and
+your app's branding automatically via the platform's CSS-token bridge — no styling needed.
+The bundler shims `@veltrixsecops/app-sdk/ui` to the host's real components, so they share
+the single host React instance.
+
+Available components: `Button`, `Input`, `Textarea`, `Checkbox`, `Select`, `Card` (+
+`CardHeader`/`CardBody`/`CardFooter`), `Badge`, `Tooltip`, `EmptyState`, `Skeleton` (+
+`SkeletonText`/`SkeletonCard`), `DataTable`, `StatsCard`, `FormDialog`, `FormField`, `Tabs`,
+`Spinner`. Hooks: `useToast`, `useConfirmDialog`. All prop types are exported alongside the
+components.
+
+`useToast` / `useConfirmDialog` are backed by providers the platform mounts around every app
+page, so they work with no extra wiring inside Veltrix. Every export is usable outside the
+platform too (local dev, tests): components render a minimal, unstyled, accessible fallback,
+`useToast` logs to the console, and `useConfirmDialog().confirm()` resolves to `false`
+(fails closed) — so nothing crashes, it just runs without platform theming.
+
 ## Branding
 
 Declare your vendor identity in the manifest and the platform applies it in defined
@@ -147,6 +189,7 @@ conventionalPaths('indexes').handlers.deploy // 'config-types/indexes/deploy'
 | `@veltrixsecops/app-sdk/pipeline` | `defineValidator`, `defineDeployer`, `defineRollbackHandler`, `defineHealthChecker`, `defineDriftDetector` |
 | `@veltrixsecops/app-sdk/hooks` | React hooks for app client pages (requires `react`) |
 | `@veltrixsecops/app-sdk/client` | Browser client contract: `authFetch`, `getHostRuntime`, `AppClientModule` |
+| `@veltrixsecops/app-sdk/ui` | Platform design-system components + hooks for app client pages (requires `react`; renders richly inside the platform, degrades to a minimal accessible fallback outside it) |
 
 ## Building an app
 

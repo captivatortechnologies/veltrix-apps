@@ -69,6 +69,8 @@ const SECRET_ASSIGNMENT_RE =
   /\b(client_secret|api_?key|password|access_token|auth_token)\s*[:=]\s*['"][A-Za-z0-9+/_-]{20,}['"]/i
 // Minimum SDK version whose ./client subpath (authFetch, host runtime) exists
 const SDK_CLIENT_MIN = [1, 2]
+// Minimum SDK version whose ./ui subpath (shared component library) exists
+const SDK_UI_MIN = [2, 1]
 // Navbar logos render at ~28px height — anything bigger than this is unoptimized
 const MAX_LOGO_BYTES = 128 * 1024
 
@@ -522,25 +524,30 @@ export function validateApp(appDirArg) {
   }
 
   // --- SDK version freshness --------------------------------------------------
-  // The client runtime contract (authFetch, host runtime shims) requires
-  // @veltrixsecops/app-sdk >= 1.2.0 — older declarations typecheck against a
-  // package that lacks the ./client subpath.
-  const usesSdkClient = codeFiles.some((file) =>
-    fs.readFileSync(file, 'utf8').includes('@veltrixsecops/app-sdk/client'),
-  )
-  if (usesSdkClient && fs.existsSync(pkgPath)) {
+  // Each React subpath was added in a specific SDK release — an app importing
+  // one but declaring an older SDK version would typecheck against a package
+  // that lacks it entirely (a confusing failure at `npm install` time, not a
+  // clear "bump your SDK" message). Check every gated subpath the same way.
+  const SDK_SUBPATH_MIN_VERSIONS = [
+    // The client runtime contract (authFetch, host runtime shims).
+    { specifier: '@veltrixsecops/app-sdk/client', min: SDK_CLIENT_MIN },
+    // The shared component library (Button, Card, DataTable, ...).
+    { specifier: '@veltrixsecops/app-sdk/ui', min: SDK_UI_MIN },
+  ]
+  if (fs.existsSync(pkgPath)) {
     try {
       const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'))
       const declared =
         pkg.devDependencies?.['@veltrixsecops/app-sdk'] ?? pkg.dependencies?.['@veltrixsecops/app-sdk']
       const minMatch = typeof declared === 'string' && declared.match(/(\d+)\.(\d+)\.\d+/)
-      if (minMatch) {
-        const [major, minor] = [Number(minMatch[1]), Number(minMatch[2])]
-        if (major < SDK_CLIENT_MIN[0] || (major === SDK_CLIENT_MIN[0] && minor < SDK_CLIENT_MIN[1])) {
-          warn(
-            `packaging: app imports @veltrixsecops/app-sdk/client but declares "${declared}" — ` +
-              `declare ^${SDK_CLIENT_MIN.join('.')}.0 or newer`,
-          )
+      const declaredVersion = minMatch ? [Number(minMatch[1]), Number(minMatch[2])] : null
+
+      for (const { specifier, min } of SDK_SUBPATH_MIN_VERSIONS) {
+        const usesSubpath = codeFiles.some((file) => fs.readFileSync(file, 'utf8').includes(specifier))
+        if (!usesSubpath || !declaredVersion) continue
+        const [major, minor] = declaredVersion
+        if (major < min[0] || (major === min[0] && minor < min[1])) {
+          warn(`packaging: app imports ${specifier} but declares "${declared}" — declare ^${min.join('.')}.0 or newer`)
         }
       }
     } catch {

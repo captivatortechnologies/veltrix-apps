@@ -48,6 +48,13 @@ export interface VeltrixHostRuntime {
    * usePipelineStatus, authFetch, getHostRuntime, ...).
    */
   sdk: Record<string, unknown>
+  /**
+   * The platform's design-system components and hooks, host-owned so they
+   * share the single host React instance. Keyed by the exact component/hook
+   * names re-exported from `@veltrixsecops/app-sdk/ui` (Button, Input, Card,
+   * DataTable, useToast, ...). Present only inside the platform.
+   */
+  ui?: Record<string, unknown>
 }
 
 /** Read the host runtime, or null outside the platform (tests, storybook). */
