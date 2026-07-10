@@ -6,6 +6,10 @@ import {
   CardBody,
   Button,
   Badge,
+  Checkbox,
+  Input,
+  Textarea,
+  FormDialog,
   DataTable,
   type DataTableColumn,
 } from '@veltrixsecops/app-sdk/ui'
@@ -18,12 +22,28 @@ interface EnvironmentTag {
 interface RoleDefaultConfig {
   id: string
   name: string
-  description?: string
+  description?: string | null
   defaultPermissions?: string[]
   requireApproval?: boolean
   updatedAt?: string
   environments?: EnvironmentTag[]
 }
+
+interface FormState {
+  name: string
+  description: string
+  defaultPermissions: string
+  requireApproval: boolean
+}
+
+const BLANK_FORM: FormState = {
+  name: '',
+  description: '',
+  defaultPermissions: '',
+  requireApproval: true,
+}
+
+const API = '/api/apps/splunk-enterprise/roles/defaults'
 
 function formatDate(value?: string): string {
   if (!value) return '—'
@@ -31,20 +51,42 @@ function formatDate(value?: string): string {
   return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString()
 }
 
+function toForm(row: RoleDefaultConfig): FormState {
+  return {
+    name: row.name ?? '',
+    description: row.description ?? '',
+    defaultPermissions: (row.defaultPermissions ?? []).join(', '),
+    requireApproval: row.requireApproval ?? true,
+  }
+}
+
+async function errorText(res: Response): Promise<string> {
+  return res
+    .json()
+    .then((b: { error?: string }) => b?.error || `HTTP ${res.status}`)
+    .catch(() => `HTTP ${res.status}`)
+}
+
 /**
- * Lists the customer's default role configurations — the per-environment
+ * Manage the customer's default role configurations — the per-environment
  * templates that seed new role configs (default permissions, approval policy).
- * Read-only surface over GET /roles/defaults.
+ * Full CRUD over the app's /roles/defaults routes.
  */
 export default function RoleDefaultsPage() {
   const [configs, setConfigs] = useState<RoleDefaultConfig[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  const loadDefaults = useCallback(() => {
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editing, setEditing] = useState<RoleDefaultConfig | null>(null)
+  const [form, setForm] = useState<FormState>(BLANK_FORM)
+  const [submitting, setSubmitting] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
+
+  const load = useCallback(() => {
     setIsLoading(true)
     setError(null)
-    return authFetch('/api/apps/splunk-enterprise/roles/defaults')
+    return authFetch(API)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then((data: RoleDefaultConfig[]) => setConfigs(data))
       .catch((e: Error) => setError(e.message))
@@ -52,8 +94,74 @@ export default function RoleDefaultsPage() {
   }, [])
 
   useEffect(() => {
-    void loadDefaults()
-  }, [loadDefaults])
+    void load()
+  }, [load])
+
+  const openCreate = () => {
+    setEditing(null)
+    setForm(BLANK_FORM)
+    setFormError(null)
+    setDialogOpen(true)
+  }
+
+  const openEdit = (row: RoleDefaultConfig) => {
+    setEditing(row)
+    setForm(toForm(row))
+    setFormError(null)
+    setDialogOpen(true)
+  }
+
+  // Memoized so FormDialog's focus effect doesn't steal focus from fields on each keystroke.
+  const closeDialog = useCallback(() => {
+    if (submitting) return
+    setDialogOpen(false)
+  }, [submitting])
+
+  const setField = <K extends keyof FormState>(key: K, value: FormState[K]) =>
+    setForm((prev) => ({ ...prev, [key]: value }))
+
+  const handleSubmit = async () => {
+    if (!form.name.trim()) {
+      setFormError('Name is required')
+      return
+    }
+    setSubmitting(true)
+    setFormError(null)
+    const payload = {
+      name: form.name.trim(),
+      description: form.description.trim(),
+      defaultPermissions: form.defaultPermissions
+        .split(',')
+        .map((p) => p.trim())
+        .filter(Boolean),
+      requireApproval: form.requireApproval,
+    }
+    try {
+      const res = await authFetch(editing ? `${API}/${editing.id}` : API, {
+        method: editing ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error(await errorText(res))
+      setDialogOpen(false)
+      await load()
+    } catch (e) {
+      setFormError((e as Error).message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleDelete = async (row: RoleDefaultConfig) => {
+    if (!window.confirm(`Delete role default "${row.name}"? This cannot be undone.`)) return
+    try {
+      const res = await authFetch(`${API}/${row.id}`, { method: 'DELETE' })
+      if (!res.ok && res.status !== 204) throw new Error(await errorText(res))
+      await load()
+    } catch (e) {
+      setError((e as Error).message)
+    }
+  }
 
   const columns: DataTableColumn<RoleDefaultConfig>[] = [
     { key: 'name', header: 'Name', render: (row) => <strong>{row.name}</strong> },
@@ -90,15 +198,35 @@ export default function RoleDefaultsPage() {
       ),
     },
     { key: 'updatedAt', header: 'Updated', render: (row) => formatDate(row.updatedAt) },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      render: (row) => (
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>
+            Edit
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => void handleDelete(row)}>
+            Delete
+          </Button>
+        </div>
+      ),
+    },
   ]
 
   return (
     <Card variant="bordered">
       <CardHeader
         actions={
-          <Button variant="secondary" size="sm" onClick={() => void loadDefaults()} isLoading={isLoading}>
-            Refresh
-          </Button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button variant="secondary" size="sm" onClick={() => void load()} isLoading={isLoading}>
+              Refresh
+            </Button>
+            <Button variant="primary" size="sm" onClick={openCreate}>
+              New default
+            </Button>
+          </div>
         }
       >
         <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Role Default Configurations</h2>
@@ -114,11 +242,56 @@ export default function RoleDefaultsPage() {
             isLoading={isLoading}
             emptyState={{
               title: 'No role defaults yet',
-              description: 'Default role templates seed new role configurations per environment.',
+              description: 'Create a default template that seeds new role configurations per environment.',
             }}
           />
         )}
       </CardBody>
+
+      <FormDialog
+        isOpen={dialogOpen}
+        onClose={closeDialog}
+        title={editing ? `Edit "${editing.name}"` : 'New role default'}
+        description="Default settings applied when seeding new role configurations."
+        onSubmit={handleSubmit}
+        submitText={editing ? 'Save changes' : 'Create default'}
+        isSubmitting={submitting}
+        submitDisabled={!form.name.trim()}
+        error={formError}
+        size="md"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <Input
+            label="Name"
+            value={form.name}
+            onChange={(e) => setField('name', e.target.value)}
+            placeholder="e.g. Standard analyst"
+            fullWidth
+            autoFocus
+          />
+          <Textarea
+            label="Description"
+            value={form.description}
+            onChange={(e) => setField('description', e.target.value)}
+            placeholder="What roles seeded from this default are for"
+            rows={2}
+            fullWidth
+          />
+          <Input
+            label="Default capabilities"
+            value={form.defaultPermissions}
+            onChange={(e) => setField('defaultPermissions', e.target.value)}
+            placeholder="comma-separated, e.g. search, rtsearch, schedule_search"
+            helperText="Splunk capabilities granted to roles seeded from this default."
+            fullWidth
+          />
+          <Checkbox
+            label="Require approval before deploy"
+            checked={form.requireApproval}
+            onChange={(e) => setField('requireApproval', e.target.checked)}
+          />
+        </div>
+      </FormDialog>
     </Card>
   )
 }

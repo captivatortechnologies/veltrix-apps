@@ -66,6 +66,24 @@ Targets: `indexer`, `heavy-forwarder` components.
 Health checks verify the global HEC input (`.../http/http`) is enabled in
 addition to per-token existence/state.
 
+## App-managed entities (pages)
+
+Beyond the pipeline configuration types above, the app manages a few plain
+records that are **not** deployed to a component — so they live on their own
+pages rather than the Configuration Canvas:
+
+| Page | Route | Backing API | Editable |
+|---|---|---|---|
+| **Index Defaults** | `/index-defaults` | `GET/POST/PUT/DELETE /indexes/defaults` | ✅ create / edit / delete |
+| **Role Defaults** | `/role-defaults` | `GET/POST/PUT/DELETE /roles/defaults` | ✅ create / edit / delete |
+| **Versions** | `/versions` | `GET /versions` | read-only (seeded release lines) |
+
+Index/role **defaults** are per-environment templates that seed new index and
+role configurations (retention, sizing, approval policy for indexes; default
+capabilities for roles). Every write route is gated by an app permission
+(`indexes`/`roles` `write`/`delete`), scoped to the caller's tenant, and
+verifies row ownership before update/delete.
+
 ## Required setup
 
 - **Credential** (`requiresCredential: true`): a Splunk account or token with
