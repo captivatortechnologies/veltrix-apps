@@ -1,0 +1,16 @@
+{
+  "name": "veltrix-app-splunk-soar",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Veltrix app: manage the Splunk SOAR instance connection as code (endpoint reachability, TLS, timeout, retries) via the SOAR REST API",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.0.0",
+    "@veltrixsecops/app-sdk": "^2.1.0",
+    "fastify": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}

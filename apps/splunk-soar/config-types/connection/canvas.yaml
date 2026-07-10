@@ -1,0 +1,33 @@
+# =============================================================================
+# Canvas Template — Splunk SOAR Connection Profile
+#
+# Fields shown in the Configuration Canvas editor for a SOAR connection
+# profile. A connection profile is how the platform REACHES a Splunk SOAR
+# instance — it is NOT pushed to SOAR. Field keys must match what
+# config-types/connection/validate.ts checks.
+# =============================================================================
+
+id: "splunk-soar-connection"
+name: "SOAR Connection"
+toolType: "splunk-soar"
+entityType: "connection"
+description: "Name and describe the Splunk SOAR instance connection profile the platform uses to reach your deployment"
+
+sections:
+  - name: "General"
+    icon: "link"
+    description: "Connection identity"
+    fields:
+      - key: "name"
+        label: "Connection Name"
+        fieldType: "text"
+        required: true
+        validation:
+          maxLength: 120
+          message: "A short, unique name for this SOAR connection."
+        helpText: "Unique name for this Splunk SOAR connection profile."
+
+      - key: "description"
+        label: "Description"
+        fieldType: "textarea"
+        helpText: "Optional notes about this SOAR instance (environment, owner, purpose)."

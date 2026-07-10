@@ -1,0 +1,103 @@
+id: splunk-soar
+name: Splunk SOAR
+version: 1.0.0
+vendor: Veltrix
+description: >
+  Connect Veltrix to Splunk SOAR (Security Orchestration, Automation and
+  Response). Manages the SOAR instance connection — API endpoint (component),
+  credential, TLS verification, request timeout, retries, and optional proxy —
+  so the platform can reach your SOAR deployment.
+category: SOAR
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-soar
+icon: "🤖"
+
+platform:
+  minVersion: "1.0.0"
+
+permissions:
+  platform:
+    - component:read
+    - credential:read
+  app:
+    - resource: connection
+      actions: [read, write]
+      description: Manage the Splunk SOAR instance connection profile
+
+pipeline:
+  configurationTypes:
+    - id: connection
+      name: SOAR Connection
+      description: Splunk SOAR instance connection profile (endpoint reachability, TLS, timeout, retries, proxy)
+      canvasTemplate: config-types/connection/canvas.yaml
+      defaultConfig: config-types/connection/defaults.yaml
+      handlers:
+        validate: config-types/connection/validate
+        deploy: config-types/connection/deploy
+        rollback: config-types/connection/rollback
+        healthCheck: config-types/connection/healthCheck
+        driftDetect: config-types/connection/driftDetect
+        getStatus: config-types/connection/getStatus
+      targets:
+        componentTypes: [soar-instance]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/splunk-soar
+
+client:
+  entry: client/index
+  navLayout: tabs
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+      order: 1
+      layout: standard
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+      order: 2
+      layout: standard
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+settings:
+  - key: verify_ssl
+    type: boolean
+    label: Verify SSL Certificate
+    description: Verify the SOAR instance's TLS certificate on every request
+    default: true
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Timeout applied to each SOAR API request
+    default: 30
+    required: false
+  - key: max_retries
+    type: number
+    label: Max Retries
+    description: Number of times to retry a failed SOAR API request
+    default: 3
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated
