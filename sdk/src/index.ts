@@ -85,6 +85,9 @@ export type {
   PlatformDatabaseClient,
   AppHookContext,
   AppRouteContext,
+  PermissionEntry,
+  PermissionCheckOptions,
+  AppPermissionsApi,
 } from './types/platform'
 
 // App UI & navigation contract

@@ -167,6 +167,45 @@ export interface Customer {
   isActive: boolean
 }
 
+// --- Client-side permission checks (RBAC/IdP hardening, Wave C4) ---
+//
+// Mirrors the platform's client permission store (client/src/stores/
+// permissionStore.ts), itself an exact mirror of the platform server's
+// RBAC resolver (server/src/lib/permissions.ts). Exposed on
+// `AppContextValue.permissions` (see hooks/use-app-context.ts) and the host
+// runtime's own `VeltrixHostRuntime.permissions` (see client/index.ts).
+
+/** One resolved permission entry the signed-in user's role grants. */
+export interface PermissionEntry {
+  resource: string
+  action: string
+  /** null = platform-scoped; a real App.id = scoped to that app. */
+  appId: string | null
+}
+
+export interface PermissionCheckOptions {
+  /**
+   * App-scoped check target. On `AppContextValue.permissions.has()` this
+   * defaults to the CURRENT app's own id when omitted (apps check their own
+   * declared resources by default) — pass `null` explicitly for a platform
+   * resource, or another app's id to check a different app. On the
+   * top-level `VeltrixHostRuntime.permissions.has()` there is no such
+   * default (omit for a platform-scoped check).
+   */
+  appId?: string | null
+}
+
+/**
+ * Permission-check surface. `has()` is fail-closed: `false` for anything
+ * not explicitly granted (including `all:all`/`resource:all` wildcards and
+ * the platform-admin bypass — all resolved server-side, mirrored client-side
+ * exactly).
+ */
+export interface AppPermissionsApi {
+  has: (resource: string, action: string, opts?: PermissionCheckOptions) => boolean
+  list: () => PermissionEntry[]
+}
+
 // --- Lifecycle hook types ---
 
 /**

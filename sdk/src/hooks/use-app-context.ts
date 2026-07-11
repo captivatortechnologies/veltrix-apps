@@ -4,7 +4,7 @@
 // ========================================================================
 
 import { createContext, useContext, type Context } from 'react'
-import type { Component, Credential, Tag, User, Customer } from '../types/platform'
+import type { Component, Credential, Tag, User, Customer, AppPermissionsApi } from '../types/platform'
 import type { AppBrandingDeclaration } from '../types/manifest'
 
 export interface AppContextValue {
@@ -23,6 +23,14 @@ export interface AppContextValue {
 
   /** The app's manifest branding, resolved by the platform (null when unset). */
   branding?: AppBrandingDeclaration | null
+
+  /**
+   * Permission checks for THIS app (RBAC/IdP hardening, Wave C4). `has()`
+   * without an explicit `opts.appId` checks the app's OWN declared
+   * resources by default. Prefer the `usePermissions()` hook
+   * (`@veltrixsecops/app-sdk/hooks`) over reaching into this directly.
+   */
+  permissions: AppPermissionsApi
 }
 
 // Anchor the context on the host runtime when running inside the platform,

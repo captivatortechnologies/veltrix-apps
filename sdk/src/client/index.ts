@@ -17,8 +17,10 @@
 
 import type { ComponentType, Context, LazyExoticComponent } from 'react'
 import type { AppContextValue } from '../hooks/use-app-context'
+import type { AppPermissionsApi } from '../types/platform'
 
 export type { AppBrandingDeclaration } from '../types/manifest'
+export type { AppPermissionsApi, PermissionEntry, PermissionCheckOptions } from '../types/platform'
 
 // Inventory — typed helpers over the platform's components API (deployment
 // targets: servers, domains, IP/CIDR ranges). Framework-free; they use the
@@ -90,6 +92,15 @@ export interface VeltrixHostRuntime {
    * DataTable, useToast, ...). Present only inside the platform.
    */
   ui?: Record<string, unknown>
+  /**
+   * Platform-scoped permission checks (RBAC/IdP hardening, Wave C4) —
+   * `opts.appId` is NOT defaulted here (omit for a platform-scoped check).
+   * App page code should prefer `usePermissions()`
+   * (`@veltrixsecops/app-sdk/hooks`), which defaults `opts.appId` to the
+   * app's own id. Optional for compatibility with a host that hasn't
+   * deployed this surface yet.
+   */
+  permissions?: AppPermissionsApi
 }
 
 /** Read the host runtime, or null outside the platform (tests, storybook). */
