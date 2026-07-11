@@ -33,6 +33,12 @@
 // they carry platform coupling a later phase may expose read-only versions
 // of; see the ADR's "Non-goals" section.
 //
+// EXPORTS: Button, Badge, Card (+ CardHeader/CardBody/CardFooter), Input,
+// Textarea, Checkbox, Select, SearchBox, Pagination, FilterBar, SortSelect,
+// FormField, Tabs, EmptyState, Skeleton (+ SkeletonText/SkeletonCard),
+// Tooltip, Spinner, DataTable, StatsCard, FormDialog, useToast,
+// useConfirmDialog.
+//
 // useToast / useConfirmDialog are included because the platform's root
 // App.tsx mounts ToastProvider/ConfirmationDialogProvider around the ENTIRE
 // tree (including every app page, since app pages render inside the host's
@@ -507,6 +513,278 @@ export const Select: React.FC<SelectProps> = (props) => {
   )
 }
 Select.displayName = 'Select'
+
+// ---------------------------------------------------------------------------
+// SearchBox
+// ---------------------------------------------------------------------------
+
+export type SearchBoxSize = 'sm' | 'md' | 'lg'
+
+export interface SearchBoxProps {
+  /** Controlled search text. */
+  value: string
+  /** Called with the new text — debounced by `debounceMs` when set. */
+  onChange: (value: string) => void
+  placeholder?: string
+  disabled?: boolean
+  size?: SearchBoxSize
+  /** Debounces `onChange` by this many ms; omit (or `0`) to call on every keystroke. */
+  debounceMs?: number
+  className?: string
+  'aria-label'?: string
+}
+
+/**
+ * SearchBox — delegates to the platform's real SearchBox at render time (leading search icon,
+ * a clear button once there's text, optional debounce). The fallback is a bare
+ * `<input type="search">` wired straight to `value`/`onChange` — no icon, no debounce, no
+ * clear button — but functionally sufficient for typing and clearing.
+ *
+ * @example
+ * <SearchBox value={search} onChange={setSearch} placeholder="Search apps…" debounceMs={250} />
+ */
+export const SearchBox: React.FC<SearchBoxProps> = (props) => {
+  const HostSearchBox = getHostUi<React.FC<SearchBoxProps>>('SearchBox')
+  if (HostSearchBox) return <HostSearchBox {...props} />
+
+  const { value, onChange, placeholder, disabled, className, 'aria-label': ariaLabel } = props
+  return (
+    <input
+      type="search"
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      placeholder={placeholder}
+      disabled={disabled}
+      aria-label={ariaLabel ?? placeholder ?? 'Search'}
+      className={className}
+      style={{ ...fallbackNote, width: '100%', padding: '6px 10px', borderRadius: 6, border: '1px solid #9ca3af' }}
+    />
+  )
+}
+SearchBox.displayName = 'SearchBox'
+
+// ---------------------------------------------------------------------------
+// Pagination
+// ---------------------------------------------------------------------------
+
+export interface PaginationProps {
+  /** 1-based current page. */
+  page: number
+  pageSize: number
+  totalItems: number
+  onPageChange: (page: number) => void
+  /** Renders a page-size selector when provided together with `pageSizeOptions`. */
+  onPageSizeChange?: (size: number) => void
+  pageSizeOptions?: number[]
+  disabled?: boolean
+  className?: string
+}
+
+/**
+ * Pagination — delegates to the platform's real Pagination at render time: a "Showing X–Y of
+ * N" summary, numbered pages with ellipsis for large ranges, an optional page-size Select, and
+ * `aria-current="page"` on the active page — visually consistent with DataTable's built-in
+ * pagination footer. The fallback is a plain Prev/Next pair with "page X of Y" text.
+ *
+ * @example
+ * <Pagination page={page} pageSize={20} totalItems={total} onPageChange={setPage} />
+ */
+export const Pagination: React.FC<PaginationProps> = (props) => {
+  const HostPagination = getHostUi<React.FC<PaginationProps>>('Pagination')
+  if (HostPagination) return <HostPagination {...props} />
+
+  const { page, pageSize, totalItems, onPageChange, disabled, className } = props
+  const pageCount = Math.max(1, Math.ceil(totalItems / pageSize))
+  const canGoPrev = !disabled && page > 1
+  const canGoNext = !disabled && page < pageCount
+
+  return (
+    <nav aria-label="Pagination" className={className} style={{ ...fallbackNote, display: 'flex', alignItems: 'center', gap: 12 }}>
+      <button type="button" onClick={() => onPageChange(page - 1)} disabled={!canGoPrev} style={{ padding: '4px 10px' }}>
+        Prev
+      </button>
+      <span>
+        page {page} of {pageCount}
+      </span>
+      <button type="button" onClick={() => onPageChange(page + 1)} disabled={!canGoNext} style={{ padding: '4px 10px' }}>
+        Next
+      </button>
+    </nav>
+  )
+}
+Pagination.displayName = 'Pagination'
+
+// ---------------------------------------------------------------------------
+// FilterBar
+// ---------------------------------------------------------------------------
+
+export interface FilterOption {
+  value: string
+  label: string
+}
+
+export interface FilterDefinition {
+  /** Stable identifier; also the React key for this filter's dropdown. */
+  key: string
+  /** Shown as the dropdown's placeholder/aria-label, and as its entry in the "Add filter" menu. */
+  label: string
+  options: FilterOption[]
+  /** `null` (not `''`) represents "no selection" — the value FilterBar clears back to. */
+  value: string | null
+  onChange: (value: string | null) => void
+  /** Always rendered when true. Omit/false to make this filter addable/removable via the "Add filter" menu. */
+  alwaysVisible?: boolean
+}
+
+export interface FilterBarSearchProps {
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
+}
+
+export interface FilterBarProps {
+  filters: FilterDefinition[]
+  /** Renders a SearchBox ahead of the filter dropdowns when provided. */
+  search?: FilterBarSearchProps
+  /**
+   * Called by "Clear all" instead of FilterBar's own clearing logic. Omit it to let FilterBar
+   * clear every filter with a value itself (`filter.onChange(null)` for each).
+   */
+  onClearAll?: () => void
+  addFilterLabel?: string
+  className?: string
+}
+
+/**
+ * FilterBar — delegates to the platform's real FilterBar at render time: an optional
+ * SearchBox, always-visible filter dropdowns, and optional filters the user can add/remove via
+ * an "Add filter" menu (a filter with a non-null `value` is always treated as visible, even
+ * before the user explicitly adds it). The fallback renders every filter as a plain,
+ * always-visible native `<select>` — no add/remove menu, no styled search box — so an app page
+ * under test still exposes every filter's full behavior via `onChange`.
+ *
+ * @example
+ * <FilterBar
+ *   search={{ value: search, onChange: setSearch, placeholder: 'Search apps…' }}
+ *   filters={[
+ *     { key: 'vendor', label: 'Vendor', options: vendorOptions, value: vendor, onChange: setVendor, alwaysVisible: true },
+ *     { key: 'category', label: 'Category', options: categoryOptions, value: category, onChange: setCategory },
+ *   ]}
+ * />
+ */
+export const FilterBar: React.FC<FilterBarProps> = (props) => {
+  const HostFilterBar = getHostUi<React.FC<FilterBarProps>>('FilterBar')
+  if (HostFilterBar) return <HostFilterBar {...props} />
+
+  const { filters, search, className } = props
+  return (
+    <div className={className} style={{ ...fallbackNote, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+      {search && (
+        <input
+          type="search"
+          aria-label={search.placeholder ?? 'Search'}
+          placeholder={search.placeholder}
+          value={search.value}
+          onChange={(event) => search.onChange(event.target.value)}
+          style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #9ca3af' }}
+        />
+      )}
+      {filters.map((filter) => (
+        <label key={filter.key} style={{ display: 'flex', flexDirection: 'column', fontSize: 12 }}>
+          {filter.label}
+          <select
+            aria-label={filter.label}
+            value={filter.value ?? ''}
+            onChange={(event) => filter.onChange(event.target.value === '' ? null : event.target.value)}
+            style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #9ca3af' }}
+          >
+            <option value="">{filter.label}</option>
+            {filter.options.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      ))}
+    </div>
+  )
+}
+FilterBar.displayName = 'FilterBar'
+
+// ---------------------------------------------------------------------------
+// SortSelect
+// ---------------------------------------------------------------------------
+
+export type SortDirection = 'asc' | 'desc'
+
+export interface SortOption {
+  value: string
+  label: string
+}
+
+export interface SortSelectProps {
+  /** Sortable fields, e.g. `[{ value: 'name', label: 'Name' }, { value: 'updatedAt', label: 'Updated' }]`. */
+  options: SortOption[]
+  /** Selected field key. */
+  value: string
+  direction: SortDirection
+  /** Called with the field and direction together, whichever one the interaction changed. */
+  onChange: (value: string, direction: SortDirection) => void
+  disabled?: boolean
+  className?: string
+}
+
+/**
+ * SortSelect — delegates to the platform's real SortSelect at render time: a labeled field
+ * Select paired with an asc/desc direction toggle button, styled to sit in the same toolbar
+ * row as FilterBar. The standalone sort control for list/card surfaces that aren't a
+ * DataTable (which has its own column-header sort). The fallback is a native `<select>` for
+ * the field plus a button that flips direction.
+ *
+ * @example
+ * <SortSelect
+ *   options={[{ value: 'name', label: 'Name' }, { value: 'updatedAt', label: 'Last updated' }]}
+ *   value={sortField}
+ *   direction={sortDirection}
+ *   onChange={(field, direction) => { setSortField(field); setSortDirection(direction) }}
+ * />
+ */
+export const SortSelect: React.FC<SortSelectProps> = (props) => {
+  const HostSortSelect = getHostUi<React.FC<SortSelectProps>>('SortSelect')
+  if (HostSortSelect) return <HostSortSelect {...props} />
+
+  const { options, value, direction, onChange, disabled, className } = props
+  const directionLabel = direction === 'asc' ? 'Sort ascending' : 'Sort descending'
+
+  return (
+    <div className={className} style={{ ...fallbackNote, display: 'flex', alignItems: 'center', gap: 6 }}>
+      <select
+        aria-label="Sort by"
+        value={value}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value, direction)}
+        style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #9ca3af' }}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => onChange(value, direction === 'asc' ? 'desc' : 'asc')}
+        aria-label={directionLabel}
+        style={{ padding: '4px 10px' }}
+      >
+        {direction === 'asc' ? '↑' : '↓'}
+      </button>
+    </div>
+  )
+}
+SortSelect.displayName = 'SortSelect'
 
 // ---------------------------------------------------------------------------
 // FormField — generic label + control + error/hint wrapper
