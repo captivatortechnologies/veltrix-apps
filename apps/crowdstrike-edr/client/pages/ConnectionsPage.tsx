@@ -4,8 +4,10 @@ import {
   createCredential,
   updateCredential,
   removeCredential,
+  listEnvironments,
   resolveTool,
   type CredentialSummary,
+  type EnvironmentRef,
 } from '@veltrixsecops/app-sdk/client'
 import {
   Card,
@@ -42,6 +44,7 @@ function fromCredentialType(type: string | null | undefined): string {
 
 interface FormState {
   name: string
+  environmentId: string
   authType: string
   username: string
   secret: string
@@ -50,6 +53,7 @@ interface FormState {
 
 const BLANK_FORM: FormState = {
   name: '',
+  environmentId: '',
   authType: 'token',
   username: '',
   secret: '',
@@ -64,6 +68,7 @@ const BLANK_FORM: FormState = {
  */
 export default function ConnectionsPage() {
   const [connections, setConnections] = useState<CredentialSummary[]>([])
+  const [environments, setEnvironments] = useState<EnvironmentRef[]>([])
   const [toolId, setToolId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -80,7 +85,12 @@ export default function ConnectionsPage() {
     try {
       const tool = await resolveTool(APP_NAME)
       setToolId(tool?.id ?? null)
-      setConnections(tool ? await listCredentials(tool.id) : [])
+      const [creds, envs] = await Promise.all([
+        tool ? listCredentials(tool.id) : Promise.resolve([] as CredentialSummary[]),
+        listEnvironments(),
+      ])
+      setConnections(creds)
+      setEnvironments(envs)
     } catch (e) {
       setError((e as Error).message)
     } finally {
@@ -103,6 +113,7 @@ export default function ConnectionsPage() {
     setEditing(row)
     setForm({
       name: row.name ?? '',
+      environmentId: row.tags?.[0]?.id ?? '',
       authType: fromCredentialType(row.type),
       username: row.username ?? '',
       // Secret is write-only; start blank and only rotate when the user types.
@@ -128,12 +139,17 @@ export default function ConnectionsPage() {
       setFormError('Name is required')
       return
     }
+    if (!form.environmentId) {
+      setFormError('Environment is required')
+      return
+    }
     setSubmitting(true)
     setFormError(null)
 
     const secret = form.secret.trim()
     const username = form.username.trim()
     const endpoint = form.endpoint.trim()
+    const tagIds = [form.environmentId]
 
     try {
       if (editing) {
@@ -142,6 +158,7 @@ export default function ConnectionsPage() {
           username,
           type: toCredentialType(form.authType),
           endpoint,
+          tagIds,
         }
         if (secret) {
           if (form.authType === 'token') update.apiToken = secret
@@ -163,6 +180,7 @@ export default function ConnectionsPage() {
           type: toCredentialType(form.authType),
           endpoint,
           toolId: tool.id,
+          tagIds,
         })
       }
       setDialogOpen(false)
@@ -186,6 +204,20 @@ export default function ConnectionsPage() {
 
   const columns: DataTableColumn<CredentialSummary>[] = [
     { key: 'name', header: 'Name', render: (row) => <strong>{row.name}</strong> },
+    {
+      key: 'environment',
+      header: 'Environment',
+      render: (row) =>
+        row.tags && row.tags.length > 0 ? (
+          <Badge variant="info" size="sm">
+            {row.tags[0].name}
+          </Badge>
+        ) : (
+          <Badge variant="warning" size="sm">
+            none
+          </Badge>
+        ),
+    },
     { key: 'username', header: 'Client ID / Username', render: (row) => row.username || '—' },
     {
       key: 'auth',
@@ -217,6 +249,10 @@ export default function ConnectionsPage() {
 
   const secretLabel = form.authType === 'token' ? 'Client secret' : 'Password'
   const usernameLabel = form.authType === 'token' ? 'Client ID' : 'Username'
+  const environmentOptions = [
+    { value: '', label: environments.length ? '— Select environment —' : '— No environments —' },
+    ...environments.map((e) => ({ value: e.id, label: e.name })),
+  ]
 
   return (
     <Card variant="bordered">
@@ -260,7 +296,7 @@ export default function ConnectionsPage() {
         onSubmit={handleSubmit}
         submitText={editing ? 'Save changes' : 'Add connection'}
         isSubmitting={submitting}
-        submitDisabled={!form.name.trim()}
+        submitDisabled={!form.name.trim() || !form.environmentId}
         error={formError}
         size="md"
       >
@@ -274,6 +310,14 @@ export default function ConnectionsPage() {
             autoFocus
             spellCheck={false}
             autoComplete="off"
+          />
+          <Select
+            label="Environment"
+            options={environmentOptions}
+            value={form.environmentId}
+            onChange={(value) => setField('environmentId', value)}
+            helperText="The deployment scope this connection belongs to. Manage environments under Environments."
+            fullWidth
           />
           <Input
             label="Endpoint (optional)"

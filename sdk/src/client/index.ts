@@ -38,6 +38,11 @@ export type { InventoryItem, InventoryItemInput } from '../types/platform'
 export { listConnectivityProviders } from './connectivity'
 export type { ConnectivityProviderRef } from '../types/platform'
 
+// Environments — reader over the customer's deployment scopes, used to populate
+// the Environment picker on Connections + Access Servers. Framework-free.
+export { listEnvironments } from './environments'
+export type { EnvironmentRef } from '../types/pipeline'
+
 // Credentials — typed helpers over the platform's credentials API. Paired with
 // a server (component) these form a "connection". Secrets are write-only:
 // `listCredentials` returns redacted summaries only. Framework-free; they use

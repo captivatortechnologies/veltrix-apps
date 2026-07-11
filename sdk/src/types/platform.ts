@@ -112,6 +112,8 @@ export interface CredentialSummary {
   toolId: string
   /** True when a write-only secret (apiToken or password) is stored. */
   hasSecret: boolean
+  /** Platform tags — the environment(s) this connection is tied to. */
+  tags: { id: string; name: string }[]
 }
 
 /**

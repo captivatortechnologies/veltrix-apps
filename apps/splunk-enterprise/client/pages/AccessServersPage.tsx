@@ -6,10 +6,12 @@ import {
   removeInventoryItem,
   listCredentials,
   listConnectivityProviders,
+  listEnvironments,
   resolveTool,
   type InventoryItem,
   type CredentialSummary,
   type ConnectivityProviderRef,
+  type EnvironmentRef,
 } from '@veltrixsecops/app-sdk/client'
 import {
   Card,
@@ -65,6 +67,7 @@ interface FormState {
   hostname: string
   port: string
   type: string
+  environmentId: string
   domains: string
   ipRanges: string
   credentialId: string
@@ -75,6 +78,7 @@ const BLANK_FORM: FormState = {
   hostname: '',
   port: '8089',
   type: 'indexer',
+  environmentId: '',
   domains: '',
   ipRanges: '',
   credentialId: '',
@@ -83,15 +87,16 @@ const BLANK_FORM: FormState = {
 
 /**
  * Access Servers — the Splunk servers this app deploys to (indexers, search
- * heads, cluster managers, forwarders …): their IPs/domains/types, plus the
- * Connection (credential) used to reach them and the ZTNA connectivity provider
- * they are reached through. Backed by the platform's deployment targets
- * (components); configs deploy through these.
+ * heads, cluster managers, forwarders …): their IPs/domains/types, the
+ * Environment they belong to (which determines where configs are pushed), the
+ * Connection (credential) used to reach them, and the ZTNA provider they are
+ * reached through. Backed by the platform's deployment targets (components).
  */
 export default function AccessServersPage() {
   const [servers, setServers] = useState<InventoryItem[]>([])
   const [connections, setConnections] = useState<CredentialSummary[]>([])
   const [providers, setProviders] = useState<ConnectivityProviderRef[]>([])
+  const [environments, setEnvironments] = useState<EnvironmentRef[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -106,14 +111,16 @@ export default function AccessServersPage() {
     setError(null)
     try {
       const tool = await resolveTool(APP_NAME)
-      const [components, creds, provs] = await Promise.all([
+      const [components, creds, provs, envs] = await Promise.all([
         listInventory(),
         tool ? listCredentials(tool.id) : Promise.resolve([] as CredentialSummary[]),
         listConnectivityProviders(),
+        listEnvironments(),
       ])
       setServers(components.filter(isSplunkTarget))
       setConnections(creds)
       setProviders(provs)
+      setEnvironments(envs)
     } catch (e) {
       setError((e as Error).message)
     } finally {
@@ -141,6 +148,7 @@ export default function AccessServersPage() {
       hostname: row.hostname ?? '',
       port: row.port ?? '8089',
       type: row.type?.[0] ?? 'indexer',
+      environmentId: row.tags?.[0]?.id ?? '',
       domains: (row.domains ?? []).join(', '),
       ipRanges: (row.ipRanges ?? []).join(', '),
       credentialId: row.credentialId ?? '',
@@ -165,6 +173,10 @@ export default function AccessServersPage() {
       setFormError('Hostname is required')
       return
     }
+    if (!form.environmentId) {
+      setFormError('Environment is required')
+      return
+    }
     setSubmitting(true)
     setFormError(null)
 
@@ -174,6 +186,7 @@ export default function AccessServersPage() {
       type: [form.type],
       domains: splitCsv(form.domains),
       ipRanges: splitCsv(form.ipRanges),
+      tagIds: [form.environmentId],
       credentialId: form.credentialId || null,
       connectivityProviderId: form.connectivityProviderId || null,
     }
@@ -212,6 +225,20 @@ export default function AccessServersPage() {
   const columns: DataTableColumn<InventoryItem>[] = [
     { key: 'hostname', header: 'Hostname', render: (row) => <strong>{row.hostname}</strong> },
     {
+      key: 'environment',
+      header: 'Environment',
+      render: (row) =>
+        row.tags && row.tags.length > 0 ? (
+          <Badge variant="info" size="sm">
+            {row.tags[0].name}
+          </Badge>
+        ) : (
+          <Badge variant="warning" size="sm">
+            none
+          </Badge>
+        ),
+    },
+    {
       key: 'type',
       header: 'Type',
       render: (row) =>
@@ -234,7 +261,7 @@ export default function AccessServersPage() {
       header: 'Connection',
       render: (row) =>
         row.credentialId ? (
-          <Badge variant="info" size="sm">
+          <Badge variant="secondary" size="sm">
             {connectionName(row.credentialId) ?? 'unknown'}
           </Badge>
         ) : (
@@ -272,6 +299,10 @@ export default function AccessServersPage() {
     },
   ]
 
+  const environmentOptions = [
+    { value: '', label: environments.length ? '— Select environment —' : '— No environments —' },
+    ...environments.map((e) => ({ value: e.id, label: e.name })),
+  ]
   const connectionOptions = [NONE_OPTION, ...connections.map((c) => ({ value: c.id, label: c.name }))]
   const providerOptions = [NONE_OPTION, ...providers.map((p) => ({ value: p.id, label: p.name }))]
 
@@ -303,7 +334,7 @@ export default function AccessServersPage() {
             emptyState={{
               title: 'No access servers yet',
               description:
-                'Add a Splunk server (indexer, search head, cluster manager, forwarder …), then pick the Connection and ZTNA used to reach it.',
+                'Add a Splunk server (indexer, search head, cluster manager, forwarder …), assign its environment, then pick the Connection and ZTNA used to reach it.',
             }}
           />
         )}
@@ -313,11 +344,11 @@ export default function AccessServersPage() {
         isOpen={dialogOpen}
         onClose={closeDialog}
         title={editing ? `Edit "${editing.hostname}"` : 'Add access server'}
-        description="A Splunk deployment target — its addressing, plus the Connection and ZTNA used to reach it."
+        description="A Splunk deployment target — its addressing + environment, plus the Connection and ZTNA used to reach it."
         onSubmit={handleSubmit}
         submitText={editing ? 'Save changes' : 'Add access server'}
         isSubmitting={submitting}
-        submitDisabled={!form.hostname.trim()}
+        submitDisabled={!form.hostname.trim() || !form.environmentId}
         error={formError}
         size="md"
       >
@@ -341,6 +372,14 @@ export default function AccessServersPage() {
               fullWidth
             />
           </div>
+          <Select
+            label="Environment"
+            options={environmentOptions}
+            value={form.environmentId}
+            onChange={(value) => setField('environmentId', value)}
+            helperText="The deployment scope this server belongs to — configs deploy here per environment. Manage under Environments."
+            fullWidth
+          />
           <Select
             label="Type"
             options={SERVER_TYPES}

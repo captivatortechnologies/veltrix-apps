@@ -47,6 +47,7 @@ interface RawCredential {
   password?: string | null
   apiToken?: string | null
   certificate?: string | null
+  tags?: Array<{ id: string; name: string }>
 }
 
 /** Build an Error from a non-2xx response, preferring the platform's message. */
@@ -86,6 +87,9 @@ function toCredentialSummary(raw: RawCredential): CredentialSummary {
     endpoint: raw.endpoint ?? null,
     toolId: raw.toolId ?? '',
     hasSecret,
+    tags: Array.isArray(raw.tags)
+      ? raw.tags.map((t) => ({ id: String(t.id), name: String(t.name) }))
+      : [],
   }
 }
 
