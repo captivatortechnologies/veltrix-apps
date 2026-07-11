@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { authFetch } from '@veltrixsecops/app-sdk/client'
 import {
   Card,
@@ -10,7 +10,12 @@ import {
   Input,
   FormDialog,
   DataTable,
+  FilterBar,
+  SortSelect,
+  Pagination,
   type DataTableColumn,
+  type FilterDefinition,
+  type SortOption,
 } from '@veltrixsecops/app-sdk/ui'
 
 interface EnvironmentTag {
@@ -91,6 +96,16 @@ export default function IndexDefaultsPage() {
   const [configs, setConfigs] = useState<IndexDefaultConfig[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+
+  // Search / filter / sort / pagination — the page owns the list state,
+  // DataTable just renders whatever page of rows results.
+  const [search, setSearch] = useState('')
+  const [environmentFilter, setEnvironmentFilter] = useState<string | null>(null)
+  const [approvalFilter, setApprovalFilter] = useState<string | null>(null)
+  const [sortField, setSortField] = useState('name')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<IndexDefaultConfig | null>(null)
@@ -236,6 +251,78 @@ export default function IndexDefaultsPage() {
     },
   ]
 
+  // Toolbar filter/sort option lists, derived from the fetched configs since
+  // this page has no separate environments reference list.
+  const environmentFilterOptions = useMemo(() => {
+    const seen = new Map<string, string>()
+    configs.forEach((c) => c.environments?.forEach((e) => seen.set(e.tag.id, e.tag.name)))
+    return Array.from(seen, ([value, label]) => ({ value, label }))
+  }, [configs])
+
+  const approvalFilterOptions = [
+    { value: 'required', label: 'Required' },
+    { value: 'not-required', label: 'Not required' },
+  ]
+
+  const sortOptions: SortOption[] = [
+    { value: 'name', label: 'Name' },
+    { value: 'retentionPeriod', label: 'Retention (days)' },
+    { value: 'frozenTimePeriod', label: 'Frozen after (days)' },
+    { value: 'updatedAt', label: 'Updated' },
+  ]
+  const filters: FilterDefinition[] = [
+    {
+      key: 'environment',
+      label: 'Environment',
+      options: environmentFilterOptions,
+      value: environmentFilter,
+      onChange: setEnvironmentFilter,
+      alwaysVisible: true,
+    },
+    {
+      key: 'approval',
+      label: 'Approval',
+      options: approvalFilterOptions,
+      value: approvalFilter,
+      onChange: setApprovalFilter,
+    },
+  ]
+
+  // search -> filter -> sort, then slice to the current page.
+  const filteredSorted = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    const rows = configs.filter((row) => {
+      if (term && !(row.name ?? '').toLowerCase().includes(term)) return false
+      if (environmentFilter && !row.environments?.some((e) => e.tag.id === environmentFilter)) return false
+      if (approvalFilter && (row.requireApproval ? 'required' : 'not-required') !== approvalFilter) return false
+      return true
+    })
+    const dir = sortDir === 'asc' ? 1 : -1
+    return [...rows].sort((a, b) => {
+      switch (sortField) {
+        case 'retentionPeriod':
+          return ((a.retentionPeriod ?? 0) - (b.retentionPeriod ?? 0)) * dir
+        case 'frozenTimePeriod':
+          return ((a.frozenTimePeriod ?? 0) - (b.frozenTimePeriod ?? 0)) * dir
+        case 'updatedAt':
+          return (new Date(a.updatedAt ?? 0).getTime() - new Date(b.updatedAt ?? 0).getTime()) * dir
+        case 'name':
+        default:
+          return (a.name ?? '').localeCompare(b.name ?? '') * dir
+      }
+    })
+  }, [configs, search, environmentFilter, approvalFilter, sortField, sortDir])
+
+  const pageRows = useMemo(
+    () => filteredSorted.slice((page - 1) * pageSize, page * pageSize),
+    [filteredSorted, page, pageSize],
+  )
+
+  // Any change to search/filters/sort invalidates the current page.
+  useEffect(() => {
+    setPage(1)
+  }, [search, environmentFilter, approvalFilter, sortField, sortDir])
+
   return (
     <Card variant="bordered">
       <CardHeader
@@ -256,16 +343,57 @@ export default function IndexDefaultsPage() {
         {error ? (
           <p role="alert">Failed to load index default configurations: {error}</p>
         ) : (
-          <DataTable
-            columns={columns}
-            data={configs}
-            rowKey={(row) => row.id}
-            isLoading={isLoading}
-            emptyState={{
-              title: 'No index defaults yet',
-              description: 'Create a default template that seeds new index configurations per environment.',
-            }}
-          />
+          <>
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 12,
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 12,
+              }}
+            >
+              <FilterBar
+                search={{ value: search, onChange: setSearch, placeholder: 'Search index defaults…' }}
+                filters={filters}
+                onClearAll={() => {
+                  setSearch('')
+                  setEnvironmentFilter(null)
+                  setApprovalFilter(null)
+                }}
+              />
+              <SortSelect
+                options={sortOptions}
+                value={sortField}
+                direction={sortDir}
+                onChange={(field, direction) => {
+                  setSortField(field)
+                  setSortDir(direction)
+                }}
+              />
+            </div>
+            <DataTable
+              columns={columns}
+              data={pageRows}
+              rowKey={(row) => row.id}
+              isLoading={isLoading}
+              emptyState={{
+                title: 'No index defaults yet',
+                description: 'Create a default template that seeds new index configurations per environment.',
+              }}
+            />
+            <div style={{ marginTop: 12 }}>
+              <Pagination
+                page={page}
+                pageSize={pageSize}
+                totalItems={filteredSorted.length}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+                pageSizeOptions={[10, 25, 50]}
+              />
+            </div>
+          </>
         )}
       </CardBody>
 

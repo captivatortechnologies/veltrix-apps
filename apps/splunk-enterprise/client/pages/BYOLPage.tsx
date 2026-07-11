@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { authFetch } from '@veltrixsecops/app-sdk/client'
 import {
   Card,
@@ -10,7 +10,12 @@ import {
   Select,
   FormDialog,
   DataTable,
+  FilterBar,
+  SortSelect,
+  Pagination,
   type DataTableColumn,
+  type FilterDefinition,
+  type SortOption,
 } from '@veltrixsecops/app-sdk/ui'
 
 interface ByolInfrastructure {
@@ -98,6 +103,17 @@ export default function BYOLPage() {
   const [infrastructure, setInfrastructure] = useState<ByolInfrastructure[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+
+  // Search / filter / sort / pagination — the page owns the list state,
+  // DataTable just renders whatever page of rows results.
+  const [search, setSearch] = useState('')
+  const [environmentFilter, setEnvironmentFilter] = useState<string | null>(null)
+  const [deploymentFilter, setDeploymentFilter] = useState<string | null>(null)
+  const [statusFilter, setStatusFilter] = useState<string | null>(null)
+  const [sortField, setSortField] = useState('name')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<ByolInfrastructure | null>(null)
@@ -281,6 +297,89 @@ export default function BYOLPage() {
     },
   ]
 
+  // Toolbar filter/sort option lists, derived from the fetched infrastructure
+  // since this page has no separate reference list for these fields.
+  const environmentFilterOptions = ENVIRONMENT_OPTIONS
+  const deploymentFilterOptions = DEPLOYMENT_OPTIONS
+  const statusFilterOptions = useMemo(() => {
+    const seen = new Set<string>()
+    infrastructure.forEach((i) => seen.add(i.status ?? 'unknown'))
+    return Array.from(seen, (value) => ({ value, label: value }))
+  }, [infrastructure])
+
+  const sortOptions: SortOption[] = [
+    { value: 'name', label: 'Name' },
+    { value: 'indexerCount', label: 'Indexers' },
+    { value: 'searchHeadCount', label: 'Search heads' },
+    { value: 'status', label: 'Status' },
+    { value: 'updatedAt', label: 'Updated' },
+  ]
+  const filters: FilterDefinition[] = [
+    {
+      key: 'environment',
+      label: 'Environment',
+      options: environmentFilterOptions,
+      value: environmentFilter,
+      onChange: setEnvironmentFilter,
+      alwaysVisible: true,
+    },
+    {
+      key: 'deployment',
+      label: 'Deployment',
+      options: deploymentFilterOptions,
+      value: deploymentFilter,
+      onChange: setDeploymentFilter,
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      options: statusFilterOptions,
+      value: statusFilter,
+      onChange: setStatusFilter,
+    },
+  ]
+
+  // search -> filter -> sort, then slice to the current page.
+  const filteredSorted = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    const rows = infrastructure.filter((row) => {
+      if (term) {
+        const haystack = `${row.name ?? ''} ${row.hosting_type ?? ''}`.toLowerCase()
+        if (!haystack.includes(term)) return false
+      }
+      if (environmentFilter && row.environmentType !== environmentFilter) return false
+      if (deploymentFilter && row.deploymentType !== deploymentFilter) return false
+      if (statusFilter && (row.status ?? 'unknown') !== statusFilter) return false
+      return true
+    })
+    const dir = sortDir === 'asc' ? 1 : -1
+    return [...rows].sort((a, b) => {
+      switch (sortField) {
+        case 'indexerCount':
+          return ((a.indexerCount ?? 0) - (b.indexerCount ?? 0)) * dir
+        case 'searchHeadCount':
+          return ((a.searchHeadCount ?? 0) - (b.searchHeadCount ?? 0)) * dir
+        case 'status':
+          return (a.status ?? '').localeCompare(b.status ?? '') * dir
+        case 'updatedAt':
+          return (new Date(a.updatedAt ?? 0).getTime() - new Date(b.updatedAt ?? 0).getTime()) * dir
+        case 'name':
+        default:
+          return (a.name ?? '').localeCompare(b.name ?? '') * dir
+      }
+    })
+  }, [infrastructure, search, environmentFilter, deploymentFilter, statusFilter, sortField, sortDir])
+
+  const pageRows = useMemo(
+    () => filteredSorted.slice((page - 1) * pageSize, page * pageSize),
+    [filteredSorted, page, pageSize],
+  )
+
+  // Any change to search/filters/sort invalidates the current page.
+  useEffect(() => {
+    setPage(1)
+  }, [search, environmentFilter, deploymentFilter, statusFilter, sortField, sortDir])
+
   return (
     <Card variant="bordered">
       <CardHeader
@@ -301,16 +400,58 @@ export default function BYOLPage() {
         {error ? (
           <p role="alert">Failed to load BYOL infrastructure: {error}</p>
         ) : (
-          <DataTable
-            columns={columns}
-            data={infrastructure}
-            rowKey={(row) => row.id}
-            isLoading={isLoading}
-            emptyState={{
-              title: 'No BYOL infrastructure yet',
-              description: 'Create a BYOL deployment to manage its topology and lifecycle here.',
-            }}
-          />
+          <>
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 12,
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 12,
+              }}
+            >
+              <FilterBar
+                search={{ value: search, onChange: setSearch, placeholder: 'Search BYOL infrastructure…' }}
+                filters={filters}
+                onClearAll={() => {
+                  setSearch('')
+                  setEnvironmentFilter(null)
+                  setDeploymentFilter(null)
+                  setStatusFilter(null)
+                }}
+              />
+              <SortSelect
+                options={sortOptions}
+                value={sortField}
+                direction={sortDir}
+                onChange={(field, direction) => {
+                  setSortField(field)
+                  setSortDir(direction)
+                }}
+              />
+            </div>
+            <DataTable
+              columns={columns}
+              data={pageRows}
+              rowKey={(row) => row.id}
+              isLoading={isLoading}
+              emptyState={{
+                title: 'No BYOL infrastructure yet',
+                description: 'Create a BYOL deployment to manage its topology and lifecycle here.',
+              }}
+            />
+            <div style={{ marginTop: 12 }}>
+              <Pagination
+                page={page}
+                pageSize={pageSize}
+                totalItems={filteredSorted.length}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+                pageSizeOptions={[10, 25, 50]}
+              />
+            </div>
+          </>
         )}
       </CardBody>
 

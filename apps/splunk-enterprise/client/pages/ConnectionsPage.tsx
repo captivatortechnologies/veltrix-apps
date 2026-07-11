@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   listCredentials,
   createCredential,
@@ -19,7 +19,12 @@ import {
   Select,
   FormDialog,
   DataTable,
+  FilterBar,
+  SortSelect,
+  Pagination,
   type DataTableColumn,
+  type FilterDefinition,
+  type SortOption,
 } from '@veltrixsecops/app-sdk/ui'
 
 // The platform Tool is upserted keyed by the app's manifest name; resolveTool
@@ -74,6 +79,16 @@ export default function ConnectionsPage() {
   const [toolId, setToolId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+
+  // Search / filter / sort / pagination — the page owns the list state,
+  // DataTable just renders whatever page of rows results.
+  const [search, setSearch] = useState('')
+  const [environmentFilter, setEnvironmentFilter] = useState<string | null>(null)
+  const [authTypeFilter, setAuthTypeFilter] = useState<string | null>(null)
+  const [sortField, setSortField] = useState('name')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<CredentialSummary | null>(null)
@@ -256,6 +271,68 @@ export default function ConnectionsPage() {
     ...environments.map((e) => ({ value: e.id, label: e.name })),
   ]
 
+  // Toolbar filter/sort option lists.
+  const environmentFilterOptions = environments.map((e) => ({ value: e.id, label: e.name }))
+  const authTypeFilterOptions = AUTH_TYPES
+  const sortOptions: SortOption[] = [
+    { value: 'name', label: 'Name' },
+    { value: 'environment', label: 'Environment' },
+    { value: 'username', label: 'Username' },
+  ]
+  const filters: FilterDefinition[] = [
+    {
+      key: 'environment',
+      label: 'Environment',
+      options: environmentFilterOptions,
+      value: environmentFilter,
+      onChange: setEnvironmentFilter,
+      alwaysVisible: true,
+    },
+    {
+      key: 'authType',
+      label: 'Auth method',
+      options: authTypeFilterOptions,
+      value: authTypeFilter,
+      onChange: setAuthTypeFilter,
+    },
+  ]
+
+  // search -> filter -> sort, then slice to the current page.
+  const filteredSorted = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    const rows = connections.filter((row) => {
+      if (term) {
+        const haystack = `${row.name ?? ''} ${row.username ?? ''} ${row.endpoint ?? ''}`.toLowerCase()
+        if (!haystack.includes(term)) return false
+      }
+      if (environmentFilter && row.tags?.[0]?.id !== environmentFilter) return false
+      if (authTypeFilter && fromCredentialType(row.type) !== authTypeFilter) return false
+      return true
+    })
+    const dir = sortDir === 'asc' ? 1 : -1
+    return [...rows].sort((a, b) => {
+      switch (sortField) {
+        case 'environment':
+          return (a.tags?.[0]?.name ?? '').localeCompare(b.tags?.[0]?.name ?? '') * dir
+        case 'username':
+          return (a.username ?? '').localeCompare(b.username ?? '') * dir
+        case 'name':
+        default:
+          return (a.name ?? '').localeCompare(b.name ?? '') * dir
+      }
+    })
+  }, [connections, search, environmentFilter, authTypeFilter, sortField, sortDir])
+
+  const pageRows = useMemo(
+    () => filteredSorted.slice((page - 1) * pageSize, page * pageSize),
+    [filteredSorted, page, pageSize],
+  )
+
+  // Any change to search/filters/sort invalidates the current page.
+  useEffect(() => {
+    setPage(1)
+  }, [search, environmentFilter, authTypeFilter, sortField, sortDir])
+
   return (
     <Card variant="bordered">
       <CardHeader
@@ -276,17 +353,58 @@ export default function ConnectionsPage() {
         {error ? (
           <p role="alert">Failed to load connections: {error}</p>
         ) : (
-          <DataTable
-            columns={columns}
-            data={connections}
-            rowKey={(row) => row.id}
-            isLoading={isLoading}
-            emptyState={{
-              title: 'No connections yet',
-              description:
-                'Add the credentials this app authenticates with (username/password or API/HEC token), the endpoint they reach, and the environment they belong to.',
-            }}
-          />
+          <>
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 12,
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 12,
+              }}
+            >
+              <FilterBar
+                search={{ value: search, onChange: setSearch, placeholder: 'Search connections…' }}
+                filters={filters}
+                onClearAll={() => {
+                  setSearch('')
+                  setEnvironmentFilter(null)
+                  setAuthTypeFilter(null)
+                }}
+              />
+              <SortSelect
+                options={sortOptions}
+                value={sortField}
+                direction={sortDir}
+                onChange={(field, direction) => {
+                  setSortField(field)
+                  setSortDir(direction)
+                }}
+              />
+            </div>
+            <DataTable
+              columns={columns}
+              data={pageRows}
+              rowKey={(row) => row.id}
+              isLoading={isLoading}
+              emptyState={{
+                title: 'No connections yet',
+                description:
+                  'Add the credentials this app authenticates with (username/password or API/HEC token), the endpoint they reach, and the environment they belong to.',
+              }}
+            />
+            <div style={{ marginTop: 12 }}>
+              <Pagination
+                page={page}
+                pageSize={pageSize}
+                totalItems={filteredSorted.length}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+                pageSizeOptions={[10, 25, 50]}
+              />
+            </div>
+          </>
         )}
       </CardBody>
 

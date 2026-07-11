@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { authFetch } from '@veltrixsecops/app-sdk/client'
 import { useAppContext } from '@veltrixsecops/app-sdk/hooks'
 import {
@@ -8,7 +8,12 @@ import {
   Button,
   Badge,
   DataTable,
+  FilterBar,
+  SortSelect,
+  Pagination,
   type DataTableColumn,
+  type FilterDefinition,
+  type SortOption,
 } from '@veltrixsecops/app-sdk/ui'
 
 interface EnvironmentTag {
@@ -47,6 +52,16 @@ export default function RolesPage() {
   const [configs, setConfigs] = useState<RoleConfig[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+
+  // Search / filter / sort / pagination — the page owns the list state,
+  // DataTable just renders whatever page of rows results.
+  const [search, setSearch] = useState('')
+  const [environmentFilter, setEnvironmentFilter] = useState<string | null>(null)
+  const [deployStateFilter, setDeployStateFilter] = useState<string | null>(null)
+  const [sortField, setSortField] = useState('name')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
   const loadRoles = useCallback(() => {
     setIsLoading(true)
@@ -109,6 +124,79 @@ export default function RolesPage() {
     { key: 'updatedAt', header: 'Updated', render: (row) => formatDate(row.updatedAt) },
   ]
 
+  // Toolbar filter/sort option lists, derived from the fetched configs since
+  // this page has no separate environments/deploy-state reference list.
+  const environmentFilterOptions = useMemo(() => {
+    const seen = new Map<string, string>()
+    configs.forEach((c) => c.environments?.forEach((e) => seen.set(e.tag.id, e.tag.name)))
+    return Array.from(seen, ([value, label]) => ({ value, label }))
+  }, [configs])
+
+  const deployStateFilterOptions = useMemo(() => {
+    const seen = new Set<string>()
+    configs.forEach((c) => seen.add(c.deployState ?? 'unknown'))
+    return Array.from(seen, (value) => ({ value, label: value }))
+  }, [configs])
+
+  const sortOptions: SortOption[] = [
+    { value: 'name', label: 'Name' },
+    { value: 'deployState', label: 'Status' },
+    { value: 'updatedAt', label: 'Updated' },
+  ]
+  const filters: FilterDefinition[] = [
+    {
+      key: 'environment',
+      label: 'Environment',
+      options: environmentFilterOptions,
+      value: environmentFilter,
+      onChange: setEnvironmentFilter,
+      alwaysVisible: true,
+    },
+    {
+      key: 'deployState',
+      label: 'Status',
+      options: deployStateFilterOptions,
+      value: deployStateFilter,
+      onChange: setDeployStateFilter,
+    },
+  ]
+
+  // search -> filter -> sort, then slice to the current page.
+  const filteredSorted = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    const rows = configs.filter((row) => {
+      if (term) {
+        const haystack = `${row.name ?? ''} ${row.description ?? ''}`.toLowerCase()
+        if (!haystack.includes(term)) return false
+      }
+      if (environmentFilter && !row.environments?.some((e) => e.tag.id === environmentFilter)) return false
+      if (deployStateFilter && (row.deployState ?? 'unknown') !== deployStateFilter) return false
+      return true
+    })
+    const dir = sortDir === 'asc' ? 1 : -1
+    return [...rows].sort((a, b) => {
+      switch (sortField) {
+        case 'deployState':
+          return (a.deployState ?? '').localeCompare(b.deployState ?? '') * dir
+        case 'updatedAt':
+          return (new Date(a.updatedAt ?? 0).getTime() - new Date(b.updatedAt ?? 0).getTime()) * dir
+        case 'name':
+        default:
+          return (a.name ?? '').localeCompare(b.name ?? '') * dir
+      }
+    })
+  }, [configs, search, environmentFilter, deployStateFilter, sortField, sortDir])
+
+  const pageRows = useMemo(
+    () => filteredSorted.slice((page - 1) * pageSize, page * pageSize),
+    [filteredSorted, page, pageSize],
+  )
+
+  // Any change to search/filters/sort invalidates the current page.
+  useEffect(() => {
+    setPage(1)
+  }, [search, environmentFilter, deployStateFilter, sortField, sortDir])
+
   return (
     <Card variant="bordered">
       <CardHeader
@@ -135,16 +223,57 @@ export default function RolesPage() {
         {error ? (
           <p role="alert">Failed to load role configurations: {error}</p>
         ) : (
-          <DataTable
-            columns={columns}
-            data={configs}
-            rowKey={(row) => row.id}
-            isLoading={isLoading}
-            emptyState={{
-              title: 'No role configurations yet',
-              description: 'Create one from the Configuration Canvas.',
-            }}
-          />
+          <>
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 12,
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 12,
+              }}
+            >
+              <FilterBar
+                search={{ value: search, onChange: setSearch, placeholder: 'Search roles…' }}
+                filters={filters}
+                onClearAll={() => {
+                  setSearch('')
+                  setEnvironmentFilter(null)
+                  setDeployStateFilter(null)
+                }}
+              />
+              <SortSelect
+                options={sortOptions}
+                value={sortField}
+                direction={sortDir}
+                onChange={(field, direction) => {
+                  setSortField(field)
+                  setSortDir(direction)
+                }}
+              />
+            </div>
+            <DataTable
+              columns={columns}
+              data={pageRows}
+              rowKey={(row) => row.id}
+              isLoading={isLoading}
+              emptyState={{
+                title: 'No role configurations yet',
+                description: 'Create one from the Configuration Canvas.',
+              }}
+            />
+            <div style={{ marginTop: 12 }}>
+              <Pagination
+                page={page}
+                pageSize={pageSize}
+                totalItems={filteredSorted.length}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+                pageSizeOptions={[10, 25, 50]}
+              />
+            </div>
+          </>
         )}
       </CardBody>
     </Card>
