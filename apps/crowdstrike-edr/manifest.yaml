@@ -1,6 +1,6 @@
 id: crowdstrike-edr
 name: CrowdStrike Falcon
-version: 1.2.0
+version: 1.2.1
 vendor: Veltrix
 description: >
   Manage CrowdStrike Falcon configurations as code through the Falcon
@@ -20,7 +20,10 @@ platform:
 # used as an accent in defined slots only — never as a page-wide theme.
 branding:
   primaryColor: "#FC0000"
+  # Official CrowdStrike 2023 primary lockup (red falcon + wordmark), tight-cropped.
+  # Light variant for light shells; white-wordmark variant for dark shells.
   logo: ./assets/logo.svg
+  logoDark: ./assets/logo-dark.svg
 
 permissions:
   platform:
