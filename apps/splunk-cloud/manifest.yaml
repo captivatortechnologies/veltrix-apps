@@ -1,6 +1,6 @@
 id: splunk-cloud
 name: Splunk Cloud Platform
-version: 1.2.0
+version: 1.2.1
 vendor: Veltrix
 description: >
   Manage Splunk Cloud Platform configurations as code through the
@@ -13,6 +13,16 @@ icon: "☁️"
 
 platform:
   minVersion: "1.0.0"
+
+# Rendered by the platform in the app's navbar and exposed to pages as
+# --veltrix-app-primary / --veltrix-app-accent. Splunk brand orange (#FF6600)
+# is the primary, shared with Splunk Enterprise; a warm pink accent (the cloud
+# end of Splunk's pink→orange→yellow brand gradient) subtly distinguishes this
+# app while keeping it unmistakably Splunk. The "splunk>" wordmark ships in assets/.
+branding:
+  primaryColor: "#FF6600"
+  accentColor: "#F04E98"
+  logo: ./assets/logo.svg
 
 permissions:
   platform:

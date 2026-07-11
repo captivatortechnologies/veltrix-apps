@@ -1,6 +1,6 @@
 id: splunk-enterprise
 name: Splunk Enterprise
-version: 1.10.0
+version: 1.10.1
 vendor: Veltrix
 description: >
   Manage Splunk Enterprise configurations as code.
@@ -14,6 +14,15 @@ icon: "🔍"
 
 platform:
   minVersion: "1.0.0"
+
+# Rendered by the platform in the app's navbar and exposed to pages as
+# --veltrix-app-primary / --veltrix-app-accent. Splunk brand orange (#FF6600)
+# is the primary; a warm amber accent from Splunk's pink→orange→yellow brand
+# gradient completes the palette. The "splunk>" wordmark ships in assets/.
+branding:
+  primaryColor: "#FF6600"
+  accentColor: "#F8BF1C"
+  logo: ./assets/logo.svg
 
 permissions:
   platform:
