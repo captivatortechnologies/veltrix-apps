@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   listInventory,
   addInventoryItem,
@@ -23,7 +23,12 @@ import {
   Select,
   FormDialog,
   DataTable,
+  FilterBar,
+  SortSelect,
+  Pagination,
   type DataTableColumn,
+  type FilterDefinition,
+  type SortOption,
 } from '@veltrixsecops/app-sdk/ui'
 
 // The platform Tool is upserted keyed by the app's manifest name; resolveTool
@@ -95,6 +100,17 @@ export default function AccessServersPage() {
   const [environments, setEnvironments] = useState<EnvironmentRef[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+
+  // Search / filter / sort / pagination — the page owns the list state,
+  // DataTable just renders whatever page of rows results.
+  const [search, setSearch] = useState('')
+  const [environmentFilter, setEnvironmentFilter] = useState<string | null>(null)
+  const [typeFilter, setTypeFilter] = useState<string | null>(null)
+  const [providerFilter, setProviderFilter] = useState<string | null>(null)
+  const [sortField, setSortField] = useState('hostname')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<InventoryItem | null>(null)
@@ -302,6 +318,78 @@ export default function AccessServersPage() {
   const connectionOptions = [NONE_OPTION, ...connections.map((c) => ({ value: c.id, label: c.name }))]
   const providerOptions = [NONE_OPTION, ...providers.map((p) => ({ value: p.id, label: p.name }))]
 
+  // Toolbar filter/sort option lists.
+  const environmentFilterOptions = environments.map((e) => ({ value: e.id, label: e.name }))
+  const typeFilterOptions = SERVER_TYPES
+  const providerFilterOptions = providers.map((p) => ({ value: p.id, label: p.name }))
+  const sortOptions: SortOption[] = [
+    { value: 'hostname', label: 'Hostname' },
+    { value: 'environment', label: 'Environment' },
+    { value: 'type', label: 'Type' },
+  ]
+  const filters: FilterDefinition[] = [
+    {
+      key: 'environment',
+      label: 'Environment',
+      options: environmentFilterOptions,
+      value: environmentFilter,
+      onChange: setEnvironmentFilter,
+      alwaysVisible: true,
+    },
+    {
+      key: 'type',
+      label: 'Type',
+      options: typeFilterOptions,
+      value: typeFilter,
+      onChange: setTypeFilter,
+      alwaysVisible: true,
+    },
+    {
+      key: 'connectivity',
+      label: 'Connectivity (ZTNA)',
+      options: providerFilterOptions,
+      value: providerFilter,
+      onChange: setProviderFilter,
+    },
+  ]
+
+  // search -> filter -> sort, then slice to the current page.
+  const filteredSorted = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    const rows = servers.filter((row) => {
+      if (term) {
+        const haystack = `${row.hostname ?? ''} ${(row.domains ?? []).join(' ')} ${(row.ipRanges ?? []).join(' ')}`.toLowerCase()
+        if (!haystack.includes(term)) return false
+      }
+      if (environmentFilter && row.tags?.[0]?.id !== environmentFilter) return false
+      if (typeFilter && !row.type?.includes(typeFilter)) return false
+      if (providerFilter && row.connectivityProviderId !== providerFilter) return false
+      return true
+    })
+    const dir = sortDir === 'asc' ? 1 : -1
+    return [...rows].sort((a, b) => {
+      switch (sortField) {
+        case 'environment':
+          return (a.tags?.[0]?.name ?? '').localeCompare(b.tags?.[0]?.name ?? '') * dir
+        case 'type':
+          return (a.type?.[0] ?? '').localeCompare(b.type?.[0] ?? '') * dir
+        case 'hostname':
+        default:
+          return (a.hostname ?? '').localeCompare(b.hostname ?? '') * dir
+      }
+    })
+  }, [servers, search, environmentFilter, typeFilter, providerFilter, sortField, sortDir])
+
+  const pageRows = useMemo(
+    () => filteredSorted.slice((page - 1) * pageSize, page * pageSize),
+    [filteredSorted, page, pageSize],
+  )
+
+  // Any change to search/filters/sort invalidates the current page.
+  useEffect(() => {
+    setPage(1)
+  }, [search, environmentFilter, typeFilter, providerFilter, sortField, sortDir])
+
   return (
     <Card variant="bordered">
       <CardHeader
@@ -322,17 +410,59 @@ export default function AccessServersPage() {
         {error ? (
           <p role="alert">Failed to load access servers: {error}</p>
         ) : (
-          <DataTable
-            columns={columns}
-            data={servers}
-            rowKey={(row) => row.id}
-            isLoading={isLoading}
-            emptyState={{
-              title: 'No access servers yet',
-              description:
-                'Add a Splunk server (indexer, search head, cluster manager, forwarder …), then pick the Connection and ZTNA used to reach it.',
-            }}
-          />
+          <>
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 12,
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 12,
+              }}
+            >
+              <FilterBar
+                search={{ value: search, onChange: setSearch, placeholder: 'Search access servers…' }}
+                filters={filters}
+                onClearAll={() => {
+                  setSearch('')
+                  setEnvironmentFilter(null)
+                  setTypeFilter(null)
+                  setProviderFilter(null)
+                }}
+              />
+              <SortSelect
+                options={sortOptions}
+                value={sortField}
+                direction={sortDir}
+                onChange={(field, direction) => {
+                  setSortField(field)
+                  setSortDir(direction)
+                }}
+              />
+            </div>
+            <DataTable
+              columns={columns}
+              data={pageRows}
+              rowKey={(row) => row.id}
+              isLoading={isLoading}
+              emptyState={{
+                title: 'No access servers yet',
+                description:
+                  'Add a Splunk server (indexer, search head, cluster manager, forwarder …), then pick the Connection and ZTNA used to reach it.',
+              }}
+            />
+            <div style={{ marginTop: 12 }}>
+              <Pagination
+                page={page}
+                pageSize={pageSize}
+                totalItems={filteredSorted.length}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+                pageSizeOptions={[10, 25, 50]}
+              />
+            </div>
+          </>
         )}
       </CardBody>
 
