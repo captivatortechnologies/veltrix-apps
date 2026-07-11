@@ -47,7 +47,7 @@ describe('listCredentials', () => {
     expect(fetchMock.mock.calls[0][0]).toBe('/api/tools/tool-1/credentials')
     // Summary carries no secret fields, only `hasSecret`.
     expect(creds).toEqual([
-      { id: 'c1', name: 'idx1.splunk.internal', username: 'svc_veltrix', type: 'password', toolId: 'tool-1', hasSecret: true },
+      { id: 'c1', name: 'idx1.splunk.internal', username: 'svc_veltrix', type: 'password', endpoint: null, toolId: 'tool-1', hasSecret: true },
     ])
     const serialized = JSON.stringify(creds)
     expect(serialized).not.toContain('super-secret')
@@ -82,7 +82,7 @@ describe('listCredentials', () => {
   it('unwraps a paginated { data } response', async () => {
     mockFetch({ jsonBody: { data: [{ id: 'c3', name: 'n', username: 'u', toolId: 't' }], pagination: {} } })
     const creds = await listCredentials('t')
-    expect(creds).toEqual([{ id: 'c3', name: 'n', username: 'u', type: null, toolId: 't', hasSecret: false }])
+    expect(creds).toEqual([{ id: 'c3', name: 'n', username: 'u', type: null, endpoint: null, toolId: 't', hasSecret: false }])
   })
 
   it('throws the platform error message on a non-2xx response', async () => {

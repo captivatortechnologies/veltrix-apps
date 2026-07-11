@@ -1,15 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import {
-  listInventory,
-  addInventoryItem,
-  updateInventoryItem,
-  removeInventoryItem,
   listCredentials,
   createCredential,
   updateCredential,
   removeCredential,
   resolveTool,
-  type InventoryItem,
   type CredentialSummary,
 } from '@veltrixsecops/app-sdk/client'
 import {
@@ -26,32 +21,18 @@ import {
 } from '@veltrixsecops/app-sdk/ui'
 
 // The platform Tool is upserted keyed by the app's manifest name; resolveTool
-// matches on it so we can attach new connections to this app's tool on create.
+// matches on it so new connections attach to this app's tool.
 const APP_NAME = 'Splunk Cloud Platform'
 
-// Splunk Cloud endpoints this app connects to. A component's `type` is an
-// array; the form edits a single primary type.
-const SERVER_TYPES = [
-  { value: 'search-head', label: 'Search Head (stack)' },
-  { value: 'hec-endpoint', label: 'HEC Endpoint' },
-  { value: 'ingest-endpoint', label: 'Ingest Endpoint' },
-  { value: 'heavy-forwarder', label: 'Heavy Forwarder' },
-  { value: 'universal-forwarder', label: 'Universal Forwarder' },
-]
-const SPLUNK_TYPES = new Set(SERVER_TYPES.map((t) => t.value))
-
-// How the app authenticates to an endpoint. The secret travels write-only: for
-// "password" it is the account password, for "token" it is an API/HEC token.
+// How a connection authenticates. The secret is write-only: for "password" it
+// is the account password, for "token" it is an API/HEC token.
 const AUTH_TYPES = [
   { value: 'password', label: 'Username & password' },
   { value: 'token', label: 'API / HEC token' },
 ]
 
-// Map the form's auth choice to/from the platform credential `type`. These
-// EXACT values matter for security: the platform encrypts the apiToken secret
-// at rest only when type is 'API_KEY' or 'TOKEN' (see the credential service's
-// shouldEncrypt) — so token auth MUST store 'TOKEN', never a lowercase value.
-// The password field is always encrypted regardless of type.
+// Map the auth choice to/from the platform credential `type`. Token secrets are
+// only encrypted at rest for 'API_KEY'/'TOKEN' — so token auth stores 'TOKEN'.
 function toCredentialType(authType: string): string {
   return authType === 'token' ? 'TOKEN' : 'PASSWORD'
 }
@@ -59,70 +40,37 @@ function fromCredentialType(type: string | null | undefined): string {
   return type === 'TOKEN' ? 'token' : 'password'
 }
 
-function isSplunkTarget(item: InventoryItem): boolean {
-  if (!item.type || item.type.length === 0) return true
-  return item.type.some((t) => SPLUNK_TYPES.has(t))
-}
-
-function commaList(values?: string[]): string {
-  return values && values.length > 0 ? values.join(', ') : '—'
-}
-
-function splitCsv(value: string): string[] {
-  return value
-    .split(',')
-    .map((v) => v.trim())
-    .filter(Boolean)
-}
-
-/**
- * A connection: a Splunk Cloud endpoint (component) paired with its credential.
- * The credential is matched to the endpoint by convention —
- * `credential.name === hostname` — so a single row shows both without a
- * schema-level join.
- */
-interface Connection {
-  component: InventoryItem
-  credential: CredentialSummary | null
-}
-
 interface FormState {
-  hostname: string
-  port: string
-  type: string
-  domains: string
-  ipRanges: string
+  name: string
   authType: string
   username: string
   secret: string
+  endpoint: string
 }
 
 const BLANK_FORM: FormState = {
-  hostname: '',
-  port: '443',
-  type: 'search-head',
-  domains: '',
-  ipRanges: '',
-  authType: 'token',
+  name: '',
+  authType: 'password',
   username: '',
   secret: '',
+  endpoint: '',
 }
 
 /**
- * Connections — the Splunk Cloud endpoints this app talks to (search head
- * stack, HEC/ingest endpoints, forwarders) together with the credential used
- * to reach each. Full CRUD over the platform's components (endpoint) and
- * credentials (auth) APIs. Secrets are write-only: they can be set here but are
+ * Connections — the credentials this app authenticates with (username/password,
+ * API key, secret) plus the API endpoint each reaches. A connection is pure
+ * auth: it holds NO servers/IPs/domains — those live on Access Servers, which
+ * pick a connection to use. Secrets are write-only: they can be set here but are
  * never read back — the table only shows whether a secret is stored.
  */
 export default function ConnectionsPage() {
-  const [connections, setConnections] = useState<Connection[]>([])
+  const [connections, setConnections] = useState<CredentialSummary[]>([])
   const [toolId, setToolId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [editing, setEditing] = useState<Connection | null>(null)
+  const [editing, setEditing] = useState<CredentialSummary | null>(null)
   const [form, setForm] = useState<FormState>(BLANK_FORM)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
@@ -131,21 +79,9 @@ export default function ConnectionsPage() {
     setIsLoading(true)
     setError(null)
     try {
-      // Resolve the app's tool up front so we can both create connections and
-      // read the tool's credentials to pair with each endpoint.
       const tool = await resolveTool(APP_NAME)
       setToolId(tool?.id ?? null)
-      const [components, credentials] = await Promise.all([
-        listInventory(),
-        tool ? listCredentials(tool.id) : Promise.resolve([] as CredentialSummary[]),
-      ])
-      const byName = new Map(credentials.map((c) => [c.name, c]))
-      setConnections(
-        components.filter(isSplunkTarget).map((component) => ({
-          component,
-          credential: byName.get(component.hostname) ?? null,
-        })),
-      )
+      setConnections(tool ? await listCredentials(tool.id) : [])
     } catch (e) {
       setError((e as Error).message)
     } finally {
@@ -164,18 +100,15 @@ export default function ConnectionsPage() {
     setDialogOpen(true)
   }
 
-  const openEdit = (row: Connection) => {
+  const openEdit = (row: CredentialSummary) => {
     setEditing(row)
     setForm({
-      hostname: row.component.hostname ?? '',
-      port: row.component.port ?? '443',
-      type: row.component.type?.[0] ?? 'search-head',
-      domains: (row.component.domains ?? []).join(', '),
-      ipRanges: (row.component.ipRanges ?? []).join(', '),
-      authType: fromCredentialType(row.credential?.type),
-      username: row.credential?.username ?? '',
+      name: row.name ?? '',
+      authType: fromCredentialType(row.type),
+      username: row.username ?? '',
       // Secret is write-only; start blank and only rotate when the user types.
       secret: '',
+      endpoint: row.endpoint ?? '',
     })
     setFormError(null)
     setDialogOpen(true)
@@ -191,69 +124,47 @@ export default function ConnectionsPage() {
     setForm((prev) => ({ ...prev, [key]: value }))
 
   const handleSubmit = async () => {
-    const hostname = form.hostname.trim()
-    if (!hostname) {
-      setFormError('Hostname is required')
+    const name = form.name.trim()
+    if (!name) {
+      setFormError('Name is required')
       return
     }
     setSubmitting(true)
     setFormError(null)
 
-    const componentPayload = {
-      hostname,
-      port: form.port.trim() || '443',
-      type: [form.type],
-      domains: splitCsv(form.domains),
-      ipRanges: splitCsv(form.ipRanges),
-    }
     const secret = form.secret.trim()
     const username = form.username.trim()
-    const wantsCredential = username !== '' || secret !== ''
+    const endpoint = form.endpoint.trim()
 
     try {
       if (editing) {
-        await updateInventoryItem(editing.component.id, componentPayload)
-        const existing = editing.credential
-        if (existing) {
-          const update: Record<string, unknown> = {
-            name: hostname,
-            username,
-            type: toCredentialType(form.authType),
-          }
-          if (secret) {
-            if (form.authType === 'token') update.apiToken = secret
-            else update.password = secret
-          }
-          await updateCredential(existing.id, update)
-        } else if (wantsCredential && toolId) {
-          await createCredential({
-            name: hostname,
-            username,
-            password: form.authType === 'password' ? secret : '',
-            apiToken: form.authType === 'token' ? secret : undefined,
-            type: toCredentialType(form.authType),
-            toolId,
-          })
+        const update: Record<string, unknown> = {
+          name,
+          username,
+          type: toCredentialType(form.authType),
+          endpoint,
         }
+        if (secret) {
+          if (form.authType === 'token') update.apiToken = secret
+          else update.password = secret
+        }
+        await updateCredential(editing.id, update)
       } else {
-        // New connections must be attached to this app's tool.
         const tool = await resolveTool(APP_NAME)
         if (!tool) {
           throw new Error(
             `No "${APP_NAME}" tool found for your organization — make sure the app is installed before adding connections.`,
           )
         }
-        await addInventoryItem({ ...componentPayload, toolId: tool.id })
-        if (wantsCredential) {
-          await createCredential({
-            name: hostname,
-            username,
-            password: form.authType === 'password' ? secret : '',
-            apiToken: form.authType === 'token' ? secret : undefined,
-            type: toCredentialType(form.authType),
-            toolId: tool.id,
-          })
-        }
+        await createCredential({
+          name,
+          username,
+          password: form.authType === 'password' ? secret : '',
+          apiToken: form.authType === 'token' ? secret : undefined,
+          type: toCredentialType(form.authType),
+          endpoint,
+          toolId: tool.id,
+        })
       }
       setDialogOpen(false)
       await load()
@@ -264,76 +175,30 @@ export default function ConnectionsPage() {
     }
   }
 
-  const handleDelete = async (row: Connection) => {
-    if (
-      !window.confirm(
-        `Remove the connection to "${row.component.hostname}"? This deletes the endpoint and its credential and cannot be undone.`,
-      )
-    )
-      return
+  const handleDelete = async (row: CredentialSummary) => {
+    if (!window.confirm(`Remove the connection "${row.name}"? This cannot be undone.`)) return
     try {
-      await removeInventoryItem(row.component.id)
-      if (row.credential) await removeCredential(row.credential.id)
+      await removeCredential(row.id)
       await load()
     } catch (e) {
       setError((e as Error).message)
     }
   }
 
-  const columns: DataTableColumn<Connection>[] = [
-    { key: 'hostname', header: 'Hostname', render: (row) => <strong>{row.component.hostname}</strong> },
-    {
-      key: 'type',
-      header: 'Type',
-      render: (row) =>
-        row.component.type && row.component.type.length > 0 ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {row.component.type.map((t) => (
-              <Badge key={t} variant="secondary" size="sm">
-                {t}
-              </Badge>
-            ))}
-          </div>
-        ) : (
-          '—'
-        ),
-    },
-    { key: 'port', header: 'Port', align: 'right', render: (row) => row.component.port ?? '—' },
+  const columns: DataTableColumn<CredentialSummary>[] = [
+    { key: 'name', header: 'Name', render: (row) => <strong>{row.name}</strong> },
+    { key: 'username', header: 'Username', render: (row) => row.username || '—' },
     {
       key: 'auth',
-      header: 'Credential',
-      render: (row) =>
-        row.credential ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span>{row.credential.username || '—'}</span>
-            <Badge variant={row.credential.hasSecret ? 'success' : 'secondary'} size="sm">
-              {row.credential.hasSecret ? (row.credential.type === 'TOKEN' ? 'token' : 'secret set') : 'no secret'}
-            </Badge>
-          </div>
-        ) : (
-          <Badge variant="warning" size="sm">
-            no credential
-          </Badge>
-        ),
+      header: 'Auth',
+      render: (row) => (
+        <Badge variant={row.hasSecret ? 'success' : 'warning'} size="sm">
+          {row.type === 'TOKEN' ? 'token' : 'password'}
+          {row.hasSecret ? '' : ' · no secret'}
+        </Badge>
+      ),
     },
-    { key: 'domains', header: 'Domains', render: (row) => commaList(row.component.domains) },
-    { key: 'ipRanges', header: 'IP ranges', render: (row) => commaList(row.component.ipRanges) },
-    {
-      key: 'tags',
-      header: 'Environments',
-      render: (row) =>
-        row.component.tags && row.component.tags.length > 0 ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {row.component.tags.map((tag) => (
-              <Badge key={tag.id} variant="secondary" size="sm">
-                {tag.name}
-              </Badge>
-            ))}
-          </div>
-        ) : (
-          '—'
-        ),
-    },
+    { key: 'endpoint', header: 'Endpoint', render: (row) => row.endpoint || '—' },
     {
       key: 'actions',
       header: '',
@@ -377,12 +242,12 @@ export default function ConnectionsPage() {
           <DataTable
             columns={columns}
             data={connections}
-            rowKey={(row) => row.component.id}
+            rowKey={(row) => row.id}
             isLoading={isLoading}
             emptyState={{
               title: 'No connections yet',
               description:
-                'Register a Splunk Cloud endpoint (search head stack, HEC/ingest endpoint, forwarder) and the credential used to reach it.',
+                'Add the credentials this app authenticates with (username/password or API/HEC token) and the endpoint they reach.',
             }}
           />
         )}
@@ -391,97 +256,62 @@ export default function ConnectionsPage() {
       <FormDialog
         isOpen={dialogOpen}
         onClose={closeDialog}
-        title={editing ? `Edit connection to "${editing.component.hostname}"` : 'Add connection'}
-        description="A Splunk Cloud endpoint the pipeline connects to, plus the credential used to authenticate."
+        title={editing ? `Edit connection "${editing.name}"` : 'Add connection'}
+        description="Credentials this app authenticates with, plus the API endpoint they reach. Used by Access Servers."
         onSubmit={handleSubmit}
         submitText={editing ? 'Save changes' : 'Add connection'}
         isSubmitting={submitting}
-        submitDisabled={!form.hostname.trim()}
+        submitDisabled={!form.name.trim()}
         error={formError}
         size="md"
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
-            <Input
-              label="Hostname"
-              value={form.hostname}
-              onChange={(e) => setField('hostname', e.target.value)}
-              placeholder="e.g. myorg.splunkcloud.com"
-              fullWidth
-              autoFocus
-              spellCheck={false}
-              autoComplete="off"
-            />
-            <Input
-              label="Port"
-              value={form.port}
-              onChange={(e) => setField('port', e.target.value)}
-              placeholder="443"
-              fullWidth
-            />
-          </div>
+          <Input
+            label="Name"
+            value={form.name}
+            onChange={(e) => setField('name', e.target.value)}
+            placeholder="e.g. Splunk admin API"
+            fullWidth
+            autoFocus
+            spellCheck={false}
+            autoComplete="off"
+          />
+          <Input
+            label="Endpoint (optional)"
+            value={form.endpoint}
+            onChange={(e) => setField('endpoint', e.target.value)}
+            placeholder="e.g. https://myorg.splunkcloud.com"
+            helperText="API base URL / endpoint this connection reaches."
+            fullWidth
+            spellCheck={false}
+            autoComplete="off"
+          />
           <Select
-            label="Type"
-            options={SERVER_TYPES}
-            value={form.type}
-            onChange={(value) => setField('type', value)}
+            label="Auth method"
+            options={AUTH_TYPES}
+            value={form.authType}
+            onChange={(value) => setField('authType', value)}
             fullWidth
           />
           <Input
-            label="Domains (optional)"
-            value={form.domains}
-            onChange={(e) => setField('domains', e.target.value)}
-            placeholder="comma-separated DNS names, e.g. hec.myorg.splunkcloud.com"
-            helperText="Extra DNS names this endpoint is reachable at."
+            label={usernameLabel}
+            value={form.username}
+            onChange={(e) => setField('username', e.target.value)}
+            placeholder={form.authType === 'token' ? 'service account (optional)' : 'e.g. svc_veltrix'}
             fullWidth
             spellCheck={false}
             autoComplete="off"
           />
           <Input
-            label="IP ranges (optional)"
-            value={form.ipRanges}
-            onChange={(e) => setField('ipRanges', e.target.value)}
-            placeholder="comma-separated IP/CIDR, e.g. 10.0.1.0/24"
-            helperText="IPs or CIDR ranges this endpoint covers."
+            label={secretLabel}
+            type="password"
+            value={form.secret}
+            onChange={(e) => setField('secret', e.target.value)}
+            placeholder={editing ? 'leave blank to keep current' : ''}
+            helperText="Write-only — stored securely and never shown again."
             fullWidth
-            spellCheck={false}
-            autoComplete="off"
+            autoComplete="new-password"
           />
-
-          <div style={{ borderTop: '1px solid var(--vx-border, #e5e7eb)', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div>
-              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Credential</h3>
-              <p style={{ margin: '4px 0 0', fontSize: 12, opacity: 0.7 }}>
-                How the pipeline authenticates to this endpoint. Leave blank to register the endpoint without a credential.
-              </p>
-            </div>
-            <Select
-              label="Auth method"
-              options={AUTH_TYPES}
-              value={form.authType}
-              onChange={(value) => setField('authType', value)}
-              fullWidth
-            />
-            <Input
-              label={usernameLabel}
-              value={form.username}
-              onChange={(e) => setField('username', e.target.value)}
-              placeholder={form.authType === 'token' ? 'service account (optional)' : 'e.g. svc_veltrix'}
-              fullWidth
-              spellCheck={false}
-              autoComplete="off"
-            />
-            <Input
-              label={secretLabel}
-              type="password"
-              value={form.secret}
-              onChange={(e) => setField('secret', e.target.value)}
-              placeholder={editing ? 'leave blank to keep current' : ''}
-              helperText="Write-only — stored securely and never shown again."
-              fullWidth
-              autoComplete="new-password"
-            />
-          </div>
         </div>
       </FormDialog>
     </Card>

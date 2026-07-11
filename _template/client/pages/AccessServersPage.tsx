@@ -1,23 +1,14 @@
-// =============================================================================
-// Access Servers — the Zero-Trust Access (ZTNA) gateways this app manages.
-//
-// Each Access Server is a ZTNA gateway (name + endpoint) the customer has
-// registered, optionally linked to one of their connectivity providers. This
-// page lists them and lets an operator create, edit, and remove servers, using
-// the typed helpers from '@veltrixsecops/app-sdk/client' — no bespoke API
-// plumbing required. Compose the body from '@veltrixsecops/app-sdk/ui' so it
-// inherits the tenant's theme and your app's branding.
-// =============================================================================
-
 import React, { useCallback, useEffect, useState } from 'react'
 import {
-  listAccessServers,
-  addAccessServer,
-  updateAccessServer,
-  removeAccessServer,
+  listInventory,
+  addInventoryItem,
+  updateInventoryItem,
+  removeInventoryItem,
+  listCredentials,
   listConnectivityProviders,
-  type AccessServer,
-  type AccessServerInput,
+  resolveTool,
+  type InventoryItem,
+  type CredentialSummary,
   type ConnectivityProviderRef,
 } from '@veltrixsecops/app-sdk/client'
 import {
@@ -33,73 +24,106 @@ import {
   type DataTableColumn,
 } from '@veltrixsecops/app-sdk/ui'
 
-/** Map an access server's status to a Badge variant. */
-function statusVariant(status?: string): 'success' | 'warning' | 'secondary' {
-  const value = (status ?? '').toLowerCase()
-  if (value === 'active' || value === 'healthy' || value === 'connected') return 'success'
-  if (value === 'degraded' || value === 'pending' || value === 'error' || value === 'offline') {
-    return 'warning'
-  }
-  return 'secondary'
+// The platform Tool is upserted keyed by the app's manifest name; resolveTool
+// matches on it so new access servers attach to this app's tool.
+// CHANGE ME: set this to your app's exact manifest `name:` value.
+const APP_NAME = 'My Security App'
+
+// CHANGE ME: the server (component) types your app deploys to. A component's
+// `type` is an array; the form edits a single primary type.
+const SERVER_TYPES = [
+  { value: 'server', label: 'Server' },
+  { value: 'gateway', label: 'Gateway' },
+  { value: 'endpoint', label: 'API Endpoint' },
+  { value: 'agent', label: 'Agent' },
+  { value: 'collector', label: 'Collector' },
+]
+const KNOWN_TYPES = new Set(SERVER_TYPES.map((t) => t.value))
+
+const NONE_OPTION = { value: '', label: '— None —' }
+
+function isKnownTarget(item: InventoryItem): boolean {
+  if (!item.type || item.type.length === 0) return true
+  return item.type.some((t) => KNOWN_TYPES.has(t))
+}
+
+function commaList(values?: string[]): string {
+  return values && values.length > 0 ? values.join(', ') : '—'
+}
+
+function splitCsv(value: string): string[] {
+  return value
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean)
 }
 
 interface FormState {
-  name: string
-  endpoint: string
+  hostname: string
+  port: string
   type: string
-  region: string
-  description: string
-  /** Linked ZTNA connectivity provider id; '' means "— None —" (stored as null). */
+  domains: string
+  ipRanges: string
+  credentialId: string
   connectivityProviderId: string
 }
 
 const BLANK_FORM: FormState = {
-  name: '',
-  endpoint: '',
-  type: 'gateway',
-  region: '',
-  description: '',
+  hostname: '',
+  port: '',
+  type: 'server',
+  domains: '',
+  ipRanges: '',
+  credentialId: '',
   connectivityProviderId: '',
 }
 
 /**
- * Access Servers page — full CRUD over the platform's ZTNA gateways, each
- * linkable to a connectivity provider. Modeled on the platform CRUD pattern:
- * FormDialog + DataTable + the SDK's framework-free access-server helpers.
+ * Access Servers — the servers this app deploys to (servers, gateways,
+ * endpoints, agents, collectors …): their IPs/domains/types, plus the
+ * Connection (credential) used to reach them and the ZTNA connectivity provider
+ * they are reached through. Backed by the platform's deployment targets
+ * (components); configs deploy through these.
  */
 export default function AccessServersPage() {
-  const [servers, setServers] = useState<AccessServer[]>([])
+  const [servers, setServers] = useState<InventoryItem[]>([])
+  const [connections, setConnections] = useState<CredentialSummary[]>([])
   const [providers, setProviders] = useState<ConnectivityProviderRef[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [editing, setEditing] = useState<AccessServer | null>(null)
+  const [editing, setEditing] = useState<InventoryItem | null>(null)
   const [form, setForm] = useState<FormState>(BLANK_FORM)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     setIsLoading(true)
     setError(null)
-    return listAccessServers()
-      .then((data) => setServers(data))
-      .catch((e: Error) => setError(e.message))
-      .finally(() => setIsLoading(false))
-  }, [])
-
-  // Connectivity providers back the ZTNA link picker. Loaded best-effort so a
-  // providers hiccup never blocks the access-server list from rendering.
-  const loadProviders = useCallback(() => {
-    return listConnectivityProviders()
-      .then((data) => setProviders(data))
-      .catch(() => setProviders([]))
+    try {
+      const tool = await resolveTool(APP_NAME)
+      const [components, creds, provs] = await Promise.all([
+        listInventory(),
+        tool ? listCredentials(tool.id) : Promise.resolve([] as CredentialSummary[]),
+        listConnectivityProviders(),
+      ])
+      setServers(components.filter(isKnownTarget))
+      setConnections(creds)
+      setProviders(provs)
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setIsLoading(false)
+    }
   }, [])
 
   useEffect(() => {
     void load()
-    void loadProviders()
-  }, [load, loadProviders])
+  }, [load])
+
+  const connectionName = (id?: string | null) => connections.find((c) => c.id === id)?.name
+  const providerName = (id?: string | null) => providers.find((p) => p.id === id)?.name
 
   const openCreate = () => {
     setEditing(null)
@@ -108,21 +132,22 @@ export default function AccessServersPage() {
     setDialogOpen(true)
   }
 
-  const openEdit = (row: AccessServer) => {
+  const openEdit = (row: InventoryItem) => {
     setEditing(row)
     setForm({
-      name: row.name ?? '',
-      endpoint: row.endpoint ?? '',
-      type: row.type ?? 'gateway',
-      region: row.region ?? '',
-      description: row.description ?? '',
-      connectivityProviderId: row.connectivityProviderId ?? row.connectivityProvider?.id ?? '',
+      hostname: row.hostname ?? '',
+      port: row.port ?? '',
+      type: row.type?.[0] ?? 'server',
+      domains: (row.domains ?? []).join(', '),
+      ipRanges: (row.ipRanges ?? []).join(', '),
+      credentialId: row.credentialId ?? '',
+      connectivityProviderId: row.connectivityProviderId ?? '',
     })
     setFormError(null)
     setDialogOpen(true)
   }
 
-  // Memoized so FormDialog's focus effect doesn't steal focus from fields on each keystroke.
+  // Memoized so FormDialog's focus effect doesn't steal focus while typing.
   const closeDialog = useCallback(() => {
     if (submitting) return
     setDialogOpen(false)
@@ -132,30 +157,35 @@ export default function AccessServersPage() {
     setForm((prev) => ({ ...prev, [key]: value }))
 
   const handleSubmit = async () => {
-    if (!form.name.trim()) {
-      setFormError('Name is required')
-      return
-    }
-    if (!form.endpoint.trim()) {
-      setFormError('Endpoint is required')
+    const hostname = form.hostname.trim()
+    if (!hostname) {
+      setFormError('Hostname is required')
       return
     }
     setSubmitting(true)
     setFormError(null)
-    const payload: AccessServerInput = {
-      name: form.name.trim(),
-      endpoint: form.endpoint.trim(),
-      type: form.type.trim() || 'gateway',
-      region: form.region.trim() || undefined,
-      description: form.description.trim() || undefined,
-      // Empty string means "— None —": send null to unlink.
-      connectivityProviderId: form.connectivityProviderId ? form.connectivityProviderId : null,
+
+    const payload = {
+      hostname,
+      port: form.port.trim(),
+      type: [form.type],
+      domains: splitCsv(form.domains),
+      ipRanges: splitCsv(form.ipRanges),
+      credentialId: form.credentialId || null,
+      connectivityProviderId: form.connectivityProviderId || null,
     }
+
     try {
       if (editing) {
-        await updateAccessServer(editing.id, payload)
+        await updateInventoryItem(editing.id, payload)
       } else {
-        await addAccessServer(payload)
+        const tool = await resolveTool(APP_NAME)
+        if (!tool) {
+          throw new Error(
+            `No "${APP_NAME}" tool found for your organization — make sure the app is installed before adding access servers.`,
+          )
+        }
+        await addInventoryItem({ ...payload, toolId: tool.id })
       }
       setDialogOpen(false)
       await load()
@@ -166,42 +196,61 @@ export default function AccessServersPage() {
     }
   }
 
-  const handleDelete = async (row: AccessServer) => {
-    if (!window.confirm(`Remove access server "${row.name}"? This cannot be undone.`)) return
+  const handleDelete = async (row: InventoryItem) => {
+    if (!window.confirm(`Remove access server "${row.hostname}"? This cannot be undone.`)) return
     try {
-      await removeAccessServer(row.id)
+      await removeInventoryItem(row.id)
       await load()
     } catch (e) {
       setError((e as Error).message)
     }
   }
 
-  const providerOptions = [
-    { value: '', label: '— None —' },
-    ...providers.map((provider) => ({ value: provider.id, label: provider.name })),
-  ]
-
-  const columns: DataTableColumn<AccessServer>[] = [
-    { key: 'name', header: 'Name', render: (row) => <strong>{row.name}</strong> },
-    { key: 'endpoint', header: 'Endpoint', render: (row) => row.endpoint || '—' },
-    { key: 'type', header: 'Type', render: (row) => row.type || '—' },
-    { key: 'region', header: 'Region', render: (row) => row.region || '—' },
+  const columns: DataTableColumn<InventoryItem>[] = [
+    { key: 'hostname', header: 'Hostname', render: (row) => <strong>{row.hostname}</strong> },
     {
-      key: 'status',
-      header: 'Status',
+      key: 'type',
+      header: 'Type',
       render: (row) =>
-        row.status ? (
-          <Badge variant={statusVariant(row.status)} size="sm">
-            {row.status}
-          </Badge>
+        row.type && row.type.length > 0 ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {row.type.map((t) => (
+              <Badge key={t} variant="secondary" size="sm">
+                {t}
+              </Badge>
+            ))}
+          </div>
         ) : (
           '—'
         ),
     },
+    { key: 'domains', header: 'Domains', render: (row) => commaList(row.domains) },
+    { key: 'ipRanges', header: 'IP ranges', render: (row) => commaList(row.ipRanges) },
     {
-      key: 'connectivityProvider',
-      header: 'ZTNA provider',
-      render: (row) => row.connectivityProvider?.name ?? '—',
+      key: 'connection',
+      header: 'Connection',
+      render: (row) =>
+        row.credentialId ? (
+          <Badge variant="info" size="sm">
+            {connectionName(row.credentialId) ?? 'unknown'}
+          </Badge>
+        ) : (
+          <Badge variant="warning" size="sm">
+            none
+          </Badge>
+        ),
+    },
+    {
+      key: 'ztna',
+      header: 'Connectivity (ZTNA)',
+      render: (row) =>
+        row.connectivityProviderId ? (
+          <Badge variant="secondary" size="sm">
+            {providerName(row.connectivityProviderId) ?? 'unknown'}
+          </Badge>
+        ) : (
+          '—'
+        ),
     },
     {
       key: 'actions',
@@ -220,6 +269,9 @@ export default function AccessServersPage() {
     },
   ]
 
+  const connectionOptions = [NONE_OPTION, ...connections.map((c) => ({ value: c.id, label: c.name }))]
+  const providerOptions = [NONE_OPTION, ...providers.map((p) => ({ value: p.id, label: p.name }))]
+
   return (
     <Card variant="bordered">
       <CardHeader
@@ -229,7 +281,7 @@ export default function AccessServersPage() {
               Refresh
             </Button>
             <Button variant="primary" size="sm" onClick={openCreate}>
-              New access server
+              Add access server
             </Button>
           </div>
         }
@@ -248,7 +300,7 @@ export default function AccessServersPage() {
             emptyState={{
               title: 'No access servers yet',
               description:
-                'Add a Zero-Trust Access gateway (name + endpoint), optionally linked to a ZTNA connectivity provider.',
+                'Add a server (or gateway, endpoint, agent, collector …), then pick the Connection and ZTNA used to reach it.',
             }}
           />
         )}
@@ -257,70 +309,74 @@ export default function AccessServersPage() {
       <FormDialog
         isOpen={dialogOpen}
         onClose={closeDialog}
-        title={editing ? `Edit "${editing.name}"` : 'New access server'}
-        description="A Zero-Trust Access gateway this app manages, optionally linked to a ZTNA connectivity provider."
+        title={editing ? `Edit "${editing.hostname}"` : 'Add access server'}
+        description="A deployment target — its addressing, plus the Connection and ZTNA used to reach it."
         onSubmit={handleSubmit}
         submitText={editing ? 'Save changes' : 'Add access server'}
         isSubmitting={submitting}
-        submitDisabled={!form.name.trim() || !form.endpoint.trim()}
+        submitDisabled={!form.hostname.trim()}
         error={formError}
         size="md"
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
             <Input
-              label="Name"
-              value={form.name}
-              onChange={(e) => setField('name', e.target.value)}
-              placeholder="e.g. edge-gateway-1"
+              label="Hostname"
+              value={form.hostname}
+              onChange={(e) => setField('hostname', e.target.value)}
+              placeholder="e.g. host.example.com"
               fullWidth
               autoFocus
               spellCheck={false}
               autoComplete="off"
             />
             <Input
-              label="Endpoint"
-              value={form.endpoint}
-              onChange={(e) => setField('endpoint', e.target.value)}
-              placeholder="e.g. gw1.corp.example.com:443"
+              label="Port"
+              value={form.port}
+              onChange={(e) => setField('port', e.target.value)}
+              placeholder="e.g. 443"
               fullWidth
-              spellCheck={false}
-              autoComplete="off"
             />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Input
-              label="Type"
-              value={form.type}
-              onChange={(e) => setField('type', e.target.value)}
-              placeholder="gateway"
-              fullWidth
-              spellCheck={false}
-              autoComplete="off"
-            />
-            <Input
-              label="Region (optional)"
-              value={form.region}
-              onChange={(e) => setField('region', e.target.value)}
-              placeholder="e.g. us-east-1"
-              fullWidth
-              spellCheck={false}
-              autoComplete="off"
-            />
-          </div>
+          <Select
+            label="Type"
+            options={SERVER_TYPES}
+            value={form.type}
+            onChange={(value) => setField('type', value)}
+            fullWidth
+          />
           <Input
-            label="Description (optional)"
-            value={form.description}
-            onChange={(e) => setField('description', e.target.value)}
-            placeholder="What this gateway fronts"
+            label="Domains (optional)"
+            value={form.domains}
+            onChange={(e) => setField('domains', e.target.value)}
+            placeholder="comma-separated DNS names, e.g. host1.corp.example.com"
+            fullWidth
+            spellCheck={false}
+            autoComplete="off"
+          />
+          <Input
+            label="IP ranges (optional)"
+            value={form.ipRanges}
+            onChange={(e) => setField('ipRanges', e.target.value)}
+            placeholder="comma-separated IP/CIDR, e.g. 10.0.1.0/24"
+            fullWidth
+            spellCheck={false}
+            autoComplete="off"
+          />
+          <Select
+            label="Connection"
+            options={connectionOptions}
+            value={form.credentialId}
+            onChange={(value) => setField('credentialId', value)}
+            helperText="The connection (credential) used to reach this server. Manage under Settings → Connections."
             fullWidth
           />
           <Select
-            label="ZTNA link"
+            label="Connectivity (ZTNA)"
             options={providerOptions}
             value={form.connectivityProviderId}
             onChange={(value) => setField('connectivityProviderId', value)}
-            helperText="Link this access server to a Zero-Trust Access connectivity provider."
+            helperText="The Zero-Trust provider this server is reached through. Manage under Settings → Connectivity."
             fullWidth
           />
         </div>

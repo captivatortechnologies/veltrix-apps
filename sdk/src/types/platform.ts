@@ -38,8 +38,10 @@ export interface InventoryItem {
   ipRanges?: string[]
   /** Platform tags attached to this target. */
   tags?: { id: string; name: string }[]
-  /** Assigned connectivity provider, or null when none is configured. */
+  /** Assigned connectivity provider (ZTNA), or null when none is configured. */
   connectivityProviderId?: string | null
+  /** Linked Connection (credential) used to reach this target, or null. */
+  credentialId?: string | null
 }
 
 /**
@@ -59,56 +61,16 @@ export interface InventoryItemInput {
   tagIds?: string[]
   /** The tool this target belongs to. Required by the platform on create. */
   toolId?: string
+  /** Assigned connectivity provider (ZTNA), or null to unlink. */
   connectivityProviderId?: string | null
-}
-
-/**
- * An Access Server — a Zero-Trust Access (ZTNA) gateway an app manages, each
- * optionally linked to one of the customer's connectivity providers. This is a
- * typed surface over the platform's access-servers API (`/api/access-servers`).
- * Use the helpers in `@veltrixsecops/app-sdk/client`
- * (listAccessServers / addAccessServer / updateAccessServer / removeAccessServer).
- */
-export interface AccessServer {
-  id: string
-  /** Human-readable name of the access server. */
-  name: string
-  /** Reachable endpoint (host, host:port, or URL) of the gateway. */
-  endpoint: string
-  /** Gateway type (e.g. "gateway"). */
-  type?: string
-  /** Region the gateway lives in, or null when unspecified. */
-  region?: string | null
-  /** Operational status (e.g. "active", "degraded"). */
-  status?: string
-  /** Free-text description, or null when none. */
-  description?: string | null
-  /** Linked ZTNA connectivity provider id, or null when unlinked. */
-  connectivityProviderId?: string | null
-  /** Expanded reference to the linked connectivity provider, when present. */
-  connectivityProvider?: { id: string; name: string } | null
-}
-
-/**
- * Input accepted by `addAccessServer` / `updateAccessServer`. Mirrors the
- * platform access-servers API create/update body. `name` and `endpoint` are
- * required; `connectivityProviderId` links the server to a ZTNA connectivity
- * provider (pass null to unlink).
- */
-export interface AccessServerInput {
-  name: string
-  endpoint: string
-  type?: string
-  region?: string
-  status?: string
-  description?: string
-  connectivityProviderId?: string | null
+  /** Linked Connection (credential) used to reach this target, or null. */
+  credentialId?: string | null
 }
 
 /**
  * A lightweight reference to a ZTNA connectivity provider, as returned by the
  * platform's `/api/connectivity-providers` endpoint. Used to populate the ZTNA
- * link picker when creating or editing an {@link AccessServer}.
+ * link picker when creating or editing an Access Server (a component).
  */
 export interface ConnectivityProviderRef {
   id: string
@@ -124,6 +86,7 @@ export interface Credential {
   password: string
   apiToken: string | null
   certificate: string | null
+  endpoint: string | null
   toolId: string
   customerId: string
 }
@@ -137,12 +100,14 @@ export interface Credential {
  */
 export interface CredentialSummary {
   id: string
-  /** Human-readable label. For connections this mirrors the server hostname. */
+  /** Human-readable label of the connection. */
   name: string
   /** Account / client id the credential authenticates as. */
   username: string
   /** Auth kind (e.g. "password", "token"), or null when unspecified. */
   type: string | null
+  /** API base URL / endpoint this connection authenticates to, or null. */
+  endpoint: string | null
   /** The tool this credential belongs to. */
   toolId: string
   /** True when a write-only secret (apiToken or password) is stored. */
@@ -162,6 +127,8 @@ export interface CredentialInput {
   password: string
   apiToken?: string
   type?: string
+  /** API base URL / endpoint this connection authenticates to. Not a secret. */
+  endpoint?: string
   /** The tool this credential belongs to. Required by the platform on create. */
   toolId?: string
   /** IDs of existing platform tags to attach to the credential. */

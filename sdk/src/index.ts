@@ -74,8 +74,6 @@ export type {
   Component,
   InventoryItem,
   InventoryItemInput,
-  AccessServer,
-  AccessServerInput,
   ConnectivityProviderRef,
   Credential,
   CredentialSummary,

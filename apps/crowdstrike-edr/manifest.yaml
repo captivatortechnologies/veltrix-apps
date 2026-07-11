@@ -1,6 +1,6 @@
 id: crowdstrike-edr
 name: CrowdStrike Falcon
-version: 1.2.1
+version: 1.3.0
 vendor: Veltrix
 description: >
   Manage CrowdStrike Falcon configurations as code through the Falcon
@@ -122,6 +122,16 @@ client:
       label: Setup Guide
       icon: book
       nav: sidebar
+    # Connections — app-level Settings item (Settings nav group). Holds the
+    # credentials + endpoint used to reach the Falcon APIs.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+      order: 1
+      layout: standard
 
 hooks:
   onInstall: hooks/onInstall

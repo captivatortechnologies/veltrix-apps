@@ -9,7 +9,7 @@
 
 id: "my-app"                           # Unique slug (lowercase, hyphens only)
 name: "My Security App"
-version: "1.2.0"
+version: "1.3.0"
 vendor: "Your Company"
 description: "A brief description of what this app manages"
 category: "SIEM"                       # SIEM, EDR, SOAR, IAM, NETWORK, CLOUD, CUSTOM
@@ -169,18 +169,6 @@ client:
       icon: "link"
       nav: sidebar
       group: settings
-      order: 2
-      layout: standard
-
-    # Inventory — the built-in deployment-target surface (servers, domains,
-    # IP/CIDR ranges) available to every app via '@veltrixsecops/app-sdk/client'.
-    - path: "/inventory"
-      component: "InventoryPage"
-      label: "Inventory"
-      description: "Deployment targets this app can deploy configuration to"
-      icon: "server"
-      nav: sidebar
-      group: config
       order: 2
       layout: standard
 

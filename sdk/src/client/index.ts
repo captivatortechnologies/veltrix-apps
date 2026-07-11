@@ -33,17 +33,10 @@ export {
 export type { Tool } from './inventory'
 export type { InventoryItem, InventoryItemInput } from '../types/platform'
 
-// Access Servers — typed helpers over the platform's access-servers API (ZTNA
-// gateways) plus a reader over connectivity providers for the link picker.
-// Framework-free; they use the `authFetch` exported below internally.
-export {
-  listAccessServers,
-  addAccessServer,
-  updateAccessServer,
-  removeAccessServer,
-  listConnectivityProviders,
-} from './access-servers'
-export type { AccessServer, AccessServerInput, ConnectivityProviderRef } from '../types/platform'
+// Connectivity providers — reader over the customer's ZTNA providers, used to
+// populate the Access Server link picker. Framework-free; uses `authFetch`.
+export { listConnectivityProviders } from './connectivity'
+export type { ConnectivityProviderRef } from '../types/platform'
 
 // Credentials — typed helpers over the platform's credentials API. Paired with
 // a server (component) these form a "connection". Secrets are write-only:

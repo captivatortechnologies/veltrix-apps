@@ -53,10 +53,11 @@ Each `InventoryItem` carries `hostname`, `port`, `type`, `domains`, `ipRanges`,
 authenticated `authFetch` internally and throw an `Error` (with the platform's
 message) on any non-2xx response.
 
-This template ships a ready-made `client/pages/InventoryPage.tsx` (registered at
-`/inventory` in `manifest.yaml`) that lists inventory and adds servers — copy or
-adapt it. Note: creating a target requires a `toolId` (the tool the target
-belongs to); source it from your app before calling `addInventoryItem`.
+This template ships a ready-made `client/pages/AccessServersPage.tsx` (registered
+at `/access-servers` in `manifest.yaml`) that lists these deployment targets and
+adds servers — each linked to a Connection (credential) and a ZTNA provider —
+copy or adapt it. Note: creating a target requires a `toolId` (the tool the
+target belongs to); source it from your app before calling `addInventoryItem`.
 
 Quick start:
 

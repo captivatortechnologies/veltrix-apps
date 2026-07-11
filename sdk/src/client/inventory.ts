@@ -32,6 +32,7 @@ interface RawInventoryItem {
   ipRanges?: string[]
   tags?: Array<{ id: string; name: string }>
   connectivityProviderId?: string | null
+  credentialId?: string | null
 }
 
 /** Build an Error from a non-2xx response, preferring the platform's message. */
@@ -63,6 +64,7 @@ function toInventoryItem(raw: RawInventoryItem): InventoryItem {
       ? raw.tags.map((tag) => ({ id: String(tag.id), name: String(tag.name) }))
       : [],
     connectivityProviderId: raw.connectivityProviderId ?? null,
+    credentialId: raw.credentialId ?? null,
   }
 }
 

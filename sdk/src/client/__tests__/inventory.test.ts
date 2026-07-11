@@ -58,6 +58,7 @@ describe('listInventory', () => {
         ipRanges: ['10.0.0.0/24'],
         tags: [{ id: 't1', name: 'prod' }],
         connectivityProviderId: 'p1',
+        credentialId: null,
       },
     ])
   })

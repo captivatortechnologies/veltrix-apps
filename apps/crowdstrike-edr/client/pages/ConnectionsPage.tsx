@@ -22,13 +22,13 @@ import {
 
 // The platform Tool is upserted keyed by the app's manifest name; resolveTool
 // matches on it so new connections attach to this app's tool.
-const APP_NAME = 'Splunk Enterprise'
+const APP_NAME = 'CrowdStrike Falcon'
 
-// How a connection authenticates. The secret is write-only: for "password" it
-// is the account password, for "token" it is an API/HEC token.
+// How a connection authenticates. The secret is write-only: for "token" it is
+// the Falcon API client secret, for "password" it is the account password.
 const AUTH_TYPES = [
+  { value: 'token', label: 'API client (id + secret)' },
   { value: 'password', label: 'Username & password' },
-  { value: 'token', label: 'API / HEC token' },
 ]
 
 // Map the auth choice to/from the platform credential `type`. Token secrets are
@@ -50,18 +50,17 @@ interface FormState {
 
 const BLANK_FORM: FormState = {
   name: '',
-  authType: 'password',
+  authType: 'token',
   username: '',
   secret: '',
   endpoint: '',
 }
 
 /**
- * Connections — the credentials this app authenticates with (username/password,
- * API key, secret) plus the API endpoint each reaches. A connection is pure
- * auth: it holds NO servers/IPs/domains — those live on Access Servers, which
- * pick a connection to use. Secrets are write-only: they can be set here but are
- * never read back — the table only shows whether a secret is stored.
+ * Connections — the credentials this app authenticates to the CrowdStrike
+ * Falcon APIs with (an API client id + secret, or a username/password) plus the
+ * API endpoint each reaches. Secrets are write-only: they can be set here but
+ * are never read back — the table only shows whether a secret is stored.
  */
 export default function ConnectionsPage() {
   const [connections, setConnections] = useState<CredentialSummary[]>([])
@@ -187,13 +186,13 @@ export default function ConnectionsPage() {
 
   const columns: DataTableColumn<CredentialSummary>[] = [
     { key: 'name', header: 'Name', render: (row) => <strong>{row.name}</strong> },
-    { key: 'username', header: 'Username', render: (row) => row.username || '—' },
+    { key: 'username', header: 'Client ID / Username', render: (row) => row.username || '—' },
     {
       key: 'auth',
       header: 'Auth',
       render: (row) => (
         <Badge variant={row.hasSecret ? 'success' : 'warning'} size="sm">
-          {row.type === 'TOKEN' ? 'token' : 'password'}
+          {row.type === 'TOKEN' ? 'api client' : 'password'}
           {row.hasSecret ? '' : ' · no secret'}
         </Badge>
       ),
@@ -216,8 +215,8 @@ export default function ConnectionsPage() {
     },
   ]
 
-  const secretLabel = form.authType === 'token' ? 'API / HEC token' : 'Password'
-  const usernameLabel = form.authType === 'token' ? 'Username (optional)' : 'Username'
+  const secretLabel = form.authType === 'token' ? 'Client secret' : 'Password'
+  const usernameLabel = form.authType === 'token' ? 'Client ID' : 'Username'
 
   return (
     <Card variant="bordered">
@@ -247,7 +246,7 @@ export default function ConnectionsPage() {
             emptyState={{
               title: 'No connections yet',
               description:
-                'Add the credentials this app authenticates with (username/password or API/HEC token) and the endpoint they reach.',
+                'Add the credentials this app authenticates with (API client id + secret, or username/password) and the Falcon endpoint they reach.',
             }}
           />
         )}
@@ -257,7 +256,7 @@ export default function ConnectionsPage() {
         isOpen={dialogOpen}
         onClose={closeDialog}
         title={editing ? `Edit connection "${editing.name}"` : 'Add connection'}
-        description="Credentials this app authenticates with, plus the API endpoint they reach. Used by Access Servers."
+        description="Credentials this app authenticates to the Falcon APIs with, plus the API endpoint they reach."
         onSubmit={handleSubmit}
         submitText={editing ? 'Save changes' : 'Add connection'}
         isSubmitting={submitting}
@@ -270,7 +269,7 @@ export default function ConnectionsPage() {
             label="Name"
             value={form.name}
             onChange={(e) => setField('name', e.target.value)}
-            placeholder="e.g. Splunk admin API"
+            placeholder="e.g. Falcon API client"
             fullWidth
             autoFocus
             spellCheck={false}
@@ -280,7 +279,7 @@ export default function ConnectionsPage() {
             label="Endpoint (optional)"
             value={form.endpoint}
             onChange={(e) => setField('endpoint', e.target.value)}
-            placeholder="e.g. https://splunk.internal:8089"
+            placeholder="e.g. https://api.crowdstrike.com"
             helperText="API base URL / endpoint this connection reaches."
             fullWidth
             spellCheck={false}
@@ -297,7 +296,7 @@ export default function ConnectionsPage() {
             label={usernameLabel}
             value={form.username}
             onChange={(e) => setField('username', e.target.value)}
-            placeholder={form.authType === 'token' ? 'service account (optional)' : 'e.g. svc_veltrix'}
+            placeholder={form.authType === 'token' ? 'API client ID' : 'e.g. falcon-admin'}
             fullWidth
             spellCheck={false}
             autoComplete="off"
