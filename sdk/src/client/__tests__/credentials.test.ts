@@ -61,6 +61,18 @@ describe('listCredentials', () => {
     expect(cred).toMatchObject({ id: 'c2', type: null, hasSecret: false })
   })
 
+  it('derives hasSecret from the redacted has* flags (secrets never sent)', async () => {
+    mockFetch({
+      jsonBody: [
+        { id: 'c3', name: 'idx1', username: 'svc', type: 'TOKEN', toolId: 't', hasApiToken: true, hasPassword: false },
+        { id: 'c4', name: 'idx2', username: 'svc2', type: 'PASSWORD', toolId: 't', hasApiToken: false, hasPassword: false },
+      ],
+    })
+    const creds = await listCredentials('t')
+    expect(creds[0]).toMatchObject({ id: 'c3', type: 'TOKEN', hasSecret: true })
+    expect(creds[1]).toMatchObject({ id: 'c4', type: 'PASSWORD', hasSecret: false })
+  })
+
   it('encodes the toolId in the path', async () => {
     const fetchMock = mockFetch({ jsonBody: [] })
     await listCredentials('tool 1/2')

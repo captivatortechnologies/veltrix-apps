@@ -37,6 +37,12 @@ interface RawCredential {
   username?: string
   type?: string | null
   toolId?: string
+  // The platform redacts secrets from credential responses and surfaces only
+  // whether each is set via these flags. Older platforms may still send the
+  // secret fields instead — both shapes are handled below.
+  hasPassword?: boolean
+  hasApiToken?: boolean
+  hasCertificate?: boolean
   password?: string | null
   apiToken?: string | null
   certificate?: string | null
@@ -63,7 +69,14 @@ async function credentialError(res: Response): Promise<Error> {
  * every secret field and surfacing only whether a secret is stored.
  */
 function toCredentialSummary(raw: RawCredential): CredentialSummary {
-  const hasSecret = Boolean((raw.apiToken && raw.apiToken.length > 0) || (raw.password && raw.password.length > 0))
+  // Prefer the redacted has* flags; fall back to the presence of the secret
+  // fields themselves for older platforms that still return them.
+  const hasSecret = Boolean(
+    raw.hasApiToken ||
+      raw.hasPassword ||
+      (raw.apiToken && raw.apiToken.length > 0) ||
+      (raw.password && raw.password.length > 0),
+  )
   return {
     id: String(raw.id),
     name: raw.name ?? '',
