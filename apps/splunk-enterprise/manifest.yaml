@@ -1,6 +1,6 @@
 id: splunk-enterprise
 name: Splunk Enterprise
-version: 1.11.0
+version: "1.11.1"
 vendor: Veltrix
 description: >
   Manage Splunk Enterprise configurations as code.
@@ -56,7 +56,7 @@ database:
 pipeline:
   configurationTypes:
     - id: indexes
-      name: Index Configuration
+      name: Indexes
       description: Splunk Enterprise index definitions (retention, sizing, compression)
       canvasTemplate: config-types/indexes/canvas.yaml
       defaultConfig: config-types/indexes/defaults.yaml
@@ -73,7 +73,7 @@ pipeline:
         requiresConnectivity: true
 
     - id: roles
-      name: Role Configuration
+      name: Roles
       description: Splunk Enterprise role definitions (capabilities, search filters)
       canvasTemplate: config-types/roles/canvas.yaml
       defaultConfig: config-types/roles/defaults.yaml
@@ -90,7 +90,7 @@ pipeline:
         requiresConnectivity: true
 
     - id: hec-tokens
-      name: HEC Token Configuration
+      name: HEC Tokens
       description: HTTP Event Collector token definitions (routing, allowed indexes, acknowledgment)
       canvasTemplate: config-types/hec-tokens/canvas.yaml
       defaultConfig: config-types/hec-tokens/defaults.yaml
@@ -158,10 +158,10 @@ client:
       layout: standard
     - path: /indexes
       component: IndexesPage
-      label: Indexes
+      label: Indexes (Legacy)
       icon: database
       nav: sidebar
-      group: config
+      group: page
       order: 4
       layout: standard
     - path: /index-defaults
@@ -169,15 +169,15 @@ client:
       label: Index Defaults
       icon: sliders
       nav: sidebar
-      group: config
+      group: settings
       order: 5
       layout: standard
     - path: /roles
       component: RolesPage
-      label: Roles
+      label: Roles (Legacy)
       icon: shield
       nav: sidebar
-      group: config
+      group: page
       order: 6
       layout: standard
     - path: /role-defaults
@@ -185,7 +185,7 @@ client:
       label: Role Defaults
       icon: sliders
       nav: sidebar
-      group: config
+      group: settings
       order: 7
       layout: standard
     - path: /byol
@@ -193,7 +193,7 @@ client:
       label: BYOL Infrastructure
       icon: server
       nav: sidebar
-      group: config
+      group: page
       order: 8
       layout: standard
     - path: /versions
@@ -201,7 +201,7 @@ client:
       label: Versions
       icon: git-branch
       nav: sidebar
-      group: config
+      group: page
       order: 9
       layout: standard
 
