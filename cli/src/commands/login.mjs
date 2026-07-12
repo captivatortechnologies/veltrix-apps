@@ -14,10 +14,36 @@ function promptSecret(question) {
     }
     rl.question(question, (answer) => {
       rl.close()
+      // Release stdin. readline resumes the stdin stream, and on Windows a
+      // still-closing libuv handle plus an abrupt process.exit() aborts with:
+      //   Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), win/async.c
+      // Pausing (and unref'ing) lets the handle finish closing and lets the
+      // event loop drain on its own.
+      process.stdin.pause()
+      process.stdin.unref?.()
       process.stdout.write('\n')
       resolve(answer.trim())
     })
   })
+}
+
+/** Actionable next step for a failed auth attempt, based on the HTTP status. */
+function authFailureHint(error, url) {
+  // status 0 = the platform could not be reached at all (DNS/TLS/refused).
+  if (error.status === 0 || error.status >= 500) {
+    return [
+      `  The platform at ${url} is not responding (the request never reached the API).`,
+      '  If you meant to target a local dev server, retry with:',
+      '    veltrix login --url http://localhost:5000',
+    ].join('\n')
+  }
+  if (error.status === 401 || error.status === 403) {
+    return '  The API key is invalid, revoked, or missing the required scopes — create a new one in Settings → Keys & Tokens.'
+  }
+  if (error.status === 404) {
+    return `  ${url} does not expose the Veltrix API (no /api/auth/api-key/check). Check the --url value.`
+  }
+  return null
 }
 
 export async function loginCommand(options) {
@@ -29,7 +55,11 @@ export async function loginCommand(options) {
 
   if (!apiKey) {
     console.error('✖ No API key provided')
-    process.exit(1)
+    // Set the exit code rather than calling process.exit(): an abrupt exit while
+    // the stdin handle from promptSecret is still closing aborts the process on
+    // Windows (UV_HANDLE_CLOSING assertion).
+    process.exitCode = 1
+    return
   }
 
   const profile = { url, apiKey }
@@ -38,7 +68,10 @@ export async function loginCommand(options) {
     identity = await checkAuth(profile)
   } catch (e) {
     console.error(`✖ Authentication failed: ${e.message}`)
-    process.exit(1)
+    const hint = authFailureHint(e, url)
+    if (hint) console.error(hint)
+    process.exitCode = 1
+    return
   }
 
   setProfile(options.profile, profile)

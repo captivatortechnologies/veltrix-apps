@@ -44,8 +44,14 @@ async function send(profile, method, apiPath, { body, headers } = {}) {
 
   if (!response.ok) {
     // The platform reports failures as {error}; Fastify's default 404 for an
-    // unknown route uses {message}. Surface whichever exists.
-    throw new ApiError(response.status, data.error || data.message || `HTTP ${response.status}`, data)
+    // unknown route uses {message}. Surface whichever exists. A gateway/proxy
+    // failure (502/503/504) answers with HTML, so neither key is present —
+    // fall back to the status line so the user sees "HTTP 502 Bad Gateway"
+    // rather than a bare code.
+    const statusLine = response.statusText
+      ? `HTTP ${response.status} ${response.statusText}`
+      : `HTTP ${response.status}`
+    throw new ApiError(response.status, data.error || data.message || statusLine, data)
   }
   return data
 }
