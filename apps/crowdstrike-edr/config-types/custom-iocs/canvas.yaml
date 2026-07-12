@@ -1,10 +1,11 @@
 # =============================================================================
 # Canvas Template — CrowdStrike Falcon Custom IOCs
 #
-# Fields shown in the Configuration Canvas editor for custom IOC
-# configurations. Field keys must match what config-types/custom-iocs/
-# validate.ts checks. Each canvas section describes ONE indicator —
-# add a section per indicator.
+# Declares ONE indicator — the item. Users add as many indicators as they need.
+# Field keys must match what config-types/custom-iocs/validate.ts checks.
+#
+# An indicator's identity in Falcon is the type/value pair; `value` is the
+# identity field on the canvas (uniqueness per type is enforced by validate.ts).
 # =============================================================================
 
 id: "crowdstrike-edr-custom-iocs"
@@ -13,100 +14,106 @@ toolType: "crowdstrike-edr"
 entityType: "custom-iocs"
 description: "Define custom indicators of compromise (hashes, domains, IPs) as code via the Falcon IOC Management API"
 
-sections:
-  - name: "Indicator"
-    icon: "crosshair"
-    description: "One section per indicator — duplicate this section to manage multiple IOCs"
-    fields:
-      - key: "type"
-        label: "Indicator Type"
-        fieldType: "select"
-        required: true
-        defaultValue: "sha256"
-        options:
-          - label: "SHA-256 hash"
-            value: "sha256"
-          - label: "MD5 hash"
-            value: "md5"
-          - label: "Domain"
-            value: "domain"
-          - label: "IPv4 address"
-            value: "ipv4"
-          - label: "IPv6 address"
-            value: "ipv6"
-        helpText: "Immutable after creation — delete and recreate to change an indicator's type"
+item:
+  label: "Indicator"
+  identityField: "value"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "General"
+      icon: "crosshair"
+      description: "Indicator identity, action, and scope"
+      fields:
+        - key: "type"
+          label: "Indicator Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "sha256"
+          options:
+            - label: "SHA-256 hash"
+              value: "sha256"
+            - label: "MD5 hash"
+              value: "md5"
+            - label: "Domain"
+              value: "domain"
+            - label: "IPv4 address"
+              value: "ipv4"
+            - label: "IPv6 address"
+              value: "ipv6"
+          helpText: "Immutable after creation — delete and recreate to change an indicator's type"
 
-      - key: "value"
-        label: "Indicator Value"
-        fieldType: "text"
-        required: true
-        validation:
-          maxLength: 253
-        helpText: "The hash, domain, or IP address to match. Must be unique per type across the tenant."
+        - key: "value"
+          label: "Indicator Value"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 253
+          helpText: "The hash, domain, or IP address to match. Must be unique per type across the tenant."
 
-      - key: "action"
-        label: "Action"
-        fieldType: "select"
-        defaultValue: "detect"
-        options:
-          - label: "Detect only"
-            value: "detect"
-          - label: "Prevent (block execution — hashes only)"
-            value: "prevent"
-          - label: "No action (log only)"
-            value: "no_action"
-          - label: "Allow (never detect or block — hashes only)"
-            value: "allow"
-        helpText: "What the sensor does on a match. \"prevent\" and \"allow\" are only valid for file hashes."
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          defaultValue: "detect"
+          options:
+            - label: "Detect only"
+              value: "detect"
+            - label: "Prevent (block execution — hashes only)"
+              value: "prevent"
+            - label: "No action (log only)"
+              value: "no_action"
+            - label: "Allow (never detect or block — hashes only)"
+              value: "allow"
+          helpText: "What the sensor does on a match. \"prevent\" and \"allow\" are only valid for file hashes."
 
-      - key: "severity"
-        label: "Severity"
-        fieldType: "select"
-        defaultValue: "medium"
-        options:
-          - label: "Informational"
-            value: "informational"
-          - label: "Low"
-            value: "low"
-          - label: "Medium"
-            value: "medium"
-          - label: "High"
-            value: "high"
-          - label: "Critical"
-            value: "critical"
-        helpText: "Severity of alerts raised when this indicator matches (used by detect/prevent actions)"
+        - key: "severity"
+          label: "Severity"
+          fieldType: "select"
+          defaultValue: "medium"
+          options:
+            - label: "Informational"
+              value: "informational"
+            - label: "Low"
+              value: "low"
+            - label: "Medium"
+              value: "medium"
+            - label: "High"
+              value: "high"
+            - label: "Critical"
+              value: "critical"
+          helpText: "Severity of alerts raised when this indicator matches (used by detect/prevent actions)"
 
-      - key: "platforms"
-        label: "Platforms"
-        fieldType: "tags"
-        required: true
-        helpText: "Sensor platforms the indicator applies to: windows, mac, linux"
+        - key: "platforms"
+          label: "Platforms"
+          fieldType: "tags"
+          required: true
+          helpText: "Sensor platforms the indicator applies to: windows, mac, linux"
 
-      - key: "appliedGlobally"
-        label: "Apply Globally"
-        fieldType: "checkbox"
-        defaultValue: true
-        helpText: "Apply to every host in the tenant. Uncheck to target specific host groups instead."
+        - key: "appliedGlobally"
+          label: "Apply Globally"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Apply to every host in the tenant. Uncheck to target specific host groups instead."
 
-      - key: "hostGroups"
-        label: "Host Group IDs"
-        fieldType: "tags"
-        helpText: "Falcon host group IDs the indicator applies to — required when not applied globally, ignored otherwise"
+        - key: "hostGroups"
+          label: "Host Group IDs"
+          fieldType: "tags"
+          helpText: "Falcon host group IDs the indicator applies to — required when not applied globally, ignored otherwise"
 
-      - key: "expiration"
-        label: "Expiration (UTC)"
-        fieldType: "text"
-        validation:
-          pattern: "^$|^\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z?)?$"
-          message: "Must be an ISO-8601 UTC timestamp, e.g. 2026-12-31T00:00:00Z (leave empty for no expiration)"
-        helpText: "Optional time after which the indicator stops matching, e.g. 2026-12-31T00:00:00Z"
+        - key: "expiration"
+          label: "Expiration (UTC)"
+          fieldType: "text"
+          validation:
+            pattern: "^$|^\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z?)?$"
+            message: "Must be an ISO-8601 UTC timestamp, e.g. 2026-12-31T00:00:00Z (leave empty for no expiration)"
+          helpText: "Optional time after which the indicator stops matching, e.g. 2026-12-31T00:00:00Z"
 
-      - key: "description"
-        label: "Description"
-        fieldType: "textarea"
-        helpText: "Why this indicator exists — shown in the Falcon console"
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Why this indicator exists — shown in the Falcon console"
 
-      - key: "tags"
-        label: "Falcon Tags"
-        fieldType: "tags"
-        helpText: "Optional tags applied to the indicator in the Falcon console"
+        - key: "tags"
+          label: "Falcon Tags"
+          fieldType: "tags"
+          helpText: "Optional tags applied to the indicator in the Falcon console"

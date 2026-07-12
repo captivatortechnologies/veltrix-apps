@@ -76,6 +76,49 @@ const DEFAULTS = `General:
   mode: fast
 `
 
+// The ITEM form: the template describes ONE object the config creates, and
+// `groups` are presentational field groupings inside that one flat record.
+const ITEM_CANVAS = `id: fixture-configs
+name: Configs
+toolType: fixture-app
+entityType: configs
+item:
+  label: Config
+  identityField: name
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: General
+      icon: database
+      fields:
+        - key: name
+          label: Name
+          fieldType: text
+          required: true
+    - name: Sizing
+      fields:
+        - key: sizeMb
+          label: Size (MB)
+          fieldType: number
+          defaultValue: 100
+        - key: mode
+          label: Mode
+          fieldType: select
+          defaultValue: fast
+          options:
+            - label: Fast
+              value: fast
+            - label: Safe
+              value: safe
+`
+
+// Defaults for an item template are FLAT — they seed every new item
+const ITEM_DEFAULTS = `name: ""
+sizeMb: 100
+mode: fast
+`
+
 /** Write a minimal valid app into <tmp>/fixture-app and return its path. */
 function makeApp(overrides = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'veltrix-validator-test-'))
@@ -182,6 +225,113 @@ test('defaults referencing unknown sections or fields warn', () => {
   )
   assert.equal(warningsMatching(result, /defaults section "Nonexistent"/).length, 1)
   assert.equal(warningsMatching(result, /defaults key "General\.ghost"/).length, 1)
+})
+
+// --- ITEM model ---------------------------------------------------------------
+
+test('canvas: item template with groups and flat defaults is accepted', () => {
+  const result = validateApp(
+    makeApp({
+      'config-types/configs/canvas.yaml': ITEM_CANVAS,
+      'config-types/configs/defaults.yaml': ITEM_DEFAULTS,
+    }),
+  )
+  assert.deepEqual(result.errors, [])
+  assert.deepEqual(warningsMatching(result, /canvas:/), [])
+})
+
+test('canvas: legacy sections template is still accepted', () => {
+  // The default fixture IS the legacy form — assert it explicitly
+  const result = validateApp(makeApp())
+  assert.deepEqual(errorsMatching(result, /canvas:/), [])
+  assert.deepEqual(warningsMatching(result, /canvas:/), [])
+})
+
+test('canvas: a template with neither item nor sections is an error', () => {
+  const bare = 'id: fixture-configs\nname: Configs\ntoolType: fixture-app\nentityType: configs\n'
+  const result = validateApp(makeApp({ 'config-types/configs/canvas.yaml': bare }))
+  assert.equal(errorsMatching(result, /must declare an "item" .* or at least one legacy "section"/).length, 1)
+})
+
+test('canvas: duplicate field key across an item\'s groups is an error', () => {
+  // `name` is already declared in the General group — an item is one flat
+  // record, so redeclaring it in Sizing would collide into a single value
+  const dupe = ITEM_CANVAS.replace(
+    '        - key: sizeMb\n          label: Size (MB)\n          fieldType: number\n          defaultValue: 100\n',
+    '        - key: name\n          label: Name Again\n          fieldType: text\n',
+  )
+  const result = validateApp(makeApp({ 'config-types/configs/canvas.yaml': dupe }))
+  assert.equal(
+    errorsMatching(result, /duplicates key "name" — an item is one flat record/).length,
+    1,
+  )
+})
+
+test('canvas: item.identityField must name one of the item\'s fields', () => {
+  const bad = ITEM_CANVAS.replace('identityField: name', 'identityField: ghost')
+  const result = validateApp(makeApp({ 'config-types/configs/canvas.yaml': bad }))
+  assert.equal(
+    errorsMatching(result, /item\.identityField "ghost" does not match any field key/).length,
+    1,
+  )
+})
+
+test('canvas: item.identityField that is not required warns', () => {
+  const bad = ITEM_CANVAS.replace('          fieldType: text\n          required: true', '          fieldType: text')
+  const result = validateApp(makeApp({ 'config-types/configs/canvas.yaml': bad }))
+  assert.equal(
+    warningsMatching(result, /item\.identityField "name" should be required: true/).length,
+    1,
+  )
+})
+
+test('canvas: an item must declare at least one group', () => {
+  const bad = 'id: c\nname: C\ntoolType: fixture-app\nentityType: configs\nitem:\n  label: Config\n  groups: []\n'
+  const result = validateApp(makeApp({ 'config-types/configs/canvas.yaml': bad }))
+  assert.equal(errorsMatching(result, /item must declare at least one group/).length, 1)
+})
+
+test('canvas: item minItems/maxItems must be sane integers', () => {
+  const bad = ITEM_CANVAS.replace('  minItems: 1\n  maxItems: 50', '  minItems: 5\n  maxItems: 2')
+  const result = validateApp(makeApp({ 'config-types/configs/canvas.yaml': bad }))
+  assert.equal(errorsMatching(result, /item\.maxItems \(2\) is less than minItems \(5\)/).length, 1)
+
+  const fractional = ITEM_CANVAS.replace('  maxItems: 50', '  maxItems: 2.5')
+  const result2 = validateApp(makeApp({ 'config-types/configs/canvas.yaml': fractional }))
+  assert.equal(errorsMatching(result2, /item\.maxItems must be an integer/).length, 1)
+})
+
+test('canvas: nested (legacy) defaults against an item template warn', () => {
+  const result = validateApp(
+    makeApp({
+      'config-types/configs/canvas.yaml': ITEM_CANVAS,
+      'config-types/configs/defaults.yaml': DEFAULTS, // "General:" nesting
+    }),
+  )
+  assert.equal(warningsMatching(result, /defaults key "General" does not match any canvas field/).length, 1)
+})
+
+test('canvas: multiselect is a valid fieldType', () => {
+  const canvas = ITEM_CANVAS.replace(
+    '          fieldType: select\n          defaultValue: fast',
+    '          fieldType: multiselect\n          defaultValue: [fast]',
+  )
+  const result = validateApp(
+    makeApp({
+      'config-types/configs/canvas.yaml': canvas,
+      'config-types/configs/defaults.yaml': ITEM_DEFAULTS,
+    }),
+  )
+  assert.deepEqual(errorsMatching(result, /canvas:/), [])
+})
+
+test('canvas: multiselect defaultValue entries must be option values', () => {
+  const canvas = ITEM_CANVAS.replace(
+    '          fieldType: select\n          defaultValue: fast',
+    '          fieldType: multiselect\n          defaultValue: [fast, turbo]',
+  )
+  const result = validateApp(makeApp({ 'config-types/configs/canvas.yaml': canvas }))
+  assert.equal(errorsMatching(result, /"turbo" is not one of its option values/).length, 1)
 })
 
 test('settings: select default must be an option value', () => {

@@ -83,10 +83,20 @@ export interface ConfigStatus {
 
 // --- Canvas snapshot ---
 
-export interface CanvasSectionSnapshot {
+/**
+ * One item declared by a configuration — one object to create in the target
+ * tool (an index, an IOC, a host group). `fields` is flat across the item's
+ * presentational groups, so a handler reads every field the user filled in
+ * regardless of how the canvas laid them out.
+ */
+export interface CanvasItemSnapshot {
+  id: string
   name: string
   fields: Record<string, unknown>
 }
+
+/** @deprecated Use {@link CanvasItemSnapshot}. A section IS one item. */
+export type CanvasSectionSnapshot = CanvasItemSnapshot
 
 export interface CanvasSnapshot {
   id: string
@@ -95,6 +105,9 @@ export interface CanvasSnapshot {
   name: string
   toolType: string
   entityType: string
+  /** The items to create in the target tool. One configuration can declare many. */
+  items: CanvasItemSnapshot[]
+  /** @deprecated Alias of {@link items}. */
   sections: CanvasSectionSnapshot[]
   snapshot: Record<string, unknown>
 }

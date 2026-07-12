@@ -1,15 +1,14 @@
-# Default values used when creating a new prevention policy configuration canvas.
-# Keys are canvas section names; values are field defaults.
+# Default values seeded into every new prevention policy item on the canvas.
+# Flat mapping: field key → default value (the canvas declares one `item`).
 
-Prevention Policy:
-  name: ""
-  platform: "Windows"
-  description: ""
-  enabled: false
-  hostGroups: ""
-  settings: |
-    [
-      { "id": "NextGenAV", "value": { "enabled": true } },
-      { "id": "CloudAntiMalware", "value": { "detection": "MODERATE", "prevention": "MODERATE" } },
-      { "id": "OnSensorMLSlider", "value": { "detection": "MODERATE", "prevention": "MODERATE" } }
-    ]
+name: ""
+platform: "Windows"
+description: ""
+enabled: false
+hostGroups: ""
+settings: |
+  [
+    { "id": "NextGenAV", "value": { "enabled": true } },
+    { "id": "CloudAntiMalware", "value": { "detection": "MODERATE", "prevention": "MODERATE" } },
+    { "id": "OnSensorMLSlider", "value": { "detection": "MODERATE", "prevention": "MODERATE" } }
+  ]

@@ -1,9 +1,8 @@
 # =============================================================================
 # Canvas Template — Splunk Cloud Indexes (ACS)
 #
-# Fields shown in the Configuration Canvas editor for index configurations.
+# Declares ONE index — the item. Users add as many indexes as they need.
 # Field keys must match what config-types/indexes/validate.ts checks.
-# Each canvas section describes ONE index — add a section per index.
 # =============================================================================
 
 id: "splunk-cloud-indexes"
@@ -12,60 +11,66 @@ toolType: "splunk-cloud"
 entityType: "indexes"
 description: "Define Splunk Cloud indexes (datatype, searchable retention, sizing, DDAA/DDSS archival) as code via the ACS API"
 
-sections:
-  - name: "Index"
-    icon: "database"
-    description: "One section per index — duplicate this section to manage multiple indexes"
-    fields:
-      - key: "name"
-        label: "Index Name"
-        fieldType: "text"
-        required: true
-        validation:
-          pattern: "^[a-z0-9][a-z0-9_-]*$"
-          maxLength: 80
-          message: "Lowercase letters, numbers, underscores, hyphens; must begin with a letter or number. Internal indexes (leading underscore) cannot be managed via ACS."
-        helpText: "Unique index name on the Splunk Cloud stack"
+item:
+  label: "Index"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "database"
+      description: "Index identity, sizing, retention, and archival"
+      fields:
+        - key: "name"
+          label: "Index Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-z0-9][a-z0-9_-]*$"
+            maxLength: 80
+            message: "Lowercase letters, numbers, underscores, hyphens; must begin with a letter or number. Internal indexes (leading underscore) cannot be managed via ACS."
+          helpText: "Unique index name on the Splunk Cloud stack"
 
-      - key: "datatype"
-        label: "Datatype"
-        fieldType: "select"
-        defaultValue: "event"
-        options:
-          - label: "Event"
-            value: "event"
-          - label: "Metric"
-            value: "metric"
-        helpText: "Immutable after creation — ACS cannot change an index's datatype"
+        - key: "datatype"
+          label: "Datatype"
+          fieldType: "select"
+          defaultValue: "event"
+          options:
+            - label: "Event"
+              value: "event"
+            - label: "Metric"
+              value: "metric"
+          helpText: "Immutable after creation — ACS cannot change an index's datatype"
 
-      - key: "searchableDays"
-        label: "Searchable Retention (days)"
-        fieldType: "number"
-        defaultValue: 90
-        validation:
-          min: 1
-        helpText: "Days data remains searchable (ACS default: 90). Values above 3650 trigger an entitlement warning."
+        - key: "searchableDays"
+          label: "Searchable Retention (days)"
+          fieldType: "number"
+          defaultValue: 90
+          validation:
+            min: 1
+          helpText: "Days data remains searchable (ACS default: 90). Values above 3650 trigger an entitlement warning."
 
-      - key: "maxDataSizeMB"
-        label: "Maximum Index Size (MB)"
-        fieldType: "number"
-        defaultValue: 0
-        validation:
-          min: 0
-        helpText: "Total size cap for the index. 0 = unlimited (ACS default). Values above 1,000,000 MB trigger a review warning."
+        - key: "maxDataSizeMB"
+          label: "Maximum Index Size (MB)"
+          fieldType: "number"
+          defaultValue: 0
+          validation:
+            min: 0
+          helpText: "Total size cap for the index. 0 = unlimited (ACS default). Values above 1,000,000 MB trigger a review warning."
 
-      - key: "splunkArchivalRetentionDays"
-        label: "DDAA Archival Retention (days)"
-        fieldType: "number"
-        validation:
-          min: 0
-          max: 3650
-        helpText: "Optional Dynamic Data Active Archive retention, counted from index creation. Must be greater than searchable retention and at most 3650 days. Mutually exclusive with DDSS."
+        - key: "splunkArchivalRetentionDays"
+          label: "DDAA Archival Retention (days)"
+          fieldType: "number"
+          validation:
+            min: 0
+            max: 3650
+          helpText: "Optional Dynamic Data Active Archive retention, counted from index creation. Must be greater than searchable retention and at most 3650 days. Mutually exclusive with DDSS."
 
-      - key: "selfStorageBucketPath"
-        label: "DDSS Self Storage Bucket"
-        fieldType: "text"
-        validation:
-          pattern: "^(s3|gs)://.+"
-          message: "Must start with s3:// (AWS) or gs:// (GCP)"
-        helpText: "Optional Dynamic Data Self Storage location, e.g. s3://my-bucket/folder. Mutually exclusive with DDAA."
+        - key: "selfStorageBucketPath"
+          label: "DDSS Self Storage Bucket"
+          fieldType: "text"
+          validation:
+            pattern: "^(s3|gs)://.+"
+            message: "Must start with s3:// (AWS) or gs:// (GCP)"
+          helpText: "Optional Dynamic Data Self Storage location, e.g. s3://my-bucket/folder. Mutually exclusive with DDAA."

@@ -1,10 +1,9 @@
 # =============================================================================
 # Canvas Template — CrowdStrike Falcon Prevention Policies
 #
-# Fields shown in the Configuration Canvas editor for prevention policy
-# configurations. Field keys must match what config-types/prevention-policies/
-# validate.ts checks. Each canvas section describes ONE policy —
-# add a section per policy.
+# Declares ONE prevention policy — the item. Users add as many policies as
+# they need. Field keys must match what
+# config-types/prevention-policies/validate.ts checks.
 # =============================================================================
 
 id: "crowdstrike-edr-prevention-policies"
@@ -13,56 +12,62 @@ toolType: "crowdstrike-edr"
 entityType: "prevention-policies"
 description: "Define Falcon prevention policies (platform, enablement, host group assignment, policy settings) as code via the Prevention Policy API"
 
-sections:
-  - name: "Prevention Policy"
-    icon: "shield"
-    description: "One section per prevention policy — duplicate this section to manage multiple policies"
-    fields:
-      - key: "name"
-        label: "Policy Name"
-        fieldType: "text"
-        required: true
-        validation:
-          maxLength: 255
-        helpText: "Unique policy name per platform in the Falcon tenant"
+item:
+  label: "Prevention Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "shield"
+      description: "Policy identity, assignment, and settings"
+      fields:
+        - key: "name"
+          label: "Policy Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique policy name per platform in the Falcon tenant"
 
-      - key: "platform"
-        label: "Platform"
-        fieldType: "select"
-        required: true
-        defaultValue: "Windows"
-        options:
-          - label: "Windows"
-            value: "Windows"
-          - label: "Mac"
-            value: "Mac"
-          - label: "Linux"
-            value: "Linux"
-        helpText: "Immutable after creation — the sensor platform this policy applies to"
+        - key: "platform"
+          label: "Platform"
+          fieldType: "select"
+          required: true
+          defaultValue: "Windows"
+          options:
+            - label: "Windows"
+              value: "Windows"
+            - label: "Mac"
+              value: "Mac"
+            - label: "Linux"
+              value: "Linux"
+          helpText: "Immutable after creation — the sensor platform this policy applies to"
 
-      - key: "description"
-        label: "Description"
-        fieldType: "textarea"
-        helpText: "What this policy enforces — shown in the Falcon console"
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "What this policy enforces — shown in the Falcon console"
 
-      - key: "enabled"
-        label: "Enabled"
-        fieldType: "checkbox"
-        defaultValue: false
-        helpText: "Whether the policy is active. New Falcon policies always start disabled; deployment converges to this value."
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether the policy is active. New Falcon policies always start disabled; deployment converges to this value."
 
-      - key: "hostGroups"
-        label: "Host Group IDs"
-        fieldType: "tags"
-        helpText: "Falcon host group IDs this policy is assigned to. Deployment converges assignments to exactly this list."
+        - key: "hostGroups"
+          label: "Host Group IDs"
+          fieldType: "tags"
+          helpText: "Falcon host group IDs this policy is assigned to. Deployment converges assignments to exactly this list."
 
-      - key: "settings"
-        label: "Policy Settings (JSON)"
-        fieldType: "textarea"
-        helpText: >
-          JSON array of prevention settings. Toggles use
-          {"id": "NextGenAV", "value": {"enabled": true}} and ML sliders use
-          {"id": "CloudAntiMalware", "value": {"detection": "MODERATE", "prevention": "MODERATE"}}
-          with levels DISABLED, CAUTIOUS, MODERATE, AGGRESSIVE, EXTRA_AGGRESSIVE
-          (prevention must not exceed detection). Setting IDs are per-platform —
-          only the settings listed here are managed; others keep their tenant values.
+        - key: "settings"
+          label: "Policy Settings (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            JSON array of prevention settings. Toggles use
+            {"id": "NextGenAV", "value": {"enabled": true}} and ML sliders use
+            {"id": "CloudAntiMalware", "value": {"detection": "MODERATE", "prevention": "MODERATE"}}
+            with levels DISABLED, CAUTIOUS, MODERATE, AGGRESSIVE, EXTRA_AGGRESSIVE
+            (prevention must not exceed detection). Setting IDs are per-platform —
+            only the settings listed here are managed; others keep their tenant values.

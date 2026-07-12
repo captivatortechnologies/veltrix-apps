@@ -1,9 +1,9 @@
 # =============================================================================
 # Canvas Template — Splunk Cloud IP Allow Lists (ACS)
 #
-# Fields shown in the Configuration Canvas editor for IP allow list
-# configurations. Field keys must match what config-types/ip-allowlists/validate.ts
-# checks. Each canvas section describes the allow list for ONE feature.
+# Declares the allow list for ONE feature — the item. Users add one item per
+# feature they want to manage. Field keys must match what
+# config-types/ip-allowlists/validate.ts checks.
 # =============================================================================
 
 id: "splunk-cloud-ip-allowlists"
@@ -12,40 +12,48 @@ toolType: "splunk-cloud"
 entityType: "ip-allowlists"
 description: "Define per-feature IP allow lists (search-api, hec, s2s, ...) as code via the ACS API"
 
-sections:
-  - name: "IP Allowlist"
-    icon: "shield"
-    description: "One section per feature — duplicate this section to manage multiple features"
-    fields:
-      - key: "feature"
-        label: "Feature"
-        fieldType: "select"
-        required: true
-        options:
-          - label: "Search API (search-api)"
-            value: "search-api"
-          - label: "HTTP Event Collector (hec)"
-            value: "hec"
-          - label: "Splunk-to-Splunk Forwarding (s2s)"
-            value: "s2s"
-          - label: "Search UI (search-ui)"
-            value: "search-ui"
-          - label: "IDM UI (idm-ui)"
-            value: "idm-ui"
-          - label: "IDM API (idm-api)"
-            value: "idm-api"
-          - label: "Admin Config Service (acs)"
-            value: "acs"
-        helpText: "Splunk Cloud feature this allow list applies to"
+item:
+  label: "Allow List"
+  identityField: "feature"
+  repeatable: true
+  minItems: 1
+  # One allow list per ACS feature — there are exactly seven, and duplicates
+  # are rejected by validate.ts
+  maxItems: 7
+  groups:
+    - name: "General"
+      icon: "shield"
+      description: "Feature and its allowed subnets"
+      fields:
+        - key: "feature"
+          label: "Feature"
+          fieldType: "select"
+          required: true
+          options:
+            - label: "Search API (search-api)"
+              value: "search-api"
+            - label: "HTTP Event Collector (hec)"
+              value: "hec"
+            - label: "Splunk-to-Splunk Forwarding (s2s)"
+              value: "s2s"
+            - label: "Search UI (search-ui)"
+              value: "search-ui"
+            - label: "IDM UI (idm-ui)"
+              value: "idm-ui"
+            - label: "IDM API (idm-api)"
+              value: "idm-api"
+            - label: "Admin Config Service (acs)"
+              value: "acs"
+          helpText: "Splunk Cloud feature this allow list applies to"
 
-      - key: "subnets"
-        label: "Allowed Subnets (IPv4 CIDR)"
-        fieldType: "tags"
-        required: true
-        helpText: "IPv4 subnets in CIDR notation, e.g. 203.0.113.0/24 (use /32 for a single host). Max 200 per feature. 0.0.0.0/0 is rejected."
+        - key: "subnets"
+          label: "Allowed Subnets (IPv4 CIDR)"
+          fieldType: "tags"
+          required: true
+          helpText: "IPv4 subnets in CIDR notation, e.g. 203.0.113.0/24 (use /32 for a single host). Max 200 per feature. 0.0.0.0/0 is rejected."
 
-      - key: "removeUndeclared"
-        label: "Remove Undeclared Subnets"
-        fieldType: "checkbox"
-        defaultValue: false
-        helpText: "When enabled, live subnets not declared here are removed on deploy (full reconcile). Never applied to the \"acs\" feature — lockout protection."
+        - key: "removeUndeclared"
+          label: "Remove Undeclared Subnets"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, live subnets not declared here are removed on deploy (full reconcile). Never applied to the \"acs\" feature — lockout protection."

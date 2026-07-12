@@ -1,10 +1,9 @@
-# Default values used when creating a new index configuration canvas.
-# Keys are canvas section names; values are field defaults.
+# Default values seeded into every new index item on the canvas.
+# Flat mapping: field key → default value (the canvas declares one `item`).
 
-Index:
-  name: ""
-  datatype: "event"
-  searchableDays: 90
-  maxDataSizeMB: 0
-  splunkArchivalRetentionDays: 0
-  selfStorageBucketPath: ""
+name: ""
+datatype: "event"
+searchableDays: 90
+maxDataSizeMB: 0
+splunkArchivalRetentionDays: 0
+selfStorageBucketPath: ""

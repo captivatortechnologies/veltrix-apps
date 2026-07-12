@@ -52,6 +52,7 @@ export type {
   ConfigStatus,
   ComponentConfigStatus,
   CanvasSnapshot,
+  CanvasItemSnapshot,
   CanvasSectionSnapshot,
   DeploymentStrategy,
   EnvironmentRef,

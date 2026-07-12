@@ -1,11 +1,10 @@
-# Default values used when creating a new HEC token configuration canvas.
-# Keys are canvas section names; values are field defaults.
+# Default values seeded into every new HEC token item on the canvas.
+# Flat mapping: field key → default value (the canvas declares one `item`).
 
-HEC Token:
-  name: ""
-  defaultIndex: "main"
-  allowedIndexes: []
-  defaultSource: ""
-  defaultSourcetype: ""
-  useAck: false
-  disabled: false
+name: ""
+defaultIndex: "main"
+allowedIndexes: []
+defaultSource: ""
+defaultSourcetype: ""
+useAck: false
+disabled: false

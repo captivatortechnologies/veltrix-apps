@@ -1,7 +1,11 @@
 # =============================================================================
 # Canvas Template — Splunk Enterprise Indexes
 #
-# Fields shown in the Configuration Canvas editor for index configurations.
+# Declares ONE index — the item. Users add as many indexes as they need.
+# Groups are PRESENTATIONAL ONLY: every field below belongs to the same flat
+# item record, which is what config-types/indexes/deploy.ts reads as
+# `section.fields` for a single index.
+#
 # Field keys must match what config-types/indexes/validate.ts checks and what
 # config-types/indexes/deploy.ts maps to Splunk REST parameters
 # (/services/data/indexes).
@@ -13,133 +17,139 @@ toolType: "splunk-enterprise"
 entityType: "indexes"
 description: "Define Splunk Enterprise indexes (type, retention, sizing, storage paths) as code"
 
-sections:
-  - name: "General"
-    icon: "database"
-    description: "Index identity"
-    fields:
-      - key: "name"
-        label: "Index Name"
-        fieldType: "text"
-        required: true
-        validation:
-          pattern: "^[a-z0-9][a-z0-9_-]*$"
-          maxLength: 80
-          message: "Numbers, lowercase letters, underscores, and hyphens only; cannot begin with an underscore or hyphen, or contain 'kvstore'. Internal names (_internal, _audit, ...) are rejected."
-        helpText: "Unique index name as it will exist on the indexers"
+item:
+  label: "Index"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "database"
+      description: "Index identity"
+      fields:
+        - key: "name"
+          label: "Index Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-z0-9][a-z0-9_-]*$"
+            maxLength: 80
+            message: "Numbers, lowercase letters, underscores, and hyphens only; cannot begin with an underscore or hyphen, or contain 'kvstore'. Internal names (_internal, _audit, ...) are rejected."
+          helpText: "Unique index name as it will exist on the indexers"
 
-      - key: "datatype"
-        label: "Index Type"
-        fieldType: "select"
-        defaultValue: "event"
-        options:
-          - value: "event"
-            label: "Event index"
-          - value: "metric"
-            label: "Metric index"
-        helpText: "Set at creation time only — Splunk cannot convert an index between event and metric"
+        - key: "datatype"
+          label: "Index Type"
+          fieldType: "select"
+          defaultValue: "event"
+          options:
+            - value: "event"
+              label: "Event index"
+            - value: "metric"
+              label: "Metric index"
+          helpText: "Set at creation time only — Splunk cannot convert an index between event and metric"
 
-  - name: "Sizing"
-    icon: "hard-drive"
-    description: "Storage limits"
-    fields:
-      - key: "maxDataSizeMB"
-        label: "Maximum Index Size (MB)"
-        fieldType: "number"
-        defaultValue: 500000
-        validation:
-          min: 0
-          max: 10000000
-        helpText: "Maps to maxTotalDataSizeMB (Splunk default 500000). When exceeded, the oldest buckets are frozen. Values above 1,000,000 MB trigger a review warning."
+    - name: "Sizing"
+      icon: "hard-drive"
+      description: "Storage limits"
+      fields:
+        - key: "maxDataSizeMB"
+          label: "Maximum Index Size (MB)"
+          fieldType: "number"
+          defaultValue: 500000
+          validation:
+            min: 0
+            max: 10000000
+          helpText: "Maps to maxTotalDataSizeMB (Splunk default 500000). When exceeded, the oldest buckets are frozen. Values above 1,000,000 MB trigger a review warning."
 
-      - key: "maxDataSizeMode"
-        label: "Bucket Size Mode"
-        fieldType: "select"
-        defaultValue: "auto"
-        options:
-          - value: "auto"
-            label: "auto (750 MB buckets)"
-          - value: "auto_high_volume"
-            label: "auto_high_volume (10 GB buckets — for >10 GB/day indexes)"
-          - value: "custom"
-            label: "Custom size"
-        helpText: "Maps to maxDataSize. Use auto_high_volume for high-volume indexes."
+        - key: "maxDataSizeMode"
+          label: "Bucket Size Mode"
+          fieldType: "select"
+          defaultValue: "auto"
+          options:
+            - value: "auto"
+              label: "auto (750 MB buckets)"
+            - value: "auto_high_volume"
+              label: "auto_high_volume (10 GB buckets — for >10 GB/day indexes)"
+            - value: "custom"
+              label: "Custom size"
+          helpText: "Maps to maxDataSize. Use auto_high_volume for high-volume indexes."
 
-      - key: "maxDataSizeCustomMB"
-        label: "Custom Bucket Size (MB)"
-        fieldType: "number"
-        validation:
-          min: 100
-          max: 1048576
-        helpText: "Only used when Bucket Size Mode is 'Custom size'. Splunk accepts 100–1048576 MB."
+        - key: "maxDataSizeCustomMB"
+          label: "Custom Bucket Size (MB)"
+          fieldType: "number"
+          validation:
+            min: 100
+            max: 1048576
+          helpText: "Only used when Bucket Size Mode is 'Custom size'. Splunk accepts 100–1048576 MB."
 
-      - key: "enableCompression"
-        label: "Enable zstd Journal Compression"
-        fieldType: "checkbox"
-        defaultValue: true
-        helpText: "Splunk always compresses rawdata; this selects the zstd codec (better ratio than the gzip default). Recommended for indexes over 100 GB."
+        - key: "enableCompression"
+          label: "Enable zstd Journal Compression"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Splunk always compresses rawdata; this selects the zstd codec (better ratio than the gzip default). Recommended for indexes over 100 GB."
 
-  - name: "Retention"
-    icon: "clock"
-    description: "Data lifecycle"
-    fields:
-      - key: "frozenTimeDays"
-        label: "Frozen Time (days)"
-        fieldType: "number"
-        defaultValue: 90
-        validation:
-          min: 0
-        helpText: "Maps to frozenTimePeriodInSecs (Splunk default is 6 years). Frozen buckets are DELETED unless an archive directory is set. Under 7 days triggers a warning."
+    - name: "Retention"
+      icon: "clock"
+      description: "Data lifecycle"
+      fields:
+        - key: "frozenTimeDays"
+          label: "Frozen Time (days)"
+          fieldType: "number"
+          defaultValue: 90
+          validation:
+            min: 0
+          helpText: "Maps to frozenTimePeriodInSecs (Splunk default is 6 years). Frozen buckets are DELETED unless an archive directory is set. Under 7 days triggers a warning."
 
-      - key: "coldToFrozenDir"
-        label: "Frozen Archive Directory"
-        fieldType: "text"
-        helpText: "Optional. Path where frozen buckets are archived instead of deleted (maps to coldToFrozenDir)."
+        - key: "coldToFrozenDir"
+          label: "Frozen Archive Directory"
+          fieldType: "text"
+          helpText: "Optional. Path where frozen buckets are archived instead of deleted (maps to coldToFrozenDir)."
 
-      - key: "retentionPeriod"
-        label: "Retention Period (days)"
-        fieldType: "number"
-        defaultValue: 90
-        validation:
-          min: 0
+        - key: "retentionPeriod"
+          label: "Retention Period (days)"
+          fieldType: "number"
+          defaultValue: 90
+          validation:
+            min: 0
 
-      - key: "searchablePeriod"
-        label: "Searchable Period (days)"
-        fieldType: "number"
-        defaultValue: 90
-        validation:
-          min: 0
-        helpText: "Must not exceed the retention period"
+        - key: "searchablePeriod"
+          label: "Searchable Period (days)"
+          fieldType: "number"
+          defaultValue: 90
+          validation:
+            min: 0
+          helpText: "Must not exceed the retention period"
 
-      - key: "enableTsidxReduction"
-        label: "Enable TSIDX Reduction"
-        fieldType: "checkbox"
-        defaultValue: false
-        helpText: "Shrinks time-series index files for older buckets to save disk at the cost of slower searches over that data"
+        - key: "enableTsidxReduction"
+          label: "Enable TSIDX Reduction"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Shrinks time-series index files for older buckets to save disk at the cost of slower searches over that data"
 
-      - key: "tsidxReductionPeriodDays"
-        label: "TSIDX Reduction After (days)"
-        fieldType: "number"
-        defaultValue: 30
-        validation:
-          min: 1
-        helpText: "Bucket age before TSIDX reduction applies (maps to timePeriodInSecBeforeTsidxReduction). Under 7 days triggers a warning."
+        - key: "tsidxReductionPeriodDays"
+          label: "TSIDX Reduction After (days)"
+          fieldType: "number"
+          defaultValue: 30
+          validation:
+            min: 1
+          helpText: "Bucket age before TSIDX reduction applies (maps to timePeriodInSecBeforeTsidxReduction). Under 7 days triggers a warning."
 
-  - name: "Storage Paths"
-    icon: "folder"
-    description: "Bucket locations (set at creation time only)"
-    fields:
-      - key: "homePath"
-        label: "Home Path (hot/warm)"
-        fieldType: "text"
-        helpText: "Optional. Prefer volume: references or $SPLUNK_DB (e.g. volume:hot/$_index_name/db). Defaults to $SPLUNK_DB/<index>/db."
+    - name: "Storage Paths"
+      icon: "folder"
+      description: "Bucket locations (set at creation time only)"
+      fields:
+        - key: "homePath"
+          label: "Home Path (hot/warm)"
+          fieldType: "text"
+          helpText: "Optional. Prefer volume: references or $SPLUNK_DB (e.g. volume:hot/$_index_name/db). Defaults to $SPLUNK_DB/<index>/db."
 
-      - key: "coldPath"
-        label: "Cold Path"
-        fieldType: "text"
-        helpText: "Optional. Prefer volume: references or $SPLUNK_DB. Defaults to $SPLUNK_DB/<index>/colddb."
+        - key: "coldPath"
+          label: "Cold Path"
+          fieldType: "text"
+          helpText: "Optional. Prefer volume: references or $SPLUNK_DB. Defaults to $SPLUNK_DB/<index>/colddb."
 
-      - key: "thawedPath"
-        label: "Thawed Path"
-        fieldType: "text"
-        helpText: "Optional. Cannot use volume: references. Defaults to $SPLUNK_DB/<index>/thaweddb."
+        - key: "thawedPath"
+          label: "Thawed Path"
+          fieldType: "text"
+          helpText: "Optional. Cannot use volume: references. Defaults to $SPLUNK_DB/<index>/thaweddb."
