@@ -10,44 +10,37 @@ The app also tracks the current Splunk Enterprise release lines
 
 ## Configuration types
 
-### `indexes` — Index configuration (`/services/data/indexes`)
+### Configuration ships as an app
 
-Targets: `indexer`, `cluster-manager` components.
+Splunk ships configuration **as an app**, and so does this app. There is one
+place to author a `.conf` file — the **App Contents** of a
+[`apps`](#apps--splunk-apps--add-ons-servicesappslocal-servicesappsappinstall)
+item — and it is packaged into that app's `default/` and installed as a real
+`.spl`.
 
-| Canvas field | Splunk REST parameter | Notes |
-|---|---|---|
-| `name` | `name` | Numbers, lowercase letters, `_`, `-`; cannot start with `_`/`-`; cannot contain `kvstore`; internal indexes (`_internal`, `_audit`, `_configtracker`, ...) rejected; built-in indexes (`main`, `history`, `summary`) warn |
-| `datatype` | `datatype` | `event` or `metric` — create-only, cannot be changed later |
-| `maxDataSizeMB` | `maxTotalDataSizeMB` | Total index cap; Splunk default 500000. >1 TB warns, >10 TB rejected |
-| `maxDataSizeMode` / `maxDataSizeCustomMB` | `maxDataSize` | `auto` (750 MB buckets), `auto_high_volume` (10 GB), or explicit 100–1048576 MB |
-| `frozenTimeDays` | `frozenTimePeriodInSecs` | Days × 86400; Splunk default 6 years. Frozen buckets are deleted unless archived |
-| `coldToFrozenDir` | `coldToFrozenDir` | Archive destination for frozen buckets |
-| `enableCompression` | `journalCompression` | `zstd` when enabled (rawdata is always compressed; this picks the codec) |
-| `enableTsidxReduction` / `tsidxReductionPeriodDays` | `enableTsidxReduction` / `timePeriodInSecBeforeTsidxReduction` | Reduction under 7 days warns |
-| `homePath`, `coldPath`, `thawedPath` | same | Create-only. `volume:`/`$SPLUNK_DB` recommended; `thawedPath` cannot use `volume:` |
+The separate `config-files` config type has been **removed** (v1.12.0). It wrote
+loose stanzas into an existing app's namespace over the REST
+`configs/conf-<file>` API, which lands them in that app's `local/` — the
+*user-owned* override layer that shadows `default/` and survives every upgrade —
+and it could carry nothing but `.conf` text: no `bin/` scripts, no
+`metadata/` permissions, no lookups, no modular-input `README/*.spec`. Nothing is
+lost by its removal: `apps` authors the same `.conf` catalog, in the correct
+layer, plus everything the REST configs API could never write.
 
-Deploy captures each pre-existing index's settings as `rollbackData`; rollback
-restores those settings and deletes indexes the deployment created.
+Indexes and roles are therefore authored as `indexes.conf` and `authorize.conf`
+files inside an app (the catalog templates carry the same attributes the retired
+`indexes`/`roles` forms exposed — `maxTotalDataSizeMB`,
+`frozenTimePeriodInSecs`, `maxDataSize`, `journalCompression` and storage paths;
+`importRoles`, `srchIndexesAllowed`/`Default`, `srchFilter` and the `srch*Quota`
+settings — including a `[default]` stanza for shared baselines).
 
-### `roles` — Role configuration (`/services/authorization/roles`)
-
-Targets: `search-head`, `cluster-manager` components.
-
-| Canvas field | Splunk REST parameter | Notes |
-|---|---|---|
-| `name` | `name` | No uppercase, spaces, colons, semicolons, or slashes. Reserved: `admin`, `power`, `user`, `can_delete`, `splunk-system-role` |
-| `capabilities` | `capabilities` (multi-value) | Checked against the documented capability list (unknown names warn); privileged capabilities (`admin_all_objects`, `edit_roles`, `edit_user`, `change_authentication`, `restart_splunkd`) warn |
-| `importedRoles` | `imported_roles` (multi-value) | Self-import rejected; importing `admin` warns |
-| `srchIndexesAllowed` / `srchIndexesDefault` | same (multi-value) | Wildcard `*` access warns |
-| `srchFilter` | `srchFilter` | SPL restriction applied to every search |
-| `srchDiskQuota` | `srchDiskQuota` | MB; Splunk default 100; 0 = unlimited |
-| `srchJobsQuota` | `srchJobsQuota` | Splunk default 3; 0 = unlimited; >100 warns |
-| `rtSrchJobsQuota` | `rtSrchJobsQuota` | Splunk default 6; 0 = unlimited; >100 warns |
-| `srchTimeWin` | `srchTimeWin` | Seconds; `-1` unset (default), `0` exempt from any window (warns) |
-| `defaultApp` | `defaultApp` | Landing app for the role |
-
-Multi-value parameters are sent as repeated form fields (Splunk's convention).
-Rollback restores captured role settings and deletes roles the deployment created.
+> Migrating from `config-files`: create an `apps` item whose **App ID** is the app
+> the stanzas belonged to, set **Install Source** to *Author files inline*, and add
+> the same files under **App Contents** (in `default/`). Deploy installs a package,
+> so it replaces that app's `default/` — it never touches the app's `local/`.
+> Stanzas that previously targeted the `system` namespace
+> (`$SPLUNK_HOME/etc/system/local`) have no app equivalent by design: ship them in
+> an app of your own instead of editing Splunk's system layer.
 
 ### `hec-tokens` — HTTP Event Collector tokens (`/servicesNS/admin/splunk_httpinput/data/inputs/http`)
 
@@ -68,7 +61,8 @@ addition to per-token existence/state.
 
 ### `apps` — Splunk apps & add-ons (`/services/apps/local`, `/services/apps/appinstall`)
 
-Targets: `search-head`, `indexer`, `deployment-server` components.
+Targets: `search-head`, `indexer`, `deployment-server`, `heavy-forwarder`,
+`cluster-manager` components.
 
 | Canvas field | Splunk REST parameter | Notes |
 |---|---|---|
@@ -86,16 +80,31 @@ Deploy captures each pre-existing app's metadata + enabled state as
 installed. Health checks verify every canvas app is installed and in its
 expected enabled/disabled state.
 
-**Authoring an app/TA inline** — set `source` to **Author files inline** and
-add files under **App Contents** (the `files` editor) to build the app/TA from
-scratch instead of a package. Each file has a top-level folder (`default/`,
-`local/`, `bin/`, `static/`, `metadata/`, `lookups/`, `lib/`, `README/`), a
-filename and its content. On deploy the app folder is created, then every
-`default/local *.conf` file is applied stanza-by-stanza over the REST configs
-API (`/servicesNS/nobody/<app>/configs/conf-<file>`). Non-conf assets
-(`bin/` scripts, `lib/` libraries, `static/` assets, `metadata/default.meta`)
-can't be written over REST — they're reported in the deploy result as
-requiring a packaged install.
+**Authoring an app/TA inline (this is where `.conf` files live)** — set `source`
+to **Author files inline** and add files under **App Contents** (the `appFiles`
+editor). Each file has a top-level folder (`default/`, `bin/`, `static/`,
+`lookups/`, `lib/`, `README/`), a filename picked from the standard Splunk
+`.conf` catalog (or typed), and its content, edited in Form or Text mode.
+
+On deploy, `lib/splunkPackage.ts` builds the item into a real, byte-reproducible
+`.spl` (gzipped ustar tar, explicit unix modes) and uploads it to
+`POST /services/apps/local`:
+
+```
+my_ta/default/app.conf          generated from the item (id, version, label, [triggers])
+my_ta/default/*.conf            the .conf files you authored
+my_ta/metadata/default.meta     generated from visibility + read/write roles
+my_ta/bin/*                     scripts (mode 700)
+my_ta/lookups/*, my_ta/README/* shipped verbatim
+```
+
+Because it is a package, the config lands in the app's `default/` — the layer
+Splunk intends configuration to occupy. `local/` is rejected by validation: it is
+the *user's* override layer, it shadows `default/` and it survives upgrades, so
+an app must never ship one. `validate` builds the package too, so an oversized
+archive, a path that will not fit a tar header, a `[default]` stanza in a standard
+conf, a duplicate key, an absolute path, or a custom conf missing its
+`[triggers] reload.<name>` entry all fail before a deploy is attempted.
 
 ## App-managed entities (pages)
 
@@ -105,18 +114,13 @@ pages rather than the Configuration Canvas:
 
 | Page | Route | Backing API | Editable |
 |---|---|---|---|
-| **Index Defaults** | `/config/indexes` → **Defaults** tab | `GET/POST/PUT/DELETE /indexes/defaults` | ✅ create / edit / delete |
-| **Role Defaults** | `/config/roles` → **Defaults** tab | `GET/POST/PUT/DELETE /roles/defaults` | ✅ create / edit / delete |
 | **Versions** | `/versions` | `GET /versions` | read-only (seeded release lines) |
+| **BYOL Infrastructure** | `/byol` | `GET/POST/PUT/DELETE /byol` | ✅ create / edit / delete |
 
-The index/role **defaults** render as a second **Defaults** tab beside
-**Configurations** on their configuration type's page (declared in the manifest
-as `nav: tab` with `parent: /config/<type>`). They are per-environment
-templates that seed new index and
-role configurations (retention, sizing, approval policy for indexes; default
-capabilities for roles). Every write route is gated by an app permission
-(`indexes`/`roles` `write`/`delete`), scoped to the caller's tenant, and
-verifies row ownership before update/delete.
+Index and role baselines are expressed directly in `indexes.conf` /
+`authorize.conf` in the **App Contents** of a Splunk App (each catalog template
+carries a `[default]` stanza for shared values), so the former **Index Defaults**
+and **Role Defaults** pages have been retired.
 
 ## Required setup
 

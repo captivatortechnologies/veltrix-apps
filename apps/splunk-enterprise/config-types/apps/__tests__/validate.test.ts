@@ -53,8 +53,23 @@ describe('Splunk Apps Validate Handler', () => {
     expect(result.errors).toHaveLength(0)
   })
 
-  it('rejects missing app id', async () => {
-    const result = await validate(makeCtx([{ name: 'sec1', fields: { ...validApp, name: '' } }]))
+  it('falls back to the configuration name when no app id is given', async () => {
+    // The configuration IS the app, so a blank App ID is not an error — it is
+    // derived from the configuration's own name.
+    const ctx = makeCtx([{ name: 'sec1', fields: { ...validApp, name: '' } }])
+    ctx.canvas.name = 'Acme SOC Add-on'
+
+    const result = await validate(ctx)
+
+    expect(result.errors.some((e) => e.code === 'required' && e.field.endsWith('.name'))).toBe(false)
+  })
+
+  it('rejects a missing app id only when the configuration name yields none', async () => {
+    const ctx = makeCtx([{ name: 'sec1', fields: { ...validApp, name: '' } }])
+    ctx.canvas.name = '!!!'
+
+    const result = await validate(ctx)
+
     expect(result.valid).toBe(false)
     expect(result.errors.some((e) => e.code === 'required' && e.field.endsWith('.name'))).toBe(true)
   })
@@ -265,5 +280,27 @@ describe('Splunk Apps Validate Handler', () => {
     )
     expect(result.warnings.some((w) => w.code === 'no_conf_files')).toBe(true)
   })
-})
+  it('ships an unnamed app under the name of the configuration', async () => {
+    // Authoring .conf files must not also mean inventing an app id: the
+    // configuration IS the app.
+    const { name, ...unnamed } = inlineApp
+    const ctx = makeCtx([{ name: 'sec1', fields: unnamed }])
+    ctx.canvas.name = 'Acme SOC Add-on'
 
+    const result = await validate(ctx)
+
+    expect(result.valid).toBe(true)
+    expect(result.errors.some((e) => e.field.endsWith('.name'))).toBe(false)
+  })
+
+  it('rejects only when the configuration name yields no usable app id', async () => {
+    const { name, ...unnamed } = inlineApp
+    const ctx = makeCtx([{ name: 'sec1', fields: unnamed }])
+    ctx.canvas.name = '!!!'
+
+    const result = await validate(ctx)
+
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.field.endsWith('.name') && e.code === 'required')).toBe(true)
+  })
+})

@@ -7,7 +7,9 @@
 //
 // The app is intentionally read-only on the platform side: configuration
 // authoring happens in the Configuration Canvas, and all writes to Splunk
-// Cloud go through the pipeline handlers (ACS API).
+// Cloud go through the pipeline handlers — the ACS API for indexes, HEC
+// tokens, IP allow lists and private apps, and the Splunk Cloud Platform
+// REST API (port 8089) for roles, which ACS cannot manage.
 // ========================================================================
 
 import type { FastifyInstance } from 'fastify'

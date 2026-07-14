@@ -1,0 +1,126 @@
+# =============================================================================
+# Canvas Template — Splunk Cloud Roles
+#
+# Declares ONE role — the item. Users add as many roles as they need.
+# Groups are PRESENTATIONAL ONLY: every field below belongs to the same flat
+# item record, which is what config-types/roles/deploy.ts reads as
+# `section.fields` for a single role.
+#
+# Field keys mirror Splunk's own authorize.conf / REST parameter names so the
+# mapping is obvious. Roles are the ONE thing on Splunk Cloud that ACS cannot
+# manage, so they go to the SAME endpoint Splunk Enterprise uses —
+# /services/authorization/roles — on the stack's management port 8089.
+# See lib/splunkRest.ts for the two prerequisites (Support must open 8089; the
+# caller's IP must be on the `search-api` allow list, which the "IP Allow Lists"
+# configuration type in this app manages).
+# =============================================================================
+
+id: "splunk-cloud-roles"
+name: "Role Configuration"
+toolType: "splunk-cloud"
+entityType: "roles"
+description: "Define Splunk Cloud roles (capabilities, inherited roles, searchable indexes, search filters, quotas) as code via the Splunk Cloud Platform REST API"
+
+item:
+  label: "Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "users"
+      description: "Role identity and inheritance"
+      fields:
+        - key: "name"
+          label: "Role Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-z0-9][a-z0-9_-]*$"
+            maxLength: 100
+            message: "Lowercase letters, numbers, underscores and hyphens only; must begin with a letter or number. Splunk role names cannot contain uppercase characters, spaces, colons or slashes."
+          helpText: "Unique role name on the stack. Splunk Cloud reserves sc_admin and splunk-system-role — they cannot be redefined here."
+
+        - key: "importedRoles"
+          label: "Inherited Roles"
+          fieldType: "tags"
+          helpText: "Roles whose capabilities, indexes and quotas this role inherits (maps to imported_roles). On Splunk Cloud, 'user' is the usual base."
+
+        - key: "capabilities"
+          label: "Capabilities"
+          fieldType: "tags"
+          helpText: "Capabilities granted directly to this role, e.g. search, schedule_search, rest_properties_get. Splunk Cloud exposes a reduced capability set — a capability the stack does not know is rejected at deploy."
+
+        - key: "defaultApp"
+          label: "Default App"
+          fieldType: "text"
+          validation:
+            pattern: "^[A-Za-z0-9][A-Za-z0-9_.-]*$"
+            message: "App id: letters, digits, underscores, dots and hyphens; must start with a letter or digit."
+          helpText: "App users with this role land in (maps to defaultApp), e.g. search"
+
+    - name: "Search Access"
+      icon: "search"
+      description: "Which data this role can see"
+      fields:
+        - key: "srchIndexesAllowed"
+          label: "Searchable Indexes"
+          fieldType: "tags"
+          helpText: "Indexes this role may search (maps to srchIndexesAllowed). Wildcards are supported — '*' grants every non-internal index and triggers a least-privilege warning."
+
+        - key: "srchIndexesDefault"
+          label: "Default Searched Indexes"
+          fieldType: "tags"
+          helpText: "Indexes searched when a query names none (maps to srchIndexesDefault). Every entry must be covered by Searchable Indexes, or those searches return nothing."
+
+        - key: "srchFilter"
+          label: "Search Filter"
+          fieldType: "text"
+          helpText: "SPL fragment ANDed into every search this role runs, e.g. host=web* — the primary way to enforce row-level access on Splunk Cloud"
+
+        - key: "srchTimeWin"
+          label: "Maximum Search Time Window (seconds)"
+          fieldType: "number"
+          validation:
+            min: -1
+          helpText: "Longest time span a search may cover. -1 = unlimited (maps to srchTimeWin)."
+
+    - name: "Quotas"
+      icon: "gauge"
+      description: "Resource limits applied to users holding this role"
+      fields:
+        - key: "srchJobsQuota"
+          label: "Concurrent Searches (per user)"
+          fieldType: "number"
+          validation:
+            min: 0
+          helpText: "Concurrent historical searches a user with this role may run (maps to srchJobsQuota)"
+
+        - key: "rtSrchJobsQuota"
+          label: "Concurrent Real-Time Searches (per user)"
+          fieldType: "number"
+          validation:
+            min: 0
+          helpText: "Concurrent real-time searches per user (maps to rtSrchJobsQuota)"
+
+        - key: "srchDiskQuota"
+          label: "Search Job Disk Quota (MB)"
+          fieldType: "number"
+          validation:
+            min: 0
+          helpText: "Disk space a user's search artifacts may occupy (maps to srchDiskQuota). 0 = unlimited."
+
+        - key: "cumulativeSrchJobsQuota"
+          label: "Concurrent Searches (whole role)"
+          fieldType: "number"
+          validation:
+            min: 0
+          helpText: "Concurrent historical searches across ALL users of this role (maps to cumulativeSrchJobsQuota). 0 = unlimited."
+
+        - key: "cumulativeRTSrchJobsQuota"
+          label: "Concurrent Real-Time Searches (whole role)"
+          fieldType: "number"
+          validation:
+            min: 0
+          helpText: "Concurrent real-time searches across ALL users of this role (maps to cumulativeRTSrchJobsQuota). 0 = unlimited."

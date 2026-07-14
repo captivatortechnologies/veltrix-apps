@@ -285,6 +285,32 @@ test('canvas: item.identityField that is not required warns', () => {
   )
 })
 
+test('canvas: identityDerived silences the not-required warning', () => {
+  // The handler derives the identity when the user leaves it blank (a Splunk app
+  // named after its configuration), so an empty identity is intended.
+  const derived = ITEM_CANVAS
+    .replace('          fieldType: text\n          required: true', '          fieldType: text')
+    .replace('  identityField: name', '  identityField: name\n  identityDerived: true')
+  const result = validateApp(makeApp({ 'config-types/configs/canvas.yaml': derived }))
+  assert.equal(
+    warningsMatching(result, /item\.identityField "name" should be required: true/).length,
+    0,
+  )
+  assert.equal(result.errors.length, 0)
+})
+
+test('canvas: identityDerived on a required identity field is an error', () => {
+  const bad = ITEM_CANVAS.replace(
+    '  identityField: name',
+    '  identityField: name\n  identityDerived: true',
+  )
+  const result = validateApp(makeApp({ 'config-types/configs/canvas.yaml': bad }))
+  assert.equal(
+    errorsMatching(result, /identityDerived is true but identityField "name" is required/).length,
+    1,
+  )
+})
+
 test('canvas: an item must declare at least one group', () => {
   const bad = 'id: c\nname: C\ntoolType: fixture-app\nentityType: configs\nitem:\n  label: Config\n  groups: []\n'
   const result = validateApp(makeApp({ 'config-types/configs/canvas.yaml': bad }))

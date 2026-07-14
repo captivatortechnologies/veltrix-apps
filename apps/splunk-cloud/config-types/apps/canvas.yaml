@@ -29,6 +29,8 @@ description: "Author Splunk Cloud private apps and add-ons as code — built to 
 item:
   label: "App"
   identityField: "name"
+  # Blank App ID is intended: the app is named after the configuration.
+  identityDerived: true
   repeatable: true
   minItems: 1
   maxItems: 100
@@ -40,12 +42,11 @@ item:
         - key: "name"
           label: "App ID"
           fieldType: "text"
-          required: true
           validation:
             pattern: "^[A-Za-z][A-Za-z0-9._-]*$"
             maxLength: 100
             message: "Letters, digits, '.', '_' and '-' only; must start with a letter. This is the app's folder name inside the package and its [package] id."
-          helpText: "The app/add-on folder id (e.g. 'TA_acme_firewall'). It becomes the single top-level directory in the .spl and cannot be changed without reinstalling."
+          helpText: "Optional — defaults to this configuration's name. The configuration IS the app: the files below ship as a private app of this id, so authoring .conf files does not mean inventing a separate id. Set one explicitly to target an existing app, or when this configuration declares more than one app."
 
         - key: "label"
           label: "Display Name"

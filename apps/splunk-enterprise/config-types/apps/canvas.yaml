@@ -6,6 +6,13 @@
 # item record, which is what config-types/apps/deploy.ts reads as
 # `section.fields` for a single app.
 #
+# This is ALSO where .conf files are authored: Splunk ships configuration as an
+# app, so `appFiles` (App Contents) carries default/*.conf, bin/ scripts,
+# metadata/, lookups/ and README/ specs, and deploy builds them into a real .spl
+# that is installed. There is no separate "config files" type — loose stanzas
+# written over the REST configs API land in the target app's user-owned local/,
+# which shadows default/ and survives every upgrade.
+#
 # Field keys must match what config-types/apps/validate.ts checks and what
 # config-types/apps/deploy.ts maps to the Splunk apps REST endpoints
 # (/services/apps/local, /services/apps/appinstall, .../acl).
@@ -15,11 +22,13 @@ id: "splunk-enterprise-apps"
 name: "Splunk App Configuration"
 toolType: "splunk-enterprise"
 entityType: "apps"
-description: "Define Splunk apps and add-ons (install source, version, visibility, state, upgrade policy) as code"
+description: "Define Splunk apps and add-ons as code — install source, version, visibility, state, upgrade policy, and the .conf files, scripts and lookups the app ships"
 
 item:
   label: "App"
   identityField: "name"
+  # Blank App ID is intended: the app is named after the configuration.
+  identityDerived: true
   repeatable: true
   minItems: 1
   maxItems: 200
@@ -31,12 +40,11 @@ item:
         - key: "name"
           label: "App ID"
           fieldType: "text"
-          required: true
           validation:
             pattern: "^[A-Za-z0-9][A-Za-z0-9_-]*$"
             maxLength: 128
             message: "Letters, digits, underscores, and hyphens only; must start with a letter or digit. This is the app's folder name in $SPLUNK_HOME/etc/apps."
-          helpText: "The app/add-on folder id (e.g. 'Splunk_TA_nix', 'splunk-add-on-for-aws')."
+          helpText: "Optional — defaults to this configuration's name. The configuration IS the app: the files below ship as an app of this id, so authoring .conf files does not mean inventing a separate id. Set one explicitly to target an existing app (the deploy installs a package, so it REPLACES that app's default/ — it never touches local/, the user's own override layer), or when this configuration declares more than one app, since they would otherwise all derive the same id."
 
         - key: "label"
           label: "Display Name"
@@ -65,7 +73,7 @@ item:
               label: "Local package path"
             - value: "inline"
               label: "Author files inline (build the app/TA)"
-          helpText: "How the platform installs/upgrades the package on the target. Choose 'Author files inline' to build the app/TA from configuration files you provide below."
+          helpText: "How the platform installs/upgrades the package on the target. Choose 'Author files inline' to BUILD the app/TA from the App Contents below — that is how .conf files are shipped: they are packaged into the app's default/ and installed as a real .spl."
 
         - key: "sourceRef"
           label: "Source Reference"
@@ -123,7 +131,7 @@ item:
 
     - name: "App Contents"
       icon: "folder-tree"
-      description: "Author the app/TA folder structure (used when Install Source is 'Author files inline')"
+      description: "Author this app's .conf files and assets — its folder structure. Splunk ships configuration as an app, so this is where indexes.conf, inputs.conf, props/transforms, authorize.conf and everything else live (used when Install Source is 'Author files inline')."
       fields:
         - key: "appFiles"
           label: "Files"
@@ -191,12 +199,21 @@ item:
               description: "Manage and configure index settings"
               template: |
                 # indexes.conf — index definitions
+                # [default] applies to every index stanza below (shared baseline).
+                [default]
+                maxTotalDataSizeMB = 500000          # freeze oldest buckets past this size
+                frozenTimePeriodInSecs = 7776000     # 90 days; frozen buckets are DELETED unless coldToFrozenDir is set
+                maxDataSize = auto                   # auto (750MB) | auto_high_volume (10GB) | <MB>
+                journalCompression = zstd            # better ratio than gzip; recommended for indexes >100 GB
+
                 [example_index]
+                datatype   = event                   # event | metric (set at creation time only)
                 homePath   = $SPLUNK_DB/example_index/db
                 coldPath   = $SPLUNK_DB/example_index/colddb
                 thawedPath = $SPLUNK_DB/example_index/thaweddb
-                maxTotalDataSizeMB = 500000
-                frozenTimePeriodInSecs = 7776000
+                # coldToFrozenDir = /archive/example_index      # archive frozen buckets instead of deleting
+                # enableTsidxReduction = 1                       # shrink tsidx on older buckets to save disk
+                # timePeriodInSecBeforeTsidxReduction = 2592000  # bucket age (30d) before reduction applies
             - value: "outputs.conf"
               description: "Set up forwarding behavior"
               template: |
@@ -232,10 +249,20 @@ item:
               description: "Configure roles, including granular access controls"
               template: |
                 # authorize.conf — roles and capabilities
+                # [default] applies to every role stanza below (shared quotas).
+                [default]
+                srchDiskQuota = 100        # MB of disk for a user's search jobs (0 = unlimited)
+                srchJobsQuota = 3          # concurrent historical searches per user
+                rtSrchJobsQuota = 6        # concurrent real-time searches per user
+
                 [role_example]
-                importRoles = user
-                srchIndexesAllowed = main
-                srchIndexesDefault = main
+                importRoles = user                    # inherit capabilities from these roles
+                srchIndexesAllowed = main             # searchable indexes (wildcards supported)
+                srchIndexesDefault = main             # searched when a query names no index
+                # srchFilter = index=main             # SPL filter applied to every search this role runs
+                # srchTimeWin = -1                    # max search time span in secs (-1 = unset)
+                # defaultApp = search                 # app users with this role land in
+                # schedule_search = enabled           # grant a capability: <capability> = enabled
             - { value: "alert_actions.conf", description: "Create an alert action" }
             - value: "savedsearches.conf"
               description: "Define reports, scheduled reports, and alerts"
@@ -308,4 +335,4 @@ item:
             - { value: "workload_pools.conf", description: "Configure workload pools (compute/memory resource groups)" }
             - { value: "workload_rules.conf", description: "Workload rules: access and priority for workload pools" }
             - { value: "agent_management.conf", description: "Configure the Agent Management feature" }
-          helpText: "Configuration files (default/local *.conf), scripts and commands (bin/), libraries (lib/), static assets (static/), ACLs (metadata/default.meta), lookups (lookups/) and .conf specs (README/). For default/ and local/, pick from the standard Splunk .conf files (with descriptions) or type a custom name. On deploy, default/local *.conf files are applied over the Splunk REST configs API; bin/static/lib/metadata assets are reported as requiring a packaged install."
+          helpText: "Configuration files (default/*.conf), scripts and commands (bin/), libraries (lib/), static assets (static/), lookups (lookups/) and .conf specs (README/). Pick a standard Splunk .conf file from the catalog (with descriptions) or type a custom name, then author its stanzas in Form or Text mode. On deploy every file here is packaged into a real .spl and installed, so .conf files ship in the app's default/ — the layer Splunk intends configuration to live in. Put .conf files in default/, never local/: local/ is the USER's override layer, it shadows default/ and survives every upgrade, so a package must never write it (validation rejects it). default/app.conf and metadata/default.meta are generated from the fields above — authoring them here has no effect."

@@ -9,69 +9,6 @@
 
 export type Row = Record<string, any>
 
-export interface IndexDefaultDto {
-  id: string
-  name: string
-  maxEventSize: number
-  enableCompression: boolean
-  retentionPeriod: number
-  searchablePeriod: number
-  enableTsidx: boolean
-  frozenTimePeriod: number
-  requireApproval: boolean
-  customerId: string
-  createdAt: Date
-  updatedAt: Date
-  environments: unknown[]
-}
-
-export function mapIndexDefault(r: Row): IndexDefaultDto {
-  return {
-    id: r.id,
-    name: r.name,
-    maxEventSize: r.max_event_size,
-    enableCompression: r.enable_compression,
-    retentionPeriod: r.retention_period,
-    searchablePeriod: r.searchable_period,
-    enableTsidx: r.enable_tsidx,
-    frozenTimePeriod: r.frozen_time_period,
-    requireApproval: r.require_approval,
-    customerId: r.customer_id,
-    createdAt: r.created_at,
-    updatedAt: r.updated_at,
-    // Environment tags reference the PLATFORM Tag entity; the app stores only
-    // tag_id and never joins across the boundary, so this is populated by the
-    // (future) tag-management path, empty until then.
-    environments: [],
-  }
-}
-
-export interface RoleDefaultDto {
-  id: string
-  name: string
-  description: string | null
-  defaultPermissions: string[]
-  requireApproval: boolean
-  customerId: string
-  createdAt: Date
-  updatedAt: Date
-  environments: unknown[]
-}
-
-export function mapRoleDefault(r: Row): RoleDefaultDto {
-  return {
-    id: r.id,
-    name: r.name,
-    description: r.description ?? null,
-    defaultPermissions: r.default_permissions ?? [],
-    requireApproval: r.require_approval,
-    customerId: r.customer_id,
-    createdAt: r.created_at,
-    updatedAt: r.updated_at,
-    environments: [],
-  }
-}
-
 export interface SplunkVersionDto {
   id: string
   version: string

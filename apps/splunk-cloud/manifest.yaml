@@ -1,12 +1,14 @@
 id: splunk-cloud
 name: Splunk Cloud Platform
-version: 1.6.0
+version: 1.7.0
 vendor: Veltrix
 description: >
   Manage Splunk Cloud Platform configurations as code through the
   Admin Config Service (ACS) API. Includes index management, HTTP Event
   Collector (HEC) tokens, IP allow lists, and private apps/add-ons
   (built to a .spl, vetted by AppInspect, installed through ACS).
+  Roles are managed through the Splunk Cloud Platform REST API on the
+  stack's management port 8089 — ACS cannot manage identity.
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-cloud
@@ -46,11 +48,17 @@ permissions:
       actions: [read, write, delete]
       description: >
         Build, AppInspect-vet and install Splunk Cloud private apps/add-ons via ACS
+    - resource: roles
+      actions: [read, write, delete]
+      description: >
+        Manage Splunk Cloud roles (capabilities, inherited roles, searchable indexes,
+        search filters, quotas) via the Splunk Cloud Platform REST API on port 8089 —
+        ACS cannot manage identity, and authorize.conf is on the AppInspect deny list
 
 pipeline:
   configurationTypes:
     - id: indexes
-      name: Index Configuration
+      name: Indexes
       description: Splunk Cloud index definitions (datatype, searchable retention, sizing, DDAA/DDSS archival)
       canvasTemplate: config-types/indexes/canvas.yaml
       defaultConfig: config-types/indexes/defaults.yaml
@@ -67,7 +75,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: hec-tokens
-      name: HEC Token Configuration
+      name: HEC Tokens
       description: HTTP Event Collector token definitions (default index, allowed indexes, acknowledgement)
       canvasTemplate: config-types/hec-tokens/canvas.yaml
       defaultConfig: config-types/hec-tokens/defaults.yaml
@@ -84,7 +92,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: ip-allowlists
-      name: IP Allow List Configuration
+      name: IP Allow Lists
       description: Per-feature IP allow lists (search-api, hec, s2s, search-ui, idm-ui, idm-api, acs)
       canvasTemplate: config-types/ip-allowlists/canvas.yaml
       defaultConfig: config-types/ip-allowlists/defaults.yaml
@@ -101,7 +109,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: apps
-      name: App Configuration
+      name: Splunk Apps
       description: >
         Splunk Cloud private apps and add-ons — authored as files, built to a .spl,
         vetted by AppInspect (failure/error/manual_check all block install) and
@@ -118,6 +126,37 @@ pipeline:
       targets:
         componentTypes: [splunk-cloud-stack]
         requiresCredential: true
+        requiresConnectivity: false
+
+    # Roles are the ONE object here that does not go through ACS: ACS cannot
+    # manage identity, and authorize.conf is on Splunk Cloud's AppInspect deny
+    # list, so roles cannot ship inside a private app either. They therefore use
+    # the SAME endpoint Splunk Enterprise uses — /services/authorization/roles —
+    # on the stack's management port 8089. Two prerequisites, both surfaced in
+    # validate/deploy/healthCheck messages: Splunk Support must open port 8089
+    # (closed by default), and the caller's IP must be on the stack's `search-api`
+    # IP allow list — which the `ip-allowlists` type above manages.
+    - id: roles
+      name: Roles
+      description: >
+        Splunk Cloud roles (capabilities, inherited roles, searchable indexes,
+        search filters, quotas), managed over the Splunk Cloud Platform REST API
+        on the stack's management port 8089 — ACS cannot manage identity
+      canvasTemplate: config-types/roles/canvas.yaml
+      defaultConfig: config-types/roles/defaults.yaml
+      handlers:
+        validate: config-types/roles/validate
+        deploy: config-types/roles/deploy
+        rollback: config-types/roles/rollback
+        healthCheck: config-types/roles/healthCheck
+        driftDetect: config-types/roles/driftDetect
+        getStatus: config-types/roles/getStatus
+      targets:
+        componentTypes: [splunk-cloud-stack]
+        requiresCredential: true
+        # No connectivity provider: the stack's REST API is reached directly over
+        # the public internet, exactly like ACS — what gates it is the stack's
+        # `search-api` IP allow list, not a tunnel.
         requiresConnectivity: false
 
   pipelineEvents:

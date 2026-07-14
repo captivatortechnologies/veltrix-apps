@@ -1,6 +1,6 @@
 import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
 import { buildSplunkUrl, buildAuthHeader, getEntityContent, postForm, splunkRequest } from '../../lib/splunkApi'
-import { extractAppSpec, buildAppPackage, buildInstallUpload } from '../../lib/splunkPackage'
+import { extractAppSpec, buildAppPackage, buildInstallUpload, resolveAppId } from '../../lib/splunkPackage'
 
 /**
  * Deploy Splunk app / add-on configuration via the REST API.
@@ -49,7 +49,10 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   try {
     for (const section of canvas.sections) {
       const fields = section.fields
-      const appId = fields.name as string
+      // The app IS the configuration: an unnamed item ships under the
+      // configuration's own name, so authoring .conf files never means
+      // inventing an app id as well.
+      const appId = resolveAppId(fields, canvas.name)
       if (!appId) continue
 
       const appPath = `${APP_BASE_PATH}/${encodeURIComponent(appId)}`
@@ -77,7 +80,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         // metadata/ permissions, a lookup, or a modular input's README spec — and
         // it lands the config in default/, not the user-owned local/ (which
         // shadows default/ and survives every upgrade).
-        const { spec } = extractAppSpec(fields, { build: canvas.version })
+        const { spec } = extractAppSpec(fields, { build: canvas.version, configName: canvas.name })
         const pkg = buildAppPackage(spec)
         const upload = buildInstallUpload(pkg, { update: Boolean(existing) })
 
@@ -154,12 +157,4 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     }
   }
 }
-
-// ---------------------------------------------------------------------------
-// Inline app build (source = 'inline') — apply authored files over REST.
-// The conf parsing/stanza-upsert helpers are shared with the Config Files
-// config type; re-export parseConf so existing tests keep importing it here.
-// ---------------------------------------------------------------------------
-
-export { parseConf } from '../../lib/splunkConf'
 

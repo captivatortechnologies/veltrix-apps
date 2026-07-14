@@ -1,25 +1,58 @@
 # Splunk Cloud Platform (Veltrix App)
 
-Manage Splunk Cloud Platform configuration as code through the **Admin Config
-Service (ACS) API** — Splunk's supported administration API for Splunk Cloud
-stacks. This app treats your indexes, HEC tokens, and IP allow lists as
-versioned configuration flowing through the Veltrix pipeline: validate →
-deploy → health check → drift detect → rollback.
+Manage Splunk Cloud Platform configuration as code, primarily through the
+**Admin Config Service (ACS) API** — Splunk's supported administration API for
+Splunk Cloud stacks. This app treats your indexes, HEC tokens, IP allow lists,
+private apps and roles as versioned configuration flowing through the Veltrix
+pipeline: validate → deploy → health check → drift detect → rollback.
 
-Unlike the `splunk-enterprise` app (which talks to splunkd management ports
-over your connectivity providers), Splunk Cloud is administered through the
-public ACS endpoint — no tunnels or connectivity providers are required.
+It manages the **same objects** as the `splunk-enterprise` app. What differs is
+*how* each one is applied — see [How Cloud differs from
+Enterprise](#how-cloud-differs-from-enterprise).
 
 ## Configuration types
 
-| Type | What it manages | ACS endpoints |
-|------|-----------------|---------------|
-| `indexes` | Event/metric indexes: searchable retention, size caps, DDAA/DDSS archival | `GET/POST /indexes`, `GET/PATCH/DELETE /indexes/{name}` |
-| `hec-tokens` | HTTP Event Collector tokens: default/allowed indexes, source/sourcetype, acknowledgement, enablement | `GET/POST /inputs/http-event-collectors`, `GET/PATCH/DELETE /inputs/http-event-collectors/{name}` |
-| `ip-allowlists` | Per-feature IP allow lists (`search-api`, `hec`, `s2s`, `search-ui`, `idm-ui`, `idm-api`, `acs`) | `GET/POST/DELETE /access/{feature}/ipallowlists` |
-| `apps` | Private apps/add-ons authored as files, built to a `.spl`, vetted by AppInspect, installed via ACS | Victoria: `GET/POST /apps/victoria`, `GET/DELETE /apps/victoria/{app}` · Classic: `GET/POST /apps`, `GET/DELETE /apps/{app}` |
+| Type | What it manages | API | Endpoints |
+|------|-----------------|-----|-----------|
+| `indexes` | Event/metric indexes: searchable retention, size caps, DDAA/DDSS archival | ACS | `GET/POST /indexes`, `GET/PATCH/DELETE /indexes/{name}` |
+| `hec-tokens` | HTTP Event Collector tokens: default/allowed indexes, source/sourcetype, acknowledgement, enablement | ACS | `GET/POST /inputs/http-event-collectors`, `GET/PATCH/DELETE /inputs/http-event-collectors/{name}` |
+| `ip-allowlists` | Per-feature IP allow lists (`search-api`, `hec`, `s2s`, `search-ui`, `idm-ui`, `idm-api`, `acs`). Cloud-only — there is no Enterprise equivalent | ACS | `GET/POST/DELETE /access/{feature}/ipallowlists` |
+| `apps` | Private apps/add-ons authored as files, built to a `.spl`, vetted by AppInspect, installed via ACS. **This is also where every `.conf` file ships** | ACS + AppInspect | Victoria: `GET/POST /apps/victoria`, `GET/DELETE /apps/victoria/{app}` · Classic: `GET/POST /apps`, `GET/DELETE /apps/{app}` |
+| `roles` | Roles: capabilities, inherited roles, searchable indexes, search filters, quotas | **Splunk Cloud Platform REST API** (ACS cannot manage identity) | `GET/POST /services/authorization/roles`, `GET/POST/DELETE /services/authorization/roles/{role}` |
 
-All endpoints are relative to `https://admin.splunk.com/{stack}/adminconfig/v2`.
+ACS endpoints are relative to `https://admin.splunk.com/{stack}/adminconfig/v2`.
+REST endpoints are relative to `https://{stack}.splunkcloud.com:8089` — the
+stack's own management port, with its own prerequisites and its own token (see
+[`roles`](#roles-fields) below).
+
+## How Cloud differs from Enterprise
+
+Splunk Cloud manages the same objects as Splunk Enterprise. Splunk, not you,
+runs the stack — and that changes only *how* a change is applied:
+
+| Object | Enterprise applies it via | Cloud applies it via |
+|--------|---------------------------|----------------------|
+| Indexes | REST `/services/data/indexes` | **ACS** `/indexes` |
+| HEC tokens | REST `/servicesNS/…/data/inputs/http` | **ACS** `/inputs/http-event-collectors` |
+| Splunk apps (and all `.conf` files) | build a `.spl` → install | build a `.spl` → **AppInspect vetting** → ACS |
+| Roles | REST `/services/authorization/roles` | **the same REST endpoint**, on the stack's port 8089 |
+| IP allow lists | n/a (your network is yours) | **ACS** — Cloud-only |
+| BYOL, versions, upgrades, access servers | Enterprise-only | **absent by design** — Splunk owns the infrastructure, the release train and the upgrade window, so there is nothing to model |
+
+Three consequences worth internalizing:
+
+1. **ACS is not a REST proxy.** It covers indexes, HEC, IP allow lists, outbound
+   ports, limits, maintenance windows, private apps and tokens — and nothing
+   else. Identity (users, roles) is out of scope, permanently.
+2. **Apps are vetted, not just installed.** Every `.conf` file reaches a Cloud
+   stack inside a private app, and every private app must pass AppInspect with
+   `failure == 0 && error == 0 && manual_check == 0`. A `manual_check` finding
+   blocks self-service installation *entirely*.
+3. **Roles reach the stack through the only door left open.** ACS cannot manage
+   them, and they cannot ship inside an app either — `authorize.conf` is on
+   Splunk Cloud's AppInspect deny list, so a package containing it fails
+   vetting. The Splunk Cloud Platform REST API is the only supported route, and
+   it has prerequisites you must arrange (below).
 
 ## Prerequisites
 
@@ -37,6 +70,22 @@ All endpoints are relative to `https://admin.splunk.com/{stack}/adminconfig/v2`.
    - Tokens expire. For automated rotation, ACS exposes
      `POST /adminconfig/v2/tokens` (supports ephemeral tokens that expire
      after 6 hours — useful for CI/CD-style access).
+4. **For the `roles` type only** — REST API access to the stack, which is *not*
+   enabled by default:
+   - **Splunk Support must open management port 8089** for your stack. There is
+     no self-service way to do this; file a support case.
+   - **Your egress IP must be on the stack's `search-api` IP allow list.**
+     Manage it with this app's `ip-allowlists` configuration type — declare a
+     `search-api` section containing the CIDR your Veltrix deployment egresses
+     from, and deploy it *before* your first roles deploy.
+   - **A Splunk authentication token** (Splunk Web → **Settings → Tokens**),
+     sent as `Authorization: Bearer …` and stored in the credential's **API
+     token** field. A Splunk Web token created by an `sc_admin` user authenticates
+     *both* ACS and REST, which is why one credential field serves both. An
+     **ephemeral token minted by ACS** (`POST /adminconfig/v2/tokens`) is an ACS
+     stack token and does **not** authenticate the REST API — if you rotate that
+     way, keep a separate credential for `roles`.
+   - **Free-trial stacks cannot use the REST API at all.**
 
 ## App settings
 
@@ -49,8 +98,8 @@ All endpoints are relative to `https://admin.splunk.com/{stack}/adminconfig/v2`.
 
 ## Canvas model
 
-Each canvas **section** describes one resource (one index, one HEC token, or
-one feature's allow list). Add a section per resource.
+Each canvas **section** describes one resource (one index, one HEC token, one
+feature's allow list, one private app, one role). Add a section per resource.
 
 ### `indexes` fields
 
@@ -162,6 +211,37 @@ and write access that omits `sc_admin`. `web.conf` is allowed only for
 `[endpoint:*]`/`[expose:*]`, `server.conf` only for `[shclustering]
 conf_replication_include.*` and `[diag] EXCLUDE-*`.
 
+### `roles` fields
+
+One item = one role. Field keys are Splunk's own `authorize.conf` / REST
+parameter names, and the role model is **identical to Splunk Enterprise's** —
+only the transport differs.
+
+| Field | Maps to | Constraint |
+|-------|---------|-----------|
+| `name` | `name` | Required. Lowercase letters, numbers, `_`, `-`; must begin with a letter or number; max 100 chars (Splunk rejects uppercase, spaces, colons, slashes). `sc_admin` and `splunk-system-role` are **reserved by Splunk Cloud** and rejected — inherit from them instead. Redefining a built-in (`admin`, `power`, `user`, …) warns. |
+| `importedRoles` | `imported_roles` | Roles whose capabilities, indexes and quotas are inherited. A role may not inherit from itself. |
+| `capabilities` | `capabilities` | Capabilities granted directly. Splunk Cloud exposes a **reduced** capability set — a capability the stack does not know is rejected by the stack at deploy. A role with no capabilities *and* no inherited roles warns. |
+| `srchIndexesAllowed` | `srchIndexesAllowed` | Searchable indexes; wildcards supported. `*` warns (least privilege). |
+| `srchIndexesDefault` | `srchIndexesDefault` | Indexes searched when a query names none. Every entry must be covered by `srchIndexesAllowed` (wildcard-aware), or un-qualified searches silently return nothing — this is an **error**. |
+| `srchFilter` | `srchFilter` | SPL fragment ANDed into every search the role runs — the primary row-level access control on Cloud. |
+| `srchTimeWin` | `srchTimeWin` | Max search time span, seconds. `-1` = unlimited. |
+| `defaultApp` | `defaultApp` | App users with this role land in. |
+| `srchJobsQuota`, `rtSrchJobsQuota`, `srchDiskQuota` | same | Per-user quotas. Non-negative integers. |
+| `cumulativeSrchJobsQuota`, `cumulativeRTSrchJobsQuota` | same | Role-wide quotas across all its users. `0` = unlimited. |
+
+A field left blank on the canvas is **not sent**, so the role keeps whatever it
+inherits or already has — this app only manages what the canvas declares.
+
+**Failures name the prerequisites.** Because a closed port 8089 and a missing
+`search-api` allow-list entry both surface as an opaque connection error,
+`deploy`, `rollback` and `healthCheck` never report a bare "fetch failed": every
+connection failure is rewritten to name both prerequisites, a 401 says the
+Splunk token (not the ACS token) was rejected, and a 403 names the capability
+required (`edit_roles` / `edit_roles_grantable`; `sc_admin` has it). `healthCheck`'s
+first check *is* the reachability probe, so it is the fastest way to confirm
+Support has opened the port and your IP is allow-listed.
+
 ## Pipeline semantics
 
 - **deploy** captures the prior state of every touched resource and returns
@@ -220,6 +300,23 @@ FedRAMP stacks use `https://admin.splunkcloudgc.com` (Classic only).
 - Vetting is slow and rate-limited: every deploy of an app re-submits the package
   to AppInspect.
 
+### `roles` limitations
+
+- **Not self-service.** Port 8089 stays closed until Splunk Support opens it, and
+  the caller's IP must be on the `search-api` allow list. Both are prerequisites
+  this app can *tell* you about (and, for the allow list, *manage*) but cannot
+  grant.
+- **Free-trial stacks cannot use the REST API**, so `roles` cannot be deployed to
+  one at all.
+- Roles are **never deleted by deploy** — removing a role from the canvas leaves
+  it on the stack (rollback only deletes roles the same deployment created).
+- **Users are not managed** (ACS cannot, and this app does not yet reach
+  `/services/authentication/users`), so a role deployed here has no members until
+  someone is assigned to it in Splunk Web or via your IdP/SAML group mapping.
+- Splunk Cloud exposes a **reduced capability set** versus Enterprise. Validation
+  checks capability *syntax*, not existence — an unknown capability is rejected by
+  the stack at deploy time, with Splunk's own message surfaced verbatim.
+
 ## Future work
 
 Natural next configuration types, all ACS-manageable:
@@ -231,8 +328,10 @@ Natural next configuration types, all ACS-manageable:
 - **Splunkbase app installation** — `POST /apps/victoria` with `splunkbaseID`
   and an `X-Splunkbase-Authorization` token (the `apps` type covers private apps)
 - **App permissions/export** (Victoria only) — `GET/PATCH /apps/victoria/{app}/permissions`
-- **Users, roles, capabilities** and **limits.conf** (Victoria only) —
-  `/limits`, `/limits/{stanza}`
+- **limits.conf** (Victoria only) — `/limits`, `/limits/{stanza}`
+- **Users** — like `roles`, ACS cannot manage them; they would go through the
+  stack REST API (`/services/authentication/users`) with the same two
+  prerequisites as `roles`
 
 ## Research sources
 
@@ -247,6 +346,11 @@ Natural next configuration types, all ACS-manageable:
 - [Manage private apps in Splunk Cloud Platform (ACS)](https://help.splunk.com/en/splunk-cloud-platform/administer/admin-config-service-manual/10.1.2507/administer-splunk-cloud-platform-using-the-admin-config-service-acs-api/manage-private-apps-in-splunk-cloud-platform)
 - [Splunk AppInspect API reference](https://dev.splunk.com/enterprise/reference/appinspect/appinspectapiepref/)
 - [Vet a private app for Splunk Cloud (AppInspect API)](https://dev.splunk.com/enterprise/docs/releaseapps/cloudvetting/)
+- [Access requirements and limitations for the Splunk Cloud Platform REST API](https://help.splunk.com/en/splunk-cloud-platform/leverage-rest-apis/rest-api-tutorials/9.3.2408/rest-api-tutorials/access-requirements-and-limitations-for-the-splunk-cloud-platform-rest-api)
+  — the source for the `roles` prerequisites: port 8089 opened by Support, the
+  caller's IP on the `search-api` allow list, token auth, no free-trial stacks
+- [REST API reference: authorization/roles](https://help.splunk.com/en/splunk-enterprise/rest-api-reference/9.4/access-control-endpoint-descriptions/access-control-endpoint-descriptions#authorization-roles)
+- [Define roles on the Splunk platform with capabilities](https://help.splunk.com/en/splunk-cloud-platform/administer/manage-splunk-cloud-platform-users-and-roles/9.3.2408/manage-splunk-cloud-platform-users-and-roles/define-roles-on-the-splunk-platform-with-capabilities)
 
 ## License
 

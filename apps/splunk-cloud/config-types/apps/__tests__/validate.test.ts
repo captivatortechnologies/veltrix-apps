@@ -60,8 +60,23 @@ describe('Splunk Cloud Apps Validate Handler', () => {
     expect(result.errors).toHaveLength(0)
   })
 
-  it('rejects a missing app id', async () => {
-    const result = await validate(makeCtx([{ name: 'sec1', fields: { ...validApp, name: '' } }]))
+  it('falls back to the configuration name when no app id is given', async () => {
+    // The configuration IS the app, so a blank App ID is not an error — it is
+    // derived from the configuration's own name.
+    const ctx = makeCtx([{ name: 'sec1', fields: { ...validApp, name: '' } }])
+    ctx.canvas.name = 'Acme SOC Add-on'
+
+    const result = await validate(ctx)
+
+    expect(result.errors.some((e) => e.code === 'required' && e.field.endsWith('.name'))).toBe(false)
+  })
+
+  it('rejects a missing app id only when the configuration name yields none', async () => {
+    const ctx = makeCtx([{ name: 'sec1', fields: { ...validApp, name: '' } }])
+    ctx.canvas.name = '!!!'
+
+    const result = await validate(ctx)
+
     expect(result.valid).toBe(false)
     expect(result.errors.some((e) => e.code === 'required' && e.field.endsWith('.name'))).toBe(true)
   })

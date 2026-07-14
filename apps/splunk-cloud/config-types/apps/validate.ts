@@ -1,5 +1,5 @@
 import type { CanvasSnapshot, PipelineContext, ValidationResult } from '@veltrixsecops/app-sdk'
-import { extractAppSpec, parseConf, validateAppSpec, type AppPackageSpec } from '../../lib/splunkPackage'
+import { extractAppSpec, parseConf, validateAppSpec, type AppPackageSpec, resolveAppId } from '../../lib/splunkPackage'
 
 /**
  * Validate Splunk Cloud private app / add-on configurations.
@@ -55,7 +55,7 @@ export interface CloudAppSpec {
 export function extractCloudAppSpecs(canvas: CanvasSnapshot): CloudAppSpec[] {
   return (canvas.sections ?? []).map((section) => {
     const fields = section.fields ?? {}
-    const { spec } = extractAppSpec(fields, { build: canvas.version })
+    const { spec } = extractAppSpec(fields, { build: canvas.version, configName: canvas.name })
     return {
       sectionName: section.name,
       appId: spec.appId,
@@ -83,9 +83,16 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
     const prefix = section.name
 
     // --- App id -------------------------------------------------------------
-    const name = typeof fields.name === 'string' ? fields.name.trim() : ''
+    // Unnamed items ship under the configuration's own name — the app IS the
+    // configuration, so authoring .conf files never means inventing an app id.
+    const name = resolveAppId(fields, ctx.canvas.name)
     if (!name) {
-      errors.push({ field: `${prefix}.name`, message: 'App ID is required', code: 'required' })
+      errors.push({
+        field: `${prefix}.name`,
+        message:
+          'App ID is required — give the configuration a name usable as an app id (letters, digits, . _ -), or set an App ID here',
+        code: 'required',
+      })
     } else {
       if (!APP_ID_PATTERN.test(name)) {
         errors.push({
@@ -167,6 +174,7 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
     const { spec, issues } = extractAppSpec(fields, {
       build: ctx.canvas.version,
       prefix: `${prefix}.appFiles`,
+      configName: ctx.canvas.name,
     })
     errors.push(...issues.errors)
     warnings.push(...issues.warnings)

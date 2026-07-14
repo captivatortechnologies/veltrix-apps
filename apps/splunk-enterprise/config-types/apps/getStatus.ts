@@ -16,7 +16,7 @@ export default async function getStatus(ctx: PipelineContext): Promise<ConfigSta
   }
 
   const components = await platform.listComponents({
-    types: ['search-head', 'indexer', 'deployment-server'],
+    types: ['search-head', 'indexer', 'deployment-server', 'heavy-forwarder', 'cluster-manager'],
   })
 
   const componentStatuses: ComponentConfigStatus[] = components.map((comp) => ({

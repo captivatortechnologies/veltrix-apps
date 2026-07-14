@@ -26,14 +26,10 @@ interface ManagedArea {
 // configuration types + client pages, grouped for the overview at a glance.
 const MANAGED_AREAS: ManagedArea[] = [
   {
-    name: 'Indexes',
-    description: 'Index definitions — retention, sizing, compression, and TSIDX reduction.',
-    componentTypes: ['indexer', 'cluster-manager'],
-  },
-  {
-    name: 'Roles',
-    description: 'Role definitions — capabilities, index access, and search filters.',
-    componentTypes: ['search-head', 'cluster-manager'],
+    name: 'Splunk Apps',
+    description:
+      'Apps and add-ons — install source, version, visibility, state, upgrade policy, and the .conf files the app ships. Splunk ships configuration as an app, so indexes.conf, authorize.conf, props/transforms and the rest are authored here and packaged into the app default/.',
+    componentTypes: ['search-head', 'indexer', 'deployment-server', 'heavy-forwarder', 'cluster-manager'],
   },
   {
     name: 'HEC Tokens',

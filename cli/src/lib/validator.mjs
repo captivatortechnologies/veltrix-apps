@@ -749,10 +749,19 @@ function validateCanvasItem(item, label, err, warn) {
         `canvas: ${label} item.identityField "${id}" does not match any field key declared ` +
           "in the item's groups",
       )
-    } else if (fields.get(id).required !== true) {
+    } else if (fields.get(id).required !== true && item.identityDerived !== true) {
+      // `identityDerived: true` says the handler derives this value when the user
+      // leaves it blank (e.g. a Splunk app named after its configuration), so an
+      // empty identity is intended rather than an item the deploy will skip.
       warn(
         `canvas: ${label} item.identityField "${id}" should be required: true — deploy ` +
-          'handlers skip any item whose identity field is empty',
+          'handlers skip any item whose identity field is empty. Set item.identityDerived: true ' +
+          'if the handler derives it when blank.',
+      )
+    } else if (fields.get(id).required === true && item.identityDerived === true) {
+      err(
+        `canvas: ${label} item.identityDerived is true but identityField "${id}" is required — ` +
+          'a derived identity must be optional for the user to leave blank',
       )
     }
   }

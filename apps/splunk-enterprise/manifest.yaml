@@ -1,12 +1,15 @@
 id: splunk-enterprise
 name: Splunk Enterprise
-version: "1.11.1"
+version: "1.12.0"
 vendor: Veltrix
 description: >
   Manage Splunk Enterprise configurations as code.
-  Includes indexes, roles, HTTP Event Collector tokens,
-  BYOL infrastructure, and version tracking for current
-  Splunk release lines (9.4.x–10.4.x).
+  Author Splunk apps and add-ons (including their .conf files),
+  HTTP Event Collector tokens, BYOL infrastructure, and version
+  tracking for current Splunk release lines (9.4.x–10.4.x).
+  Configuration ships the way Splunk ships it — inside an app —
+  so indexes and roles are authored as indexes.conf / authorize.conf
+  in the App Contents of a Splunk App.
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise
@@ -33,12 +36,6 @@ permissions:
     - component:read
     - credential:read
   app:
-    - resource: indexes
-      actions: [read, write, delete]
-      description: Manage Splunk index configurations
-    - resource: roles
-      actions: [read, write, delete]
-      description: Manage Splunk role configurations
     - resource: hec-tokens
       actions: [read, write, delete]
       description: Manage HTTP Event Collector token configurations
@@ -50,10 +47,7 @@ permissions:
       description: Manage Splunk versions and upgrades
     - resource: apps
       actions: [read, write, delete]
-      description: Manage Splunk apps and add-ons
-    - resource: config-files
-      actions: [read, write, delete]
-      description: Author and deploy Splunk .conf configuration files
+      description: Manage Splunk apps and add-ons, including the .conf files they ship
 
 database:
   migrations: migrations
@@ -61,40 +55,6 @@ database:
 
 pipeline:
   configurationTypes:
-    - id: indexes
-      name: Indexes
-      description: Splunk Enterprise index definitions (retention, sizing, compression)
-      canvasTemplate: config-types/indexes/canvas.yaml
-      defaultConfig: config-types/indexes/defaults.yaml
-      handlers:
-        validate: config-types/indexes/validate
-        deploy: config-types/indexes/deploy
-        rollback: config-types/indexes/rollback
-        healthCheck: config-types/indexes/healthCheck
-        driftDetect: config-types/indexes/driftDetect
-        getStatus: config-types/indexes/getStatus
-      targets:
-        componentTypes: [indexer, cluster-manager]
-        requiresCredential: true
-        requiresConnectivity: true
-
-    - id: roles
-      name: Roles
-      description: Splunk Enterprise role definitions (capabilities, search filters)
-      canvasTemplate: config-types/roles/canvas.yaml
-      defaultConfig: config-types/roles/defaults.yaml
-      handlers:
-        validate: config-types/roles/validate
-        deploy: config-types/roles/deploy
-        rollback: config-types/roles/rollback
-        healthCheck: config-types/roles/healthCheck
-        driftDetect: config-types/roles/driftDetect
-        getStatus: config-types/roles/getStatus
-      targets:
-        componentTypes: [search-head, cluster-manager]
-        requiresCredential: true
-        requiresConnectivity: true
-
     - id: hec-tokens
       name: HEC Tokens
       description: HTTP Event Collector token definitions (routing, allowed indexes, acknowledgment)
@@ -112,9 +72,14 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: true
 
+    # Splunk ships configuration AS AN APP. Everything a .conf file needs to say
+    # is authored in this type's "App Contents" (default/*.conf, bin/, metadata/,
+    # lookups/, README/) and installed as a real .spl package — so there is no
+    # separate "config files" type writing loose stanzas into someone else's
+    # local/ over the REST configs API.
     - id: apps
       name: Splunk Apps
-      description: Splunk apps and add-ons (install source, version, visibility, state, upgrade policy)
+      description: Splunk apps and add-ons — install source, version, visibility, state, upgrade policy, and the .conf files/scripts the app ships
       canvasTemplate: config-types/apps/canvas.yaml
       defaultConfig: config-types/apps/defaults.yaml
       handlers:
@@ -125,23 +90,9 @@ pipeline:
         driftDetect: config-types/apps/driftDetect
         getStatus: config-types/apps/getStatus
       targets:
-        componentTypes: [search-head, indexer, deployment-server]
-        requiresCredential: true
-        requiresConnectivity: true
-
-    - id: config-files
-      name: Config Files
-      description: Author Splunk .conf stanzas and deploy them to a target app namespace over the REST configs API
-      canvasTemplate: config-types/config-files/canvas.yaml
-      defaultConfig: config-types/config-files/defaults.yaml
-      handlers:
-        validate: config-types/config-files/validate
-        deploy: config-types/config-files/deploy
-        rollback: config-types/config-files/rollback
-        healthCheck: config-types/config-files/healthCheck
-        driftDetect: config-types/config-files/driftDetect
-        getStatus: config-types/config-files/getStatus
-      targets:
+        # An app is the delivery vehicle for configuration, so it must reach every
+        # Splunk role that carries configuration — heavy forwarders (inputs/props)
+        # and the cluster manager (indexes.conf) included.
         componentTypes: [search-head, indexer, deployment-server, heavy-forwarder, cluster-manager]
         requiresCredential: true
         requiresConnectivity: true
@@ -194,22 +145,6 @@ client:
       icon: link
       nav: sidebar
       group: settings
-      order: 2
-      layout: standard
-    - path: /index-defaults
-      component: IndexDefaultsPage
-      label: Defaults
-      icon: sliders
-      nav: tab
-      parent: /config/indexes
-      order: 2
-      layout: standard
-    - path: /role-defaults
-      component: RoleDefaultsPage
-      label: Defaults
-      icon: sliders
-      nav: tab
-      parent: /config/roles
       order: 2
       layout: standard
     - path: /byol

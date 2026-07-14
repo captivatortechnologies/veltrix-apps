@@ -326,6 +326,35 @@ function str(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
+/**
+ * Turn free text into something Splunk accepts as an app id: letters, digits,
+ * '.', '_' and '-', never leading with a digit. Returns '' when nothing usable
+ * survives.
+ */
+export function slugifyAppId(name: string): string {
+  const slug = name
+    .trim()
+    .replace(/[^A-Za-z0-9._-]+/g, '_')
+    .replace(/_{2,}/g, '_')
+    .replace(/^[_.\-]+|[_.\-]+$/g, '')
+
+  if (!slug) return ''
+  return /^[0-9]/.test(slug) ? `app_${slug}` : slug
+}
+
+/**
+ * The app an item ships as.
+ *
+ * Configuration IS the app: authoring a few .conf files should not also mean
+ * inventing an app id, so the id falls back to the configuration's own name. An
+ * explicit App ID still wins — needed when one configuration declares several
+ * apps, since they would otherwise all derive the same id (which validate then
+ * rejects as a duplicate).
+ */
+export function resolveAppId(fields: Record<string, unknown>, configName: string): string {
+  return str(fields.name) || slugifyAppId(configName)
+}
+
 /** Accept a tags/multiselect array or a comma/newline separated string. */
 function toList(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -350,7 +379,7 @@ function toList(value: unknown): string[] {
  */
 export function extractAppSpec(
   fields: Record<string, unknown>,
-  options: { build: number; prefix?: string },
+  options: { build: number; prefix?: string; configName?: string },
 ): ExtractedSpec {
   const prefix = options.prefix ?? 'appFiles'
   const errors: SpecIssue[] = []
@@ -414,7 +443,7 @@ export function extractAppSpec(
   const writeRoles = toList(fields.writeRoles)
 
   const spec: AppPackageSpec = {
-    appId: str(fields.name),
+    appId: resolveAppId(fields, options.configName ?? ''),
     label: str(fields.label),
     version: str(fields.version),
     author: str(fields.author) || 'Veltrix',

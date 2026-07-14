@@ -1,5 +1,5 @@
 import type { PipelineContext, ValidationResult } from '@veltrixsecops/app-sdk'
-import { extractAppSpec, validateAppSpec } from '../../lib/splunkPackage'
+import { extractAppSpec, validateAppSpec, resolveAppId } from '../../lib/splunkPackage'
 
 /**
  * Validate Splunk app / add-on configurations.
@@ -52,7 +52,8 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
     const prefix = section.name
 
     // --- App id -------------------------------------------------------------
-    const name = fields.name as string | undefined
+    // Unnamed items ship under the configuration's own name.
+    const name = resolveAppId(fields, ctx.canvas.name) || undefined
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       errors.push({ field: `${prefix}.name`, message: 'App ID is required', code: 'required' })
     } else {
@@ -145,6 +146,7 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
     if (isInline) {
       const { spec, issues } = extractAppSpec(fields, {
         build: ctx.canvas.version,
+        configName: ctx.canvas.name,
         prefix: `${prefix}.appFiles`,
       })
       errors.push(...issues.errors)
