@@ -32,7 +32,8 @@ export function buildAuthHeader(credential: CredentialRef): Record<string, strin
 export interface SplunkRequestOptions {
   method: string
   headers: Record<string, string>
-  body?: string
+  /** Form/JSON text, or raw bytes for a package upload. */
+  body?: string | Uint8Array
   timeoutMs?: number
 }
 
@@ -45,7 +46,7 @@ export async function splunkRequest(url: string, options: SplunkRequestOptions):
     const res = await fetch(url, {
       method: options.method,
       headers: options.headers,
-      body: options.body,
+      body: options.body as BodyInit | undefined,
       signal: controller.signal,
     })
 

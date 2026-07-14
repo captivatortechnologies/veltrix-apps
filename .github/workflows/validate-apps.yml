@@ -102,6 +102,15 @@ jobs:
           done
           exit $FAILED
 
+      - name: Run app tests
+        # The apps' __tests__ are TypeScript and no runner is installed in an app,
+        # so until now they were only ever typechecked — a test that compiles but
+        # never runs asserts nothing. This executes them.
+        if: steps.detect.outputs.apps != '' || steps.detect.outputs.template_changed == 'true'
+        run: |
+          npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+          npm test
+
   secret-scan:
     name: Secret scan
     runs-on: ubuntu-latest

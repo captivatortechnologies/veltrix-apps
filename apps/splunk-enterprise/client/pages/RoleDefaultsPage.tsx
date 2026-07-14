@@ -19,11 +19,6 @@ import {
   type SortOption,
 } from '@veltrixsecops/app-sdk/ui'
 
-interface EnvironmentTag {
-  tagId: string
-  tag: { id: string; name: string }
-}
-
 interface RoleDefaultConfig {
   id: string
   name: string
@@ -31,7 +26,6 @@ interface RoleDefaultConfig {
   defaultPermissions?: string[]
   requireApproval?: boolean
   updatedAt?: string
-  environments?: EnvironmentTag[]
 }
 
 interface FormState {
@@ -85,7 +79,6 @@ export default function RoleDefaultsPage() {
   // Search / filter / sort / pagination — the page owns the list state,
   // DataTable just renders whatever page of rows results.
   const [search, setSearch] = useState('')
-  const [environmentFilter, setEnvironmentFilter] = useState<string | null>(null)
   const [approvalFilter, setApprovalFilter] = useState<string | null>(null)
   const [sortField, setSortField] = useState('name')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
@@ -182,22 +175,6 @@ export default function RoleDefaultsPage() {
     { key: 'name', header: 'Name', render: (row) => <strong>{row.name}</strong> },
     { key: 'description', header: 'Description', render: (row) => row.description || '—' },
     {
-      key: 'environments',
-      header: 'Environments',
-      render: (row) =>
-        row.environments && row.environments.length > 0 ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {row.environments.map((env) => (
-              <Badge key={env.tagId} variant="secondary" size="sm">
-                {env.tag.name}
-              </Badge>
-            ))}
-          </div>
-        ) : (
-          '—'
-        ),
-    },
-    {
       key: 'defaultPermissions',
       header: 'Default capabilities',
       align: 'right',
@@ -230,14 +207,6 @@ export default function RoleDefaultsPage() {
     },
   ]
 
-  // Toolbar filter/sort option lists, derived from the fetched configs since
-  // this page has no separate environments reference list.
-  const environmentFilterOptions = useMemo(() => {
-    const seen = new Map<string, string>()
-    configs.forEach((c) => c.environments?.forEach((e) => seen.set(e.tag.id, e.tag.name)))
-    return Array.from(seen, ([value, label]) => ({ value, label }))
-  }, [configs])
-
   const approvalFilterOptions = [
     { value: 'required', label: 'Required' },
     { value: 'not-required', label: 'Not required' },
@@ -248,14 +217,6 @@ export default function RoleDefaultsPage() {
     { value: 'updatedAt', label: 'Updated' },
   ]
   const filters: FilterDefinition[] = [
-    {
-      key: 'environment',
-      label: 'Environment',
-      options: environmentFilterOptions,
-      value: environmentFilter,
-      onChange: setEnvironmentFilter,
-      alwaysVisible: true,
-    },
     {
       key: 'approval',
       label: 'Approval',
@@ -273,7 +234,6 @@ export default function RoleDefaultsPage() {
         const haystack = `${row.name ?? ''} ${row.description ?? ''}`.toLowerCase()
         if (!haystack.includes(term)) return false
       }
-      if (environmentFilter && !row.environments?.some((e) => e.tag.id === environmentFilter)) return false
       if (approvalFilter && (row.requireApproval ? 'required' : 'not-required') !== approvalFilter) return false
       return true
     })
@@ -287,7 +247,7 @@ export default function RoleDefaultsPage() {
           return (a.name ?? '').localeCompare(b.name ?? '') * dir
       }
     })
-  }, [configs, search, environmentFilter, approvalFilter, sortField, sortDir])
+  }, [configs, search, approvalFilter, sortField, sortDir])
 
   const pageRows = useMemo(
     () => filteredSorted.slice((page - 1) * pageSize, page * pageSize),
@@ -297,7 +257,7 @@ export default function RoleDefaultsPage() {
   // Any change to search/filters/sort invalidates the current page.
   useEffect(() => {
     setPage(1)
-  }, [search, environmentFilter, approvalFilter, sortField, sortDir])
+  }, [search, approvalFilter, sortField, sortDir])
 
   return (
     <Card variant="bordered">
@@ -335,7 +295,6 @@ export default function RoleDefaultsPage() {
                 filters={filters}
                 onClearAll={() => {
                   setSearch('')
-                  setEnvironmentFilter(null)
                   setApprovalFilter(null)
                 }}
               />

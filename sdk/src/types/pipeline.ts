@@ -90,7 +90,9 @@ export interface ConfigStatus {
  * regardless of how the canvas laid them out.
  */
 export interface CanvasItemSnapshot {
-  id: string
+  /** Stable identity for diffs. Always set by the platform; optional so a
+   *  handler's own test fixtures need not invent one. */
+  id?: string
   name: string
   fields: Record<string, unknown>
 }

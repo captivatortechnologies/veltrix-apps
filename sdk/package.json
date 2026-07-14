@@ -58,6 +58,16 @@
         "default": "./dist/ui/index.cjs"
       }
     },
+    "./byol": {
+      "import": {
+        "types": "./dist/byol/index.d.ts",
+        "default": "./dist/byol/index.js"
+      },
+      "require": {
+        "types": "./dist/byol/index.d.cts",
+        "default": "./dist/byol/index.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "files": [

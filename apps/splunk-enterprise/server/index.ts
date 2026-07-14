@@ -7,7 +7,8 @@
 // ========================================================================
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
-import type { AppRouteContext } from '@veltrixsecops/app-sdk'
+import type { AppRouteContext, AppEventPublisher } from '@veltrixsecops/app-sdk'
+import * as store from '../lib/db'
 
 // --- small body coercion/validation helpers -----------------------------
 
@@ -92,15 +93,19 @@ function readByol(body: any): { data: Record<string, unknown>; error?: string } 
   if (name.length > 120) return { data: {}, error: 'Name must be 120 characters or fewer' }
 
   const deploymentType = typeof body?.deploymentType === 'string' ? body.deploymentType.trim() : 'single'
-  const environmentType = typeof body?.environmentType === 'string' ? body.environmentType.trim() : 'production'
-  const hostingType =
-    typeof body?.hosting_type === 'string' && body.hosting_type.trim() ? body.hosting_type.trim() : 'kubernetes'
+  const environmentType = typeof body?.environmentType === 'string' ? body.environmentType.trim() : ''
+  // Provider name (a platform cloud-provider name, or "Self-Hosted"); no default
+  // — Kubernetes is no longer a hosting option.
+  const hostingType = typeof body?.hosting_type === 'string' ? body.hosting_type.trim() : ''
+  // Cloud region (only meaningful for a distributed cloud deployment).
+  const region = typeof body?.region === 'string' ? body.region.trim() : ''
 
   const indexerCount = toInt(body?.indexerCount, 1)
   const searchHeadCount = toInt(body?.searchHeadCount, 1)
   if (indexerCount < 1) return { data: {}, error: 'indexerCount must be at least 1' }
   if (searchHeadCount < 1) return { data: {}, error: 'searchHeadCount must be at least 1' }
 
+  // "Distributed" is the multi-node Splunk topology (single instance is the other).
   if (deploymentType === 'distributed') {
     if (indexerCount < 3) return { data: {}, error: 'Distributed deployments require at least 3 indexers' }
     if (searchHeadCount < 2) return { data: {}, error: 'Distributed deployments require at least 2 search heads' }
@@ -111,6 +116,7 @@ function readByol(body: any): { data: Record<string, unknown>; error?: string } 
     deploymentType,
     environmentType,
     hosting_type: hostingType,
+    region,
     indexerCount,
     searchHeadCount,
   }
@@ -121,28 +127,20 @@ function readByol(body: any): { data: Record<string, unknown>; error?: string } 
   return { data }
 }
 
+/** Best-effort publish of a provisioning event; never fails the request. */
+async function emit(events: AppEventPublisher, topic: string, payload: unknown): Promise<void> {
+  try {
+    await events.publish(topic, payload)
+  } catch (err) {
+    console.error(`[splunk-enterprise] publish ${topic} failed:`, err)
+  }
+}
+
 export default async function registerRoutes(
   fastify: FastifyInstance,
   ctx: AppRouteContext,
 ) {
-  const { hasPermission, db } = ctx
-
-  // --- Index Configuration Routes ---
-
-  fastify.get('/indexes', {
-    preHandler: [hasPermission('indexes', 'read')],
-    handler: async (request, reply) => {
-      const customerId = customerOf(request)
-      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
-
-      const configs = await db.splunkEnterpriseIndexesConfiguration.findMany({
-        where: { customerId },
-        include: { environments: { include: { tag: true } } },
-        orderBy: { updatedAt: 'desc' },
-      })
-      reply.send(configs)
-    },
-  })
+  const { hasPermission, db, events } = ctx
 
   // --- Index Default Configuration Routes (app-managed templates) ---
 
@@ -152,11 +150,7 @@ export default async function registerRoutes(
       const customerId = customerOf(request)
       if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
 
-      const defaults = await db.splunkEnterpriseIndexesDefaultConfiguration.findMany({
-        where: { customerId },
-        include: { environments: { include: { tag: true } } },
-        orderBy: { updatedAt: 'desc' },
-      })
+      const defaults = await store.listIndexDefaults(db, customerId)
       reply.send(defaults)
     },
   })
@@ -170,9 +164,7 @@ export default async function registerRoutes(
       const { data, error } = readIndexDefault(request.body)
       if (error) return reply.status(400).send({ error })
 
-      const created = await db.splunkEnterpriseIndexesDefaultConfiguration.create({
-        data: { ...data, customerId },
-      })
+      const created = await store.createIndexDefault(db, customerId, data as unknown as store.IndexDefaultInput)
       reply.status(201).send(created)
     },
   })
@@ -187,15 +179,10 @@ export default async function registerRoutes(
       const { data, error } = readIndexDefault(request.body)
       if (error) return reply.status(400).send({ error })
 
-      const existing = await db.splunkEnterpriseIndexesDefaultConfiguration.findFirst({
-        where: { id, customerId },
-      })
+      const existing = await store.getIndexDefault(db, id, customerId)
       if (!existing) return reply.status(404).send({ error: 'Index default configuration not found' })
 
-      const updated = await db.splunkEnterpriseIndexesDefaultConfiguration.update({
-        where: { id },
-        data,
-      })
+      const updated = await store.updateIndexDefault(db, id, data as unknown as store.IndexDefaultInput)
       reply.send(updated)
     },
   })
@@ -207,30 +194,11 @@ export default async function registerRoutes(
       if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
       const { id } = request.params as { id: string }
 
-      const existing = await db.splunkEnterpriseIndexesDefaultConfiguration.findFirst({
-        where: { id, customerId },
-      })
+      const existing = await store.getIndexDefault(db, id, customerId)
       if (!existing) return reply.status(404).send({ error: 'Index default configuration not found' })
 
-      await db.splunkEnterpriseIndexesDefaultConfiguration.delete({ where: { id } })
+      await store.deleteIndexDefault(db, id)
       reply.status(204).send()
-    },
-  })
-
-  // --- Role Configuration Routes ---
-
-  fastify.get('/roles', {
-    preHandler: [hasPermission('roles', 'read')],
-    handler: async (request, reply) => {
-      const customerId = customerOf(request)
-      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
-
-      const configs = await db.splunkEnterpriseRolesConfiguration.findMany({
-        where: { customerId },
-        include: { environments: { include: { tag: true } } },
-        orderBy: { updatedAt: 'desc' },
-      })
-      reply.send(configs)
     },
   })
 
@@ -242,11 +210,7 @@ export default async function registerRoutes(
       const customerId = customerOf(request)
       if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
 
-      const defaults = await db.splunkEnterpriseRolesDefaultConfiguration.findMany({
-        where: { customerId },
-        include: { environments: { include: { tag: true } } },
-        orderBy: { updatedAt: 'desc' },
-      })
+      const defaults = await store.listRoleDefaults(db, customerId)
       reply.send(defaults)
     },
   })
@@ -260,9 +224,7 @@ export default async function registerRoutes(
       const { data, error } = readRoleDefault(request.body)
       if (error) return reply.status(400).send({ error })
 
-      const created = await db.splunkEnterpriseRolesDefaultConfiguration.create({
-        data: { ...data, customerId },
-      })
+      const created = await store.createRoleDefault(db, customerId, data as unknown as store.RoleDefaultInput)
       reply.status(201).send(created)
     },
   })
@@ -277,15 +239,10 @@ export default async function registerRoutes(
       const { data, error } = readRoleDefault(request.body)
       if (error) return reply.status(400).send({ error })
 
-      const existing = await db.splunkEnterpriseRolesDefaultConfiguration.findFirst({
-        where: { id, customerId },
-      })
+      const existing = await store.getRoleDefault(db, id, customerId)
       if (!existing) return reply.status(404).send({ error: 'Role default configuration not found' })
 
-      const updated = await db.splunkEnterpriseRolesDefaultConfiguration.update({
-        where: { id },
-        data,
-      })
+      const updated = await store.updateRoleDefault(db, id, data as unknown as store.RoleDefaultInput)
       reply.send(updated)
     },
   })
@@ -297,12 +254,10 @@ export default async function registerRoutes(
       if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
       const { id } = request.params as { id: string }
 
-      const existing = await db.splunkEnterpriseRolesDefaultConfiguration.findFirst({
-        where: { id, customerId },
-      })
+      const existing = await store.getRoleDefault(db, id, customerId)
       if (!existing) return reply.status(404).send({ error: 'Role default configuration not found' })
 
-      await db.splunkEnterpriseRolesDefaultConfiguration.delete({ where: { id } })
+      await store.deleteRoleDefault(db, id)
       reply.status(204).send()
     },
   })
@@ -315,15 +270,7 @@ export default async function registerRoutes(
       const customerId = customerOf(request)
       if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
 
-      const infra = await db.byolInfrastructure.findMany({
-        where: { customerId },
-        include: {
-          indexerRegions: true,
-          searchHeadRegions: true,
-          splunkUpgrade: { include: { currentVersion: true } },
-        },
-        orderBy: { updatedAt: 'desc' },
-      })
+      const infra = await store.listByol(db, customerId)
       reply.send(infra)
     },
   })
@@ -335,14 +282,7 @@ export default async function registerRoutes(
       if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
       const { id } = request.params as { id: string }
 
-      const infra = await db.byolInfrastructure.findFirst({
-        where: { id, customerId },
-        include: {
-          indexerRegions: true,
-          searchHeadRegions: true,
-          splunkUpgrade: { include: { currentVersion: true } },
-        },
-      })
+      const infra = await store.getByol(db, id, customerId)
       if (!infra) return reply.status(404).send({ error: 'BYOL infrastructure not found' })
       reply.send(infra)
     },
@@ -357,9 +297,9 @@ export default async function registerRoutes(
       const { data, error } = readByol(request.body)
       if (error) return reply.status(400).send({ error })
 
-      const created = await db.byolInfrastructure.create({
-        data: { ...data, customerId },
-      })
+      const created = await store.createByol(db, customerId, data as unknown as store.ByolInput)
+      // The app owns provisioning: emit its own event for downstream workers.
+      await emit(events, 'infrastructure.created', { infrastructure: created, customerId })
       reply.status(201).send(created)
     },
   })
@@ -374,10 +314,10 @@ export default async function registerRoutes(
       const { data, error } = readByol(request.body)
       if (error) return reply.status(400).send({ error })
 
-      const existing = await db.byolInfrastructure.findFirst({ where: { id, customerId } })
+      const existing = await store.getByol(db, id, customerId)
       if (!existing) return reply.status(404).send({ error: 'BYOL infrastructure not found' })
 
-      const updated = await db.byolInfrastructure.update({ where: { id }, data })
+      const updated = await store.updateByol(db, id, data as unknown as store.ByolInput)
       reply.send(updated)
     },
   })
@@ -389,10 +329,11 @@ export default async function registerRoutes(
       if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
       const { id } = request.params as { id: string }
 
-      const existing = await db.byolInfrastructure.findFirst({ where: { id, customerId } })
+      const existing = await store.getByol(db, id, customerId)
       if (!existing) return reply.status(404).send({ error: 'BYOL infrastructure not found' })
 
-      await db.byolInfrastructure.delete({ where: { id } })
+      await store.deleteByol(db, id)
+      await emit(events, 'infrastructure.deleted', { infrastructureId: id, customerId })
       reply.status(204).send()
     },
   })
@@ -409,13 +350,10 @@ export default async function registerRoutes(
         if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
         const { id } = request.params as { id: string }
 
-        const existing = await db.byolInfrastructure.findFirst({ where: { id, customerId } })
+        const existing = await store.getByol(db, id, customerId)
         if (!existing) return reply.status(404).send({ error: 'BYOL infrastructure not found' })
 
-        const updated = await db.byolInfrastructure.update({
-          where: { id },
-          data: { status: nextStatus },
-        })
+        const updated = await store.setByolStatus(db, id, nextStatus)
         reply.send(updated)
       },
     })
@@ -429,11 +367,74 @@ export default async function registerRoutes(
   fastify.get('/versions', {
     preHandler: [hasPermission('versions', 'read')],
     handler: async (_request, reply) => {
-      const versions = await db.splunkVersion.findMany({
-        where: { isActive: true },
-        orderBy: { releaseDate: 'desc' },
-      })
+      const versions = await store.listActiveVersions(db)
       reply.send(versions)
+    },
+  })
+
+  // --- Upgrade Operations ---
+
+  fastify.get('/upgrades', {
+    preHandler: [hasPermission('byol', 'read')],
+    handler: async (request, reply) => {
+      const customerId = customerOf(request)
+      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+
+      const operations = await store.listUpgradeOperations(db, customerId)
+      reply.send(operations)
+    },
+  })
+
+  fastify.post('/upgrades', {
+    preHandler: [hasPermission('byol', 'write')],
+    handler: async (request: FastifyRequest, reply: FastifyReply) => {
+      const customerId = customerOf(request)
+      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+
+      const body = request.body as any
+      const infrastructureId = typeof body?.infrastructureId === 'string' ? body.infrastructureId : ''
+      const fromVersionId = typeof body?.fromVersionId === 'string' ? body.fromVersionId : ''
+      const toVersionId = typeof body?.toVersionId === 'string' ? body.toVersionId : ''
+      if (!infrastructureId || !fromVersionId || !toVersionId) {
+        return reply.status(400).send({ error: 'infrastructureId, fromVersionId and toVersionId are required' })
+      }
+      if (fromVersionId === toVersionId) {
+        return reply.status(400).send({ error: 'Target version must differ from the current version' })
+      }
+
+      // Ownership: the infrastructure must belong to this customer.
+      const infra = await store.getByol(db, infrastructureId, customerId)
+      if (!infra) return reply.status(404).send({ error: 'BYOL infrastructure not found' })
+
+      const created = await store.createUpgradeOperation(db, {
+        infrastructureId,
+        fromVersionId,
+        toVersionId,
+        scheduledFor: typeof body?.scheduledFor === 'string' && body.scheduledFor ? body.scheduledFor : null,
+        maintenanceWindow:
+          typeof body?.maintenanceWindow === 'string' && body.maintenanceWindow ? body.maintenanceWindow : null,
+      })
+      reply.status(201).send(created)
+    },
+  })
+
+  fastify.post('/upgrades/:id/status', {
+    preHandler: [hasPermission('byol', 'write')],
+    handler: async (request: FastifyRequest, reply: FastifyReply) => {
+      const customerId = customerOf(request)
+      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+      const { id } = request.params as { id: string }
+
+      const status = (request.body as any)?.status
+      if (typeof status !== 'string' || !store.UPGRADE_STATUSES.includes(status)) {
+        return reply.status(400).send({ error: `status must be one of ${store.UPGRADE_STATUSES.join(', ')}` })
+      }
+
+      const owned = await store.isUpgradeOperationOwned(db, id, customerId)
+      if (!owned) return reply.status(404).send({ error: 'Upgrade operation not found' })
+
+      await store.setUpgradeOperationStatus(db, id, status)
+      reply.status(204).send()
     },
   })
 

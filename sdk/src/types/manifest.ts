@@ -43,6 +43,20 @@ export interface AppManifest {
   database?: {
     migrations: string
     tablePrefix: string
+    /**
+     * How the app's tables are namespaced in Postgres.
+     *   - 'shared' (default): prefixed tables in the shared `public` schema.
+     *     Reserved for trusted first-party apps whose SQL the platform ships.
+     *   - 'schema': the app gets its own Postgres schema (+ least-privilege
+     *     role); its migrations run with search_path pinned to it.
+     *   - 'database': the app gets its own Postgres database — hard,
+     *     cross-database-query-proof isolation.
+     *   - 'external': the app owns its datastore entirely; the platform manages
+     *     no schema for it (connection supplied at runtime via app settings).
+     * The platform forces at least 'schema' for marketplace and customer-
+     * authored (self-managed) apps, which may opt up to 'database'/'external'.
+     */
+    isolation?: 'shared' | 'schema' | 'database' | 'external'
   }
 
   pipeline: {
@@ -85,6 +99,10 @@ export interface AppManifest {
     onEnable?: string
     onDisable?: string
     onUpgrade?: string
+    /** Handler the platform invokes for inbound webhooks routed to this app. */
+    onWebhook?: string
+    /** Handler the platform invokes for inbound message-bus events routed to this app. */
+    onEvent?: string
   }
 
   events?: string[] // Platform events this app subscribes to
@@ -103,9 +121,10 @@ export interface AppBrandingDeclaration {
   /** Optional secondary color as #RGB or #RRGGBB hex. */
   accentColor?: string
   /**
-   * Vendor logo shown in the app navbar. Repo-relative .svg (preferred) or
-   * .png, at most 128 KB; rendered at 28px height, so use a wide/landscape
-   * mark with transparent background.
+   * Vendor logo shown in the app navbar and on the marketplace card. Either a
+   * repo-relative .svg (preferred) or .png at most 128 KB, OR an absolute
+   * https:// URL to an externally hosted asset. Rendered at ~28px height, so
+   * use a wide/landscape mark with a transparent background.
    */
   logo?: string
   /** Optional logo variant for dark backgrounds; same constraints as logo. */

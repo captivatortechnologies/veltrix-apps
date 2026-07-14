@@ -1438,7 +1438,281 @@ export const FormDialog: React.FC<FormDialogProps> = (props) => {
 FormDialog.displayName = 'FormDialog'
 
 // ---------------------------------------------------------------------------
-// useToast / useConfirmDialog
+// Modal
+// ---------------------------------------------------------------------------
+
+export type ModalSize = 'sm' | 'md' | 'lg' | 'xl'
+
+export interface ModalProps {
+  /** Controls visibility. Renders nothing when `false`. */
+  isOpen: boolean
+  /** Called on backdrop click (unless disabled), Escape, and the X button. */
+  onClose: () => void
+  /** Heading rendered at the top of the modal. */
+  title?: React.ReactNode
+  /** Secondary line rendered under the title. */
+  subtitle?: React.ReactNode
+  /** Modal body. */
+  children: React.ReactNode
+  /** Optional footer content (e.g. action buttons), rendered in a tinted bar. */
+  footer?: React.ReactNode
+  size?: ModalSize
+  /** When true, clicking the backdrop no longer closes the modal. */
+  disableBackdropClose?: boolean
+  /** When true, Escape no longer closes the modal. */
+  disableEscapeClose?: boolean
+  /** Hide the top-right close (X) button. */
+  hideCloseButton?: boolean
+  /** Accessible label for the close button. Defaults to "Close". */
+  closeLabel?: string
+  className?: string
+}
+
+const MODAL_MAX_WIDTH: Record<ModalSize, number> = { sm: 420, md: 520, lg: 680, xl: 896 }
+
+/**
+ * Modal — delegates to the platform's real Modal at render time: a coordinated
+ * overlay shell with a `title` + `subtitle` header, a scrollable body, and an
+ * optional `footer` action bar. The general-purpose sibling of {@link FormDialog}
+ * (form) and the confirm dialog (yes/no) — use it for detail/wizard/picker
+ * overlays. Selects and other popovers rendered inside it float above the body,
+ * so their menus are never clipped. The fallback is a minimal, accessible,
+ * non-throwing shell for local dev / tests.
+ *
+ * @example
+ * <Modal isOpen={open} onClose={close} title="Choose a region" subtitle="Where should this live?"
+ *   footer={<Button onClick={close}>Done</Button>}>
+ *   <Select label="Region" options={regions} value={region} onChange={setRegion} />
+ * </Modal>
+ */
+export const Modal: React.FC<ModalProps> = (props) => {
+  const HostModal = getHostUi<React.FC<ModalProps>>('Modal')
+  if (HostModal) return <HostModal {...props} />
+
+  const {
+    isOpen,
+    onClose,
+    title,
+    subtitle,
+    children,
+    footer,
+    size = 'md',
+    disableBackdropClose = false,
+    disableEscapeClose = false,
+    hideCloseButton = false,
+    closeLabel = 'Close',
+    className,
+  } = props
+
+  React.useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !disableEscapeClose) onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, disableEscapeClose, onClose])
+
+  if (!isOpen) return null
+
+  const hasHeader = title != null || subtitle != null || !hideCloseButton
+
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}
+      onClick={disableBackdropClose ? undefined : onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        style={{ background: 'white', color: 'black', borderRadius: 8, width: '100%', maxWidth: MODAL_MAX_WIDTH[size], maxHeight: '80vh', overflow: 'auto', ...fallbackNote }}
+        className={className}
+        onClick={(event) => event.stopPropagation()}
+      >
+        {hasHeader && (
+          <div style={{ padding: 16, borderBottom: '1px solid #d1d5db', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+            <div style={{ minWidth: 0 }}>
+              {title != null && <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{title}</h3>}
+              {subtitle != null && <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b7280' }}>{subtitle}</p>}
+            </div>
+            {!hideCloseButton && (
+              <button type="button" onClick={onClose} aria-label={closeLabel} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>
+                ×
+              </button>
+            )}
+          </div>
+        )}
+        <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>{children}</div>
+        {footer != null && (
+          <div style={{ padding: 16, borderTop: '1px solid #d1d5db', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>{footer}</div>
+        )}
+      </div>
+    </div>
+  )
+}
+Modal.displayName = 'Modal'
+
+// ---------------------------------------------------------------------------
+// Alert
+// ---------------------------------------------------------------------------
+
+export type AlertVariant = 'info' | 'success' | 'warning' | 'danger'
+
+export interface AlertProps {
+  /** Severity — drives color and default icon. Defaults to `info`. */
+  variant?: AlertVariant
+  /** Optional bold heading above the message. */
+  title?: React.ReactNode
+  /** The message body. */
+  children?: React.ReactNode
+  /** Override the default icon, or pass `false` to hide it. */
+  icon?: React.ReactNode | false
+  /** When provided, renders a dismiss (X) button that calls this. */
+  onDismiss?: () => void
+  /** Optional trailing action (e.g. a link or button). */
+  action?: React.ReactNode
+  className?: string
+}
+
+const ALERT_FALLBACK_COLORS: Record<AlertVariant, { bg: string; fg: string; border: string }> = {
+  info: { bg: '#eff6ff', fg: '#1e40af', border: '#93c5fd' },
+  success: { bg: '#ecfdf5', fg: '#065f46', border: '#6ee7b7' },
+  warning: { bg: '#fffbeb', fg: '#92400e', border: '#fcd34d' },
+  danger: { bg: '#fef2f2', fg: '#991b1b', border: '#fca5a5' },
+}
+
+/**
+ * Alert — delegates to the platform's real Alert at render time: an inline,
+ * static severity banner for warnings, errors, tips and success notices in the
+ * page/form body. For transient pop-up notifications use {@link useToast}
+ * instead (its `variant` supports the same `warning`/`error`/`success`/`info`).
+ * The fallback is a minimal, accessible colored banner for local dev / tests.
+ *
+ * @example
+ * <Alert variant="warning" title="Heads up">
+ *   Distributed deployments need at least 3 indexers.
+ * </Alert>
+ */
+export const Alert: React.FC<AlertProps> = (props) => {
+  const HostAlert = getHostUi<React.FC<AlertProps>>('Alert')
+  if (HostAlert) return <HostAlert {...props} />
+
+  const { variant = 'info', title, children, icon, onDismiss, action, className } = props
+  const c = ALERT_FALLBACK_COLORS[variant]
+  const role = variant === 'danger' || variant === 'warning' ? 'alert' : 'status'
+
+  return (
+    <div
+      role={role}
+      className={className}
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 10,
+        border: `1px solid ${c.border}`,
+        background: c.bg,
+        color: c.fg,
+        borderRadius: 8,
+        padding: '12px 16px',
+        ...fallbackNote,
+      }}
+    >
+      {icon !== false && icon != null && <span style={{ flexShrink: 0 }}>{icon}</span>}
+      <div style={{ minWidth: 0, flex: 1 }}>
+        {title != null && <p style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>{title}</p>}
+        {children != null && (
+          <div style={{ fontSize: 14, marginTop: title != null ? 2 : 0 }}>{children}</div>
+        )}
+      </div>
+      {action != null && <div style={{ flexShrink: 0 }}>{action}</div>}
+      {onDismiss && (
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Dismiss"
+          style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', opacity: 0.7 }}
+        >
+          ×
+        </button>
+      )}
+    </div>
+  )
+}
+Alert.displayName = 'Alert'
+
+// ---------------------------------------------------------------------------
+// MultiSelect
+// ---------------------------------------------------------------------------
+
+export type MultiSelectSize = 'sm' | 'md' | 'lg'
+
+export interface MultiSelectOption {
+  value: string
+  label: string
+  disabled?: boolean
+}
+
+export interface MultiSelectProps {
+  options: MultiSelectOption[]
+  /** Currently selected values. */
+  value?: string[]
+  /** Called with the new list of selected values. */
+  onChange?: (values: string[]) => void
+  placeholder?: string
+  label?: string
+  error?: string
+  helperText?: string
+  size?: MultiSelectSize
+  disabled?: boolean
+  fullWidth?: boolean
+  /** Show a filter box inside the dropdown. Defaults to true. */
+  searchable?: boolean
+  /** How many chips to show in the trigger before "+N more". Defaults to 3. */
+  maxTagCount?: number
+  className?: string
+  name?: string
+  'aria-label'?: string
+}
+
+/**
+ * MultiSelect — delegates to the platform's real searchable multi-selection
+ * dropdown at render time (selected values as removable chips, a filter box,
+ * select-all / clear). The fallback is a native `<select multiple>` for local
+ * dev / tests. Use for any multi-value picker (environments, tags, targets…).
+ *
+ * @example
+ * <MultiSelect label="Environments" value={ids} onChange={setIds}
+ *   options={envs.map(e => ({ value: e.id, label: e.name }))} />
+ */
+export const MultiSelect: React.FC<MultiSelectProps> = (props) => {
+  const HostMultiSelect = getHostUi<React.FC<MultiSelectProps>>('MultiSelect')
+  if (HostMultiSelect) return <HostMultiSelect {...props} />
+
+  const { options, value = [], onChange, label, disabled, fullWidth = true, name } = props
+  return (
+    <label style={{ ...fallbackNote, display: 'block', width: fullWidth ? '100%' : undefined }}>
+      {label && <span style={{ display: 'block', marginBottom: 4, fontSize: 14, fontWeight: 500 }}>{label}</span>}
+      <select
+        multiple
+        name={name}
+        disabled={disabled}
+        value={value}
+        aria-label={props['aria-label']}
+        onChange={(e) => onChange?.(Array.from(e.target.selectedOptions, (o) => o.value))}
+        style={{ width: '100%', minHeight: 96, padding: '6px 10px', borderRadius: 6, border: '1px solid #9ca3af' }}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value} disabled={option.disabled}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+}
+MultiSelect.displayName = 'MultiSelect'
+
+
 //
 // Unlike the components above, these are HOOKS the host backs with real React
 // context (ToastContext / ConfirmationDialogContext), whose providers the

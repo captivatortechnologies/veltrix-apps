@@ -22,6 +22,24 @@ function arg(name, fallback) {
   return i !== -1 && process.argv[i + 1] ? process.argv[i + 1] : fallback
 }
 
+// Resolve a manifest branding logo reference to something the marketplace can
+// render before the app is installed: an https:// URL is passed through
+// verbatim; a repo-relative .svg/.png file is inlined as a self-contained
+// data: URL so the published catalog needs no companion asset hosting.
+const LOGO_MIME = { '.svg': 'image/svg+xml', '.png': 'image/png' }
+function resolveCatalogLogo(appDir, ref) {
+  if (typeof ref !== 'string' || !ref.trim()) return undefined
+  const trimmed = ref.trim()
+  if (/^https:\/\//i.test(trimmed)) return trimmed
+  const rel = trimmed.replace(/^\.\//, '')
+  if (rel.split(/[\\/]/).includes('..')) return undefined
+  const mime = LOGO_MIME[path.extname(rel).toLowerCase()]
+  if (!mime) return undefined
+  const full = path.join(appDir, rel)
+  if (!fs.existsSync(full) || !fs.statSync(full).isFile()) return undefined
+  return `data:${mime};base64,${fs.readFileSync(full).toString('base64')}`
+}
+
 const repo = arg('repo')
 const distDir = arg('dist', 'dist/apps')
 const outFile = arg('out', 'catalog/catalog.json')
@@ -51,6 +69,9 @@ for (const dirent of fs.readdirSync(appsDir, { withFileTypes: true })) {
   if (!fs.existsSync(manifestPath)) continue
 
   const manifest = yaml.load(fs.readFileSync(manifestPath, 'utf8'))
+  const appDir = path.join(appsDir, appId)
+  const logo = resolveCatalogLogo(appDir, manifest.branding?.logo)
+  const logoDark = resolveCatalogLogo(appDir, manifest.branding?.logoDark)
   const zipPath = path.join(distDir, `${appId}.zip`)
   const prior = previousById.get(appId)
 
@@ -85,6 +106,8 @@ for (const dirent of fs.readdirSync(appsDir, { withFileTypes: true })) {
     description: String(manifest.description ?? '').trim(),
     category: manifest.category,
     icon: manifest.icon,
+    ...(logo ? { logo } : {}),
+    ...(logoDark ? { logoDark } : {}),
     license: manifest.license,
     homepage: manifest.homepage,
     available: true,

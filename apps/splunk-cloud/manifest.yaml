@@ -1,11 +1,12 @@
 id: splunk-cloud
 name: Splunk Cloud Platform
-version: 1.5.0
+version: 1.6.0
 vendor: Veltrix
 description: >
   Manage Splunk Cloud Platform configurations as code through the
   Admin Config Service (ACS) API. Includes index management, HTTP Event
-  Collector (HEC) tokens, and IP allow lists.
+  Collector (HEC) tokens, IP allow lists, and private apps/add-ons
+  (built to a .spl, vetted by AppInspect, installed through ACS).
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-cloud
@@ -41,6 +42,10 @@ permissions:
     - resource: ip-allowlists
       actions: [read, write, delete]
       description: Manage Splunk Cloud IP allow lists via ACS
+    - resource: apps
+      actions: [read, write, delete]
+      description: >
+        Build, AppInspect-vet and install Splunk Cloud private apps/add-ons via ACS
 
 pipeline:
   configurationTypes:
@@ -90,6 +95,26 @@ pipeline:
         healthCheck: config-types/ip-allowlists/healthCheck
         driftDetect: config-types/ip-allowlists/driftDetect
         getStatus: config-types/ip-allowlists/getStatus
+      targets:
+        componentTypes: [splunk-cloud-stack]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: apps
+      name: App Configuration
+      description: >
+        Splunk Cloud private apps and add-ons — authored as files, built to a .spl,
+        vetted by AppInspect (failure/error/manual_check all block install) and
+        installed through ACS
+      canvasTemplate: config-types/apps/canvas.yaml
+      defaultConfig: config-types/apps/defaults.yaml
+      handlers:
+        validate: config-types/apps/validate
+        deploy: config-types/apps/deploy
+        rollback: config-types/apps/rollback
+        healthCheck: config-types/apps/healthCheck
+        driftDetect: config-types/apps/driftDetect
+        getStatus: config-types/apps/getStatus
       targets:
         componentTypes: [splunk-cloud-stack]
         requiresCredential: true
@@ -175,6 +200,15 @@ settings:
     label: ACS Request Timeout (seconds)
     description: Timeout applied to each ACS API request
     default: 30
+    required: false
+  - key: appinspect_max_wait_seconds
+    type: number
+    label: AppInspect Vetting Timeout (seconds)
+    description: >
+      How long to wait for AppInspect to finish vetting a private app package
+      before failing the deployment. Vetting is far slower than an ACS call —
+      a package with bin/ scripts routinely takes minutes.
+    default: 900
     required: false
 
 events:

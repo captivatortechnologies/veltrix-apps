@@ -4,7 +4,6 @@ import {
   Badge,
   Card,
   CardBody,
-  CardHeader,
   EmptyState,
   Spinner,
 } from '@veltrixsecops/app-sdk/ui'
@@ -56,9 +55,6 @@ export default function OverviewPage() {
 
   return (
     <Card>
-      <CardHeader actions={<Badge variant="primary">v{meta.version}</Badge>}>
-        <h2>{meta.name}</h2>
-      </CardHeader>
       <CardBody>
         <p>
           Manages CrowdStrike Falcon configuration as code through the Falcon APIs. Create a

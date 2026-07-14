@@ -48,6 +48,12 @@ permissions:
     - resource: versions
       actions: [read, write]
       description: Manage Splunk versions and upgrades
+    - resource: apps
+      actions: [read, write, delete]
+      description: Manage Splunk apps and add-ons
+    - resource: config-files
+      actions: [read, write, delete]
+      description: Author and deploy Splunk .conf configuration files
 
 database:
   migrations: migrations
@@ -106,6 +112,40 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: true
 
+    - id: apps
+      name: Splunk Apps
+      description: Splunk apps and add-ons (install source, version, visibility, state, upgrade policy)
+      canvasTemplate: config-types/apps/canvas.yaml
+      defaultConfig: config-types/apps/defaults.yaml
+      handlers:
+        validate: config-types/apps/validate
+        deploy: config-types/apps/deploy
+        rollback: config-types/apps/rollback
+        healthCheck: config-types/apps/healthCheck
+        driftDetect: config-types/apps/driftDetect
+        getStatus: config-types/apps/getStatus
+      targets:
+        componentTypes: [search-head, indexer, deployment-server]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: config-files
+      name: Config Files
+      description: Author Splunk .conf stanzas and deploy them to a target app namespace over the REST configs API
+      canvasTemplate: config-types/config-files/canvas.yaml
+      defaultConfig: config-types/config-files/defaults.yaml
+      handlers:
+        validate: config-types/config-files/validate
+        deploy: config-types/config-files/deploy
+        rollback: config-types/config-files/rollback
+        healthCheck: config-types/config-files/healthCheck
+        driftDetect: config-types/config-files/driftDetect
+        getStatus: config-types/config-files/getStatus
+      targets:
+        componentTypes: [search-head, indexer, deployment-server, heavy-forwarder, cluster-manager]
+        requiresCredential: true
+        requiresConnectivity: true
+
   pipelineEvents:
     - canvas:validated
     - canvas:deployed
@@ -156,37 +196,21 @@ client:
       group: settings
       order: 2
       layout: standard
-    - path: /indexes
-      component: IndexesPage
-      label: Indexes (Legacy)
-      icon: database
-      nav: sidebar
-      group: page
-      order: 4
-      layout: standard
     - path: /index-defaults
       component: IndexDefaultsPage
-      label: Index Defaults
+      label: Defaults
       icon: sliders
-      nav: sidebar
-      group: settings
-      order: 5
-      layout: standard
-    - path: /roles
-      component: RolesPage
-      label: Roles (Legacy)
-      icon: shield
-      nav: sidebar
-      group: page
-      order: 6
+      nav: tab
+      parent: /config/indexes
+      order: 2
       layout: standard
     - path: /role-defaults
       component: RoleDefaultsPage
-      label: Role Defaults
+      label: Defaults
       icon: sliders
-      nav: sidebar
-      group: settings
-      order: 7
+      nav: tab
+      parent: /config/roles
+      order: 2
       layout: standard
     - path: /byol
       component: BYOLPage
@@ -204,10 +228,20 @@ client:
       group: page
       order: 9
       layout: standard
+    - path: /upgrades
+      component: UpgradesPage
+      label: Upgrades
+      icon: refresh-cw
+      nav: sidebar
+      group: page
+      order: 10
+      layout: standard
 
 hooks:
   onInstall: hooks/onInstall
   onUninstall: hooks/onUninstall
+  onWebhook: hooks/onWebhook
+  onEvent: hooks/onEvent
 
 settings:
   - key: splunk_api_port

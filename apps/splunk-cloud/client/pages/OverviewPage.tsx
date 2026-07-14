@@ -54,9 +54,6 @@ export default function OverviewPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <Card>
-        <CardHeader actions={<Badge variant="primary">v{meta.version}</Badge>}>
-          <h2 style={{ margin: 0 }}>{meta.name}</h2>
-        </CardHeader>
         <CardBody>
           <p>
             Manage Splunk Cloud Platform configuration as code through the Admin Config Service

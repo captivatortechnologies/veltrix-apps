@@ -1,0 +1,311 @@
+# =============================================================================
+# Canvas Template — Splunk Enterprise Apps & Add-ons
+#
+# Declares ONE app/add-on — the item. Users add as many as they manage.
+# Groups are PRESENTATIONAL ONLY: every field below belongs to the same flat
+# item record, which is what config-types/apps/deploy.ts reads as
+# `section.fields` for a single app.
+#
+# Field keys must match what config-types/apps/validate.ts checks and what
+# config-types/apps/deploy.ts maps to the Splunk apps REST endpoints
+# (/services/apps/local, /services/apps/appinstall, .../acl).
+# =============================================================================
+
+id: "splunk-enterprise-apps"
+name: "Splunk App Configuration"
+toolType: "splunk-enterprise"
+entityType: "apps"
+description: "Define Splunk apps and add-ons (install source, version, visibility, state, upgrade policy) as code"
+
+item:
+  label: "App"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "General"
+      icon: "package"
+      description: "App identity"
+      fields:
+        - key: "name"
+          label: "App ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9][A-Za-z0-9_-]*$"
+            maxLength: 128
+            message: "Letters, digits, underscores, and hyphens only; must start with a letter or digit. This is the app's folder name in $SPLUNK_HOME/etc/apps."
+          helpText: "The app/add-on folder id (e.g. 'Splunk_TA_nix', 'splunk-add-on-for-aws')."
+
+        - key: "label"
+          label: "Display Name"
+          fieldType: "text"
+          helpText: "Human-readable name shown in Splunk Web (maps to the app 'label')."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "What this app or add-on provides."
+
+    - name: "Source"
+      icon: "download"
+      description: "Where the package comes from"
+      fields:
+        - key: "source"
+          label: "Install Source"
+          fieldType: "select"
+          defaultValue: "splunkbase"
+          options:
+            - value: "splunkbase"
+              label: "Splunkbase (by app ID)"
+            - value: "url"
+              label: "Package URL (https)"
+            - value: "local"
+              label: "Local package path"
+            - value: "inline"
+              label: "Author files inline (build the app/TA)"
+          helpText: "How the platform installs/upgrades the package on the target. Choose 'Author files inline' to build the app/TA from configuration files you provide below."
+
+        - key: "sourceRef"
+          label: "Source Reference"
+          fieldType: "text"
+          helpText: "Splunkbase numeric app id (source=Splunkbase), an https URL to the .tgz/.spl (source=Package URL), or an absolute file path on the target (source=Local). Not required when authoring files inline."
+
+        - key: "version"
+          label: "Version / Build"
+          fieldType: "text"
+          validation:
+            maxLength: 64
+          helpText: "Target version to pin (maps to the app 'version'). Leave blank to accept whatever the package provides."
+
+    - name: "Deployment"
+      icon: "server"
+      description: "Placement and lifecycle"
+      fields:
+        - key: "targetTypes"
+          label: "Target Server Types"
+          fieldType: "tags"
+          helpText: "Splunk roles this app belongs on (search-head, indexer, deployment-server). Informs where the pipeline deploys."
+
+        - key: "visibility"
+          label: "Visibility"
+          fieldType: "select"
+          defaultValue: "app"
+          options:
+            - value: "app"
+              label: "App-local (sharing=app)"
+            - value: "global"
+              label: "Global (sharing=global)"
+          helpText: "ACL sharing scope. App-local keeps the app's knowledge objects private to it; Global exposes them to all apps."
+
+        - key: "state"
+          label: "State"
+          fieldType: "select"
+          defaultValue: "enabled"
+          options:
+            - value: "enabled"
+              label: "Enabled"
+            - value: "disabled"
+              label: "Disabled"
+          helpText: "Disabled apps remain installed but inactive (maps to the enable/disable endpoints)."
+
+        - key: "upgradePolicy"
+          label: "Upgrade Policy"
+          fieldType: "select"
+          defaultValue: "manual"
+          options:
+            - value: "manual"
+              label: "Manual (pin version; upgrade only on redeploy)"
+            - value: "auto"
+              label: "Automatic (install the latest available on deploy)"
+          helpText: "Manual keeps the pinned version; Automatic re-installs the latest package from the source on every deploy."
+
+    - name: "App Contents"
+      icon: "folder-tree"
+      description: "Author the app/TA folder structure (used when Install Source is 'Author files inline')"
+      fields:
+        - key: "appFiles"
+          label: "Files"
+          fieldType: "files"
+          options:
+            - value: "default"
+              label: "default/"
+            - value: "local"
+              label: "local/"
+            - value: "bin"
+              label: "bin/"
+            - value: "static"
+              label: "static/"
+            - value: "metadata"
+              label: "metadata/"
+            - value: "lookups"
+              label: "lookups/"
+            - value: "lib"
+              label: "lib/"
+            - value: "README"
+              label: "README/"
+          fileCatalog:
+            - value: "app.conf"
+              description: "Configure app properties (label, version, visibility, launcher)"
+              template: |
+                # app.conf — app properties shown in Splunk Web
+                [install]
+                is_configured = false
+
+                [ui]
+                is_visible = true
+                label = My App
+
+                [launcher]
+                author =
+                description =
+                version = 1.0.0
+            - value: "inputs.conf"
+              description: "Set up data inputs (monitors, scripted/modular inputs, TCP/UDP)"
+              template: |
+                # inputs.conf — data inputs
+                [monitor:///var/log/example.log]
+                disabled = false
+                index = main
+                sourcetype = example
+            - value: "props.conf"
+              description: "Indexing properties: timestamps, line breaking, sourcetype rules; map transforms to events"
+              template: |
+                # props.conf — parsing/indexing properties per sourcetype
+                [example]
+                SHOULD_LINEMERGE = false
+                LINE_BREAKER = ([\r\n]+)
+                TIME_FORMAT = %Y-%m-%d %H:%M:%S
+                MAX_TIMESTAMP_LOOKAHEAD = 25
+                TRUNCATE = 10000
+            - value: "transforms.conf"
+              description: "Regex transformations for data inputs (use with props.conf)"
+              template: |
+                # transforms.conf — regex transforms (reference from props.conf)
+                [example_transform]
+                REGEX = (?<field>\w+)
+                FORMAT = field::$1
+                DEST_KEY = _raw
+            - value: "indexes.conf"
+              description: "Manage and configure index settings"
+              template: |
+                # indexes.conf — index definitions
+                [example_index]
+                homePath   = $SPLUNK_DB/example_index/db
+                coldPath   = $SPLUNK_DB/example_index/colddb
+                thawedPath = $SPLUNK_DB/example_index/thaweddb
+                maxTotalDataSizeMB = 500000
+                frozenTimePeriodInSecs = 7776000
+            - value: "outputs.conf"
+              description: "Set up forwarding behavior"
+              template: |
+                # outputs.conf — forwarding behavior
+                [tcpout]
+                defaultGroup = primary_indexers
+
+                [tcpout:primary_indexers]
+                server = indexer1:9997,indexer2:9997
+            - value: "server.conf"
+              description: "Overall instance settings: SSL, clustering, KV store, license manager"
+              template: |
+                # server.conf — instance-wide settings
+                [general]
+                serverName = my-splunk
+
+                [sslConfig]
+                enableSplunkdSSL = true
+            - value: "web.conf"
+              description: "Configure Splunk Web; enable HTTPS"
+              template: |
+                # web.conf — Splunk Web settings
+                [settings]
+                enableSplunkWebSSL = true
+                httpport = 8000
+            - value: "authentication.conf"
+              description: "Built-in authentication or LDAP, and LDAP configuration"
+              template: |
+                # authentication.conf — authentication method
+                [authentication]
+                authType = Splunk
+            - value: "authorize.conf"
+              description: "Configure roles, including granular access controls"
+              template: |
+                # authorize.conf — roles and capabilities
+                [role_example]
+                importRoles = user
+                srchIndexesAllowed = main
+                srchIndexesDefault = main
+            - { value: "alert_actions.conf", description: "Create an alert action" }
+            - value: "savedsearches.conf"
+              description: "Define reports, scheduled reports, and alerts"
+              template: |
+                # savedsearches.conf — reports, scheduled searches, alerts
+                [Example Search]
+                search = index=main error
+                dispatch.earliest_time = -24h
+                dispatch.latest_time = now
+                enableSched = 0
+            - value: "macros.conf"
+              description: "Define search macros"
+              template: |
+                # macros.conf — search macros
+                [example_macro(1)]
+                args = index
+                definition = index=$index$
+            - value: "eventtypes.conf"
+              description: "Create event type definitions"
+              template: |
+                # eventtypes.conf — event type definitions
+                [example_eventtype]
+                search = index=main sourcetype=example
+            - value: "tags.conf"
+              description: "Configure tags for fields"
+              template: |
+                # tags.conf — tags for fields
+                [eventtype=example_eventtype]
+                example = enabled
+            - { value: "fields.conf", description: "Create multivalue fields; add search capability for indexed fields" }
+            - { value: "datamodels.conf", description: "Attribute/value pairs for configuring data models" }
+            - { value: "collections.conf", description: "Configure KV Store collections for apps" }
+            - { value: "commands.conf", description: "Create custom search commands for apps" }
+            - { value: "restmap.conf", description: "Create custom REST endpoints" }
+            - { value: "limits.conf", description: "Set limits (e.g. max result size, concurrent real-time searches) for search commands" }
+            - { value: "distsearch.conf", description: "Specify behavior for distributed search" }
+            - { value: "deploymentclient.conf", description: "Specify behavior for clients of the deployment server" }
+            - { value: "serverclass.conf", description: "Define deployment server classes" }
+            - { value: "serverclass.seed.xml.conf", description: "Seed a deployment client with apps at start-up time" }
+            - { value: "workflow_actions.conf", description: "Configure workflow actions" }
+            - { value: "times.conf", description: "Define custom time ranges for the Search app" }
+            - { value: "multikv.conf", description: "Extraction rules for table-like events (ps, netstat, ls)" }
+            - { value: "segmenters.conf", description: "Configure segmentation" }
+            - { value: "transactiontypes.conf", description: "Add additional transaction types for transaction search" }
+            - { value: "event_renderers.conf", description: "Configure event-rendering properties" }
+            - { value: "searchbnf.conf", description: "Configure the search assistant" }
+            - { value: "ui-prefs.conf", description: "Change UI preferences for a view (e.g. default time range)" }
+            - { value: "user-prefs.conf", description: "Per-user settings for Splunk Web" }
+            - { value: "viewstates.conf", description: "Set up UI views (such as charts)" }
+            - { value: "visualizations.conf", description: "List the visualizations an app makes available" }
+            - { value: "global-banner.conf", description: "Display a global banner on all pages in Splunk Web" }
+            - { value: "health.conf", description: "Set default thresholds for proactive component monitoring" }
+            - { value: "checklist.conf", description: "Customize monitoring console health check" }
+            - { value: "bookmarks.conf", description: "Bookmark monitoring console URLs" }
+            - { value: "messages.conf", description: "Customize Splunk Web messages" }
+            - { value: "literals.conf", description: "Customize text (e.g. search error strings) in Splunk Web" }
+            - { value: "passwords.conf", description: "Maintain the credential information for an app" }
+            - { value: "audit.conf", description: "Configure auditing and event hashing" }
+            - { value: "telemetry.conf", description: "Enable apps to collect telemetry data" }
+            - { value: "federated.conf", description: "Search data outside of your own Splunk platform deployment" }
+            - { value: "metric_rollups.conf", description: "Metric rollup policy entries" }
+            - { value: "source-classifier.conf", description: "Terms to ignore when creating a source type" }
+            - { value: "sourcetypes.conf", description: "Machine-generated store of source type learning rules" }
+            - { value: "procmon-filters.conf", description: "Monitor Windows process data" }
+            - { value: "wmi.conf", description: "Set up Windows Management Instrumentation (WMI) inputs" }
+            - { value: "pubsub.conf", description: "Define a custom client of the deployment server" }
+            - { value: "rolling_upgrade.conf", description: "Automated search head / indexer cluster rolling upgrade" }
+            - { value: "web-features.conf", description: "Configure some Splunk Web settings" }
+            - { value: "workload_policy.conf", description: "Enable or disable admission rules in workload management" }
+            - { value: "workload_pools.conf", description: "Configure workload pools (compute/memory resource groups)" }
+            - { value: "workload_rules.conf", description: "Workload rules: access and priority for workload pools" }
+            - { value: "agent_management.conf", description: "Configure the Agent Management feature" }
+          helpText: "Configuration files (default/local *.conf), scripts and commands (bin/), libraries (lib/), static assets (static/), ACLs (metadata/default.meta), lookups (lookups/) and .conf specs (README/). For default/ and local/, pick from the standard Splunk .conf files (with descriptions) or type a custom name. On deploy, default/local *.conf files are applied over the Splunk REST configs API; bin/static/lib/metadata assets are reported as requiring a packaged install."

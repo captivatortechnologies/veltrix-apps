@@ -73,9 +73,6 @@ export default function OverviewPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <Card>
-        <CardHeader actions={<Badge variant="primary">SIEM</Badge>}>
-          <h2 style={{ margin: 0 }}>Splunk Enterprise</h2>
-        </CardHeader>
         <CardBody>
           <p>
             Manage Splunk Enterprise configuration as code through the Splunk management API

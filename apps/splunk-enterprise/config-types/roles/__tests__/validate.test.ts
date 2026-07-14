@@ -18,6 +18,7 @@ function makeCtx(sections: Array<{ name: string; fields: Record<string, unknown>
       name: 'Test Roles Canvas',
       toolType: 'splunk',
       entityType: 'roles',
+      items: sections,
       sections,
       snapshot: {},
     },

@@ -1,0 +1,218 @@
+# =============================================================================
+# Canvas Template — Splunk Cloud Private Apps & Add-ons
+#
+# Declares ONE app/add-on — the item. Users add as many as they manage.
+# Groups are PRESENTATIONAL ONLY: every field below belongs to the same flat
+# item record, which is what config-types/apps/deploy.ts reads as
+# `section.fields` for a single app.
+#
+# Splunk Cloud has NO route for arbitrary REST config writes. The only supported
+# way to ship configuration is a PRIVATE APP:
+#
+#     build the .spl  ->  AppInspect vetting  ->  ACS install
+#
+# So there is no "install source" here (as there is on Enterprise): the app is
+# always BUILT from the files authored below. default/app.conf and
+# metadata/default.meta are GENERATED from the Identity and Permissions fields —
+# authoring them by hand has no effect.
+#
+# Field keys must match what config-types/apps/validate.ts checks and what
+# lib/splunkPackage.ts (extractAppSpec) reads.
+# =============================================================================
+
+id: "splunk-cloud-apps"
+name: "App Configuration"
+toolType: "splunk-cloud"
+entityType: "apps"
+description: "Author Splunk Cloud private apps and add-ons as code — built to a .spl, vetted by AppInspect, installed through ACS"
+
+item:
+  label: "App"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Identity"
+      icon: "package"
+      description: "Who the app is — rendered into the generated default/app.conf"
+      fields:
+        - key: "name"
+          label: "App ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z][A-Za-z0-9._-]*$"
+            maxLength: 100
+            message: "Letters, digits, '.', '_' and '-' only; must start with a letter. This is the app's folder name inside the package and its [package] id."
+          helpText: "The app/add-on folder id (e.g. 'TA_acme_firewall'). It becomes the single top-level directory in the .spl and cannot be changed without reinstalling."
+
+        - key: "label"
+          label: "Display Name"
+          fieldType: "text"
+          validation:
+            minLength: 5
+            maxLength: 80
+            message: "5–80 characters"
+          helpText: "Shown in Splunk Web ([ui] label). Required by Splunk even for an invisible add-on."
+
+        - key: "version"
+          label: "Version"
+          fieldType: "text"
+          validation:
+            pattern: "^\\d+\\.\\d+\\.\\d+$"
+            message: "3-part semver, e.g. 1.0.0"
+          helpText: "3-part semver. Increase it on every change: ACS installs an upgrade in place, but going BACK to an older version requires uninstall-then-install, which destroys the app's local/ directory."
+
+        - key: "author"
+          label: "Author"
+          fieldType: "text"
+          validation:
+            maxLength: 80
+          helpText: "Maps to [launcher] author. Defaults to 'Veltrix' when left blank."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          validation:
+            maxLength: 200
+          helpText: "One line, 200 characters or fewer ([launcher] description). A .conf value is single-line, so newlines are collapsed to spaces."
+
+    - name: "Permissions & Sharing"
+      icon: "shield"
+      description: "Rendered into the generated metadata/default.meta"
+      fields:
+        - key: "visibility"
+          label: "Sharing"
+          fieldType: "select"
+          defaultValue: "app"
+          options:
+            - value: "app"
+              label: "App-local (export = none)"
+            - value: "global"
+              label: "Global (export = system)"
+          helpText: "App-local keeps the app's knowledge objects private to it. Global exports EVERY object to system scope — prefer app-local plus an explicit per-object export below."
+
+        - key: "readRoles"
+          label: "Read Roles"
+          fieldType: "tags"
+          helpText: "Roles that may read the app's objects. Defaults to '*' (everyone) when left blank."
+
+        - key: "writeRoles"
+          label: "Write Roles"
+          fieldType: "tags"
+          helpText: "Roles that may modify the app's objects. MUST include sc_admin — it is the administrator role on Splunk Cloud, and AppInspect fails a package without it. Defaults to admin + sc_admin when left blank."
+
+        - key: "exportedObjects"
+          label: "Globally Exported Objects"
+          fieldType: "tags"
+          helpText: "Object types promoted to 'export = system' individually (e.g. props, transforms, eventtypes, tags, lookups, macros). Preferred over Global sharing."
+
+    - name: "App Contents"
+      icon: "folder-tree"
+      description: "The files packaged into the .spl"
+      fields:
+        - key: "appFiles"
+          label: "Files"
+          fieldType: "files"
+          options:
+            - value: "default"
+              label: "default/"
+            - value: "bin"
+              label: "bin/"
+            - value: "lookups"
+              label: "lookups/"
+            - value: "static"
+              label: "static/"
+            - value: "lib"
+              label: "lib/"
+            - value: "README"
+              label: "README/"
+          fileCatalog:
+            - value: "inputs.conf"
+              description: "Data inputs. On Cloud only HEC tokens and modular/scripted inputs are permitted — TCP/UDP/splunktcp and every Windows input are rejected by AppInspect."
+              template: |
+                # inputs.conf — Splunk Cloud permits HEC tokens and modular inputs only.
+                # Declare a NAMED token; a bare [http] stanza reconfigures the global
+                # HEC input and is rejected.
+                [http://acme_events]
+                disabled = 0
+                index = acme_events
+                sourcetype = acme:json
+            - value: "props.conf"
+              description: "Indexing/search-time properties: timestamps, line breaking, sourcetype rules, field extractions"
+              template: |
+                # props.conf — parsing properties per sourcetype
+                [acme:json]
+                SHOULD_LINEMERGE = false
+                LINE_BREAKER = ([\r\n]+)
+                TIME_PREFIX = \"timestamp\":\"
+                TIME_FORMAT = %Y-%m-%dT%H:%M:%S.%3N%Z
+                MAX_TIMESTAMP_LOOKAHEAD = 32
+                TRUNCATE = 10000
+                KV_MODE = json
+            - value: "transforms.conf"
+              description: "Regex transforms and lookup definitions (referenced from props.conf)"
+              template: |
+                # transforms.conf — transforms and lookup definitions
+                [acme_severity_lookup]
+                filename = acme_severity.csv
+
+                [acme_extract_user]
+                REGEX = user=(?<user>[^\s,]+)
+            - value: "savedsearches.conf"
+              description: "Reports, scheduled searches and alerts"
+              template: |
+                # savedsearches.conf — Cloud forbids real-time searches, schedules more
+                # frequent than every 5 minutes, and index=* (it scans every index).
+                [Acme - Failed Logins]
+                search = index=acme_events sourcetype=acme:json action=failure | stats count by user
+                dispatch.earliest_time = -15m
+                dispatch.latest_time = now
+                cron_schedule = */10 * * * *
+                enableSched = 1
+            - value: "macros.conf"
+              description: "Search macros"
+              template: |
+                # macros.conf — search macros
+                [acme_index]
+                definition = index=acme_events
+            - value: "eventtypes.conf"
+              description: "Event type definitions"
+              template: |
+                # eventtypes.conf
+                [acme_failed_login]
+                search = index=acme_events action=failure
+            - value: "tags.conf"
+              description: "Tags applied to event types and field/value pairs (CIM compliance)"
+              template: |
+                # tags.conf
+                [eventtype=acme_failed_login]
+                authentication = enabled
+                failure = enabled
+            - { value: "fields.conf", description: "Multivalue fields and indexed-field search behaviour" }
+            - { value: "datamodels.conf", description: "Data model definitions (CIM acceleration)" }
+            - { value: "collections.conf", description: "KV Store collections" }
+            - { value: "commands.conf", description: "Custom search commands (needs a bin/ script)" }
+            - { value: "alert_actions.conf", description: "Custom alert actions" }
+            - { value: "workflow_actions.conf", description: "Workflow actions in the event viewer" }
+            - { value: "times.conf", description: "Custom time ranges for the Search app" }
+            - { value: "visualizations.conf", description: "Custom visualizations the app provides" }
+            - { value: "restmap.conf", description: "Custom REST endpoints (needs a bin/ handler)" }
+            - { value: "transactiontypes.conf", description: "Transaction types for transaction search" }
+            - { value: "event_renderers.conf", description: "Event-rendering properties" }
+            - { value: "searchbnf.conf", description: "Search assistant entries for a custom command" }
+            - { value: "ui-prefs.conf", description: "Default UI preferences for a view" }
+            - { value: "viewstates.conf", description: "Saved UI view state (charts)" }
+            - { value: "web.conf", description: "Cloud permits ONLY [endpoint:*] and [expose:*] stanzas — anything else is rejected" }
+            - { value: "server.conf", description: "Cloud permits ONLY [shclustering] conf_replication_include.* and [diag] EXCLUDE-* keys" }
+            - { value: "health.conf", description: "Thresholds for proactive component monitoring" }
+            - { value: "checklist.conf", description: "Monitoring console health checks" }
+            - { value: "metric_rollups.conf", description: "Metric rollup policy entries" }
+          helpText: >
+            Everything the package ships: .conf files (default/), scripts and modular inputs (bin/, mode 700), CSV lookups (lookups/),
+            static assets (static/), Python libraries (lib/) and .conf specs (README/ — REQUIRED for a modular input).
+            default/app.conf and metadata/default.meta are GENERATED from the Identity and Permissions fields above; do not author them.
+            local/ cannot be packaged — it is the user-owned override layer that shadows default/ and survives upgrades.
+            Splunk Cloud rejects indexes.conf (reference an existing index and create it with the Index Configuration type),
+            outputs.conf, limits.conf, authentication.conf, authorize.conf and the rest of the Cloud deny list.

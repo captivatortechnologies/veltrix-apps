@@ -40,6 +40,8 @@ const CANVAS_FIELD_TYPES = new Set([
   'tags',
   'password',
   'path',
+  'files',
+  'keyvalue',
 ])
 const SETTING_TYPES = new Set(['string', 'number', 'boolean', 'select'])
 // Apps run in-process inside the platform server — modules that spawn
@@ -281,10 +283,15 @@ export function validateApp(appDirArg) {
     if (!manifest.database.tablePrefix || !TABLE_PREFIX_RE.test(manifest.database.tablePrefix)) {
       err(`database.tablePrefix must match ${TABLE_PREFIX_RE} (got "${manifest.database.tablePrefix}")`)
     }
+    if (manifest.database.isolation && !['shared', 'schema', 'database', 'external'].includes(manifest.database.isolation)) {
+      err(`database.isolation must be one of shared|schema|database|external (got "${manifest.database.isolation}")`)
+    }
     if (manifest.database.migrations) {
       const migDir = path.join(appDir, manifest.database.migrations)
       if (!fs.existsSync(migDir) || !fs.statSync(migDir).isDirectory()) {
         err(`database.migrations points to a missing directory: "${manifest.database.migrations}"`)
+      } else {
+        validateMigrationOwnership(migDir, manifest.database, err)
       }
     }
   }
@@ -384,6 +391,15 @@ export function validateApp(appDirArg) {
     ),
   )
   const pagePaths = new Set((manifest.client?.pages ?? []).map((p) => p?.path))
+  // A `nav: 'tab'` page may parent either another declared page OR a
+  // configuration type (rendered as an in-page tab beside "Configurations",
+  // e.g. an "Index Defaults" page under `/config/indexes`).
+  const configTypeParents = new Set(
+    (manifest.pipeline?.configurationTypes ?? [])
+      .map((ct) => ct?.id)
+      .filter(Boolean)
+      .map((id) => `/config/${id}`),
+  )
   {
     const declared = (manifest.client?.pages ?? []).map((p) => p?.path).filter(Boolean)
     const dupes = declared.filter((p, i) => declared.indexOf(p) !== i)
@@ -406,8 +422,8 @@ export function validateApp(appDirArg) {
     if (page?.nav === 'tab' && !page.parent) {
       err(`${label}.nav is "tab" so it must declare a "parent" page path`)
     }
-    if (page?.parent && !pagePaths.has(page.parent)) {
-      err(`${label}.parent "${page.parent}" does not match any declared page path`)
+    if (page?.parent && !pagePaths.has(page.parent) && !configTypeParents.has(page.parent)) {
+      err(`${label}.parent "${page.parent}" does not match any declared page path or configuration type`)
     }
     if (page?.order !== undefined && typeof page.order !== 'number') {
       err(`${label}.order must be a number`)
@@ -879,6 +895,63 @@ function validateDefaultsFile(appDir, ref, label, canvasShape, err, warn) {
     for (const key of Object.keys(fields)) {
       if (!keys.has(key)) {
         warn(`canvas: ${label} defaults key "${sectionName}.${key}" does not match any canvas field`)
+      }
+    }
+  }
+}
+
+/**
+ * Scan an app's SQL migrations for statements that reach outside the app's
+ * namespace. Mirrors the platform's runtime ownership guard
+ * (server app-engine migration-runner) so bad migrations fail at build time.
+ */
+const MIG_FORBIDDEN =
+  /\bCREATE\s+(ROLE|USER|DATABASE|EXTENSION|SCHEMA)\b|\bDROP\s+(ROLE|USER|DATABASE|SCHEMA)\b|\bALTER\s+(ROLE|USER|DATABASE|SYSTEM)\b|\b(GRANT|REVOKE)\b|\bSET\s+ROLE\b|\bCOPY\b|\bCREATE\s+(OR\s+REPLACE\s+)?FUNCTION\b/i
+const MIG_OWNED_DDL =
+  /\b(?:CREATE|ALTER|DROP)\s+(?:TABLE|INDEX|UNIQUE\s+INDEX|SEQUENCE|VIEW|MATERIALIZED\s+VIEW|TYPE|TRIGGER)\s+(?:IF\s+(?:NOT\s+)?EXISTS\s+)?(?:ONLY\s+)?("?[A-Za-z0-9_.]+"?)/i
+const MIG_PROTECTED_SCHEMAS = new Set(['public', 'pg_catalog', 'information_schema', 'pg_toast'])
+
+function clipSql(s) {
+  return s.length > 120 ? `${s.slice(0, 117)}...` : s
+}
+
+function validateMigrationOwnership(migDir, database, err) {
+  const isolation = database.isolation === 'schema' ? 'schema' : 'shared'
+  const prefix = String(database.tablePrefix || '')
+  let files
+  try {
+    files = fs.readdirSync(migDir).filter((f) => f.endsWith('.sql')).sort()
+  } catch {
+    return
+  }
+  for (const file of files) {
+    let sql
+    try {
+      sql = fs.readFileSync(path.join(migDir, file), 'utf8')
+    } catch {
+      continue
+    }
+    const statements = sql.split(';').map((s) => s.trim()).filter(Boolean)
+    for (const st of statements) {
+      const oneLine = st.replace(/\s+/g, ' ')
+      if (MIG_FORBIDDEN.test(st)) {
+        err(`migrations: ${file} has a statement an app may not run (roles/schemas/functions/grants): "${clipSql(oneLine)}"`)
+        continue
+      }
+      for (const m of oneLine.matchAll(/(?:^|[\s("])("?[A-Za-z_][A-Za-z0-9_]*"?)\s*\.\s*"?[A-Za-z_]/g)) {
+        const schema = m[1].replace(/^"(.*)"$/, '$1')
+        if (isolation === 'shared' && MIG_PROTECTED_SCHEMAS.has(schema.toLowerCase())) {
+          err(`migrations: ${file} may not reference schema "${schema}": "${clipSql(oneLine)}"`)
+        }
+      }
+      if (isolation === 'shared') {
+        const owned = MIG_OWNED_DDL.exec(st)
+        if (owned) {
+          const name = owned[1].split('.').pop().replace(/^"(.*)"$/, '$1')
+          if (!prefix || !name.toLowerCase().includes(prefix.toLowerCase())) {
+            err(`migrations: ${file} object "${name}" must be namespaced with tablePrefix "${prefix}": "${clipSql(oneLine)}"`)
+          }
+        }
       }
     }
   }

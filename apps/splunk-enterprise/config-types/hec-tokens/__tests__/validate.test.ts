@@ -18,6 +18,7 @@ function makeCtx(sections: Array<{ name: string; fields: Record<string, unknown>
       name: 'Test HEC Canvas',
       toolType: 'splunk',
       entityType: 'hec-tokens',
+      items: sections,
       sections,
       snapshot: {},
     },

@@ -1,0 +1,140 @@
+// =============================================================================
+// BYOL infrastructure — raw-SQL access to the app-owned
+// `splunk_byol_infrastructure` table (and its region satellites).
+//
+// `customerId` and `cloudProviderId` are plain columns referencing PLATFORM
+// entities; the app never foreign-keys across the boundary.
+// =============================================================================
+
+import type { PlatformDatabaseClient } from '@veltrixsecops/app-sdk'
+import { mapByol, mapRegion, type ByolDto, type RegionDto, type Row } from './mappers'
+
+export interface ByolInput {
+  name: string
+  deploymentType: string
+  environmentType: string
+  hosting_type: string
+  region?: string
+  indexerCount: number
+  searchHeadCount: number
+  cloudProviderId?: string
+}
+
+async function attachRegions(db: PlatformDatabaseClient, infra: ByolDto): Promise<ByolDto> {
+  const [indexer, searchHead] = await Promise.all([
+    db.$queryRawUnsafe<Row[]>(
+      'SELECT * FROM splunk_byol_indexer_region WHERE infrastructure_id = $1::uuid',
+      infra.id,
+    ),
+    db.$queryRawUnsafe<Row[]>(
+      'SELECT * FROM splunk_byol_search_head_region WHERE infrastructure_id = $1::uuid',
+      infra.id,
+    ),
+  ])
+  infra.indexerRegions = indexer.map(mapRegion)
+  infra.searchHeadRegions = searchHead.map(mapRegion)
+  return infra
+}
+
+export async function listByol(db: PlatformDatabaseClient, customerId: string): Promise<ByolDto[]> {
+  const rows = await db.$queryRawUnsafe<Row[]>(
+    'SELECT * FROM splunk_byol_infrastructure WHERE customer_id = $1::uuid ORDER BY updated_at DESC',
+    customerId,
+  )
+  return Promise.all(rows.map((r) => attachRegions(db, mapByol(r))))
+}
+
+export async function getByol(
+  db: PlatformDatabaseClient,
+  id: string,
+  customerId: string,
+): Promise<ByolDto | null> {
+  const rows = await db.$queryRawUnsafe<Row[]>(
+    'SELECT * FROM splunk_byol_infrastructure WHERE id = $1::uuid AND customer_id = $2::uuid',
+    id,
+    customerId,
+  )
+  return rows[0] ? attachRegions(db, mapByol(rows[0])) : null
+}
+
+export async function createByol(
+  db: PlatformDatabaseClient,
+  customerId: string,
+  input: ByolInput,
+): Promise<ByolDto> {
+  const rows = await db.$queryRawUnsafe<Row[]>(
+    `INSERT INTO splunk_byol_infrastructure
+       (name, deployment_type, environment_type, hosting_type, region,
+        indexer_count, search_head_count, cloud_provider_id, customer_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::uuid, $9::uuid)
+     RETURNING *`,
+    input.name,
+    input.deploymentType,
+    input.environmentType,
+    input.hosting_type,
+    input.region ?? null,
+    input.indexerCount,
+    input.searchHeadCount,
+    input.cloudProviderId ?? null,
+    customerId,
+  )
+  return attachRegions(db, mapByol(rows[0]))
+}
+
+export async function updateByol(
+  db: PlatformDatabaseClient,
+  id: string,
+  input: ByolInput,
+): Promise<ByolDto> {
+  const rows = await db.$queryRawUnsafe<Row[]>(
+    `UPDATE splunk_byol_infrastructure SET
+       name = $2, deployment_type = $3, environment_type = $4, hosting_type = $5,
+       region = $6, indexer_count = $7, search_head_count = $8,
+       cloud_provider_id = COALESCE($9::uuid, cloud_provider_id), updated_at = now()
+     WHERE id = $1::uuid
+     RETURNING *`,
+    id,
+    input.name,
+    input.deploymentType,
+    input.environmentType,
+    input.hosting_type,
+    input.region ?? null,
+    input.indexerCount,
+    input.searchHeadCount,
+    input.cloudProviderId ?? null,
+  )
+  return attachRegions(db, mapByol(rows[0]))
+}
+
+export async function setByolStatus(
+  db: PlatformDatabaseClient,
+  id: string,
+  status: string,
+): Promise<ByolDto> {
+  const rows = await db.$queryRawUnsafe<Row[]>(
+    'UPDATE splunk_byol_infrastructure SET status = $2, updated_at = now() WHERE id = $1::uuid RETURNING *',
+    id,
+    status,
+  )
+  return attachRegions(db, mapByol(rows[0]))
+}
+
+export async function deleteByol(db: PlatformDatabaseClient, id: string): Promise<void> {
+  await db.$executeRawUnsafe('DELETE FROM splunk_byol_infrastructure WHERE id = $1::uuid', id)
+}
+
+/** Set status by id only, no-op if the infrastructure does not exist. Returns whether a row was updated. */
+export async function setByolStatusIfExists(
+  db: PlatformDatabaseClient,
+  id: string,
+  status: string,
+): Promise<boolean> {
+  const affected = await db.$executeRawUnsafe(
+    'UPDATE splunk_byol_infrastructure SET status = $2, updated_at = now() WHERE id = $1::uuid',
+    id,
+    status,
+  )
+  return affected > 0
+}
+
+export type { RegionDto }

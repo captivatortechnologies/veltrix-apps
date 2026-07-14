@@ -51,7 +51,7 @@ export default function OverviewPage() {
           </Badge>
         }
       >
-        <h2>Splunk SOAR</h2>
+        <h2>Connection</h2>
       </CardHeader>
       <CardBody>
         <p>

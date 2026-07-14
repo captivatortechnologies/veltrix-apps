@@ -18,6 +18,7 @@ function makeCtx(sections: Array<{ name: string; fields: Record<string, unknown>
       name: 'Test Canvas',
       toolType: 'crowdstrike-edr',
       entityType: 'custom-iocs',
+      items: sections,
       sections,
       snapshot: {},
     },

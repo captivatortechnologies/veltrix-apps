@@ -1,4 +1,5 @@
 import type { AppHookContext } from '@veltrixsecops/app-sdk'
+import * as store from '../lib/db'
 
 /**
  * Install hook for Splunk Enterprise app.
@@ -19,7 +20,7 @@ export default async function onInstall({ db, appId }: AppHookContext): Promise<
   console.log(`[Splunk Enterprise] Running install hook for app "${appId}"`)
 
   // Seed default Splunk versions if none exist
-  const existingVersions = await db.splunkVersion.count()
+  const existingVersions = await store.countVersions(db)
   if (existingVersions === 0) {
     const versions = [
       {
@@ -90,11 +91,7 @@ export default async function onInstall({ db, appId }: AppHookContext): Promise<
     ]
 
     for (const v of versions) {
-      await db.splunkVersion.upsert({
-        where: { version: v.version },
-        create: v,
-        update: {},
-      })
+      await store.insertVersionIfAbsent(db, v)
     }
 
     console.log(`[Splunk Enterprise] Seeded ${versions.length} Splunk versions`)

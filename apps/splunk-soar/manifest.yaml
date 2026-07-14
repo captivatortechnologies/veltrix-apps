@@ -15,6 +15,17 @@ icon: "🤖"
 platform:
   minVersion: "1.0.0"
 
+# Rendered by the platform in the app's navbar and on the marketplace card, and
+# exposed to pages as --veltrix-app-primary / --veltrix-app-accent. Splunk brand
+# orange (#FF6600) is the primary; a pink accent from Splunk's brand gradient
+# completes the palette. The official Splunk "splunk> a Cisco company" lockup
+# ships in assets/ as light + dark variants (same mark as the sibling Splunk apps).
+branding:
+  primaryColor: "#FF6600"
+  accentColor: "#F04E98"
+  logo: ./assets/logo.png
+  logoDark: ./assets/logo-dark.png
+
 permissions:
   platform:
     - component:read

@@ -66,6 +66,37 @@ Targets: `indexer`, `heavy-forwarder` components.
 Health checks verify the global HEC input (`.../http/http`) is enabled in
 addition to per-token existence/state.
 
+### `apps` — Splunk apps & add-ons (`/services/apps/local`, `/services/apps/appinstall`)
+
+Targets: `search-head`, `indexer`, `deployment-server` components.
+
+| Canvas field | Splunk REST parameter | Notes |
+|---|---|---|
+| `name` | app id / folder name | Letters, digits, `_`, `-`; must start with a letter or digit |
+| `label` / `description` | `label` / `description` | App metadata shown in Splunk Web |
+| `source` + `sourceRef` | `appinstall` (`name` for Splunkbase, `filename` for URL/path) | Splunkbase requires the numeric app id + Splunkbase auth; URL must be `https` |
+| `version` | `version` | Version to pin (blank keeps whatever the package provides) |
+| `visibility` | `.../<app>/acl` `sharing` | `app` (app-local) or `global` (global warns) |
+| `state` | `.../<app>/enable` or `/disable` | `enabled` / `disabled` |
+| `upgradePolicy` | — | `manual` installs only when absent; `auto` re-installs the latest each deploy |
+| `targetTypes` | — | Splunk roles the app belongs on (informs placement) |
+
+Deploy captures each pre-existing app's metadata + enabled state as
+`rollbackData`; rollback restores those and removes apps the deployment
+installed. Health checks verify every canvas app is installed and in its
+expected enabled/disabled state.
+
+**Authoring an app/TA inline** — set `source` to **Author files inline** and
+add files under **App Contents** (the `files` editor) to build the app/TA from
+scratch instead of a package. Each file has a top-level folder (`default/`,
+`local/`, `bin/`, `static/`, `metadata/`, `lookups/`, `lib/`, `README/`), a
+filename and its content. On deploy the app folder is created, then every
+`default/local *.conf` file is applied stanza-by-stanza over the REST configs
+API (`/servicesNS/nobody/<app>/configs/conf-<file>`). Non-conf assets
+(`bin/` scripts, `lib/` libraries, `static/` assets, `metadata/default.meta`)
+can't be written over REST — they're reported in the deploy result as
+requiring a packaged install.
+
 ## App-managed entities (pages)
 
 Beyond the pipeline configuration types above, the app manages a few plain
@@ -74,11 +105,14 @@ pages rather than the Configuration Canvas:
 
 | Page | Route | Backing API | Editable |
 |---|---|---|---|
-| **Index Defaults** | `/index-defaults` | `GET/POST/PUT/DELETE /indexes/defaults` | ✅ create / edit / delete |
-| **Role Defaults** | `/role-defaults` | `GET/POST/PUT/DELETE /roles/defaults` | ✅ create / edit / delete |
+| **Index Defaults** | `/config/indexes` → **Defaults** tab | `GET/POST/PUT/DELETE /indexes/defaults` | ✅ create / edit / delete |
+| **Role Defaults** | `/config/roles` → **Defaults** tab | `GET/POST/PUT/DELETE /roles/defaults` | ✅ create / edit / delete |
 | **Versions** | `/versions` | `GET /versions` | read-only (seeded release lines) |
 
-Index/role **defaults** are per-environment templates that seed new index and
+The index/role **defaults** render as a second **Defaults** tab beside
+**Configurations** on their configuration type's page (declared in the manifest
+as `nav: tab` with `parent: /config/<type>`). They are per-environment
+templates that seed new index and
 role configurations (retention, sizing, approval policy for indexes; default
 capabilities for roles). Every write route is gated by an app permission
 (`indexes`/`roles` `write`/`delete`), scoped to the caller's tenant, and

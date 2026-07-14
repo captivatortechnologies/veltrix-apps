@@ -1,13 +1,5 @@
-# Default values seeded into every new indicator item on the canvas.
-# Flat mapping: field key → default value (the canvas declares one `item`).
-
-type: "sha256"
-value: ""
-action: "detect"
-severity: "medium"
-platforms: "windows, mac, linux"
-appliedGlobally: true
-hostGroups: ""
-expiration: ""
-description: ""
-tags: ""
+# Defaults for a new indicator item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Users manage their own default value sets and can
+# apply one when creating an item.

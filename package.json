@@ -2,10 +2,11 @@
   "name": "veltrix-apps",
   "private": true,
   "type": "module",
-  "description": "Veltrix community apps monorepo — validation and catalog tooling",
+  "description": "Veltrix community apps monorepo \u2014 validation and catalog tooling",
   "scripts": {
     "validate": "node scripts/validate-app.mjs",
-    "catalog": "node scripts/build-catalog.mjs"
+    "catalog": "node scripts/build-catalog.mjs",
+    "test": "node scripts/test-apps.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.1",

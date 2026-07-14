@@ -1,5 +1,5 @@
-# Default values used when creating a new SOAR connection profile canvas
-
-General:
-  name: ""
-  description: ""
+# Defaults for a new SOAR connection profile.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Users manage their own default value sets and can
+# apply one when creating an item.

@@ -121,6 +121,50 @@ export async function acsRequest(
   }
 }
 
+export interface AcsUpload {
+  /** Raw bytes sent verbatim as the request body. */
+  body: Buffer | Uint8Array
+  /** e.g. "application/octet-stream" (Victoria) or a multipart content type (Classic). */
+  contentType: string
+  /** Endpoint-specific headers — the AppInspect token and the legal ack. */
+  headers?: Record<string, string>
+}
+
+/**
+ * POST a RAW body to ACS.
+ *
+ * `acsRequest` is JSON-only, but app install is a binary upload: Victoria takes
+ * the .tar.gz bytes directly, Classic takes a multipart body. Same URL model,
+ * same timeout, same never-throw-on-status contract — only the body differs.
+ */
+export async function acsUpload(
+  opts: AcsRequestOptions,
+  path: string,
+  upload: AcsUpload,
+  method: AcsMethod = 'POST',
+): Promise<AcsResponse> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), opts.timeoutMs)
+
+  try {
+    const res = await fetch(acsUrl(opts, path), {
+      method,
+      headers: {
+        Authorization: `Bearer ${opts.token}`,
+        'Content-Type': upload.contentType,
+        Accept: 'application/json',
+        ...(upload.headers ?? {}),
+      },
+      body: upload.body as unknown as BodyInit,
+      signal: controller.signal,
+    })
+    const text = await res.text()
+    return { status: res.status, ok: res.ok, body: text }
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 /** Parse a JSON body, returning null instead of throwing on malformed content. */
 export function parseJson<T>(body: string): T | null {
   try {

@@ -1,16 +1,5 @@
-# Default configuration values
-# These are used when creating a new canvas from this template
-
-General:
-  name: ""
-  description: ""
-  enabled: true
-
-Connection:
-  endpoint: "https://localhost:8089"
-  port: 8089
-  protocol: "https"
-
-Advanced:
-  timeout: 30
-  tags: []
+# Defaults for a new item created from this config type.
+#
+# Leave this empty: the platform does not seed system default values into new
+# items — a new item starts blank. Provide user-managed defaults instead, which
+# users can apply when creating an item.

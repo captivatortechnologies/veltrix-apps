@@ -234,6 +234,47 @@ export interface AppHookContext {
 }
 
 /**
+ * Context passed to an app's `onWebhook` hook when the platform receives an
+ * inbound webhook. The platform stays ignorant of the app's semantics — the
+ * app inspects `source`/`event` and decides whether and how to act (e.g. update
+ * its own tables via `db`).
+ */
+export interface AppWebhookContext {
+  db: PlatformDatabaseClient
+  appId: string
+  /** Origin of the webhook, e.g. 'github'. */
+  source: string
+  /** Event name within the source, e.g. 'deployment'. */
+  event: string
+  /** Normalized webhook payload. */
+  payload: any
+}
+
+/**
+ * Context passed to an app's `onEvent` hook when the platform routes a message-
+ * bus event to it. Symmetric with `events.publish` (outbound): the app inspects
+ * `topic` and acts on its own data.
+ */
+export interface AppEventContext {
+  db: PlatformDatabaseClient
+  appId: string
+  /** Event topic, e.g. 'deployment.status'. */
+  topic: string
+  /** Event payload. */
+  payload: any
+}
+
+/**
+ * Publish an event/message from an app to the platform's message bus. The
+ * platform routes it on a topic exchange keyed by `<appId>.<topic>`; consumers
+ * (provisioning workers, other apps) subscribe by routing key. The platform is
+ * ignorant of the payload's meaning — the app owns the message shape.
+ */
+export interface AppEventPublisher {
+  publish(topic: string, payload: unknown): Promise<void>
+}
+
+/**
  * Context passed to an app's server route module (the `server.entry`
  * declared in manifest.yaml). The platform mounts the module as a Fastify
  * plugin under `/api/apps/<appId>` with auth + app-enabled checks applied;
@@ -244,6 +285,8 @@ export interface AppRouteContext {
   appDir: string
   manifest: AppManifest
   db: PlatformDatabaseClient
+  /** Publish events/messages from this app to the platform message bus. */
+  events: AppEventPublisher
   /**
    * Returns a Fastify preHandler enforcing an app-scoped permission.
    * Typed `any` so the SDK does not depend on Fastify's hook types —

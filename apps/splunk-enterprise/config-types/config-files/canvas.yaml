@@ -1,0 +1,221 @@
+# =============================================================================
+# Canvas Template — Splunk Config Files
+#
+# Author standard Splunk .conf stanzas (inputs, props, transforms, indexes, …)
+# and deploy them into a chosen target-app namespace over the REST configs API.
+# Reuses the shared `files` field (searchable .conf catalog + Form/Text editor)
+# — the SAME experience as an app/TA's "App Contents".
+#
+# NOTE: the `files.fileCatalog` below mirrors config-types/apps/canvas.yaml.
+# Keep the two in sync (shared, stable Splunk .conf reference data).
+# =============================================================================
+
+id: "splunk-enterprise-config-files"
+name: "Config Files"
+toolType: "splunk-enterprise"
+entityType: "config-files"
+description: "Author Splunk .conf stanzas and deploy them to a target app namespace over the REST configs API"
+
+item:
+  label: "Config File Set"
+  identityField: "targetApp"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Target"
+      icon: "server"
+      description: "Where these .conf stanzas are written"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: true
+          placeholder: "Explain why this configuration is needed (purpose, owner, ticket, etc.)"
+          helpText: "Required. Document why this isolated config file set exists so reviewers and future admins understand its intent."
+        - key: "targetApp"
+          label: "Target App"
+          fieldType: "text"
+          required: true
+          defaultValue: "system"
+          validation:
+            pattern: "^[A-Za-z0-9][A-Za-z0-9_-]*$"
+            message: "Letters, digits, underscores and hyphens only."
+          helpText: "The Splunk app namespace the stanzas are written into (/servicesNS/nobody/<app>/configs/conf-<file>). Use 'system' for global scope, or an app id such as 'search'."
+
+    - name: "Files"
+      icon: "folder-tree"
+      description: "Pick .conf files and author their stanzas (Form or Text)"
+      fields:
+        - key: "files"
+          label: "Configuration Files"
+          fieldType: "files"
+          options:
+            - value: "default"
+              label: "default/"
+            - value: "local"
+              label: "local/"
+          fileCatalog:
+            - value: "app.conf"
+              description: "Configure app properties (label, version, visibility, launcher)"
+              template: |
+                # app.conf — app properties shown in Splunk Web
+                [install]
+                is_configured = false
+
+                [ui]
+                is_visible = true
+                label = My App
+
+                [launcher]
+                author =
+                description =
+                version = 1.0.0
+            - value: "inputs.conf"
+              description: "Set up data inputs (monitors, scripted/modular inputs, TCP/UDP)"
+              template: |
+                # inputs.conf — data inputs
+                [monitor:///var/log/example.log]
+                disabled = false
+                index = main
+                sourcetype = example
+            - value: "props.conf"
+              description: "Indexing properties: timestamps, line breaking, sourcetype rules; map transforms to events"
+              template: |
+                # props.conf — parsing/indexing properties per sourcetype
+                [example]
+                SHOULD_LINEMERGE = false
+                LINE_BREAKER = ([\r\n]+)
+                TIME_FORMAT = %Y-%m-%d %H:%M:%S
+                MAX_TIMESTAMP_LOOKAHEAD = 25
+                TRUNCATE = 10000
+            - value: "transforms.conf"
+              description: "Regex transformations for data inputs (use with props.conf)"
+              template: |
+                # transforms.conf — regex transforms (reference from props.conf)
+                [example_transform]
+                REGEX = (?<field>\w+)
+                FORMAT = field::$1
+                DEST_KEY = _raw
+            - value: "indexes.conf"
+              description: "Manage and configure index settings"
+              template: |
+                # indexes.conf — index definitions
+                [example_index]
+                homePath   = $SPLUNK_DB/example_index/db
+                coldPath   = $SPLUNK_DB/example_index/colddb
+                thawedPath = $SPLUNK_DB/example_index/thaweddb
+                maxTotalDataSizeMB = 500000
+                frozenTimePeriodInSecs = 7776000
+            - value: "outputs.conf"
+              description: "Set up forwarding behavior"
+              template: |
+                # outputs.conf — forwarding behavior
+                [tcpout]
+                defaultGroup = primary_indexers
+
+                [tcpout:primary_indexers]
+                server = indexer1:9997,indexer2:9997
+            - value: "server.conf"
+              description: "Overall instance settings: SSL, clustering, KV store, license manager"
+              template: |
+                # server.conf — instance-wide settings
+                [general]
+                serverName = my-splunk
+
+                [sslConfig]
+                enableSplunkdSSL = true
+            - value: "web.conf"
+              description: "Configure Splunk Web; enable HTTPS"
+              template: |
+                # web.conf — Splunk Web settings
+                [settings]
+                enableSplunkWebSSL = true
+                httpport = 8000
+            - value: "authentication.conf"
+              description: "Built-in authentication or LDAP, and LDAP configuration"
+              template: |
+                # authentication.conf — authentication method
+                [authentication]
+                authType = Splunk
+            - value: "authorize.conf"
+              description: "Configure roles, including granular access controls"
+              template: |
+                # authorize.conf — roles and capabilities
+                [role_example]
+                importRoles = user
+                srchIndexesAllowed = main
+                srchIndexesDefault = main
+            - { value: "alert_actions.conf", description: "Create an alert action" }
+            - value: "savedsearches.conf"
+              description: "Define reports, scheduled reports, and alerts"
+              template: |
+                # savedsearches.conf — reports, scheduled searches, alerts
+                [Example Search]
+                search = index=main error
+                dispatch.earliest_time = -24h
+                dispatch.latest_time = now
+                enableSched = 0
+            - value: "macros.conf"
+              description: "Define search macros"
+              template: |
+                # macros.conf — search macros
+                [example_macro(1)]
+                args = index
+                definition = index=$index$
+            - value: "eventtypes.conf"
+              description: "Create event type definitions"
+              template: |
+                # eventtypes.conf — event type definitions
+                [example_eventtype]
+                search = index=main sourcetype=example
+            - value: "tags.conf"
+              description: "Configure tags for fields"
+              template: |
+                # tags.conf — tags for fields
+                [eventtype=example_eventtype]
+                example = enabled
+            - { value: "fields.conf", description: "Create multivalue fields; add search capability for indexed fields" }
+            - { value: "datamodels.conf", description: "Attribute/value pairs for configuring data models" }
+            - { value: "collections.conf", description: "Configure KV Store collections for apps" }
+            - { value: "commands.conf", description: "Create custom search commands for apps" }
+            - { value: "restmap.conf", description: "Create custom REST endpoints" }
+            - { value: "limits.conf", description: "Set limits (e.g. max result size, concurrent real-time searches) for search commands" }
+            - { value: "distsearch.conf", description: "Specify behavior for distributed search" }
+            - { value: "deploymentclient.conf", description: "Specify behavior for clients of the deployment server" }
+            - { value: "serverclass.conf", description: "Define deployment server classes" }
+            - { value: "serverclass.seed.xml.conf", description: "Seed a deployment client with apps at start-up time" }
+            - { value: "workflow_actions.conf", description: "Configure workflow actions" }
+            - { value: "times.conf", description: "Define custom time ranges for the Search app" }
+            - { value: "multikv.conf", description: "Extraction rules for table-like events (ps, netstat, ls)" }
+            - { value: "segmenters.conf", description: "Configure segmentation" }
+            - { value: "transactiontypes.conf", description: "Add additional transaction types for transaction search" }
+            - { value: "event_renderers.conf", description: "Configure event-rendering properties" }
+            - { value: "searchbnf.conf", description: "Configure the search assistant" }
+            - { value: "ui-prefs.conf", description: "Change UI preferences for a view (e.g. default time range)" }
+            - { value: "user-prefs.conf", description: "Per-user settings for Splunk Web" }
+            - { value: "viewstates.conf", description: "Set up UI views (such as charts)" }
+            - { value: "visualizations.conf", description: "List the visualizations an app makes available" }
+            - { value: "global-banner.conf", description: "Display a global banner on all pages in Splunk Web" }
+            - { value: "health.conf", description: "Set default thresholds for proactive component monitoring" }
+            - { value: "checklist.conf", description: "Customize monitoring console health check" }
+            - { value: "bookmarks.conf", description: "Bookmark monitoring console URLs" }
+            - { value: "messages.conf", description: "Customize Splunk Web messages" }
+            - { value: "literals.conf", description: "Customize text (e.g. search error strings) in Splunk Web" }
+            - { value: "passwords.conf", description: "Maintain the credential information for an app" }
+            - { value: "audit.conf", description: "Configure auditing and event hashing" }
+            - { value: "telemetry.conf", description: "Enable apps to collect telemetry data" }
+            - { value: "federated.conf", description: "Search data outside of your own Splunk platform deployment" }
+            - { value: "metric_rollups.conf", description: "Metric rollup policy entries" }
+            - { value: "source-classifier.conf", description: "Terms to ignore when creating a source type" }
+            - { value: "sourcetypes.conf", description: "Machine-generated store of source type learning rules" }
+            - { value: "procmon-filters.conf", description: "Monitor Windows process data" }
+            - { value: "wmi.conf", description: "Set up Windows Management Instrumentation (WMI) inputs" }
+            - { value: "pubsub.conf", description: "Define a custom client of the deployment server" }
+            - { value: "rolling_upgrade.conf", description: "Automated search head / indexer cluster rolling upgrade" }
+            - { value: "web-features.conf", description: "Configure some Splunk Web settings" }
+            - { value: "workload_policy.conf", description: "Enable or disable admission rules in workload management" }
+            - { value: "workload_pools.conf", description: "Configure workload pools (compute/memory resource groups)" }
+            - { value: "workload_rules.conf", description: "Workload rules: access and priority for workload pools" }
+            - { value: "agent_management.conf", description: "Configure the Agent Management feature" }
+          helpText: "Pick a standard Splunk .conf file (or type a custom name) and author its stanzas. Toggle 'Form' to edit stanzas and attributes as fields, or 'Text' for raw .conf. On deploy, each stanza is written to the target app's REST configs endpoint."

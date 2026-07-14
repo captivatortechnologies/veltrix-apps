@@ -17,6 +17,7 @@ public ACS endpoint — no tunnels or connectivity providers are required.
 | `indexes` | Event/metric indexes: searchable retention, size caps, DDAA/DDSS archival | `GET/POST /indexes`, `GET/PATCH/DELETE /indexes/{name}` |
 | `hec-tokens` | HTTP Event Collector tokens: default/allowed indexes, source/sourcetype, acknowledgement, enablement | `GET/POST /inputs/http-event-collectors`, `GET/PATCH/DELETE /inputs/http-event-collectors/{name}` |
 | `ip-allowlists` | Per-feature IP allow lists (`search-api`, `hec`, `s2s`, `search-ui`, `idm-ui`, `idm-api`, `acs`) | `GET/POST/DELETE /access/{feature}/ipallowlists` |
+| `apps` | Private apps/add-ons authored as files, built to a `.spl`, vetted by AppInspect, installed via ACS | Victoria: `GET/POST /apps/victoria`, `GET/DELETE /apps/victoria/{app}` · Classic: `GET/POST /apps`, `GET/DELETE /apps/{app}` |
 
 All endpoints are relative to `https://admin.splunk.com/{stack}/adminconfig/v2`.
 
@@ -44,6 +45,7 @@ All endpoints are relative to `https://admin.splunk.com/{stack}/adminconfig/v2`.
 | `acs_base_url` | `https://admin.splunk.com` | Use `https://admin.splunkcloudgc.com` for FedRAMP Moderate (IL2) stacks |
 | `experience` | `victoria` | Victoria or Classic. All three configuration types work on both; the value is recorded with deployments and gates future Victoria-only types (e.g. limits.conf) |
 | `request_timeout_seconds` | `30` | Per-request timeout for ACS calls |
+| `appinspect_max_wait_seconds` | `900` | How long to wait for AppInspect to finish vetting an app package before failing the deploy (`apps` only) |
 
 ## Canvas model
 
@@ -96,6 +98,70 @@ feature's allow list, even with `removeUndeclared` — deleting the wrong ACS
 subnet can permanently lock you (and this app) out of the ACS API, requiring
 Splunk Support to recover.
 
+### `apps` fields
+
+One item = one private app/add-on. Splunk Cloud has **no route for arbitrary
+REST config writes**, so an app is always BUILT from the files you author here —
+there is no "install source" as there is on Splunk Enterprise.
+
+| Field | Constraint |
+|-------|-----------|
+| `name` | Required. The app id: starts with a letter, then letters/digits/`.`/`_`/`-`, max 100 chars. It is the single top-level folder in the `.spl` and the `[package] id`. |
+| `label` | 5–80 chars (`[ui] label`). Required by Splunk even for an invisible add-on. |
+| `version` | 3-part semver. Must increase on every change — see the downgrade note below. |
+| `author`, `description` | `[launcher]` fields. Description is single-line, max 200 chars. |
+| `visibility` | `app` (`export = none`) or `global` (`export = system`) in `metadata/default.meta`. |
+| `readRoles` / `writeRoles` | Default `*` / `admin` + `sc_admin`. **`writeRoles` must include `sc_admin`** — it is the Cloud administrator role, and AppInspect fails a package without it. |
+| `exportedObjects` | Object types promoted to `export = system` individually. Preferred over global sharing. |
+| `appFiles` | The packaged files: `default/*.conf`, `bin/` (mode 700), `lookups/`, `static/`, `lib/`, `README/`. |
+
+`default/app.conf` and `metadata/default.meta` are **generated** from the fields
+above — authoring them by hand has no effect. `local/` cannot be packaged: it is
+the user-owned override layer that shadows `default/` and survives upgrades.
+
+**The install flow.** Deploy performs exactly this sequence, and there is no
+alternative on Splunk Cloud:
+
+1. **Build** the `.spl` in memory (reproducible gzipped ustar tar with explicit
+   unix modes; 128 MB ACS limit enforced).
+2. **Log in to AppInspect** — `GET https://api.splunk.com/2.0/rest/login/splunk`
+   with HTTP Basic using your **splunk.com account**, returning a JWT.
+3. **Submit for vetting** — `POST https://appinspect.splunk.com/v1/app/validate`
+   (multipart: `app_package` = the `.spl`, `included_tags` = `private_victoria`
+   or `private_classic`), then poll `/v1/app/validate/status/{id}` to a terminal
+   state and fetch `/v1/app/report/{id}`.
+4. **Gate** — install proceeds **only if `failure == 0 && error == 0 &&
+   manual_check == 0`**. Any `manual_check` finding means self-service install is
+   **blocked entirely** and a Splunk Support case is the only route; deploy fails
+   with the offending check names and messages.
+5. **Install** — Victoria `POST /apps/victoria` with the **raw** `.tar.gz` bytes,
+   `X-Splunk-Authorization: <appinspect JWT>`; Classic `POST /apps` with a
+   multipart body carrying `token=<appinspect JWT>` and `package=@<file>`. Both
+   require `ACS-Legal-Ack: Y`. Install is **async** (`"status": "uploaded"` means
+   still installing), so deploy polls to the terminal `"installed"` state.
+
+**Two tokens, two identities.** `apps` is the only configuration type in this app
+that needs more than the ACS token:
+
+| Purpose | Credential field | Used as |
+|---------|------------------|---------|
+| ACS (stack) | **API token** — the Splunk Cloud JWT (`sc_admin`) | `Authorization: Bearer` |
+| AppInspect | **Username** + **Password** — a **splunk.com** account | HTTP Basic → JWT → `X-Splunk-Authorization` / multipart `token` |
+
+If the splunk.com username/password are missing, deploy **fails** rather than
+skipping vetting — an unvetted package cannot be installed on Cloud at all.
+
+**Validation is stricter than on Enterprise.** `validate` never touches the
+network but rejects, as errors, everything AppInspect would fail the package
+for: `indexes.conf` (an add-on must *reference* an existing index — create it
+with the `indexes` type), the Cloud conf deny list (`outputs.conf`,
+`limits.conf`, `authentication.conf`, `authorize.conf`, `passwords.conf`, …), a
+bare `[http]` stanza, banned input stanzas (TCP/UDP/splunktcp, every Windows
+input), real-time searches, crons more frequent than every 5 minutes, `index=*`,
+and write access that omits `sc_admin`. `web.conf` is allowed only for
+`[endpoint:*]`/`[expose:*]`, `server.conf` only for `[shclustering]
+conf_replication_include.*` and `[diag] EXCLUDE-*`.
+
 ## Pipeline semantics
 
 - **deploy** captures the prior state of every touched resource and returns
@@ -138,6 +204,22 @@ FedRAMP stacks use `https://admin.splunkcloudgc.com` (Classic only).
 - Async provisioning is polled for ~30 seconds; slower creations are
   reported as "still provisioning" and verified by the next health check.
 
+### `apps` limitations
+
+- **No downgrade.** ACS installs an upgrade in place, but going *back* to an
+  older version requires **uninstall-then-install**, and uninstalling **destroys
+  the app's `local/` directory** — every setting a user changed in Splunk Web,
+  every generated credential. Rollback therefore uninstalls only apps the
+  deployment itself *created*; an app it *upgraded* is reported for manual
+  handling instead of being silently deleted.
+- **`manual_check` blocks everything.** A package that trips even one AppInspect
+  manual check cannot be self-installed through ACS by any means; Splunk Support
+  must review and install it.
+- Splunkbase apps are not installed by this type (it manages *private* apps);
+  ACS supports them via `splunkbaseID` + `X-Splunkbase-Authorization`.
+- Vetting is slow and rate-limited: every deploy of an app re-submits the package
+  to AppInspect.
+
 ## Future work
 
 Natural next configuration types, all ACS-manageable:
@@ -146,8 +228,9 @@ Natural next configuration types, all ACS-manageable:
   `GET/DELETE /access/outbound-ports/{port}`
 - **Maintenance windows** — `GET/POST /maintenance-windows/schedules`,
   `GET/PATCH/DELETE /maintenance-windows/schedules/{scheduleID}`
-- **App installation** (Splunkbase + private apps) —
-  `GET/POST /apps/victoria`, `GET/PATCH/DELETE /apps/victoria/{app_name}`
+- **Splunkbase app installation** — `POST /apps/victoria` with `splunkbaseID`
+  and an `X-Splunkbase-Authorization` token (the `apps` type covers private apps)
+- **App permissions/export** (Victoria only) — `GET/PATCH /apps/victoria/{app}/permissions`
 - **Users, roles, capabilities** and **limits.conf** (Victoria only) —
   `/limits`, `/limits/{stanza}`
 
@@ -161,6 +244,9 @@ Natural next configuration types, all ACS-manageable:
 - [ACS requirements and compatibility matrix](https://help.splunk.com/en/splunk-cloud-platform/administer/admin-config-service-manual/9.3.2411/using-the-admin-config-service-acs--api/admin-config-service-acs-requirements-and-compatibility-matrix)
 - [Troubleshoot ACS error messages](https://help.splunk.com/en/splunk-cloud-platform/administer/admin-config-service-manual/10.4.2604/troubleshoot-admin-config-service-acs-api/troubleshoot-acs-error-messages)
 - [Manage Splunk Cloud Platform indexes (naming rules)](https://help.splunk.com/en/splunk-cloud-platform/administer/admin-manual/10.1.2507/manage-your-indexes-and-data-in-splunk-cloud-platform/manage-splunk-cloud-platform-indexes)
+- [Manage private apps in Splunk Cloud Platform (ACS)](https://help.splunk.com/en/splunk-cloud-platform/administer/admin-config-service-manual/10.1.2507/administer-splunk-cloud-platform-using-the-admin-config-service-acs-api/manage-private-apps-in-splunk-cloud-platform)
+- [Splunk AppInspect API reference](https://dev.splunk.com/enterprise/reference/appinspect/appinspectapiepref/)
+- [Vet a private app for Splunk Cloud (AppInspect API)](https://dev.splunk.com/enterprise/docs/releaseapps/cloudvetting/)
 
 ## License
 

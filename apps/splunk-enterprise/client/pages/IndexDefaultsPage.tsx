@@ -18,11 +18,6 @@ import {
   type SortOption,
 } from '@veltrixsecops/app-sdk/ui'
 
-interface EnvironmentTag {
-  tagId: string
-  tag: { id: string; name: string }
-}
-
 interface IndexDefaultConfig {
   id: string
   name: string
@@ -34,7 +29,6 @@ interface IndexDefaultConfig {
   enableTsidx?: boolean
   requireApproval?: boolean
   updatedAt?: string
-  environments?: EnvironmentTag[]
 }
 
 interface FormState {
@@ -88,9 +82,9 @@ async function errorText(res: Response): Promise<string> {
 }
 
 /**
- * Manage the customer's default index configurations — the per-environment
- * templates that seed new index configs (retention, sizing, compression,
- * approval policy). Full CRUD over the app's /indexes/defaults routes.
+ * Manage the customer's default index configurations — the reusable templates
+ * that seed new index configs (retention, sizing, compression, approval
+ * policy). Full CRUD over the app's /indexes/defaults routes.
  */
 export default function IndexDefaultsPage() {
   const [configs, setConfigs] = useState<IndexDefaultConfig[]>([])
@@ -100,7 +94,6 @@ export default function IndexDefaultsPage() {
   // Search / filter / sort / pagination — the page owns the list state,
   // DataTable just renders whatever page of rows results.
   const [search, setSearch] = useState('')
-  const [environmentFilter, setEnvironmentFilter] = useState<string | null>(null)
   const [approvalFilter, setApprovalFilter] = useState<string | null>(null)
   const [sortField, setSortField] = useState('name')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
@@ -197,22 +190,6 @@ export default function IndexDefaultsPage() {
   const columns: DataTableColumn<IndexDefaultConfig>[] = [
     { key: 'name', header: 'Name', render: (row) => <strong>{row.name}</strong> },
     {
-      key: 'environments',
-      header: 'Environments',
-      render: (row) =>
-        row.environments && row.environments.length > 0 ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {row.environments.map((env) => (
-              <Badge key={env.tagId} variant="secondary" size="sm">
-                {env.tag.name}
-              </Badge>
-            ))}
-          </div>
-        ) : (
-          '—'
-        ),
-    },
-    {
       key: 'retentionPeriod',
       header: 'Retention (days)',
       align: 'right',
@@ -251,14 +228,6 @@ export default function IndexDefaultsPage() {
     },
   ]
 
-  // Toolbar filter/sort option lists, derived from the fetched configs since
-  // this page has no separate environments reference list.
-  const environmentFilterOptions = useMemo(() => {
-    const seen = new Map<string, string>()
-    configs.forEach((c) => c.environments?.forEach((e) => seen.set(e.tag.id, e.tag.name)))
-    return Array.from(seen, ([value, label]) => ({ value, label }))
-  }, [configs])
-
   const approvalFilterOptions = [
     { value: 'required', label: 'Required' },
     { value: 'not-required', label: 'Not required' },
@@ -271,14 +240,6 @@ export default function IndexDefaultsPage() {
     { value: 'updatedAt', label: 'Updated' },
   ]
   const filters: FilterDefinition[] = [
-    {
-      key: 'environment',
-      label: 'Environment',
-      options: environmentFilterOptions,
-      value: environmentFilter,
-      onChange: setEnvironmentFilter,
-      alwaysVisible: true,
-    },
     {
       key: 'approval',
       label: 'Approval',
@@ -293,7 +254,6 @@ export default function IndexDefaultsPage() {
     const term = search.trim().toLowerCase()
     const rows = configs.filter((row) => {
       if (term && !(row.name ?? '').toLowerCase().includes(term)) return false
-      if (environmentFilter && !row.environments?.some((e) => e.tag.id === environmentFilter)) return false
       if (approvalFilter && (row.requireApproval ? 'required' : 'not-required') !== approvalFilter) return false
       return true
     })
@@ -311,7 +271,7 @@ export default function IndexDefaultsPage() {
           return (a.name ?? '').localeCompare(b.name ?? '') * dir
       }
     })
-  }, [configs, search, environmentFilter, approvalFilter, sortField, sortDir])
+  }, [configs, search, approvalFilter, sortField, sortDir])
 
   const pageRows = useMemo(
     () => filteredSorted.slice((page - 1) * pageSize, page * pageSize),
@@ -321,7 +281,7 @@ export default function IndexDefaultsPage() {
   // Any change to search/filters/sort invalidates the current page.
   useEffect(() => {
     setPage(1)
-  }, [search, environmentFilter, approvalFilter, sortField, sortDir])
+  }, [search, approvalFilter, sortField, sortDir])
 
   return (
     <Card variant="bordered">
@@ -359,7 +319,6 @@ export default function IndexDefaultsPage() {
                 filters={filters}
                 onClearAll={() => {
                   setSearch('')
-                  setEnvironmentFilter(null)
                   setApprovalFilter(null)
                 }}
               />
