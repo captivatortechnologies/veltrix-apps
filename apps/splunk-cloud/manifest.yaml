@@ -1,6 +1,6 @@
 id: splunk-cloud
 name: Splunk Cloud Platform
-version: "1.7.1"
+version: "1.7.2"
 vendor: Veltrix
 description: >
   Manage Splunk Cloud Platform configurations as code through the
@@ -172,6 +172,10 @@ server:
 
 client:
   entry: client/index
+  # Sidebar layout: five configuration types plus the app's own pages do not fit a
+  # flat tab strip. The sidebar groups them (Pages / Configurations / Settings)
+  # and scales (matches splunk-enterprise and crowdstrike-edr).
+  navLayout: sidebar
   pages:
     - path: /overview
       component: OverviewPage
