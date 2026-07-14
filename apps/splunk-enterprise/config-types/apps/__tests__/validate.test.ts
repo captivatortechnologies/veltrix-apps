@@ -303,4 +303,24 @@ describe('Splunk Apps Validate Handler', () => {
     expect(result.valid).toBe(false)
     expect(result.errors.some((e) => e.field.endsWith('.name') && e.code === 'required')).toBe(true)
   })
+  it('allows indexes.conf in an Enterprise app, warning that it targets indexers', async () => {
+    // Shipping indexes.conf in an app pushed to the cluster manager is how indexes
+    // are defined across an indexer cluster. Only Splunkbase add-ons may not do it.
+    const result = await validate(
+      makeCtx([
+        {
+          name: 'sec1',
+          fields: {
+            ...inlineApp,
+            appFiles: [
+              { path: 'default/indexes.conf', content: '[acme_events]' },
+            ],
+          },
+        },
+      ]),
+    )
+
+    expect(result.valid).toBe(true)
+    expect(result.warnings.some((w) => w.code === 'indexes_conf_targets_indexers')).toBe(true)
+  })
 })

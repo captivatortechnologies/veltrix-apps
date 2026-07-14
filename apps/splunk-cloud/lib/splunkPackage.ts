@@ -1057,15 +1057,29 @@ function validateConfInventory(spec: AppPackageSpec, cloud: boolean, err: Report
     }
     seen.add(lower)
 
-    // indexes.conf: an add-on must REFERENCE an index, never create one.
+    // indexes.conf.
+    //
+    // On Splunk Cloud this is a hard stop: Splunk owns index storage, AppInspect
+    // rejects any app that ships it, and indexes must be created through ACS.
+    //
+    // On Splunk Enterprise it is legitimate — shipping indexes.conf in an app and
+    // pushing that app to the cluster manager is the standard way to define
+    // indexes across an indexer cluster. It is only disallowed for an add-on
+    // published to Splunkbase, which is not what we build here.
     if (lower === 'indexes.conf') {
-      err(
-        'additionalConfs',
-        cloud
-          ? 'indexes.conf is banned on Splunk Cloud — reference an existing index and create it with the Index Configuration type'
-          : 'An add-on must reference an existing index, never create one — remove indexes.conf and use the Index Configuration type',
-        'indexes_conf_forbidden',
-      )
+      if (cloud) {
+        err(
+          'additionalConfs',
+          'indexes.conf is banned on Splunk Cloud — Splunk owns index storage there. Reference an existing index and create it with the Indexes configuration type (ACS).',
+          'indexes_conf_forbidden',
+        )
+      } else {
+        warn(
+          'additionalConfs',
+          'indexes.conf defines indexes for whatever this app is deployed to — send it to the cluster manager (or the indexers), not a search head. Splunkbase would reject an add-on that ships it.',
+          'indexes_conf_targets_indexers',
+        )
+      }
     }
 
     if (cloud && CLOUD_DENIED_CONFS.has(lower)) {
