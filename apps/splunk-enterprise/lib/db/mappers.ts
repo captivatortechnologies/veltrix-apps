@@ -18,6 +18,11 @@ export interface SplunkVersionDto {
   isActive: boolean
   isLatest: boolean
   features: unknown
+  // Owner scope: null customer_id = a system version shown to every tenant;
+  // otherwise the owning company. `system` is the convenience flag the UI uses
+  // to gate edit/delete (tenants may only manage their own versions).
+  customerId: string | null
+  system: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -32,6 +37,8 @@ export function mapVersion(r: Row): SplunkVersionDto {
     isActive: r.is_active,
     isLatest: r.is_latest,
     features: r.features ?? null,
+    customerId: r.customer_id ?? null,
+    system: r.customer_id == null,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   }

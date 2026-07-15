@@ -43,7 +43,7 @@ permissions:
       actions: [read, write, delete]
       description: Manage BYOL infrastructure
     - resource: versions
-      actions: [read, write]
+      actions: [read, write, delete]
       description: Manage Splunk versions and upgrades
     - resource: apps
       actions: [read, write, delete]
@@ -155,21 +155,16 @@ client:
       group: page
       order: 8
       layout: standard
-    - path: /versions
-      component: VersionsPage
-      label: Versions
-      icon: git-branch
-      nav: sidebar
-      group: page
-      order: 9
-      layout: standard
+    # Upgrades hosts two in-page tabs: available Splunk versions (reference)
+    # and planned/running upgrades. The former /versions page was consolidated
+    # here so version tracking and upgrade planning live in one surface.
     - path: /upgrades
       component: UpgradesPage
       label: Upgrades
       icon: refresh-cw
       nav: sidebar
       group: page
-      order: 10
+      order: 9
       layout: standard
 
 hooks:

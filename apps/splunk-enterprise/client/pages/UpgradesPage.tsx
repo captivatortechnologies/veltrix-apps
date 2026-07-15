@@ -13,10 +13,13 @@ import {
   FilterBar,
   SortSelect,
   Pagination,
+  Tabs,
   type DataTableColumn,
   type FilterDefinition,
   type SortOption,
 } from '@veltrixsecops/app-sdk/ui'
+
+import VersionsPage from './VersionsPage'
 
 interface UpgradeOperation {
   id: string
@@ -104,6 +107,17 @@ async function errorText(res: Response): Promise<string> {
  * platform design-system components from @veltrixsecops/app-sdk/ui.
  */
 export default function UpgradesPage() {
+  return (
+    <Tabs
+      tabs={[
+        { key: 'upgrades', label: 'Upgrades', content: <UpgradesPanel /> },
+        { key: 'versions', label: 'Versions', content: <VersionsPage /> },
+      ]}
+    />
+  )
+}
+
+function UpgradesPanel() {
   const [operations, setOperations] = useState<UpgradeOperation[]>([])
   const [infras, setInfras] = useState<Infra[]>([])
   const [versions, setVersions] = useState<Version[]>([])

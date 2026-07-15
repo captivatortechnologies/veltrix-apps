@@ -114,13 +114,46 @@ pages rather than the Configuration Canvas:
 
 | Page | Route | Backing API | Editable |
 |---|---|---|---|
-| **Versions** | `/versions` | `GET /versions` | read-only (seeded release lines) |
+| **Versions** | `/upgrades` → **Versions** tab | `GET/POST/PUT/DELETE /versions` | ✅ own versions (add / edit / delete, installer by URL or S3 upload); system versions read-only |
+| **Upgrades** | `/upgrades` → **Upgrades** tab | `GET/POST/PUT/DELETE /upgrades` | ✅ plan / track upgrades |
 | **BYOL Infrastructure** | `/byol` | `GET/POST/PUT/DELETE /byol` | ✅ create / edit / delete |
+
+The version catalog is **owner-scoped**. Versions with no owner (`customer_id
+IS NULL`) are **system** versions — the seeded release lines
+(`hooks/onInstall.ts`) and any system uploads — and are shown to every tenant.
+Versions a company creates from the **Versions** tab are owned by that tenant
+(`customer_id = <company>`), visible only to them. A tenant sees system + its
+own versions but may only edit, delete, or attach installers to its own; system
+versions render read-only ("Managed by Veltrix"). The `version` string is unique
+per scope (once at the system level, once per tenant). Each version's installer
+is referenced either by an http(s) **download URL** or by an **uploaded
+package**. Uploads go straight from the browser to a private S3 bucket via a
+short-lived presigned `PUT` URL minted by the server
+(`POST /versions/:id/package-url`, owner-only); the record stores the object as
+`s3://<bucket>/versions/<customer>/<version>/<file>` and downloads are served by
+a presigned `GET` (`GET /versions/:id/download-url`, system + owned). See
+**Version package storage (S3)** below.
 
 Index and role baselines are expressed directly in `indexes.conf` /
 `authorize.conf` in the **App Contents** of a Splunk App (each catalog template
 carries a `[default]` stanza for shared values), so the former **Index Defaults**
 and **Role Defaults** pages have been retired.
+
+## Version package storage (S3)
+
+Uploaded Splunk installer packages are stored in a dedicated, private S3 bucket
+provisioned by Terraform (`terraform/server`, resource
+`aws_s3_bucket.splunk_packages`, named `veltrix-<environment>-splunk-packages`).
+The bucket is private (all public access blocked), versioned, SSE-S3 encrypted,
+and has a lifecycle rule that aborts stale multipart uploads and expires
+superseded object versions. The EC2 instance profile (`certbot_ec2`) is granted
+`s3:PutObject/GetObject/DeleteObject/ListBucket` on it, so the server uses the
+instance-profile credentials — no static keys.
+
+The app reads the bucket name from `SPLUNK_PACKAGES_BUCKET` (see the Terraform
+`splunk_packages_bucket` output) and the region from `AWS_REGION`. When
+`SPLUNK_PACKAGES_BUCKET` is unset, the **Upload package** option is hidden and
+only download-URL versions can be added.
 
 ## Required setup
 

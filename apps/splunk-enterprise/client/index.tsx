@@ -12,7 +12,6 @@ const SetupGuidePage = React.lazy(() => import('./pages/SetupGuidePage'))
 const AccessServersPage = React.lazy(() => import('./pages/AccessServersPage'))
 const ConnectionsPage = React.lazy(() => import('./pages/ConnectionsPage'))
 const BYOLPage = React.lazy(() => import('./pages/BYOLPage'))
-const VersionsPage = React.lazy(() => import('./pages/VersionsPage'))
 const UpgradesPage = React.lazy(() => import('./pages/UpgradesPage'))
 
 export default {
@@ -23,7 +22,6 @@ export default {
     AccessServersPage,
     ConnectionsPage,
     BYOLPage,
-    VersionsPage,
     UpgradesPage,
   },
   sidebarItems: [
@@ -32,7 +30,6 @@ export default {
     { path: '/apps/splunk-enterprise/access-servers', label: 'Access Servers', icon: 'shield' },
     { path: '/apps/splunk-enterprise/connections', label: 'Connections', icon: 'link' },
     { path: '/apps/splunk-enterprise/byol', label: 'BYOL Infrastructure', icon: 'server' },
-    { path: '/apps/splunk-enterprise/versions', label: 'Versions', icon: 'git-branch' },
     { path: '/apps/splunk-enterprise/upgrades', label: 'Upgrades', icon: 'refresh-cw' },
   ],
 }

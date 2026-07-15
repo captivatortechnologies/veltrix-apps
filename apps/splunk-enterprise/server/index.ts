@@ -9,6 +9,16 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import type { AppRouteContext, AppEventPublisher } from '@veltrixsecops/app-sdk'
 import * as store from '../lib/db'
+import {
+  packageKey,
+  presignUpload,
+  presignDownload,
+  parseS3Uri,
+  toS3Uri,
+  packagesBucket,
+  uploadsEnabled,
+  deletePackage,
+} from '../lib/s3'
 
 // --- small body coercion/validation helpers -----------------------------
 
@@ -19,6 +29,13 @@ function customerOf(request: FastifyRequest): string | null {
 function toInt(value: unknown, fallback: number): number {
   const n = typeof value === 'number' ? value : Number(value)
   return Number.isFinite(n) ? Math.trunc(n) : fallback
+}
+
+function toBool(value: unknown, fallback: boolean): boolean {
+  if (typeof value === 'boolean') return value
+  if (value === 'true') return true
+  if (value === 'false') return false
+  return fallback
 }
 
 /**
@@ -65,6 +82,53 @@ function readByol(body: any): { data: Record<string, unknown>; error?: string } 
     data.cloudProviderId = body.cloudProviderId.trim()
   }
   return { data }
+}
+
+const EMPTY_VERSION: store.VersionInput = {
+  version: '',
+  releaseDate: new Date(0),
+  downloadUrl: null,
+  releaseNotes: null,
+  isActive: true,
+  isLatest: false,
+}
+
+/**
+ * Coerce/validate a Splunk version record from a request body. The client may
+ * only supply an http(s) download URL here; S3 package references are set by
+ * the upload flow (POST /versions/:id/package-url), never by the client.
+ */
+function readVersion(body: any): { data: store.VersionInput; error?: string } {
+  const version = typeof body?.version === 'string' ? body.version.trim() : ''
+  if (!version) return { data: EMPTY_VERSION, error: 'Version is required' }
+  if (version.length > 40) return { data: EMPTY_VERSION, error: 'Version must be 40 characters or fewer' }
+  if (!/^[0-9][0-9A-Za-z._-]*$/.test(version))
+    return {
+      data: EMPTY_VERSION,
+      error: 'Version must start with a digit and use only letters, numbers, dots, hyphens or underscores',
+    }
+
+  let releaseDate = new Date()
+  if (body?.releaseDate) {
+    const parsed = new Date(body.releaseDate)
+    if (Number.isNaN(parsed.getTime())) return { data: EMPTY_VERSION, error: 'Release date is invalid' }
+    releaseDate = parsed
+  }
+
+  const downloadUrl = typeof body?.downloadUrl === 'string' ? body.downloadUrl.trim() : ''
+  if (downloadUrl && !/^https?:\/\//i.test(downloadUrl))
+    return { data: EMPTY_VERSION, error: 'Download URL must be an http(s) URL' }
+
+  return {
+    data: {
+      version,
+      releaseDate,
+      downloadUrl: downloadUrl || null,
+      releaseNotes: typeof body?.releaseNotes === 'string' ? body.releaseNotes.trim() || null : null,
+      isActive: toBool(body?.isActive, true),
+      isLatest: toBool(body?.isLatest, false),
+    },
+  }
 }
 
 /** Best-effort publish of a provisioning event; never fails the request. */
@@ -182,13 +246,133 @@ export default async function registerRoutes(
   registerLifecycle('stop', 'stopped')
   registerLifecycle('restart', 'running')
 
-  // --- Version Management Routes ---
+  // --- Version Management Routes (system catalog + per-tenant versions) ---
 
   fastify.get('/versions', {
     preHandler: [hasPermission('versions', 'read')],
-    handler: async (_request, reply) => {
-      const versions = await store.listActiveVersions(db)
+    handler: async (request, reply) => {
+      const customerId = customerOf(request)
+      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+      const versions = await store.listActiveVersions(db, customerId)
       reply.send(versions)
+    },
+  })
+
+  // Whether package uploads are available (S3 bucket configured). The client
+  // hides the "upload package" option when this is false.
+  fastify.get('/versions/uploads-enabled', {
+    preHandler: [hasPermission('versions', 'read')],
+    handler: async (_request, reply) => {
+      reply.send({ enabled: uploadsEnabled() })
+    },
+  })
+
+  fastify.post('/versions', {
+    preHandler: [hasPermission('versions', 'write')],
+    handler: async (request: FastifyRequest, reply: FastifyReply) => {
+      const customerId = customerOf(request)
+      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+      const { data, error } = readVersion(request.body)
+      if (error) return reply.status(400).send({ error })
+      try {
+        const created = await store.createVersion(db, customerId, data)
+        reply.status(201).send(created)
+      } catch {
+        return reply.status(409).send({ error: `Version "${data.version}" already exists` })
+      }
+    },
+  })
+
+  fastify.put('/versions/:id', {
+    preHandler: [hasPermission('versions', 'write')],
+    handler: async (request: FastifyRequest, reply: FastifyReply) => {
+      const customerId = customerOf(request)
+      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+      const { id } = request.params as { id: string }
+      // Only the owning tenant may edit — system versions are never matched.
+      const existing = await store.getOwnedVersion(db, id, customerId)
+      if (!existing) return reply.status(404).send({ error: 'Version not found or not editable' })
+
+      const { data, error } = readVersion(request.body)
+      if (error) return reply.status(400).send({ error })
+
+      // Preserve an existing uploaded-package reference unless the client is
+      // explicitly setting a new http(s) URL.
+      const existingS3 = parseS3Uri(existing.downloadUrl)
+      if (existingS3 && !data.downloadUrl) data.downloadUrl = existing.downloadUrl
+
+      try {
+        const updated = await store.updateVersion(db, id, customerId, data)
+        if (!updated) return reply.status(404).send({ error: 'Version not found or not editable' })
+        reply.send(updated)
+      } catch {
+        return reply.status(409).send({ error: `Version "${data.version}" already exists` })
+      }
+    },
+  })
+
+  fastify.delete('/versions/:id', {
+    preHandler: [hasPermission('versions', 'delete')],
+    handler: async (request: FastifyRequest, reply: FastifyReply) => {
+      const customerId = customerOf(request)
+      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+      const { id } = request.params as { id: string }
+      const existing = await store.getOwnedVersion(db, id, customerId)
+      if (!existing) return reply.status(404).send({ error: 'Version not found or not deletable' })
+
+      const s3ref = parseS3Uri(existing.downloadUrl)
+      if (s3ref) await deletePackage(s3ref.bucket, s3ref.key)
+
+      await store.deleteVersion(db, id, customerId)
+      reply.status(204).send()
+    },
+  })
+
+  // Mint a presigned PUT URL so the browser uploads the installer directly to
+  // S3, and record the object reference on the (owned) version. The client then
+  // PUTs the file to `uploadUrl` with the given Content-Type.
+  fastify.post('/versions/:id/package-url', {
+    preHandler: [hasPermission('versions', 'write')],
+    handler: async (request: FastifyRequest, reply: FastifyReply) => {
+      const customerId = customerOf(request)
+      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+      const bucket = packagesBucket()
+      if (!bucket) return reply.status(503).send({ error: 'Package uploads are not configured' })
+
+      const { id } = request.params as { id: string }
+      const existing = await store.getOwnedVersion(db, id, customerId)
+      if (!existing) return reply.status(404).send({ error: 'Version not found or not editable' })
+
+      const body = request.body as { filename?: unknown; contentType?: unknown }
+      const filename = typeof body?.filename === 'string' ? body.filename.trim() : ''
+      if (!filename) return reply.status(400).send({ error: 'filename is required' })
+      const contentType =
+        typeof body?.contentType === 'string' && body.contentType.trim()
+          ? body.contentType.trim()
+          : 'application/octet-stream'
+
+      const key = packageKey(customerId, id, filename)
+      const uploadUrl = await presignUpload(key, contentType)
+      await store.setVersionDownloadUrl(db, id, customerId, toS3Uri(bucket, key))
+      reply.send({ uploadUrl, key, contentType })
+    },
+  })
+
+  // Resolve a readable version's installer to a fetchable URL: a fresh presigned
+  // GET for uploaded packages, or the stored http(s) URL. System + owned only.
+  fastify.get('/versions/:id/download-url', {
+    preHandler: [hasPermission('versions', 'read')],
+    handler: async (request: FastifyRequest, reply: FastifyReply) => {
+      const customerId = customerOf(request)
+      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+      const { id } = request.params as { id: string }
+      const existing = await store.getReadableVersion(db, id, customerId)
+      if (!existing) return reply.status(404).send({ error: 'Version not found' })
+      if (!existing.downloadUrl) return reply.status(404).send({ error: 'No installer attached to this version' })
+
+      const s3ref = parseS3Uri(existing.downloadUrl)
+      const url = s3ref ? await presignDownload(s3ref.bucket, s3ref.key) : existing.downloadUrl
+      reply.send({ url })
     },
   })
 
