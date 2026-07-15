@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — Vault ACL Policies
+#
+# Declares ONE ACL policy — the item. Users add as many policies as they need.
+# A Vault ACL policy is authored in HCL and identified by its NAME. Writing a
+# policy is a TRUE UPSERT (POST /sys/policies/acl/{name}), so deploy creates or
+# replaces it in one call.
+#
+# Vault lowercases policy names ("policy names are case-insensitive"), so a
+# policy's logical identity is its lowercased name — config-types/policies/
+# validate.ts folds case and enforces uniqueness across the canvas.
+#
+# The `root` policy is reserved and cannot be managed as code — the canvas
+# refuses it. The `default` policy is attached to every token; it may be updated
+# but is never deleted (validate warns).
+#
+# Field keys must match what config-types/policies/validate.ts checks.
+# =============================================================================
+
+id: "hashicorp-vault-policies"
+name: "ACL Policy Configuration"
+toolType: "hashicorp-vault"
+entityType: "policies"
+description: "Define Vault ACL policies (authored in HCL) as code through the Vault Policies API — upsert by name; root/default are protected"
+
+item:
+  label: "Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Policy name and HCL body"
+      fields:
+        - key: "name"
+          label: "Policy Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_-]+$"
+            message: >
+              Letters, numbers, underscores and hyphens only. Vault lowercases
+              policy names. The reserved name "root" is not allowed, and "default"
+              is managed with care (it applies to every token).
+          helpText: >
+            Name of the ACL policy in Vault. Must be unique within this canvas.
+            Names are case-insensitive (Vault stores them lowercase). "root" is
+            reserved; "default" may be updated but is never deleted.
+
+        - key: "policy"
+          label: "Policy (HCL)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The ACL policy body in HCL. Must contain at least one path block, e.g.
+            path "secret/data/app/*" { capabilities = ["read", "list"] }. There is
+            no server-side dry-run — Vault rejects a malformed policy at deploy time.

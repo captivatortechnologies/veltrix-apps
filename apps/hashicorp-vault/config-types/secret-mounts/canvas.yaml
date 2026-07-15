@@ -1,0 +1,99 @@
+# =============================================================================
+# Canvas Template — Vault Secret Engines (mounts)
+#
+# Declares ONE secret engine mount — the item. Users add as many as they need.
+# A mount's logical identity is its PATH (config-types/secret-mounts/deploy.ts
+# matches enable-vs-tune on the path in GET /sys/mounts and keys rollback on it).
+#
+# A mount is CREATE-ONLY + tune: its `type` (and, for kv, its options.version)
+# is fixed at enable time and IMMUTABLE afterwards. Deploy therefore only ever
+# enables a new mount or tunes an existing one of the same type; it never
+# disables + re-enables, because disabling a mount PERMANENTLY DESTROYS every
+# secret stored under it. The built-in mounts sys/, identity/ and cubbyhole/ are
+# reserved and rejected by config-types/secret-mounts/validate.ts.
+#
+# Field keys must match what config-types/secret-mounts/validate.ts checks.
+# =============================================================================
+
+id: "hashicorp-vault-secret-mounts"
+name: "Secret Engine Configuration"
+toolType: "hashicorp-vault"
+entityType: "secret-mounts"
+description: "Define Vault secret engine mounts (type, KV version, lease tuning) as code through the Vault /sys/mounts API"
+
+item:
+  label: "Secret Engine"
+  identityField: "path"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Engine"
+      icon: "database"
+      description: "Mount path, engine type and KV version"
+      fields:
+        - key: "path"
+          label: "Mount Path"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_./-]+$"
+            message: >
+              Mount path may contain only letters, digits, and the characters
+              _ . / - (e.g. "secret" or "kv/prod"). The reserved built-in mounts
+              sys/, identity/ and cubbyhole/ are not allowed.
+          helpText: >
+            Path the secret engine is mounted at, e.g. "secret" or "kv/prod".
+            Must be unique within this canvas. This is the engine's identity —
+            the mount type at this path is immutable once enabled. sys/,
+            identity/ and cubbyhole/ are reserved built-in mounts and cannot be
+            managed as code.
+
+        - key: "type"
+          label: "Engine Type"
+          fieldType: "text"
+          required: true
+          helpText: >
+            Secret engine type, e.g. kv, pki, transit, database, aws. IMMUTABLE
+            once mounted — changing it later requires disabling the mount, which
+            destroys all secrets stored under it, so deploy refuses a type change.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description of the mount — shown in the Vault UI and CLI."
+
+        - key: "kvVersion"
+          label: "KV Version"
+          fieldType: "select"
+          defaultValue: "2"
+          options:
+            - label: "KV v2 (versioned)"
+              value: "2"
+            - label: "KV v1 (unversioned)"
+              value: "1"
+          helpText: >
+            Only meaningful when the engine type is "kv" — ignored for any other
+            type. Sent as options.version at enable time ONLY; a KV version
+            cannot be changed after the mount is created (that would require
+            recreating the mount, which destroys its data).
+
+    - name: "Tuning"
+      icon: "sliders"
+      description: "Lease TTLs (optional — blank uses the Vault system defaults)"
+      fields:
+        - key: "defaultLeaseTtl"
+          label: "Default Lease TTL"
+          fieldType: "text"
+          helpText: >
+            Optional. Default lease TTL for secrets from this mount, as a Vault
+            duration ("768h", "30m") or a whole number of seconds. Leave blank to
+            use the Vault system default.
+
+        - key: "maxLeaseTtl"
+          label: "Max Lease TTL"
+          fieldType: "text"
+          helpText: >
+            Optional. Maximum lease TTL for secrets from this mount, as a Vault
+            duration ("768h") or a whole number of seconds. Leave blank to use the
+            Vault system default.

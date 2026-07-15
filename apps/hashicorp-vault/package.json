@@ -1,0 +1,16 @@
+{
+  "name": "veltrix-app-hashicorp-vault",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Veltrix app: manage HashiCorp Vault configuration as code (ACL policies, auth methods, secret engine mounts, audit devices) via the Vault HTTP API",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.0.0",
+    "@veltrixsecops/app-sdk": "^3.1.0",
+    "fastify": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}

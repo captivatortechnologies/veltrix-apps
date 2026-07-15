@@ -1,0 +1,8 @@
+# Defaults for a new audit device item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank (the canvas select fields carry their own
+# defaultValue for type and socketType). Any values here would be a FLAT map
+# keyed by the canvas field keys (path, type, description, filePath,
+# syslogFacility, syslogTag, socketAddress, socketType), since an audit device's
+# presentational groups share one flat item record.

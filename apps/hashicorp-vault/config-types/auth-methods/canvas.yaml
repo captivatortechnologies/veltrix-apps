@@ -1,0 +1,115 @@
+# =============================================================================
+# Canvas Template — Vault Auth Methods
+#
+# Declares ONE auth-method mount — the item. Users add as many as they need.
+# An auth method is enabled at a PATH (its logical identity); the method's TYPE
+# is fixed at enable time and can NEVER be changed in place. Everything else
+# (lease TTLs, listing visibility, token type, description) is TUNABLE and is
+# converged via the mount's tune endpoint.
+#
+# The built-in `token/` auth method is always mounted and protected — this canvas
+# refuses the reserved path "token" (see config-types/auth-methods/validate.ts).
+#
+# Field keys must match what config-types/auth-methods/validate.ts checks.
+# =============================================================================
+
+id: "hashicorp-vault-auth-methods"
+name: "Auth Method Configuration"
+toolType: "hashicorp-vault"
+entityType: "auth-methods"
+description: "Enable and tune HashiCorp Vault auth methods (userpass, approle, kubernetes, ldap, …) as code through the Vault sys/auth API. Type is immutable; tuning converges in place."
+
+item:
+  label: "Auth Method"
+  identityField: "path"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Method"
+      icon: "key"
+      description: "Mount path, type and description"
+      fields:
+        - key: "path"
+          label: "Mount Path"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_./-]+$"
+            message: "Only letters, digits and _ . / - are allowed. This is the mount path, e.g. userpass or kubernetes/prod. Do not use the reserved built-in path token."
+          helpText: >
+            Path the auth method is mounted at (e.g. userpass, approle,
+            kubernetes/prod). This is the mount's identity — a trailing slash is
+            optional and is normalized away. The built-in "token" path is
+            protected and cannot be managed here.
+
+        - key: "type"
+          label: "Method Type"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-z0-9_-]+$"
+            message: "A lowercase Vault auth type slug, e.g. userpass, approle, kubernetes, ldap, jwt, oidc, aws."
+          helpText: >
+            The auth method type, e.g. userpass, approle, kubernetes, ldap.
+            IMMUTABLE once enabled — changing the type at an existing path is not
+            possible in place and this app will refuse to disable+re-enable
+            (that would revoke every lease and token under the mount).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional human description of the auth method — shown in the Vault UI/CLI."
+
+    - name: "Tuning"
+      icon: "sliders"
+      description: "Lease TTLs, listing visibility and token type (all converged in place)"
+      fields:
+        - key: "defaultLeaseTtl"
+          label: "Default Lease TTL"
+          fieldType: "text"
+          helpText: >
+            Optional default lease TTL for tokens/leases from this mount. A Vault
+            duration string (e.g. 768h, 30m) or a number of seconds. Leave blank
+            to inherit the system default.
+
+        - key: "maxLeaseTtl"
+          label: "Max Lease TTL"
+          fieldType: "text"
+          helpText: >
+            Optional maximum lease TTL for this mount. A Vault duration string
+            (e.g. 768h) or a number of seconds. Leave blank to inherit the
+            system default.
+
+        - key: "listingVisibility"
+          label: "Listing Visibility"
+          fieldType: "select"
+          defaultValue: ""
+          options:
+            - label: "(inherit default)"
+              value: ""
+            - label: "Unauthenticated (shown on the login page)"
+              value: "unauth"
+            - label: "Hidden"
+              value: "hidden"
+          helpText: >
+            Whether this method appears on Vault's unauthenticated login UI.
+            "unauth" shows it; "hidden" (the default) does not.
+
+        - key: "tokenType"
+          label: "Token Type"
+          fieldType: "select"
+          defaultValue: ""
+          options:
+            - label: "(inherit default)"
+              value: ""
+            - label: "Default"
+              value: "default"
+            - label: "Service"
+              value: "service"
+            - label: "Batch"
+              value: "batch"
+          helpText: >
+            The type of token this mount issues. "service" tokens are renewable
+            and tracked; "batch" tokens are lightweight and non-renewable;
+            "default" lets the mount decide. Leave blank to inherit.

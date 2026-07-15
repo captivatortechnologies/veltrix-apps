@@ -1,0 +1,158 @@
+id: hashicorp-vault
+name: HashiCorp Vault
+version: "1.0.0"
+vendor: Veltrix
+description: >
+  Manage HashiCorp Vault configuration as code through the Vault HTTP API.
+  Covers ACL policies (HCL), auth methods, secret engine mounts, and audit
+  devices, with validation, drift detection and rollback handled by the
+  Security-as-Code pipeline.
+category: IAM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/hashicorp-vault
+icon: "🔐"
+
+platform:
+  minVersion: "1.0.0"
+
+# Vault brand: near-black primary with the HashiCorp Vault yellow accent.
+branding:
+  primaryColor: "#121212"
+  accentColor: "#FFCF25"
+  logo: ./assets/logo.svg
+  logoDark: ./assets/logo-dark.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: policies
+      actions: [read, write, delete]
+      description: Manage Vault ACL policies (HCL)
+    - resource: auth-methods
+      actions: [read, write, delete]
+      description: Manage Vault auth methods and their tuning
+    - resource: secret-mounts
+      actions: [read, write, delete]
+      description: Manage Vault secret engine mounts and their tuning
+    - resource: audit-devices
+      actions: [read, write, delete]
+      description: Manage Vault audit devices
+
+pipeline:
+  configurationTypes:
+    - id: policies
+      name: ACL Policies
+      description: Vault ACL policies authored in HCL (upsert by name; root/default are protected)
+      canvasTemplate: config-types/policies/canvas.yaml
+      defaultConfig: config-types/policies/defaults.yaml
+      handlers:
+        validate: config-types/policies/validate
+        deploy: config-types/policies/deploy
+        rollback: config-types/policies/rollback
+        healthCheck: config-types/policies/healthCheck
+        driftDetect: config-types/policies/driftDetect
+        getStatus: config-types/policies/getStatus
+      targets:
+        componentTypes: [vault-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: auth-methods
+      name: Auth Methods
+      description: Vault auth method mounts and tuning (type is immutable; token/ is protected)
+      canvasTemplate: config-types/auth-methods/canvas.yaml
+      defaultConfig: config-types/auth-methods/defaults.yaml
+      handlers:
+        validate: config-types/auth-methods/validate
+        deploy: config-types/auth-methods/deploy
+        rollback: config-types/auth-methods/rollback
+        healthCheck: config-types/auth-methods/healthCheck
+        driftDetect: config-types/auth-methods/driftDetect
+        getStatus: config-types/auth-methods/getStatus
+      targets:
+        componentTypes: [vault-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: secret-mounts
+      name: Secret Engines
+      description: Vault secret engine mounts and tuning (type immutable; disabling destroys data)
+      canvasTemplate: config-types/secret-mounts/canvas.yaml
+      defaultConfig: config-types/secret-mounts/defaults.yaml
+      handlers:
+        validate: config-types/secret-mounts/validate
+        deploy: config-types/secret-mounts/deploy
+        rollback: config-types/secret-mounts/rollback
+        healthCheck: config-types/secret-mounts/healthCheck
+        driftDetect: config-types/secret-mounts/driftDetect
+        getStatus: config-types/secret-mounts/getStatus
+      targets:
+        componentTypes: [vault-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: audit-devices
+      name: Audit Devices
+      description: Vault audit devices (no tune — a change is disable+re-enable; a bad target can block Vault)
+      canvasTemplate: config-types/audit-devices/canvas.yaml
+      defaultConfig: config-types/audit-devices/defaults.yaml
+      handlers:
+        validate: config-types/audit-devices/validate
+        deploy: config-types/audit-devices/deploy
+        rollback: config-types/audit-devices/rollback
+        healthCheck: config-types/audit-devices/healthCheck
+        driftDetect: config-types/audit-devices/driftDetect
+        getStatus: config-types/audit-devices/getStatus
+      targets:
+        componentTypes: [vault-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/hashicorp-vault
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+settings:
+  - key: namespace
+    type: string
+    label: Vault Namespace
+    description: >
+      Optional Vault Enterprise / HCP namespace (sent as X-Vault-Namespace).
+      Leave blank for open-source Vault or the root namespace.
+    default: ""
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Vault API calls.
+    default: 30
+    required: false

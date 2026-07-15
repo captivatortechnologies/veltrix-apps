@@ -1,0 +1,115 @@
+# =============================================================================
+# Canvas Template — Vault Audit Devices
+#
+# Declares ONE audit device — the item. Users add as many devices as they need.
+# An audit device logs every request/response Vault handles to a backend (a file,
+# a syslog daemon, or a TCP/UDP socket). Its logical identity is its PATH (the
+# mount point under sys/audit/, e.g. "file/"), so config-types/audit-devices/
+# validate.ts dedupes on the path and deploy matches create-vs-change on it.
+#
+# There is NO tune endpoint for an audit device: enabling is PUT /sys/audit/{path}
+# and any change to its type or options is a disable (DELETE) + re-enable (PUT).
+# Options are type-specific:
+#   file   → file_path (required)
+#   syslog → facility, tag (both optional; Vault defaults AUTH/vault)
+#   socket → address (host:port), socket_type (tcp|udp)
+#
+# SAFETY: a file device pointed at an unwritable path, or a dead syslog/socket
+# target, can BLOCK Vault — Vault refuses requests when it cannot write its audit
+# log. Point a device only at a target you know is reachable and writable.
+#
+# Field keys must match what config-types/audit-devices/validate.ts checks.
+# =============================================================================
+
+id: "hashicorp-vault-audit-devices"
+name: "Audit Device Configuration"
+toolType: "hashicorp-vault"
+entityType: "audit-devices"
+description: "Define Vault audit devices (file, syslog or socket log backends) as code through the Vault sys/audit API. No tune endpoint — a type/option change is a disable + re-enable."
+
+item:
+  label: "Audit Device"
+  identityField: "path"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Device"
+      icon: "shield"
+      description: "Mount path, backend type and description"
+      fields:
+        - key: "path"
+          label: "Path"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_./-]+$"
+            message: "Only letters, digits, and the characters _ . / - are allowed."
+          helpText: >
+            Mount path for the audit device under sys/audit/ (e.g. "file" or
+            "syslog"). Must be unique within this canvas. A trailing slash is
+            optional — Vault stores the device as "<path>/".
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "file"
+          options:
+            - label: "File"
+              value: "file"
+            - label: "Syslog"
+              value: "syslog"
+            - label: "Socket"
+              value: "socket"
+          helpText: >
+            The audit backend. "file" writes to a file on the Vault host, "syslog"
+            sends to the local syslog daemon, and "socket" streams to a TCP/UDP
+            endpoint. The type is set at enable time; changing it later re-enables
+            the device (disable + re-enable).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional human-readable description — shown in the Vault audit list."
+
+    - name: "Options"
+      icon: "settings"
+      description: "Type-specific backend options — only the fields for the chosen type are used"
+      fields:
+        - key: "filePath"
+          label: "File Path (file)"
+          fieldType: "text"
+          helpText: >
+            Required for a "file" device. Absolute path Vault writes the audit log
+            to (e.g. /var/log/vault/audit.log), or "stdout"/"discard". The path
+            MUST be writable by the Vault process — an unwritable path blocks Vault.
+
+        - key: "syslogFacility"
+          label: "Syslog Facility (syslog)"
+          fieldType: "text"
+          helpText: 'Optional for a "syslog" device. Syslog facility to log to (default "AUTH").'
+
+        - key: "syslogTag"
+          label: "Syslog Tag (syslog)"
+          fieldType: "text"
+          helpText: 'Optional for a "syslog" device. Syslog tag applied to each entry (default "vault").'
+
+        - key: "socketAddress"
+          label: "Socket Address (socket)"
+          fieldType: "text"
+          helpText: >
+            Required for a "socket" device. Target endpoint as host:port
+            (e.g. 10.0.0.5:9090). A dead endpoint can block Vault — verify it is
+            reachable before deploying.
+
+        - key: "socketType"
+          label: "Socket Type (socket)"
+          fieldType: "select"
+          defaultValue: "tcp"
+          options:
+            - label: "TCP"
+              value: "tcp"
+            - label: "UDP"
+              value: "udp"
+          helpText: 'Required for a "socket" device. Transport for the socket target (tcp or udp).'
