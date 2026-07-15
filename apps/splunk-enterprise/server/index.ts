@@ -9,6 +9,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import type { AppRouteContext, AppEventPublisher } from '@veltrixsecops/app-sdk'
 import * as store from '../lib/db'
+import { collectForDate } from '../lib/usage/collector'
 import {
   packageKey,
   presignUpload,
@@ -25,6 +26,32 @@ import { readVersion } from '../lib/versionInput'
 
 function customerOf(request: FastifyRequest): string | null {
   return (request as any).user?.customerId ?? null
+}
+
+/** Parse a usage window (defaults to the last 30 days). */
+function parseUsageWindow(query: unknown): { from: Date; to: Date } {
+  const q = (query ?? {}) as { from?: string; to?: string }
+  const parse = (v: string | undefined, fallback: number): Date => {
+    if (v) {
+      const d = new Date(v)
+      if (!Number.isNaN(d.getTime())) return d
+    }
+    return new Date(fallback)
+  }
+  return {
+    from: parse(q.from, Date.now() - 30 * 24 * 60 * 60 * 1000),
+    to: parse(q.to, Date.now()),
+  }
+}
+
+/** Parse the collection date (defaults to yesterday). */
+function parseCollectDate(query: unknown): Date {
+  const q = (query ?? {}) as { date?: string }
+  if (q.date) {
+    const d = new Date(q.date)
+    if (!Number.isNaN(d.getTime())) return d
+  }
+  return new Date(Date.now() - 24 * 60 * 60 * 1000)
 }
 
 function toInt(value: unknown, fallback: number): number {
@@ -192,6 +219,37 @@ export default async function registerRoutes(
   registerLifecycle('start', 'running')
   registerLifecycle('stop', 'stopped')
   registerLifecycle('restart', 'running')
+
+  // --- BYOL Usage / Metering (foundation for usage-based cloud billing) ---
+
+  // Read metered usage (node_hours + ingest_gb) for the current tenant over a
+  // window. Powers the tenant usage view and the platform billing reader.
+  fastify.get('/byol/usage', {
+    preHandler: [hasPermission('usage', 'read')],
+    handler: async (request: FastifyRequest, reply: FastifyReply) => {
+      const customerId = customerOf(request)
+      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+      const { from, to } = parseUsageWindow(request.query)
+      const [summary, rows] = await Promise.all([
+        store.aggregateUsage(db, { customerId, from, to }),
+        store.listUsage(db, { customerId, from, to }),
+      ])
+      reply.send({ from: from.toISOString(), to: to.toISOString(), summary, rows })
+    },
+  })
+
+  // Run the daily usage collector for a date (defaults to yesterday). Idempotent
+  // — safe to re-run. Intended to be driven by the platform's daily cron with a
+  // service token holding `usage:write`. Node-hours only until the Splunk
+  // license-manager ingest poller is wired (see collector.ts).
+  fastify.post('/byol/usage/collect', {
+    preHandler: [hasPermission('usage', 'write')],
+    handler: async (request: FastifyRequest, reply: FastifyReply) => {
+      const date = parseCollectDate(request.query)
+      const result = await collectForDate(db, date)
+      reply.send(result)
+    },
+  })
 
   // --- Version Management Routes (system catalog + per-tenant versions) ---
 

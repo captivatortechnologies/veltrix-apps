@@ -8,6 +8,17 @@
 
 import type { PlatformDatabaseClient } from '@veltrixsecops/app-sdk'
 import { mapByol, mapRegion, type ByolDto, type RegionDto, type Row } from './mappers'
+import { recordStateEvent } from './usage'
+
+/** Append a lifecycle state event for an infra (foundation for node-hours billing). */
+async function emitStateEvent(db: PlatformDatabaseClient, infra: ByolDto, status: string): Promise<void> {
+  await recordStateEvent(db, {
+    infrastructureId: infra.id,
+    customerId: infra.customerId,
+    status,
+    nodeCount: infra.indexerCount + infra.searchHeadCount,
+  })
+}
 
 export interface ByolInput {
   name: string
@@ -78,7 +89,9 @@ export async function createByol(
     input.cloudProviderId ?? null,
     customerId,
   )
-  return attachRegions(db, mapByol(rows[0]))
+  const created = mapByol(rows[0])
+  await emitStateEvent(db, created, created.status) // 'provisioning'
+  return attachRegions(db, created)
 }
 
 export async function updateByol(
@@ -116,10 +129,20 @@ export async function setByolStatus(
     id,
     status,
   )
-  return attachRegions(db, mapByol(rows[0]))
+  const updated = mapByol(rows[0])
+  await emitStateEvent(db, updated, updated.status)
+  return attachRegions(db, updated)
 }
 
 export async function deleteByol(db: PlatformDatabaseClient, id: string): Promise<void> {
+  // Record a terminal 'decommissioned' event before the row goes away so
+  // node-hours accrual stops at deletion (state_event.infrastructure_id is a
+  // plain UUID with no FK, so it survives the delete for billing history).
+  const rows = await db.$queryRawUnsafe<Row[]>(
+    'SELECT * FROM splunk_byol_infrastructure WHERE id = $1::uuid',
+    id,
+  )
+  if (rows[0]) await emitStateEvent(db, mapByol(rows[0]), 'decommissioned')
   await db.$executeRawUnsafe('DELETE FROM splunk_byol_infrastructure WHERE id = $1::uuid', id)
 }
 
@@ -129,12 +152,14 @@ export async function setByolStatusIfExists(
   id: string,
   status: string,
 ): Promise<boolean> {
-  const affected = await db.$executeRawUnsafe(
-    'UPDATE splunk_byol_infrastructure SET status = $2, updated_at = now() WHERE id = $1::uuid',
+  const rows = await db.$queryRawUnsafe<Row[]>(
+    'UPDATE splunk_byol_infrastructure SET status = $2, updated_at = now() WHERE id = $1::uuid RETURNING *',
     id,
     status,
   )
-  return affected > 0
+  if (!rows[0]) return false
+  await emitStateEvent(db, mapByol(rows[0]), status)
+  return true
 }
 
 export type { RegionDto }

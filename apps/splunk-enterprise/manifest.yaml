@@ -48,6 +48,9 @@ permissions:
     - resource: apps
       actions: [read, write, delete]
       description: Manage Splunk apps and add-ons, including the .conf files they ship
+    - resource: usage
+      actions: [read, write]
+      description: Read BYOL infrastructure usage metering and run the daily usage collector
 
 database:
   migrations: migrations
