@@ -31,8 +31,13 @@ const LENGTH_PATTERN = /(^|[\s{])length\s*=/
 /** A `rule "charset" {` stanza — a policy needs at least one to have a charset budget. */
 const CHARSET_RULE_PATTERN = /rule\s+"charset"\s*\{/
 
-/** Run the basic HCL checks; returns `{ ok: true }` or the first failure reason. */
-export function checkPasswordPolicyHcl(policy: string): { ok: true } | { ok: false; reason: PasswordHclReason } {
+/**
+ * Run the basic HCL checks; returns `{ ok: true }` or the first failure reason.
+ * NB: a non-union `{ ok; reason? }` — the platform's handler loader does not
+ * narrow discriminated unions, so accessing `.reason` after `if (!hcl.ok)` must
+ * not depend on narrowing.
+ */
+export function checkPasswordPolicyHcl(policy: string): { ok: boolean; reason?: PasswordHclReason } {
   const trimmed = policy.trim()
   if (!trimmed) return { ok: false, reason: 'empty' }
 

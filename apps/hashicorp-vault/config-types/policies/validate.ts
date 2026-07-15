@@ -40,8 +40,13 @@ export type HclReason = 'empty' | 'unbalanced_braces' | 'missing_path_block'
 /** A single `path "…" {` stanza — the minimum a usable ACL policy needs. */
 const PATH_BLOCK_PATTERN = /path\s+"[^"]+"\s*\{/
 
-/** Run the basic HCL checks; returns `{ ok: true }` or the first failure reason. */
-export function checkPolicyHcl(policy: string): { ok: true } | { ok: false; reason: HclReason } {
+/**
+ * Run the basic HCL checks; returns `{ ok: true }` or the first failure reason.
+ * NB: a non-union `{ ok; reason? }` (not `{ ok:true } | { ok:false; reason }`) —
+ * the platform's handler loader does not narrow discriminated unions, so
+ * accessing `.reason` after `if (!hcl.ok)` must not depend on narrowing.
+ */
+export function checkPolicyHcl(policy: string): { ok: boolean; reason?: HclReason } {
   const trimmed = policy.trim()
   if (!trimmed) return { ok: false, reason: 'empty' }
 
