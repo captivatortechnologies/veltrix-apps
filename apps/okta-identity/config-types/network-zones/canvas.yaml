@@ -1,0 +1,91 @@
+# =============================================================================
+# Canvas Template — Okta Network Zones
+#
+# Declares ONE network zone — the item. Users add as many zones as they need.
+# A zone's identity in Okta is its NAME; deploy lists zones, matches on the name,
+# and PUTs (update) or POSTs (create) accordingly — there is NO upsert.
+#
+# ONE item = ONE zone of type IP | DYNAMIC | DYNAMIC_V2. The type-specific
+# definition arrays (gateways/proxies for IP; asns/locations/proxyType and, for
+# DYNAMIC_V2, ipServiceCategories for dynamic zones) are authored as a single
+# JSON blob in `configJson` and merged into the create/update body.
+#
+# Field keys must match what config-types/network-zones/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-network-zones"
+name: "Network Zone Configuration"
+toolType: "okta-identity"
+entityType: "network-zones"
+description: "Define Okta network zones (IP CIDR/range gateways, or dynamic ASN/geo/proxy) as code through the Okta Zones API. System zones are protected; an active zone is deactivated before deletion."
+
+item:
+  label: "Network Zone"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Zone"
+      icon: "globe"
+      description: "Zone kind, name and lifecycle status"
+      fields:
+        - key: "type"
+          label: "Zone Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "IP"
+          options:
+            - label: "IP (CIDR / range gateways or proxies)"
+              value: "IP"
+            - label: "Dynamic (ASN / geolocation / proxy)"
+              value: "DYNAMIC"
+            - label: "Dynamic v2 (+ IP service categories)"
+              value: "DYNAMIC_V2"
+          helpText: >
+            The kind of zone. IP zones match on CIDR/range gateways or proxy
+            addresses. Dynamic zones match on ASN, geolocation and proxy type;
+            DYNAMIC_V2 additionally supports ipServiceCategories.
+
+        - key: "name"
+          label: "Zone Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: >
+            Name of the zone in Okta (max 128 chars). Must be unique within this
+            canvas — it is the logical identity deploy matches on. Cannot be one
+            of Okta's protected system zones (LegacyIpZone, BlockedIpZone,
+            DefaultEnhancedDynamicZone, DefaultExemptIpZone).
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          defaultValue: "ACTIVE"
+          options:
+            - label: "Active"
+              value: "ACTIVE"
+            - label: "Inactive"
+              value: "INACTIVE"
+          helpText: >
+            Desired lifecycle state. Applied via Okta's zone activate/deactivate
+            lifecycle endpoints, not the update body. Note: an ACTIVE zone cannot
+            be deleted — a rollback deactivates a created zone before deleting it.
+
+    - name: "Definition"
+      icon: "filter"
+      description: "The type-specific matching rules for this zone, as a JSON object"
+      fields:
+        - key: "configJson"
+          label: "Zone Definition (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            JSON object of the zone's matching rules, merged into the API body.
+            IP: {"gateways":[{"type":"CIDR","value":"1.2.3.0/24"}],"proxies":[]}
+            (gateway/proxy type is CIDR or RANGE; needs at least one gateway or
+            proxy). DYNAMIC: {"asns":["16509"],"locations":[{"country":"US","region":"US-CA"}],"proxyType":"Any"}
+            (needs at least one of asns / locations / proxyType; proxyType is
+            Any, Tor, NotTorAnonymizer or null). DYNAMIC_V2: as DYNAMIC plus
+            "ipServiceCategories".

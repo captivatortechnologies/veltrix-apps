@@ -1,0 +1,9 @@
+# Defaults for a new group item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (name, description, manageMembership, memberUserIds), since a
+# group's presentational groups share one flat item record.
+#
+# manageMembership deliberately defaults to false (declared on the field) so a
+# new group never touches membership until the author explicitly opts in.

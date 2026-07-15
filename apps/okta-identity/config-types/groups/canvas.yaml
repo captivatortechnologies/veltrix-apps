@@ -1,0 +1,78 @@
+# =============================================================================
+# Canvas Template — Okta Groups
+#
+# Declares ONE group — the item. Users add as many groups as they need.
+# ONE item = ONE OKTA_GROUP group. Its logical identity is the group's
+# profile.name; config-types/groups/validate.ts enforces name uniqueness across
+# the canvas and matches live groups on profile.name at deploy time.
+#
+# Only OKTA_GROUP (Okta-mastered) groups are managed. BUILT_IN groups (e.g.
+# "Everyone") and APP_GROUP groups are read-only in Okta — validate rejects the
+# reserved name "Everyone", and deploy refuses to touch any live name-match that
+# is not an OKTA_GROUP.
+#
+# Membership is OPT-IN per group. When manageMembership is off (the default),
+# deploy NEVER touches the group's membership. When it is on, deploy reconciles
+# the group's STATIC members to exactly memberUserIds.
+#
+# Field keys must match what config-types/groups/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-groups"
+name: "Group Configuration"
+toolType: "okta-identity"
+entityType: "groups"
+description: "Define Okta groups (OKTA_GROUP) as code through the Okta Groups API. Built-in and app groups are protected. Static membership is opt-in per group and reconciled only when explicitly enabled."
+
+item:
+  label: "Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Group"
+      icon: "users"
+      description: "Group name and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            message: "A unique group name, up to 255 characters. This is the group's profile.name — the logical identity Okta is matched on. Only OKTA_GROUP groups are managed; the reserved built-in name \"Everyone\" is rejected."
+          helpText: "The group's display name (profile.name). Must be unique within the canvas — this is the identity used to find and update the group on each deploy. The built-in \"Everyone\" group and any app group are read-only and cannot be managed here."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          validation:
+            maxLength: 1024
+          helpText: "Optional description shown in the Okta admin console (profile.description)."
+
+    - name: "Membership"
+      icon: "user-plus"
+      description: "Optional static membership (opt-in per group)"
+      fields:
+        - key: "manageMembership"
+          label: "Manage Membership"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: >
+            Manage static membership. When OFF (the default) this deployment
+            NEVER touches the group's membership. When ON, the group's static
+            members are reconciled to exactly the Member User IDs below (missing
+            users are added, extra users are removed). Do NOT enable this for a
+            group that is targeted by a group rule — rule-assigned members cannot
+            be removed via this API, so reconciliation would fail to converge and
+            keep reporting drift.
+
+        - key: "memberUserIds"
+          label: "Member User IDs"
+          fieldType: "tags"
+          helpText: >
+            Okta user IDs that should be the group's exact static membership.
+            Only used when Manage Membership is on; ignored otherwise. Leaving
+            this empty with Manage Membership on removes ALL current static
+            members.

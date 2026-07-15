@@ -1,0 +1,11 @@
+# Defaults for a new policy item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (type, name, description, status, groupIncludeIds,
+# settingsJson, rulesJson), since a policy's presentational groups share one flat
+# item record.
+#
+# Deliberately NOT seeding settingsJson / rulesJson: the correct shape is
+# per-type (and OKTA_SIGN_ON has no settings at all), so there is no safe
+# non-empty default to suggest.

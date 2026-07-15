@@ -1,0 +1,9 @@
+# Defaults for a new network-zone item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (type, name, status, configJson), since a zone's
+# presentational groups share one flat item record, e.g.:
+#   type: IP
+#   status: ACTIVE
+#   configJson: '{"gateways":[{"type":"CIDR","value":"1.2.3.0/24"}]}'

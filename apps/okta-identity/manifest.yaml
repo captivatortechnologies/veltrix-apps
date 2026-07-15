@@ -1,0 +1,150 @@
+id: okta-identity
+name: Okta
+version: "1.0.0"
+vendor: Veltrix
+description: >
+  Manage Okta configuration as code through the Okta Management API. Covers
+  sign-on / password / authenticator-enrollment policies and their rules, group
+  rules, groups, and network zones, with validation, drift detection and
+  rollback handled by the Security-as-Code pipeline.
+category: IAM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/okta-identity
+icon: "🔵"
+
+platform:
+  minVersion: "1.0.0"
+
+# Okta brand: deep blue primary.
+branding:
+  primaryColor: "#00297A"
+  accentColor: "#1662DD"
+  logo: ./assets/logo.svg
+  logoDark: ./assets/logo-dark.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: policies
+      actions: [read, write, delete]
+      description: Manage Okta sign-on / password / MFA-enrollment policies and their rules
+    - resource: group-rules
+      actions: [read, write, delete]
+      description: Manage Okta dynamic group-assignment rules
+    - resource: groups
+      actions: [read, write, delete]
+      description: Manage Okta groups (OKTA_GROUP) and their memberships
+    - resource: network-zones
+      actions: [read, write, delete]
+      description: Manage Okta network zones (IP and dynamic)
+
+pipeline:
+  configurationTypes:
+    - id: policies
+      name: Policies
+      description: Sign-on / password / authenticator-enrollment policies and their rules
+      canvasTemplate: config-types/policies/canvas.yaml
+      defaultConfig: config-types/policies/defaults.yaml
+      handlers:
+        validate: config-types/policies/validate
+        deploy: config-types/policies/deploy
+        rollback: config-types/policies/rollback
+        healthCheck: config-types/policies/healthCheck
+        driftDetect: config-types/policies/driftDetect
+        getStatus: config-types/policies/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: group-rules
+      name: Group Rules
+      description: Dynamic group-assignment rules (must be deactivated before change)
+      canvasTemplate: config-types/group-rules/canvas.yaml
+      defaultConfig: config-types/group-rules/defaults.yaml
+      handlers:
+        validate: config-types/group-rules/validate
+        deploy: config-types/group-rules/deploy
+        rollback: config-types/group-rules/rollback
+        healthCheck: config-types/group-rules/healthCheck
+        driftDetect: config-types/group-rules/driftDetect
+        getStatus: config-types/group-rules/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: groups
+      name: Groups
+      description: Okta groups (OKTA_GROUP) and their memberships (built-in groups are protected)
+      canvasTemplate: config-types/groups/canvas.yaml
+      defaultConfig: config-types/groups/defaults.yaml
+      handlers:
+        validate: config-types/groups/validate
+        deploy: config-types/groups/deploy
+        rollback: config-types/groups/rollback
+        healthCheck: config-types/groups/healthCheck
+        driftDetect: config-types/groups/driftDetect
+        getStatus: config-types/groups/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: network-zones
+      name: Network Zones
+      description: Network zones — IP (CIDR gateways) and dynamic (ASN/geo); system zones protected
+      canvasTemplate: config-types/network-zones/canvas.yaml
+      defaultConfig: config-types/network-zones/defaults.yaml
+      handlers:
+        validate: config-types/network-zones/validate
+        deploy: config-types/network-zones/deploy
+        rollback: config-types/network-zones/rollback
+        healthCheck: config-types/network-zones/healthCheck
+        driftDetect: config-types/network-zones/driftDetect
+        getStatus: config-types/network-zones/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/okta-identity
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Okta API calls.
+    default: 30
+    required: false

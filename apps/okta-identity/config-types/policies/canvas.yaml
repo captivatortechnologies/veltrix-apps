@@ -1,0 +1,128 @@
+# =============================================================================
+# Canvas Template — Okta Policies
+#
+# Declares ONE policy — the item. Users add as many policies as they need.
+# ONE item = ONE policy of type OKTA_SIGN_ON | PASSWORD | MFA_ENROLL, plus the
+# rules that live under it.
+#
+# A policy's logical identity is the (type, name) PAIR — the same name may exist
+# once per type — so the item's identityField is `name` and
+# config-types/policies/validate.ts enforces (type, name) uniqueness across the
+# canvas. Okta has no upsert: deploy LISTs policies of the type, matches by
+# (type, name), then PUTs (found) or POSTs (missing).
+#
+# Two shapes do not fit flat fields and are modelled as JSON textareas:
+#   - settings  — large and per-type (password complexity/age/lockout, MFA
+#                 authenticators). Parsed to a JSON OBJECT and merged into
+#                 `settings`. OKTA_SIGN_ON has NO settings (leave blank).
+#   - rules     — an array of rule objects. Parsed to a JSON ARRAY and
+#                 reconciled under the policy BY NAME (never deletes a system
+#                 rule; never prunes rules the canvas does not mention).
+#
+# Field keys must match what config-types/policies/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-policies"
+name: "Policy Configuration"
+toolType: "okta-identity"
+entityType: "policies"
+description: "Define Okta sign-on / password / authenticator-enrollment policies and their rules as code through the Okta Management API. Group scoping is modelled as fields; the per-type settings and the rule set are JSON."
+
+item:
+  label: "Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Policy type, identity, status and group scoping"
+      fields:
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "OKTA_SIGN_ON"
+          options:
+            - label: "Global Session (OKTA_SIGN_ON)"
+              value: "OKTA_SIGN_ON"
+            - label: "Password (PASSWORD)"
+              value: "PASSWORD"
+            - label: "Authenticator Enrollment (MFA_ENROLL)"
+              value: "MFA_ENROLL"
+          helpText: >
+            The policy type. Part of the logical identity — a policy is matched by
+            (type, name). OKTA_SIGN_ON is the Global Session policy (session/MFA
+            behaviour lives in its rules and it has NO settings); PASSWORD carries
+            password complexity/age/lockout settings; MFA_ENROLL carries the
+            authenticator-enrollment settings. Fixed once the policy is created.
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            message: "A policy name, up to 255 characters. Unique within its type — this is the identity used to find and update the policy on each deploy."
+          helpText: >
+            The policy's display name. Must be unique within its type. The reserved
+            Okta default policy name "Default Policy" is not allowed — the default
+            policy per type is system-managed and cannot be created here.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Okta Admin console."
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          required: true
+          defaultValue: "ACTIVE"
+          options:
+            - label: "Active"
+              value: "ACTIVE"
+            - label: "Inactive"
+              value: "INACTIVE"
+          helpText: >
+            Whether the policy is active. Status is changed through Okta's
+            activate/deactivate lifecycle endpoints, not by editing other fields.
+
+        - key: "groupIncludeIds"
+          label: "Scoped Group IDs"
+          fieldType: "tags"
+          helpText: >
+            Okta group IDs (e.g. 00g1abc...) this policy applies to — becomes the
+            policy condition people.groups.include. Leave empty to apply to all
+            users. These are group IDs, not names.
+
+    - name: "Settings"
+      icon: "sliders"
+      description: "Per-type settings (JSON) — leave blank for OKTA_SIGN_ON"
+      fields:
+        - key: "settingsJson"
+          label: "Settings (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            The type-specific settings as a JSON object, merged into the policy's
+            `settings`. Leave BLANK for OKTA_SIGN_ON (it has none — session/MFA
+            behaviour lives in the rules). PASSWORD example:
+            {"password":{"complexity":{"minLength":12},"age":{"maxAgeDays":90},"lockout":{"maxAttempts":5}}}.
+            MFA_ENROLL example:
+            {"type":"AUTHENTICATORS","authenticators":[{"key":"okta_email","enroll":{"self":"REQUIRED"}}]}.
+
+    - name: "Rules"
+      icon: "list"
+      description: "Rules under the policy (JSON array) — reconciled by name"
+      fields:
+        - key: "rulesJson"
+          label: "Rules (JSON array)"
+          fieldType: "textarea"
+          helpText: >
+            The rules under this policy as a JSON ARRAY of rule objects, each with
+            a unique `name`. Reconciled by name — a same-name rule is replaced
+            (PUT), a new one is created (POST). Rules the array does not mention
+            are left untouched, and a system-managed (default) rule is never
+            deleted. Leave blank to skip rule reconciliation entirely. Example:
+            [{"name":"Require MFA","type":"SIGN_ON","conditions":{"network":{"connection":"ANYWHERE"}},"actions":{"signon":{"access":"ALLOW","requireFactor":true}}}].

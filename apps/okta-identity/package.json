@@ -1,0 +1,16 @@
+{
+  "name": "veltrix-app-okta-identity",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Veltrix app: manage Okta configuration as code (policies + rules, group rules, groups, network zones) via the Okta Management API",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.0.0",
+    "@veltrixsecops/app-sdk": "^3.1.0",
+    "fastify": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}

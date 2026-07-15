@@ -1,0 +1,77 @@
+# =============================================================================
+# Canvas Template — Okta Dynamic Group Rules
+#
+# Declares ONE group rule — the item. Users add as many rules as they need.
+# A group rule assigns every user matching an Okta Expression Language condition
+# to one or more target groups. Its logical identity is the rule NAME (the id
+# Okta assigns is the stable key used for rollback);
+# config-types/group-rules/validate.ts enforces name uniqueness across the
+# canvas.
+#
+# LIFECYCLE (handled in deploy): rules are ALWAYS created INACTIVE, then
+# activated explicitly when the desired status is Active. A rule must be
+# deactivated before it can be updated, and its `actions` (target groups) block
+# is IMMUTABLE — changing the target groups forces a delete + recreate.
+#
+# Field keys must match what config-types/group-rules/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-group-rules"
+name: "Group Rule Configuration"
+toolType: "okta-identity"
+entityType: "group-rules"
+description: "Define Okta dynamic group-assignment rules (an Okta Expression Language condition that assigns matching users to target groups) as code through the Okta Group Rules API. Rules are created inactive and activated explicitly; target groups are immutable after creation."
+
+item:
+  label: "Group Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Rule"
+      icon: "filter"
+      description: "Rule name, matching expression, target groups and status"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 50
+            message: "A unique rule name, up to 50 characters. This is the logical identity Okta matches on."
+          helpText: "The group rule's name. Must be unique within this canvas — it is the identity used to find and update the rule on each deploy. Okta caps rule names at 50 characters."
+
+        - key: "expression"
+          label: "Expression"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The Okta Expression Language (EL) condition — every user it matches is
+            assigned to the target groups, e.g. user.department=="Engineering" or
+            String.stringContains(user.email, "@acme.com"). Uses expression type
+            urn:okta:expression:1.0.
+
+        - key: "groupIds"
+          label: "Target Group IDs"
+          fieldType: "tags"
+          required: true
+          helpText: >
+            The Okta group ids (e.g. 00g1a2b3c4D5e6F7g8h9) that matching users are
+            assigned to. Find a group's id in the Admin console URL or via the
+            Groups API. IMMUTABLE after creation — changing this set forces the
+            rule to be deleted and recreated on the next deploy.
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          defaultValue: "ACTIVE"
+          options:
+            - label: "Active"
+              value: "ACTIVE"
+            - label: "Inactive"
+              value: "INACTIVE"
+          helpText: >
+            Active runs the rule and assigns matching users; Inactive leaves it
+            defined but dormant. Rules are always created inactive and activated
+            explicitly when set to Active.

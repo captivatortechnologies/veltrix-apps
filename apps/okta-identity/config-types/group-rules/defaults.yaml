@@ -1,0 +1,8 @@
+# Defaults for a new group-rule item.
+#
+# FLAT map keyed by the canvas field keys (name, expression, groupIds, status),
+# since a rule's presentational group is one flat item record. Only `status` has
+# a meaningful default — a new rule is authored Active; deploy still creates it
+# inactive and activates it explicitly. name / expression / groupIds start blank
+# because they are user-specific and required.
+status: "ACTIVE"
