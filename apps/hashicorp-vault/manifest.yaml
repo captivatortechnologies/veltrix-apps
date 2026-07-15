@@ -1,6 +1,6 @@
 id: hashicorp-vault
 name: HashiCorp Vault
-version: "1.0.0"
+version: "1.1.0"
 vendor: Veltrix
 description: >
   Manage HashiCorp Vault configuration as code through the Vault HTTP API.
@@ -40,6 +40,27 @@ permissions:
     - resource: audit-devices
       actions: [read, write, delete]
       description: Manage Vault audit devices
+    - resource: password-policies
+      actions: [read, write, delete]
+      description: Manage Vault password-generation policies
+    - resource: identity-entities
+      actions: [read, write, delete]
+      description: Manage Vault identity entities
+    - resource: identity-groups
+      actions: [read, write, delete]
+      description: Manage Vault identity groups
+    - resource: rate-limit-quotas
+      actions: [read, write, delete]
+      description: Manage Vault rate-limit quotas
+    - resource: mfa-methods
+      actions: [read, write, delete]
+      description: Manage Vault login MFA methods
+    - resource: mfa-login-enforcement
+      actions: [read, write, delete]
+      description: Manage Vault MFA login enforcements
+    - resource: plugins
+      actions: [read, write, delete]
+      description: Manage Vault external plugin registrations
 
 pipeline:
   configurationTypes:
@@ -106,6 +127,126 @@ pipeline:
         healthCheck: config-types/audit-devices/healthCheck
         driftDetect: config-types/audit-devices/driftDetect
         getStatus: config-types/audit-devices/getStatus
+      targets:
+        componentTypes: [vault-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+
+    - id: password-policies
+      name: Password Policies
+      description: Password generation policies (HCL length + charset rules)
+      canvasTemplate: config-types/password-policies/canvas.yaml
+      defaultConfig: config-types/password-policies/defaults.yaml
+      handlers:
+        validate: config-types/password-policies/validate
+        deploy: config-types/password-policies/deploy
+        rollback: config-types/password-policies/rollback
+        healthCheck: config-types/password-policies/healthCheck
+        driftDetect: config-types/password-policies/driftDetect
+        getStatus: config-types/password-policies/getStatus
+      targets:
+        componentTypes: [vault-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: identity-entities
+      name: Identity Entities
+      description: Identity entities (policies, metadata, disabled) via name-keyed upsert
+      canvasTemplate: config-types/identity-entities/canvas.yaml
+      defaultConfig: config-types/identity-entities/defaults.yaml
+      handlers:
+        validate: config-types/identity-entities/validate
+        deploy: config-types/identity-entities/deploy
+        rollback: config-types/identity-entities/rollback
+        healthCheck: config-types/identity-entities/healthCheck
+        driftDetect: config-types/identity-entities/driftDetect
+        getStatus: config-types/identity-entities/getStatus
+      targets:
+        componentTypes: [vault-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: identity-groups
+      name: Identity Groups
+      description: Identity groups — internal (explicit members) or external (auth-managed)
+      canvasTemplate: config-types/identity-groups/canvas.yaml
+      defaultConfig: config-types/identity-groups/defaults.yaml
+      handlers:
+        validate: config-types/identity-groups/validate
+        deploy: config-types/identity-groups/deploy
+        rollback: config-types/identity-groups/rollback
+        healthCheck: config-types/identity-groups/healthCheck
+        driftDetect: config-types/identity-groups/driftDetect
+        getStatus: config-types/identity-groups/getStatus
+      targets:
+        componentTypes: [vault-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: rate-limit-quotas
+      name: Rate Limit Quotas
+      description: Request rate-limit quotas (rate/interval/path); path="" is the global limiter
+      canvasTemplate: config-types/rate-limit-quotas/canvas.yaml
+      defaultConfig: config-types/rate-limit-quotas/defaults.yaml
+      handlers:
+        validate: config-types/rate-limit-quotas/validate
+        deploy: config-types/rate-limit-quotas/deploy
+        rollback: config-types/rate-limit-quotas/rollback
+        healthCheck: config-types/rate-limit-quotas/healthCheck
+        driftDetect: config-types/rate-limit-quotas/driftDetect
+        getStatus: config-types/rate-limit-quotas/getStatus
+      targets:
+        componentTypes: [vault-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: mfa-methods
+      name: MFA Methods
+      description: Login MFA methods (totp/duo/okta/pingid); secrets are write-only
+      canvasTemplate: config-types/mfa-methods/canvas.yaml
+      defaultConfig: config-types/mfa-methods/defaults.yaml
+      handlers:
+        validate: config-types/mfa-methods/validate
+        deploy: config-types/mfa-methods/deploy
+        rollback: config-types/mfa-methods/rollback
+        healthCheck: config-types/mfa-methods/healthCheck
+        driftDetect: config-types/mfa-methods/driftDetect
+        getStatus: config-types/mfa-methods/getStatus
+      targets:
+        componentTypes: [vault-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: mfa-login-enforcement
+      name: MFA Login Enforcement
+      description: Binds MFA methods to logins by auth method / group / entity
+      canvasTemplate: config-types/mfa-login-enforcement/canvas.yaml
+      defaultConfig: config-types/mfa-login-enforcement/defaults.yaml
+      handlers:
+        validate: config-types/mfa-login-enforcement/validate
+        deploy: config-types/mfa-login-enforcement/deploy
+        rollback: config-types/mfa-login-enforcement/rollback
+        healthCheck: config-types/mfa-login-enforcement/healthCheck
+        driftDetect: config-types/mfa-login-enforcement/driftDetect
+        getStatus: config-types/mfa-login-enforcement/getStatus
+      targets:
+        componentTypes: [vault-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: plugins
+      name: Plugins
+      description: External plugin catalog registrations (auth/database/secret); never touches built-ins
+      canvasTemplate: config-types/plugins/canvas.yaml
+      defaultConfig: config-types/plugins/defaults.yaml
+      handlers:
+        validate: config-types/plugins/validate
+        deploy: config-types/plugins/deploy
+        rollback: config-types/plugins/rollback
+        healthCheck: config-types/plugins/healthCheck
+        driftDetect: config-types/plugins/driftDetect
+        getStatus: config-types/plugins/getStatus
       targets:
         componentTypes: [vault-cluster]
         requiresCredential: true

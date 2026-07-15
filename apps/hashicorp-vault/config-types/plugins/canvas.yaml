@@ -1,0 +1,113 @@
+# =============================================================================
+# Canvas Template — Vault Plugin Catalog (external plugins)
+#
+# Declares ONE external plugin registration — the item. Users add as many as
+# they need. A plugin's identity is the pair (type, name): the type namespaces
+# the catalog, so an "auth" plugin and a "secret" plugin may share a name.
+# config-types/plugins/deploy.ts writes it name-in-path to
+# /sys/plugins/catalog/{type}/{name} (an UPSERT), and dedupes/matches on the
+# (type, name) composite.
+#
+# EXTERNAL-ONLY: this manages external plugins registered against a binary that
+# is ALREADY STAGED in the cluster's plugin_directory — registration is metadata
+# only, deploy never uploads a binary. If the live (type, name) resolves to a
+# Vault BUILT-IN, deploy refuses to register, update, or delete it.
+#
+# Field keys must match what config-types/plugins/validate.ts checks.
+# =============================================================================
+
+id: "hashicorp-vault-plugins"
+name: "Plugin Catalog Configuration"
+toolType: "hashicorp-vault"
+entityType: "plugins"
+description: "Register external Vault plugins (auth/database/secret) against a pre-staged binary through the Vault /sys/plugins/catalog API"
+
+item:
+  label: "Plugin"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Plugin"
+      icon: "puzzle"
+      description: "Catalog type, name and optional version — the plugin's identity"
+      fields:
+        - key: "type"
+          label: "Plugin Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "secret"
+          options:
+            - label: "Secret engine"
+              value: "secret"
+            - label: "Auth method"
+              value: "auth"
+            - label: "Database"
+              value: "database"
+          helpText: >
+            Catalog namespace the plugin is registered under. Part of the
+            plugin's identity — the same name may exist under a different type.
+
+        - key: "name"
+          label: "Plugin Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_.-]+$"
+            message: >
+              Plugin name may contain only letters, digits, and the characters
+              _ . - .
+          helpText: >
+            Catalog name the plugin is registered under, unique within its type
+            in this canvas. This is the name a mount references when it loads the
+            plugin.
+
+        - key: "version"
+          label: "Version"
+          fieldType: "text"
+          helpText: >
+            Optional semantic version (e.g. "v1.2.0") registered alongside the
+            binary — lets multiple versions of the same plugin coexist in the
+            catalog.
+
+    - name: "Binary"
+      icon: "file-binary"
+      description: "The pre-staged binary this registration points at"
+      fields:
+        - key: "sha256"
+          label: "SHA-256"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-f0-9]{64}$"
+            message: "SHA-256 must be exactly 64 hexadecimal characters."
+          helpText: >
+            SHA-256 digest of the plugin binary, as 64 lower-case hex characters.
+            The binary must ALREADY be staged in the cluster's plugin_directory
+            and match this digest — this app registers metadata only and never
+            uploads a binary.
+
+        - key: "command"
+          label: "Command"
+          fieldType: "text"
+          required: true
+          helpText: >
+            Executable path RELATIVE to the cluster's plugin_directory (e.g.
+            "vault-plugin-secrets-foo"). The binary must be pre-staged there.
+
+        - key: "argsJson"
+          label: "Args (JSON array)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON array of string arguments passed to the binary, e.g.
+            ["--log-level","debug"]. Leave blank for none.
+
+        - key: "envJson"
+          label: "Env (JSON array)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON array of "KEY=value" environment strings, e.g.
+            ["API_HOST=example.com"]. WARNING: env may hold SECRETS — Vault never
+            returns it on read, so it is set on write but is NEVER drift-checked
+            and cannot be restored by a rollback.

@@ -1,0 +1,90 @@
+# =============================================================================
+# Canvas Template — Vault Rate Limit Quotas
+#
+# Declares ONE rate limit quota — the item. Users add as many as they need.
+# A quota's logical identity is its NAME (config-types/rate-limit-quotas/deploy.ts
+# UPSERTs at POST /sys/quotas/rate-limit/{name} and keys rollback on the name).
+#
+# `rate` is REQUIRED — the number of requests permitted per interval (a positive
+# float). An EMPTY `path` is the GLOBAL rate limiter for the entire Vault cluster:
+# it throttles every request, a HIGH-BLAST-RADIUS setting. Vault OSS has no
+# reserved "default" quota name, so no name is treated specially.
+#
+# Field keys must match what config-types/rate-limit-quotas/validate.ts checks.
+# =============================================================================
+
+id: "hashicorp-vault-rate-limit-quotas"
+name: "Rate Limit Quota Configuration"
+toolType: "hashicorp-vault"
+entityType: "rate-limit-quotas"
+description: "Define Vault API rate limit quotas (rate, scope path, interval, block interval) as code through the Vault /sys/quotas/rate-limit API. An empty path is the cluster-wide global limiter."
+
+item:
+  label: "Rate Limit Quota"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Quota"
+      icon: "gauge"
+      description: "Quota name, scope path and rate limit settings"
+      fields:
+        - key: "name"
+          label: "Quota Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_-]+$"
+            message: >
+              Quota name may contain only letters, digits, and the characters
+              _ and - (e.g. "global-limit" or "kv_reads").
+          helpText: >
+            The quota's name — its identity, and the {name} in
+            /sys/quotas/rate-limit/{name}. Must be unique within this canvas.
+            Vault OSS has no reserved quota name.
+
+        - key: "path"
+          label: "Scope Path"
+          fieldType: "text"
+          helpText: >
+            mount/namespace path; blank = GLOBAL, high blast radius; trailing *
+            glob allowed. Leave blank to limit the ENTIRE Vault cluster (every
+            request counts against it). Set a path such as "secret/" or
+            "auth/approle/login" to scope the limiter, optionally ending in "*".
+
+        - key: "rate"
+          label: "Rate (requests per interval)"
+          fieldType: "number"
+          required: true
+          validation:
+            min: 0.0001
+          helpText: >
+            REQUIRED. The maximum number of requests permitted per interval, as a
+            positive number (e.g. 1000). Once the rate is exceeded, further
+            requests are rejected until the interval elapses.
+
+        - key: "interval"
+          label: "Interval"
+          fieldType: "text"
+          defaultValue: "1s"
+          helpText: >
+            The window over which `rate` is enforced, as a Vault duration ("1s",
+            "1m") or a whole number of seconds. Defaults to "1s".
+
+        - key: "blockInterval"
+          label: "Block Interval"
+          fieldType: "text"
+          defaultValue: "0s"
+          helpText: >
+            How long a client that exceeds the rate is blocked, as a Vault
+            duration ("0s", "30s") or seconds. "0s" (the default) means clients
+            are not blocked beyond the current interval.
+
+        - key: "role"
+          label: "Role"
+          fieldType: "text"
+          helpText: >
+            Optional. Only meaningful for a login rate limit quota on an auth
+            mount path (e.g. an AppRole role name). Leave blank for an ordinary
+            request quota.

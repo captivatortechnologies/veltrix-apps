@@ -1,0 +1,12 @@
+# Defaults for a new login MFA method item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (methodName, type, issuer, algorithm, digits, period, skew,
+# keySize, maxValidationAttempts, apiHostname, integrationKey, secretKey,
+# pushInfo, usePasscode, orgName, apiToken, baseUrl, primaryEmail,
+# settingsFileBase64, usernameFormat), since a method's presentational groups
+# share one flat item record.
+#
+# Deliberately NOT seeding any of the secret fields (integrationKey, secretKey,
+# apiToken, settingsFileBase64): they are write-only and have no safe default.

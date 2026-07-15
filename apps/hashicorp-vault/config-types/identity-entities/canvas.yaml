@@ -1,0 +1,86 @@
+# =============================================================================
+# Canvas Template — Vault Identity Entities
+#
+# Declares ONE identity entity — the item. Users add as many as they need. An
+# entity's logical identity is its NAME (config-types/identity-entities/deploy.ts
+# creates/updates/deletes it through the NAME-KEYED endpoint
+# POST|GET|DELETE /identity/entity/name/{name}, so no server-assigned id is ever
+# tracked between deploys — the name-in-path form is a clean UPSERT).
+#
+# Only the AUTHORED fields are managed: policies (a set), metadata (a flat
+# map[string]string) and disabled. The server-computed id, aliases, group_ids
+# and timestamps are never written and never drift-checked. Entity ALIASES are
+# OUT OF SCOPE here — an alias binds an entity to a specific auth mount and needs
+# that mount's live accessor (a separate /identity/entity-alias endpoint).
+#
+# Field keys must match what config-types/identity-entities/validate.ts checks.
+# =============================================================================
+
+id: "hashicorp-vault-identity-entities"
+name: "Identity Entity Configuration"
+toolType: "hashicorp-vault"
+entityType: "identity-entities"
+description: "Define Vault identity entities (policies, metadata, disabled state) as code through the name-keyed Vault /identity/entity/name API. Entity aliases are out of scope."
+
+item:
+  label: "Identity Entity"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Entity"
+      icon: "user"
+      description: "Entity name and enabled state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_.@-]+$"
+            message: >
+              Entity name may contain only letters, digits, and the characters
+              _ . @ - (no spaces or slashes). This is the entity's identity and
+              the name used in the Vault API path.
+          helpText: >
+            The entity's name — its logical identity. Must be unique within this
+            canvas. Managed through the name-keyed endpoint
+            /identity/entity/name/{name}, so renaming an entity creates a new one
+            rather than moving the old one.
+
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: >
+            Off (default): the entity is active. On: the entity is disabled — it
+            and its aliases cannot authenticate, and existing tokens for it stop
+            working.
+
+    - name: "Access"
+      icon: "shield"
+      description: "ACL policies attached to the entity"
+      fields:
+        - key: "policies"
+          label: "Policies"
+          fieldType: "tags"
+          helpText: >
+            Vault ACL policy names attached directly to this entity (compared as
+            a set — order does not matter). These are added on top of any
+            policies the entity inherits from its groups. Leave blank for none.
+
+    - name: "Metadata"
+      icon: "tag"
+      description: "Arbitrary key/value metadata (optional)"
+      fields:
+        - key: "metadataJson"
+          label: "Metadata (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional metadata as a flat JSON object of STRING values, e.g.
+            {"team":"platform","tier":"gold"}. Vault entity metadata is a map of
+            string to string, so every value must be quoted. Leave blank for no
+            metadata. NOTE: entity ALIASES (which bind this entity to an auth
+            mount) are not managed here — they require the auth mount's live
+            accessor and a separate endpoint.

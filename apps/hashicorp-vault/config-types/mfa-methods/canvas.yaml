@@ -1,0 +1,224 @@
+# =============================================================================
+# Canvas Template — Vault Login MFA Methods
+#
+# Declares ONE login MFA method — the item. Users add as many as they need.
+#
+# IDENTITY IS UNUSUAL. A method lives at /identity/mfa/method/{type} where the
+# type is totp | duo | okta | pingid. Its real identity is a server-assigned
+# `method_id` UUID with NO name-in-path form. `method_name` (below) is only a
+# label (Vault 1.13+) — but it is the ONLY stable handle a human can reconcile
+# on, so config-types/mfa-methods/deploy.ts LISTs the type, GETs each method and
+# matches on method_name. Because CREATE IS NOT UPSERT (POSTing /{type} twice
+# mints two methods), method_name is treated as the logical identity and must be
+# unique per canvas (validate.ts enforces this).
+#
+# MODELLING CHOICE: every per-type parameter is an EXPLICIT typed field (not a
+# freeform settings JSON blob). This gives real validation and per-field help,
+# and — required by the platform — keeps the WRITE-ONLY SECRETS as dedicated
+# `fieldType: password` inputs. A single item holds ONE type; leave the fields
+# for the other three types blank.
+#
+# WRITE-ONLY SECRETS (never returned by Vault on GET, never drift-checked):
+#   duo    → integrationKey, secretKey
+#   okta   → apiToken
+#   pingid → settingsFileBase64
+# They are required and re-asserted on every deploy. totp has NO secret input.
+#
+# CAUTION: deleting a method referenced by a login-enforcement BREAKS LOGINS for
+# every principal that enforcement covers.
+#
+# Field keys must match what config-types/mfa-methods/validate.ts checks.
+# =============================================================================
+
+id: "hashicorp-vault-mfa-methods"
+name: "Login MFA Method Configuration"
+toolType: "hashicorp-vault"
+entityType: "mfa-methods"
+description: "Define Vault login MFA methods (TOTP, Duo, Okta, PingID) as code via the Vault /identity/mfa/method API. Reconciled by method_name (identity is a server-assigned method_id); write-only secrets are re-asserted on every deploy and never drift-checked."
+
+item:
+  label: "MFA Method"
+  identityField: "methodName"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Method"
+      icon: "shield"
+      description: "Method name (the reconciliation key) and type"
+      fields:
+        - key: "methodName"
+          label: "Method Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            message: "A unique method name, up to 255 characters."
+          helpText: >
+            The method's label (Vault stores it as method_name). This is the
+            IDENTITY this app reconciles on — the real identity is a
+            server-assigned method_id UUID with no name-in-path form, so deploy
+            lists the type, reads each method and matches this name. Must be
+            unique within this canvas.
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "totp"
+          options:
+            - label: "TOTP (Vault-generated authenticator app)"
+              value: "totp"
+            - label: "Duo"
+              value: "duo"
+            - label: "Okta"
+              value: "okta"
+            - label: "PingID"
+              value: "pingid"
+          helpText: >
+            The MFA provider type. Fixed at create time — a method's type is part
+            of its path. Fill in only the fields below that match this type; leave
+            the rest blank.
+
+    - name: "Config"
+      icon: "sliders"
+      description: "Per-type parameters. Fill in only the fields for the chosen type; secrets are write-only."
+      fields:
+        # --- TOTP (no secret) --------------------------------------------------
+        - key: "issuer"
+          label: "TOTP · Issuer"
+          fieldType: "text"
+          helpText: >
+            TOTP only, REQUIRED. The issuer name shown in the user's authenticator
+            app, e.g. your company or Vault cluster name.
+
+        - key: "algorithm"
+          label: "TOTP · Algorithm"
+          fieldType: "select"
+          defaultValue: "SHA1"
+          options:
+            - label: "SHA1"
+              value: "SHA1"
+            - label: "SHA256"
+              value: "SHA256"
+            - label: "SHA512"
+              value: "SHA512"
+          helpText: "TOTP only. Hashing algorithm for the one-time passcode. SHA1 is the widest-compatible default."
+
+        - key: "digits"
+          label: "TOTP · Digits"
+          fieldType: "select"
+          defaultValue: "6"
+          options:
+            - label: "6 digits"
+              value: "6"
+            - label: "8 digits"
+              value: "8"
+          helpText: "TOTP only. Number of digits in the passcode (6 or 8)."
+
+        - key: "period"
+          label: "TOTP · Period (seconds)"
+          fieldType: "number"
+          validation:
+            min: 1
+          helpText: "TOTP only. Seconds each passcode is valid for (commonly 30). Positive whole number."
+
+        - key: "skew"
+          label: "TOTP · Skew (periods)"
+          fieldType: "select"
+          defaultValue: "1"
+          options:
+            - label: "0 (no tolerance)"
+              value: "0"
+            - label: "1 (±1 period)"
+              value: "1"
+          helpText: "TOTP only. Number of periods (before/after) a passcode is still accepted, to absorb clock drift."
+
+        - key: "keySize"
+          label: "TOTP · Key Size (bytes)"
+          fieldType: "number"
+          validation:
+            min: 1
+          helpText: "TOTP only. Size of the generated shared key in bytes (commonly 20). Positive whole number."
+
+        - key: "maxValidationAttempts"
+          label: "TOTP · Max Validation Attempts"
+          fieldType: "number"
+          validation:
+            min: 1
+          helpText: "TOTP only. Failed passcode attempts before a user's key is locked. Positive whole number."
+
+        # --- Duo ---------------------------------------------------------------
+        - key: "apiHostname"
+          label: "Duo · API Hostname"
+          fieldType: "text"
+          helpText: "Duo only, REQUIRED. The Duo API hostname, e.g. api-XXXXXXXX.duosecurity.com."
+
+        - key: "integrationKey"
+          label: "Duo · Integration Key"
+          fieldType: "password"
+          helpText: >
+            Duo only, REQUIRED. WRITE-ONLY secret. Vault never returns it, so it
+            is re-sent on every deploy and is never drift-checked.
+
+        - key: "secretKey"
+          label: "Duo · Secret Key"
+          fieldType: "password"
+          helpText: >
+            Duo only, REQUIRED. WRITE-ONLY secret. Vault never returns it, so it
+            is re-sent on every deploy and is never drift-checked.
+
+        - key: "pushInfo"
+          label: "Duo · Push Info"
+          fieldType: "text"
+          helpText: "Duo only, optional. Extra key=value info appended to the Duo push prompt."
+
+        - key: "usePasscode"
+          label: "Duo · Require Passcode"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Duo only. Require a passcode instead of a push notification."
+
+        # --- Okta --------------------------------------------------------------
+        - key: "orgName"
+          label: "Okta · Organization Name"
+          fieldType: "text"
+          helpText: "Okta only, REQUIRED. Your Okta organization name."
+
+        - key: "apiToken"
+          label: "Okta · API Token"
+          fieldType: "password"
+          helpText: >
+            Okta only, REQUIRED. WRITE-ONLY secret. Vault never returns it, so it
+            is re-sent on every deploy and is never drift-checked.
+
+        - key: "baseUrl"
+          label: "Okta · Base URL"
+          fieldType: "text"
+          helpText: "Okta only, optional. The Okta base URL, e.g. okta.com (defaults to Okta's if blank)."
+
+        - key: "primaryEmail"
+          label: "Okta · Match Primary Email"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Okta only. Match users by their primary email address instead of their login."
+
+        # --- PingID ------------------------------------------------------------
+        - key: "settingsFileBase64"
+          label: "PingID · Settings File (base64)"
+          fieldType: "password"
+          helpText: >
+            PingID only, REQUIRED. WRITE-ONLY secret — the base64-encoded settings
+            file downloaded from the PingID admin portal (it also carries the
+            org's credentials). Vault never returns it and derives idp_url /
+            admin_url from it, so it is re-sent on every deploy and never
+            drift-checked.
+
+        # --- Shared (Duo / Okta / PingID) -------------------------------------
+        - key: "usernameFormat"
+          label: "Username Format"
+          fieldType: "text"
+          helpText: >
+            Duo / Okta / PingID, optional. Format string used to derive the MFA
+            username from the entity alias, e.g. "{{identity.entity.aliases.<mount_accessor>.name}}".
+            Not used by TOTP.

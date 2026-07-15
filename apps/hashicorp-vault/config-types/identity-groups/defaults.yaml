@@ -1,0 +1,8 @@
+# Defaults for a new identity group item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Users manage their own default value sets and can
+# apply one when creating an item. Any values here would be a FLAT map keyed by
+# the canvas field keys (name, type, policies, memberEntityIds, memberGroupIds,
+# metadataJson), since a group's presentational groups ("Group", "Access",
+# "Members", "Metadata") share one flat item record.

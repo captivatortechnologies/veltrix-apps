@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template — Vault Password Policies (generation)
+#
+# Declares ONE password GENERATION policy — the item. Users add as many as they
+# need. A password policy is authored in HCL and identified by its NAME. It is
+# the template a secret engine uses to mint random passwords (e.g. a database
+# dynamic role's password_policy) — DISTINCT from an ACL policy, which governs
+# access.
+#
+# Writing a policy is a TRUE UPSERT (POST /sys/policies/password/{name}), so
+# config-types/password-policies/deploy.ts creates or replaces it in one call.
+# The name is used verbatim as Vault stores it; config-types/password-policies/
+# validate.ts enforces uniqueness across the canvas. There is no documented set
+# of reserved built-in names, so none is treated as protected.
+#
+# Field keys must match what config-types/password-policies/validate.ts checks.
+# =============================================================================
+
+id: "hashicorp-vault-password-policies"
+name: "Password Policy Configuration"
+toolType: "hashicorp-vault"
+entityType: "password-policies"
+description: "Define Vault password generation policies (authored in HCL) as code through the Vault Password Policies API — upsert by name"
+
+item:
+  label: "Password Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Policy"
+      icon: "key"
+      description: "Policy name and HCL body"
+      fields:
+        - key: "name"
+          label: "Policy Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_-]+$"
+            message: >
+              Letters, numbers, underscores and hyphens only. The name is used
+              verbatim as the policy's identity and must be unique within this
+              canvas.
+          helpText: >
+            Name of the password generation policy in Vault. Must be unique within
+            this canvas. This is the policy's identity — secret engines reference
+            it by this name (e.g. a database role's password_policy).
+
+        - key: "policy"
+          label: "Policy (HCL)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The password policy body in HCL. Must declare a total length and at
+            least one charset rule, e.g.
+            length = 20
+            rule "charset" { charset = "abcdefghijklmnopqrstuvwxyz" min-chars = 1 }.
+            There is no server-side dry-run — Vault rejects a malformed policy at
+            deploy time.

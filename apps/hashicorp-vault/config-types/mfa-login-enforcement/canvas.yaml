@@ -1,0 +1,103 @@
+# =============================================================================
+# Canvas Template — Vault Login MFA Enforcements
+#
+# Declares ONE login-MFA enforcement — the item. Users add as many as they need.
+# An enforcement BINDS one or more login-MFA methods to a set of logins, so that
+# those logins must satisfy MFA. Its logical identity is its NAME; the write is a
+# TRUE UPSERT (POST /identity/mfa/login-enforcement/{name}), so deploy creates or
+# replaces it in one call — config-types/mfa-login-enforcement/deploy.ts keys
+# rollback on the name.
+#
+# The body carries two halves:
+#   - mfa_method_ids: the method_id UUIDs to require. Multiple ids are ORed —
+#     satisfying ANY one of them satisfies the enforcement.
+#   - AT LEAST ONE selector picking which logins it applies to:
+#       auth_method_types, auth_method_accessors, identity_group_ids,
+#       identity_entity_ids. Vault rejects an enforcement with no selector, so
+#       config-types/mfa-login-enforcement/validate.ts requires at least one.
+#
+# The mfa_method_ids are the server-assigned UUIDs of the login-MFA methods
+# (managed by the mfa-methods config type / minted by Vault) — NOT method names.
+#
+# Field keys must match what config-types/mfa-login-enforcement/validate.ts checks.
+# =============================================================================
+
+id: "hashicorp-vault-mfa-login-enforcement"
+name: "Login MFA Enforcement Configuration"
+toolType: "hashicorp-vault"
+entityType: "mfa-login-enforcement"
+description: "Bind Vault login-MFA methods to logins (by auth method type/accessor or by identity group/entity) as code through the Vault /identity/mfa/login-enforcement API — upsert by name"
+
+item:
+  label: "Login MFA Enforcement"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Enforcement"
+      icon: "shield-check"
+      description: "Enforcement name and the MFA methods it requires"
+      fields:
+        - key: "name"
+          label: "Enforcement Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_-]+$"
+            message: >
+              Letters, digits, underscores and hyphens only. This is the
+              enforcement's identity — it must be unique within this canvas.
+          helpText: >
+            Name of the login-MFA enforcement in Vault. Must be unique within this
+            canvas. This is the enforcement's identity — writing it is an upsert
+            (POST /identity/mfa/login-enforcement/{name}).
+
+        - key: "mfaMethodIds"
+          label: "MFA Method IDs"
+          fieldType: "tags"
+          required: true
+          helpText: >
+            The method_id UUIDs of the login-MFA methods this enforcement
+            requires, one per tag. These are the SERVER-ASSIGNED ids of the MFA
+            methods (from the mfa-methods config type — Vault mints them; they are
+            NOT method names). Multiple ids are ORed together: satisfying ANY one
+            of the listed methods satisfies the enforcement. At least one is
+            required.
+
+    - name: "Targets"
+      icon: "users"
+      description: >
+        Which logins this enforcement applies to. At least ONE selector is
+        required. A login must match a selector for the enforcement to apply.
+      fields:
+        - key: "authMethodTypes"
+          label: "Auth Method Types"
+          fieldType: "tags"
+          helpText: >
+            Auth method TYPES this enforcement applies to (e.g. userpass, ldap,
+            okta, approle), one per tag. Every mount of a listed type is covered.
+
+        - key: "authMethodAccessors"
+          label: "Auth Method Accessors"
+          fieldType: "tags"
+          helpText: >
+            Auth mount ACCESSORS this enforcement applies to (e.g.
+            auth_userpass_1a2b3c4d), one per tag. An accessor targets a single
+            specific auth mount, unlike an auth method type which targets all
+            mounts of that type.
+
+        - key: "identityGroupIds"
+          label: "Identity Group IDs"
+          fieldType: "tags"
+          helpText: >
+            Identity GROUP ids this enforcement applies to, one per tag. A login
+            whose entity is a member of a listed group is covered.
+
+        - key: "identityEntityIds"
+          label: "Identity Entity IDs"
+          fieldType: "tags"
+          helpText: >
+            Identity ENTITY ids this enforcement applies to, one per tag. A login
+            resolving to a listed entity is covered. At least one selector across
+            this group (types, accessors, group ids or entity ids) is required.

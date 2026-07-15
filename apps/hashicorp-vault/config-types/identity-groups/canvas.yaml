@@ -1,0 +1,117 @@
+# =============================================================================
+# Canvas Template — Vault Identity Groups
+#
+# Declares ONE identity group — the item. Users add as many as they need.
+# ONE item = ONE Vault identity group. Its logical identity is the group NAME;
+# config-types/identity-groups/deploy.ts upserts by name via
+# POST /identity/group/name/{name} and keys rollback on the name.
+#
+# A group's TYPE is internal or external and is IMMUTABLE after creation:
+#   - internal (default): membership is managed HERE — member_entity_ids and
+#     member_group_ids are honored and reconciled by deploy.
+#   - external: membership is managed by Vault via group-aliases at login;
+#     member lists are NOT allowed and validate REJECTS them.
+# If a live group's type differs from the authored type, deploy FAILS clearly
+# rather than trying to convert it (Vault cannot convert a group's type).
+#
+# Field keys must match what config-types/identity-groups/validate.ts checks.
+# =============================================================================
+
+id: "hashicorp-vault-identity-groups"
+name: "Identity Group Configuration"
+toolType: "hashicorp-vault"
+entityType: "identity-groups"
+description: "Define Vault identity groups (internal or external) as code through the Vault /identity/group API. Type is immutable; external groups' members are auth-managed and cannot be set here."
+
+item:
+  label: "Identity Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Group"
+      icon: "users"
+      description: "Group name and type"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_.-]+$"
+            message: >
+              Group name may contain only letters, digits and the characters
+              _ . - (e.g. "platform-admins"). This is the group's identity — it
+              is used in the /identity/group/name/{name} path and to match the
+              live group on each deploy.
+          helpText: >
+            The identity group's name (its logical identity). Must be unique
+            within this canvas. Used to find and upsert the group on each deploy
+            via POST /identity/group/name/{name}.
+
+        - key: "type"
+          label: "Group Type"
+          fieldType: "select"
+          defaultValue: "internal"
+          options:
+            - label: "Internal (membership managed here)"
+              value: "internal"
+            - label: "External (membership managed by auth / group-aliases)"
+              value: "external"
+          helpText: >
+            IMMUTABLE after creation. "internal" groups have their membership
+            managed here (Member Entity IDs / Member Group IDs). "external"
+            groups get their members from an auth mount via group-aliases at
+            login — member lists are not allowed and are rejected. If a live
+            group already exists with a different type, deploy fails rather than
+            converting it (Vault cannot change a group's type in place).
+
+    - name: "Access"
+      icon: "shield"
+      description: "Vault ACL policies attached to the group"
+      fields:
+        - key: "policies"
+          label: "Policies"
+          fieldType: "tags"
+          helpText: >
+            Vault ACL policy names attached to every member of this group.
+            Optional. These are existing policy names (not HCL). Deploy converges
+            the group's policies to exactly this set; leaving it blank removes
+            all attached policies.
+
+    - name: "Members"
+      icon: "user-plus"
+      description: "Explicit membership (internal groups only)"
+      fields:
+        - key: "memberEntityIds"
+          label: "Member Entity IDs"
+          fieldType: "tags"
+          helpText: >
+            Identity entity IDs that belong to this group. INTERNAL groups only —
+            leave blank for an external group (its members come from an auth
+            mount via group-aliases). For an internal group, deploy reconciles
+            membership to exactly these IDs; leaving it blank removes all
+            explicit entity members.
+
+        - key: "memberGroupIds"
+          label: "Member Group IDs"
+          fieldType: "tags"
+          helpText: >
+            Identity group IDs nested under this group. INTERNAL groups only —
+            leave blank for an external group. For an internal group, deploy
+            reconciles nested groups to exactly these IDs.
+
+    - name: "Metadata"
+      icon: "tag"
+      description: "Optional metadata (a flat JSON object of string values)"
+      fields:
+        - key: "metadataJson"
+          label: "Metadata (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional metadata as a flat JSON object of string values, e.g.
+            {"team":"platform","env":"prod"}. Vault stores group metadata as
+            string-to-string pairs. Leave blank to not manage metadata (an
+            existing group's metadata is then left untouched). Metadata is not
+            drift-checked.
