@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-15T23:33:56.769Z",
+  "generatedAt": "2026-07-15T23:58:57.253Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -40,9 +40,27 @@
       "publishedAt": "2026-07-12T18:23:13.895Z"
     },
     {
+      "appId": "elastic-security",
+      "name": "Elastic Security",
+      "version": "1.1.1",
+      "vendor": "Veltrix",
+      "description": "Manage Elastic Security configuration as code through the Kibana and Elasticsearch APIs. Covers detection rules, exception lists, index lifecycle (ILM) policies, role mappings and Kibana spaces, with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
+      "category": "SIEM",
+      "icon": "🔎",
+      "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTAgMzIiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iRWxhc3RpYyI+CiAgPHRleHQgeD0iMCIgeT0iMjMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgSGVsdmV0aWNhLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIxIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjMUJBOUY1Ij5lbGFzdGljPC90ZXh0PgogIDxjaXJjbGUgY3g9IjEzOCIgY3k9IjEwIiByPSI0IiBmaWxsPSIjRjlCMTEwIi8+Cjwvc3ZnPgo=",
+      "logoDark": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTAgMzIiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iRWxhc3RpYyI+CiAgPHRleHQgeD0iMCIgeT0iMjMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgSGVsdmV0aWNhLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIxIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjMUJBOUY1Ij5lbGFzdGljPC90ZXh0PgogIDxjaXJjbGUgY3g9IjEzOCIgY3k9IjEwIiByPSI0IiBmaWxsPSIjRjlCMTEwIi8+Cjwvc3ZnPgo=",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/elastic-security",
+      "available": true,
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/elastic-security-v1.1.1/elastic-security.zip",
+      "sha256": "c476f7134659e6b367186ffd9f6a011cb3329425ccbb2640f2856ab2978acedb",
+      "sizeBytes": 153785,
+      "publishedAt": "2026-07-15T23:58:57.222Z"
+    },
+    {
       "appId": "hashicorp-vault",
       "name": "HashiCorp Vault",
-      "version": "1.1.1",
+      "version": "1.2.1",
       "vendor": "Veltrix",
       "description": "Manage HashiCorp Vault configuration as code through the Vault HTTP API. Covers ACL policies (HCL), auth methods, secret engine mounts, and audit devices, with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
@@ -52,15 +70,15 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/hashicorp-vault",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/hashicorp-vault-v1.1.1/hashicorp-vault.zip",
-      "sha256": "8335b9d40d6983755be0b6e3f5bcc4264e6b5b8c19bb49e02f4561e7ff92a6fa",
-      "sizeBytes": 277907,
-      "publishedAt": "2026-07-15T19:53:16.588Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/hashicorp-vault-v1.2.1/hashicorp-vault.zip",
+      "sha256": "a88d58e71cca235ac270a035af5ed963cf6c28b18775a007375d3a770183f0d7",
+      "sizeBytes": 291076,
+      "publishedAt": "2026-07-15T23:58:57.226Z"
     },
     {
       "appId": "okta-identity",
       "name": "Okta",
-      "version": "1.2.0",
+      "version": "1.3.1",
       "vendor": "Veltrix",
       "description": "Manage Okta configuration as code through the Okta Management API. Covers sign-on / password / authenticator-enrollment policies and their rules, group rules, groups, and network zones, with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
@@ -70,10 +88,10 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/okta-identity",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/okta-identity-v1.2.0/okta-identity.zip",
-      "sha256": "4e71202628c38875beaefc5995be5a4a2160754c31257011d6850cb1e25f2199",
-      "sizeBytes": 436185,
-      "publishedAt": "2026-07-15T14:40:51.890Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/okta-identity-v1.3.1/okta-identity.zip",
+      "sha256": "f14b38a684814a930da51133ef5b10fd21b527c90978eee7d1ef35a0b590c73e",
+      "sizeBytes": 449108,
+      "publishedAt": "2026-07-15T23:58:57.233Z"
     },
     {
       "appId": "sentinelone",
@@ -132,7 +150,7 @@
     {
       "appId": "splunk-soar",
       "name": "Splunk SOAR",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "vendor": "Veltrix",
       "description": "Connect Veltrix to Splunk SOAR (Security Orchestration, Automation and Response). Manages the SOAR instance connection — API endpoint (component), credential, TLS verification, request timeout, retries, and optional proxy — so the platform can reach your SOAR deployment.",
       "category": "SOAR",
@@ -142,15 +160,15 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-soar",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-soar-v1.0.0/splunk-soar.zip",
-      "sha256": "b5bd47e4c2e1f8a1d1fb0cc8e2de0269d8cd0f6b116a4c7d893334a22c3f0e25",
-      "sizeBytes": 30030,
-      "publishedAt": "2026-07-10T19:40:33.482Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-soar-v1.1.1/splunk-soar.zip",
+      "sha256": "a9a465c979b54f6a73192124fde242784885940c4e33a85f0a559014d3051b9d",
+      "sizeBytes": 98360,
+      "publishedAt": "2026-07-15T23:58:57.239Z"
     },
     {
       "appId": "tenable-vm",
       "name": "Tenable Vulnerability Management",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "vendor": "Veltrix",
       "description": "Manage Tenable Vulnerability Management (tenable.io) configuration as code through the Tenable VM REST API. Covers scheduled scans, asset tags, and scan exclusions (blackout windows), with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "COMPLIANCE",
@@ -160,10 +178,10 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/tenable-vm",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/tenable-vm-v1.0.0/tenable-vm.zip",
-      "sha256": "023c6b2f1a9e25ae181fe914ed49590c8ab50ff57639e62ec0edfb62de43cbc8",
-      "sizeBytes": 403161,
-      "publishedAt": "2026-07-15T02:42:45.189Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/tenable-vm-v1.1.1/tenable-vm.zip",
+      "sha256": "d31a5bac614084210dbcbb73a752b912234a0d2ca79a11d6616aba8ecc27c355",
+      "sizeBytes": 416344,
+      "publishedAt": "2026-07-15T23:58:57.242Z"
     },
     {
       "appId": "zscaler",
