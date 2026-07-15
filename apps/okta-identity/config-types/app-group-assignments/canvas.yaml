@@ -1,0 +1,82 @@
+# =============================================================================
+# Canvas Template — Okta App Group Assignments
+#
+# Declares ONE app-group assignment — the item. Users add as many as they need.
+# ONE item = ONE (appId, groupId) assignment: it binds a GROUP to an
+# APPLICATION. The assignment's logical identity is the (appId, groupId) PAIR —
+# the same group may be assigned to many apps and an app to many groups, so
+# neither id alone identifies the assignment. Both ids are fields on the item and
+# config-types/app-group-assignments/validate.ts enforces (appId, groupId)
+# uniqueness across the canvas.
+#
+# Okta's assign is a PUT — an idempotent create-or-update — so there is no
+# separate create/list/match: deploy GETs the assignment first (to record whether
+# it pre-existed, for rollback) then PUTs it. Rollback DELETEs an assignment this
+# deploy created and restores the prior priority/profile of one it updated.
+# Unmanaged assignments on the app are NEVER pruned — only the declared pairs are
+# touched. Group-DERIVED app users (members that flow into the app via this
+# assignment) are managed via the GROUP and its rules, not here.
+#
+# Field keys must match what config-types/app-group-assignments/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-app-group-assignments"
+name: "App Group Assignment Configuration"
+toolType: "okta-identity"
+entityType: "app-group-assignments"
+description: "Assign Okta groups to applications as code through the Okta Management API. One item is one (appId, groupId) binding with an optional priority and app-specific profile overrides. Only the declared assignments are managed — unmanaged assignments on the app are never pruned, and group-derived app users are managed via the group, not here."
+
+item:
+  label: "Assignment"
+  identityField: "groupId"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Assignment"
+      icon: "users"
+      description: >
+        The (app, group) pair to bind, plus optional priority and profile. Binds
+        a group to an application; the group's members become app users via the
+        assignment. Those group-derived app users are managed through the GROUP
+        (and its rules), not here.
+      fields:
+        - key: "appId"
+          label: "Application ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The id of the Okta application the group is assigned to (e.g.
+            '0oa1abc...'). Part of the assignment's logical identity — the
+            assignment is matched by (appId, groupId) and created under
+            /apps/{appId}/groups/{groupId}. This is the app id, not its label.
+
+        - key: "groupId"
+          label: "Group ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The id of the Okta group being assigned to the app (e.g.
+            '00g1abc...'). The other half of the (appId, groupId) identity — it is
+            also the assignment's own id. The group's members become users of the
+            app; those group-derived app users are managed via the group, not
+            here.
+
+        - key: "priority"
+          label: "Priority"
+          fieldType: "number"
+          helpText: >
+            Optional assignment priority. When several groups assign conflicting
+            profile attributes to the same user, the lower priority number wins.
+            Leave blank to let Okta keep or assign its own priority (Okta may
+            renumber priorities as assignments are added or removed).
+
+        - key: "profileJson"
+          label: "Profile (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON OBJECT of app-specific attribute overrides applied to
+            users assigned through this group, e.g. {"role":"admin"}. Must parse
+            to a JSON object. Leave blank to assign the group with no overrides
+            (a bare bind). Compared as a subset in drift detection so app-injected
+            defaults do not read as drift.

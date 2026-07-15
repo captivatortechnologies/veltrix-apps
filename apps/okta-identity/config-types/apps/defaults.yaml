@@ -1,0 +1,15 @@
+# Defaults for a new application item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (label, name, signOnMode, status, accessPolicyId,
+# settingsJson, credentialsJson, visibilityJson, accessibilityJson, profileJson),
+# since an app's presentational groups share one flat item record, e.g.:
+#   signOnMode: OPENID_CONNECT
+#   status: ACTIVE
+#   name: oidc_client
+#   settingsJson: '{"oauthClient":{"redirect_uris":["https://app/cb"],"grant_types":["authorization_code"],"response_types":["code"],"application_type":"web"}}'
+#
+# Deliberately NOT seeding the JSON blobs: the correct settings / credentials
+# shape is per sign-on mode (and the credentials carry write-only secrets), so
+# there is no safe non-empty default to suggest.

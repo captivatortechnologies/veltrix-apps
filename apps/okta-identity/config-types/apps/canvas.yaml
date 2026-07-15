@@ -1,0 +1,187 @@
+# =============================================================================
+# Canvas Template — Okta Applications (app instances)
+#
+# Declares ONE application instance — the item. Users add as many apps as they
+# need. An app's identity in Okta is the (label, signOnMode) PAIR: an app label
+# is NOT unique and NOT filterable, so deploy lists apps (narrowed by ?q=label),
+# matches EXACTLY on label AND signOnMode, and PUTs (update) or POSTs (create) —
+# there is NO upsert. A multi-match FAILS loudly (ambiguous), and a label match
+# with a different signOnMode FAILS (name + signOnMode are immutable — an app
+# cannot be converted).
+#
+# ONE item = ONE app of signOnMode AUTO_LOGIN | BASIC_AUTH | BOOKMARK |
+# BROWSER_PLUGIN | OPENID_CONNECT | SAML_2_0 | SECURE_PASSWORD_STORE |
+# WS_FEDERATION (SAML_1_1 is not creatable). The type-specific settings /
+# credentials / visibility / accessibility / profile shapes differ wildly per
+# sign-on mode, so they are authored as JSON blobs and sent on the create/update
+# body.
+#
+# SENSITIVE — WRITE-ONLY secrets live inside credentialsJson
+# (credentials.oauthClient.client_secret, credentials.signing.*, any nested
+# x5c). Okta stores them write-only and NEVER returns them, so they are written
+# on deploy but are NEVER drift-checked. The OIDC client_id / client_secret are
+# captured from the create response into deploy artifacts (returned only once).
+#
+# PROTECTED Okta system apps (saasure / okta_admin_console / okta_enduser /
+# okta_browser_plugin, and any name starting with okta_) are never created,
+# updated or deleted.
+#
+# Field keys must match what config-types/apps/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-apps"
+name: "Application Configuration"
+toolType: "okta-identity"
+entityType: "apps"
+description: "Define Okta application instances (OIDC / SAML 2.0 / bookmark / SWA …) as code through the Okta Apps API. An app is matched by its (label, signOnMode) identity — labels are not unique, so an ambiguous match fails loudly. name and signOnMode are immutable; write-only credentials secrets are never drift-checked; an active app is deactivated before deletion; protected Okta system apps are never touched."
+
+item:
+  label: "Application"
+  identityField: "label"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "App"
+      icon: "grid"
+      description: "Label, integration name, sign-on mode, lifecycle status and access policy"
+      fields:
+        - key: "label"
+          label: "App Label"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+            message: "The user-facing application label, up to 100 characters. Half of the app's identity — deploy matches on (label, signOnMode)."
+          helpText: >
+            The user-facing application name shown in the Okta dashboard (max 100
+            chars). Combined with the sign-on mode it forms the app's logical
+            identity. NOTE: a label is NOT unique in Okta — if more than one live
+            app has this label and sign-on mode, deploy fails as ambiguous.
+
+        - key: "name"
+          label: "Integration Name"
+          fieldType: "text"
+          helpText: >
+            The Okta integration key (`name`). REQUIRED for some sign-on modes and
+            auto-assigned for others — set it to "oidc_client" for OPENID_CONNECT,
+            "bookmark" for BOOKMARK, "template_sps" for SECURE_PASSWORD_STORE.
+            OMIT it for custom SAML_2_0 / AUTO_LOGIN apps (Okta auto-assigns one).
+            IMMUTABLE: Okta ignores a changed name or sign-on mode on update.
+            Protected system app names (saasure, okta_admin_console, okta_enduser,
+            okta_browser_plugin, or any name starting with okta_) are rejected.
+
+        - key: "signOnMode"
+          label: "Sign-On Mode"
+          fieldType: "select"
+          required: true
+          defaultValue: "OPENID_CONNECT"
+          options:
+            - label: "OpenID Connect (OIDC)"
+              value: "OPENID_CONNECT"
+            - label: "SAML 2.0"
+              value: "SAML_2_0"
+            - label: "Automatic Sign-On / SWA (AUTO_LOGIN)"
+              value: "AUTO_LOGIN"
+            - label: "Secure Web Authentication — password store (SECURE_PASSWORD_STORE)"
+              value: "SECURE_PASSWORD_STORE"
+            - label: "Basic Authentication (BASIC_AUTH)"
+              value: "BASIC_AUTH"
+            - label: "Bookmark (BOOKMARK)"
+              value: "BOOKMARK"
+            - label: "Browser Plugin (BROWSER_PLUGIN)"
+              value: "BROWSER_PLUGIN"
+            - label: "WS-Federation (WS_FEDERATION)"
+              value: "WS_FEDERATION"
+          helpText: >
+            How the app authenticates users. Discriminates a very different
+            settings / credentials schema per type, so those are authored as JSON
+            blobs below. The other half of the app's identity. IMMUTABLE — an app
+            cannot be converted to another sign-on mode (a label match with a
+            different mode fails the deploy). SAML_1_1 is intentionally omitted:
+            Okta does not allow creating a SAML 1.1 app instance.
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          defaultValue: "ACTIVE"
+          options:
+            - label: "Active"
+              value: "ACTIVE"
+            - label: "Inactive"
+              value: "INACTIVE"
+          helpText: >
+            Desired lifecycle state. Applied via Okta's app activate/deactivate
+            lifecycle endpoints, not the create/update body. Note: an ACTIVE app
+            cannot be deleted — a rollback deactivates a created app before
+            deleting it.
+
+        - key: "accessPolicyId"
+          label: "Access Policy ID"
+          fieldType: "text"
+          helpText: >
+            Optional id of an ACCESS_POLICY (owned by the Policies config type) to
+            associate with this app after create/update, via
+            PUT /apps/{appId}/policies/{accessPolicyId}. Requires Okta Identity
+            Engine (OIE); this endpoint is LIMITED GA. Leave blank to keep the
+            app's current policy.
+
+    - name: "Settings"
+      icon: "sliders"
+      description: "The type-specific settings object, as JSON"
+      fields:
+        - key: "settingsJson"
+          label: "Settings (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            JSON object sent as `settings` on the API body — its shape depends on
+            the sign-on mode. OIDC example:
+            {"oauthClient":{"redirect_uris":["https://app/cb"],"response_types":["code"],"grant_types":["authorization_code"],"application_type":"web"}}.
+            Okta injects many server defaults on create (especially for OIDC), so
+            drift is compared as a SUBSET — your authored keys must be present in
+            the live object, extra Okta defaults are ignored.
+
+    - name: "Credentials"
+      icon: "key"
+      description: "The credentials object, as JSON — contains write-only secrets"
+      fields:
+        - key: "credentialsJson"
+          label: "Credentials (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            JSON object sent as `credentials` on the API body, e.g.
+            {"oauthClient":{"token_endpoint_auth_method":"client_secret_basic"},"userNameTemplate":{"type":"BUILT_IN","template":"idpuser.email"}}.
+            WRITE-ONLY: credentials.oauthClient.client_secret, everything under
+            credentials.signing, and any nested x5c cert/key material are stored
+            write-only by Okta and NEVER returned on a GET — they are written on
+            deploy but are NOT drift-checked. For a newly created OIDC app the
+            client_id / client_secret are captured into deploy artifacts (Okta
+            returns the secret only once, on create).
+
+    - name: "Advanced"
+      icon: "settings"
+      description: "Visibility, accessibility and profile objects, as JSON (optional)"
+      fields:
+        - key: "visibilityJson"
+          label: "Visibility (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON object sent as `visibility`, e.g.
+            {"autoSubmitToolbar":false,"hide":{"iOS":false,"web":false}}. Compared
+            as a subset during drift detection.
+
+        - key: "accessibilityJson"
+          label: "Accessibility (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON object sent as `accessibility`, e.g.
+            {"selfService":false,"errorRedirectUrl":null,"loginRedirectUrl":null}.
+            Compared as a subset during drift detection.
+
+        - key: "profileJson"
+          label: "Profile (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON object sent as `profile` — free-form app profile
+            attributes, e.g. {"costCenter":"eng","businessUnit":"platform"}.
+            Compared as a subset during drift detection.

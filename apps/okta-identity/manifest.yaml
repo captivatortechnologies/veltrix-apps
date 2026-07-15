@@ -70,6 +70,12 @@ permissions:
     - resource: auth-server-policies
       actions: [read, write, delete]
       description: Manage Okta authorization-server policies
+    - resource: apps
+      actions: [read, write, delete]
+      description: Manage Okta application integrations
+    - resource: app-group-assignments
+      actions: [read, write, delete]
+      description: Manage Okta application group assignments
 
 pipeline:
   configurationTypes:
@@ -307,6 +313,41 @@ pipeline:
         healthCheck: config-types/auth-server-policies/healthCheck
         driftDetect: config-types/auth-server-policies/driftDetect
         getStatus: config-types/auth-server-policies/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+
+    - id: apps
+      name: Applications
+      description: Application integrations (OIDC/SAML/SWA/bookmark); secrets write-only; system apps protected
+      canvasTemplate: config-types/apps/canvas.yaml
+      defaultConfig: config-types/apps/defaults.yaml
+      handlers:
+        validate: config-types/apps/validate
+        deploy: config-types/apps/deploy
+        rollback: config-types/apps/rollback
+        healthCheck: config-types/apps/healthCheck
+        driftDetect: config-types/apps/driftDetect
+        getStatus: config-types/apps/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: app-group-assignments
+      name: App Group Assignments
+      description: Assign groups to applications (priority, profile overrides)
+      canvasTemplate: config-types/app-group-assignments/canvas.yaml
+      defaultConfig: config-types/app-group-assignments/defaults.yaml
+      handlers:
+        validate: config-types/app-group-assignments/validate
+        deploy: config-types/app-group-assignments/deploy
+        rollback: config-types/app-group-assignments/rollback
+        healthCheck: config-types/app-group-assignments/healthCheck
+        driftDetect: config-types/app-group-assignments/driftDetect
+        getStatus: config-types/app-group-assignments/getStatus
       targets:
         componentTypes: [okta-org]
         requiresCredential: true

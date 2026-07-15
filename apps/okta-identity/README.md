@@ -37,6 +37,8 @@ or `acme.oktapreview.com`) and attach the credential.
 | Auth Server Scopes | OAuth scopes on an authorization server | `.../scopes` |
 | Auth Server Claims | OAuth claims on an authorization server | `.../claims` |
 | Auth Server Policies | OAuth access policies + rules | `.../policies` |
+| Applications | App integrations (OIDC/SAML/SWA/bookmark) — secrets write-only | `/apps` |
+| App Group Assignments | Assign groups to applications | `/apps/{id}/groups` |
 
 ## Okta-specific behaviour the app handles
 
