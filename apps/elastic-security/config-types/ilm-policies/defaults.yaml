@@ -1,0 +1,6 @@
+# Defaults for a new ILM policy item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (name, policyJson), since an ILM policy's presentational
+# groups ("Policy", "Definition") share one flat item record.

@@ -8,7 +8,7 @@
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import type { AppRouteContext, AppEventPublisher } from '@veltrixsecops/app-sdk'
-import { buildByolResourcePlan, DEPLOYMENT_STEPS } from '@veltrixsecops/app-sdk'
+import { buildByolResourcePlan, DEPLOYMENT_STEPS } from '../lib/byolTopology'
 import * as store from '../lib/db'
 import { collectForDate } from '../lib/usage/collector'
 import {

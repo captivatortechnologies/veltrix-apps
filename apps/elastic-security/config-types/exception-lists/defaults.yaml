@@ -1,0 +1,8 @@
+# Defaults for a new exception-list item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank (the canvas `defaultValue`s on the type/namespace
+# selects supply "detection" / "single"). Any values here would be a FLAT map
+# keyed by the canvas field keys (list_id, name, description, type,
+# namespaceType, itemsJson), since a list's presentational groups — "List" and
+# "Items" — share one flat item record.

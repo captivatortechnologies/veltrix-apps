@@ -118,17 +118,11 @@ export type {
 export { APP_LAYOUT, HANDLER_NAMES, conventionalPaths } from './structure'
 export type { HandlerName } from './structure'
 
-// BYOL resource-plan topology (React-free; shared by the app server for seeding
-// and the app client for the derived plan). See ./byol/topology.
-export { buildByolResourcePlan, TIER_LABELS, TIER_ORDER, DEPLOYMENT_STEPS } from './byol/topology'
-export type {
-  ByolResourceTier,
-  ByolResourceStatus,
-  ByolResourceKind,
-  ByolResourcePlanItem,
-  ByolResourcePlanItemWithOrder,
-  ByolTopologyInput,
-} from './byol/topology'
+// NOTE: BYOL topology is intentionally NOT exported from this root entry. It is
+// app-specific (Splunk roles) and an app must not depend on a root SDK export
+// that may be absent in the @veltrixsecops/app-sdk version the platform packages
+// it against. The client `byol` module keeps its own copy; the app server owns
+// its own (apps/<id>/lib/byolTopology.ts).
 
 // Hooks types
 export type { AppContextValue, PipelineStatusData } from './hooks'

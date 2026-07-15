@@ -1,0 +1,187 @@
+id: elastic-security
+name: Elastic Security
+version: "1.0.0"
+vendor: Veltrix
+description: >
+  Manage Elastic Security configuration as code through the Kibana and
+  Elasticsearch APIs. Covers detection rules, exception lists, index lifecycle
+  (ILM) policies, role mappings and Kibana spaces, with validation, drift
+  detection and rollback handled by the Security-as-Code pipeline.
+category: SIEM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/elastic-security
+icon: "🔎"
+
+platform:
+  minVersion: "1.0.0"
+
+# Elastic brand: the Elastic blue with a warm yellow accent.
+branding:
+  primaryColor: "#0B64DD"
+  accentColor: "#F9B110"
+  logo: ./assets/logo.svg
+  logoDark: ./assets/logo-dark.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: detection-rules
+      actions: [read, write, delete]
+      description: Manage Elastic Security detection rules (Kibana Detections API)
+    - resource: exception-lists
+      actions: [read, write, delete]
+      description: Manage Elastic Security exception lists and their items
+    - resource: ilm-policies
+      actions: [read, write, delete]
+      description: Manage Elasticsearch index lifecycle (ILM) policies
+    - resource: role-mappings
+      actions: [read, write, delete]
+      description: Manage Elasticsearch role mappings
+    - resource: spaces
+      actions: [read, write, delete]
+      description: Manage Kibana spaces
+
+pipeline:
+  configurationTypes:
+    - id: detection-rules
+      name: Detection Rules
+      description: Kibana Security detection rules (query/EQL/threshold/ML...), keyed by rule_id
+      canvasTemplate: config-types/detection-rules/canvas.yaml
+      defaultConfig: config-types/detection-rules/defaults.yaml
+      handlers:
+        validate: config-types/detection-rules/validate
+        deploy: config-types/detection-rules/deploy
+        rollback: config-types/detection-rules/rollback
+        healthCheck: config-types/detection-rules/healthCheck
+        driftDetect: config-types/detection-rules/driftDetect
+        getStatus: config-types/detection-rules/getStatus
+      targets:
+        componentTypes: [elastic-deployment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: exception-lists
+      name: Exception Lists
+      description: Kibana exception lists and their items (keyed by list_id / item_id)
+      canvasTemplate: config-types/exception-lists/canvas.yaml
+      defaultConfig: config-types/exception-lists/defaults.yaml
+      handlers:
+        validate: config-types/exception-lists/validate
+        deploy: config-types/exception-lists/deploy
+        rollback: config-types/exception-lists/rollback
+        healthCheck: config-types/exception-lists/healthCheck
+        driftDetect: config-types/exception-lists/driftDetect
+        getStatus: config-types/exception-lists/getStatus
+      targets:
+        componentTypes: [elastic-deployment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ilm-policies
+      name: ILM Policies
+      description: Elasticsearch index lifecycle policies (hot/warm/cold/delete phases); managed policies protected
+      canvasTemplate: config-types/ilm-policies/canvas.yaml
+      defaultConfig: config-types/ilm-policies/defaults.yaml
+      handlers:
+        validate: config-types/ilm-policies/validate
+        deploy: config-types/ilm-policies/deploy
+        rollback: config-types/ilm-policies/rollback
+        healthCheck: config-types/ilm-policies/healthCheck
+        driftDetect: config-types/ilm-policies/driftDetect
+        getStatus: config-types/ilm-policies/getStatus
+      targets:
+        componentTypes: [elastic-deployment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: role-mappings
+      name: Role Mappings
+      description: Elasticsearch role mappings (roles + a rules DSL); reserved mappings protected
+      canvasTemplate: config-types/role-mappings/canvas.yaml
+      defaultConfig: config-types/role-mappings/defaults.yaml
+      handlers:
+        validate: config-types/role-mappings/validate
+        deploy: config-types/role-mappings/deploy
+        rollback: config-types/role-mappings/rollback
+        healthCheck: config-types/role-mappings/healthCheck
+        driftDetect: config-types/role-mappings/driftDetect
+        getStatus: config-types/role-mappings/getStatus
+      targets:
+        componentTypes: [elastic-deployment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: spaces
+      name: Spaces
+      description: Kibana spaces (the default space is protected)
+      canvasTemplate: config-types/spaces/canvas.yaml
+      defaultConfig: config-types/spaces/defaults.yaml
+      handlers:
+        validate: config-types/spaces/validate
+        deploy: config-types/spaces/deploy
+        rollback: config-types/spaces/rollback
+        healthCheck: config-types/spaces/healthCheck
+        driftDetect: config-types/spaces/driftDetect
+        getStatus: config-types/spaces/getStatus
+      targets:
+        componentTypes: [elastic-deployment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/elastic-security
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+settings:
+  - key: elasticsearch_url
+    type: string
+    label: Elasticsearch URL
+    description: >
+      The Elasticsearch base URL (e.g. https://<deployment>.es.<region>.cloud.es.io:9243).
+      Required for ILM policies and role mappings, which are Elasticsearch endpoints;
+      detection rules / exception lists / spaces use the Kibana component hostname.
+    default: ""
+    required: false
+  - key: space
+    type: string
+    label: Kibana Space
+    description: >
+      Optional Kibana space id to scope space-aware requests to (detection rules,
+      exception lists). Leave blank for the default space.
+    default: ""
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Kibana / Elasticsearch API calls.
+    default: 30
+    required: false

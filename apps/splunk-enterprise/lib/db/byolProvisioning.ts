@@ -10,7 +10,7 @@
 // =============================================================================
 
 import type { PlatformDatabaseClient } from '@veltrixsecops/app-sdk'
-import type { ByolResourcePlanItemWithOrder } from '@veltrixsecops/app-sdk'
+import type { ByolResourcePlanItemWithOrder } from '../byolTopology'
 import type { Row } from './mappers'
 
 // --- Resource statuses ------------------------------------------------------

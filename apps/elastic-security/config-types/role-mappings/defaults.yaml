@@ -1,0 +1,7 @@
+# Defaults for a new role mapping item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (name, enabled, roles, rulesJson, metadataJson), since a role
+# mapping's presentational groups ("Mapping", "Roles", "Rules", "Metadata") share
+# one flat item record.

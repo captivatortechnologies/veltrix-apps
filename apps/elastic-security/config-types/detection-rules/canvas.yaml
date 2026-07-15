@@ -1,0 +1,89 @@
+# =============================================================================
+# Canvas Template — Elastic Security Detection Rules
+#
+# Declares ONE detection rule — the item. Users add as many rules as they need.
+# A detection rule's logical identity is its `rule_id` (a user-defined stable
+# string); config-types/detection-rules/validate.ts enforces rule_id uniqueness
+# across the canvas.
+#
+# The rule schema is huge and per-type (query / eql / esql / threshold / ml /
+# threat_match / new_terms ...), so the modelled fields are just the identity and
+# lifecycle bits (rule_id, name, enabled) and the FULL rule body is carried as a
+# freeform JSON blob (`ruleJson`). buildRuleBody merges ruleJson and then FORCES
+# rule_id / name / enabled from the modelled fields so they always win.
+#
+# PREBUILT RULES ARE PROTECTED: an Elastic-shipped rule (immutable=true or
+# rule_source.type="external") is managed by Elastic and MUST NOT be modified,
+# replaced or deleted. validate rejects authoring such a marker, and deploy fails
+# loudly if a live rule matching a rule_id turns out to be prebuilt.
+#
+# Field keys must match what config-types/detection-rules/validate.ts checks.
+# =============================================================================
+
+id: "elastic-security-detection-rules"
+name: "Detection Rule Configuration"
+toolType: "elastic-security"
+entityType: "detection-rules"
+description: "Define Elastic Security detection rules (query/EQL/ES|QL/threshold/ML/threat-match/new-terms) as code through the Kibana Detections API. Keyed by rule_id; Elastic prebuilt rules are protected and never modified."
+
+item:
+  label: "Detection Rule"
+  identityField: "rule_id"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Rule"
+      icon: "shield"
+      description: "Identity and lifecycle"
+      fields:
+        - key: "rule_id"
+          label: "Rule ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            message: "A unique, stable rule_id — this is the logical identity Kibana matches on across deploys."
+          helpText: >
+            The rule's stable, user-defined rule_id (NOT the internal object id).
+            This is the identity used to find and update the rule on each deploy,
+            so keep it stable — e.g. "com.acme.suspicious-powershell". A GUID also
+            works. Two rules may not share a rule_id in one canvas.
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 512
+            message: "The rule's display name, up to 512 characters."
+          helpText: "The rule's display name shown in the Security app. Overrides any name inside the Definition JSON."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: >
+            On: the rule runs on its schedule. Off: the rule is installed but not
+            running. Overrides any enabled value inside the Definition JSON.
+
+    - name: "Definition"
+      icon: "code"
+      description: "The full rule body as JSON"
+      fields:
+        - key: "ruleJson"
+          label: "Rule Definition (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The rest of the rule body as a JSON object — everything except
+            rule_id / name / enabled (those come from the fields above and always
+            win). MUST include a "type" (query, eql, esql, threshold, machine_learning,
+            threat_match, new_terms, saved_query) and that type's query field, plus
+            the usual risk_score, severity, description, index, language, from, interval …
+            e.g. {"type":"query","language":"kuery","query":"event.code:4688",
+            "index":["logs-*"],"risk_score":47,"severity":"medium",
+            "description":"Suspicious process creation"}.
+            Do NOT set "version" (custom-rule version is create-only and stays 1),
+            and do NOT set "immutable" or "rule_source" — those mark Elastic
+            PREBUILT rules, which this app refuses to author or modify.

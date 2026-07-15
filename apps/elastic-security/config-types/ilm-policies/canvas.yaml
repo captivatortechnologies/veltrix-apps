@@ -1,0 +1,64 @@
+# =============================================================================
+# Canvas Template — Elasticsearch ILM Policies
+#
+# Declares ONE index lifecycle (ILM) policy — the item. Users add as many
+# policies as they need. An ILM policy's logical identity is its NAME, which is
+# carried in the request PATH (PUT /_ilm/policy/{name}); the same PUT both
+# creates and updates, so a deploy is a TRUE UPSERT keyed on the name.
+#
+# The policy body itself (its hot/warm/cold/frozen/delete phases and optional
+# _meta) is a large, deeply-nested object with no fixed field set, so it is a
+# single freeform JSON textarea rather than a modelled field per phase.
+#
+# Names beginning with `.` or `@` are the Elastic-managed convention and are
+# rejected by config-types/ilm-policies/validate.ts; deploy additionally refuses
+# any live policy carrying `_meta.managed: true`.
+#
+# Field keys must match what config-types/ilm-policies/validate.ts checks.
+# =============================================================================
+
+id: "elastic-security-ilm-policies"
+name: "ILM Policy Configuration"
+toolType: "elastic-security"
+entityType: "ilm-policies"
+description: "Define Elasticsearch index lifecycle (ILM) policies (hot/warm/cold/frozen/delete phases) as code through the Elasticsearch _ilm API. The policy name is the identity and PUT upserts; Elastic-managed policies are protected."
+
+item:
+  label: "ILM Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Policy"
+      icon: "clock"
+      description: "The policy's name — its identity in Elasticsearch"
+      fields:
+        - key: "name"
+          label: "Policy Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            pattern: "^[^.@].*$"
+            message: "The ILM policy name. Must not begin with '.' or '@' — those prefixes are reserved for Elastic-managed policies."
+          helpText: >
+            The ILM policy name (e.g. logs-30-days). This is the logical identity:
+            the same name is used to create, update (upsert), read and delete the
+            policy. Names starting with '.' or '@' are reserved for Elastic-managed
+            policies and are rejected.
+
+    - name: "Definition"
+      icon: "code"
+      description: "The policy phases and metadata as JSON"
+      fields:
+        - key: "policyJson"
+          label: "Policy (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The ILM policy OBJECT as JSON — the value of the "policy" key, i.e.
+            {"phases":{...}, "_meta":{...}?}. Deploy wraps it as {"policy": …}
+            before PUT /_ilm/policy/{name}. Example:
+            {"phases":{"hot":{"min_age":"0ms","actions":{"rollover":{"max_age":"30d","max_primary_shard_size":"50gb"}}},"delete":{"min_age":"90d","actions":{"delete":{}}}}}.
+            Do NOT set "_meta":{"managed":true} — managed policies are protected.

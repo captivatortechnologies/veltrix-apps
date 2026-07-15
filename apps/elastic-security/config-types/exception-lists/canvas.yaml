@@ -1,0 +1,105 @@
+# =============================================================================
+# Canvas Template — Elastic Security Exception Lists
+#
+# Declares ONE exception LIST — the item. Users add as many lists as they need.
+# A list's exception ITEMS are folded in as a JSON array field (itemsJson): one
+# canvas item = one exception list container plus every item that belongs to it.
+#
+# Identity is the list_id (the logical key we match live lists on); each folded
+# item is keyed by its item_id. config-types/exception-lists/validate.ts enforces
+# list_id uniqueness across the canvas and item_id uniqueness within a list.
+#
+# Field keys must match what config-types/exception-lists/validate.ts checks.
+# =============================================================================
+
+id: "elastic-security-exception-lists"
+name: "Exception List Configuration"
+toolType: "elastic-security"
+entityType: "exception-lists"
+description: "Define Elastic Security exception lists and their items (entries) as code through the Kibana Exceptions API. One list is deployed as a container plus its folded-in items, reconciled by item_id."
+
+item:
+  label: "Exception List"
+  identityField: "list_id"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "List"
+      icon: "list"
+      description: "The exception list container — identity, name and type"
+      fields:
+        - key: "list_id"
+          label: "List ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            message: "A unique, stable list identifier (the logical key). Kibana matches and updates the list on this value."
+          helpText: "The list's stable identifier, e.g. endpoint-host-exceptions. This is the identity used to find and update the list on each deploy — keep it stable."
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The exception list's display name, shown in the Kibana Security console."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          validation:
+            maxLength: 1000
+          helpText: "Optional description of what this exception list is for."
+
+        - key: "type"
+          label: "List Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "detection"
+          options:
+            - label: "Detection (rule exceptions)"
+              value: "detection"
+            - label: "Rule default (a rule's own default exceptions)"
+              value: "rule_default"
+            - label: "Endpoint (integration-managed)"
+              value: "endpoint"
+            - label: "Endpoint event filters (integration-managed)"
+              value: "endpoint_events"
+            - label: "Endpoint host isolation exceptions (integration-managed)"
+              value: "endpoint_host_isolation_exceptions"
+            - label: "Endpoint blocklist (integration-managed)"
+              value: "endpoint_blocklists"
+          helpText: >
+            The list type. Use "detection" for rule exception lists. The endpoint_*
+            types are normally created and managed by the Elastic Defend
+            integration — authoring them here is allowed but warned, and endpoint
+            artifacts require the "agnostic" namespace.
+
+        - key: "namespaceType"
+          label: "Namespace"
+          fieldType: "select"
+          required: true
+          defaultValue: "single"
+          options:
+            - label: "Single (scoped to one Kibana space)"
+              value: "single"
+            - label: "Agnostic (shared across all spaces)"
+              value: "agnostic"
+          helpText: "Whether the list lives in a single space (single) or is shared across every space (agnostic). Endpoint artifacts must be agnostic."
+
+    - name: "Items"
+      icon: "code"
+      description: "The exception items (entries) folded into this list"
+      fields:
+        - key: "itemsJson"
+          label: "Items (JSON array)"
+          fieldType: "textarea"
+          helpText: >
+            A JSON ARRAY of exception items, each an object with item_id (stable
+            key), name, and entries (the match conditions). Optional per-item
+            fields (description, tags, os_types, comments) pass through. Example:
+            [{"item_id":"block-svc","name":"Allow svc","entries":[{"field":"process.name","operator":"included","type":"match","value":"svc.exe"}]}].
+            Items are reconciled by item_id — POST new, PUT existing, and only
+            items THIS config previously created but no longer declares are deleted.

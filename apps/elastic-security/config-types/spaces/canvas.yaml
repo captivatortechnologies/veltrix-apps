@@ -1,0 +1,109 @@
+# =============================================================================
+# Canvas Template — Kibana Spaces
+#
+# Declares ONE space — the item. Users add as many spaces as they need.
+# Groups are PRESENTATIONAL ONLY: every field below belongs to the same flat
+# item record, which is what config-types/spaces/deploy.ts reads as
+# `section.fields` for a single space.
+#
+# A Kibana space's logical identity is its `id` — which is IMMUTABLE: it is both
+# the URL key (GET/PUT/DELETE /api/spaces/space/{id}) and the value used to match
+# a live space, so it can never change once a space is created. Renaming means
+# editing the display `name`, not the `id`. config-types/spaces/validate.ts
+# enforces id uniqueness across the canvas.
+#
+# PROTECTED: the built-in `default` space can be UPDATED in place but can never
+# be created or deleted through this configuration — see validate.ts / deploy.ts.
+#
+# Field keys must match what config-types/spaces/validate.ts checks.
+# =============================================================================
+
+id: "elastic-security-spaces"
+name: "Space Configuration"
+toolType: "elastic-security"
+entityType: "spaces"
+description: "Define Kibana spaces (id, name, disabled features, solution view, avatar) as code through the Kibana Spaces API. The default space is protected — it may be updated in place but never created or deleted."
+
+item:
+  label: "Space"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Space"
+      icon: "layout"
+      description: "Identity, name and solution view"
+      fields:
+        - key: "id"
+          label: "Space ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-z0-9][a-z0-9_-]*$"
+            maxLength: 1024
+            message: "Lowercase letters, digits, hyphens and underscores only; must begin with a letter or digit. The space id is IMMUTABLE — it is the URL key Kibana matches on and can never change once created."
+          helpText: "URL-friendly, immutable space identifier (maps to the space `id`), e.g. security-ops. Cannot be changed after creation — to rename a space edit its display Name instead. The built-in `default` space is protected: it can be updated here but never created or deleted."
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 1024
+          helpText: "Human-readable display name shown in the Kibana space picker, e.g. Security Operations."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description shown beneath the space name in the Kibana space picker."
+
+        - key: "solution"
+          label: "Solution View"
+          fieldType: "select"
+          defaultValue: ""
+          options:
+            - label: "Classic (all features)"
+              value: "classic"
+            - label: "Security"
+              value: "security"
+            - label: "Observability"
+              value: "oblt"
+            - label: "Elasticsearch (Search)"
+              value: "es"
+            - label: "Unset (leave to Kibana default)"
+              value: ""
+          helpText: >
+            The solution view that tailors this space's navigation (maps to the
+            space `solution`). "security" pins the Security experience, "oblt" the
+            Observability one, "es" the Elasticsearch/Search one, and "classic"
+            exposes every feature. Leave unset to accept the Kibana default.
+
+    - name: "Appearance"
+      icon: "palette"
+      description: "Disabled features and avatar"
+      fields:
+        - key: "disabledFeatures"
+          label: "Disabled Features"
+          fieldType: "tags"
+          helpText: >
+            Kibana feature ids to HIDE in this space (maps to disabledFeatures),
+            e.g. ml, apm, siem, dev_tools. Leave empty to enable every feature the
+            license permits. Clearing this list re-enables all features on the
+            next deploy.
+
+        - key: "initials"
+          label: "Avatar Initials"
+          fieldType: "text"
+          validation:
+            maxLength: 2
+            message: "Up to 2 characters — Kibana renders these as the space avatar."
+          helpText: "Optional 1-2 character initials for the space avatar (maps to `initials`). Defaults to the first two letters of the name when blank."
+
+        - key: "color"
+          label: "Avatar Color"
+          fieldType: "text"
+          validation:
+            pattern: "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$"
+            message: "A hex color such as #0B64DD (6-digit) or #07C (3-digit)."
+          helpText: "Optional hex color for the space avatar background (maps to `color`), e.g. #0B64DD."

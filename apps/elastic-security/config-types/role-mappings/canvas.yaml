@@ -1,0 +1,101 @@
+# =============================================================================
+# Canvas Template — Elasticsearch Role Mappings
+#
+# Declares ONE role mapping — the item. Users add as many mappings as they need.
+# A role mapping's logical identity is its NAME, which is carried in the request
+# PATH (PUT /_security/role_mapping/{name}); the same PUT both creates and
+# updates, so a deploy is a TRUE UPSERT keyed on the name.
+#
+# A role mapping grants a set of ROLES to any user whose attributes satisfy a
+# RULES DSL (field / any / all / except). The roles are modelled as a `tags`
+# field; the rules DSL and the optional metadata are freeform JSON textareas
+# (the DSL is arbitrarily nested with no fixed field set).
+#
+# PROTECTED — RESERVED mappings: a live mapping carrying metadata._reserved=true
+# is a reserved/system mapping owned by Elasticsearch; deploy FAILS rather than
+# modify it. Author metadata keys starting with "_" are reserved and warned.
+#
+# NOTE: this manages NATIVE (API-defined) mappings only. Mappings defined in a
+# node's role_mapping.yml file are file-realm managed and cannot be read or
+# updated through this API — edit those on the Elasticsearch nodes.
+#
+# Field keys must match what config-types/role-mappings/validate.ts checks.
+# =============================================================================
+
+id: "elastic-security-role-mappings"
+name: "Role Mapping Configuration"
+toolType: "elastic-security"
+entityType: "role-mappings"
+description: "Define Elasticsearch role mappings (roles granted to users matching a rules DSL) as code through the Elasticsearch _security API. The mapping name is the identity and PUT upserts; reserved/system mappings are protected."
+
+item:
+  label: "Role Mapping"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Mapping"
+      icon: "users"
+      description: "The mapping's name and whether it is active"
+      fields:
+        - key: "name"
+          label: "Mapping Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            message: "The role mapping name — up to 255 characters. This is the logical identity used to create, update (upsert), read and delete the mapping."
+          helpText: >
+            The role mapping name (e.g. sso-admins). This is the logical
+            identity: the same name is used to create, update (upsert), read and
+            delete the mapping. Reserved/system mappings (metadata._reserved=true)
+            are Elasticsearch-owned and cannot be modified.
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: >
+            On: the mapping is active and grants its roles to matching users.
+            Off: the mapping is retained but grants nothing.
+
+    - name: "Roles"
+      icon: "shield"
+      description: "The roles granted when the rules match"
+      fields:
+        - key: "roles"
+          label: "Roles"
+          fieldType: "tags"
+          required: true
+          helpText: >
+            The role name(s) granted to any user whose attributes satisfy the
+            Rules DSL below — e.g. superuser, kibana_admin. At least one role is
+            required. (A mapping grants exactly one of roles or role_templates;
+            this app models the static roles list.)
+
+    - name: "Rules"
+      icon: "filter"
+      description: "The rules DSL that decides which users match"
+      fields:
+        - key: "rulesJson"
+          label: "Rules (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The rules DSL as a JSON object. A rule is one of: {"field":{"<attr>":"<value>"}}
+            (a single predicate on username / dn / groups / realm.name / metadata.*),
+            {"any":[…]} / {"all":[…]} (combine sub-rules), or {"except":{…}} (negate).
+            Example: {"all":[{"field":{"realm.name":"saml1"}},{"any":[{"field":{"groups":"admins"}},{"field":{"username":"break-glass"}}]}]}.
+
+    - name: "Metadata"
+      icon: "tag"
+      description: "Optional arbitrary metadata attached to the mapping"
+      fields:
+        - key: "metadataJson"
+          label: "Metadata (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional metadata as a JSON object, e.g. {"team":"secops","source":"veltrix"}.
+            Leave blank for none. Keys beginning with "_" are reserved for
+            Elasticsearch (e.g. _reserved) and are ignored / rejected on write.

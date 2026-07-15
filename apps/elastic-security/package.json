@@ -1,0 +1,16 @@
+{
+  "name": "veltrix-app-elastic-security",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Veltrix app: manage Elastic Security configuration as code (detection rules, exception lists, ILM policies, role mappings, spaces) via the Kibana + Elasticsearch APIs",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.0.0",
+    "@veltrixsecops/app-sdk": "^3.1.0",
+    "fastify": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}
