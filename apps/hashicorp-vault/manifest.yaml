@@ -1,6 +1,6 @@
 id: hashicorp-vault
 name: HashiCorp Vault
-version: "1.2.0"
+version: "1.2.1"
 vendor: Veltrix
 description: >
   Manage HashiCorp Vault configuration as code through the Vault HTTP API.
@@ -276,6 +276,11 @@ client:
       component: SetupGuidePage
       label: Setup Guide
       icon: book
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
       nav: sidebar
 
 hooks:

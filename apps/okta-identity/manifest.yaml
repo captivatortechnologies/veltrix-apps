@@ -1,6 +1,6 @@
 id: okta-identity
 name: Okta
-version: "1.3.0"
+version: "1.3.1"
 vendor: Veltrix
 description: >
   Manage Okta configuration as code through the Okta Management API. Covers
@@ -377,6 +377,11 @@ client:
       component: SetupGuidePage
       label: Setup Guide
       icon: book
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
       nav: sidebar
 
 hooks:

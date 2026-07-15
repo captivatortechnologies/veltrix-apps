@@ -1,6 +1,6 @@
 id: elastic-security
 name: Elastic Security
-version: "1.1.0"
+version: "1.1.1"
 vendor: Veltrix
 description: >
   Manage Elastic Security configuration as code through the Kibana and
@@ -155,6 +155,11 @@ client:
       component: SetupGuidePage
       label: Setup Guide
       icon: book
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
       nav: sidebar
 
 hooks:
