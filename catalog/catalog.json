@@ -1,8 +1,26 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-15T19:53:16.607Z",
+  "generatedAt": "2026-07-15T22:58:59.575Z",
   "apps": [
+    {
+      "appId": "cloudflare",
+      "name": "Cloudflare",
+      "version": "1.0.0",
+      "vendor": "Veltrix",
+      "description": "Manage Cloudflare configuration as code through the Cloudflare API (v4). Covers DNS, the WAF/firewall Rulesets engine (custom rules, rate limiting, redirects, transforms and managed-ruleset overrides), zone settings, account Lists, and Zero Trust (Access applications/policies/groups/service-tokens and Gateway rules/lists) — with validation, drift detection and rollback handled by the Security-as-Code pipeline. The component hostname is the zone domain; the app resolves zone and account ids automatically.",
+      "category": "NETWORK",
+      "icon": "☁️",
+      "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IkNsb3VkZmxhcmUiPgogIDxyZWN0IHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgcng9IjEwIiBmaWxsPSIjRjY4MjFGIi8+CiAgPHBhdGggZD0iTTMxIDMwaC0xNGE2IDYgMCAwIDEtLjQtMTEuOThBOCA4IDAgMCAxIDMxLjYgMjAuMiA1IDUgMCAwIDEgMzEgMzB6IiBmaWxsPSIjZmZmIi8+CiAgPHBhdGggZD0iTTMzIDI0LjVsMy41LTEgLjUgMy0zIDF6IiBmaWxsPSIjRkJBRDQxIi8+Cjwvc3ZnPgo=",
+      "logoDark": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IkNsb3VkZmxhcmUiPgogIDxyZWN0IHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgcng9IjEwIiBmaWxsPSIjMEEwRjFDIi8+CiAgPHBhdGggZD0iTTMxIDMwaC0xNGE2IDYgMCAwIDEtLjQtMTEuOThBOCA4IDAgMCAxIDMxLjYgMjAuMiA1IDUgMCAwIDEgMzEgMzB6IiBmaWxsPSIjRjY4MjFGIi8+CiAgPHBhdGggZD0iTTMzIDI0LjVsMy41LTEgLjUgMy0zIDF6IiBmaWxsPSIjRkJBRDQxIi8+Cjwvc3ZnPgo=",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cloudflare",
+      "available": true,
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cloudflare-v1.0.0/cloudflare.zip",
+      "sha256": "9a1492bc1ef4197ec1150cb5cf5d8d63a5a4232950432816b5468b52eec76f01",
+      "sizeBytes": 284027,
+      "publishedAt": "2026-07-15T22:58:59.536Z"
+    },
     {
       "appId": "crowdstrike-edr",
       "name": "CrowdStrike Falcon",
