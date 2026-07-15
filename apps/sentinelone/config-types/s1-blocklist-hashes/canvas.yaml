@@ -1,0 +1,55 @@
+# =============================================================================
+# Canvas Template — SentinelOne Blocklist Hashes
+#
+# Declares ONE blocklisted file hash — the item. Users add as many as they need.
+# Blocklist hashes are a scope-filtered collection (/restrictions, type
+# black_hash); SentinelOne assigns a server id, so identity for reconciliation is
+# the SHA1 (stored as the restriction's `value`) + OS at the configured scope.
+# Restrictions have no update operation — deploy is ADD/REMOVE only. Field keys
+# must match config-types/s1-blocklist-hashes/validate.ts.
+# =============================================================================
+
+id: "sentinelone-s1-blocklist-hashes"
+name: "SentinelOne Blocklist Hash Configuration"
+toolType: "sentinelone"
+entityType: "s1-blocklist-hashes"
+description: "Blocklist file hashes as code through the Management API (/restrictions, type black_hash). Reconciled by SHA1 + OS at the configured scope; additive (add missing, never touch what you didn't create)."
+
+item:
+  label: "Blocklist Hash"
+  identityField: "sha1"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Hash"
+      icon: "ban"
+      description: "The file hash to block and the OS it applies to"
+      fields:
+        - key: "sha1"
+          label: "SHA1"
+          fieldType: "text"
+          required: true
+          helpText: "The file's SHA1 hash (40-character hex). This is the block's identity in SentinelOne."
+
+        - key: "sha256"
+          label: "SHA256"
+          fieldType: "text"
+          helpText: "Optional SHA256 hash (64-character hex) recorded alongside the block."
+
+        - key: "os_type"
+          label: "OS"
+          fieldType: "select"
+          required: true
+          defaultValue: "windows"
+          options:
+            - { label: "Windows", value: "windows" }
+            - { label: "Windows (legacy)", value: "windows_legacy" }
+            - { label: "Linux", value: "linux" }
+            - { label: "macOS", value: "macos" }
+          helpText: "The OS the block applies to."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description shown in the console."

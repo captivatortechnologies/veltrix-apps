@@ -1,0 +1,83 @@
+# =============================================================================
+# Canvas Template — SentinelOne Exclusions
+#
+# Declares ONE exclusion — the item. Users add as many as they need. Exclusions
+# are a scope-filtered collection (/exclusions); SentinelOne assigns a server id,
+# so identity for reconciliation is the natural key (type, value, osType) at the
+# configured scope. Field keys must match config-types/s1-exclusions/validate.ts.
+# =============================================================================
+
+id: "sentinelone-s1-exclusions"
+name: "SentinelOne Exclusion Configuration"
+toolType: "sentinelone"
+entityType: "s1-exclusions"
+description: "Define SentinelOne exclusions as code through the Management API (/exclusions). Reconciled by type + value + OS at the configured scope."
+
+item:
+  label: "Exclusion"
+  identityField: "value"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Exclusion"
+      icon: "shield-off"
+      description: "Type, value and options"
+      fields:
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "path"
+          options:
+            - { label: "Path", value: "path" }
+            - { label: "File type", value: "file_type" }
+            - { label: "Hash (allow)", value: "white_hash" }
+            - { label: "Certificate", value: "certificate" }
+            - { label: "Browser", value: "browser" }
+          helpText: "The exclusion type."
+
+        - key: "value"
+          label: "Value"
+          fieldType: "text"
+          required: true
+          helpText: "The excluded value — a path, file extension, SHA1 hash, certificate signer, or browser."
+
+        - key: "os_type"
+          label: "OS"
+          fieldType: "select"
+          required: true
+          defaultValue: "windows"
+          options:
+            - { label: "Windows", value: "windows" }
+            - { label: "Windows (legacy)", value: "windows_legacy" }
+            - { label: "Linux", value: "linux" }
+            - { label: "macOS", value: "macos" }
+          helpText: "The OS the exclusion applies to."
+
+        - key: "mode"
+          label: "Mode (path)"
+          fieldType: "select"
+          defaultValue: "disable_all_monitors"
+          options:
+            - { label: "Suppress alerts", value: "suppress" }
+            - { label: "Disable in-process monitor", value: "disable_in_process_monitor" }
+            - { label: "Disable in-process monitor (deep)", value: "disable_in_process_monitor_deep" }
+            - { label: "Disable all monitors", value: "disable_all_monitors" }
+            - { label: "Disable all monitors (deep)", value: "disable_all_monitors_deep" }
+          helpText: "Only used for the 'path' type."
+
+        - key: "path_exclusion_type"
+          label: "Path scope (path)"
+          fieldType: "select"
+          defaultValue: "folder"
+          options:
+            - { label: "File", value: "file" }
+            - { label: "Folder", value: "folder" }
+            - { label: "Folder & subfolders", value: "subfolders" }
+          helpText: "Only used for the 'path' type."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description shown in the console."

@@ -1,0 +1,55 @@
+# =============================================================================
+# Canvas Template — SentinelOne Hash Allowlist
+#
+# Declares ONE allowlisted file hash — the item. Users add as many as they need.
+# Allowlisted hashes are a scope-filtered collection (/restrictions, type
+# white_hash); SentinelOne assigns a server id, so identity for reconciliation is
+# the natural key (SHA1 value, osType) at the configured scope. Restrictions have
+# no update — an entry is added or removed. Field keys must match
+# config-types/s1-hash-allowlist/validate.ts.
+# =============================================================================
+
+id: "sentinelone-s1-hash-allowlist"
+name: "SentinelOne Hash Allowlist Configuration"
+toolType: "sentinelone"
+entityType: "s1-hash-allowlist"
+description: "Allowlist file hashes (white_hash) through the SentinelOne Management API (/restrictions). Reconciled by SHA1 + OS at the configured scope; entries are added or removed, never updated."
+
+item:
+  label: "Allowlisted Hash"
+  identityField: "sha1"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Hash"
+      icon: "shield-check"
+      description: "The file hash to allow and the OS it applies to"
+      fields:
+        - key: "sha1"
+          label: "SHA1"
+          fieldType: "text"
+          required: true
+          helpText: "The file's SHA1 hash (40 hex characters). This is the identity of the restriction at the configured scope."
+
+        - key: "sha256"
+          label: "SHA256"
+          fieldType: "text"
+          helpText: "Optional SHA256 hash (64 hex characters) stored alongside the entry."
+
+        - key: "os_type"
+          label: "OS"
+          fieldType: "select"
+          required: true
+          defaultValue: "windows"
+          options:
+            - { label: "Windows", value: "windows" }
+            - { label: "Windows (legacy)", value: "windows_legacy" }
+            - { label: "Linux", value: "linux" }
+            - { label: "macOS", value: "macos" }
+          helpText: "The OS the allowlisted hash applies to."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description shown in the console."

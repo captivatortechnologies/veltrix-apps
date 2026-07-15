@@ -1,0 +1,104 @@
+# =============================================================================
+# Canvas Template — SentinelOne STAR Custom Detection Rules
+#
+# Declares ONE STAR rule — the item. Users add as many as they need. STAR rules
+# are a scope-filtered collection (/cloud-detection/rules) that SentinelOne
+# assigns a server id, so identity for reconciliation is the rule `name` at the
+# configured scope. Rules are created as Draft, then enabled when "Activate" is
+# set. Field keys must match config-types/s1-star-rules/validate.ts.
+# =============================================================================
+
+id: "sentinelone-s1-star-rules"
+name: "SentinelOne STAR Rule Configuration"
+toolType: "sentinelone"
+entityType: "s1-star-rules"
+description: "Define SentinelOne STAR custom detection rules as code through the Management API (/cloud-detection/rules). Reconciled by rule name at the configured scope; created as Draft then activated."
+
+item:
+  label: "STAR Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Rule"
+      icon: "radar"
+      description: "Name, query and detection behaviour"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The rule name — its logical identity at the configured scope."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description shown in the console."
+
+        - key: "s1ql"
+          label: "S1QL Query"
+          fieldType: "textarea"
+          required: true
+          helpText: "The S1QL (Deep Visibility 2.0) query that triggers the rule."
+
+        - key: "query_type"
+          label: "Query Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "events"
+          options:
+            - { label: "Events", value: "events" }
+            - { label: "Processes", value: "processes" }
+          helpText: "Whether the query matches events or processes."
+
+        - key: "severity"
+          label: "Severity"
+          fieldType: "select"
+          required: true
+          defaultValue: "Medium"
+          options:
+            - { label: "Low", value: "Low" }
+            - { label: "Medium", value: "Medium" }
+            - { label: "High", value: "High" }
+          helpText: "Severity assigned to detections from this rule."
+
+        - key: "activate"
+          label: "Activate"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Enable the rule after creating it (Active). Unchecked leaves it as a Draft."
+
+    - name: "Response"
+      icon: "shield-alert"
+      description: "Threat handling and expiration"
+      fields:
+        - key: "treat_as_threat"
+          label: "Treat As Threat"
+          fieldType: "select"
+          defaultValue: "none"
+          options:
+            - { label: "None", value: "none" }
+            - { label: "Malicious", value: "Malicious" }
+            - { label: "Suspicious", value: "Suspicious" }
+          helpText: "Raise matching detections as threats of the given verdict."
+
+        - key: "network_quarantine"
+          label: "Network Quarantine"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Network-quarantine the endpoint on a match."
+
+        - key: "expiration_mode"
+          label: "Expiration Mode"
+          fieldType: "select"
+          defaultValue: "Permanent"
+          options:
+            - { label: "Permanent", value: "Permanent" }
+            - { label: "Temporary", value: "Temporary" }
+          helpText: "Whether the rule runs indefinitely or expires."
+
+        - key: "expiration"
+          label: "Expiration (ISO-8601)"
+          fieldType: "text"
+          helpText: "Required when Expiration Mode is Temporary — an ISO-8601 timestamp, e.g. 2026-12-31T23:59:59Z."

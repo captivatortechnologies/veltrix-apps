@@ -1,0 +1,45 @@
+# =============================================================================
+# Canvas Template — SentinelOne Groups
+#
+# Declares ONE group — the item. Users add as many as they need. Groups are a
+# SITE-scoped collection (/groups); SentinelOne assigns a server id, so identity
+# for reconciliation is the group NAME within the configured site. The app must
+# run at the "site" scope (set Scope = site). Field keys must match
+# config-types/s1-groups/validate.ts.
+# =============================================================================
+
+id: "sentinelone-s1-groups"
+name: "SentinelOne Group Configuration"
+toolType: "sentinelone"
+entityType: "s1-groups"
+description: "Define SentinelOne endpoint groups as code through the Management API (/groups). Reconciled by group name within the configured site; requires the \"site\" scope."
+
+item:
+  label: "Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Group"
+      icon: "users"
+      description: "Name, description and policy inheritance"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: "The group name — its logical identity within the site. The protected \"Default Group\" cannot be managed here."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the SentinelOne console."
+
+        - key: "inherits"
+          label: "Inherit site policy"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "When enabled, the group inherits its parent site's policy instead of defining its own."

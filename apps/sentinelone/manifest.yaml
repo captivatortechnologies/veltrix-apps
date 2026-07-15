@@ -1,0 +1,216 @@
+id: sentinelone
+name: SentinelOne
+version: "1.0.0"
+vendor: Veltrix
+description: >
+  Manage SentinelOne endpoint security configuration as code through the
+  SentinelOne Management API (v2.1). Covers exclusions, blocklist and allowlist
+  hashes, STAR custom detection rules, the per-scope agent policy, and agent
+  groups — with validation, drift detection and rollback handled by the
+  Security-as-Code pipeline. Objects are scoped across the Account/Site/Group
+  hierarchy via the Scope + Scope ID settings.
+category: EDR
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/sentinelone
+icon: "🛡️"
+
+platform:
+  minVersion: "1.0.0"
+
+# SentinelOne brand: the SentinelOne violet with a lighter purple accent.
+branding:
+  primaryColor: "#5C0FBD"
+  accentColor: "#8E44EC"
+  logo: ./assets/logo.svg
+  logoDark: ./assets/logo-dark.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: s1-exclusions
+      actions: [read, write, delete]
+      description: Manage SentinelOne exclusions
+    - resource: s1-blocklist-hashes
+      actions: [read, write, delete]
+      description: Manage SentinelOne blocklist hashes
+    - resource: s1-hash-allowlist
+      actions: [read, write, delete]
+      description: Manage SentinelOne hash allowlist
+    - resource: s1-star-rules
+      actions: [read, write, delete]
+      description: Manage SentinelOne STAR detection rules
+    - resource: s1-agent-policy
+      actions: [read, write, delete]
+      description: Manage SentinelOne agent policy
+    - resource: s1-groups
+      actions: [read, write, delete]
+      description: Manage SentinelOne groups
+
+pipeline:
+  configurationTypes:
+    - id: s1-exclusions
+      name: SentinelOne Exclusions
+      description: Exclusions (path / file_type / white_hash / certificate / browser) via /exclusions; natural-key upsert, scope-filtered
+      canvasTemplate: config-types/s1-exclusions/canvas.yaml
+      defaultConfig: config-types/s1-exclusions/defaults.yaml
+      handlers:
+        validate: config-types/s1-exclusions/validate
+        deploy: config-types/s1-exclusions/deploy
+        rollback: config-types/s1-exclusions/rollback
+        healthCheck: config-types/s1-exclusions/healthCheck
+        driftDetect: config-types/s1-exclusions/driftDetect
+        getStatus: config-types/s1-exclusions/getStatus
+      targets:
+        componentTypes: [sentinelone-console]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: s1-blocklist-hashes
+      name: SentinelOne Blocklist Hashes
+      description: Blocklist file hashes (black_hash) via /restrictions; keyed by hash + scope, add/remove
+      canvasTemplate: config-types/s1-blocklist-hashes/canvas.yaml
+      defaultConfig: config-types/s1-blocklist-hashes/defaults.yaml
+      handlers:
+        validate: config-types/s1-blocklist-hashes/validate
+        deploy: config-types/s1-blocklist-hashes/deploy
+        rollback: config-types/s1-blocklist-hashes/rollback
+        healthCheck: config-types/s1-blocklist-hashes/healthCheck
+        driftDetect: config-types/s1-blocklist-hashes/driftDetect
+        getStatus: config-types/s1-blocklist-hashes/getStatus
+      targets:
+        componentTypes: [sentinelone-console]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: s1-hash-allowlist
+      name: SentinelOne Hash Allowlist
+      description: Allowlisted file hashes (white_hash) via /restrictions; keyed by hash + scope, add/remove
+      canvasTemplate: config-types/s1-hash-allowlist/canvas.yaml
+      defaultConfig: config-types/s1-hash-allowlist/defaults.yaml
+      handlers:
+        validate: config-types/s1-hash-allowlist/validate
+        deploy: config-types/s1-hash-allowlist/deploy
+        rollback: config-types/s1-hash-allowlist/rollback
+        healthCheck: config-types/s1-hash-allowlist/healthCheck
+        driftDetect: config-types/s1-hash-allowlist/driftDetect
+        getStatus: config-types/s1-hash-allowlist/getStatus
+      targets:
+        componentTypes: [sentinelone-console]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: s1-star-rules
+      name: SentinelOne STAR Rules
+      description: STAR custom detection rules (S1QL 2.0) via /cloud-detection/rules; created as Draft then enabled
+      canvasTemplate: config-types/s1-star-rules/canvas.yaml
+      defaultConfig: config-types/s1-star-rules/defaults.yaml
+      handlers:
+        validate: config-types/s1-star-rules/validate
+        deploy: config-types/s1-star-rules/deploy
+        rollback: config-types/s1-star-rules/rollback
+        healthCheck: config-types/s1-star-rules/healthCheck
+        driftDetect: config-types/s1-star-rules/driftDetect
+        getStatus: config-types/s1-star-rules/getStatus
+      targets:
+        componentTypes: [sentinelone-console]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: s1-agent-policy
+      name: SentinelOne Agent Policy
+      description: The per-scope agent policy (account/site/group) via /{scope}/{id}/policy; read-merge-PUT with revert-to-inherit
+      canvasTemplate: config-types/s1-agent-policy/canvas.yaml
+      defaultConfig: config-types/s1-agent-policy/defaults.yaml
+      handlers:
+        validate: config-types/s1-agent-policy/validate
+        deploy: config-types/s1-agent-policy/deploy
+        rollback: config-types/s1-agent-policy/rollback
+        healthCheck: config-types/s1-agent-policy/healthCheck
+        driftDetect: config-types/s1-agent-policy/driftDetect
+        getStatus: config-types/s1-agent-policy/getStatus
+      targets:
+        componentTypes: [sentinelone-console]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: s1-groups
+      name: SentinelOne Groups
+      description: Static / dynamic agent groups via /groups; name-keyed within a site
+      canvasTemplate: config-types/s1-groups/canvas.yaml
+      defaultConfig: config-types/s1-groups/defaults.yaml
+      handlers:
+        validate: config-types/s1-groups/validate
+        deploy: config-types/s1-groups/deploy
+        rollback: config-types/s1-groups/rollback
+        healthCheck: config-types/s1-groups/healthCheck
+        driftDetect: config-types/s1-groups/driftDetect
+        getStatus: config-types/s1-groups/getStatus
+      targets:
+        componentTypes: [sentinelone-console]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/sentinelone
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+settings:
+  - key: scope
+    type: string
+    label: Scope
+    description: >
+      The SentinelOne scope this configuration targets: global, account, site or
+      group. Collections are filtered to this scope; the agent policy is read and
+      written at this scope (account/site/group).
+    default: "account"
+    required: false
+  - key: scope_id
+    type: string
+    label: Scope ID
+    description: >
+      The account / site / group id matching the Scope setting (find it in the
+      console URL or via the Sites/Groups screens). Not needed for the "global"
+      scope.
+    default: ""
+    required: false
+  - key: api_version
+    type: string
+    label: API Version
+    description: SentinelOne Management API version segment (default 2.1).
+    default: "2.1"
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for SentinelOne API calls.
+    default: 30
+    required: false

@@ -1,0 +1,49 @@
+# =============================================================================
+# Canvas Template — SentinelOne Agent Policy
+#
+# The agent policy is a per-scope SINGLETON (account/site/group) — there is no
+# "no policy" state. Each item here is ONE policy setting to enforce (a dot-path
+# key + value); the deploy handler reads the current policy, merges these
+# overrides, and PUTs the merged object (read-modify-write). Field keys must
+# match config-types/s1-agent-policy/validate.ts.
+# =============================================================================
+
+id: "sentinelone-s1-agent-policy"
+name: "SentinelOne Agent Policy Configuration"
+toolType: "sentinelone"
+entityType: "s1-agent-policy"
+description: "Enforce SentinelOne agent policy settings as code at a scope (account/site/group) via /{scope}/{id}/policy. Each item is one setting; the handler read-merge-PUTs the scope's policy."
+
+item:
+  label: "Policy Setting"
+  identityField: "setting_key"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Policy Setting"
+      icon: "sliders"
+      description: "A single policy setting to enforce"
+      fields:
+        - key: "setting_key"
+          label: "Setting Key"
+          fieldType: "text"
+          required: true
+          helpText: "Dot-path into the policy, e.g. snapshotsOn or agentUi.agentUiOn."
+
+        - key: "value_type"
+          label: "Value Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "boolean"
+          options:
+            - { label: "Boolean", value: "boolean" }
+            - { label: "String", value: "string" }
+            - { label: "Number", value: "number" }
+          helpText: "How to interpret the value."
+
+        - key: "value"
+          label: "Value"
+          fieldType: "text"
+          required: true
+          helpText: "The value to enforce (true/false for boolean, a number, or a string)."
