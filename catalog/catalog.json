@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-15T02:42:45.198Z",
+  "generatedAt": "2026-07-15T03:19:30.135Z",
   "apps": [
     {
       "appId": "crowdstrike-edr",
@@ -20,6 +20,24 @@
       "sha256": "6fddcfbcafaf1d8053b51c2efeb439e83df050bbb68558393b9e985bbfdb9600",
       "sizeBytes": 119641,
       "publishedAt": "2026-07-12T18:23:13.895Z"
+    },
+    {
+      "appId": "hashicorp-vault",
+      "name": "HashiCorp Vault",
+      "version": "1.0.0",
+      "vendor": "Veltrix",
+      "description": "Manage HashiCorp Vault configuration as code through the Vault HTTP API. Covers ACL policies (HCL), auth methods, secret engine mounts, and audit devices, with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
+      "category": "IAM",
+      "icon": "🔐",
+      "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTAgMzIiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iVmF1bHQiPgogIDx0ZXh0IHg9IjAiIHk9IjIzIiBmb250LWZhbWlseT0iQXJpYWwsIEhlbHZldGljYSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzEyMTIxMiI+VmF1bHQ8L3RleHQ+CiAgPHJlY3QgeD0iNzAiIHk9IjYiIHdpZHRoPSIxNCIgaGVpZ2h0PSIxOCIgcng9IjIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGQ0YyNSIgc3Ryb2tlLXdpZHRoPSIyIi8+Cjwvc3ZnPgo=",
+      "logoDark": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTAgMzIiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iVmF1bHQiPgogIDx0ZXh0IHg9IjAiIHk9IjIzIiBmb250LWZhbWlseT0iQXJpYWwsIEhlbHZldGljYSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI0ZGRkZGRiI+VmF1bHQ8L3RleHQ+CiAgPHJlY3QgeD0iNzAiIHk9IjYiIHdpZHRoPSIxNCIgaGVpZ2h0PSIxOCIgcng9IjIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGQ0YyNSIgc3Ryb2tlLXdpZHRoPSIyIi8+Cjwvc3ZnPgo=",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/hashicorp-vault",
+      "available": true,
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/hashicorp-vault-v1.0.0/hashicorp-vault.zip",
+      "sha256": "efbf3a8f5f29832ebdaa450d5a510dc2ea3ca5b1a7c693468e84ae33abb9032b",
+      "sizeBytes": 114096,
+      "publishedAt": "2026-07-15T03:19:30.117Z"
     },
     {
       "appId": "splunk-cloud",
