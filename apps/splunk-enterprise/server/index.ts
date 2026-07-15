@@ -8,6 +8,7 @@
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import type { AppRouteContext, AppEventPublisher } from '@veltrixsecops/app-sdk'
+import { buildByolResourcePlan, DEPLOYMENT_STEPS } from '@veltrixsecops/app-sdk'
 import * as store from '../lib/db'
 import { collectForDate } from '../lib/usage/collector'
 import {
@@ -27,6 +28,17 @@ import { readVersion } from '../lib/versionInput'
 function customerOf(request: FastifyRequest): string | null {
   return (request as any).user?.customerId ?? null
 }
+
+function userOf(request: FastifyRequest): string | null {
+  return (request as any).user?.id ?? null
+}
+
+/** Ordered steps a destroy run advances through (mirror of the deploy steps). */
+const DESTROY_STEPS: Array<{ key: string; title: string; detail: string }> = [
+  { key: 'plan', title: 'Teardown planned', detail: 'Destroy requested; resources marked for decommission.' },
+  { key: 'drain', title: 'Draining & decommissioning', detail: 'Stopping services and removing compute, storage and network.' },
+  { key: 'done', title: 'Resources destroyed', detail: 'All resources for this environment have been removed.' },
+]
 
 /** Parse a usage window (defaults to the last 30 days). */
 function parseUsageWindow(query: unknown): { from: Date; to: Date } {
@@ -219,6 +231,97 @@ export default async function registerRoutes(
   registerLifecycle('start', 'running')
   registerLifecycle('stop', 'stopped')
   registerLifecycle('restart', 'running')
+
+  // --- BYOL end-to-end deployment (resource plan + run tracking) ---
+  //
+  // The app owns provisioning: `deploy` derives the full resource plan from the
+  // infrastructure's topology, persists it, opens a deployment run, flips the
+  // record to `provisioning`, and emits an event for the (external) provisioning
+  // workers. Workers report progress back through the app's onEvent/onWebhook
+  // hooks, which advance the persisted resource + step rows.
+
+  fastify.post('/byol/:id/deploy', {
+    preHandler: [hasPermission('byol', 'write')],
+    handler: async (request: FastifyRequest, reply: FastifyReply) => {
+      const customerId = customerOf(request)
+      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+      const { id } = request.params as { id: string }
+
+      const infra = await store.getByol(db, id, customerId)
+      if (!infra) return reply.status(404).send({ error: 'BYOL infrastructure not found' })
+
+      const plan = buildByolResourcePlan({
+        deploymentType: infra.deploymentType,
+        indexerCount: infra.indexerCount,
+        searchHeadCount: infra.searchHeadCount,
+        hostingType: infra.hosting_type,
+        isCloud: Boolean(infra.cloudProviderId),
+        region: infra.region,
+        indexerRegions: infra.indexerRegions.map((r) => r.region),
+        searchHeadRegions: infra.searchHeadRegions.map((r) => r.region),
+      })
+
+      const resources = await store.seedResources(db, id, customerId, plan)
+      const deployment = await store.createDeployment(db, id, 'deploy', DEPLOYMENT_STEPS, userOf(request))
+      const updated = await store.setByolStatus(db, id, 'provisioning')
+      await emit(events, 'infrastructure.deploy.requested', {
+        infrastructureId: id,
+        infrastructure: updated,
+        plan,
+        customerId,
+      })
+      reply.status(202).send({ infrastructure: updated, deployment, resources })
+    },
+  })
+
+  fastify.post('/byol/:id/destroy', {
+    preHandler: [hasPermission('byol', 'write')],
+    handler: async (request: FastifyRequest, reply: FastifyReply) => {
+      const customerId = customerOf(request)
+      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+      const { id } = request.params as { id: string }
+
+      const infra = await store.getByol(db, id, customerId)
+      if (!infra) return reply.status(404).send({ error: 'BYOL infrastructure not found' })
+
+      const deployment = await store.createDeployment(db, id, 'destroy', DESTROY_STEPS, userOf(request))
+      const updated = await store.setByolStatus(db, id, 'destroying')
+      await emit(events, 'infrastructure.destroy.requested', {
+        infrastructureId: id,
+        infrastructure: updated,
+        customerId,
+      })
+      reply.status(202).send({ infrastructure: updated, deployment })
+    },
+  })
+
+  fastify.get('/byol/:id/resources', {
+    preHandler: [hasPermission('byol', 'read')],
+    handler: async (request: FastifyRequest, reply: FastifyReply) => {
+      const customerId = customerOf(request)
+      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+      const { id } = request.params as { id: string }
+
+      const infra = await store.getByol(db, id, customerId)
+      if (!infra) return reply.status(404).send({ error: 'BYOL infrastructure not found' })
+      const resources = await store.listResources(db, id)
+      reply.send(resources)
+    },
+  })
+
+  fastify.get('/byol/:id/deployments', {
+    preHandler: [hasPermission('byol', 'read')],
+    handler: async (request: FastifyRequest, reply: FastifyReply) => {
+      const customerId = customerOf(request)
+      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+      const { id } = request.params as { id: string }
+
+      const infra = await store.getByol(db, id, customerId)
+      if (!infra) return reply.status(404).send({ error: 'BYOL infrastructure not found' })
+      const deployments = await store.listDeployments(db, id)
+      reply.send(deployments)
+    },
+  })
 
   // --- BYOL Usage / Metering (foundation for usage-based cloud billing) ---
 

@@ -118,5 +118,17 @@ export type {
 export { APP_LAYOUT, HANDLER_NAMES, conventionalPaths } from './structure'
 export type { HandlerName } from './structure'
 
+// BYOL resource-plan topology (React-free; shared by the app server for seeding
+// and the app client for the derived plan). See ./byol/topology.
+export { buildByolResourcePlan, TIER_LABELS, TIER_ORDER, DEPLOYMENT_STEPS } from './byol/topology'
+export type {
+  ByolResourceTier,
+  ByolResourceStatus,
+  ByolResourceKind,
+  ByolResourcePlanItem,
+  ByolResourcePlanItemWithOrder,
+  ByolTopologyInput,
+} from './byol/topology'
+
 // Hooks types
 export type { AppContextValue, PipelineStatusData } from './hooks'

@@ -35,5 +35,15 @@ export default async function onWebhook({ db, source, event, payload }: AppWebho
   const updated = await store.setByolStatusIfExists(db, infrastructureId, mapped)
   if (!updated) {
     console.warn(`[splunk-enterprise] onWebhook: no BYOL infrastructure ${infrastructureId}; skipped`)
+    return
+  }
+
+  // A GitHub deployment status is coarse (one terminal signal), so reconcile the
+  // persisted resource plan + latest run to match: success → everything ready,
+  // failure → mark the run failed.
+  if (mapped === 'running') {
+    await store.reconcileTerminal(db, infrastructureId, 'succeeded')
+  } else if (mapped === 'error') {
+    await store.reconcileTerminal(db, infrastructureId, 'failed')
   }
 }

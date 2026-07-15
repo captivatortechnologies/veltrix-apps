@@ -74,10 +74,12 @@ export async function createByol(
   input: ByolInput,
 ): Promise<ByolDto> {
   const rows = await db.$queryRawUnsafe<Row[]>(
+    // A freshly created infrastructure has not been deployed yet, so it starts in
+    // 'not_started' — the deploy route is what moves it to 'provisioning'.
     `INSERT INTO splunk_byol_infrastructure
        (name, deployment_type, environment_type, hosting_type, region,
-        indexer_count, search_head_count, cloud_provider_id, customer_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::uuid, $9::uuid)
+        indexer_count, search_head_count, cloud_provider_id, customer_id, status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::uuid, $9::uuid, 'not_started')
      RETURNING *`,
     input.name,
     input.deploymentType,
@@ -90,7 +92,7 @@ export async function createByol(
     customerId,
   )
   const created = mapByol(rows[0])
-  await emitStateEvent(db, created, created.status) // 'provisioning'
+  await emitStateEvent(db, created, created.status) // 'not_started'
   return attachRegions(db, created)
 }
 
