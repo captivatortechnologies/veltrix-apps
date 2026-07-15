@@ -1,6 +1,6 @@
 id: okta-identity
 name: Okta
-version: "1.2.0"
+version: "1.3.0"
 vendor: Veltrix
 description: >
   Manage Okta configuration as code through the Okta Management API. Covers
@@ -382,6 +382,11 @@ client:
 hooks:
   onInstall: hooks/onInstall
   onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: verifies a Connection's org domain + SSWS
+# API token against the Okta Management API (GET /api/v1/org).
+connectivity:
+  testHandler: handlers/testConnection
 
 settings:
   - key: request_timeout_seconds

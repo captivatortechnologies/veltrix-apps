@@ -1,6 +1,6 @@
 id: elastic-security
 name: Elastic Security
-version: "1.0.0"
+version: "1.1.0"
 vendor: Veltrix
 description: >
   Manage Elastic Security configuration as code through the Kibana and
@@ -160,6 +160,11 @@ client:
 hooks:
   onInstall: hooks/onInstall
   onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: verifies a Connection's Kibana endpoint +
+# credential against the Kibana Detections API (GET /api/detection_engine/rules/_find).
+connectivity:
+  testHandler: handlers/testConnection
 
 settings:
   - key: elasticsearch_url

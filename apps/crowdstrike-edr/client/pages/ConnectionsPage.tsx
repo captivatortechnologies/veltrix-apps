@@ -6,8 +6,10 @@ import {
   removeCredential,
   listEnvironments,
   resolveTool,
+  testConnection,
   type CredentialSummary,
   type EnvironmentRef,
+  type TestConnectionResult,
 } from '@veltrixsecops/app-sdk/client'
 import {
   Card,
@@ -30,6 +32,11 @@ import {
 // The platform Tool is upserted keyed by the app's manifest name; resolveTool
 // matches on it so new connections attach to this app's tool.
 const APP_NAME = 'CrowdStrike Falcon'
+// Manifest id — used to reach this app's connectivity-test route.
+const APP_ID = 'crowdstrike-edr'
+
+/** Per-connection test state: in-flight, or the last result. */
+type TestState = { loading: true } | TestConnectionResult
 
 // How a connection authenticates. The secret is write-only: for "token" it is
 // the Falcon API client secret, for "password" it is the account password.
@@ -93,6 +100,7 @@ export default function ConnectionsPage() {
   const [form, setForm] = useState<FormState>(BLANK_FORM)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [tests, setTests] = useState<Record<string, TestState>>({})
 
   const load = useCallback(async () => {
     setIsLoading(true)
@@ -217,6 +225,16 @@ export default function ConnectionsPage() {
     }
   }
 
+  const handleTest = async (row: CredentialSummary) => {
+    setTests((t) => ({ ...t, [row.id]: { loading: true } }))
+    try {
+      const result = await testConnection(APP_ID, row.id)
+      setTests((t) => ({ ...t, [row.id]: result }))
+    } catch (e) {
+      setTests((t) => ({ ...t, [row.id]: { ok: false, message: (e as Error).message } }))
+    }
+  }
+
   const columns: DataTableColumn<CredentialSummary>[] = [
     { key: 'name', header: 'Name', render: (row) => <strong>{row.name}</strong> },
     {
@@ -249,16 +267,46 @@ export default function ConnectionsPage() {
       key: 'actions',
       header: '',
       align: 'right',
-      render: (row) => (
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>
-            Edit
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => void handleDelete(row)}>
-            Remove
-          </Button>
-        </div>
-      ),
+      render: (row) => {
+        const t = tests[row.id]
+        const loading = !!t && 'loading' in t
+        const result = t && !('loading' in t) ? t : null
+        return (
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
+            {result ? (
+              <span
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, maxWidth: 340 }}
+                title={[result.message, ...(result.details ?? [])].filter(Boolean).join('\n')}
+              >
+                <Badge variant={result.ok ? 'success' : 'danger'} size="sm">
+                  {result.ok ? '✓' : '✗'}
+                </Badge>
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: result.ok ? 'var(--color-success, #16a34a)' : 'var(--color-danger, #dc2626)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {result.message}
+                  {result.latencyMs != null ? ` · ${result.latencyMs} ms` : ''}
+                </span>
+              </span>
+            ) : null}
+            <Button variant="ghost" size="sm" isLoading={loading} onClick={() => void handleTest(row)}>
+              Test
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>
+              Edit
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => void handleDelete(row)}>
+              Remove
+            </Button>
+          </div>
+        )
+      },
     },
   ]
 

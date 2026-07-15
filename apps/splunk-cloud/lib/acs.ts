@@ -59,12 +59,13 @@ export function resolveStackName(hostname: string): string {
 }
 
 /**
- * Extract the ACS bearer token from a Veltrix credential.
- * The Splunk Cloud JWT must be stored in the credential's "API token" field.
+ * Extract the ACS bearer token from a Veltrix credential. Splunk Cloud's only
+ * secret is the stack JWT, so accept it from the "API token" field (preferred)
+ * OR the "password" field — the connection form defaults to username/password,
+ * so users commonly paste the JWT there.
  */
 export function resolveAcsToken(credential: CredentialRef | null): string | null {
-  if (!credential?.apiToken) return null
-  const token = credential.apiToken.trim()
+  const token = (credential?.apiToken?.trim() || credential?.password?.trim() || '')
   return token.length > 0 ? token : null
 }
 

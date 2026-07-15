@@ -1,6 +1,6 @@
 id: zscaler
 name: Zscaler
-version: "1.0.1"
+version: "1.1.0"
 vendor: Veltrix
 description: >
   Manage Zscaler Internet Access (ZIA) and Zscaler Private Access (ZPA)
@@ -699,6 +699,9 @@ client:
       label: Setup Guide
       icon: book
       nav: sidebar
+
+connectivity:
+  testHandler: handlers/testConnection
 
 hooks:
   onInstall: hooks/onInstall

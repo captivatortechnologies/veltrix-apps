@@ -1,6 +1,6 @@
 id: crowdstrike-edr
 name: CrowdStrike Falcon
-version: 1.5.0
+version: 1.6.0
 vendor: Veltrix
 description: >
   Manage CrowdStrike Falcon configurations as code through the Falcon
@@ -136,6 +136,12 @@ client:
 hooks:
   onInstall: hooks/onInstall
   onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: verifies a Connection's endpoint + API
+# client credential against the Falcon APIs (OAuth2 token exchange + a bounded
+# authenticated GET).
+connectivity:
+  testHandler: handlers/testConnection
 
 settings:
   - key: falcon_region
