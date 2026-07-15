@@ -1,0 +1,89 @@
+# =============================================================================
+# Canvas Template — ZIA Web DLP Rules
+#
+# Declares ONE web DLP rule — the item. Users add as many rules as they need.
+# A ZIA web DLP rule inspects web traffic against DLP engines and takes an
+# action (allow / block / confirm); Zscaler assigns it a numeric id. Identity is
+# the NAME (list + match).
+#
+# This is a POLICY RULE with a JSON-body escape hatch: a small set of first-class
+# scalar fields (name, order, state, action, protocols) plus `rule_json`, a raw
+# JSON object for the many advanced criteria (dlpEngines[], labels[],
+# locations[], departments[], urlCategories[], etc.). JSON keys are merged into
+# the API body; the name always comes from the name field.
+#
+# Field keys must match what config-types/zia-web-dlp-rules/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zia-web-dlp-rules"
+name: "ZIA Web DLP Rule Configuration"
+toolType: "zscaler"
+entityType: "zia-web-dlp-rules"
+description: "Define ZIA web DLP rules as code through the Zscaler OneAPI (/webDlpRules). Changes are staged and activated as a batch."
+
+item:
+  label: "Web DLP Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Web DLP Rule"
+      icon: "shield"
+      description: "Name, order, action and advanced JSON criteria"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The rule name (its logical identity). Zscaler assigns the numeric id."
+
+        - key: "order"
+          label: "Order"
+          fieldType: "number"
+          defaultValue: 1
+          validation:
+            min: 1
+          helpText: "Rule evaluation order (1 = evaluated first). ZIA may renumber rules as others are added or removed."
+
+        - key: "state"
+          label: "State"
+          fieldType: "select"
+          defaultValue: "ENABLED"
+          options:
+            - label: "Enabled"
+              value: "ENABLED"
+            - label: "Disabled"
+              value: "DISABLED"
+          helpText: "Whether the rule is active."
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          defaultValue: "BLOCK"
+          options:
+            - label: "Allow"
+              value: "ALLOW"
+            - label: "Block"
+              value: "BLOCK"
+            - label: "Confirm (allow with user confirmation)"
+              value: "CONFIRM"
+          helpText: "What ZIA does when the rule matches."
+
+        - key: "protocols"
+          label: "Protocols"
+          fieldType: "textarea"
+          defaultValue: "ANY_RULE"
+          helpText: "One protocol per line (e.g. ANY_RULE, HTTP_RULE, HTTPS_RULE, FTP_RULE). Defaults to ANY_RULE when blank."
+
+        - key: "rule_json"
+          label: "Advanced Criteria (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional raw JSON object for advanced fields not exposed above —
+            e.g. {"dlpEngines":[{"id":42}],"labels":[{"id":7}],"cloudApplications":["GOOGLE_DRIVE"],
+            "withoutContentInspection":false}. Merged into the API body; keys here win for
+            advanced fields, but the rule name always comes from the Name field. Leave blank for a
+            minimal rule.

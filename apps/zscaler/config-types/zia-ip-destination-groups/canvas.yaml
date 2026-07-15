@@ -1,0 +1,69 @@
+# =============================================================================
+# Canvas Template — ZIA IP Destination Groups
+#
+# Declares ONE IP destination group — the item. Users add as many as they need.
+# A ZIA IP destination group is a named set of destinations (IPs/CIDR ranges,
+# FQDNs, domains, or countries) referenced by firewall rules; Zscaler assigns it
+# a numeric id. Identity is the NAME (list + match).
+#
+# Field keys must match what config-types/zia-ip-destination-groups/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zia-ip-destination-groups"
+name: "ZIA IP Destination Group Configuration"
+toolType: "zscaler"
+entityType: "zia-ip-destination-groups"
+description: "Define ZIA IP destination groups as code through the Zscaler OneAPI (/ipDestinationGroups). Changes are staged and activated as a batch."
+
+item:
+  label: "IP Destination Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "IP Destination Group"
+      icon: "target"
+      description: "Name, type and destinations"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The destination group name (its logical identity). Zscaler assigns the numeric id."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          validation:
+            maxLength: 10240
+          helpText: "Optional description shown in the ZIA Admin Portal."
+
+        - key: "type"
+          label: "Destination Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "DSTN_IP"
+          options:
+            - label: "IP addresses / CIDR ranges (DSTN_IP)"
+              value: "DSTN_IP"
+            - label: "Fully-qualified domain names (DSTN_FQDN)"
+              value: "DSTN_FQDN"
+            - label: "Domains (DSTN_DOMAIN)"
+              value: "DSTN_DOMAIN"
+            - label: "Countries / other (DSTN_OTHER)"
+              value: "DSTN_OTHER"
+          helpText: "The kind of destinations this group holds. Immutable after creation in ZIA."
+
+        - key: "addresses"
+          label: "Addresses"
+          fieldType: "textarea"
+          required: true
+          helpText: "One destination per line — IPs/CIDR ranges for DSTN_IP, FQDNs for DSTN_FQDN, domains for DSTN_DOMAIN."
+
+        - key: "countries"
+          label: "Countries"
+          fieldType: "textarea"
+          helpText: "Optional — one ISO country code per line (e.g. COUNTRY_US), used with DSTN_OTHER groups."

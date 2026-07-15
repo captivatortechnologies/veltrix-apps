@@ -1,0 +1,88 @@
+# =============================================================================
+# Canvas Template — ZIA Firewall DNS Control Rules
+#
+# Declares ONE DNS control rule — the item. Users add as many rules as they need.
+# A ZIA firewall DNS rule governs how DNS traffic is handled (allow, block,
+# redirect); Zscaler assigns it a numeric id. Identity is the NAME (list + match).
+#
+# This is a POLICY RULE type: a handful of first-class scalar fields (name, order,
+# state, action) plus a "rule_json" escape hatch — a JSON object holding the many
+# optional criteria (srcIps, destAddresses, dnsRuleRequestTypes, deviceGroups,
+# labels, dnsGateway, redirectIp, …) that would be unwieldy as individual fields.
+# JSON keys win for advanced fields; the NAME is always taken from the name field.
+#
+# ZIA ships a PROTECTED default DNS rule that must never be modified or deleted —
+# authors must pick a distinct name (deploy refuses to touch the default rule).
+#
+# Field keys must match what config-types/zia-firewall-dns-rules/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zia-firewall-dns-rules"
+name: "ZIA Firewall DNS Rule Configuration"
+toolType: "zscaler"
+entityType: "zia-firewall-dns-rules"
+description: "Define ZIA firewall DNS control rules as code through the Zscaler OneAPI (/firewallDnsRules). Changes are staged and activated as a batch."
+
+item:
+  label: "DNS Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "DNS Rule"
+      icon: "shield"
+      description: "Name, ordering, state and action"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The DNS rule name (its logical identity). Zscaler assigns the numeric id. Must not be the built-in default rule."
+
+        - key: "order"
+          label: "Rule Order"
+          fieldType: "number"
+          defaultValue: 1
+          validation:
+            min: 1
+          helpText: "Evaluation order (1 = first). Lower-numbered rules are matched before higher ones."
+
+        - key: "state"
+          label: "State"
+          fieldType: "select"
+          defaultValue: "ENABLED"
+          options:
+            - label: "Enabled"
+              value: "ENABLED"
+            - label: "Disabled"
+              value: "DISABLED"
+          helpText: "Whether the rule is active in the DNS policy."
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          defaultValue: "ALLOW"
+          options:
+            - label: "Allow the DNS request (ALLOW)"
+              value: "ALLOW"
+            - label: "Block the DNS request (BLOCK)"
+              value: "BLOCK"
+            - label: "Redirect the DNS request (REDIR_REQ)"
+              value: "REDIR_REQ"
+          helpText: "What ZIA does with DNS traffic that matches this rule."
+
+    - name: "Advanced Criteria (JSON)"
+      icon: "code"
+      description: "Rule-specific fields as a JSON object"
+      fields:
+        - key: "rule_json"
+          label: "Rule JSON"
+          fieldType: "textarea"
+          helpText: >-
+            Optional JSON object with the rule's advanced criteria, e.g.
+            {"srcIps":["10.0.0.0/8"],"dnsRuleRequestTypes":["A","AAAA"],"redirectIp":"8.8.8.8"}.
+            Merged into the API body; these keys win for advanced fields, but name/order/state/action
+            come from the fields above. Leave blank for a rule with no extra criteria.

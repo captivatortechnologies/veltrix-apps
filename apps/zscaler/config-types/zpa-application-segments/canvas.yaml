@@ -1,0 +1,114 @@
+# =============================================================================
+# Canvas Template — ZPA Application Segments
+#
+# Declares ONE application segment — the item. Users add as many as they need.
+# A ZPA application segment maps a set of domain names + TCP/UDP ports to a
+# segment group and the server groups that serve it; ZPA assigns it a numeric id
+# (returned as a string). Identity is the NAME (list + match). The referenced
+# segment group and server groups are resolved from their NAMES to ids at deploy
+# time — create those first. ZPA changes apply immediately (no activation step).
+#
+# Field keys must match what config-types/zpa-application-segments/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zpa-application-segments"
+name: "ZPA Application Segment Configuration"
+toolType: "zscaler"
+entityType: "zpa-application-segments"
+description: "Define ZPA application segments as code through the Zscaler OneAPI (/application). References a segment group and server groups by name. Requires the ZPA Customer ID app setting."
+
+item:
+  label: "Application Segment"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Application Segment"
+      icon: "layers"
+      description: "Name, description and state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The application segment name (its logical identity). ZPA assigns the numeric id."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the ZPA Admin Portal."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the application segment is enabled."
+
+    - name: "Access"
+      icon: "globe"
+      description: "Domains and the groups that serve them"
+      fields:
+        - key: "domain_names"
+          label: "Domain Names"
+          fieldType: "textarea"
+          required: true
+          helpText: "One FQDN or wildcard per line (e.g. \"app.corp.example\" or \"*.corp.example\")."
+
+        - key: "segment_group_name"
+          label: "Segment Group Name"
+          fieldType: "text"
+          required: true
+          helpText: "Name of the ZPA segment group this segment belongs to. Resolved to its id at deploy — create the segment group first."
+
+        - key: "server_group_names"
+          label: "Server Group Names"
+          fieldType: "textarea"
+          required: true
+          helpText: "One ZPA server group NAME per line. Each is resolved to its id at deploy — create the server groups first."
+
+    - name: "Ports"
+      icon: "network"
+      description: "TCP/UDP port ranges the segment answers on"
+      fields:
+        - key: "tcp_port_ranges"
+          label: "TCP Port Ranges"
+          fieldType: "textarea"
+          helpText: "One range per line as \"start-end\" or a single \"port\" (e.g. \"443\" or \"8080-8090\"). At least one TCP or UDP range is required."
+
+        - key: "udp_port_ranges"
+          label: "UDP Port Ranges"
+          fieldType: "textarea"
+          helpText: "One range per line as \"start-end\" or a single \"port\" (e.g. \"53\"). At least one TCP or UDP range is required."
+
+    - name: "Advanced"
+      icon: "settings"
+      description: "Bypass and health reporting behaviour"
+      fields:
+        - key: "bypass_type"
+          label: "Bypass Type"
+          fieldType: "select"
+          defaultValue: "NEVER"
+          options:
+            - label: "Never bypass"
+              value: "NEVER"
+            - label: "Always bypass"
+              value: "ALWAYS"
+            - label: "Bypass on trusted network"
+              value: "ON_NET"
+          helpText: "When client traffic to this segment bypasses ZPA."
+
+        - key: "health_reporting"
+          label: "Health Reporting"
+          fieldType: "select"
+          defaultValue: "ON_ACCESS"
+          options:
+            - label: "None"
+              value: "NONE"
+            - label: "On access"
+              value: "ON_ACCESS"
+            - label: "Continuous"
+              value: "CONTINUOUS"
+          helpText: "How the App Connectors report health for this segment's servers."

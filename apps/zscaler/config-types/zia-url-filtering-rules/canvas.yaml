@@ -1,0 +1,100 @@
+# =============================================================================
+# Canvas Template — ZIA URL Filtering Rules
+#
+# Declares ONE URL filtering rule — the item. Users add as many rules as they need.
+# A ZIA URL filtering rule governs how web traffic to matched URL categories is
+# handled (allow, block, caution, isolate); Zscaler assigns it a numeric id.
+# Identity is the NAME (list + match).
+#
+# This is a POLICY RULE type: a handful of first-class scalar fields (name, order,
+# state, action, protocols) plus a "rule_json" escape hatch — a JSON object holding
+# the many optional criteria/references (urlCategories, locations, groups, users,
+# labels, timeWindows, …) that would be unwieldy as individual fields. JSON keys
+# win for advanced fields; name/order/state/action/protocols are always taken from
+# the first-class fields above (the NAME can never be overridden by the JSON).
+#
+# ZIA ships a PROTECTED default URL filtering rule that must never be modified or
+# deleted — authors must pick a distinct name (deploy refuses to touch the default).
+#
+# Field keys must match what config-types/zia-url-filtering-rules/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zia-url-filtering-rules"
+name: "ZIA URL Filtering Rule Configuration"
+toolType: "zscaler"
+entityType: "zia-url-filtering-rules"
+description: "Define ZIA URL filtering rules as code through the Zscaler OneAPI (/urlFilteringRules). Changes are staged and activated as a batch."
+
+item:
+  label: "URL Filtering Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "URL Filtering Rule"
+      icon: "shield"
+      description: "Name, ordering, state, action and protocols"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The URL filtering rule name (its logical identity). Zscaler assigns the numeric id. Must not be the built-in default rule."
+
+        - key: "order"
+          label: "Rule Order"
+          fieldType: "number"
+          defaultValue: 1
+          validation:
+            min: 1
+          helpText: "Evaluation order (1 = first). Lower-numbered rules are matched before higher ones."
+
+        - key: "state"
+          label: "State"
+          fieldType: "select"
+          defaultValue: "ENABLED"
+          options:
+            - label: "Enabled"
+              value: "ENABLED"
+            - label: "Disabled"
+              value: "DISABLED"
+          helpText: "Whether the rule is active in the URL filtering policy."
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          defaultValue: "BLOCK"
+          options:
+            - label: "Allow the request (ALLOW)"
+              value: "ALLOW"
+            - label: "Block the request (BLOCK)"
+              value: "BLOCK"
+            - label: "Warn, then allow on confirmation (CAUTION)"
+              value: "CAUTION"
+            - label: "Open in Browser Isolation (ISOLATE)"
+              value: "ISOLATE"
+          helpText: "What ZIA does with web traffic that matches this rule."
+
+        - key: "protocols"
+          label: "Protocols"
+          fieldType: "textarea"
+          defaultValue: "ANY_RULE"
+          helpText: >-
+            One protocol per line (e.g. ANY_RULE, HTTP_RULE, HTTPS_RULE, SSL_RULE, FTP_RULE).
+            ANY_RULE matches all protocols. Defaults to a single ANY_RULE line.
+
+    - name: "Advanced Criteria (JSON)"
+      icon: "code"
+      description: "Rule-specific criteria and references as a JSON object"
+      fields:
+        - key: "rule_json"
+          label: "Rule JSON"
+          fieldType: "textarea"
+          helpText: >-
+            Optional JSON object with the rule's advanced criteria and references, e.g.
+            {"urlCategories":["OTHER_ADULT_MATERIAL"],"locations":[{"id":123}],"groups":[{"id":45}],"labels":[{"id":7}]}.
+            Merged into the API body; these keys win for advanced fields, but name/order/state/action/protocols
+            come from the fields above. Leave blank for a rule with no extra criteria.

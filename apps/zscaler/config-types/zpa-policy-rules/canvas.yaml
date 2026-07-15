@@ -1,0 +1,87 @@
+# =============================================================================
+# Canvas Template — ZPA Policy Rules
+#
+# Declares ONE policy rule — the item. Users add as many as they need.
+# A ZPA policy rule lives inside a policy SET, one set per policy type
+# (ACCESS_POLICY, TIMEOUT_POLICY, CLIENT_FORWARDING_POLICY, INSPECTION_POLICY,
+# ISOLATION_POLICY). ZPA assigns each rule a numeric id (returned as a string).
+# Identity is the pair (policy_type, name) — a rule name is unique within its
+# policy set, so the same name may appear under two different policy types.
+# The catch-all DEFAULT rule of each set is protected and never modified.
+# ZPA changes apply immediately — there is no activation step.
+#
+# Field keys must match what config-types/zpa-policy-rules/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zpa-policy-rules"
+name: "ZPA Policy Rule Configuration"
+toolType: "zscaler"
+entityType: "zpa-policy-rules"
+description: "Define ZPA policy rules as code through the Zscaler OneAPI (/policySet/{id}/rule), parameterized by policy type. Requires the ZPA Customer ID app setting."
+
+item:
+  label: "Policy Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy Rule"
+      icon: "shield"
+      description: "Identity, policy type and state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The rule name — unique within its policy set. ZPA assigns the numeric id."
+
+        - key: "policy_type"
+          label: "Policy Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "ACCESS_POLICY"
+          options:
+            - label: "Access Policy"
+              value: "ACCESS_POLICY"
+            - label: "Timeout Policy"
+              value: "TIMEOUT_POLICY"
+            - label: "Client Forwarding Policy"
+              value: "CLIENT_FORWARDING_POLICY"
+            - label: "Inspection Policy"
+              value: "INSPECTION_POLICY"
+            - label: "Isolation Policy"
+              value: "ISOLATION_POLICY"
+          helpText: "Which policy set this rule belongs to. The name is unique within the chosen policy type."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the ZPA Admin Portal."
+
+    - name: "Rule"
+      icon: "settings"
+      description: "Action, order and match conditions"
+      fields:
+        - key: "action"
+          label: "Action"
+          fieldType: "text"
+          helpText: "Optional — the rule action, whose valid values depend on the policy type (e.g. ACCESS: ALLOW/DENY; CLIENT_FORWARDING: INTERCEPT/BYPASS). Leave blank to accept the ZPA default for the type."
+
+        - key: "rule_order"
+          label: "Rule Order"
+          fieldType: "number"
+          defaultValue: 1
+          validation:
+            min: 1
+          helpText: "Evaluation order (1 = first) within the policy set. Lower-numbered rules are matched before higher ones."
+
+        - key: "conditions_json"
+          label: "Conditions (JSON)"
+          fieldType: "textarea"
+          helpText: >-
+            Optional — the ZPA conditions array in the operand DSL, e.g.
+            [{"operator":"OR","operands":[{"objectType":"APP","lhs":"id","rhs":"<appId>"}]}].
+            Must be a JSON array. Leave blank for a rule with no match conditions.

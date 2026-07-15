@@ -1,0 +1,95 @@
+# =============================================================================
+# Canvas Template — ZPA Service Edge Groups
+#
+# Declares ONE service edge group — the item. Users add as many as they need.
+# A ZPA service edge group binds Private Service Edges to a geographic location;
+# ZPA assigns it a numeric id (returned as a string). Identity is the NAME
+# (list + match). ZPA changes apply immediately — there is no activation step.
+#
+# Field keys must match what config-types/zpa-service-edge-groups/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zpa-service-edge-groups"
+name: "ZPA Service Edge Group Configuration"
+toolType: "zscaler"
+entityType: "zpa-service-edge-groups"
+description: "Define ZPA service edge groups as code through the Zscaler OneAPI (/serviceEdgeGroup). Requires the ZPA Customer ID app setting."
+
+item:
+  label: "Service Edge Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Service Edge Group"
+      icon: "server"
+      description: "Name, description and state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The service edge group name (its logical identity). ZPA assigns the numeric id."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the ZPA Admin Portal."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the service edge group (and its Private Service Edges) is enabled."
+
+    - name: "Location"
+      icon: "map-pin"
+      description: "Where the Private Service Edges in this group are homed"
+      fields:
+        - key: "location"
+          label: "Location"
+          fieldType: "text"
+          required: true
+          helpText: "Human-readable geographic location (e.g. \"San Jose, CA, USA\")."
+
+        - key: "latitude"
+          label: "Latitude"
+          fieldType: "text"
+          required: true
+          helpText: "Latitude of the location as a decimal string (e.g. \"37.3382\")."
+
+        - key: "longitude"
+          label: "Longitude"
+          fieldType: "text"
+          required: true
+          helpText: "Longitude of the location as a decimal string (e.g. \"-121.8863\")."
+
+        - key: "country_code"
+          label: "Country Code"
+          fieldType: "text"
+          helpText: "ISO country code for the location (e.g. \"US\")."
+
+    - name: "Upgrade Window"
+      icon: "clock"
+      description: "Version profile and maintenance schedule"
+      fields:
+        - key: "version_profile_id"
+          label: "Version Profile ID"
+          fieldType: "text"
+          defaultValue: "0"
+          helpText: "ZPA version profile id (\"0\" = Default, \"1\" = Previous Default, \"2\" = New Release)."
+
+        - key: "upgrade_day"
+          label: "Upgrade Day"
+          fieldType: "text"
+          defaultValue: "SUNDAY"
+          helpText: "Day of week the Private Service Edges may auto-upgrade (e.g. \"SUNDAY\")."
+
+        - key: "upgrade_time_in_secs"
+          label: "Upgrade Time (seconds)"
+          fieldType: "text"
+          defaultValue: "66600"
+          helpText: "Seconds past midnight when the upgrade window opens (66600 = 18:30)."

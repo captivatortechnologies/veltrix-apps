@@ -1,0 +1,68 @@
+# =============================================================================
+# Canvas Template — ZIA Static IPs
+#
+# Declares ONE static IP — the item. Users add as many static IPs as they need.
+# A ZIA static IP registers a public egress IP (e.g. for GRE/IPSec tunnels or
+# sub-locations); Zscaler assigns it a numeric id. Identity is the IP ADDRESS
+# (list + match by ipAddress), not a name.
+#
+# Field keys must match what config-types/zia-static-ips/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zia-static-ips"
+name: "ZIA Static IP Configuration"
+toolType: "zscaler"
+entityType: "zia-static-ips"
+description: "Define ZIA static IPs as code through the Zscaler OneAPI (/staticIP). Changes are staged and activated as a batch."
+
+item:
+  label: "Static IP"
+  identityField: "ip_address"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Static IP"
+      icon: "globe"
+      description: "The public IP address and its optional geo override"
+      fields:
+        - key: "ip_address"
+          label: "IP Address"
+          fieldType: "text"
+          required: true
+          helpText: "The public static IP address (its logical identity). Zscaler assigns the numeric id."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          validation:
+            maxLength: 10240
+          helpText: "Optional comment shown in the ZIA Admin Portal."
+
+        - key: "geo_override"
+          label: "Geo Override"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Override the geolocation Zscaler derives from the IP. When enabled, latitude and longitude are required."
+
+        - key: "latitude"
+          label: "Latitude"
+          fieldType: "number"
+          validation:
+            min: -90
+            max: 90
+          helpText: "Latitude (-90 to 90). Required when Geo Override is enabled."
+
+        - key: "longitude"
+          label: "Longitude"
+          fieldType: "number"
+          validation:
+            min: -180
+            max: 180
+          helpText: "Longitude (-180 to 180). Required when Geo Override is enabled."
+
+        - key: "routable_ip"
+          label: "Routable IP"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the static IP is publicly routable. Defaults to true."

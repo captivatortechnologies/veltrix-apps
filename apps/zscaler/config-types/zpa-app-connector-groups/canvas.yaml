@@ -1,0 +1,101 @@
+# =============================================================================
+# Canvas Template — ZPA App Connector Groups
+#
+# Declares ONE App Connector group — the item. Users add as many as they need.
+# A ZPA App Connector group anchors App Connectors to a geo location; ZPA assigns
+# it a numeric id (returned as a string). Identity is the NAME (list + match).
+# ZPA changes apply immediately — there is no activation step.
+#
+# Field keys must match what config-types/zpa-app-connector-groups/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zpa-app-connector-groups"
+name: "ZPA App Connector Group Configuration"
+toolType: "zscaler"
+entityType: "zpa-app-connector-groups"
+description: "Define ZPA App Connector groups as code through the Zscaler OneAPI (/appConnectorGroup). Requires the ZPA Customer ID app setting."
+
+item:
+  label: "App Connector Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "App Connector Group"
+      icon: "server"
+      description: "Name, description and state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The App Connector group name (its logical identity). ZPA assigns the numeric id."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the ZPA Admin Portal."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the App Connector group (and the connectors in it) is enabled."
+
+    - name: "Location"
+      icon: "map-pin"
+      description: "Geo placement of the connector group"
+      fields:
+        - key: "location"
+          label: "Location"
+          fieldType: "text"
+          required: true
+          helpText: "A geo location string for the connector group (e.g. \"San Jose, CA, USA\")."
+
+        - key: "latitude"
+          label: "Latitude"
+          fieldType: "text"
+          required: true
+          helpText: "Latitude of the location (e.g. \"37.3382\"). Sent to ZPA as a string."
+
+        - key: "longitude"
+          label: "Longitude"
+          fieldType: "text"
+          required: true
+          helpText: "Longitude of the location (e.g. \"-121.8863\"). Sent to ZPA as a string."
+
+        - key: "country_code"
+          label: "Country Code"
+          fieldType: "text"
+          helpText: "Optional ISO country code for the location (e.g. \"US\")."
+
+        - key: "city_country"
+          label: "City, Country"
+          fieldType: "text"
+          helpText: "Optional \"City, Country\" label for the location (e.g. \"San Jose, US\")."
+
+    - name: "Advanced"
+      icon: "settings"
+      description: "DNS resolution and version profile"
+      fields:
+        - key: "dns_query_type"
+          label: "DNS Query Type"
+          fieldType: "select"
+          defaultValue: "IPV4_IPV6"
+          options:
+            - label: "IPv4 and IPv6"
+              value: "IPV4_IPV6"
+            - label: "IPv4 only"
+              value: "IPV4"
+            - label: "IPv6 only"
+              value: "IPV6"
+          helpText: "Which IP families connectors in this group resolve DNS for."
+
+        - key: "version_profile_id"
+          label: "Version Profile ID"
+          fieldType: "text"
+          defaultValue: "0"
+          helpText: "Connector upgrade version profile id. \"0\" is the built-in Default profile."

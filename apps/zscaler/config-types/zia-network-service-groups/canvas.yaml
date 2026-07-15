@@ -1,0 +1,49 @@
+# =============================================================================
+# Canvas Template — ZIA Network Service Groups
+#
+# Declares ONE network service group — the item. Users add as many groups as
+# they need. A ZIA network service group bundles existing network services
+# (referenced by NAME) under a single name; Zscaler assigns it a numeric id.
+# Identity is the NAME (list + match). Member services are resolved from their
+# NAMES to their ids at deploy time (list /networkServices first).
+#
+# Field keys must match what config-types/zia-network-service-groups/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zia-network-service-groups"
+name: "ZIA Network Service Group Configuration"
+toolType: "zscaler"
+entityType: "zia-network-service-groups"
+description: "Define ZIA network service groups as code through the Zscaler OneAPI (/networkServiceGroups). Member network services are referenced by name and resolved to ids at deploy. Changes are staged and activated as a batch."
+
+item:
+  label: "Network Service Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Network Service Group"
+      icon: "layers"
+      description: "Name, description and member services"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The network service group name (its logical identity). Zscaler assigns the numeric id."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          validation:
+            maxLength: 255
+          helpText: "Optional description shown in the ZIA Admin Portal."
+
+        - key: "services"
+          label: "Network Services"
+          fieldType: "textarea"
+          required: true
+          helpText: "Member network services, one NAME per line (e.g. 'HTTP'). Each name is resolved to its id from the tenant's /networkServices at deploy — a name that does not exist live fails the deploy."

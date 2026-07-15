@@ -1,0 +1,76 @@
+# =============================================================================
+# Canvas Template — ZIA VPN Credentials
+#
+# Declares ONE IPSec VPN credential — the item. Users add as many as they need.
+# A ZIA VPN credential authenticates an IPSec tunnel from a location to Zscaler;
+# Zscaler assigns it a numeric id. Identity is CONDITIONAL:
+#   * type UFQDN → the `fqdn` (a user-fqdn, e.g. site1@acme.com)
+#   * type IP    → the `ip_address` (a provisioned static IP)
+# deploy / drift / healthCheck LIST /vpnCredentials and match on that identity.
+#
+# ⚠ WRITE-ONLY SECRET — the `pre_shared_key` is the tunnel PSK. ZIA NEVER returns
+# it on GET, so it is re-asserted on every deploy, is never drift-checked, and is
+# never captured for rollback, logged or stored in artifacts. Treat it as
+# write-only in every handler.
+#
+# Field keys must match what config-types/zia-vpn-credentials/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zia-vpn-credentials"
+name: "ZIA VPN Credential Configuration"
+toolType: "zscaler"
+entityType: "zia-vpn-credentials"
+description: "Define ZIA IPSec VPN credentials as code through the Zscaler OneAPI (/vpnCredentials). Reconciled by fqdn (UFQDN) or ip_address (IP); the pre-shared key is write-only and never read back or drift-checked. Changes are staged and activated as a batch."
+
+item:
+  label: "VPN Credential"
+  # Identity is conditional (fqdn for UFQDN, ip_address for IP), so the handler
+  # derives it rather than a single always-required field.
+  identityField: "fqdn"
+  identityDerived: true
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "VPN Credential"
+      icon: "key"
+      description: "Type, identity and the write-only pre-shared key"
+      fields:
+        - key: "type"
+          label: "Credential Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "UFQDN"
+          options:
+            - label: "User FQDN (UFQDN) — identity is the FQDN"
+              value: "UFQDN"
+            - label: "IP address (IP) — identity is a provisioned static IP"
+              value: "IP"
+          helpText: "How the tunnel authenticates. Immutable after creation in ZIA. UFQDN uses the FQDN below as identity; IP uses the IP address below."
+
+        - key: "fqdn"
+          label: "FQDN"
+          fieldType: "text"
+          validation:
+            maxLength: 255
+          helpText: "Required for UFQDN credentials — a user-fqdn such as site1@acme.com. This is the credential's logical identity. Leave blank for IP credentials."
+
+        - key: "ip_address"
+          label: "IP Address"
+          fieldType: "text"
+          validation:
+            maxLength: 255
+          helpText: "Required for IP credentials — a static IP already provisioned in ZIA (Static IPs). This is the credential's logical identity. Leave blank for UFQDN credentials."
+
+        - key: "comments"
+          label: "Comments"
+          fieldType: "textarea"
+          validation:
+            maxLength: 10240
+          helpText: "Optional description shown in the ZIA Admin Portal."
+
+        - key: "pre_shared_key"
+          label: "Pre-Shared Key"
+          fieldType: "password"
+          required: true
+          helpText: "⚠ WRITE-ONLY secret — the IPSec pre-shared key. ZIA never returns it, so it is re-asserted on every deploy and is never drift-checked, logged or captured for rollback."

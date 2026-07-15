@@ -1,0 +1,41 @@
+# =============================================================================
+# Canvas Template — ZIA Rule Labels
+#
+# Declares ONE rule label — the item. Users add as many labels as they need.
+# A ZIA rule label is a simple name (+ optional description) used to tag policy
+# rules; Zscaler assigns it a numeric id. Identity is the NAME (list + match).
+#
+# Field keys must match what config-types/zia-rule-labels/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zia-rule-labels"
+name: "ZIA Rule Label Configuration"
+toolType: "zscaler"
+entityType: "zia-rule-labels"
+description: "Define ZIA rule labels as code through the Zscaler OneAPI (/ruleLabels). Changes are staged and activated as a batch."
+
+item:
+  label: "Rule Label"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Rule Label"
+      icon: "tag"
+      description: "Name and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The rule label name (its logical identity). Zscaler assigns the numeric id."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          validation:
+            maxLength: 255
+          helpText: "Optional description shown in the ZIA Admin Portal."

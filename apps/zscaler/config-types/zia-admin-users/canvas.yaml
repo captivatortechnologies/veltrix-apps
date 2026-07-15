@@ -1,0 +1,95 @@
+# =============================================================================
+# Canvas Template — ZIA Admin Users
+#
+# Declares ONE ZIA administrator account — the item. Users add as many admin
+# accounts as they need. A ZIA admin user's logical identity is its LOGIN NAME
+# (list /adminUsers + match on loginName); Zscaler assigns it a numeric id.
+#
+# ROLE BY NAME: an admin references its role by NAME (role_name). deploy resolves
+# that name to a role id by listing /adminRoles, so the role must already exist
+# in the tenant (create it with the zia-admin-roles config type first).
+#
+# ⚠ WRITE-ONLY SECRET: `password` is never returned by ZIA on GET. It is a
+# fieldType: password, required on every deploy (validate cannot tell a create
+# from an update), and sent to ZIA ONLY when the account is CREATED — never on an
+# update, never stored in rollback data, artifacts or logs, and never
+# drift-checked. See config-types/zia-admin-users/deploy.ts.
+#
+# Field keys must match what config-types/zia-admin-users/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zia-admin-users"
+name: "ZIA Admin User Configuration"
+toolType: "zscaler"
+entityType: "zia-admin-users"
+description: "Define ZIA administrator accounts as code through the Zscaler OneAPI (/adminUsers). The role is referenced by name and resolved to its id at deploy time; the password is a write-only secret sent only on create. Changes are staged and activated as a batch."
+
+item:
+  label: "Admin User"
+  identityField: "login_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Admin User"
+      icon: "user"
+      description: "Account identity, role and password"
+      fields:
+        - key: "login_name"
+          label: "Login Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The administrator's login name — usually an email-style
+            user@domain — and the account's logical identity (matched to the
+            numeric id ZIA assigns). Never delete the bootstrap super admin by
+            reusing its login name.
+
+        - key: "user_name"
+          label: "Display Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The administrator's display name shown in the ZIA Admin Portal."
+
+        - key: "email"
+          label: "Email"
+          fieldType: "text"
+          required: true
+          helpText: "The administrator's email address (e.g. admin@example.com)."
+
+        - key: "role_name"
+          label: "Role"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The NAME of the admin role to grant. Resolved to a role id at deploy
+            time by listing /adminRoles — the role must already exist in the
+            tenant (create it with the ZIA Admin Roles config type first), or the
+            deploy fails with a clear error.
+
+        - key: "comments"
+          label: "Comments"
+          fieldType: "textarea"
+          helpText: "Optional notes about this administrator, shown in the ZIA Admin Portal."
+
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "On: the account is disabled and cannot sign in. Off: the account can authenticate."
+
+        - key: "password"
+          label: "Password"
+          fieldType: "password"
+          required: true
+          helpText: >
+            WRITE-ONLY secret. ZIA never returns it, so it cannot be read back or
+            drift-checked. It is sent to ZIA ONLY when the account is CREATED — on
+            later deploys it is NEVER sent (the existing password is kept) and is
+            never stored in rollback data, artifacts or logs. A value is required
+            on every deploy because validation cannot tell a create from an
+            update.

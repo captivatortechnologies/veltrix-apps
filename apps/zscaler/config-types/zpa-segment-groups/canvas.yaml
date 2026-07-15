@@ -1,0 +1,46 @@
+# =============================================================================
+# Canvas Template — ZPA Segment Groups
+#
+# Declares ONE segment group — the item. Users add as many as they need.
+# A ZPA segment group is a container that application segments belong to; ZPA
+# assigns it a numeric id (returned as a string). Identity is the NAME
+# (list + match). ZPA changes apply immediately — there is no activation step.
+#
+# Field keys must match what config-types/zpa-segment-groups/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zpa-segment-groups"
+name: "ZPA Segment Group Configuration"
+toolType: "zscaler"
+entityType: "zpa-segment-groups"
+description: "Define ZPA segment groups as code through the Zscaler OneAPI (/segmentGroup). Requires the ZPA Customer ID app setting."
+
+item:
+  label: "Segment Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Segment Group"
+      icon: "layers"
+      description: "Name, description and state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The segment group name (its logical identity). ZPA assigns the numeric id."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the ZPA Admin Portal."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the segment group (and the application segments in it) is enabled."

@@ -1,0 +1,72 @@
+# =============================================================================
+# Canvas Template — ZPA Server Groups
+#
+# Declares ONE server group — the item. Users add as many as they need.
+# A ZPA server group binds one or more App Connector groups to the servers an
+# application segment routes to; ZPA assigns it a numeric id (returned as a
+# string). With dynamic discovery ON, ZPA discovers member servers automatically
+# from the App Connector groups; with it OFF, the group routes only to the
+# explicitly listed servers. Members are referenced by NAME and resolved to ids
+# at deploy — create the App Connector groups (and servers) first. Identity is
+# the NAME (list + match). ZPA changes apply immediately — there is no
+# activation step.
+#
+# Field keys must match what config-types/zpa-server-groups/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zpa-server-groups"
+name: "ZPA Server Group Configuration"
+toolType: "zscaler"
+entityType: "zpa-server-groups"
+description: "Define ZPA server groups as code through the Zscaler OneAPI (/serverGroup). References App Connector groups (and optionally servers) by name. Requires the ZPA Customer ID app setting."
+
+item:
+  label: "Server Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Server Group"
+      icon: "server"
+      description: "Name, state and discovery mode"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The server group name (its logical identity). ZPA assigns the numeric id."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the ZPA Admin Portal."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the server group is enabled."
+
+        - key: "dynamic_discovery"
+          label: "Dynamic Discovery"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "When on, ZPA discovers member servers automatically from the App Connector groups. When off, the group routes only to the servers listed below."
+
+    - name: "Members"
+      icon: "share-2"
+      description: "App Connector groups and servers referenced by name"
+      fields:
+        - key: "app_connector_groups"
+          label: "App Connector Groups"
+          fieldType: "textarea"
+          required: true
+          helpText: "One App Connector group NAME per line. Each must already exist in the tenant — it is resolved to its id at deploy."
+
+        - key: "servers"
+          label: "Servers"
+          fieldType: "textarea"
+          helpText: "One server NAME per line. Only used when Dynamic Discovery is off, and at least one is required then. Each must already exist in the tenant."

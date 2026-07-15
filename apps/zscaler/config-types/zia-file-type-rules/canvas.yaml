@@ -1,0 +1,81 @@
+# =============================================================================
+# Canvas Template — ZIA File Type Control Rules
+#
+# Declares ONE file type control rule — the item. Users add as many rules as they
+# need. A ZIA file type rule governs the upload/download of specific file types
+# (by MIME/file-type token) for matched traffic; Zscaler assigns it a numeric id
+# and an evaluation order. Identity is the NAME (list + match).
+#
+# The many rule-specific criteria (fileTypes[], and object references such as
+# users/groups/locations/urlCategories/deviceGroups) are authored as a single
+# JSON object in `rule_json` — the escape hatch — while the common scalars
+# (name, order, state, action) are first-class fields.
+#
+# Field keys must match what config-types/zia-file-type-rules/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zia-file-type-rules"
+name: "ZIA File Type Control Rule Configuration"
+toolType: "zscaler"
+entityType: "zia-file-type-rules"
+description: "Define ZIA file type control rules as code through the Zscaler OneAPI (/fileTypeRules). Changes are staged and activated as a batch."
+
+item:
+  label: "File Type Control Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "File Type Control Rule"
+      icon: "file"
+      description: "Name, evaluation order, state and action"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The rule name (its logical identity). Zscaler assigns the numeric id. The built-in default rule is protected and cannot be managed here."
+
+        - key: "order"
+          label: "Order"
+          fieldType: "number"
+          defaultValue: 1
+          validation:
+            min: 1
+          helpText: "Evaluation order (1 = first). Positive integer; defaults to 1 when left blank."
+
+        - key: "state"
+          label: "State"
+          fieldType: "select"
+          defaultValue: "ENABLED"
+          options:
+            - label: "Enabled"
+              value: "ENABLED"
+            - label: "Disabled"
+              value: "DISABLED"
+          helpText: "Whether the rule is active."
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          defaultValue: "BLOCK"
+          options:
+            - label: "Allow"
+              value: "ALLOW"
+            - label: "Block"
+              value: "BLOCK"
+            - label: "Caution"
+              value: "CAUTION"
+          helpText: "What ZIA does when the rule matches."
+
+        - key: "rule_json"
+          label: "Advanced Criteria (JSON)"
+          fieldType: "textarea"
+          helpText: >-
+            Optional JSON object for the rule's file types and match criteria — e.g.
+            {"fileTypes":["FTCATEGORY_MS_WORD","FTCATEGORY_PDF"],"protocols":["HTTPS_RULE"]}.
+            Object references (users, groups, locations, urlCategories, deviceGroups) go
+            here too. Keys set here win over the scalar fields above, except `name`.

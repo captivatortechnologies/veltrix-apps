@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template — ZIA Locations
+#
+# Declares ONE location — the item. Users add as many locations as they need.
+# A ZIA location models a customer site/branch (its egress IPs, sub-locations,
+# authentication and inspection policy); Zscaler assigns it a numeric id.
+# Identity is the NAME (list + match).
+#
+# name/country/tz are first-class; the many optional location settings
+# (ipAddresses, ports, authRequired, sslScanEnabled, vpnCredentials, …) are
+# authored as a single JSON object in location_json.
+#
+# Field keys must match what config-types/zia-locations/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zia-locations"
+name: "ZIA Location Configuration"
+toolType: "zscaler"
+entityType: "zia-locations"
+description: "Define ZIA locations as code through the Zscaler OneAPI (/locations). Changes are staged and activated as a batch."
+
+item:
+  label: "Location"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Location"
+      icon: "map-pin"
+      description: "Name and site attributes"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "The location name (its logical identity). Zscaler assigns the numeric id."
+
+        - key: "country"
+          label: "Country"
+          fieldType: "text"
+          helpText: "Optional country for the location (e.g. UNITED_STATES)."
+
+        - key: "tz"
+          label: "Timezone"
+          fieldType: "text"
+          helpText: "Optional IANA timezone for the location (e.g. UNITED_STATES_AMERICA_LOS_ANGELES)."
+
+    - name: "Advanced Settings"
+      icon: "settings"
+      description: "Optional location settings as a JSON object"
+      fields:
+        - key: "location_json"
+          label: "Location Settings (JSON)"
+          fieldType: "textarea"
+          helpText: >-
+            Optional JSON object for the many additional location fields, e.g.
+            {"ipAddresses":["203.0.113.10"],"ports":"80,443","authRequired":true,"sslScanEnabled":true,"vpnCredentials":[{"id":123}]}.
+            Leave blank to manage only name/country/timezone.

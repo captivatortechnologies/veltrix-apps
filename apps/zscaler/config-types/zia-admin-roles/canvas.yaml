@@ -1,0 +1,67 @@
+# =============================================================================
+# Canvas Template — ZIA Admin Roles
+#
+# Declares ONE admin role — the item. Users add as many roles as they need. A
+# ZIA admin role bundles a set of permissionsAccess maps (policyAccess,
+# dashboardAccess, reportingAccess, adminAcctAccess, usernameAccess, …) and a
+# rank; Zscaler assigns it a numeric id. Identity is the NAME (list + match).
+#
+# The many permissionsAccess maps live in a single JSON escape-hatch field,
+# `role_json`, so authors can express any permission map the API accepts without
+# this template enumerating them all. The first-class fields (name / rank) are
+# the ones drift detection and health checks reason about.
+#
+# The built-in (predefined) admin roles are read-only — deploy refuses to modify
+# or delete a role whose live object is `isNameL10nTag: true` (rename your role
+# to manage a custom one).
+#
+# Field keys must match what config-types/zia-admin-roles/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zia-admin-roles"
+name: "ZIA Admin Role Configuration"
+toolType: "zscaler"
+entityType: "zia-admin-roles"
+description: "Define ZIA admin roles as code through the Zscaler OneAPI (/adminRoles). Changes are staged and activated as a batch."
+
+item:
+  label: "Admin Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Admin Role"
+      icon: "shield"
+      description: "Name and rank"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The admin role name (its logical identity). Zscaler assigns the numeric id."
+
+        - key: "rank"
+          label: "Rank"
+          fieldType: "number"
+          defaultValue: 7
+          validation:
+            min: 1
+          helpText: "Admin rank (1 = highest privilege, 7 = lowest). A positive integer; defaults to 7."
+
+    - name: "Permissions (JSON)"
+      icon: "settings"
+      description: "Advanced permissionsAccess maps as a JSON object"
+      fields:
+        - key: "role_json"
+          label: "Role Permissions (JSON)"
+          fieldType: "textarea"
+          helpText: >-
+            Optional JSON object holding the role's permissionsAccess maps and
+            advanced fields, e.g.
+            {"policyAccess":"READ_WRITE","dashboardAccess":"READ_ONLY","reportingAccess":"READ_ONLY","adminAcctAccess":"NONE","usernameAccess":"READ_ONLY"}.
+            Its keys are merged into the request body; name / rank always come
+            from the fields above and win over any same-named JSON keys. Leave
+            blank for a role with default permissions.

@@ -1,0 +1,48 @@
+# =============================================================================
+# Canvas Template — ZIA Network Application Groups
+#
+# Declares ONE network application group — the item. Users add as many groups as
+# they need. A ZIA network application group bundles predefined network
+# applications (e.g. APNS) under a name so firewall rules can reference the set;
+# Zscaler assigns it a numeric id. Identity is the NAME (list + match).
+#
+# Field keys must match what config-types/zia-network-app-groups/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zia-network-app-groups"
+name: "ZIA Network Application Group Configuration"
+toolType: "zscaler"
+entityType: "zia-network-app-groups"
+description: "Define ZIA network application groups as code through the Zscaler OneAPI (/networkApplicationGroups). Changes are staged and activated as a batch."
+
+item:
+  label: "Network Application Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Network Application Group"
+      icon: "layers"
+      description: "Name, description and member network applications"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The network application group name (its logical identity). Zscaler assigns the numeric id."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          validation:
+            maxLength: 255
+          helpText: "Optional description shown in the ZIA Admin Portal."
+
+        - key: "network_applications"
+          label: "Network Applications"
+          fieldType: "textarea"
+          required: true
+          helpText: "One predefined ZIA network-application id per line (e.g. APNS, DNS, WINDOWS_MARKETPLACE). These are Zscaler's built-in application ids that make up the group."

@@ -1,0 +1,83 @@
+# =============================================================================
+# Canvas Template — ZIA SSL Inspection Rules
+#
+# Declares ONE SSL inspection rule — the item. Users add as many rules as they
+# need. A ZIA SSL inspection rule decides whether matching TLS traffic is
+# decrypted (inspected) or left encrypted; Zscaler assigns it a numeric id and
+# evaluates rules in `order`. Identity is the NAME (list + match).
+#
+# This is a POLICY RULE type: a handful of first-class scalar fields (name,
+# order, state) plus a "rule_json" escape hatch — a JSON object holding the many
+# optional criteria (srcIps, destIpGroups, urlCategories, deviceGroups, …).
+#
+# SPECIAL to SSL inspection: unlike the other rule types the ACTION is not a
+# simple string — it is an OBJECT (e.g. {"type":"DECRYPT"} or
+# {"type":"DO_NOT_DECRYPT"}, plus optional sub-fields like sslInterceptionCert,
+# showEUN, …). It therefore stays inside rule_json under the `action` key rather
+# than being promoted to a first-class select field. name/order/state come from
+# the fields below and win over any same-named JSON keys.
+#
+# ZIA ships a PROTECTED default SSL inspection rule that must never be modified
+# or deleted — authors must pick a distinct name (deploy refuses to touch it).
+#
+# Field keys must match what config-types/zia-ssl-inspection-rules/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zia-ssl-inspection-rules"
+name: "ZIA SSL Inspection Rule Configuration"
+toolType: "zscaler"
+entityType: "zia-ssl-inspection-rules"
+description: "Define ZIA SSL inspection rules as code through the Zscaler OneAPI (/sslInspectionRules). Changes are staged and activated as a batch."
+
+item:
+  label: "SSL Inspection Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "SSL Inspection Rule"
+      icon: "lock"
+      description: "Name, ordering and state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The SSL inspection rule name (its logical identity). Zscaler assigns the numeric id. Must not be the built-in default rule."
+
+        - key: "order"
+          label: "Rule Order"
+          fieldType: "number"
+          defaultValue: 1
+          validation:
+            min: 1
+          helpText: "Evaluation order (1 = first). Lower-numbered rules are matched before higher ones."
+
+        - key: "state"
+          label: "State"
+          fieldType: "select"
+          defaultValue: "ENABLED"
+          options:
+            - label: "Enabled"
+              value: "ENABLED"
+            - label: "Disabled"
+              value: "DISABLED"
+          helpText: "Whether the rule is active in the SSL inspection policy."
+
+    - name: "SSL Action & Criteria (JSON)"
+      icon: "code"
+      description: "The SSL action object plus advanced criteria, as a JSON object"
+      fields:
+        - key: "rule_json"
+          label: "Rule JSON"
+          fieldType: "textarea"
+          helpText: >-
+            JSON object holding the SSL `action` object and any advanced criteria, e.g.
+            {"action":{"type":"DECRYPT"},"srcIps":["10.0.0.0/8"],"urlCategories":["FINANCE"]}
+            or {"action":{"type":"DO_NOT_DECRYPT"}}. The `action` object is REQUIRED
+            by ZIA — this rule type has no first-class action field, so it must be
+            provided here. These keys are merged into the API body; name/order/state
+            come from the fields above and win over any same-named JSON keys.

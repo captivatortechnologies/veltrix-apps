@@ -1,0 +1,96 @@
+# =============================================================================
+# Canvas Template — ZIA Firewall IPS Rules
+#
+# Declares ONE firewall IPS rule — the item. Users add as many rules as needed.
+# A ZIA firewall IPS rule inspects traffic against the IPS engine and takes an
+# action (allow / block / bypass); Zscaler assigns it a numeric id. Identity is
+# the NAME (list + match). Order controls enforcement precedence.
+#
+# The rule's advanced criteria (source/destination groups, network services,
+# labels, time windows, IPS thresholds, …) are supplied through a single JSON
+# escape-hatch field (rule_json) so the whole ZIA rule surface stays reachable
+# without a field per attribute. A handful of first-class scalars (name, order,
+# state, action) stay as proper fields — those are the ones drift detection
+# tracks. See the ZIA API: POST/PUT /firewallIpsRules.
+#
+# NOTE: ZIA ships a protected DEFAULT firewall IPS rule that must never be
+# modified or deleted — deploy refuses to touch it, so do not name a rule after
+# it. The tenant hosts a single default rule set: there is no built-in default
+# unless your tenant provisions one.
+#
+# Field keys must match what config-types/zia-firewall-ips-rules/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zia-firewall-ips-rules"
+name: "ZIA Firewall IPS Rule Configuration"
+toolType: "zscaler"
+entityType: "zia-firewall-ips-rules"
+description: "Define ZIA firewall IPS rules as code through the Zscaler OneAPI (/firewallIpsRules). First-class name/order/state/action plus a JSON escape hatch for advanced criteria. Changes are staged and activated as a batch."
+
+item:
+  label: "Firewall IPS Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Firewall IPS Rule"
+      icon: "shield"
+      description: "Name, ordering and enforcement action"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The firewall IPS rule name (its logical identity). Zscaler assigns the numeric id. Must not collide with the built-in default rule."
+
+        - key: "order"
+          label: "Order"
+          fieldType: "number"
+          defaultValue: 1
+          validation:
+            min: 1
+          helpText: "Rule evaluation order (1 = highest precedence). Must be a positive integer. Defaults to 1 when left blank."
+
+        - key: "state"
+          label: "State"
+          fieldType: "select"
+          defaultValue: "ENABLED"
+          options:
+            - label: "Enabled"
+              value: "ENABLED"
+            - label: "Disabled"
+              value: "DISABLED"
+          helpText: "Whether the rule is active. Disabled rules are kept but not enforced."
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          defaultValue: "ALLOW"
+          options:
+            - label: "Allow"
+              value: "ALLOW"
+            - label: "Block & drop (silent)"
+              value: "BLOCK_DROP"
+            - label: "Block & reset connection"
+              value: "BLOCK_RESET"
+            - label: "Bypass IPS inspection"
+              value: "BYPASS_IPS"
+          helpText: "What ZIA does with traffic the rule matches."
+
+    - name: "Advanced criteria"
+      icon: "code"
+      description: "Optional JSON body for the full ZIA rule surface"
+      fields:
+        - key: "rule_json"
+          label: "Advanced Rule JSON"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON object merged into the rule body for advanced criteria
+            the fields above do not cover — leave blank to deploy a rule that uses
+            only name/order/state/action. JSON keys fill in advanced attributes;
+            the first-class scalars always win (name/order/state/action are never
+            taken from this body). Example:
+            {"srcIps":["10.0.0.0/8"],"destCountries":["COUNTRY_CN"],"nwServices":[{"id":774002}]}

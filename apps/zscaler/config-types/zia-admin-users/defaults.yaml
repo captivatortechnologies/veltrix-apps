@@ -1,0 +1,7 @@
+# Defaults for a new admin user item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Users manage their own default value sets and can
+# apply one when creating an item. Any values here would be a flat map keyed by
+# the canvas field keys (login_name, user_name, email, role_name, comments,
+# disabled, password). NEVER seed a default password — it is a write-only secret.

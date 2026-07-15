@@ -1,0 +1,48 @@
+# =============================================================================
+# Canvas Template — ZIA GRE Tunnels
+#
+# Declares ONE GRE tunnel — the item. Users add as many tunnels as they need.
+# A ZIA GRE tunnel forwards traffic from a provisioned static IP to Zscaler VIPs;
+# Zscaler assigns it a numeric id. Identity is the SOURCE IP (list + match).
+#
+# Field keys must match what config-types/zia-gre-tunnels/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zia-gre-tunnels"
+name: "ZIA GRE Tunnel Configuration"
+toolType: "zscaler"
+entityType: "zia-gre-tunnels"
+description: "Define ZIA GRE tunnels as code through the Zscaler OneAPI (/greTunnels). Changes are staged and activated as a batch."
+
+item:
+  label: "GRE Tunnel"
+  identityField: "source_ip"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "GRE Tunnel"
+      icon: "network"
+      description: "Source IP, comment and advanced tunnel settings"
+      fields:
+        - key: "source_ip"
+          label: "Source IP"
+          fieldType: "text"
+          required: true
+          helpText: "The provisioned static source IP for the tunnel (its logical identity). It must already exist as a static IP in the tenant. Zscaler assigns the numeric id."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          validation:
+            maxLength: 10240
+          helpText: "Optional comment shown in the ZIA Admin Portal."
+
+        - key: "gre_json"
+          label: "Advanced Tunnel Settings (JSON)"
+          fieldType: "textarea"
+          helpText: >-
+            Optional JSON object for the tunnel's advanced fields — the VIP
+            objects and flags. Example:
+            { "primaryDestVip": { "id": 12345 }, "secondaryDestVip": { "id": 67890 }, "withinCountry": true, "ipUnnumbered": false }.
+            Keys here are merged into the request body.

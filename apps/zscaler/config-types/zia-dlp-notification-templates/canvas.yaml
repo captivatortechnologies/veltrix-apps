@@ -1,0 +1,64 @@
+# =============================================================================
+# Canvas Template — ZIA DLP Notification Templates
+#
+# Declares ONE DLP notification template — the item. Users add as many templates
+# as they need. A ZIA DLP notification template is the email sent to end users /
+# auditors when a DLP policy triggers; Zscaler assigns it a numeric id. Identity
+# is the NAME (list + match).
+#
+# Field keys must match what config-types/zia-dlp-notification-templates/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zia-dlp-notification-templates"
+name: "ZIA DLP Notification Template Configuration"
+toolType: "zscaler"
+entityType: "zia-dlp-notification-templates"
+description: "Define ZIA DLP notification templates as code through the Zscaler OneAPI (/dlpNotificationTemplates). Changes are staged and activated as a batch."
+
+item:
+  label: "DLP Notification Template"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "DLP Notification Template"
+      icon: "mail"
+      description: "Name, subject and message bodies for the DLP notification email"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The DLP notification template name (its logical identity). Zscaler assigns the numeric id."
+
+        - key: "subject"
+          label: "Subject"
+          fieldType: "text"
+          required: true
+          helpText: "The email subject line. May contain ZIA notification tokens such as ${TRANSACTION_ID}."
+
+        - key: "plain_text_message"
+          label: "Plain Text Message"
+          fieldType: "textarea"
+          required: true
+          helpText: "The plain-text body of the notification email. Required — sent to clients that do not render HTML."
+
+        - key: "html_message"
+          label: "HTML Message"
+          fieldType: "textarea"
+          helpText: "Optional HTML body of the notification email, shown by clients that render HTML."
+
+        - key: "tls_enabled"
+          label: "TLS Enabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether the notification email is delivered over TLS."
+
+        - key: "attach_content"
+          label: "Attach Content"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the content that triggered the DLP policy is attached to the notification email."

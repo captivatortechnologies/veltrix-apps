@@ -1,0 +1,69 @@
+# =============================================================================
+# Canvas Template — ZIA Sandbox Rules
+#
+# Declares ONE sandbox (advanced threat / Sandbox) policy rule — the item. Users
+# add as many rules as they need. A ZIA sandbox rule governs how the cloud
+# sandbox verdict is enforced; Zscaler assigns it a numeric id. Identity is the
+# NAME (list + match).
+#
+# This is a JSON-BODY rule type: the action itself is NOT first-class — the
+# Sandbox action (`ba_rule_action`), plus policy categories, file types and the
+# many other optional criteria, live inside the `rule_json` escape hatch. Only
+# name / order / state are surfaced as first-class fields.
+#
+# Field keys must match what config-types/zia-sandbox-rules/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zia-sandbox-rules"
+name: "ZIA Sandbox Rule Configuration"
+toolType: "zscaler"
+entityType: "zia-sandbox-rules"
+description: "Define ZIA sandbox (advanced threat) policy rules as code through the Zscaler OneAPI (/sandboxRules). The Sandbox action and advanced criteria are authored in a JSON body. Changes are staged and activated as a batch."
+
+item:
+  label: "Sandbox Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Sandbox Rule"
+      icon: "shield"
+      description: "Rule identity and evaluation order"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The sandbox rule name (its logical identity). Zscaler assigns the numeric id."
+
+        - key: "order"
+          label: "Order"
+          fieldType: "number"
+          validation:
+            min: 1
+          helpText: "1-based evaluation order among sandbox rules. Defaults to 1 when unset."
+
+        - key: "state"
+          label: "State"
+          fieldType: "select"
+          options:
+            - { label: "Enabled", value: "ENABLED" }
+            - { label: "Disabled", value: "DISABLED" }
+          helpText: "Whether the rule is active. Defaults to Enabled."
+
+    - name: "Rule Body"
+      icon: "code"
+      description: "Advanced criteria and the Sandbox action (JSON)"
+      fields:
+        - key: "rule_json"
+          label: "Rule JSON"
+          fieldType: "textarea"
+          helpText: >-
+            A JSON object holding the Sandbox action and any advanced criteria — e.g.
+            {\"ba_rule_action\": \"BLOCK\", \"ba_policy_categories\": [\"ADWARE_BLOCK\"],
+            \"fileTypes\": [\"FTCATEGORY_MS_DOC\"], \"firstTimeEnable\": true}. These keys
+            are merged into the request body verbatim (name and order always come from the
+            fields above). Leave blank to send only name / order / state.

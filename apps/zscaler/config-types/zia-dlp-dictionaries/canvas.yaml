@@ -1,0 +1,78 @@
+# =============================================================================
+# Canvas Template — ZIA DLP Dictionaries
+#
+# Declares ONE custom DLP dictionary — the item. Users add as many as they need.
+# A ZIA DLP dictionary is a named set of phrases and/or regex patterns that DLP
+# engines reference to detect sensitive content; Zscaler assigns it a numeric id.
+# Identity is the NAME (list + match). Predefined dictionaries are read-only.
+#
+# Field keys must match what config-types/zia-dlp-dictionaries/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zia-dlp-dictionaries"
+name: "ZIA DLP Dictionary Configuration"
+toolType: "zscaler"
+entityType: "zia-dlp-dictionaries"
+description: "Define custom ZIA DLP dictionaries as code through the Zscaler OneAPI (/dlpDictionaries). Changes are staged and activated as a batch."
+
+item:
+  label: "DLP Dictionary"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "DLP Dictionary"
+      icon: "shield"
+      description: "Name, type, phrases and patterns"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The dictionary name (its logical identity). Zscaler assigns the numeric id."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          validation:
+            maxLength: 255
+          helpText: "Optional description shown in the ZIA Admin Portal."
+
+        - key: "dictionary_type"
+          label: "Dictionary Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "PATTERNS_AND_PHRASES"
+          options:
+            - label: "Patterns and phrases (PATTERNS_AND_PHRASES)"
+              value: "PATTERNS_AND_PHRASES"
+            - label: "Exact data match (EXACT_DATA_MATCH)"
+              value: "EXACT_DATA_MATCH"
+            - label: "Indexed data match (INDEXED_DATA_MATCH)"
+              value: "INDEXED_DATA_MATCH"
+          helpText: "The detection technique. Custom phrase/pattern dictionaries use PATTERNS_AND_PHRASES."
+
+        - key: "phrases"
+          label: "Phrases"
+          fieldType: "textarea"
+          helpText: "Optional — one phrase per line. Each becomes a PHRASE_COUNT_TYPE_ALL phrase. Provide at least one phrase or pattern."
+
+        - key: "patterns"
+          label: "Patterns"
+          fieldType: "textarea"
+          helpText: "Optional — one regular-expression pattern per line. Each becomes a PATTERN_COUNT_TYPE_ALL pattern. Provide at least one phrase or pattern."
+
+        - key: "custom_phrase_match_type"
+          label: "Custom Phrase Match Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "MATCH_ALL_CUSTOM_PHRASE_PATTERN_DICTIONARY"
+          options:
+            - label: "Match all phrases/patterns (MATCH_ALL_CUSTOM_PHRASE_PATTERN_DICTIONARY)"
+              value: "MATCH_ALL_CUSTOM_PHRASE_PATTERN_DICTIONARY"
+            - label: "Match any phrase/pattern (MATCH_ANY_CUSTOM_PHRASE_PATTERN_DICTIONARY)"
+              value: "MATCH_ANY_CUSTOM_PHRASE_PATTERN_DICTIONARY"
+          helpText: "Whether a match requires ALL phrases/patterns or ANY one of them."

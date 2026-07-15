@@ -1,0 +1,58 @@
+# =============================================================================
+# Canvas Template — ZIA Network Services
+#
+# Declares ONE custom network service — the item. Users add as many services as
+# they need. A ZIA network service names a set of destination TCP/UDP ports;
+# Zscaler assigns it a numeric id. Identity is the NAME (list + match).
+#
+# PREDEFINED network services are read-only and cannot be managed here — declare
+# only custom (type "CUSTOM") services.
+#
+# Field keys must match what config-types/zia-network-services/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zia-network-services"
+name: "ZIA Network Service Configuration"
+toolType: "zscaler"
+entityType: "zia-network-services"
+description: "Define custom ZIA network services as code through the Zscaler OneAPI (/networkServices). Changes are staged and activated as a batch."
+
+item:
+  label: "Network Service"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Network Service"
+      icon: "globe"
+      description: "Name and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The network service name (its logical identity). Zscaler assigns the numeric id."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          validation:
+            maxLength: 10240
+          helpText: "Optional description shown in the ZIA Admin Portal."
+
+    - name: "Ports"
+      icon: "network"
+      description: "Destination TCP/UDP ports — at least one is required"
+      fields:
+        - key: "tcp_ports"
+          label: "TCP Ports"
+          fieldType: "textarea"
+          helpText: "One destination TCP port or range per line, e.g. \"443\" or \"8000-8100\" (1–65535)."
+
+        - key: "udp_ports"
+          label: "UDP Ports"
+          fieldType: "textarea"
+          helpText: "One destination UDP port or range per line, e.g. \"53\" or \"5000-5100\" (1–65535)."

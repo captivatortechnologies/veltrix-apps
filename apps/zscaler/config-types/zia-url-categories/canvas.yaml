@@ -1,0 +1,74 @@
+# =============================================================================
+# Canvas Template — ZIA URL Categories (custom only)
+#
+# Declares ONE custom URL category — the item. Users add as many as they need.
+# A ZIA URL category is a named set of URLs (and optional keywords) referenced by
+# URL filtering rules. This config type manages CUSTOM categories only —
+# predefined categories are read-only in ZIA and cannot be modified.
+#
+# SPECIAL: identity is the `configured_name` (NOT a numeric id), and Zscaler
+# assigns a STRING id ("CUSTOM_xx") to a custom category.
+#
+# Field keys must match what config-types/zia-url-categories/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zia-url-categories"
+name: "ZIA URL Category Configuration"
+toolType: "zscaler"
+entityType: "zia-url-categories"
+description: "Define custom ZIA URL categories as code through the Zscaler OneAPI (/urlCategories). Changes are staged and activated as a batch. Predefined categories are read-only."
+
+item:
+  label: "URL Category"
+  identityField: "configured_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "URL Category"
+      icon: "globe"
+      description: "Name, classification and matched content"
+      fields:
+        - key: "configured_name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 31
+          helpText: "The custom URL category name (its logical identity). Zscaler assigns the string id (e.g. CUSTOM_01). Predefined category names are read-only."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          validation:
+            maxLength: 255
+          helpText: "Optional description shown in the ZIA Admin Portal."
+
+        - key: "super_category"
+          label: "Super-Category"
+          fieldType: "text"
+          required: true
+          defaultValue: "USER_DEFINED"
+          helpText: "The parent super-category for this custom category (e.g. USER_DEFINED)."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          defaultValue: "URL_CATEGORY"
+          options:
+            - label: "URL category (URL_CATEGORY)"
+              value: "URL_CATEGORY"
+            - label: "TLD category (TLD_CATEGORY)"
+              value: "TLD_CATEGORY"
+          helpText: "Whether the category matches URLs or top-level domains. Defaults to URL_CATEGORY."
+
+        - key: "urls"
+          label: "URLs"
+          fieldType: "textarea"
+          required: true
+          helpText: "One URL per line — the URLs (or TLDs) this category matches."
+
+        - key: "keywords"
+          label: "Keywords"
+          fieldType: "textarea"
+          helpText: "Optional — one keyword per line, used for keyword-based matching."

@@ -1,0 +1,737 @@
+id: zscaler
+name: Zscaler
+version: "1.0.0"
+vendor: Veltrix
+description: >
+  Manage Zscaler Internet Access (ZIA) and Zscaler Private Access (ZPA)
+  configuration as code through the Zscaler OneAPI. Covers URL filtering,
+  cloud firewall, DLP, SSL inspection, locations and admin config on ZIA, and
+  application segments, server/segment groups, connectors and access policy on
+  ZPA - with validation, drift detection and rollback handled by the
+  Security-as-Code pipeline. ZIA changes are staged and activated as a batch;
+  ZPA changes apply immediately.
+category: NETWORK
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/zscaler
+icon: "🛡️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Zscaler brand: the Zscaler blue with a cyan accent.
+branding:
+  primaryColor: "#0075BE"
+  accentColor: "#00A3E0"
+  logo: ./assets/logo.svg
+  logoDark: ./assets/logo-dark.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: zia-url-filtering-rules
+      actions: [read, write, delete]
+      description: Manage Zscaler custom URL filtering rules
+    - resource: zia-url-categories
+      actions: [read, write, delete]
+      description: Manage Zscaler custom URL categories
+    - resource: zia-firewall-rules
+      actions: [read, write, delete]
+      description: Manage Zscaler cloud firewall filtering rules
+    - resource: zia-firewall-dns-rules
+      actions: [read, write, delete]
+      description: Manage Zscaler DNS control rules
+    - resource: zia-firewall-ips-rules
+      actions: [read, write, delete]
+      description: Manage Zscaler IPS control rules
+    - resource: zia-ssl-inspection-rules
+      actions: [read, write, delete]
+      description: Manage Zscaler SSL inspection rules
+    - resource: zia-file-type-rules
+      actions: [read, write, delete]
+      description: Manage Zscaler file type control rules
+    - resource: zia-sandbox-rules
+      actions: [read, write, delete]
+      description: Manage Zscaler sandbox rules
+    - resource: zia-web-dlp-rules
+      actions: [read, write, delete]
+      description: Manage Zscaler web DLP rules
+    - resource: zia-network-services
+      actions: [read, write, delete]
+      description: Manage Zscaler custom network services
+    - resource: zia-network-service-groups
+      actions: [read, write, delete]
+      description: Manage Zscaler network service groups
+    - resource: zia-network-app-groups
+      actions: [read, write, delete]
+      description: Manage Zscaler network application groups
+    - resource: zia-ip-source-groups
+      actions: [read, write, delete]
+      description: Manage Zscaler IP source groups
+    - resource: zia-ip-destination-groups
+      actions: [read, write, delete]
+      description: Manage Zscaler IP destination groups
+    - resource: zia-dlp-dictionaries
+      actions: [read, write, delete]
+      description: Manage Zscaler custom DLP dictionaries
+    - resource: zia-dlp-engines
+      actions: [read, write, delete]
+      description: Manage Zscaler custom DLP engines
+    - resource: zia-dlp-notification-templates
+      actions: [read, write, delete]
+      description: Manage Zscaler DLP notification templates
+    - resource: zia-locations
+      actions: [read, write, delete]
+      description: Manage Zscaler locations
+    - resource: zia-vpn-credentials
+      actions: [read, write, delete]
+      description: Manage Zscaler VPN credentials
+    - resource: zia-gre-tunnels
+      actions: [read, write, delete]
+      description: Manage Zscaler GRE tunnels
+    - resource: zia-static-ips
+      actions: [read, write, delete]
+      description: Manage Zscaler static IPs
+    - resource: zia-admin-roles
+      actions: [read, write, delete]
+      description: Manage Zscaler admin roles
+    - resource: zia-admin-users
+      actions: [read, write, delete]
+      description: Manage Zscaler admin users
+    - resource: zia-rule-labels
+      actions: [read, write, delete]
+      description: Manage Zscaler rule labels
+    - resource: zpa-app-connector-groups
+      actions: [read, write, delete]
+      description: Manage Zscaler app connector groups
+    - resource: zpa-service-edge-groups
+      actions: [read, write, delete]
+      description: Manage Zscaler service edge groups
+    - resource: zpa-servers
+      actions: [read, write, delete]
+      description: Manage Zscaler application servers
+    - resource: zpa-server-groups
+      actions: [read, write, delete]
+      description: Manage Zscaler server groups
+    - resource: zpa-segment-groups
+      actions: [read, write, delete]
+      description: Manage Zscaler segment groups
+    - resource: zpa-application-segments
+      actions: [read, write, delete]
+      description: Manage Zscaler application segments
+    - resource: zpa-provisioning-keys
+      actions: [read, write, delete]
+      description: Manage Zscaler provisioning keys
+    - resource: zpa-policy-rules
+      actions: [read, write, delete]
+      description: Manage Zscaler policy rules
+
+pipeline:
+  configurationTypes:
+    - id: zia-url-filtering-rules
+      name: ZIA URL Filtering Rules
+      description: URL filtering policy rules (/urlFilteringRules); staged then activated as a batch
+      canvasTemplate: config-types/zia-url-filtering-rules/canvas.yaml
+      defaultConfig: config-types/zia-url-filtering-rules/defaults.yaml
+      handlers:
+        validate: config-types/zia-url-filtering-rules/validate
+        deploy: config-types/zia-url-filtering-rules/deploy
+        rollback: config-types/zia-url-filtering-rules/rollback
+        healthCheck: config-types/zia-url-filtering-rules/healthCheck
+        driftDetect: config-types/zia-url-filtering-rules/driftDetect
+        getStatus: config-types/zia-url-filtering-rules/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zia-url-categories
+      name: ZIA URL Categories
+      description: Custom URL categories (/urlCategories); predefined categories are read-only references
+      canvasTemplate: config-types/zia-url-categories/canvas.yaml
+      defaultConfig: config-types/zia-url-categories/defaults.yaml
+      handlers:
+        validate: config-types/zia-url-categories/validate
+        deploy: config-types/zia-url-categories/deploy
+        rollback: config-types/zia-url-categories/rollback
+        healthCheck: config-types/zia-url-categories/healthCheck
+        driftDetect: config-types/zia-url-categories/driftDetect
+        getStatus: config-types/zia-url-categories/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zia-firewall-rules
+      name: ZIA Cloud Firewall Rules
+      description: Cloud firewall filtering rules (/firewallFilteringRules)
+      canvasTemplate: config-types/zia-firewall-rules/canvas.yaml
+      defaultConfig: config-types/zia-firewall-rules/defaults.yaml
+      handlers:
+        validate: config-types/zia-firewall-rules/validate
+        deploy: config-types/zia-firewall-rules/deploy
+        rollback: config-types/zia-firewall-rules/rollback
+        healthCheck: config-types/zia-firewall-rules/healthCheck
+        driftDetect: config-types/zia-firewall-rules/driftDetect
+        getStatus: config-types/zia-firewall-rules/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zia-firewall-dns-rules
+      name: ZIA DNS Control Rules
+      description: Cloud firewall DNS control rules (/firewallDnsRules)
+      canvasTemplate: config-types/zia-firewall-dns-rules/canvas.yaml
+      defaultConfig: config-types/zia-firewall-dns-rules/defaults.yaml
+      handlers:
+        validate: config-types/zia-firewall-dns-rules/validate
+        deploy: config-types/zia-firewall-dns-rules/deploy
+        rollback: config-types/zia-firewall-dns-rules/rollback
+        healthCheck: config-types/zia-firewall-dns-rules/healthCheck
+        driftDetect: config-types/zia-firewall-dns-rules/driftDetect
+        getStatus: config-types/zia-firewall-dns-rules/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zia-firewall-ips-rules
+      name: ZIA IPS Control Rules
+      description: Cloud firewall IPS control rules (/firewallIpsRules)
+      canvasTemplate: config-types/zia-firewall-ips-rules/canvas.yaml
+      defaultConfig: config-types/zia-firewall-ips-rules/defaults.yaml
+      handlers:
+        validate: config-types/zia-firewall-ips-rules/validate
+        deploy: config-types/zia-firewall-ips-rules/deploy
+        rollback: config-types/zia-firewall-ips-rules/rollback
+        healthCheck: config-types/zia-firewall-ips-rules/healthCheck
+        driftDetect: config-types/zia-firewall-ips-rules/driftDetect
+        getStatus: config-types/zia-firewall-ips-rules/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zia-ssl-inspection-rules
+      name: ZIA SSL Inspection Rules
+      description: TLS/SSL inspection rules (/sslInspectionRules)
+      canvasTemplate: config-types/zia-ssl-inspection-rules/canvas.yaml
+      defaultConfig: config-types/zia-ssl-inspection-rules/defaults.yaml
+      handlers:
+        validate: config-types/zia-ssl-inspection-rules/validate
+        deploy: config-types/zia-ssl-inspection-rules/deploy
+        rollback: config-types/zia-ssl-inspection-rules/rollback
+        healthCheck: config-types/zia-ssl-inspection-rules/healthCheck
+        driftDetect: config-types/zia-ssl-inspection-rules/driftDetect
+        getStatus: config-types/zia-ssl-inspection-rules/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zia-file-type-rules
+      name: ZIA File Type Control Rules
+      description: File type control rules (/fileTypeRules)
+      canvasTemplate: config-types/zia-file-type-rules/canvas.yaml
+      defaultConfig: config-types/zia-file-type-rules/defaults.yaml
+      handlers:
+        validate: config-types/zia-file-type-rules/validate
+        deploy: config-types/zia-file-type-rules/deploy
+        rollback: config-types/zia-file-type-rules/rollback
+        healthCheck: config-types/zia-file-type-rules/healthCheck
+        driftDetect: config-types/zia-file-type-rules/driftDetect
+        getStatus: config-types/zia-file-type-rules/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zia-sandbox-rules
+      name: ZIA Sandbox Rules
+      description: Sandbox / advanced threat policy rules (/sandboxRules)
+      canvasTemplate: config-types/zia-sandbox-rules/canvas.yaml
+      defaultConfig: config-types/zia-sandbox-rules/defaults.yaml
+      handlers:
+        validate: config-types/zia-sandbox-rules/validate
+        deploy: config-types/zia-sandbox-rules/deploy
+        rollback: config-types/zia-sandbox-rules/rollback
+        healthCheck: config-types/zia-sandbox-rules/healthCheck
+        driftDetect: config-types/zia-sandbox-rules/driftDetect
+        getStatus: config-types/zia-sandbox-rules/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zia-web-dlp-rules
+      name: ZIA Web DLP Rules
+      description: Web DLP rules (/webDlpRules)
+      canvasTemplate: config-types/zia-web-dlp-rules/canvas.yaml
+      defaultConfig: config-types/zia-web-dlp-rules/defaults.yaml
+      handlers:
+        validate: config-types/zia-web-dlp-rules/validate
+        deploy: config-types/zia-web-dlp-rules/deploy
+        rollback: config-types/zia-web-dlp-rules/rollback
+        healthCheck: config-types/zia-web-dlp-rules/healthCheck
+        driftDetect: config-types/zia-web-dlp-rules/driftDetect
+        getStatus: config-types/zia-web-dlp-rules/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zia-network-services
+      name: ZIA Network Services
+      description: Custom network services (/networkServices); predefined services are read-only
+      canvasTemplate: config-types/zia-network-services/canvas.yaml
+      defaultConfig: config-types/zia-network-services/defaults.yaml
+      handlers:
+        validate: config-types/zia-network-services/validate
+        deploy: config-types/zia-network-services/deploy
+        rollback: config-types/zia-network-services/rollback
+        healthCheck: config-types/zia-network-services/healthCheck
+        driftDetect: config-types/zia-network-services/driftDetect
+        getStatus: config-types/zia-network-services/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zia-network-service-groups
+      name: ZIA Network Service Groups
+      description: Network service groups (/networkServiceGroups)
+      canvasTemplate: config-types/zia-network-service-groups/canvas.yaml
+      defaultConfig: config-types/zia-network-service-groups/defaults.yaml
+      handlers:
+        validate: config-types/zia-network-service-groups/validate
+        deploy: config-types/zia-network-service-groups/deploy
+        rollback: config-types/zia-network-service-groups/rollback
+        healthCheck: config-types/zia-network-service-groups/healthCheck
+        driftDetect: config-types/zia-network-service-groups/driftDetect
+        getStatus: config-types/zia-network-service-groups/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zia-network-app-groups
+      name: ZIA Network Application Groups
+      description: Network application groups (/networkApplicationGroups)
+      canvasTemplate: config-types/zia-network-app-groups/canvas.yaml
+      defaultConfig: config-types/zia-network-app-groups/defaults.yaml
+      handlers:
+        validate: config-types/zia-network-app-groups/validate
+        deploy: config-types/zia-network-app-groups/deploy
+        rollback: config-types/zia-network-app-groups/rollback
+        healthCheck: config-types/zia-network-app-groups/healthCheck
+        driftDetect: config-types/zia-network-app-groups/driftDetect
+        getStatus: config-types/zia-network-app-groups/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zia-ip-source-groups
+      name: ZIA IP Source Groups
+      description: IP source groups (/ipSourceGroups)
+      canvasTemplate: config-types/zia-ip-source-groups/canvas.yaml
+      defaultConfig: config-types/zia-ip-source-groups/defaults.yaml
+      handlers:
+        validate: config-types/zia-ip-source-groups/validate
+        deploy: config-types/zia-ip-source-groups/deploy
+        rollback: config-types/zia-ip-source-groups/rollback
+        healthCheck: config-types/zia-ip-source-groups/healthCheck
+        driftDetect: config-types/zia-ip-source-groups/driftDetect
+        getStatus: config-types/zia-ip-source-groups/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zia-ip-destination-groups
+      name: ZIA IP Destination Groups
+      description: IP destination groups (/ipDestinationGroups)
+      canvasTemplate: config-types/zia-ip-destination-groups/canvas.yaml
+      defaultConfig: config-types/zia-ip-destination-groups/defaults.yaml
+      handlers:
+        validate: config-types/zia-ip-destination-groups/validate
+        deploy: config-types/zia-ip-destination-groups/deploy
+        rollback: config-types/zia-ip-destination-groups/rollback
+        healthCheck: config-types/zia-ip-destination-groups/healthCheck
+        driftDetect: config-types/zia-ip-destination-groups/driftDetect
+        getStatus: config-types/zia-ip-destination-groups/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zia-dlp-dictionaries
+      name: ZIA DLP Dictionaries
+      description: Custom DLP dictionaries (/dlpDictionaries); predefined dictionaries are read-only
+      canvasTemplate: config-types/zia-dlp-dictionaries/canvas.yaml
+      defaultConfig: config-types/zia-dlp-dictionaries/defaults.yaml
+      handlers:
+        validate: config-types/zia-dlp-dictionaries/validate
+        deploy: config-types/zia-dlp-dictionaries/deploy
+        rollback: config-types/zia-dlp-dictionaries/rollback
+        healthCheck: config-types/zia-dlp-dictionaries/healthCheck
+        driftDetect: config-types/zia-dlp-dictionaries/driftDetect
+        getStatus: config-types/zia-dlp-dictionaries/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zia-dlp-engines
+      name: ZIA DLP Engines
+      description: Custom DLP engines (/dlpEngines); predefined engines are read-only
+      canvasTemplate: config-types/zia-dlp-engines/canvas.yaml
+      defaultConfig: config-types/zia-dlp-engines/defaults.yaml
+      handlers:
+        validate: config-types/zia-dlp-engines/validate
+        deploy: config-types/zia-dlp-engines/deploy
+        rollback: config-types/zia-dlp-engines/rollback
+        healthCheck: config-types/zia-dlp-engines/healthCheck
+        driftDetect: config-types/zia-dlp-engines/driftDetect
+        getStatus: config-types/zia-dlp-engines/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zia-dlp-notification-templates
+      name: ZIA DLP Notification Templates
+      description: DLP notification templates (/dlpNotificationTemplates)
+      canvasTemplate: config-types/zia-dlp-notification-templates/canvas.yaml
+      defaultConfig: config-types/zia-dlp-notification-templates/defaults.yaml
+      handlers:
+        validate: config-types/zia-dlp-notification-templates/validate
+        deploy: config-types/zia-dlp-notification-templates/deploy
+        rollback: config-types/zia-dlp-notification-templates/rollback
+        healthCheck: config-types/zia-dlp-notification-templates/healthCheck
+        driftDetect: config-types/zia-dlp-notification-templates/driftDetect
+        getStatus: config-types/zia-dlp-notification-templates/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zia-locations
+      name: ZIA Locations
+      description: Locations (/locations)
+      canvasTemplate: config-types/zia-locations/canvas.yaml
+      defaultConfig: config-types/zia-locations/defaults.yaml
+      handlers:
+        validate: config-types/zia-locations/validate
+        deploy: config-types/zia-locations/deploy
+        rollback: config-types/zia-locations/rollback
+        healthCheck: config-types/zia-locations/healthCheck
+        driftDetect: config-types/zia-locations/driftDetect
+        getStatus: config-types/zia-locations/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zia-vpn-credentials
+      name: ZIA VPN Credentials
+      description: IPSec VPN credentials (/vpnCredentials); the pre-shared key is write-only
+      canvasTemplate: config-types/zia-vpn-credentials/canvas.yaml
+      defaultConfig: config-types/zia-vpn-credentials/defaults.yaml
+      handlers:
+        validate: config-types/zia-vpn-credentials/validate
+        deploy: config-types/zia-vpn-credentials/deploy
+        rollback: config-types/zia-vpn-credentials/rollback
+        healthCheck: config-types/zia-vpn-credentials/healthCheck
+        driftDetect: config-types/zia-vpn-credentials/driftDetect
+        getStatus: config-types/zia-vpn-credentials/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zia-gre-tunnels
+      name: ZIA GRE Tunnels
+      description: GRE tunnels (/greTunnels)
+      canvasTemplate: config-types/zia-gre-tunnels/canvas.yaml
+      defaultConfig: config-types/zia-gre-tunnels/defaults.yaml
+      handlers:
+        validate: config-types/zia-gre-tunnels/validate
+        deploy: config-types/zia-gre-tunnels/deploy
+        rollback: config-types/zia-gre-tunnels/rollback
+        healthCheck: config-types/zia-gre-tunnels/healthCheck
+        driftDetect: config-types/zia-gre-tunnels/driftDetect
+        getStatus: config-types/zia-gre-tunnels/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zia-static-ips
+      name: ZIA Static IPs
+      description: Static IP addresses (/staticIP)
+      canvasTemplate: config-types/zia-static-ips/canvas.yaml
+      defaultConfig: config-types/zia-static-ips/defaults.yaml
+      handlers:
+        validate: config-types/zia-static-ips/validate
+        deploy: config-types/zia-static-ips/deploy
+        rollback: config-types/zia-static-ips/rollback
+        healthCheck: config-types/zia-static-ips/healthCheck
+        driftDetect: config-types/zia-static-ips/driftDetect
+        getStatus: config-types/zia-static-ips/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zia-admin-roles
+      name: ZIA Admin Roles
+      description: Administrator roles (/adminRoles); built-in roles are protected
+      canvasTemplate: config-types/zia-admin-roles/canvas.yaml
+      defaultConfig: config-types/zia-admin-roles/defaults.yaml
+      handlers:
+        validate: config-types/zia-admin-roles/validate
+        deploy: config-types/zia-admin-roles/deploy
+        rollback: config-types/zia-admin-roles/rollback
+        healthCheck: config-types/zia-admin-roles/healthCheck
+        driftDetect: config-types/zia-admin-roles/driftDetect
+        getStatus: config-types/zia-admin-roles/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zia-admin-users
+      name: ZIA Admin Users
+      description: Administrator users (/adminUsers); the password is write-only
+      canvasTemplate: config-types/zia-admin-users/canvas.yaml
+      defaultConfig: config-types/zia-admin-users/defaults.yaml
+      handlers:
+        validate: config-types/zia-admin-users/validate
+        deploy: config-types/zia-admin-users/deploy
+        rollback: config-types/zia-admin-users/rollback
+        healthCheck: config-types/zia-admin-users/healthCheck
+        driftDetect: config-types/zia-admin-users/driftDetect
+        getStatus: config-types/zia-admin-users/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zia-rule-labels
+      name: ZIA Rule Labels
+      description: Rule labels (/ruleLabels)
+      canvasTemplate: config-types/zia-rule-labels/canvas.yaml
+      defaultConfig: config-types/zia-rule-labels/defaults.yaml
+      handlers:
+        validate: config-types/zia-rule-labels/validate
+        deploy: config-types/zia-rule-labels/deploy
+        rollback: config-types/zia-rule-labels/rollback
+        healthCheck: config-types/zia-rule-labels/healthCheck
+        driftDetect: config-types/zia-rule-labels/driftDetect
+        getStatus: config-types/zia-rule-labels/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zpa-app-connector-groups
+      name: ZPA App Connector Groups
+      description: App Connector groups (/appConnectorGroup)
+      canvasTemplate: config-types/zpa-app-connector-groups/canvas.yaml
+      defaultConfig: config-types/zpa-app-connector-groups/defaults.yaml
+      handlers:
+        validate: config-types/zpa-app-connector-groups/validate
+        deploy: config-types/zpa-app-connector-groups/deploy
+        rollback: config-types/zpa-app-connector-groups/rollback
+        healthCheck: config-types/zpa-app-connector-groups/healthCheck
+        driftDetect: config-types/zpa-app-connector-groups/driftDetect
+        getStatus: config-types/zpa-app-connector-groups/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zpa-service-edge-groups
+      name: ZPA Service Edge Groups
+      description: Private Service Edge groups (/serviceEdgeGroup)
+      canvasTemplate: config-types/zpa-service-edge-groups/canvas.yaml
+      defaultConfig: config-types/zpa-service-edge-groups/defaults.yaml
+      handlers:
+        validate: config-types/zpa-service-edge-groups/validate
+        deploy: config-types/zpa-service-edge-groups/deploy
+        rollback: config-types/zpa-service-edge-groups/rollback
+        healthCheck: config-types/zpa-service-edge-groups/healthCheck
+        driftDetect: config-types/zpa-service-edge-groups/driftDetect
+        getStatus: config-types/zpa-service-edge-groups/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zpa-servers
+      name: ZPA Servers
+      description: Application servers (/server)
+      canvasTemplate: config-types/zpa-servers/canvas.yaml
+      defaultConfig: config-types/zpa-servers/defaults.yaml
+      handlers:
+        validate: config-types/zpa-servers/validate
+        deploy: config-types/zpa-servers/deploy
+        rollback: config-types/zpa-servers/rollback
+        healthCheck: config-types/zpa-servers/healthCheck
+        driftDetect: config-types/zpa-servers/driftDetect
+        getStatus: config-types/zpa-servers/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zpa-server-groups
+      name: ZPA Server Groups
+      description: Server groups (/serverGroup); reference app connector groups
+      canvasTemplate: config-types/zpa-server-groups/canvas.yaml
+      defaultConfig: config-types/zpa-server-groups/defaults.yaml
+      handlers:
+        validate: config-types/zpa-server-groups/validate
+        deploy: config-types/zpa-server-groups/deploy
+        rollback: config-types/zpa-server-groups/rollback
+        healthCheck: config-types/zpa-server-groups/healthCheck
+        driftDetect: config-types/zpa-server-groups/driftDetect
+        getStatus: config-types/zpa-server-groups/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zpa-segment-groups
+      name: ZPA Segment Groups
+      description: Segment groups (/segmentGroup)
+      canvasTemplate: config-types/zpa-segment-groups/canvas.yaml
+      defaultConfig: config-types/zpa-segment-groups/defaults.yaml
+      handlers:
+        validate: config-types/zpa-segment-groups/validate
+        deploy: config-types/zpa-segment-groups/deploy
+        rollback: config-types/zpa-segment-groups/rollback
+        healthCheck: config-types/zpa-segment-groups/healthCheck
+        driftDetect: config-types/zpa-segment-groups/driftDetect
+        getStatus: config-types/zpa-segment-groups/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zpa-application-segments
+      name: ZPA Application Segments
+      description: Application segments (/application); reference segment + server groups
+      canvasTemplate: config-types/zpa-application-segments/canvas.yaml
+      defaultConfig: config-types/zpa-application-segments/defaults.yaml
+      handlers:
+        validate: config-types/zpa-application-segments/validate
+        deploy: config-types/zpa-application-segments/deploy
+        rollback: config-types/zpa-application-segments/rollback
+        healthCheck: config-types/zpa-application-segments/healthCheck
+        driftDetect: config-types/zpa-application-segments/driftDetect
+        getStatus: config-types/zpa-application-segments/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zpa-provisioning-keys
+      name: ZPA Provisioning Keys
+      description: Connector / Service-Edge provisioning keys; the key value is write-only
+      canvasTemplate: config-types/zpa-provisioning-keys/canvas.yaml
+      defaultConfig: config-types/zpa-provisioning-keys/defaults.yaml
+      handlers:
+        validate: config-types/zpa-provisioning-keys/validate
+        deploy: config-types/zpa-provisioning-keys/deploy
+        rollback: config-types/zpa-provisioning-keys/rollback
+        healthCheck: config-types/zpa-provisioning-keys/healthCheck
+        driftDetect: config-types/zpa-provisioning-keys/driftDetect
+        getStatus: config-types/zpa-provisioning-keys/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: zpa-policy-rules
+      name: ZPA Policy Rules
+      description: Access / timeout / forwarding / inspection / isolation policy rules (policySet model)
+      canvasTemplate: config-types/zpa-policy-rules/canvas.yaml
+      defaultConfig: config-types/zpa-policy-rules/defaults.yaml
+      handlers:
+        validate: config-types/zpa-policy-rules/validate
+        deploy: config-types/zpa-policy-rules/deploy
+        rollback: config-types/zpa-policy-rules/rollback
+        healthCheck: config-types/zpa-policy-rules/healthCheck
+        driftDetect: config-types/zpa-policy-rules/driftDetect
+        getStatus: config-types/zpa-policy-rules/getStatus
+      targets:
+        componentTypes: [zscaler-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/zscaler
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+settings:
+  - key: cloud
+    type: string
+    label: Cloud
+    description: >
+      Zscaler cloud/environment. Leave blank for commercial production
+      (api.zsapi.net). Use "gov" or "govus" for government clouds, or a named
+      non-prod cloud (e.g. "beta").
+    default: ""
+    required: false
+  - key: zpa_customer_id
+    type: string
+    label: ZPA Customer ID
+    description: >
+      The ZPA tenant id, required for every ZPA configuration type (found in the
+      ZPA Admin Portal under Configuration & Control > Public API > API Keys).
+      ZIA-only deployments can leave this blank.
+    default: ""
+    required: false
+  - key: zpa_microtenant_id
+    type: string
+    label: ZPA Microtenant ID
+    description: Optional ZPA microtenant id to scope ZPA config to a single microtenant.
+    default: ""
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Zscaler OneAPI calls.
+    default: 30
+    required: false

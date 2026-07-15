@@ -1,0 +1,8 @@
+# Defaults for a new URL filtering rule item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank (aside from the canvas field defaultValues, e.g.
+# order=1, state=ENABLED, action=BLOCK, protocols=ANY_RULE). Users manage their
+# own default value sets and can apply one when creating an item. Any values here
+# would be a flat map keyed by the canvas field keys (name, order, state, action,
+# protocols, rule_json).

@@ -1,0 +1,52 @@
+# =============================================================================
+# Canvas Template — ZIA DLP Engines
+#
+# Declares ONE DLP engine — the item. Users add as many engines as they need.
+# A ZIA DLP engine is a named boolean expression over DLP dictionaries (e.g.
+# "((D63.S > 1))") that decides when a DLP policy matches; Zscaler assigns it a
+# numeric id. Identity is the NAME (list + match).
+#
+# Field keys must match what config-types/zia-dlp-engines/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zia-dlp-engines"
+name: "ZIA DLP Engine Configuration"
+toolType: "zscaler"
+entityType: "zia-dlp-engines"
+description: "Define ZIA DLP engines as code through the Zscaler OneAPI (/dlpEngines). Changes are staged and activated as a batch."
+
+item:
+  label: "DLP Engine"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "DLP Engine"
+      icon: "shield"
+      description: "Name and the boolean expression over DLP dictionaries"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The DLP engine name (its logical identity). Zscaler assigns the numeric id."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the ZIA Admin Portal."
+
+        - key: "engine_expression"
+          label: "Engine Expression"
+          fieldType: "textarea"
+          required: true
+          helpText: "Boolean expression over DLP dictionaries that fires this engine, e.g. \"((D63.S > 1))\". Reference dictionaries by their token (D<id>) and count type (.S / .C)."
+
+        - key: "custom_dlp_engine"
+          label: "Custom DLP Engine"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether this is a custom (author-managed) engine. Predefined engines are read-only and cannot be managed here."

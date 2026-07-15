@@ -1,0 +1,48 @@
+# =============================================================================
+# Canvas Template — ZIA IP Source Groups
+#
+# Declares ONE IP source group — the item. Users add as many groups as they need.
+# A ZIA IP source group is a named collection of source IPs (CIDRs, single IPs or
+# ranges) referenced by firewall/URL policy; Zscaler assigns it a numeric id.
+# Identity is the NAME (list + match).
+#
+# Field keys must match what config-types/zia-ip-source-groups/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zia-ip-source-groups"
+name: "ZIA IP Source Group Configuration"
+toolType: "zscaler"
+entityType: "zia-ip-source-groups"
+description: "Define ZIA IP source groups as code through the Zscaler OneAPI (/ipSourceGroups). Changes are staged and activated as a batch."
+
+item:
+  label: "IP Source Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "IP Source Group"
+      icon: "network"
+      description: "Name, description and source IP addresses"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The IP source group name (its logical identity). Zscaler assigns the numeric id."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          validation:
+            maxLength: 255
+          helpText: "Optional description shown in the ZIA Admin Portal."
+
+        - key: "ip_addresses"
+          label: "IP Addresses"
+          fieldType: "textarea"
+          required: true
+          helpText: "One source IP per line — a single IP (10.0.0.1), a CIDR (10.0.0.0/8) or a range (10.0.0.1-10.0.0.9). At least one is required."

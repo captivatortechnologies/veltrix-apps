@@ -1,0 +1,55 @@
+# =============================================================================
+# Canvas Template — ZPA Servers
+#
+# Declares ONE server — the item. Users add as many as they need.
+# A ZPA server is a backend host (by FQDN or IP) that server groups and, through
+# them, application segments route to; ZPA assigns it a numeric id (returned as a
+# string). Identity is the NAME (list + match). ZPA changes apply immediately —
+# there is no activation step.
+#
+# Field keys must match what config-types/zpa-servers/validate.ts checks.
+# =============================================================================
+
+id: "zscaler-zpa-servers"
+name: "ZPA Server Configuration"
+toolType: "zscaler"
+entityType: "zpa-servers"
+description: "Define ZPA application servers as code through the Zscaler OneAPI (/server). Requires the ZPA Customer ID app setting."
+
+item:
+  label: "Server"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Server"
+      icon: "server"
+      description: "Name, address and state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The server name (its logical identity). ZPA assigns the numeric id."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the ZPA Admin Portal."
+
+        - key: "address"
+          label: "Address"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The server's resolvable domain name (FQDN) or IP address."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the server is enabled."
