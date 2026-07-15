@@ -1,0 +1,10 @@
+# Defaults for a new agent exclusion item (flat fieldKey: value for the item model).
+#
+# A new agent exclusion starts as an enabled, one-time blackout window in UTC on
+# cloud scanner 1. The user supplies the name, members and the start/end times;
+# everything else has a sensible default so the common case needs minimal input.
+enabled: true
+scannerId: "1"
+timezone: "Etc/UTC"
+freq: "ONETIME"
+interval: 1

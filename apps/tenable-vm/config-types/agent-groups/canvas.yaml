@@ -1,0 +1,51 @@
+# =============================================================================
+# Canvas Template — Tenable Agent Groups
+#
+# Declares ONE agent group — the item. Users add as many groups as they need.
+# A Tenable agent group is scoped to a scanner: the SAME name under a different
+# scanner is a DIFFERENT group. The group's identity is its `name` within its
+# scanner; the numeric id Tenable assigns is the stable rollback key.
+#
+# There is no field beyond the name — the name IS the managed state and the
+# logical identity — so config-types/agent-groups/validate.ts enforces
+# (scannerId, name) uniqueness across the canvas.
+#
+# Field keys must match what config-types/agent-groups/validate.ts checks.
+# =============================================================================
+
+id: "tenable-vm-agent-groups"
+name: "Agent Group Configuration"
+toolType: "tenable-vm"
+entityType: "agent-groups"
+description: "Define Tenable agent groups (per-scanner named groupings of Nessus agents) as code through the Tenable agent-groups API"
+
+item:
+  label: "Agent Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Agent Group"
+      icon: "users"
+      description: "Group name and the scanner it belongs to"
+      fields:
+        - key: "name"
+          label: "Group Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Name of the agent group in Tenable. Must be unique within its scanner (and within this canvas)."
+
+        - key: "scannerId"
+          label: "Scanner ID"
+          fieldType: "text"
+          defaultValue: "1"
+          validation:
+            pattern: "^[1-9][0-9]*$"
+            message: "Cloud scanner id — a positive integer, usually 1"
+          helpText: >
+            Cloud scanner id, usually 1. Agent groups are scoped to a scanner;
+            this selects which scanner's agent groups to manage. Leave as 1 unless
+            you operate multiple cloud scanners.

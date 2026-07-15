@@ -1,0 +1,6 @@
+# Defaults for a new scanner group item (flat fieldKey: value for the item model).
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. A scanner group has a single user-supplied field
+# (name), so there is no sensible default to pre-fill. Any values here would be a
+# flat map keyed by the canvas field key (name).

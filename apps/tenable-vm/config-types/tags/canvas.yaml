@@ -1,0 +1,67 @@
+# =============================================================================
+# Canvas Template — Tenable Asset Tags
+#
+# Declares ONE tag — the item. Users add as many tags as they need.
+# A Tenable tag is a category:value PAIR; the UUID belongs to the VALUE, and the
+# category is auto-created the first time a value references a new category name.
+# There is no single field that captures the (category, value) identity, so the
+# item's identityField is `value` (the human name) and config-types/tags/validate.ts
+# enforces category+value uniqueness across the canvas.
+#
+# Field keys must match what config-types/tags/validate.ts checks.
+# =============================================================================
+
+id: "tenable-vm-tags"
+name: "Asset Tag Configuration"
+toolType: "tenable-vm"
+entityType: "tags"
+description: "Define Tenable asset tags (category/value pairs — static, or dynamic via a JSON asset filter) as code through the Tenable Tags API"
+
+item:
+  label: "Tag"
+  identityField: "value"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Tag"
+      icon: "tag"
+      description: "Category, value and descriptions"
+      fields:
+        - key: "category"
+          label: "Category"
+          fieldType: "text"
+          required: true
+          helpText: "The tag category (the left half of a category:value tag), e.g. Environment. Tenable auto-creates the category if it does not already exist."
+
+        - key: "value"
+          label: "Value"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 50
+            pattern: "^[^,]+$"
+            message: "Up to 50 characters; commas are not allowed. This is the tag value (the right half of a category:value tag), e.g. Production."
+          helpText: "The tag value under the category. The UUID Tenable assigns belongs to this value."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description of the tag value — shown in the Tenable console."
+
+        - key: "category_description"
+          label: "Category Description"
+          fieldType: "text"
+          helpText: "Optional. Only applied when the category is created — Tenable ignores it for an existing category."
+
+    - name: "Dynamic rule"
+      icon: "filter"
+      description: "Optional asset filter that makes the tag dynamic"
+      fields:
+        - key: "filters"
+          label: "Asset Filter (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            JSON asset filter — leave blank for a static tag. When set, the tag
+            becomes DYNAMIC and Tenable auto-applies it to every matching asset,
+            e.g. {"asset":{"and":[{"field":"ipv4","operator":"eq","value":"10.0.0.0/8"}]}}

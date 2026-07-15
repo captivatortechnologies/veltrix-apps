@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template — Tenable Access-Control Roles
+#
+# Declares ONE role — the item. Users add as many roles as they need.
+# A role's logical identity is its NAME; the stable id Tenable assigns is a uuid.
+# config-types/roles/deploy.ts matches a declared role to a live role by name and
+# captures its uuid for rollback.
+#
+# SENSITIVE RBAC: built-in roles are type SYSTEM and read-only. deploy.ts REFUSES
+# to modify a live SYSTEM role (it never issues the update); validate.ts also
+# warns on the well-known reserved built-in names so the user is steered away
+# before a deploy fails.
+#
+# Field keys must match what config-types/roles/validate.ts checks.
+# =============================================================================
+
+id: "tenable-vm-roles"
+name: "Access Role Configuration"
+toolType: "tenable-vm"
+entityType: "roles"
+description: "Define Tenable access-control roles (name, description and the permission strings they grant) as code through the Tenable Access-Control Roles API. Custom roles only — built-in SYSTEM roles are never modified."
+
+item:
+  label: "Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Role"
+      icon: "shield"
+      description: "Role identity and the permissions it grants"
+      fields:
+        - key: "name"
+          label: "Role Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            Name of the custom role in Tenable. Must be unique within this canvas
+            and across the tenant (a duplicate name is rejected). Do NOT reuse a
+            built-in role name (Administrator, Scan Manager, Standard, Scan
+            Operator, Basic, Vulnerability Manager, Vulnerability Analyst) — those
+            are read-only SYSTEM roles and a deploy will refuse to modify them.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description of the role — shown in the Tenable console."
+
+        - key: "permissionStrings"
+          label: "Permission Strings"
+          fieldType: "tags"
+          required: true
+          helpText: >
+            The permission strings this role grants, one per tag — e.g. CanScan,
+            CanView. Each is a single PascalCase token (letters, digits and
+            underscores; no spaces). At least one is required. The full catalog of
+            permission strings is defined by Tenable's access-control API and shown
+            in the console's role editor.

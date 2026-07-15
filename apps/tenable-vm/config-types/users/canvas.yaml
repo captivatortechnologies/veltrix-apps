@@ -1,0 +1,97 @@
+# =============================================================================
+# Canvas Template — Tenable VM Users
+#
+# Declares ONE user account — the item. Users add as many accounts as they need.
+#
+# A Tenable user's login identity is its `username` (an EMAIL address). Deploy
+# matches an existing account by username and keys create-vs-update on it; the
+# stable numeric user_id the API returns is what rollback keys on — never the
+# username.
+#
+# SENSITIVE IDENTITY: user accounts are frequently governed centrally by an
+# identity provider (SSO/SCIM). Managing the same identities here can conflict
+# with the IdP — see the username field's helpText.
+#
+# SECRET-BEARING: `password` is WRITE-ONLY in Tenable (never returned on GET).
+# It is marked fieldType: password, required only on the first deploy (a create),
+# and left blank to keep the existing password on later deploys.
+#
+# Field keys must match what config-types/users/validate.ts checks.
+# =============================================================================
+
+id: "tenable-vm-users"
+name: "User Account Configuration"
+toolType: "tenable-vm"
+entityType: "users"
+description: "Define Tenable VM user accounts (username/name/role/enabled, with a write-only password) as code via the Tenable Users API"
+
+item:
+  label: "User"
+  identityField: "username"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "User"
+      icon: "user"
+      description: "Account identity, role and password"
+      fields:
+        - key: "username"
+          label: "Username (email)"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+            message: "Username must be a valid email address, e.g. alice@example.com"
+          helpText: >
+            The login username — an EMAIL address, and the account's logical
+            identity (matched to the Tenable user_id). WARNING: user identities
+            are commonly governed by a central identity provider (SSO / SCIM
+            provisioning). Managing the same users here can conflict with the
+            IdP — the IdP may re-create, disable, or overwrite accounts you
+            manage as code. Only manage users here for tenants that are NOT
+            IdP-provisioned, or coordinate carefully with your IdP.
+
+        - key: "name"
+          label: "Full Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The user's display name shown in the Tenable console."
+
+        - key: "permissions"
+          label: "Role"
+          fieldType: "select"
+          defaultValue: "16"
+          options:
+            - label: "Basic (16)"
+              value: "16"
+            - label: "Scan Operator (32)"
+              value: "32"
+            - label: "Standard (40)"
+              value: "40"
+            - label: "Administrator (64)"
+              value: "64"
+          helpText: >
+            Numeric role level Tenable assigns the account: 16 Basic,
+            32 Scan Operator, 40 Standard, 64 Administrator. Grant the least
+            privilege the user needs.
+
+        - key: "password"
+          label: "Password"
+          fieldType: "password"
+          helpText: >
+            Write-only. REQUIRED on the first deploy (when the account is
+            created). Tenable never returns it, so leave this BLANK on later
+            deploys to keep the existing password — set a value only to change
+            it. Because it cannot be read back, the password is never
+            drift-checked.
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: >
+            On: the account can sign in. Off: the account is disabled (retained
+            but cannot authenticate). New accounts are enabled by default.

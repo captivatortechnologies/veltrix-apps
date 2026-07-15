@@ -1,0 +1,7 @@
+# Defaults for a new scan policy item (flat fieldKey: value for the item model).
+#
+# Intentionally empty: a new policy starts blank. The user supplies the name,
+# the editor policy template UUID (from GET /editor/policy/templates) and, if
+# needed, an optional description and advanced settingsJson. Any values here
+# would be a flat map keyed by the canvas field keys (name, description,
+# templateUuid, settingsJson).

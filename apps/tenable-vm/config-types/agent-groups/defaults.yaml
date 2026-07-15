@@ -1,0 +1,6 @@
+# Defaults for a new agent group item (flat fieldKey: value for the item model).
+#
+# A new group targets cloud scanner 1 — the common case — so only the name needs
+# to be supplied. Values here are a flat map keyed by the canvas field keys
+# (name, scannerId).
+scannerId: "1"

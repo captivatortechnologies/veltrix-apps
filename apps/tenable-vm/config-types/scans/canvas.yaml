@@ -1,0 +1,136 @@
+# =============================================================================
+# Canvas Template — Tenable VM Scans
+#
+# Declares ONE scheduled scan — the item. Users add as many scans as they need.
+# Field keys must match what config-types/scans/validate.ts checks.
+#
+# In Tenable the SCHEDULE lives on the SCAN (not on a policy). A scan references
+# a scan TEMPLATE (uuid, from GET /editor/scan/templates) and, optionally, a
+# scan POLICY. This config type manages that declarative surface — name,
+# template, targets, optional policy reference, and recurrence — which is the
+# practical realization of "scan policies and scan schedules". The scan's name
+# is its identity (names are NOT guaranteed unique by the API — deploy keys
+# create-vs-update on the name in the live list and keys rollback on the
+# returned numeric id).
+# =============================================================================
+
+id: "tenable-vm-scans"
+name: "Scan Configuration"
+toolType: "tenable-vm"
+entityType: "scans"
+description: "Define Tenable scheduled scans (targets, scan template, optional policy, and recurrence) as code via the Tenable VM Scans API"
+
+item:
+  label: "Scan"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "radar"
+      description: "Scan identity, template and optional policy"
+      fields:
+        - key: "name"
+          label: "Scan Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Name of the scan in Tenable. Not guaranteed unique by the API, but must be unique within this canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "What this scan is for — shown in the Tenable console"
+
+        - key: "templateUuid"
+          label: "Scan Template UUID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12,}$"
+            message: "Must be a scan template UUID from GET /editor/scan/templates"
+          helpText: "Scan template UUID from GET /editor/scan/templates, e.g. Basic Network Scan"
+
+        - key: "policyId"
+          label: "Scan Policy ID"
+          fieldType: "number"
+          validation:
+            min: 1
+          helpText: "Optional scan policy id to base this scan on"
+
+    - name: "Targets"
+      icon: "target"
+      description: "Assets this scan runs against"
+      fields:
+        - key: "textTargets"
+          label: "Targets"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            Assets to scan, one per line or comma-separated: IPv4 addresses,
+            IP ranges (10.0.0.1-10.0.0.50), CIDR blocks (10.0.0.0/24) and/or
+            FQDNs (host.example.com).
+
+    - name: "Schedule"
+      icon: "calendar"
+      description: "When the scan runs. Choose On demand for a scan launched manually (no recurrence)."
+      fields:
+        - key: "enabled"
+          label: "Scan Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: >
+            On: the scan is active and runs on the schedule below. Off: the
+            scan is created/updated but not scheduled to run.
+
+        - key: "launch"
+          label: "Launch Cadence"
+          fieldType: "select"
+          defaultValue: "ON_DEMAND"
+          options:
+            - label: "On demand (manual, no recurrence)"
+              value: "ON_DEMAND"
+            - label: "One time only"
+              value: "ONETIME"
+            - label: "Daily"
+              value: "DAILY"
+            - label: "Weekly"
+              value: "WEEKLY"
+            - label: "Monthly"
+              value: "MONTHLY"
+            - label: "Yearly"
+              value: "YEARLY"
+          helpText: >
+            How often the scan runs. ON_DEMAND has no recurrence — the start
+            time and recurrence fields below are ignored.
+
+        - key: "starttime"
+          label: "Start Time"
+          fieldType: "text"
+          validation:
+            pattern: "^$|^\\d{8}T\\d{6}$"
+            message: "Must be compact YYYYMMDDTHHMMSS (e.g. 20240117T130000)"
+          helpText: "First run, in the timezone below: compact YYYYMMDDTHHMMSS (e.g. 20240117T130000). Required when the cadence is not On demand."
+
+        - key: "timezone"
+          label: "Timezone"
+          fieldType: "text"
+          defaultValue: "Etc/UTC"
+          helpText: "IANA timezone name for the schedule, e.g. Etc/UTC or US/Mountain"
+
+        - key: "interval"
+          label: "Interval"
+          fieldType: "number"
+          defaultValue: 1
+          validation:
+            min: 1
+          helpText: "Recur every N periods (e.g. every 2 weeks). Minimum 1. Ignored for On demand."
+
+        - key: "byday"
+          label: "Days of Week"
+          fieldType: "tags"
+          helpText: >
+            WEEKLY only: which days the scan recurs — any of
+            SU, MO, TU, WE, TH, FR, SA. Ignored for other cadences.

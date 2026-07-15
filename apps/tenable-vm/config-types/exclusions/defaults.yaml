@@ -1,0 +1,9 @@
+# Defaults for a new exclusion item (flat fieldKey: value for the item model).
+#
+# A new exclusion starts as an enabled, one-time blackout window in UTC. The
+# user supplies the name, members and the start/end times; everything else has
+# a sensible default so the common case needs minimal input.
+enabled: true
+timezone: "Etc/UTC"
+freq: "ONETIME"
+interval: 1

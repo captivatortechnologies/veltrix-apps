@@ -1,0 +1,118 @@
+# =============================================================================
+# Canvas Template — Tenable VM Recast / Accept Rules
+#
+# Declares ONE recast-or-accept rule — the item. Users add as many as they need.
+# A RECAST rule changes a matching finding's severity to a target severity; an
+# ACCEPT rule hides (accepts the risk of) the matching finding.
+#
+# The Recast API assigns no name, so the item's identityField is `name` — a
+# label the user picks, used only for the canvas UI, dedupe and reporting.
+# config-types/recast-rules/deploy.ts matches LIVE rules by the
+# (resource_type, plugin_id, action) tuple instead; config-types/recast-rules/validate.ts
+# enforces uniqueness of BOTH the name and that tuple across the canvas.
+#
+# Field keys must match what config-types/recast-rules/validate.ts checks
+# (name, resource_type, action, severity, expires_at, plugin_id, host_targets,
+# filter_json).
+# =============================================================================
+
+id: "tenable-vm-recast-rules"
+name: "Recast / Accept Rule Configuration"
+toolType: "tenable-vm"
+entityType: "recast-rules"
+description: "Define Tenable recast rules (change a finding's severity) and accept rules (hide a finding) as code via the Tenable VM Recast Rules API"
+
+item:
+  label: "Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Rule"
+      icon: "shield"
+      description: "What the rule does and to which finding type"
+      fields:
+        - key: "name"
+          label: "Rule Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "A label for this rule within Veltrix. Tenable assigns no rule name, so this is used only here — it must be unique within this canvas."
+
+        - key: "resource_type"
+          label: "Resource Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "HOST"
+          options:
+            - label: "Host (vulnerability)"
+              value: "HOST"
+            - label: "Host audit (compliance)"
+              value: "HOST_AUDIT"
+            - label: "Web application"
+              value: "WEBAPP"
+          helpText: "The kind of finding the rule applies to."
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "RECAST"
+          options:
+            - label: "Recast — change the finding's severity"
+              value: "RECAST"
+            - label: "Accept — hide (accept the risk of) the finding"
+              value: "ACCEPT"
+          helpText: "Recast changes a matching finding's severity to the Severity below; Accept hides the finding."
+
+        - key: "severity"
+          label: "Recast Severity"
+          fieldType: "select"
+          options:
+            - label: "Info"
+              value: "info"
+            - label: "Low"
+              value: "low"
+            - label: "Medium"
+              value: "medium"
+            - label: "High"
+              value: "high"
+            - label: "Critical"
+              value: "critical"
+          helpText: "The target severity to recast the finding to. REQUIRED when the action is Recast; leave unset for Accept (it is not allowed there)."
+
+        - key: "expires_at"
+          label: "Expires At"
+          fieldType: "text"
+          validation:
+            pattern: "^$|^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,3})?(Z|[+-]\\d{2}:\\d{2})$"
+            message: "Must be an ISO-8601 instant, e.g. 2026-12-31T23:59:59Z"
+          helpText: "Optional. ISO-8601 instant after which the rule stops applying, e.g. 2026-12-31T23:59:59Z. Leave blank for a rule that never expires."
+
+    - name: "Scope"
+      icon: "filter"
+      description: "Which findings the rule matches"
+      fields:
+        - key: "plugin_id"
+          label: "Plugin ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[0-9]+$"
+            message: "Plugin ID must be a positive integer, e.g. 19506"
+          helpText: "The Tenable plugin the rule targets (filter.plugin_id), e.g. 19506."
+
+        - key: "host_targets"
+          label: "Host Targets"
+          fieldType: "text"
+          helpText: "Optional. Assets to scope the rule to (filter.host_targets): IPs, ranges, CIDRs and/or FQDNs. Leave blank to apply to all matching assets."
+
+        - key: "filter_json"
+          label: "Additional Filter (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional. Extra filter keys as a JSON object, merged on top of
+            plugin_id / host_targets for advanced targeting, e.g.
+            {"severity":["high","critical"]}. Leave blank for none.

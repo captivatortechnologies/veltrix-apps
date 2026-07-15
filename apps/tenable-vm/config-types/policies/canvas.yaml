@@ -1,0 +1,74 @@
+# =============================================================================
+# Canvas Template — Tenable VM Scan Policies
+#
+# Declares ONE scan policy — the item. Users add as many policies as they need.
+# Field keys must match what config-types/policies/validate.ts checks.
+#
+# A Tenable scan policy is built from an editor POLICY TEMPLATE: the create/update
+# body carries the template uuid at the TOP LEVEL and everything else under
+# `settings`. The full settings schema is huge and template-dependent, so this
+# config type models only the stable identity surface — name, description and the
+# template uuid — plus an optional freeform `settingsJson` object merged into
+# `settings` for advanced tuning. A policy's identity in Tenable is its numeric
+# policy_id; names are not guaranteed unique by the API, so deploy keys
+# create-vs-update on the name in the live list and keys rollback on the returned
+# policy_id.
+# =============================================================================
+
+id: "tenable-vm-policies"
+name: "Scan Policy Configuration"
+toolType: "tenable-vm"
+entityType: "policies"
+description: "Define Tenable scan policies (name, description and an editor policy template, with optional advanced settings) as code via the Tenable VM Policies API"
+
+item:
+  label: "Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "shield"
+      description: "Policy identity and the editor policy template it is built from"
+      fields:
+        - key: "name"
+          label: "Policy Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Name of the scan policy in Tenable. Not guaranteed unique by the API, but must be unique within this canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "What this policy is for — shown in the Tenable console"
+
+        - key: "templateUuid"
+          label: "Policy Template UUID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12,}$"
+            message: "Must be an editor policy template UUID from GET /editor/policy/templates"
+          helpText: >
+            Editor POLICY template UUID this policy is built from — copy it from
+            GET /editor/policy/templates (e.g. the "Advanced Scan" or "Basic
+            Network Scan" template). This is sent as the top-level `uuid` in the
+            Policies API body; everything else goes under `settings`.
+
+    - name: "Advanced"
+      icon: "sliders"
+      description: "Optional advanced policy settings, merged into the API `settings` object"
+      fields:
+        - key: "settingsJson"
+          label: "Advanced Settings (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON OBJECT of extra policy settings merged into the API
+            `settings` (the full schema is template-dependent — see GET
+            /editor/policy/templates/{uuid}), e.g.
+            {"acls":[{"permissions":0,"type":"default"}]}. The Name and
+            Description fields above always take precedence over the same keys
+            here. Leave blank to keep the policy at the template defaults.

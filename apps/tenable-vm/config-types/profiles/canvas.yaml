@@ -1,0 +1,51 @@
+# =============================================================================
+# Canvas Template — Tenable VM Scan/Sensor Profiles
+#
+# Declares ONE profile — the item. Users add as many profiles as they need.
+# A profile is a sensor/agent performance profile; its identity in Tenable is
+# its name (deploy keys create-vs-update on the name in the live list and keys
+# rollback on the returned id/uuid).
+#
+# The Profiles API accepts a rich, sparsely-documented set of tuning fields that
+# varies by tenant, so this template is deliberately CONSERVATIVE: a required
+# name plus an optional freeform settingsJson (a JSON object) that is merged
+# into the create/update body. No tuning field names are invented here.
+#
+# Field keys must match what config-types/profiles/validate.ts checks.
+# =============================================================================
+
+id: "tenable-vm-profiles"
+name: "Scan Profile Configuration"
+toolType: "tenable-vm"
+entityType: "profiles"
+description: "Define Tenable scan/sensor performance profiles as code via the Tenable VM Profiles API — a required name plus an optional freeform JSON settings object"
+
+item:
+  label: "Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Profile"
+      icon: "sliders"
+      description: "Profile identity and optional tuning settings"
+      fields:
+        - key: "name"
+          label: "Profile Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Name of the profile in Tenable. Used as the profile's logical identity — must be unique within this canvas."
+
+        - key: "settingsJson"
+          label: "Advanced Settings (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional. A JSON OBJECT of profile tuning fields merged into the
+            create/update body, e.g. {"max_scan_time_hours": 4}. Leave blank for
+            a name-only profile. The exact tuning field names are tenant- and
+            version-specific in Tenable's Profiles API, so none are prescribed
+            here — supply only the keys your tenant documents. A "name" key here
+            is ignored; the Profile Name field above always wins.

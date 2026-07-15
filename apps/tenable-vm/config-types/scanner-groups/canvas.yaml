@@ -1,0 +1,46 @@
+# =============================================================================
+# Canvas Template — Tenable VM Scanner Groups
+#
+# Declares ONE scanner group — the item. Users add as many groups as they need.
+# A Tenable scanner group ("scanner pool") load-balances scans across the member
+# scanners assigned to it. Field keys must match what
+# config-types/scanner-groups/validate.ts checks.
+#
+# A scanner group's identity in Tenable is its name (deploy keys create-vs-update
+# on the name in the live list and keys rollback on the returned numeric id).
+# Membership (which scanners belong to the group) is managed through separate
+# endpoints and is intentionally NOT modelled here — this config owns the group
+# itself (its existence and name), not its scanner assignments.
+# =============================================================================
+
+id: "tenable-vm-scanner-groups"
+name: "Scanner Group Configuration"
+toolType: "tenable-vm"
+entityType: "scanner-groups"
+description: "Define Tenable scanner groups (load-balancing scanner pools) as code via the Tenable VM Scanner Groups API"
+
+item:
+  label: "Scanner Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Scanner Group"
+      icon: "server"
+      description: "Scanner group identity"
+      fields:
+        - key: "name"
+          label: "Group Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            pattern: "^.+$"
+            message: "A scanner group name is required (up to 255 characters)."
+          helpText: >
+            Name of the scanner group in Tenable. The group is created as a
+            load-balancing pool. Must be unique within this canvas; deploy
+            matches an existing group by this name and rolls back on the
+            numeric id Tenable assigns. Scanner membership is managed
+            separately in Tenable and is not changed by this configuration.

@@ -1,0 +1,134 @@
+# =============================================================================
+# Canvas Template — Tenable VM Agent Exclusions
+#
+# Declares ONE agent exclusion (a blackout window for a cloud scanner) — the
+# item. Users add as many exclusions as they need. Field keys must match what
+# config-types/agent-exclusions/validate.ts checks.
+#
+# An agent exclusion's identity in Tenable is its name (names are NOT guaranteed
+# unique by the API — deploy keys create-vs-update on the name in the live
+# list and keys rollback on the returned numeric id). Agent exclusions live
+# under a cloud scanner: GET/POST /scanners/{scannerId}/agent-exclusions.
+# =============================================================================
+
+id: "tenable-vm-agent-exclusions"
+name: "Agent Exclusion Configuration"
+toolType: "tenable-vm"
+entityType: "agent-exclusions"
+description: "Define Tenable agent scan exclusions / blackout windows (targets + a recurring schedule) as code via the Tenable VM Agent Exclusions API"
+
+item:
+  label: "Agent Exclusion"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "shield-off"
+      description: "Agent exclusion identity"
+      fields:
+        - key: "name"
+          label: "Agent Exclusion Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Name of the agent exclusion in Tenable. Not guaranteed unique by the API, but must be unique within this canvas."
+
+        - key: "scannerId"
+          label: "Cloud Scanner ID"
+          fieldType: "text"
+          defaultValue: "1"
+          helpText: "Cloud scanner id, usually 1"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "What this agent exclusion is for — shown in the Tenable console"
+
+    - name: "Targets"
+      icon: "target"
+      description: "Assets excluded from scanning"
+      fields:
+        - key: "members"
+          label: "Members"
+          fieldType: "textarea"
+          helpText: >
+            Assets to exclude, one per line or comma-separated: IPv4 addresses,
+            IP ranges (10.0.0.1-10.0.0.50), CIDR blocks (10.0.0.0/8) and/or
+            FQDNs. Required unless the exclusion is disabled (Always On off).
+
+    - name: "Schedule"
+      icon: "calendar"
+      description: "When scanning is suppressed. Turn Enabled off for an always-on exclusion."
+      fields:
+        - key: "enabled"
+          label: "Schedule Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: >
+            On: the exclusion applies only during the window below. Off: an
+            "Always On" exclusion — the window/recurrence fields are ignored.
+
+        - key: "starttime"
+          label: "Start Time"
+          fieldType: "text"
+          validation:
+            pattern: "^$|^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$"
+            message: "Must be YYYY-MM-DD HH:MM:SS (e.g. 2026-01-01 08:00:00)"
+          helpText: "Window start, in the timezone below: YYYY-MM-DD HH:MM:SS. Required when the schedule is enabled."
+
+        - key: "endtime"
+          label: "End Time"
+          fieldType: "text"
+          validation:
+            pattern: "^$|^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$"
+            message: "Must be YYYY-MM-DD HH:MM:SS (e.g. 2026-01-01 17:00:00)"
+          helpText: "Window end, in the timezone below: YYYY-MM-DD HH:MM:SS. Must be after the start time."
+
+        - key: "timezone"
+          label: "Timezone"
+          fieldType: "text"
+          defaultValue: "Etc/UTC"
+          helpText: "IANA timezone name for the window, e.g. Etc/UTC or America/New_York"
+
+        - key: "freq"
+          label: "Frequency"
+          fieldType: "select"
+          defaultValue: "ONETIME"
+          options:
+            - label: "One time only"
+              value: "ONETIME"
+            - label: "Daily"
+              value: "DAILY"
+            - label: "Weekly"
+              value: "WEEKLY"
+            - label: "Monthly"
+              value: "MONTHLY"
+            - label: "Yearly"
+              value: "YEARLY"
+          helpText: "How the blackout window recurs. Ignored when the schedule is disabled."
+
+        - key: "interval"
+          label: "Interval"
+          fieldType: "number"
+          defaultValue: 1
+          validation:
+            min: 1
+          helpText: "Recur every N periods (e.g. every 2 weeks). Minimum 1."
+
+        - key: "byweekday"
+          label: "Days of Week"
+          fieldType: "tags"
+          helpText: >
+            WEEKLY only: which days the window recurs — any of
+            SU, MO, TU, WE, TH, FR, SA. Ignored for other frequencies.
+
+        - key: "bymonthday"
+          label: "Day of Month"
+          fieldType: "number"
+          validation:
+            min: 1
+            max: 31
+          helpText: "MONTHLY only: day of the month (1–31) the window recurs. Ignored for other frequencies."

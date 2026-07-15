@@ -44,6 +44,10 @@ export function expect(actual) {
     toBe: (expected) => assert.strictEqual(actual, expected),
     toEqual: (expected) => assert.deepStrictEqual(actual, expected),
     toBeUndefined: () => assert.strictEqual(actual, undefined),
+    toBeNull: () => assert.strictEqual(actual, null),
+    toBeDefined: () => assert.notStrictEqual(actual, undefined),
+    toBeTruthy: () => assert.ok(actual, `expected a truthy value, got ${actual}`),
+    toBeFalsy: () => assert.ok(!actual, `expected a falsy value, got ${actual}`),
     toHaveLength: (length) => {
       assert.ok(actual != null, `expected a value with .length, got ${actual}`)
       assert.strictEqual(actual.length, length)

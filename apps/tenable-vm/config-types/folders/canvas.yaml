@@ -1,0 +1,45 @@
+# =============================================================================
+# Canvas Template — Tenable Scan Folders
+#
+# Declares ONE folder — the item. Users add as many folders as they need.
+# A Tenable folder organises scans in the console; its logical identity is the
+# NAME (Tenable assigns the numeric id on creation). There is no separate
+# identity field, so the item's identityField is `name` and
+# config-types/folders/validate.ts enforces name uniqueness across the canvas.
+#
+# Tenable ships two SYSTEM folders — "My Scans" and "Trash" — that cannot be
+# renamed or deleted. This config type never targets them: validate rejects
+# those names and deploy refuses to touch a folder whose type is "system".
+#
+# Field keys must match what config-types/folders/validate.ts checks.
+# =============================================================================
+
+id: "tenable-vm-folders"
+name: "Scan Folder Configuration"
+toolType: "tenable-vm"
+entityType: "folders"
+description: "Define Tenable scan folders (used to organise scans in the console) as code through the Tenable Folders API"
+
+item:
+  label: "Folder"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Folder"
+      icon: "folder"
+      description: "Folder name"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            message: "Up to 255 characters. Must not be a Tenable system folder name (My Scans, Trash)."
+          helpText: >
+            The folder name shown in the Tenable console. This is the folder's
+            logical identity — Tenable assigns the numeric id. It cannot be
+            "My Scans" or "Trash" (Tenable's built-in system folders). Note:
+            Tenable rate-limits folder creation to 10 per minute.

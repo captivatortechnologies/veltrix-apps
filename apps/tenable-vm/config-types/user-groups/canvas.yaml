@@ -1,0 +1,44 @@
+# =============================================================================
+# Canvas Template — Tenable User Groups
+#
+# Declares ONE user group — the item. Users add as many groups as they need.
+# A Tenable user group is identified by an int `id` (also a `uuid`); the group's
+# NAME is its logical, human identity. This config type manages the group's
+# NAME ONLY (create / rename). Membership lives behind separate endpoints and is
+# intentionally NOT managed here — deploying never adds or removes members.
+#
+# The item's identityField is `name`, and config-types/user-groups/validate.ts
+# enforces name uniqueness across the canvas.
+#
+# Field keys must match what config-types/user-groups/validate.ts checks.
+# =============================================================================
+
+id: "tenable-vm-user-groups"
+name: "User Group Configuration"
+toolType: "tenable-vm"
+entityType: "user-groups"
+description: "Define Tenable user groups (name only) as code through the Tenable Groups API. Membership is managed separately and is never changed by this config type."
+
+item:
+  label: "User Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "User Group"
+      icon: "users"
+      description: "The group's name — its membership is managed separately, not here"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            message: "Up to 255 characters. This is the user group's name; it must be unique within the tenant."
+          helpText: >
+            The user group name, e.g. SOC-Analysts. Must be unique in the tenant.
+            This config type manages the NAME only — add or remove members in the
+            Tenable console (or a dedicated membership config); deploying here
+            never changes who belongs to the group.

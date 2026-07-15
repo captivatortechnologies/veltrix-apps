@@ -1,0 +1,102 @@
+# =============================================================================
+# Canvas Template — Tenable VM Cloud Connectors
+#
+# Declares ONE cloud connector — the item. Users add as many connectors as they
+# need. A connector pulls asset inventory from a cloud provider (AWS / Azure /
+# GCP) into the Tenable tenant on a recurring schedule. Field keys must match
+# what config-types/connectors/validate.ts checks.
+#
+# SECRET-BEARING: the connector's `params` hold the cloud credentials (access
+# keys, service-account JSON, client secrets, …). Tenable stores these
+# WRITE-ONLY — they are never returned on GET — so they cannot be drift-checked
+# and cannot be restored on rollback (see driftDetect.ts / rollback.ts).
+#
+# A connector's identity in Tenable is the uuid the API assigns (returned as
+# `id`). There is no field that captures that uuid up front, so the item's
+# identityField is `name`; deploy keys create-vs-update on the name in the live
+# list and keys rollback on the returned id, never on the name.
+# =============================================================================
+
+id: "tenable-vm-connectors"
+name: "Cloud Connector Configuration"
+toolType: "tenable-vm"
+entityType: "connectors"
+description: "Define Tenable cloud connectors (AWS / Azure / GCP asset sync) as code via the Tenable VM Connectors API. Connector credentials are write-only and are never read back."
+
+item:
+  label: "Connector"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Connector"
+      icon: "cloud"
+      description: "Connector identity, cloud provider and target network"
+      fields:
+        - key: "name"
+          label: "Connector Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Name of the connector in Tenable. Must be unique within this canvas — it is the logical identity deploy matches on."
+
+        - key: "type"
+          label: "Cloud Provider"
+          fieldType: "select"
+          required: true
+          defaultValue: "aws"
+          options:
+            - label: "Amazon Web Services"
+              value: "aws"
+            - label: "Microsoft Azure"
+              value: "azure"
+            - label: "Google Cloud Platform"
+              value: "gcp"
+          helpText: "The cloud provider this connector syncs assets from. One of aws, azure or gcp."
+
+        - key: "networkUuid"
+          label: "Network UUID"
+          fieldType: "text"
+          validation:
+            pattern: "^$|^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            message: "Must be a network UUID (e.g. 00000000-0000-0000-0000-000000000000). Leave blank to use the default network."
+          helpText: "Optional. UUID of the Tenable network the synced assets are placed in (from the Networks config type or GET /networks). Leave blank for the default network."
+
+    - name: "Credentials"
+      icon: "key"
+      description: "Cloud provider credentials — WRITE-ONLY, never read back or drift-checked"
+      fields:
+        - key: "paramsJson"
+          label: "Connector Params (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            JSON object of provider-specific connection parameters and
+            credentials, e.g. AWS {"access_key":"…","secret_key":"…"}. These are
+            SECRETS: Tenable stores them write-only and never returns them, so
+            they are NOT drift-checked and CANNOT be restored on rollback. Every
+            deploy re-sends whatever you put here.
+
+    - name: "Schedule"
+      icon: "calendar"
+      description: "How often the connector re-syncs assets. Leave the value blank for the tenant default."
+      fields:
+        - key: "scheduleValue"
+          label: "Sync Every"
+          fieldType: "number"
+          validation:
+            min: 1
+          helpText: "Optional. Re-sync interval as a whole number (paired with the units below). Leave blank to use the tenant default schedule."
+
+        - key: "scheduleUnits"
+          label: "Sync Interval Units"
+          fieldType: "select"
+          defaultValue: "hours"
+          options:
+            - label: "Hours"
+              value: "hours"
+            - label: "Days"
+              value: "days"
+          helpText: "Units for the sync interval above. Only used when a value is set."

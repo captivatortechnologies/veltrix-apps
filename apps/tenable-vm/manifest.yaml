@@ -1,0 +1,441 @@
+id: tenable-vm
+name: Tenable Vulnerability Management
+version: "1.0.0"
+vendor: Veltrix
+description: >
+  Manage Tenable Vulnerability Management (tenable.io) configuration as code
+  through the Tenable VM REST API. Covers scheduled scans, asset tags, and
+  scan exclusions (blackout windows), with validation, drift detection and
+  rollback handled by the Security-as-Code pipeline.
+category: COMPLIANCE
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/tenable-vm
+icon: "🛡️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Tenable brand: deep navy (#003F5C-ish) primary with the Tenable teal accent.
+branding:
+  primaryColor: "#0A2E4D"
+  accentColor: "#00C1D4"
+  logo: ./assets/logo.svg
+  logoDark: ./assets/logo-dark.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: scans
+      actions: [read, write, delete]
+      description: Manage Tenable scheduled scans (targets, template, recurrence)
+    - resource: tags
+      actions: [read, write, delete]
+      description: Manage Tenable asset tags (category/value, dynamic filters)
+    - resource: exclusions
+      actions: [read, write, delete]
+      description: Manage Tenable scan exclusions (blackout windows)
+    - resource: networks
+      actions: [read, write, delete]
+      description: Manage Tenable network objects
+    - resource: policies
+      actions: [read, write, delete]
+      description: Manage Tenable scan policies
+    - resource: credentials
+      actions: [read, write, delete]
+      description: Manage Tenable scan credentials
+    - resource: folders
+      actions: [read, write, delete]
+      description: Manage Tenable scan folders
+    - resource: agent-groups
+      actions: [read, write, delete]
+      description: Manage Tenable agent groups
+    - resource: scanner-groups
+      actions: [read, write, delete]
+      description: Manage Tenable scanner groups
+    - resource: agent-exclusions
+      actions: [read, write, delete]
+      description: Manage Tenable agent-scan exclusions
+    - resource: recast-rules
+      actions: [read, write, delete]
+      description: Manage Tenable recast and accept-risk rules
+    - resource: asset-attributes
+      actions: [read, write, delete]
+      description: Manage Tenable custom asset-attribute definitions
+    - resource: connectors
+      actions: [read, write, delete]
+      description: Manage Tenable cloud connectors
+    - resource: profiles
+      actions: [read, write, delete]
+      description: Manage Tenable scanner/agent performance profiles
+    - resource: user-groups
+      actions: [read, write, delete]
+      description: Manage Tenable user groups
+    - resource: roles
+      actions: [read, write, delete]
+      description: Manage Tenable custom RBAC roles
+    - resource: permissions
+      actions: [read, write, delete]
+      description: Manage Tenable access-control permission grants
+    - resource: users
+      actions: [read, write, delete]
+      description: Manage Tenable user accounts
+
+pipeline:
+  configurationTypes:
+    # A scan carries the schedule (Tenable puts the recurrence on the scan, not
+    # the policy). It references a scan template and, optionally, a scan policy.
+    - id: scans
+      name: Scans
+      description: Scheduled scans — targets, scan template, optional policy, and recurrence (rrules)
+      canvasTemplate: config-types/scans/canvas.yaml
+      defaultConfig: config-types/scans/defaults.yaml
+      handlers:
+        validate: config-types/scans/validate
+        deploy: config-types/scans/deploy
+        rollback: config-types/scans/rollback
+        healthCheck: config-types/scans/healthCheck
+        driftDetect: config-types/scans/driftDetect
+        getStatus: config-types/scans/getStatus
+      targets:
+        componentTypes: [tenable-vm-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    # Target groups are deprecated in Tenable — tags replace them.
+    - id: tags
+      name: Asset Tags
+      description: Asset tags (category/value pairs; static, or dynamic via asset filters)
+      canvasTemplate: config-types/tags/canvas.yaml
+      defaultConfig: config-types/tags/defaults.yaml
+      handlers:
+        validate: config-types/tags/validate
+        deploy: config-types/tags/deploy
+        rollback: config-types/tags/rollback
+        healthCheck: config-types/tags/healthCheck
+        driftDetect: config-types/tags/driftDetect
+        getStatus: config-types/tags/getStatus
+      targets:
+        componentTypes: [tenable-vm-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: exclusions
+      name: Exclusions
+      description: Scan exclusions / blackout windows — targets and a recurring schedule
+      canvasTemplate: config-types/exclusions/canvas.yaml
+      defaultConfig: config-types/exclusions/defaults.yaml
+      handlers:
+        validate: config-types/exclusions/validate
+        deploy: config-types/exclusions/deploy
+        rollback: config-types/exclusions/rollback
+        healthCheck: config-types/exclusions/healthCheck
+        driftDetect: config-types/exclusions/driftDetect
+        getStatus: config-types/exclusions/getStatus
+      targets:
+        componentTypes: [tenable-vm-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+
+    - id: networks
+      name: Networks
+      description: Network objects for scanner/asset segmentation
+      canvasTemplate: config-types/networks/canvas.yaml
+      defaultConfig: config-types/networks/defaults.yaml
+      handlers:
+        validate: config-types/networks/validate
+        deploy: config-types/networks/deploy
+        rollback: config-types/networks/rollback
+        healthCheck: config-types/networks/healthCheck
+        driftDetect: config-types/networks/driftDetect
+        getStatus: config-types/networks/getStatus
+      targets:
+        componentTypes: [tenable-vm-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: policies
+      name: Scan Policies
+      description: Reusable scan policies (scan templates)
+      canvasTemplate: config-types/policies/canvas.yaml
+      defaultConfig: config-types/policies/defaults.yaml
+      handlers:
+        validate: config-types/policies/validate
+        deploy: config-types/policies/deploy
+        rollback: config-types/policies/rollback
+        healthCheck: config-types/policies/healthCheck
+        driftDetect: config-types/policies/driftDetect
+        getStatus: config-types/policies/getStatus
+      targets:
+        componentTypes: [tenable-vm-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: credentials
+      name: Managed Credentials
+      description: Scan credentials (secrets are write-only)
+      canvasTemplate: config-types/credentials/canvas.yaml
+      defaultConfig: config-types/credentials/defaults.yaml
+      handlers:
+        validate: config-types/credentials/validate
+        deploy: config-types/credentials/deploy
+        rollback: config-types/credentials/rollback
+        healthCheck: config-types/credentials/healthCheck
+        driftDetect: config-types/credentials/driftDetect
+        getStatus: config-types/credentials/getStatus
+      targets:
+        componentTypes: [tenable-vm-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: folders
+      name: Folders
+      description: Scan folders
+      canvasTemplate: config-types/folders/canvas.yaml
+      defaultConfig: config-types/folders/defaults.yaml
+      handlers:
+        validate: config-types/folders/validate
+        deploy: config-types/folders/deploy
+        rollback: config-types/folders/rollback
+        healthCheck: config-types/folders/healthCheck
+        driftDetect: config-types/folders/driftDetect
+        getStatus: config-types/folders/getStatus
+      targets:
+        componentTypes: [tenable-vm-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: agent-groups
+      name: Agent Groups
+      description: Agent groupings
+      canvasTemplate: config-types/agent-groups/canvas.yaml
+      defaultConfig: config-types/agent-groups/defaults.yaml
+      handlers:
+        validate: config-types/agent-groups/validate
+        deploy: config-types/agent-groups/deploy
+        rollback: config-types/agent-groups/rollback
+        healthCheck: config-types/agent-groups/healthCheck
+        driftDetect: config-types/agent-groups/driftDetect
+        getStatus: config-types/agent-groups/getStatus
+      targets:
+        componentTypes: [tenable-vm-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: scanner-groups
+      name: Scanner Groups
+      description: Scanner groupings
+      canvasTemplate: config-types/scanner-groups/canvas.yaml
+      defaultConfig: config-types/scanner-groups/defaults.yaml
+      handlers:
+        validate: config-types/scanner-groups/validate
+        deploy: config-types/scanner-groups/deploy
+        rollback: config-types/scanner-groups/rollback
+        healthCheck: config-types/scanner-groups/healthCheck
+        driftDetect: config-types/scanner-groups/driftDetect
+        getStatus: config-types/scanner-groups/getStatus
+      targets:
+        componentTypes: [tenable-vm-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: agent-exclusions
+      name: Agent Exclusions
+      description: Agent-scan blackout windows
+      canvasTemplate: config-types/agent-exclusions/canvas.yaml
+      defaultConfig: config-types/agent-exclusions/defaults.yaml
+      handlers:
+        validate: config-types/agent-exclusions/validate
+        deploy: config-types/agent-exclusions/deploy
+        rollback: config-types/agent-exclusions/rollback
+        healthCheck: config-types/agent-exclusions/healthCheck
+        driftDetect: config-types/agent-exclusions/driftDetect
+        getStatus: config-types/agent-exclusions/getStatus
+      targets:
+        componentTypes: [tenable-vm-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: recast-rules
+      name: Recast Rules
+      description: Severity recast / accept-risk rules
+      canvasTemplate: config-types/recast-rules/canvas.yaml
+      defaultConfig: config-types/recast-rules/defaults.yaml
+      handlers:
+        validate: config-types/recast-rules/validate
+        deploy: config-types/recast-rules/deploy
+        rollback: config-types/recast-rules/rollback
+        healthCheck: config-types/recast-rules/healthCheck
+        driftDetect: config-types/recast-rules/driftDetect
+        getStatus: config-types/recast-rules/getStatus
+      targets:
+        componentTypes: [tenable-vm-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: asset-attributes
+      name: Asset Attributes
+      description: Custom asset-attribute definitions
+      canvasTemplate: config-types/asset-attributes/canvas.yaml
+      defaultConfig: config-types/asset-attributes/defaults.yaml
+      handlers:
+        validate: config-types/asset-attributes/validate
+        deploy: config-types/asset-attributes/deploy
+        rollback: config-types/asset-attributes/rollback
+        healthCheck: config-types/asset-attributes/healthCheck
+        driftDetect: config-types/asset-attributes/driftDetect
+        getStatus: config-types/asset-attributes/getStatus
+      targets:
+        componentTypes: [tenable-vm-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: connectors
+      name: Cloud Connectors
+      description: AWS/Azure/GCP asset connectors (secret-bearing)
+      canvasTemplate: config-types/connectors/canvas.yaml
+      defaultConfig: config-types/connectors/defaults.yaml
+      handlers:
+        validate: config-types/connectors/validate
+        deploy: config-types/connectors/deploy
+        rollback: config-types/connectors/rollback
+        healthCheck: config-types/connectors/healthCheck
+        driftDetect: config-types/connectors/driftDetect
+        getStatus: config-types/connectors/getStatus
+      targets:
+        componentTypes: [tenable-vm-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: profiles
+      name: Profiles
+      description: Scanner/agent performance profiles
+      canvasTemplate: config-types/profiles/canvas.yaml
+      defaultConfig: config-types/profiles/defaults.yaml
+      handlers:
+        validate: config-types/profiles/validate
+        deploy: config-types/profiles/deploy
+        rollback: config-types/profiles/rollback
+        healthCheck: config-types/profiles/healthCheck
+        driftDetect: config-types/profiles/driftDetect
+        getStatus: config-types/profiles/getStatus
+      targets:
+        componentTypes: [tenable-vm-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: user-groups
+      name: User Groups
+      description: User groups (identity)
+      canvasTemplate: config-types/user-groups/canvas.yaml
+      defaultConfig: config-types/user-groups/defaults.yaml
+      handlers:
+        validate: config-types/user-groups/validate
+        deploy: config-types/user-groups/deploy
+        rollback: config-types/user-groups/rollback
+        healthCheck: config-types/user-groups/healthCheck
+        driftDetect: config-types/user-groups/driftDetect
+        getStatus: config-types/user-groups/getStatus
+      targets:
+        componentTypes: [tenable-vm-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: roles
+      name: Roles
+      description: Custom RBAC roles (identity)
+      canvasTemplate: config-types/roles/canvas.yaml
+      defaultConfig: config-types/roles/defaults.yaml
+      handlers:
+        validate: config-types/roles/validate
+        deploy: config-types/roles/deploy
+        rollback: config-types/roles/rollback
+        healthCheck: config-types/roles/healthCheck
+        driftDetect: config-types/roles/driftDetect
+        getStatus: config-types/roles/getStatus
+      targets:
+        componentTypes: [tenable-vm-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: permissions
+      name: Permissions
+      description: Access-control permission grants v3 (identity)
+      canvasTemplate: config-types/permissions/canvas.yaml
+      defaultConfig: config-types/permissions/defaults.yaml
+      handlers:
+        validate: config-types/permissions/validate
+        deploy: config-types/permissions/deploy
+        rollback: config-types/permissions/rollback
+        healthCheck: config-types/permissions/healthCheck
+        driftDetect: config-types/permissions/driftDetect
+        getStatus: config-types/permissions/getStatus
+      targets:
+        componentTypes: [tenable-vm-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: users
+      name: Users
+      description: User accounts (identity — often SSO/SCIM-governed)
+      canvasTemplate: config-types/users/canvas.yaml
+      defaultConfig: config-types/users/defaults.yaml
+      handlers:
+        validate: config-types/users/validate
+        deploy: config-types/users/deploy
+        rollback: config-types/users/rollback
+        healthCheck: config-types/users/healthCheck
+        driftDetect: config-types/users/driftDetect
+        getStatus: config-types/users/getStatus
+      targets:
+        componentTypes: [tenable-vm-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/tenable-vm
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+settings:
+  - key: api_base_url
+    type: string
+    label: API Base URL
+    description: >
+      Tenable API endpoint. Defaults to the global cloud endpoint
+      (https://cloud.tenable.com). Override only for a dedicated/FedRAMP host.
+    default: "https://cloud.tenable.com"
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Tenable API calls.
+    default: 30
+    required: false

@@ -1,0 +1,45 @@
+# =============================================================================
+# Canvas Template — Tenable Custom Asset Attributes
+#
+# Declares ONE custom asset-attribute FIELD DEFINITION — the item. Users add as
+# many attribute definitions as they need.
+#
+# A Tenable asset attribute is a custom metadata FIELD (e.g. "owner", "cost
+# center"). This config type manages the field DEFINITIONS only — the per-asset
+# values assigned to those fields are data, not configuration, and are NOT
+# managed here. The identity is the attribute `name`; Tenable also assigns each
+# definition an id, which is what update/delete address.
+#
+# Field keys must match what config-types/asset-attributes/validate.ts checks.
+# =============================================================================
+
+id: "tenable-vm-asset-attributes"
+name: "Asset Attribute Configuration"
+toolType: "tenable-vm"
+entityType: "asset-attributes"
+description: "Define Tenable custom asset attributes (metadata field definitions — name and description) as code through the Tenable Assets Attributes API. Manages field definitions only, not the per-asset values."
+
+item:
+  label: "Attribute"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Attribute"
+      icon: "tag"
+      description: "The custom asset-attribute field definition"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_ -]+$"
+            message: "May contain only letters, numbers, spaces, underscores and hyphens. This is the attribute field name, e.g. Owner or cost_center."
+          helpText: "The custom asset-attribute field name (the logical identity). Tenable auto-assigns an id used for later updates. This defines the FIELD, not any per-asset value."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description of what the attribute captures — shown in the Tenable console. Leave blank for none."

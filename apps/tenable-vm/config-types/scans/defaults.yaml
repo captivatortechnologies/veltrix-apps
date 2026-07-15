@@ -1,0 +1,10 @@
+# Defaults for a new scan item (flat fieldKey: value for the item model).
+#
+# A new scan starts enabled and on-demand (launched manually, no recurrence) in
+# UTC. The user supplies the name, scan template UUID and targets; everything
+# else has a sensible default so the common case needs minimal input. Switching
+# the cadence away from ON_DEMAND surfaces the start time / recurrence fields.
+enabled: true
+launch: "ON_DEMAND"
+timezone: "Etc/UTC"
+interval: 1

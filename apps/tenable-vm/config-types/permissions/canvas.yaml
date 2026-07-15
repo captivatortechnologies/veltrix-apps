@@ -1,0 +1,82 @@
+# =============================================================================
+# Canvas Template — Tenable Access-Control Permissions
+#
+# Declares ONE permission — the item. Users add as many permissions as they need.
+# A Tenable permission grants a set of SUBJECTS (users/groups, or everyone) a set
+# of ACTIONS over a set of OBJECTS (tags, or all assets). Its stable identity is
+# the permission_uuid, but the canvas only carries the human `name`, so
+# config-types/permissions/validate.ts enforces name uniqueness across the canvas
+# and deploy matches name -> permission_uuid.
+#
+# SENSITIVE RBAC: every permission here decides who can act on which assets.
+#
+# The action set must be COMPATIBLE with the object type:
+#   Tag       -> CanUse | CanEdit
+#   AllAssets -> CanView | CanScan
+# validate.ts rejects an incompatible pairing.
+#
+# Field keys must match what config-types/permissions/validate.ts checks.
+# =============================================================================
+
+id: "tenable-vm-permissions"
+name: "Access Permission Configuration"
+toolType: "tenable-vm"
+entityType: "permissions"
+description: "Define Tenable Access-Control v3 permissions (which subjects may perform which actions on which objects) as code through the Access-Control API"
+
+item:
+  label: "Permission"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Permission"
+      icon: "lock"
+      description: "Name and the granted actions"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            message: "Up to 255 characters. This is the permission's display name and its logical identity."
+          helpText: "A unique name for this permission. Deploy matches it to the permission's uuid, so keep it stable."
+
+        - key: "actions"
+          label: "Actions"
+          fieldType: "tags"
+          required: true
+          helpText: >
+            The granted actions. The allowed set depends on the object type:
+            a Tag object permits CanUse or CanEdit; an AllAssets object permits
+            CanView or CanScan. All actions must be valid for every object type below.
+
+    - name: "Objects"
+      icon: "target"
+      description: "What the permission applies to"
+      fields:
+        - key: "objectsJson"
+          label: "Objects (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            JSON array of the objects this permission applies to. A specific Tag
+            needs its uuid: [{"type":"Tag","uuid":"<tag-value-uuid>"}]. To cover
+            every asset use [{"type":"AllAssets"}] (no uuid). Tag pairs with
+            CanUse/CanEdit; AllAssets pairs with CanView/CanScan.
+
+    - name: "Subjects"
+      icon: "users"
+      description: "Who the permission is granted to"
+      fields:
+        - key: "subjectsJson"
+          label: "Subjects (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            JSON array of the subjects granted this permission. A specific user
+            needs its uuid: [{"type":"User","uuid":"<user-uuid>"}]. To grant
+            everyone use [{"type":"AllUsers"}] (no uuid). Groups use
+            [{"type":"UserGroup","uuid":"<group-uuid>"}].

@@ -1,0 +1,16 @@
+{
+  "name": "veltrix-app-tenable-vm",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Veltrix app: manage Tenable Vulnerability Management configuration as code (scan policies, tags, exclusions) via the Tenable VM REST API",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.0.0",
+    "@veltrixsecops/app-sdk": "^3.1.0",
+    "fastify": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}

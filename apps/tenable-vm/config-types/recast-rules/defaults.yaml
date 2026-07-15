@@ -1,0 +1,8 @@
+# Defaults for a new recast/accept rule item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank (the canvas fields carry their own defaultValue for
+# resource_type and action). Any values here would be a FLAT map keyed by the
+# canvas field keys (name, resource_type, action, severity, expires_at,
+# plugin_id, host_targets, filter_json), since a rule's presentational groups
+# share one flat item record.

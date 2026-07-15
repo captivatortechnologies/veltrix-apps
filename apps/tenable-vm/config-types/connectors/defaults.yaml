@@ -1,0 +1,9 @@
+# Defaults for a new connector item (flat fieldKey: value for the item model).
+#
+# A new connector starts as an AWS connector syncing on an hourly cadence. The
+# user supplies the name, the params (cloud credentials) and, optionally, a
+# target network and a concrete sync interval; the provider and units default so
+# the common case needs minimal input. paramsJson is intentionally left blank —
+# secrets are never seeded.
+type: "aws"
+scheduleUnits: "hours"

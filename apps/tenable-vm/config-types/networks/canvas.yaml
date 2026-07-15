@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — Tenable Networks
+#
+# Declares ONE network — the item. Users add as many networks as they need.
+# A Tenable network groups scanners and the assets they discover; the UUID
+# Tenable assigns belongs to the network. A network's logical identity is its
+# NAME (config-types/networks/deploy.ts matches create-vs-update on the name in
+# the live list and keys rollback on the returned uuid).
+#
+# The tenant always has a built-in default network (is_default true, literally
+# named "Default"). It cannot be updated or deleted, so this canvas refuses the
+# reserved name "default" — see config-types/networks/validate.ts.
+#
+# Field keys must match what config-types/networks/validate.ts checks.
+# =============================================================================
+
+id: "tenable-vm-networks"
+name: "Network Configuration"
+toolType: "tenable-vm"
+entityType: "networks"
+description: "Define Tenable networks (scanner/asset partitions with an asset age-out TTL) as code through the Tenable Networks API"
+
+item:
+  label: "Network"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Network"
+      icon: "network"
+      description: "Network identity and asset age-out"
+      fields:
+        - key: "name"
+          label: "Network Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            Name of the network in Tenable. Must be unique within this canvas.
+            The reserved name "default" is not allowed — the built-in default
+            network cannot be managed as code.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description of the network — shown in the Tenable console."
+
+        - key: "assetsTtlDays"
+          label: "Asset TTL (days)"
+          fieldType: "number"
+          validation:
+            min: 14
+            max: 365
+          helpText: >
+            Optional. Number of days an asset with no scan activity is retained
+            before Tenable ages it out of this network. Must be 14–365. Leave
+            blank to use the tenant default.

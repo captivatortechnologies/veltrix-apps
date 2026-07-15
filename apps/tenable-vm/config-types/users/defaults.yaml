@@ -1,0 +1,9 @@
+# Defaults for a new user item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (username, name, permissions, password, enabled), since a
+# user's presentational group is one flat item record.
+#
+# NOTE: a password is never seeded here — it is write-only and must be entered
+# per account on the first deploy.
