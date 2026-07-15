@@ -107,6 +107,16 @@ export interface AppManifest {
 
   events?: string[] // Platform events this app subscribes to
 
+  /**
+   * Connection-level connectivity testing. `testHandler` is an extensionless path
+   * to a module whose default export is a `testConnection` handler — the platform
+   * runs it in-process (with the decrypted credential) to verify a Connection's
+   * endpoint + credentials. Optional: apps without it report "test not supported".
+   */
+  connectivity?: {
+    testHandler?: string
+  }
+
   settings?: AppSettingDeclaration[]
 }
 

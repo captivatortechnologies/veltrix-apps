@@ -26,6 +26,7 @@ export {
   defineRollbackHandler,
   defineHealthChecker,
   defineDriftDetector,
+  defineConnectionTester,
 } from './pipeline'
 
 // NOTE: React hooks are NOT re-exported here. Import them from
@@ -68,6 +69,9 @@ export type {
   HealthCheckHandler,
   DriftDetectHandler,
   GetStatusHandler,
+  TestConnectionContext,
+  TestConnectionResult,
+  TestConnectionHandler,
 } from './types/pipeline'
 
 // Platform types

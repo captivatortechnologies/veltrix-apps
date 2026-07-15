@@ -54,8 +54,10 @@ export {
   createCredential,
   updateCredential,
   removeCredential,
+  testConnection,
 } from './credentials'
 export type { Credential, CredentialSummary, CredentialInput } from '../types/platform'
+export type { TestConnectionResult } from '../types/pipeline'
 
 /** Name of the global the platform installs before loading app bundles. */
 export const HOST_RUNTIME_GLOBAL = '__VELTRIX_APP_RUNTIME__'

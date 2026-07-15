@@ -1,6 +1,6 @@
 id: splunk-cloud
 name: Splunk Cloud Platform
-version: "1.7.3"
+version: "1.8.0"
 vendor: Veltrix
 description: >
   Manage Splunk Cloud Platform configurations as code through the
@@ -214,6 +214,11 @@ client:
 hooks:
   onInstall: hooks/onInstall
   onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: verifies a Connection's stack + JWT against
+# the Splunk Cloud Admin Config Service (ACS).
+connectivity:
+  testHandler: handlers/testConnection
 
 settings:
   - key: acs_base_url

@@ -20,6 +20,7 @@
 // ========================================================================
 
 import type { CredentialInput, CredentialSummary } from '../types/platform'
+import type { TestConnectionResult } from '../types/pipeline'
 import { authFetch } from './index'
 
 /** Base route for the platform's credentials API. */
@@ -169,4 +170,28 @@ export async function removeCredential(id: string): Promise<void> {
   })
   // 204 No Content is the platform's success response for delete.
   if (!res.ok && res.status !== 204) throw await credentialError(res)
+}
+
+export type { TestConnectionResult }
+
+/**
+ * Test a Connection's endpoint + credential. The platform decrypts the secret,
+ * runs the owning app's connectivity-test handler in-process (the secret is
+ * never returned), and reports whether the endpoint + credentials actually work.
+ * A failed test resolves normally with `{ ok: false, message }` — it does not
+ * throw. Only transport/auth errors (401/404) surface as `{ ok: false }` too.
+ *
+ * @param appId        the app that owns the connection, e.g. `splunk-cloud`
+ * @param credentialId the connection (credential) id
+ */
+export async function testConnection(appId: string, credentialId: string): Promise<TestConnectionResult> {
+  const res = await authFetch(
+    `/api/apps/${encodeURIComponent(appId)}/connections/${encodeURIComponent(credentialId)}/test`,
+    { method: 'POST' },
+  )
+  if (!res.ok) {
+    const err = await credentialError(res)
+    return { ok: false, message: err.message }
+  }
+  return (await res.json()) as TestConnectionResult
 }

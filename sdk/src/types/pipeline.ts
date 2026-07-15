@@ -247,3 +247,37 @@ export type RollbackHandler = (ctx: RollbackContext) => Promise<RollbackResult>
 export type HealthCheckHandler = (ctx: HealthCheckContext) => Promise<HealthCheckResult>
 export type DriftDetectHandler = (ctx: DriftContext) => Promise<DriftResult>
 export type GetStatusHandler = (ctx: PipelineContext) => Promise<ConfigStatus>
+
+// --- Connection test (connection-level, NOT config-scoped) ---
+
+/**
+ * Context for `testConnection` — a lightweight, standalone probe that verifies a
+ * Connection's endpoint + credential actually work, independent of any config or
+ * canvas. The platform decrypts the credential and runs this in-process, so
+ * `credential` carries real secrets. `endpoint` is the connection's target
+ * (credential endpoint, or the component hostname). Everything else is optional
+ * so an app can test with as little as an endpoint + credential.
+ */
+export interface TestConnectionContext {
+  appId: string
+  customerId: string
+  /** The connection's target endpoint / base URL, e.g. `https://splunk.internal:8089`. */
+  endpoint: string | null
+  credential: CredentialRef | null
+  component: ComponentRef | null
+  connectivity: ConnectivityRef | null
+  connectivityProvider: ConnectivityProviderRef | null
+  settings: Record<string, unknown>
+}
+
+/** Outcome of a connection test. `ok` gates the ✓/✗; `details` are extra lines. */
+export interface TestConnectionResult {
+  ok: boolean
+  message: string
+  /** Optional supporting lines (HTTP status, server version, auth result…). */
+  details?: string[]
+  /** Round-trip latency in milliseconds, when measured. */
+  latencyMs?: number
+}
+
+export type TestConnectionHandler = (ctx: TestConnectionContext) => Promise<TestConnectionResult>

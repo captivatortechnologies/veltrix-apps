@@ -1,6 +1,6 @@
 id: splunk-enterprise
 name: Splunk Enterprise
-version: "1.14.1"
+version: "1.15.0"
 vendor: Veltrix
 description: >
   Manage Splunk Enterprise configurations as code.
@@ -175,6 +175,11 @@ hooks:
   onUninstall: hooks/onUninstall
   onWebhook: hooks/onWebhook
   onEvent: hooks/onEvent
+
+# Connection-level connectivity test: verifies a Connection's endpoint +
+# credential against the Splunk management API (/services/server/info).
+connectivity:
+  testHandler: handlers/testConnection
 
 settings:
   - key: splunk_api_port
