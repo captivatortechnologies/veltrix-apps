@@ -1,0 +1,54 @@
+# =============================================================================
+# Canvas Template — Cloudflare Redirect Rules
+#
+# Declares ONE dynamic redirect rule — the item, in evaluation order. This config
+# type OWNS the zone's http_request_dynamic_redirect phase entrypoint: the canvas
+# is the complete desired list of redirect rules, reconciled declaratively (a rule
+# omitted from the canvas is removed). Rules are keyed by a stable `ref` derived
+# from the rule name, so re-runs update rather than duplicate. The action is
+# always `redirect`; the redirect target/behaviour is the from_value object.
+# =============================================================================
+
+id: "cloudflare-cloudflare-redirect-rules"
+name: "Cloudflare Redirect Rules Configuration"
+toolType: "cloudflare"
+entityType: "cloudflare-redirect-rules"
+description: "Define Cloudflare dynamic redirect rules as code (Rulesets phase http_request_dynamic_redirect). The canvas is the full ordered rule list for the zone; rules are keyed by ref and always use the redirect action."
+
+item:
+  label: "Redirect Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Redirect Rule"
+      icon: "shield"
+      description: "Name, match expression, redirect target and options"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The rule name (its logical identity; a stable ref is derived from it and shown as the description)."
+
+        - key: "expression"
+          label: "Expression"
+          fieldType: "textarea"
+          required: true
+          helpText: "The Rules-language expression, e.g. (http.request.uri.path eq \"/old\") or (http.host eq \"old.example.com\")."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the rule is enabled."
+
+        - key: "redirect_json"
+          label: "Redirect (from_value JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            JSON object describing the redirect (the action's from_value) — e.g.
+            {"target_url":{"value":"https://example.com/new"},"status_code":301,"preserve_query_string":true}.
+            Use target_url.expression instead of target_url.value for a dynamic target.

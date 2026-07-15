@@ -1,0 +1,70 @@
+# =============================================================================
+# Canvas Template — Cloudflare Access Policies
+#
+# Declares ONE reusable Access policy — the item. Users add as many as they need.
+# An Access policy is account-scoped (/accounts/{account_id}/access/policies);
+# Cloudflare assigns a server id, so identity for reconciliation is the policy
+# name — matched by config-types/cloudflare-access-policies/validate.ts.
+#
+# Reusable policies are referenced by Access applications; this config type
+# manages the policies themselves (their name, decision and include/require/
+# exclude rule arrays).
+# =============================================================================
+
+id: "cloudflare-cloudflare-access-policies"
+name: "Cloudflare Access Policy Configuration"
+toolType: "cloudflare"
+entityType: "cloudflare-access-policies"
+description: "Define Cloudflare Access (Zero Trust) reusable policies as code through the Cloudflare API (/access/policies). Reconciled by name; include/require/exclude are JSON rule arrays."
+
+item:
+  label: "Access Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Access Policy"
+      icon: "shield"
+      description: "Name, decision and include / require / exclude rules"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The policy name (its logical identity; reconciled by name)."
+
+        - key: "decision"
+          label: "Decision"
+          fieldType: "select"
+          required: true
+          defaultValue: "allow"
+          options:
+            - { label: "Allow", value: "allow" }
+            - { label: "Deny", value: "deny" }
+            - { label: "Bypass", value: "bypass" }
+            - { label: "Non-identity (Service Auth)", value: "non_identity" }
+          helpText: "What Access does when the include rules match (and require passes / exclude does not)."
+
+        - key: "include_json"
+          label: "Include Rules (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            Required JSON array of Access rules — a request must match at least one to be
+            in scope, e.g. [{"email":{"email":"user@example.com"}}] or
+            [{"email_domain":{"domain":"example.com"}}] or [{"everyone":{}}].
+
+        - key: "require_json"
+          label: "Require Rules (JSON array)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON array of Access rules that ALL must match, e.g.
+            [{"geo":{"country_code":"US"}}]. Leave blank for none.
+
+        - key: "exclude_json"
+          label: "Exclude Rules (JSON array)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON array of Access rules — a request matching any is excluded, e.g.
+            [{"ip":{"ip":"203.0.113.10/32"}}]. Leave blank for none.

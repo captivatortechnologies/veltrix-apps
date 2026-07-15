@@ -1,0 +1,66 @@
+# =============================================================================
+# Canvas Template — Cloudflare WAF Custom Rules
+#
+# Declares ONE WAF custom rule — the item, in evaluation order. This config type
+# OWNS the zone's http_request_firewall_custom phase entrypoint: the canvas is
+# the complete desired list of custom rules, reconciled declaratively (a rule
+# omitted from the canvas is removed). Rules are keyed by a stable `ref` derived
+# from the rule name, so re-runs update rather than duplicate.
+# =============================================================================
+
+id: "cloudflare-cloudflare-waf-custom-rules"
+name: "Cloudflare WAF Custom Rule Configuration"
+toolType: "cloudflare"
+entityType: "cloudflare-waf-custom-rules"
+description: "Define Cloudflare WAF custom rules as code (Rulesets phase http_request_firewall_custom). The canvas is the full ordered rule list for the zone; rules are keyed by ref."
+
+item:
+  label: "Custom Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Custom Rule"
+      icon: "shield"
+      description: "Name, action, expression and options"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The rule name (its logical identity; a stable ref is derived from it and shown as the description)."
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "block"
+          options:
+            - { label: "Block", value: "block" }
+            - { label: "Managed Challenge", value: "managed_challenge" }
+            - { label: "JS Challenge", value: "js_challenge" }
+            - { label: "Interactive Challenge", value: "challenge" }
+            - { label: "Log", value: "log" }
+            - { label: "Skip", value: "skip" }
+          helpText: "What Cloudflare does when the expression matches."
+
+        - key: "expression"
+          label: "Expression"
+          fieldType: "textarea"
+          required: true
+          helpText: "The Rules-language expression, e.g. (ip.src eq 203.0.113.10) or (http.request.uri.path contains \"/admin\")."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the rule is enabled."
+
+        - key: "action_parameters_json"
+          label: "Action Parameters (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON object for advanced action parameters — e.g. a custom block
+            response {"response":{"status_code":403,"content":"Blocked","content_type":"text/plain"}}
+            or skip params {"phases":["http_request_firewall_managed"]}. Leave blank for none.

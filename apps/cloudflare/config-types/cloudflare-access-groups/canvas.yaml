@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template — Cloudflare Access Groups
+#
+# Declares ONE reusable Access group — the item. Users add as many as they need.
+# An Access group is account-scoped (/accounts/{account_id}/access/groups) and is
+# a named bundle of rules referenced by Access policies. Cloudflare assigns a
+# server id, so identity for reconciliation is the group `name` — matched by
+# config-types/cloudflare-access-groups/validate.ts.
+#
+# The include / exclude / require rule sets are JSON ARRAYS of Cloudflare rule
+# objects, e.g. [{"email":{"email":"user@example.com"}}].
+# =============================================================================
+
+id: "cloudflare-cloudflare-access-groups"
+name: "Cloudflare Access Group Configuration"
+toolType: "cloudflare"
+entityType: "cloudflare-access-groups"
+description: "Define reusable Cloudflare Access groups as code through the Cloudflare API (/access/groups). Account-scoped; reconciled by name."
+
+item:
+  label: "Access Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Access Group"
+      icon: "users"
+      description: "Name and the include / exclude / require rule arrays"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The Access group name — its logical identity, used to match and reconcile the group."
+
+        - key: "include_json"
+          label: "Include Rules (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            Required JSON array of include rules — a request matches the group when it
+            satisfies ANY include rule. e.g.
+            [{"email":{"email":"user@example.com"}}, {"email_domain":{"domain":"acme.com"}}].
+            Must be a non-empty array.
+
+        - key: "exclude_json"
+          label: "Exclude Rules (JSON array)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON array of exclude rules — a request is rejected from the group
+            when it matches ANY exclude rule. e.g. [{"ip":{"ip":"203.0.113.0/24"}}].
+            Leave blank for none.
+
+        - key: "require_json"
+          label: "Require Rules (JSON array)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON array of require rules — a request must satisfy EVERY require
+            rule to be in the group. e.g. [{"geo":{"country_code":"US"}}]. Leave blank
+            for none.

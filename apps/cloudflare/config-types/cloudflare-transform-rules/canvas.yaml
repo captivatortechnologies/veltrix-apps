@@ -1,0 +1,68 @@
+# =============================================================================
+# Canvas Template — Cloudflare Transform Rules
+#
+# Declares ONE transform rule — the item, in evaluation order. Transform rules
+# span THREE Rulesets phases, selected per item by `transform_type`:
+#   url_rewrite      -> http_request_transform          (rewrite the URI)
+#   request_headers  -> http_request_late_transform     (set/remove request headers)
+#   response_headers -> http_response_headers_transform (set/remove response headers)
+# This config type OWNS those phase entrypoints: for each transform type, the
+# canvas is the complete desired rule list for its phase, reconciled declaratively
+# (a rule omitted from the canvas is removed). Rules are keyed by a stable `ref`
+# derived from the rule name, so re-runs update rather than duplicate.
+# =============================================================================
+
+id: "cloudflare-cloudflare-transform-rules"
+name: "Cloudflare Transform Rule Configuration"
+toolType: "cloudflare"
+entityType: "cloudflare-transform-rules"
+description: "Define Cloudflare transform rules as code (Rulesets phases http_request_transform, http_request_late_transform, http_response_headers_transform). Each item selects a transform type; the canvas is the full ordered rule list per phase, keyed by ref."
+
+item:
+  label: "Transform Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Transform Rule"
+      icon: "shuffle"
+      description: "Name, transform type, expression and parameters"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The rule name (its logical identity; a stable ref is derived from it and shown as the description)."
+
+        - key: "transform_type"
+          label: "Transform Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "url_rewrite"
+          options:
+            - { label: "URL Rewrite (request)", value: "url_rewrite" }
+            - { label: "Request Headers", value: "request_headers" }
+            - { label: "Response Headers", value: "response_headers" }
+          helpText: "Which transform phase this rule targets — URL rewrite (http_request_transform), request headers (http_request_late_transform) or response headers (http_response_headers_transform)."
+
+        - key: "expression"
+          label: "Expression"
+          fieldType: "textarea"
+          required: true
+          helpText: "The Rules-language expression, e.g. (http.request.uri.path eq \"/old\") or (http.host eq \"example.com\"). Use \"true\" to match every request."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the rule is enabled."
+
+        - key: "transform_json"
+          label: "Transform Parameters (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The action_parameters JSON object for the transform. For URL rewrites:
+            {"uri":{"path":{"value":"/new"}}}. For request/response headers:
+            {"headers":{"X-Foo":{"operation":"set","value":"bar"}}}.

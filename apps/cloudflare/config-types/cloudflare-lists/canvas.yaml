@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — Cloudflare Lists
+#
+# Declares ONE Cloudflare List — the item. A List is account-scoped
+# (/accounts/{account_id}/rules/lists) and reusable across the account's rules
+# (e.g. reference it in a WAF expression via ip.src in $my_list). Identity for
+# reconciliation is the List `name` (unique per account; ^[a-z0-9_]+$), matched
+# by config-types/cloudflare-lists/validate.ts. A List is a two-step object:
+# the list metadata (name/kind/description) plus its items, replaced wholesale.
+# =============================================================================
+
+id: "cloudflare-cloudflare-lists"
+name: "Cloudflare List Configuration"
+toolType: "cloudflare"
+entityType: "cloudflare-lists"
+description: "Define Cloudflare account Lists as code through the Cloudflare API (/accounts/{account}/rules/lists). Reconciled by list name; items are replaced to match the canvas."
+
+item:
+  label: "List"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "List"
+      icon: "list"
+      description: "Name, kind and items"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The list name (its logical identity). Lowercase letters, digits and underscores only (^[a-z0-9_]+$), up to 50 characters, e.g. blocked_ips."
+
+        - key: "kind"
+          label: "Kind"
+          fieldType: "select"
+          required: true
+          defaultValue: "ip"
+          options:
+            - { label: "IP", value: "ip" }
+            - { label: "Hostname", value: "hostname" }
+            - { label: "ASN", value: "asn" }
+            - { label: "Redirect", value: "redirect" }
+          helpText: "The type of value each item holds. Fixed once the list is created."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "An optional human-readable description for the list."
+
+        - key: "items"
+          label: "Items"
+          fieldType: "textarea"
+          helpText: >
+            The list contents — one value per line. For an IP list, each line is an
+            IP or CIDR (e.g. 203.0.113.10 or 198.51.100.0/24); for a hostname list a
+            hostname; for an ASN list an AS number; for a redirect list a source URL.
+            The items are replaced on every deploy to match exactly what is listed here.

@@ -1,0 +1,70 @@
+# =============================================================================
+# Canvas Template — Cloudflare DNS Records
+#
+# Declares ONE DNS record — the item. Users add as many as they need.
+# A DNS record is zone-scoped (/zones/{zone_id}/dns_records); Cloudflare assigns
+# a server id, so identity for reconciliation is the natural key
+# (type, name, content) — matched by config-types/cloudflare-dns-records/validate.ts.
+# =============================================================================
+
+id: "cloudflare-cloudflare-dns-records"
+name: "Cloudflare DNS Record Configuration"
+toolType: "cloudflare"
+entityType: "cloudflare-dns-records"
+description: "Define Cloudflare DNS records as code through the Cloudflare API (/dns_records). Reconciled by type + name (+ content)."
+
+item:
+  label: "DNS Record"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "DNS Record"
+      icon: "globe"
+      description: "Type, name, content and options"
+      fields:
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "A"
+          options:
+            - { label: "A", value: "A" }
+            - { label: "AAAA", value: "AAAA" }
+            - { label: "CNAME", value: "CNAME" }
+            - { label: "TXT", value: "TXT" }
+            - { label: "MX", value: "MX" }
+            - { label: "NS", value: "NS" }
+            - { label: "SRV", value: "SRV" }
+            - { label: "CAA", value: "CAA" }
+          helpText: "The DNS record type."
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The record name (FQDN), e.g. www.example.com or @ for the apex."
+
+        - key: "content"
+          label: "Content"
+          fieldType: "text"
+          required: true
+          helpText: "The record value (IP for A/AAAA, target for CNAME, text for TXT, host for MX, ...)."
+
+        - key: "ttl"
+          label: "TTL"
+          fieldType: "number"
+          defaultValue: 1
+          helpText: "Time to live in seconds. 1 = automatic."
+
+        - key: "proxied"
+          label: "Proxied (orange cloud)"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Route through Cloudflare's proxy. Valid only for A / AAAA / CNAME."
+
+        - key: "priority"
+          label: "Priority"
+          fieldType: "number"
+          helpText: "Required for MX and SRV records; ignored otherwise."

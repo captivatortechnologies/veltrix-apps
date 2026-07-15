@@ -1,0 +1,38 @@
+# =============================================================================
+# Canvas Template — Cloudflare Zone Settings
+#
+# Declares ONE zone setting — the item. Users add as many as they need.
+# A zone setting is zone-scoped (/zones/{zone_id}/settings/{setting_id}) and is a
+# singleton that ALWAYS exists: it is only read (GET) and updated (PATCH), never
+# created or deleted. Identity for reconciliation is the setting id itself —
+# matched by config-types/cloudflare-zone-settings/validate.ts.
+# =============================================================================
+
+id: "cloudflare-cloudflare-zone-settings"
+name: "Cloudflare Zone Settings Configuration"
+toolType: "cloudflare"
+entityType: "cloudflare-zone-settings"
+description: "Manage Cloudflare zone settings as code through the Cloudflare API (/settings). Each setting is read then updated (PATCH) by its id; nothing is created or deleted."
+
+item:
+  label: "Zone Setting"
+  identityField: "setting_id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Zone Setting"
+      icon: "settings"
+      description: "The setting id and its value"
+      fields:
+        - key: "setting_id"
+          label: "Setting ID"
+          fieldType: "text"
+          required: true
+          helpText: "The Cloudflare zone setting id, e.g. ssl, security_level, always_use_https, min_tls_version, automatic_https_rewrites."
+
+        - key: "value"
+          label: "Value"
+          fieldType: "text"
+          required: true
+          helpText: "The setting value, e.g. \"full\" for ssl, \"medium\" for security_level, \"1.2\" for min_tls_version, or \"on\" / \"off\"."

@@ -1,0 +1,69 @@
+# =============================================================================
+# Canvas Template — Cloudflare Access Applications
+#
+# Declares ONE Cloudflare Access application — the item. Users add as many as
+# they need. An Access application is account-scoped
+# (/accounts/{account_id}/access/apps); Cloudflare assigns a server id, so
+# identity for reconciliation is the application `name` — matched by
+# config-types/cloudflare-access-applications/validate.ts.
+#
+# Account-scoped: needs an "Account ID" app setting, or a registered component
+# whose hostname is a domain in the target account so the app can derive it.
+# =============================================================================
+
+id: "cloudflare-cloudflare-access-applications"
+name: "Cloudflare Access Application Configuration"
+toolType: "cloudflare"
+entityType: "cloudflare-access-applications"
+description: "Define Cloudflare Access (Zero Trust) applications as code through the Cloudflare API (/accounts/{account_id}/access/apps). Reconciled by application name."
+
+item:
+  label: "Access Application"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Access Application"
+      icon: "shield"
+      description: "Name, domain, type and session options"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The application name (its logical identity; re-runs match on this name and update in place)."
+
+        - key: "domain"
+          label: "Domain"
+          fieldType: "text"
+          required: true
+          helpText: "The application domain Access protects, e.g. app.example.com or app.example.com/admin."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "self_hosted"
+          options:
+            - { label: "Self-hosted", value: "self_hosted" }
+            - { label: "SaaS", value: "saas" }
+            - { label: "SSH", value: "ssh" }
+            - { label: "VNC", value: "vnc" }
+            - { label: "Bookmark", value: "bookmark" }
+          helpText: "The Access application type."
+
+        - key: "session_duration"
+          label: "Session Duration"
+          fieldType: "text"
+          defaultValue: "24h"
+          helpText: "How long a user session stays valid, e.g. 24h, 730h, 30m. Defaults to 24h."
+
+        - key: "app_json"
+          label: "Advanced Fields (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON object merged into the application body for advanced
+            fields — e.g. {"app_launcher_visible":true,"allowed_idps":["<idp-id>"],
+            "auto_redirect_to_identity":false,"cors_headers":{"allowed_methods":["GET"]}}.
+            Leave blank for none.

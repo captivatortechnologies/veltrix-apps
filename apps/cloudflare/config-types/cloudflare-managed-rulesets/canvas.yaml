@@ -1,0 +1,70 @@
+# =============================================================================
+# Canvas Template — Cloudflare Managed Rulesets
+#
+# Declares ONE deployment/override of a Cloudflare-managed ruleset — the item, in
+# evaluation order. This config type OWNS the zone's
+# http_request_firewall_managed phase entrypoint: the canvas is the complete
+# desired list of `execute` rules, each of which deploys (and optionally
+# overrides) one Cloudflare-managed ruleset. Reconciled declaratively (an item
+# omitted from the canvas is removed). Items are keyed by a stable `ref` derived
+# from the name, so re-runs update rather than duplicate.
+#
+# NOTE: a Cloudflare-managed ruleset is READ-ONLY — this config type never edits
+# the managed rules themselves. It only *deploys* the managed ruleset into the
+# phase via an `execute` rule and optionally applies overrides (action/status
+# changes) on top of it.
+# =============================================================================
+
+id: "cloudflare-cloudflare-managed-rulesets"
+name: "Cloudflare Managed Ruleset Configuration"
+toolType: "cloudflare"
+entityType: "cloudflare-managed-rulesets"
+description: "Deploy and override Cloudflare-managed rulesets as code (Rulesets phase http_request_firewall_managed). The canvas is the full ordered list of execute rules for the zone; items are keyed by ref. The managed ruleset itself is read-only; only its deployment and overrides are managed here."
+
+item:
+  label: "Managed Ruleset"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Managed Ruleset"
+      icon: "shield"
+      description: "Name, managed ruleset id, expression and overrides"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The rule name (its logical identity; a stable ref is derived from it and shown as the description)."
+
+        - key: "managed_ruleset_id"
+          label: "Managed Ruleset ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The id of the Cloudflare-managed ruleset to deploy, e.g.
+            efb7b8c949ac4650a09736fc376e9aee (Cloudflare Managed Ruleset). The
+            managed ruleset is read-only; this only deploys/overrides it.
+
+        - key: "expression"
+          label: "Expression"
+          fieldType: "text"
+          defaultValue: "true"
+          helpText: "The Rules-language expression that scopes where the managed ruleset runs. Defaults to \"true\" (all traffic in the phase)."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether this managed ruleset deployment is enabled."
+
+        - key: "overrides_json"
+          label: "Overrides (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON object of overrides applied on top of the managed
+            ruleset — e.g. change the whole-ruleset action, per-category actions
+            or per-rule actions:
+            {"action":"log","categories":[{"category":"wordpress","action":"block"}],"rules":[{"id":"...","action":"block"}]}.
+            Leave blank for none. The managed rules themselves are never edited.

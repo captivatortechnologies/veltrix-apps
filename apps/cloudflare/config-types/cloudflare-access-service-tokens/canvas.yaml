@@ -1,0 +1,46 @@
+# =============================================================================
+# Canvas Template — Cloudflare Access Service Tokens
+#
+# Declares ONE Zero Trust Access service token — the item. Users add as many as
+# they need. Service tokens are ACCOUNT-scoped
+# (/accounts/{account_id}/access/service_tokens); Cloudflare assigns a server id
+# and, on creation, a client_secret shown EXACTLY ONCE.
+#
+# ⚠ SECURITY: the client_secret is write-only. This app never reads it back,
+# never diffs it, and never stores it in rollback data, artifacts or logs — so
+# only the name and (optional) duration are managed here. The natural identity
+# for reconciliation is the token `name` — matched by
+# config-types/cloudflare-access-service-tokens/validate.ts.
+# =============================================================================
+
+id: "cloudflare-cloudflare-access-service-tokens"
+name: "Cloudflare Access Service Token Configuration"
+toolType: "cloudflare"
+entityType: "cloudflare-access-service-tokens"
+description: "Define Cloudflare Zero Trust Access service tokens as code (/access/service_tokens). Account-scoped; reconciled by name. The generated client secret is write-only and is never read back, diffed or stored."
+
+item:
+  label: "Service Token"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Service Token"
+      icon: "key"
+      description: "Name and optional token lifetime"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The service token name (its logical identity; reconciled by name across re-runs)."
+
+        - key: "duration"
+          label: "Duration"
+          fieldType: "text"
+          required: false
+          helpText: >
+            Optional token lifetime, e.g. "8760h" (one year) or "forever". Leave
+            blank to use the Cloudflare default. The generated client secret is
+            shown by Cloudflare only once at creation and is never read back.

@@ -1,0 +1,55 @@
+# =============================================================================
+# Canvas Template — Cloudflare Gateway Lists
+#
+# Declares ONE Zero Trust Gateway list — the item. Users add as many as they
+# need. A Gateway list is account-scoped (/accounts/{account_id}/gateway/lists);
+# Cloudflare assigns a server id, so identity for reconciliation is the list
+# name — matched by config-types/cloudflare-gateway-lists/validate.ts.
+# =============================================================================
+
+id: "cloudflare-cloudflare-gateway-lists"
+name: "Cloudflare Gateway List Configuration"
+toolType: "cloudflare"
+entityType: "cloudflare-gateway-lists"
+description: "Define Cloudflare Zero Trust Gateway lists as code through the Cloudflare API (/gateway/lists). Reconciled by list name."
+
+item:
+  label: "Gateway List"
+  identityField: "name"
+  identityDerived: false
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Gateway List"
+      icon: "list"
+      description: "Name, type and entries"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The Gateway list name — its logical identity. Reused across deploys to update rather than duplicate."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "DOMAIN"
+          options:
+            - { label: "Domain", value: "DOMAIN" }
+            - { label: "IP", value: "IP" }
+            - { label: "URL", value: "URL" }
+            - { label: "Email", value: "EMAIL" }
+            - { label: "Serial", value: "SERIAL" }
+          helpText: "The kind of entries this list holds. Set once at creation — Cloudflare does not allow changing a list's type."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional human-readable description shown in the Zero Trust dashboard."
+
+        - key: "items"
+          label: "Items"
+          fieldType: "textarea"
+          helpText: "One entry per line. The value shape matches the type (a domain for DOMAIN, an IP/CIDR for IP, a URL for URL, an email for EMAIL, a serial for SERIAL)."

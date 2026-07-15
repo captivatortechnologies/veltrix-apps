@@ -1,0 +1,82 @@
+# =============================================================================
+# Canvas Template — Cloudflare Gateway Policies
+#
+# Declares ONE Cloudflare Gateway (Zero Trust) policy — the item. Users add as
+# many as they need. Gateway rules are account-scoped
+# (/accounts/{account_id}/gateway/rules); Cloudflare assigns a server id, so
+# identity for reconciliation is the policy `name` — matched by
+# config-types/cloudflare-gateway-policies/validate.ts. A missing account id is a
+# hard stop (set the "Account ID" app setting or register a zone component).
+# =============================================================================
+
+id: "cloudflare-cloudflare-gateway-policies"
+name: "Cloudflare Gateway Policy Configuration"
+toolType: "cloudflare"
+entityType: "cloudflare-gateway-policies"
+description: "Define Cloudflare Gateway (Zero Trust) policies as code through the Cloudflare API (/gateway/rules). Account-scoped; reconciled by policy name."
+
+item:
+  label: "Gateway Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Gateway Policy"
+      icon: "shield"
+      description: "Name, action, traffic expression and options"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The policy name — its logical identity. Re-runs match on this name and update rather than duplicate."
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "block"
+          options:
+            - { label: "Allow", value: "allow" }
+            - { label: "Block", value: "block" }
+            - { label: "Isolate", value: "isolate" }
+            - { label: "Resolve", value: "resolve" }
+            - { label: "Override", value: "override" }
+            - { label: "L4 Override", value: "l4_override" }
+            - { label: "SafeSearch", value: "safesearch" }
+          helpText: "What Gateway does when the traffic expression matches. Valid actions depend on the filter type (e.g. resolve/safesearch are DNS-only, l4_override is L4-only)."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the policy is enabled."
+
+        - key: "precedence"
+          label: "Precedence"
+          fieldType: "number"
+          helpText: "Optional evaluation order — lower precedence values are evaluated first. Leave blank to let Cloudflare assign it."
+
+        - key: "filters"
+          label: "Filters"
+          fieldType: "textarea"
+          helpText: >
+            The traffic types this policy applies to — one per line, each one of
+            dns, http or l4. Most DNS policies use a single line "dns".
+
+        - key: "traffic"
+          label: "Traffic Expression"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The Wirefilter traffic expression, e.g. any(dns.domains[*] == "example.com")
+            for DNS policies or http.request.uri contains "/admin" for HTTP policies.
+
+        - key: "rule_json"
+          label: "Rule JSON (advanced)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON object for advanced blocks — identity, device_posture and
+            rule_settings — e.g. {"rule_settings":{"block_page_enabled":true}}. Its
+            top-level keys are merged onto the rule body. Leave blank for none.

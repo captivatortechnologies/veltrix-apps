@@ -1,0 +1,362 @@
+id: cloudflare
+name: Cloudflare
+version: "1.0.0"
+vendor: Veltrix
+description: >
+  Manage Cloudflare configuration as code through the Cloudflare API (v4). Covers
+  DNS, the WAF/firewall Rulesets engine (custom rules, rate limiting, redirects,
+  transforms and managed-ruleset overrides), zone settings, account Lists, and
+  Zero Trust (Access applications/policies/groups/service-tokens and Gateway
+  rules/lists) — with validation, drift detection and rollback handled by the
+  Security-as-Code pipeline. The component hostname is the zone domain; the app
+  resolves zone and account ids automatically.
+category: NETWORK
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cloudflare
+icon: "☁️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Cloudflare brand: the Cloudflare orange with a lighter amber accent.
+branding:
+  primaryColor: "#F6821F"
+  accentColor: "#FBAD41"
+  logo: ./assets/logo.svg
+  logoDark: ./assets/logo-dark.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: cloudflare-dns-records
+      actions: [read, write, delete]
+      description: Manage Cloudflare DNS records
+    - resource: cloudflare-waf-custom-rules
+      actions: [read, write, delete]
+      description: Manage Cloudflare WAF custom rules
+    - resource: cloudflare-rate-limiting-rules
+      actions: [read, write, delete]
+      description: Manage Cloudflare rate limiting rules
+    - resource: cloudflare-redirect-rules
+      actions: [read, write, delete]
+      description: Manage Cloudflare redirect rules
+    - resource: cloudflare-transform-rules
+      actions: [read, write, delete]
+      description: Manage Cloudflare transform rules
+    - resource: cloudflare-managed-rulesets
+      actions: [read, write, delete]
+      description: Manage Cloudflare managed ruleset deployments
+    - resource: cloudflare-zone-settings
+      actions: [read, write, delete]
+      description: Manage Cloudflare zone settings
+    - resource: cloudflare-lists
+      actions: [read, write, delete]
+      description: Manage Cloudflare account lists
+    - resource: cloudflare-access-applications
+      actions: [read, write, delete]
+      description: Manage Cloudflare Access applications
+    - resource: cloudflare-access-policies
+      actions: [read, write, delete]
+      description: Manage Cloudflare Access policies
+    - resource: cloudflare-access-groups
+      actions: [read, write, delete]
+      description: Manage Cloudflare Access groups
+    - resource: cloudflare-access-service-tokens
+      actions: [read, write, delete]
+      description: Manage Cloudflare Access service tokens
+    - resource: cloudflare-gateway-policies
+      actions: [read, write, delete]
+      description: Manage Cloudflare Gateway policies
+    - resource: cloudflare-gateway-lists
+      actions: [read, write, delete]
+      description: Manage Cloudflare Gateway lists
+
+pipeline:
+  configurationTypes:
+    - id: cloudflare-dns-records
+      name: Cloudflare DNS Records
+      description: DNS records (/dns_records); matched by type + name (+ content for multi-value types)
+      canvasTemplate: config-types/cloudflare-dns-records/canvas.yaml
+      defaultConfig: config-types/cloudflare-dns-records/defaults.yaml
+      handlers:
+        validate: config-types/cloudflare-dns-records/validate
+        deploy: config-types/cloudflare-dns-records/deploy
+        rollback: config-types/cloudflare-dns-records/rollback
+        healthCheck: config-types/cloudflare-dns-records/healthCheck
+        driftDetect: config-types/cloudflare-dns-records/driftDetect
+        getStatus: config-types/cloudflare-dns-records/getStatus
+      targets:
+        componentTypes: [cloudflare-zone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloudflare-waf-custom-rules
+      name: Cloudflare WAF Custom Rules
+      description: WAF custom rules — rulesets phase http_request_firewall_custom, matched by rule ref
+      canvasTemplate: config-types/cloudflare-waf-custom-rules/canvas.yaml
+      defaultConfig: config-types/cloudflare-waf-custom-rules/defaults.yaml
+      handlers:
+        validate: config-types/cloudflare-waf-custom-rules/validate
+        deploy: config-types/cloudflare-waf-custom-rules/deploy
+        rollback: config-types/cloudflare-waf-custom-rules/rollback
+        healthCheck: config-types/cloudflare-waf-custom-rules/healthCheck
+        driftDetect: config-types/cloudflare-waf-custom-rules/driftDetect
+        getStatus: config-types/cloudflare-waf-custom-rules/getStatus
+      targets:
+        componentTypes: [cloudflare-zone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloudflare-rate-limiting-rules
+      name: Cloudflare Rate Limiting Rules
+      description: Rate limiting rules — rulesets phase http_ratelimit, matched by rule ref
+      canvasTemplate: config-types/cloudflare-rate-limiting-rules/canvas.yaml
+      defaultConfig: config-types/cloudflare-rate-limiting-rules/defaults.yaml
+      handlers:
+        validate: config-types/cloudflare-rate-limiting-rules/validate
+        deploy: config-types/cloudflare-rate-limiting-rules/deploy
+        rollback: config-types/cloudflare-rate-limiting-rules/rollback
+        healthCheck: config-types/cloudflare-rate-limiting-rules/healthCheck
+        driftDetect: config-types/cloudflare-rate-limiting-rules/driftDetect
+        getStatus: config-types/cloudflare-rate-limiting-rules/getStatus
+      targets:
+        componentTypes: [cloudflare-zone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloudflare-redirect-rules
+      name: Cloudflare Redirect Rules
+      description: Single redirects — rulesets phase http_request_dynamic_redirect, matched by rule ref
+      canvasTemplate: config-types/cloudflare-redirect-rules/canvas.yaml
+      defaultConfig: config-types/cloudflare-redirect-rules/defaults.yaml
+      handlers:
+        validate: config-types/cloudflare-redirect-rules/validate
+        deploy: config-types/cloudflare-redirect-rules/deploy
+        rollback: config-types/cloudflare-redirect-rules/rollback
+        healthCheck: config-types/cloudflare-redirect-rules/healthCheck
+        driftDetect: config-types/cloudflare-redirect-rules/driftDetect
+        getStatus: config-types/cloudflare-redirect-rules/getStatus
+      targets:
+        componentTypes: [cloudflare-zone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloudflare-transform-rules
+      name: Cloudflare Transform Rules
+      description: URL rewrite + request/response header transforms (rulesets); phase-parameterized, matched by ref
+      canvasTemplate: config-types/cloudflare-transform-rules/canvas.yaml
+      defaultConfig: config-types/cloudflare-transform-rules/defaults.yaml
+      handlers:
+        validate: config-types/cloudflare-transform-rules/validate
+        deploy: config-types/cloudflare-transform-rules/deploy
+        rollback: config-types/cloudflare-transform-rules/rollback
+        healthCheck: config-types/cloudflare-transform-rules/healthCheck
+        driftDetect: config-types/cloudflare-transform-rules/driftDetect
+        getStatus: config-types/cloudflare-transform-rules/getStatus
+      targets:
+        componentTypes: [cloudflare-zone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloudflare-managed-rulesets
+      name: Cloudflare Managed Rulesets
+      description: Deploy and override Cloudflare-managed WAF rulesets (phase http_request_firewall_managed)
+      canvasTemplate: config-types/cloudflare-managed-rulesets/canvas.yaml
+      defaultConfig: config-types/cloudflare-managed-rulesets/defaults.yaml
+      handlers:
+        validate: config-types/cloudflare-managed-rulesets/validate
+        deploy: config-types/cloudflare-managed-rulesets/deploy
+        rollback: config-types/cloudflare-managed-rulesets/rollback
+        healthCheck: config-types/cloudflare-managed-rulesets/healthCheck
+        driftDetect: config-types/cloudflare-managed-rulesets/driftDetect
+        getStatus: config-types/cloudflare-managed-rulesets/getStatus
+      targets:
+        componentTypes: [cloudflare-zone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloudflare-zone-settings
+      name: Cloudflare Zone Settings
+      description: Zone settings (SSL mode, security level, min TLS, always-use-HTTPS, ...) via /settings
+      canvasTemplate: config-types/cloudflare-zone-settings/canvas.yaml
+      defaultConfig: config-types/cloudflare-zone-settings/defaults.yaml
+      handlers:
+        validate: config-types/cloudflare-zone-settings/validate
+        deploy: config-types/cloudflare-zone-settings/deploy
+        rollback: config-types/cloudflare-zone-settings/rollback
+        healthCheck: config-types/cloudflare-zone-settings/healthCheck
+        driftDetect: config-types/cloudflare-zone-settings/driftDetect
+        getStatus: config-types/cloudflare-zone-settings/getStatus
+      targets:
+        componentTypes: [cloudflare-zone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloudflare-lists
+      name: Cloudflare Lists
+      description: Account rules lists (IP / hostname / ASN) and their items (/rules/lists); matched by name
+      canvasTemplate: config-types/cloudflare-lists/canvas.yaml
+      defaultConfig: config-types/cloudflare-lists/defaults.yaml
+      handlers:
+        validate: config-types/cloudflare-lists/validate
+        deploy: config-types/cloudflare-lists/deploy
+        rollback: config-types/cloudflare-lists/rollback
+        healthCheck: config-types/cloudflare-lists/healthCheck
+        driftDetect: config-types/cloudflare-lists/driftDetect
+        getStatus: config-types/cloudflare-lists/getStatus
+      targets:
+        componentTypes: [cloudflare-zone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloudflare-access-applications
+      name: Cloudflare Access Applications
+      description: Zero Trust Access applications (/access/apps)
+      canvasTemplate: config-types/cloudflare-access-applications/canvas.yaml
+      defaultConfig: config-types/cloudflare-access-applications/defaults.yaml
+      handlers:
+        validate: config-types/cloudflare-access-applications/validate
+        deploy: config-types/cloudflare-access-applications/deploy
+        rollback: config-types/cloudflare-access-applications/rollback
+        healthCheck: config-types/cloudflare-access-applications/healthCheck
+        driftDetect: config-types/cloudflare-access-applications/driftDetect
+        getStatus: config-types/cloudflare-access-applications/getStatus
+      targets:
+        componentTypes: [cloudflare-zone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloudflare-access-policies
+      name: Cloudflare Access Policies
+      description: Reusable Zero Trust Access policies (/access/policies)
+      canvasTemplate: config-types/cloudflare-access-policies/canvas.yaml
+      defaultConfig: config-types/cloudflare-access-policies/defaults.yaml
+      handlers:
+        validate: config-types/cloudflare-access-policies/validate
+        deploy: config-types/cloudflare-access-policies/deploy
+        rollback: config-types/cloudflare-access-policies/rollback
+        healthCheck: config-types/cloudflare-access-policies/healthCheck
+        driftDetect: config-types/cloudflare-access-policies/driftDetect
+        getStatus: config-types/cloudflare-access-policies/getStatus
+      targets:
+        componentTypes: [cloudflare-zone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloudflare-access-groups
+      name: Cloudflare Access Groups
+      description: Zero Trust Access groups (/access/groups)
+      canvasTemplate: config-types/cloudflare-access-groups/canvas.yaml
+      defaultConfig: config-types/cloudflare-access-groups/defaults.yaml
+      handlers:
+        validate: config-types/cloudflare-access-groups/validate
+        deploy: config-types/cloudflare-access-groups/deploy
+        rollback: config-types/cloudflare-access-groups/rollback
+        healthCheck: config-types/cloudflare-access-groups/healthCheck
+        driftDetect: config-types/cloudflare-access-groups/driftDetect
+        getStatus: config-types/cloudflare-access-groups/getStatus
+      targets:
+        componentTypes: [cloudflare-zone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloudflare-access-service-tokens
+      name: Cloudflare Access Service Tokens
+      description: Access service tokens (/access/service_tokens); the client secret is write-only
+      canvasTemplate: config-types/cloudflare-access-service-tokens/canvas.yaml
+      defaultConfig: config-types/cloudflare-access-service-tokens/defaults.yaml
+      handlers:
+        validate: config-types/cloudflare-access-service-tokens/validate
+        deploy: config-types/cloudflare-access-service-tokens/deploy
+        rollback: config-types/cloudflare-access-service-tokens/rollback
+        healthCheck: config-types/cloudflare-access-service-tokens/healthCheck
+        driftDetect: config-types/cloudflare-access-service-tokens/driftDetect
+        getStatus: config-types/cloudflare-access-service-tokens/getStatus
+      targets:
+        componentTypes: [cloudflare-zone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloudflare-gateway-policies
+      name: Cloudflare Gateway Policies
+      description: Zero Trust Gateway rules (/gateway/rules)
+      canvasTemplate: config-types/cloudflare-gateway-policies/canvas.yaml
+      defaultConfig: config-types/cloudflare-gateway-policies/defaults.yaml
+      handlers:
+        validate: config-types/cloudflare-gateway-policies/validate
+        deploy: config-types/cloudflare-gateway-policies/deploy
+        rollback: config-types/cloudflare-gateway-policies/rollback
+        healthCheck: config-types/cloudflare-gateway-policies/healthCheck
+        driftDetect: config-types/cloudflare-gateway-policies/driftDetect
+        getStatus: config-types/cloudflare-gateway-policies/getStatus
+      targets:
+        componentTypes: [cloudflare-zone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloudflare-gateway-lists
+      name: Cloudflare Gateway Lists
+      description: Zero Trust Gateway lists (/gateway/lists)
+      canvasTemplate: config-types/cloudflare-gateway-lists/canvas.yaml
+      defaultConfig: config-types/cloudflare-gateway-lists/defaults.yaml
+      handlers:
+        validate: config-types/cloudflare-gateway-lists/validate
+        deploy: config-types/cloudflare-gateway-lists/deploy
+        rollback: config-types/cloudflare-gateway-lists/rollback
+        healthCheck: config-types/cloudflare-gateway-lists/healthCheck
+        driftDetect: config-types/cloudflare-gateway-lists/driftDetect
+        getStatus: config-types/cloudflare-gateway-lists/getStatus
+      targets:
+        componentTypes: [cloudflare-zone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/cloudflare
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+settings:
+  - key: account_id
+    type: string
+    label: Account ID
+    description: >
+      Optional Cloudflare account id. Overrides the account derived from the
+      zone. Required for account-scoped types (Access, Gateway, Lists) when no
+      zone component is registered.
+    default: ""
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Cloudflare API calls.
+    default: 30
+    required: false
