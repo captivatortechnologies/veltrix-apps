@@ -1,5 +1,26 @@
-import type { TestConnectionContext, TestConnectionResult } from '@veltrixsecops/app-sdk'
+import type { CredentialRef } from '@veltrixsecops/app-sdk'
 import { buildAuthHeader } from '../lib/splunkApi'
+
+// Local mirror of the SDK's TestConnection contract (see defineConnectionTester).
+// Declared here rather than imported from the SDK so the handler compiles against
+// whatever @veltrixsecops/app-sdk version the platform resolves when it loads the
+// handler — older SDKs predate these type exports. Only long-standing types
+// (CredentialRef) are imported.
+interface TestConnectionContext {
+  appId: string
+  customerId: string
+  endpoint: string | null
+  credential: CredentialRef | null
+  component: { hostname?: string | null } | null
+  connectivity: unknown
+  settings: Record<string, unknown>
+}
+interface TestConnectionResult {
+  ok: boolean
+  message: string
+  details?: string[]
+  latencyMs?: number
+}
 
 // =============================================================================
 // Splunk Enterprise — connection test.
