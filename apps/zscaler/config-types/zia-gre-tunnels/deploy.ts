@@ -142,7 +142,7 @@ export async function findGreTunnel(client: ZscalerClient, sourceIp: string): Pr
 
 function buildPayload(spec: GreTunnelSpec): Record<string, unknown> {
   const gre = parseGreObject(spec.greJson)
-  const greFields = gre.ok ? gre.value : {}
+  const greFields = gre.value ?? {}
   // sourceIp + comment come first; the advanced-tunnel JSON keys are merged on
   // top for fields like primaryDestVip/withinCountry. comment always sent (even
   // empty) so clearing it converges the live tunnel.

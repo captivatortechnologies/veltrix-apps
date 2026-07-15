@@ -31,9 +31,17 @@ export interface LiveGreTunnel {
   ipUnnumbered?: boolean
 }
 
-export type GreObjectResult =
-  | { ok: true; value: Record<string, unknown> }
-  | { ok: false; error: string }
+/**
+ * Result of parsing gre_json. Deliberately NOT a discriminated union: the
+ * platform's handler loader compiles handlers in a mode that does not narrow
+ * `{ ok: true } | { ok: false }` unions, so `value` and `error` are
+ * always-present nullable fields instead (value is set on success, error on
+ * failure — never both). Accessing either needs no control-flow narrowing.
+ */
+export interface GreObjectResult {
+  value: Record<string, unknown> | null
+  error: string | null
+}
 
 /**
  * Parse the advanced GRE tunnel object (gre_json), mirroring the JSON escape
@@ -42,21 +50,21 @@ export type GreObjectResult =
  */
 export function parseGreObject(raw: string | undefined): GreObjectResult {
   const text = (raw ?? '').trim()
-  if (!text) return { ok: true, value: {} }
+  if (!text) return { value: {}, error: null }
 
   let parsed: unknown
   try {
     parsed = JSON.parse(text)
   } catch (err) {
-    return { ok: false, error: `must be valid JSON (${err instanceof Error ? err.message : 'parse error'})` }
+    return { value: null, error: `must be valid JSON (${err instanceof Error ? err.message : 'parse error'})` }
   }
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
     return {
-      ok: false,
+      value: null,
       error: 'must be a JSON object (e.g. { "primaryDestVip": { "id": 12345 }, "withinCountry": true })',
     }
   }
-  return { ok: true, value: parsed as Record<string, unknown> }
+  return { value: parsed as Record<string, unknown>, error: null }
 }
 
 /** Each canvas item describes one ZIA GRE tunnel. */
@@ -123,7 +131,7 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
 
     if (spec.greJson.trim()) {
       const parsed = parseGreObject(spec.greJson)
-      if (!parsed.ok) {
+      if (parsed.error) {
         errors.push({
           field: `${prefix}.gre_json`,
           message: `Advanced tunnel settings (gre_json) ${parsed.error}`,

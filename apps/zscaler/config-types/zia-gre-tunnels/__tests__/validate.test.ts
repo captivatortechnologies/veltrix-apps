@@ -95,8 +95,14 @@ describe('ZIA GRE Tunnels Validate Handler', () => {
 
   it('parseGreObject returns an empty object for a blank value', () => {
     const parsed = parseGreObject('   ')
-    expect(parsed.ok).toBe(true)
-    if (parsed.ok) expect(parsed.value).toEqual({})
+    expect(parsed.error).toBeNull()
+    expect(parsed.value).toEqual({})
+  })
+
+  it('parseGreObject reports an error for a non-object value', () => {
+    expect(parseGreObject('[1,2,3]').error).toBeTruthy()
+    expect(parseGreObject('not json').error).toBeTruthy()
+    expect(parseGreObject('{"withinCountry":true}').value).toEqual({ withinCountry: true })
   })
 
   it('extractGreTunnelSpecs trims and drops blank comments', () => {
