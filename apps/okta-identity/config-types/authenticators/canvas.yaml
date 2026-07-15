@@ -1,0 +1,136 @@
+# =============================================================================
+# Canvas Template — Okta Authenticators
+#
+# Declares ONE authenticator — the item. Users add as many as they need.
+# ONE item = ONE authenticator identified by its `key` (okta_email, google_otp,
+# duo, custom_app, …). The custom_app / custom_otp / external_idp keys support
+# SEVERAL instances in one org, told apart by NAME, so their identity is the
+# (key, name) pair; every other key is one-per-org and identified by key alone.
+#
+# There is NO DELETE and NO UPSERT in the Okta Authenticators API:
+#   - built-in okta_* / standard authenticators are seeded one-per-org — deploy
+#     GETs the existing one, PUTs its settings and toggles its status. It NEVER
+#     creates them.
+#   - only the custom/provider keys are CREATED when absent (custom_app also
+#     accepts the partner terms automatically). A created authenticator can only
+#     be DEACTIVATED on rollback — it cannot be deleted.
+#   - okta_password can never be deactivated.
+#
+# The provider secrets (Duo secretKey / integrationKey; on-prem / Symantec shared
+# secrets) are WRITE-ONLY — Okta never returns them — so they are password fields
+# and are excluded from drift detection.
+#
+# Field keys must match what config-types/authenticators/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-authenticators"
+name: "Authenticator Configuration"
+toolType: "okta-identity"
+entityType: "authenticators"
+description: "Manage Okta authenticators as code through the Okta Authenticators API. Built-in authenticators are updated and toggled in place (never created); custom and provider authenticators (Duo, on-prem MFA, Symantec VIP, YubiKey) are created when absent. There is no delete — an unwanted authenticator is deactivated. Provider secrets are write-only and excluded from drift."
+
+item:
+  label: "Authenticator"
+  identityField: "key"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Authenticator"
+      icon: "key"
+      description: "Which authenticator, its display name and lifecycle status"
+      fields:
+        - key: "key"
+          label: "Authenticator Key"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The authenticator's key — its logical identity. Built-in (one per
+            org, updated in place, never created): okta_password, okta_verify,
+            okta_email, phone_number, google_otp, security_question, webauthn,
+            security_key. Created when absent: duo, onprem_mfa, symantec_vip,
+            yubikey_token (provider authenticators) and custom_app, custom_otp,
+            external_idp (custom/federated — several may exist per org, told apart
+            by Name). okta_password is required and cannot be deactivated.
+
+        - key: "name"
+          label: "Display Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 128
+          helpText: >
+            The authenticator's display name (max 128 chars). REQUIRED for
+            custom_app / custom_otp / external_idp — their identity is the
+            (key, name) pair and several may exist in one org. Optional for
+            built-in authenticators (sets the console label).
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          required: false
+          defaultValue: "ACTIVE"
+          options:
+            - label: "Active"
+              value: "ACTIVE"
+            - label: "Inactive"
+              value: "INACTIVE"
+          helpText: >
+            Desired lifecycle state, applied via Okta's authenticator
+            activate/deactivate endpoints (not the update body). Note: there is
+            no delete — deactivating is how an authenticator is retired.
+            okta_password cannot be deactivated, so INACTIVE is ignored for it.
+
+    - name: "Config"
+      icon: "sliders"
+      description: "Authenticator settings, and the write-only provider secrets"
+      fields:
+        - key: "settingsJson"
+          label: "Settings (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            The authenticator's `settings` as a JSON object, merged into the
+            create/update body. Shape is per-key, e.g. WebAuthn:
+            {"userVerification":"PREFERRED","attachment":"ANY"}; Okta Verify:
+            {"compliance":{"fips":"OPTIONAL"}}. Leave blank to keep the current
+            settings. Only the keys you declare are compared for drift, so Okta's
+            own server defaults do not read as drift.
+
+        - key: "secretKey"
+          label: "Provider Secret Key"
+          fieldType: "password"
+          required: false
+          helpText: >
+            WRITE-ONLY provider secret — the Duo secret key, or the on-prem MFA /
+            Symantec VIP shared secret. Merged into provider.configuration.secretKey.
+            Okta never returns it, so it is never shown again and is EXCLUDED from
+            drift detection. Only used by provider authenticators (duo, onprem_mfa,
+            symantec_vip, yubikey_token).
+
+        - key: "integrationKey"
+          label: "Provider Integration Key"
+          fieldType: "password"
+          required: false
+          helpText: >
+            WRITE-ONLY Duo integration key, merged into
+            provider.configuration.integrationKey. Like the secret key it is never
+            returned by Okta and is excluded from drift. Only used by provider
+            authenticators.
+
+    - name: "Provider"
+      icon: "plug"
+      description: "Provider object for provider / external-IdP authenticators (JSON)"
+      fields:
+        - key: "providerJson"
+          label: "Provider (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            The `provider` object (non-secret fields) for a provider or external
+            IdP authenticator, as JSON. The secret / integration key are supplied
+            separately as password fields above and merged into
+            provider.configuration on deploy. Duo example:
+            {"type":"DUO","configuration":{"host":"api-xxxx.duosecurity.com","userNameTemplate":{"template":"source.login"}}}.
+            external_idp example: {"type":"IDP","configuration":{"idpId":"0oa1..."}}.
+            Ignored for built-in authenticators.

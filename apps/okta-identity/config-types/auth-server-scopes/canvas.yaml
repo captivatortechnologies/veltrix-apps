@@ -1,0 +1,120 @@
+# =============================================================================
+# Canvas Template — Okta Authorization Server Scopes
+#
+# Declares ONE OAuth scope — the item — on a custom authorization server. Users
+# add as many scopes as they need. A scope is a CHILD of an authorization
+# server: its logical identity is the (authServerId, name) PAIR, so the same
+# scope name may exist under different servers. `authServerId` is a field on the
+# item (the parent server's id, e.g. 'default').
+#
+# Okta has no upsert: deploy LISTs the scopes on the server, matches by name,
+# then PUTs (found) or POSTs (missing). Okta's built-in scopes (openid, profile,
+# email, address, phone, offline_access, device_sso) are system: true and are
+# SKIPPED — never updated or deleted. There is NO lifecycle for a scope.
+#
+# Field keys must match what config-types/auth-server-scopes/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-auth-server-scopes"
+name: "Authorization Server Scope Configuration"
+toolType: "okta-identity"
+entityType: "auth-server-scopes"
+description: "Define custom OAuth 2.0 scopes on an Okta authorization server as code through the Okta Management API. A scope is scoped to a parent authorization server (authServerId, e.g. 'default'); Okta's built-in system scopes are protected and never modified."
+
+item:
+  label: "Scope"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Scope"
+      icon: "key"
+      description: "Parent authorization server, scope name and how it is presented"
+      fields:
+        - key: "authServerId"
+          label: "Authorization Server ID"
+          fieldType: "text"
+          required: true
+          defaultValue: "default"
+          helpText: >
+            The id of the authorization server this scope belongs to (e.g.
+            'default', or a custom server id like 'aus1abc...'). Part of the
+            scope's logical identity — a scope is matched by (authServerId, name)
+            and created under /authorizationServers/{authServerId}/scopes.
+
+        - key: "name"
+          label: "Scope Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The scope value clients request (e.g. 'read:messages'). Must be
+            unique within this authorization server on the canvas — it is the
+            logical identity deploy matches on. May not contain whitespace (OAuth
+            scope values are space-delimited) and cannot be one of Okta's reserved
+            system scopes (openid, profile, email, address, phone, offline_access,
+            device_sso) — those are managed by Okta.
+
+        - key: "displayName"
+          label: "Display Name"
+          fieldType: "text"
+          helpText: >
+            Optional human-friendly label shown to end users on the consent
+            prompt. Cleared if left blank.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: >
+            Optional description of what the scope grants, shown on the consent
+            prompt and in the Okta Admin console. Cleared if left blank.
+
+    - name: "Behavior"
+      icon: "sliders"
+      description: "Consent, default/optional flags and metadata publication"
+      fields:
+        - key: "consent"
+          label: "Consent"
+          fieldType: "select"
+          defaultValue: "IMPLICIT"
+          options:
+            - label: "Implicit (no consent prompt)"
+              value: "IMPLICIT"
+            - label: "Required (always prompt for consent)"
+              value: "REQUIRED"
+            - label: "Flexible (prompt governed by the app's consent method)"
+              value: "FLEXIBLE"
+          helpText: >
+            How consent is handled for the scope. IMPLICIT grants without a
+            prompt; REQUIRED always prompts; FLEXIBLE defers to the requesting
+            app's consent method.
+
+        - key: "metadataPublish"
+          label: "Metadata Publish"
+          fieldType: "select"
+          defaultValue: "NO_CLIENTS"
+          options:
+            - label: "No clients (not published in metadata)"
+              value: "NO_CLIENTS"
+            - label: "All clients (published in the authorization server metadata)"
+              value: "ALL_CLIENTS"
+          helpText: >
+            Whether the scope is advertised in the authorization server's
+            metadata (.well-known) document. NO_CLIENTS keeps it unpublished;
+            ALL_CLIENTS publishes it to every client.
+
+        - key: "default"
+          label: "Default Scope"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: >
+            When enabled, the scope is granted by default when a client requests
+            an access token without specifying scopes.
+
+        - key: "optional"
+          label: "Optional Scope"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: >
+            When enabled, the scope is treated as optional — it may be omitted
+            from an issued access token.

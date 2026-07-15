@@ -1,0 +1,114 @@
+# =============================================================================
+# Canvas Template — Okta Event Hooks
+#
+# Declares ONE event hook — the item. Users add as many hooks as they need.
+# A hook's identity in Okta is its NAME; deploy lists hooks, matches on the name,
+# and PUTs (update) or POSTs (create) accordingly — there is NO upsert.
+#
+# ONE item = ONE outbound event hook: a set of subscribed Okta event types
+# (events.items) delivered over an HTTPS channel to an external endpoint, with a
+# write-only auth header carrying a bearer secret.
+#
+# Field keys must match what config-types/event-hooks/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-event-hooks"
+name: "Event Hook Configuration"
+toolType: "okta-identity"
+entityType: "event-hooks"
+description: "Define Okta outbound event hooks as code through the Okta Event Hooks API — subscribe to event types and deliver them over an HTTPS channel with a write-only auth header. New or channel-changed hooks require a one-time verification handshake; an active hook is deactivated before deletion."
+
+item:
+  label: "Event Hook"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Hook"
+      icon: "zap"
+      description: "Hook name and lifecycle status"
+      fields:
+        - key: "name"
+          label: "Hook Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            Display name of the event hook in Okta (max 255 chars). Must be unique
+            within this canvas — it is the logical identity deploy matches on.
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          defaultValue: "ACTIVE"
+          options:
+            - label: "Active"
+              value: "ACTIVE"
+            - label: "Inactive"
+              value: "INACTIVE"
+          helpText: >
+            Desired lifecycle state. Applied via Okta's event-hook
+            activate/deactivate lifecycle endpoints, not the update body. Note: an
+            ACTIVE hook cannot be deleted — a rollback deactivates a created hook
+            before deleting it. Active is not the same as verified: a new hook must
+            still complete the verification handshake before Okta delivers events.
+
+    - name: "Events"
+      icon: "bell"
+      description: "The Okta event types this hook subscribes to"
+      fields:
+        - key: "eventItems"
+          label: "Event Types"
+          fieldType: "tags"
+          required: true
+          helpText: >
+            One or more Okta event type names to subscribe to, e.g.
+            user.lifecycle.create, user.lifecycle.deactivate,
+            application.user_membership.add. At least one is required. These become
+            events.items; the events.type is always EVENT_TYPE. Names are checked
+            against the expected dotted shape (a warning only — Okta owns the
+            authoritative catalog).
+
+    - name: "Channel"
+      icon: "send"
+      description: "The HTTPS endpoint Okta delivers events to, and its auth header"
+      fields:
+        - key: "uri"
+          label: "Endpoint URL"
+          fieldType: "text"
+          required: true
+          helpText: >
+            HTTPS URL of your external endpoint Okta POSTs events to
+            (channel.config.uri). Must be HTTPS — Okta rejects plain HTTP.
+
+        - key: "authHeaderKey"
+          label: "Auth Header Name"
+          fieldType: "text"
+          defaultValue: "Authorization"
+          helpText: >
+            Name of the HTTP header Okta sends on every callback so your endpoint
+            can authenticate the request (channel.config.authScheme.key). Defaults
+            to Authorization.
+
+        - key: "authHeaderValue"
+          label: "Auth Header Value"
+          fieldType: "password"
+          required: true
+          helpText: >
+            WRITE-ONLY secret — the auth header value Okta sends on every callback
+            (channel.config.authScheme.value). Okta NEVER returns it on read, so it
+            cannot be drift-checked and is re-sent on every deploy; you must enter
+            it here each time. Treat it like a bearer token.
+
+        - key: "headersJson"
+          label: "Extra Headers (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional extra static headers as a JSON array of {"key","value"}
+            objects, merged into channel.config.headers, e.g.
+            [{"key":"X-Trace","value":"prod"}]. Leave blank for none. Unlike the
+            auth header value, these header values ARE returned by Okta and are
+            drift-checked. Changing the channel (URL, auth header name or these
+            headers) clears verification and requires re-verifying the hook.

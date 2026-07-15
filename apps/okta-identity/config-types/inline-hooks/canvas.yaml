@@ -1,0 +1,146 @@
+# =============================================================================
+# Canvas Template — Okta Inline Hooks
+#
+# Declares ONE inline hook — the item. Users add as many hooks as they need
+# (Okta caps an org at 50). ONE item = ONE hook of one type, calling one external
+# endpoint over an HTTP or OAUTH channel.
+#
+# A hook's logical identity is the (name, type) PAIR — the same name may exist
+# once per type — so the item's identityField is `name` and
+# config-types/inline-hooks/validate.ts enforces (name, type) uniqueness across
+# the canvas. Okta has NO upsert: deploy LISTs hooks (filtered by type), matches
+# by (name, type), then PUTs (found) or POSTs (missing).
+#
+# WRITE-ONLY SECRET: the channel auth secret (HTTP authScheme.value, modeled as
+# the `authHeaderValue` password field, or the OAUTH `clientSecret` inside
+# `configJson`) is never returned by Okta. It is excluded from drift and may be
+# left blank on a re-deploy to keep the stored value.
+#
+# DELETE requires the hook to be INACTIVE, so a rollback deactivates a created
+# hook before deleting it. Any channel change needs Okta to re-verify the
+# endpoint (an external one-time handshake) before the hook fires.
+#
+# Field keys must match what config-types/inline-hooks/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-inline-hooks"
+name: "Inline Hook Configuration"
+toolType: "okta-identity"
+entityType: "inline-hooks"
+description: "Define Okta inline hooks (token/SAML transform, import, telephony, password-import, pre-registration) as code through the Okta Inline Hooks API. The channel auth secret is write-only and excluded from drift; an active hook is deactivated before deletion."
+
+item:
+  label: "Inline Hook"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Hook"
+      icon: "webhook"
+      description: "Hook type, name and lifecycle status"
+      fields:
+        - key: "type"
+          label: "Hook Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "com.okta.oauth2.tokens.transform"
+          options:
+            - label: "OAuth2 token transform (com.okta.oauth2.tokens.transform)"
+              value: "com.okta.oauth2.tokens.transform"
+            - label: "SAML token transform (com.okta.saml.tokens.transform)"
+              value: "com.okta.saml.tokens.transform"
+            - label: "Import transform (com.okta.import.transform)"
+              value: "com.okta.import.transform"
+            - label: "Telephony provider (com.okta.telephony.provider)"
+              value: "com.okta.telephony.provider"
+            - label: "Password import (com.okta.user.credential.password.import)"
+              value: "com.okta.user.credential.password.import"
+            - label: "Registration inline hook (com.okta.user.pre-registration)"
+              value: "com.okta.user.pre-registration"
+          helpText: >
+            The inline hook type. Part of the logical identity — a hook is matched
+            by (name, type), so the same name may exist once per type. Fixed once
+            the hook is created; changing it creates a new hook.
+
+        - key: "name"
+          label: "Hook Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            Name of the hook in Okta (max 255 chars). Unique within its type — it
+            is the logical identity deploy matches on together with the type.
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          defaultValue: "ACTIVE"
+          options:
+            - label: "Active"
+              value: "ACTIVE"
+            - label: "Inactive"
+              value: "INACTIVE"
+          helpText: >
+            Desired lifecycle state. Applied via Okta's inline hook
+            activate/deactivate lifecycle endpoints, not the update body. Note: a
+            hook must be INACTIVE to be deleted — a rollback deactivates a created
+            hook before deleting it.
+
+    - name: "Channel"
+      icon: "link"
+      description: "The external endpoint the hook calls and how it authenticates"
+      fields:
+        - key: "channelType"
+          label: "Channel Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "HTTP"
+          options:
+            - label: "HTTP (header auth)"
+              value: "HTTP"
+            - label: "OAUTH (client credentials)"
+              value: "OAUTH"
+          helpText: >
+            HTTP sends a static auth header (key + write-only value below). OAUTH
+            fetches a bearer token using client credentials supplied in the Channel
+            Config (JSON) — clientId, clientSecret, tokenUrl, scope, authType.
+
+        - key: "uri"
+          label: "Endpoint URI"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The external https:// endpoint Okta calls for this hook. Must be TLS —
+            Okta rejects plain HTTP targets. Any change to the channel requires the
+            endpoint to be re-verified in Okta before the hook fires again.
+
+        - key: "authHeaderKey"
+          label: "Auth Header Name"
+          fieldType: "text"
+          defaultValue: "Authorization"
+          helpText: >
+            HTTP channel only: the request header Okta sends the secret in
+            (defaults to Authorization). Ignored for OAUTH channels.
+
+        - key: "authHeaderValue"
+          label: "Auth Header Value (secret)"
+          fieldType: "password"
+          helpText: >
+            HTTP channel only. Write-only: Okta never returns it, so it is never
+            drift-checked. REQUIRED on the first deploy (the header value your
+            endpoint checks); leave BLANK on a later deploy to keep the existing
+            secret — set a value only to change it.
+
+        - key: "configJson"
+          label: "Channel Config (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Extra channel.config fields merged into the API body. REQUIRED for an
+            OAUTH channel:
+            {"clientId":"…","clientSecret":"…","tokenUrl":"https://…/token","scope":"…","authType":"client_secret_post"}.
+            The OAUTH clientSecret is write-only and excluded from drift — provide
+            it on the first deploy and omit it later to keep the stored value. The
+            endpoint URI and (for HTTP) the auth header always come from the fields
+            above and override anything set here.

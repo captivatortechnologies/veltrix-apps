@@ -1,0 +1,8 @@
+# Defaults for a new authorization-server item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (name, description, audiences, issuerMode, status), since an
+# authorization server's presentational group is one flat item record, e.g.:
+#   status: ACTIVE
+#   audiences: '["api://default"]'

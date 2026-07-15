@@ -1,0 +1,12 @@
+# Defaults for a new inline-hook item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (type, name, status, channelType, uri, authHeaderKey,
+# authHeaderValue, configJson), since a hook's presentational groups share one
+# flat item record, e.g.:
+#   type: com.okta.oauth2.tokens.transform
+#   status: ACTIVE
+#   channelType: HTTP
+#   uri: https://example.com/hooks/okta
+#   authHeaderKey: Authorization

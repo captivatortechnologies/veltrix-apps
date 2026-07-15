@@ -1,0 +1,10 @@
+# Defaults for a new event-hook item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (name, status, eventItems, uri, authHeaderKey,
+# authHeaderValue, headersJson), since a hook's presentational groups share one
+# flat item record, e.g.:
+#   status: ACTIVE
+#   authHeaderKey: Authorization
+#   uri: https://example.com/okta/event-hook

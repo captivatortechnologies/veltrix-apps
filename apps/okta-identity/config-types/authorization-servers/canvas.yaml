@@ -1,0 +1,89 @@
+# =============================================================================
+# Canvas Template — Okta Custom Authorization Servers
+#
+# Declares ONE custom authorization server — the item. Users add as many as they
+# need. A server's identity in Okta is its NAME; deploy lists servers, matches on
+# the name, and PUTs (update) or POSTs (create) accordingly — there is NO upsert.
+#
+# ONE item = ONE authorization server. Okta seeds every org with a built-in
+# "default" server (id "default"): it is PROTECTED — this app updates it IN PLACE
+# but never deletes or recreates it. `issuer` and `credentials` are server-managed
+# readOnly fields and are never authored here.
+#
+# Field keys must match what config-types/authorization-servers/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-authorization-servers"
+name: "Authorization Server Configuration"
+toolType: "okta-identity"
+entityType: "authorization-servers"
+description: "Define Okta custom authorization servers (name, description, token audience, issuer mode) as code through the Okta Authorization Servers API. The Okta-provided default server is updated in place and never deleted; status is applied via the activate/deactivate lifecycle."
+
+item:
+  label: "Authorization Server"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Authorization Server"
+      icon: "shield"
+      description: "Server identity, token audience, issuer mode and lifecycle status"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 40
+            message: "The authorization server's name (max 40 characters). Unique within this canvas — the logical identity deploy matches on."
+          helpText: >
+            Name of the custom authorization server in Okta (max 40 chars). Must be
+            unique within this canvas — it is the logical identity deploy matches
+            on. Naming a server "default" targets the Okta-provided default server:
+            it is UPDATED IN PLACE and can never be deleted or recreated by this app.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Okta Admin console."
+
+        - key: "audiences"
+          label: "Audiences"
+          fieldType: "tags"
+          required: true
+          helpText: >
+            The token audience — provide EXACTLY ONE (e.g. api://default or an
+            https:// resource URL). This is the recipient the access tokens issued
+            by this server are intended for. Exactly one audience is required.
+
+        - key: "issuerMode"
+          label: "Issuer Mode"
+          fieldType: "select"
+          options:
+            - label: "Org URL (ORG_URL)"
+              value: "ORG_URL"
+            - label: "Custom URL (CUSTOM_URL)"
+              value: "CUSTOM_URL"
+            - label: "Dynamic (DYNAMIC)"
+              value: "DYNAMIC"
+          helpText: >
+            Optional. Controls the `iss` (issuer) claim in tokens: ORG_URL uses the
+            Okta org domain, CUSTOM_URL uses a configured custom domain, DYNAMIC
+            reflects the domain of the request. Leave blank to let Okta apply its
+            default.
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          defaultValue: "ACTIVE"
+          options:
+            - label: "Active"
+              value: "ACTIVE"
+            - label: "Inactive"
+              value: "INACTIVE"
+          helpText: >
+            Desired lifecycle state. Applied via Okta's authorization-server
+            activate/deactivate lifecycle endpoints, not the update body. A created
+            server is deactivated before deletion on rollback (Okta cannot delete
+            an active server).

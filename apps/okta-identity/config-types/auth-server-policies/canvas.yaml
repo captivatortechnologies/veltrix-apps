@@ -1,0 +1,119 @@
+# =============================================================================
+# Canvas Template — Okta Authorization-Server Policies
+#
+# Declares ONE authorization-server policy — the item. Users add as many as they
+# need. ONE item = ONE OAuth authorization policy under a custom authorization
+# server, plus the rules that live under it.
+#
+# A policy is a CHILD of an authorization server: every endpoint lives under
+# /authorizationServers/{authServerId}/policies, so a policy's logical identity
+# is the (authServerId, name) PAIR — the parent authServerId is a field and
+# config-types/auth-server-policies/validate.ts enforces (authServerId, name)
+# uniqueness across the canvas. Okta has no upsert: deploy LISTs the auth
+# server's policies, matches by (authServerId, name), then PUTs (found) or POSTs
+# (missing).
+#
+# The rule set does not fit flat fields, so it is modelled as a JSON textarea:
+#   - rules — an array of rule objects. Parsed to a JSON ARRAY and reconciled
+#             under the policy BY NAME (never deletes a system rule; never prunes
+#             rules the canvas does not mention — the built-in default rule stays).
+#
+# Field keys must match what config-types/auth-server-policies/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-auth-server-policies"
+name: "Authorization Server Policy Configuration"
+toolType: "okta-identity"
+entityType: "auth-server-policies"
+description: "Define OAuth access policies (and their rules) on a custom Okta authorization server as code through the Okta Authorization Servers API. The policy is scoped to the parent authorization server; the rule set is JSON, reconciled by name. The built-in Default Policy is updated in place, never deleted."
+
+item:
+  label: "Authorization Server Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Parent authorization server, identity, priority, status and client scoping"
+      fields:
+        - key: "authServerId"
+          label: "Authorization Server ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The id of the parent custom authorization server this policy belongs
+            to (e.g. "default", or an id such as aus1abc2defGHI3jkl4). Part of the
+            logical identity — a policy is matched by (authServerId, name). This
+            is the authorization server id, not its name.
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            message: "A policy name, up to 255 characters. Unique within its authorization server — this is the identity used to find and update the policy on each deploy."
+          helpText: >
+            The policy's display name. Must be unique within its authorization
+            server. The built-in "Default Policy" is system-managed — it may be
+            updated in place here but is never deleted or recreated.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Okta Admin console."
+
+        - key: "priority"
+          label: "Priority"
+          fieldType: "number"
+          validation:
+            min: 1
+          helpText: >
+            Optional evaluation order (1 = highest). Policies are evaluated in
+            priority order; the first that matches wins. Leave blank to let Okta
+            assign the next priority. Note that Okta may renumber priorities as
+            other policies are added or removed.
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          required: true
+          defaultValue: "ACTIVE"
+          options:
+            - label: "Active"
+              value: "ACTIVE"
+            - label: "Inactive"
+              value: "INACTIVE"
+          helpText: >
+            Whether the policy is active. Status is changed through Okta's
+            activate/deactivate lifecycle endpoints, not by editing other fields.
+
+        - key: "clientInclude"
+          label: "Included Clients"
+          fieldType: "tags"
+          defaultValue:
+            - "ALL_CLIENTS"
+          helpText: >
+            The OAuth clients this policy applies to — becomes the policy
+            condition conditions.clients.include. Use the special token
+            "ALL_CLIENTS" (the default) to apply to every client of the
+            authorization server, or list specific client (application) IDs.
+            Leaving this blank defaults to ["ALL_CLIENTS"].
+
+    - name: "Rules"
+      icon: "list"
+      description: "Rules under the policy (JSON array) — reconciled by name"
+      fields:
+        - key: "rulesJson"
+          label: "Rules (JSON array)"
+          fieldType: "textarea"
+          helpText: >
+            The rules under this policy as a JSON ARRAY of rule objects, each with
+            a unique `name`. Reconciled by name — a same-name rule is replaced
+            (PUT), a new one is created (POST). Rules the array does not mention
+            are left untouched, and a system-managed (default) rule is never
+            deleted. Each rule's type is forced to RESOURCE_ACCESS. Leave blank to
+            skip rule reconciliation entirely. Example:
+            [{"name":"Default rule","priority":1,"conditions":{"people":{"groups":{"include":["EVERYONE"]}},"grantTypes":{"include":["authorization_code","implicit","client_credentials","password"]},"scopes":{"include":["*"]}},"actions":{"token":{"accessTokenLifetimeMinutes":60,"refreshTokenLifetimeMinutes":0,"refreshTokenWindowMinutes":10080}}}].

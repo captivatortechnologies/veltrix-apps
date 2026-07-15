@@ -1,0 +1,13 @@
+# Defaults for a new behavior-rule item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (name, type, status, settingsJson), since a behavior's
+# presentational groups share one flat item record, e.g.:
+#   type: VELOCITY
+#   status: ACTIVE
+#   settingsJson: '{"velocityKph":805}'
+#
+# Deliberately NOT seeding settingsJson: the required shape is per-type
+# (VELOCITY needs velocityKph; ANOMALOUS_LOCATION needs granularity), so there is
+# no single safe non-empty default to suggest.

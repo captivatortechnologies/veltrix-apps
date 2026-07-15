@@ -1,0 +1,12 @@
+# Defaults for a new authorization-server scope item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (authServerId, name, displayName, description, consent,
+# metadataPublish, default, optional), since a scope's presentational groups
+# share one flat item record, e.g.:
+#   authServerId: default
+#   consent: IMPLICIT
+#   metadataPublish: NO_CLIENTS
+#   default: false
+#   optional: false

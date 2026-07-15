@@ -1,0 +1,10 @@
+# Defaults for a new trusted-origin item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (name, origin, scopes, status), e.g.:
+#   status: ACTIVE
+#   scopes:
+#     - CORS
+#     - REDIRECT
+#   origin: https://app.example.com

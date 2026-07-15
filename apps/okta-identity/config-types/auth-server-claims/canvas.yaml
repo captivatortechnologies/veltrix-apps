@@ -1,0 +1,152 @@
+# =============================================================================
+# Canvas Template — Okta Authorization Server Claims
+#
+# Declares ONE custom token claim — the item. Users add as many claims as they
+# need. A claim is a CHILD of an authorization server: it lives under
+# /authorizationServers/{authServerId}/claims, so its identity is the PAIR
+# (authServerId, name). deploy lists the server's claims, matches on the name,
+# and PUTs (update) or POSTs (create) accordingly — there is NO upsert and NO
+# lifecycle endpoint (status is set through the PUT body).
+#
+# ONE item = ONE claim. Okta-managed system claims (system:true) are skipped by
+# deploy — never updated or deleted.
+#
+# Field keys must match what config-types/auth-server-claims/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-auth-server-claims"
+name: "Auth Server Claim Configuration"
+toolType: "okta-identity"
+entityType: "auth-server-claims"
+description: "Define custom token claims on an Okta authorization server (Expression, Groups or System value types) as code through the Okta Authorization Server Claims API. Claims are children of an auth server; Okta-managed system claims are protected."
+
+item:
+  label: "Claim"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Claim"
+      icon: "key"
+      description: "The claim, its parent authorization server, and how its value is produced"
+      fields:
+        - key: "authServerId"
+          label: "Authorization Server ID"
+          fieldType: "text"
+          required: true
+          defaultValue: "default"
+          helpText: >
+            The id of the authorization server this claim belongs to (e.g.
+            'default', or a custom server id like 'aus1a2b3c4D5e6F7g8'). The claim
+            is managed under /authorizationServers/{authServerId}/claims. Together
+            with the name it forms the claim's identity that deploy matches on.
+
+        - key: "name"
+          label: "Claim Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 1024
+          helpText: >
+            Name of the claim as it appears in the token (e.g. 'department',
+            'groups'). Must be unique within this canvas for its authorization
+            server — it is the logical identity deploy matches on. A live claim
+            marked system:true (Okta built-in) is skipped, never modified.
+
+        - key: "claimType"
+          label: "Claim Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "RESOURCE"
+          options:
+            - label: "Resource (access token)"
+              value: "RESOURCE"
+            - label: "Identity (ID token)"
+              value: "IDENTITY"
+          helpText: >
+            Where the claim is injected. RESOURCE claims go into access tokens;
+            IDENTITY claims go into ID tokens.
+
+        - key: "valueType"
+          label: "Value Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "EXPRESSION"
+          options:
+            - label: "Expression (Okta EL)"
+              value: "EXPRESSION"
+            - label: "Groups"
+              value: "GROUPS"
+            - label: "System"
+              value: "SYSTEM"
+          helpText: >
+            How the claim's value is produced. EXPRESSION evaluates the Okta
+            Expression Language string in Value. GROUPS emits the user's groups
+            filtered by Value + Group Filter Type. SYSTEM is an Okta
+            system-defined claim (rarely authored as code).
+
+        - key: "value"
+          label: "Value"
+          fieldType: "text"
+          helpText: >
+            The claim value. For EXPRESSION, an Okta Expression Language string
+            (e.g. appuser.department or "truck"). For GROUPS, the group filter
+            pattern (e.g. ".*" to match all, or "admin"). Required for EXPRESSION
+            and GROUPS; may be left blank for SYSTEM claims.
+
+        - key: "alwaysIncludeInToken"
+          label: "Always Include In Token"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: >
+            When enabled, the claim is included in tokens regardless of the
+            requested scopes. When disabled, it is only included when one of the
+            Scope Conditions is granted.
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          defaultValue: "ACTIVE"
+          options:
+            - label: "Active"
+              value: "ACTIVE"
+            - label: "Inactive"
+              value: "INACTIVE"
+          helpText: >
+            Desired state of the claim. Claims have no activate/deactivate
+            lifecycle endpoint — the status is applied directly through the claim
+            update (PUT) body.
+
+    - name: "Scope"
+      icon: "filter"
+      description: "Which requested scopes surface the claim, and the group filter for GROUPS claims"
+      fields:
+        - key: "scopeConditions"
+          label: "Scope Conditions"
+          fieldType: "tags"
+          helpText: >
+            Names of the scopes that surface this claim (mapped to
+            conditions.scopes, e.g. 'profile', 'email', or a custom scope). Leave
+            empty for no scope condition. Ignored for a claim with Always Include
+            In Token enabled, which is emitted regardless of scope.
+
+        - key: "groupFilterType"
+          label: "Group Filter Type"
+          fieldType: "select"
+          options:
+            - label: "(none)"
+              value: ""
+            - label: "Starts With"
+              value: "STARTS_WITH"
+            - label: "Equals"
+              value: "EQUALS"
+            - label: "Contains"
+              value: "CONTAINS"
+            - label: "Regex"
+              value: "REGEX"
+          helpText: >
+            How the Value pattern matches group names — REQUIRED when Value Type
+            is GROUPS (mapped to group_filter_type), ignored otherwise. e.g.
+            STARTS_WITH with Value "admin" emits every group whose name starts
+            with "admin".

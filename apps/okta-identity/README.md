@@ -27,6 +27,16 @@ or `acme.oktapreview.com`) and attach the credential.
 | Group Rules | Dynamic group-assignment rules | `/groups/rules` |
 | Groups | Groups (OKTA_GROUP) + optional static membership | `/groups` |
 | Network Zones | IP / dynamic network zones | `/zones` |
+| Trusted Origins | CORS / redirect / iframe-embed allowlist | `/trustedOrigins` |
+| Behavior Rules | Behavioral detection rules | `/behaviors` |
+| Authenticators | Authenticator config + enablement (no delete) | `/authenticators` |
+| Identity Providers | External IdPs (OIDC/SAML/social) — sensitive | `/idps` |
+| Event Hooks | Event hooks (delete needs INACTIVE; secret write-only) | `/eventHooks` |
+| Inline Hooks | Inline hooks (token/SAML transforms; secret write-only) | `/inlineHooks` |
+| Authorization Servers | Custom OAuth authorization servers | `/authorizationServers` |
+| Auth Server Scopes | OAuth scopes on an authorization server | `.../scopes` |
+| Auth Server Claims | OAuth claims on an authorization server | `.../claims` |
+| Auth Server Policies | OAuth access policies + rules | `.../policies` |
 
 ## Okta-specific behaviour the app handles
 

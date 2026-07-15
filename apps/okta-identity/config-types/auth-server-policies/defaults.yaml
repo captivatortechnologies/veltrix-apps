@@ -1,0 +1,14 @@
+# Defaults for a new authorization-server policy item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (authServerId, name, description, priority, status,
+# clientInclude, rulesJson), since a policy's presentational groups share one
+# flat item record, e.g.:
+#   authServerId: default
+#   status: ACTIVE
+#   clientInclude: ["ALL_CLIENTS"]
+#
+# Deliberately NOT seeding rulesJson: the correct rule shape depends on the
+# grant types / scopes / token lifetimes the author wants, so there is no safe
+# non-empty default to suggest.

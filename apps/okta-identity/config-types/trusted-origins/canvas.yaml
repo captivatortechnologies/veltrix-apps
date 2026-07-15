@@ -1,0 +1,76 @@
+# =============================================================================
+# Canvas Template — Okta Trusted Origins
+#
+# Declares ONE trusted origin — the item. Users add as many origins as they need.
+# A trusted origin's identity in Okta is its NAME; deploy lists origins, matches
+# on the name, and PUTs (update) or POSTs (create) accordingly — there is NO
+# upsert.
+#
+# ONE item = ONE origin (a scheme://host[:port] URL) granted one or more scope
+# types (CORS | REDIRECT | IFRAME_EMBED). Lifecycle status is applied through the
+# activate/deactivate endpoints, not the update body. Trusted origins have no
+# protected/system objects and no write-only secrets.
+#
+# Field keys must match what config-types/trusted-origins/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-trusted-origins"
+name: "Trusted Origin Configuration"
+toolType: "okta-identity"
+entityType: "trusted-origins"
+description: "Define Okta trusted origins (allowed CORS / redirect / iframe-embed URLs) as code through the Okta Trusted Origins API. Status is applied via the activate/deactivate lifecycle endpoints."
+
+item:
+  label: "Trusted Origin"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Trusted Origin"
+      icon: "globe"
+      description: "Origin URL, the scopes it is trusted for, and lifecycle status"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            Display name of the trusted origin in Okta (max 255 chars). Must be
+            unique within this canvas — it is the logical identity deploy matches
+            on to decide between creating and updating.
+
+        - key: "origin"
+          label: "Origin URL"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The origin this trust applies to: scheme + host + optional port, with
+            NO path, query or fragment. Must use an http or https scheme, e.g.
+            https://app.example.com or http://localhost:3000. A trailing slash is
+            ignored (Okta stores the bare origin).
+
+        - key: "scopes"
+          label: "Scopes"
+          fieldType: "tags"
+          required: true
+          helpText: >
+            One or more scope types this origin is trusted for (at least one):
+            CORS (cross-origin API requests), REDIRECT (post-sign-in redirect
+            target), IFRAME_EMBED (Okta content may be embedded in an iframe on
+            this origin). Enter any subset of: CORS, REDIRECT, IFRAME_EMBED.
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          defaultValue: "ACTIVE"
+          options:
+            - label: "Active"
+              value: "ACTIVE"
+            - label: "Inactive"
+              value: "INACTIVE"
+          helpText: >
+            Desired lifecycle state. Applied via Okta's trusted-origin
+            activate/deactivate lifecycle endpoints, not the update body.

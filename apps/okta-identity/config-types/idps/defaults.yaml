@@ -1,0 +1,13 @@
+# Defaults for a new identity-provider item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (type, name, status, protocolJson, policyJson), since an
+# IdP's presentational groups share one flat item record, e.g.:
+#   type: OIDC
+#   status: ACTIVE
+#   protocolJson: '{"type":"OIDC","scopes":["openid"],"credentials":{"client":{"client_id":"…","client_secret":"…"}}}'
+#
+# Deliberately NOT seeding protocolJson / policyJson: the correct shape is
+# per-type (and the client secret is sensitive), so there is no safe non-empty
+# default to suggest.

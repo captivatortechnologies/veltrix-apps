@@ -1,0 +1,99 @@
+# =============================================================================
+# Canvas Template — Okta Behavior Detection Rules
+#
+# Declares ONE behavior-detection rule — the item. Users add as many as they
+# need. A behavior's identity in Okta is its NAME; deploy lists behaviors, matches
+# on the name, and PUTs (update) or POSTs (create) accordingly — there is NO
+# upsert.
+#
+# ONE item = ONE behavior of type ANOMALOUS_LOCATION | ANOMALOUS_IP |
+# ANOMALOUS_DEVICE | VELOCITY. The type-specific `settings` object (velocityKph
+# for VELOCITY; granularity/radiusKilometers/history counts for ANOMALOUS_LOCATION;
+# optional history counts for ANOMALOUS_IP / ANOMALOUS_DEVICE) is authored as a
+# single JSON blob in `settingsJson` and sent as the behavior's `settings`.
+#
+# Behavior rules have no `system` protection flag — none are protected and none
+# are pruned. Field keys must match what config-types/behavior-rules/validate.ts
+# checks.
+# =============================================================================
+
+id: "okta-identity-behavior-rules"
+name: "Behavior Detection Rule Configuration"
+toolType: "okta-identity"
+entityType: "behavior-rules"
+description: "Define Okta Behavior Detection rules (anomalous location/IP/device and impossible-travel velocity) as code through the Okta Behaviors API. A behavior's desired status is reconciled through the activate/deactivate lifecycle endpoints."
+
+item:
+  label: "Behavior"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Behavior"
+      icon: "activity"
+      description: "Behavior kind, name and lifecycle status"
+      fields:
+        - key: "name"
+          label: "Behavior Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: >
+            Name of the behavior in Okta (max 128 chars). Must be unique within
+            this canvas — it is the logical identity deploy matches on.
+
+        - key: "type"
+          label: "Behavior Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "ANOMALOUS_LOCATION"
+          options:
+            - label: "Anomalous Location"
+              value: "ANOMALOUS_LOCATION"
+            - label: "Anomalous IP"
+              value: "ANOMALOUS_IP"
+            - label: "Anomalous Device"
+              value: "ANOMALOUS_DEVICE"
+            - label: "Velocity (impossible travel)"
+              value: "VELOCITY"
+          helpText: >
+            The kind of behavior to detect. ANOMALOUS_LOCATION / ANOMALOUS_IP /
+            ANOMALOUS_DEVICE flag sign-ins from a location, IP or device the user
+            has not used before; VELOCITY flags an impossible-travel speed between
+            two sign-ins. The type determines which settings are required.
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          defaultValue: "ACTIVE"
+          options:
+            - label: "Active"
+              value: "ACTIVE"
+            - label: "Inactive"
+              value: "INACTIVE"
+          helpText: >
+            Desired lifecycle state. Applied via Okta's behavior
+            activate/deactivate lifecycle endpoints, not the update body. A
+            behavior created by a deploy is ACTIVE and is deactivated when INACTIVE
+            is desired.
+
+    - name: "Settings"
+      icon: "sliders"
+      description: "The type-specific detection settings for this behavior, as a JSON object"
+      fields:
+        - key: "settingsJson"
+          label: "Settings (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            JSON object of the behavior's type-specific settings, sent as the
+            API `settings`. VELOCITY requires a positive "velocityKph" (default
+            805), e.g. {"velocityKph":805}. ANOMALOUS_LOCATION requires a
+            "granularity" of CITY, COUNTRY or LatLong (LatLong also needs a
+            positive "radiusKilometers") and may set
+            maxEventsUsedForEvaluation / minEventsNeededForEvaluation, e.g.
+            {"granularity":"LatLong","radiusKilometers":20,"minEventsNeededForEvaluation":0}.
+            ANOMALOUS_IP and ANOMALOUS_DEVICE take only the optional history
+            settings (maxEventsUsedForEvaluation / minEventsNeededForEvaluation);
+            leave blank to accept Okta's defaults.

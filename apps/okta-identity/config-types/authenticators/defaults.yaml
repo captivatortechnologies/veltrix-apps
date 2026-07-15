@@ -1,0 +1,15 @@
+# Defaults for a new authenticator item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (key, name, status, settingsJson, secretKey, integrationKey,
+# providerJson), since an authenticator's presentational groups share one flat
+# item record, e.g.:
+#   key: okta_email
+#   status: ACTIVE
+#   settingsJson: '{"userVerification":"PREFERRED"}'
+#
+# Deliberately NOT seeding a key/settings/provider: the correct shape is per-key
+# (a built-in okta_* key is updated in place while duo/custom_app are created),
+# so there is no safe non-empty default to suggest. The write-only provider
+# secrets (secretKey / integrationKey) must never be stored as a default.

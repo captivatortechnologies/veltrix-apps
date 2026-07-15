@@ -1,6 +1,6 @@
 id: okta-identity
 name: Okta
-version: "1.0.0"
+version: "1.1.0"
 vendor: Veltrix
 description: >
   Manage Okta configuration as code through the Okta Management API. Covers
@@ -40,6 +40,36 @@ permissions:
     - resource: network-zones
       actions: [read, write, delete]
       description: Manage Okta network zones (IP and dynamic)
+    - resource: trusted-origins
+      actions: [read, write, delete]
+      description: Manage Okta trusted origins
+    - resource: behavior-rules
+      actions: [read, write, delete]
+      description: Manage Okta behavior detection rules
+    - resource: authenticators
+      actions: [read, write, delete]
+      description: Manage Okta authenticators
+    - resource: idps
+      actions: [read, write, delete]
+      description: Manage Okta identity providers
+    - resource: event-hooks
+      actions: [read, write, delete]
+      description: Manage Okta event hooks
+    - resource: inline-hooks
+      actions: [read, write, delete]
+      description: Manage Okta inline hooks
+    - resource: authorization-servers
+      actions: [read, write, delete]
+      description: Manage Okta authorization servers
+    - resource: auth-server-scopes
+      actions: [read, write, delete]
+      description: Manage Okta authorization-server scopes
+    - resource: auth-server-claims
+      actions: [read, write, delete]
+      description: Manage Okta authorization-server claims
+    - resource: auth-server-policies
+      actions: [read, write, delete]
+      description: Manage Okta authorization-server policies
 
 pipeline:
   configurationTypes:
@@ -106,6 +136,177 @@ pipeline:
         healthCheck: config-types/network-zones/healthCheck
         driftDetect: config-types/network-zones/driftDetect
         getStatus: config-types/network-zones/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+
+    - id: trusted-origins
+      name: Trusted Origins
+      description: CORS / redirect / iframe-embed origin allowlist
+      canvasTemplate: config-types/trusted-origins/canvas.yaml
+      defaultConfig: config-types/trusted-origins/defaults.yaml
+      handlers:
+        validate: config-types/trusted-origins/validate
+        deploy: config-types/trusted-origins/deploy
+        rollback: config-types/trusted-origins/rollback
+        healthCheck: config-types/trusted-origins/healthCheck
+        driftDetect: config-types/trusted-origins/driftDetect
+        getStatus: config-types/trusted-origins/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: behavior-rules
+      name: Behavior Rules
+      description: Behavioral detection rules (velocity, anomalous location/IP/device)
+      canvasTemplate: config-types/behavior-rules/canvas.yaml
+      defaultConfig: config-types/behavior-rules/defaults.yaml
+      handlers:
+        validate: config-types/behavior-rules/validate
+        deploy: config-types/behavior-rules/deploy
+        rollback: config-types/behavior-rules/rollback
+        healthCheck: config-types/behavior-rules/healthCheck
+        driftDetect: config-types/behavior-rules/driftDetect
+        getStatus: config-types/behavior-rules/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: authenticators
+      name: Authenticators
+      description: Authenticator configuration and enablement (no delete; built-ins update-only)
+      canvasTemplate: config-types/authenticators/canvas.yaml
+      defaultConfig: config-types/authenticators/defaults.yaml
+      handlers:
+        validate: config-types/authenticators/validate
+        deploy: config-types/authenticators/deploy
+        rollback: config-types/authenticators/rollback
+        healthCheck: config-types/authenticators/healthCheck
+        driftDetect: config-types/authenticators/driftDetect
+        getStatus: config-types/authenticators/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: idps
+      name: Identity Providers
+      description: External IdPs (OIDC/SAML/social) — sensitive; secrets excluded from drift
+      canvasTemplate: config-types/idps/canvas.yaml
+      defaultConfig: config-types/idps/defaults.yaml
+      handlers:
+        validate: config-types/idps/validate
+        deploy: config-types/idps/deploy
+        rollback: config-types/idps/rollback
+        healthCheck: config-types/idps/healthCheck
+        driftDetect: config-types/idps/driftDetect
+        getStatus: config-types/idps/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: event-hooks
+      name: Event Hooks
+      description: Event hooks (delete needs INACTIVE; auth header is write-only)
+      canvasTemplate: config-types/event-hooks/canvas.yaml
+      defaultConfig: config-types/event-hooks/defaults.yaml
+      handlers:
+        validate: config-types/event-hooks/validate
+        deploy: config-types/event-hooks/deploy
+        rollback: config-types/event-hooks/rollback
+        healthCheck: config-types/event-hooks/healthCheck
+        driftDetect: config-types/event-hooks/driftDetect
+        getStatus: config-types/event-hooks/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: inline-hooks
+      name: Inline Hooks
+      description: Inline hooks (token/SAML/registration transforms; secret write-only; org cap 50)
+      canvasTemplate: config-types/inline-hooks/canvas.yaml
+      defaultConfig: config-types/inline-hooks/defaults.yaml
+      handlers:
+        validate: config-types/inline-hooks/validate
+        deploy: config-types/inline-hooks/deploy
+        rollback: config-types/inline-hooks/rollback
+        healthCheck: config-types/inline-hooks/healthCheck
+        driftDetect: config-types/inline-hooks/driftDetect
+        getStatus: config-types/inline-hooks/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: authorization-servers
+      name: Authorization Servers
+      description: Custom OAuth authorization servers (the 'default' server is protected)
+      canvasTemplate: config-types/authorization-servers/canvas.yaml
+      defaultConfig: config-types/authorization-servers/defaults.yaml
+      handlers:
+        validate: config-types/authorization-servers/validate
+        deploy: config-types/authorization-servers/deploy
+        rollback: config-types/authorization-servers/rollback
+        healthCheck: config-types/authorization-servers/healthCheck
+        driftDetect: config-types/authorization-servers/driftDetect
+        getStatus: config-types/authorization-servers/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: auth-server-scopes
+      name: Auth Server Scopes
+      description: OAuth scopes on an authorization server (system scopes skipped)
+      canvasTemplate: config-types/auth-server-scopes/canvas.yaml
+      defaultConfig: config-types/auth-server-scopes/defaults.yaml
+      handlers:
+        validate: config-types/auth-server-scopes/validate
+        deploy: config-types/auth-server-scopes/deploy
+        rollback: config-types/auth-server-scopes/rollback
+        healthCheck: config-types/auth-server-scopes/healthCheck
+        driftDetect: config-types/auth-server-scopes/driftDetect
+        getStatus: config-types/auth-server-scopes/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: auth-server-claims
+      name: Auth Server Claims
+      description: OAuth claims on an authorization server (system claims skipped)
+      canvasTemplate: config-types/auth-server-claims/canvas.yaml
+      defaultConfig: config-types/auth-server-claims/defaults.yaml
+      handlers:
+        validate: config-types/auth-server-claims/validate
+        deploy: config-types/auth-server-claims/deploy
+        rollback: config-types/auth-server-claims/rollback
+        healthCheck: config-types/auth-server-claims/healthCheck
+        driftDetect: config-types/auth-server-claims/driftDetect
+        getStatus: config-types/auth-server-claims/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: auth-server-policies
+      name: Auth Server Policies
+      description: OAuth access policies + rules on an authorization server (system policies skipped)
+      canvasTemplate: config-types/auth-server-policies/canvas.yaml
+      defaultConfig: config-types/auth-server-policies/defaults.yaml
+      handlers:
+        validate: config-types/auth-server-policies/validate
+        deploy: config-types/auth-server-policies/deploy
+        rollback: config-types/auth-server-policies/rollback
+        healthCheck: config-types/auth-server-policies/healthCheck
+        driftDetect: config-types/auth-server-policies/driftDetect
+        getStatus: config-types/auth-server-policies/getStatus
       targets:
         componentTypes: [okta-org]
         requiresCredential: true

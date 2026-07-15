@@ -1,0 +1,12 @@
+# Defaults for a new auth-server-claim item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (authServerId, name, claimType, valueType, value,
+# alwaysIncludeInToken, status, scopeConditions, groupFilterType), since a
+# claim's presentational groups share one flat item record, e.g.:
+#   authServerId: default
+#   claimType: RESOURCE
+#   valueType: EXPRESSION
+#   status: ACTIVE
+#   alwaysIncludeInToken: false

@@ -1,0 +1,122 @@
+# =============================================================================
+# Canvas Template — Okta Identity Providers (IdPs)
+#
+# Declares ONE identity provider — the item. Users add as many IdPs as they need.
+# An IdP's identity in Okta is its NAME; deploy lists IdPs, matches on the name,
+# and PUTs (update) or POSTs (create) accordingly — there is NO upsert.
+#
+# ONE item = ONE IdP of type OIDC | SAML2 | GOOGLE | FACEBOOK | MICROSOFT |
+# APPLE | LINKEDIN | X509. The protocol (endpoints/scopes/credentials) and the
+# policy (provisioning/accountLink/subject mapping) are large per-type shapes,
+# so they are authored as JSON blobs in `protocolJson` / `policyJson` and sent
+# as `protocol` / `policy` on the create/update body.
+#
+# SENSITIVE — an identity provider governs FEDERATED SIGN-IN. A misconfigured
+# protocol or policy can break sign-in and LOCK USERS OUT. The OAuth/OIDC client
+# secret lives inside protocolJson at credentials.client.client_secret; Okta
+# stores it write-only and never returns it, so it is NEVER drift-checked.
+#
+# Field keys must match what config-types/idps/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-idps"
+name: "Identity Provider Configuration"
+toolType: "okta-identity"
+entityType: "idps"
+description: "Define Okta external identity providers (OIDC / SAML2 / social) as code through the Okta IdP API. SENSITIVE: a misconfigured IdP can break federated sign-in and lock users out. An active IdP is deactivated before deletion; the write-only client secret is never drift-checked."
+
+item:
+  label: "Identity Provider"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "IdP"
+      icon: "key"
+      description: "Provider kind, name and lifecycle status"
+      fields:
+        - key: "type"
+          label: "IdP Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "OIDC"
+          options:
+            - label: "Generic OpenID Connect (OIDC)"
+              value: "OIDC"
+            - label: "Generic SAML 2.0 (SAML2)"
+              value: "SAML2"
+            - label: "Google"
+              value: "GOOGLE"
+            - label: "Facebook"
+              value: "FACEBOOK"
+            - label: "Microsoft"
+              value: "MICROSOFT"
+            - label: "Apple"
+              value: "APPLE"
+            - label: "LinkedIn"
+              value: "LINKEDIN"
+            - label: "Smart Card (X509)"
+              value: "X509"
+          helpText: >
+            The identity-provider kind. This is the IdP-level type; the nested
+            protocol.type (OIDC / SAML2 / OAUTH2 …) authored inside the protocol
+            JSON selects the protocol shape. Social providers (Google, Facebook,
+            Microsoft, Apple, LinkedIn) use an OAuth2/OIDC protocol.
+
+        - key: "name"
+          label: "IdP Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+            message: "An identity-provider name, up to 100 characters. Unique within this canvas — this is the identity used to find and update the IdP on each deploy."
+          helpText: >
+            Name of the identity provider in Okta (max 100 chars). Must be unique
+            within this canvas — it is the logical identity deploy matches on.
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          defaultValue: "ACTIVE"
+          options:
+            - label: "Active"
+              value: "ACTIVE"
+            - label: "Inactive"
+              value: "INACTIVE"
+          helpText: >
+            Desired lifecycle state. Applied via Okta's IdP activate/deactivate
+            lifecycle endpoints, not the update body. Note: an ACTIVE IdP cannot
+            be deleted — a rollback deactivates a created IdP before deleting it.
+
+    - name: "Protocol"
+      icon: "plug"
+      description: "The protocol object (endpoints / scopes / credentials), as JSON"
+      fields:
+        - key: "protocolJson"
+          label: "Protocol (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            JSON object of the protocol, sent as `protocol` on the API body. Must
+            carry a "type" (OIDC / OAUTH2 / SAML2 …) that selects the protocol
+            shape. OIDC/OAUTH2 example:
+            {"type":"OIDC","endpoints":{"authorization":{"url":"https://idp/authorize","binding":"HTTP-REDIRECT"},"token":{"url":"https://idp/token","binding":"HTTP-POST"}},"scopes":["openid","email"],"credentials":{"client":{"client_id":"abc","client_secret":"SENSITIVE"}}}.
+            SENSITIVE: credentials.client.client_secret is a WRITE-ONLY secret —
+            Okta never returns it, so it is written on deploy but is NEVER
+            compared during drift detection. Rotate it in Okta if leaked.
+
+    - name: "Policy"
+      icon: "sliders"
+      description: "The policy object (provisioning / accountLink / subject mapping), as JSON"
+      fields:
+        - key: "policyJson"
+          label: "Policy (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            JSON object of the IdP policy, sent as `policy` on the API body.
+            Covers provisioning, account link and subject mapping. Example:
+            {"provisioning":{"action":"AUTO","profileMaster":true,"groups":{"action":"NONE"}},"accountLink":{"action":"AUTO"},"subject":{"userNameTemplate":{"template":"idpuser.email"},"matchType":"USERNAME"}}.
+            A wrong subject match or provisioning action can misroute or block
+            federated users — review carefully before deploying.
