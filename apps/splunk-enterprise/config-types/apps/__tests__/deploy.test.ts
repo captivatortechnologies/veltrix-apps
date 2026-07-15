@@ -116,6 +116,19 @@ const splunkbaseApp: CanvasItemSnapshot = {
   },
 }
 
+const urlApp: CanvasItemSnapshot = {
+  name: 'item-2',
+  fields: {
+    name: 'my_url_ta',
+    source: 'url',
+    sourceRef: 'https://example.com/my_url_ta-1.0.0.tgz',
+    version: '1.0.0',
+    visibility: 'app',
+    state: 'enabled',
+    upgradePolicy: 'auto',
+  },
+}
+
 function packagedFiles(result: { artifacts?: Record<string, unknown> }): string[] {
   const packages = (result.artifacts?.installedPackages ?? []) as Array<{ files?: string[] }>
   return packages.flatMap((p) => p.files ?? [])
@@ -184,6 +197,21 @@ describe('Splunk Apps deploy — packaged sources', () => {
     expect(acl?.body).toContain('sharing=global')
     expect(calls.some((c) => c.url.endsWith('/services/apps/local/Splunk_TA_nix/disable'))).toBe(true)
     expect(packagedFiles(result)).toHaveLength(0)
+  })
+
+  it('installs a URL package via the modern apps/local endpoint, not deprecated appinstall', async () => {
+    stubSplunk()
+    const result = await deploy(makeCtx(urlApp))
+
+    expect(result.success).toBe(true)
+    // apps/appinstall is deprecated (6.6.0): a URL source must not use it.
+    expect(calls.some((c) => c.url.endsWith('/services/apps/appinstall'))).toBe(false)
+    const install = calls.find(
+      (c) => c.method === 'POST' && c.url.endsWith('/services/apps/local') && (c.body ?? '').includes('filename=1'),
+    )
+    expect(install?.body).toContain('filename=1')
+    expect(install?.body).toContain('explicit_appname=my_url_ta')
+    expect(install?.body).toContain('update=0')
   })
 
   it('fails cleanly without a credential', async () => {

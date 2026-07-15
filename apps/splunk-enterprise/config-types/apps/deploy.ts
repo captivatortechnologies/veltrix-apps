@@ -4,10 +4,16 @@ import { extractAppSpec, buildAppPackage, buildInstallUpload, resolveAppId } fro
 
 /**
  * Deploy Splunk app / add-on configuration via the REST API.
- *   install/upgrade:  POST /services/apps/appinstall   (name=<splunkbaseId> | filename=<url|path>, update)
+ *   install/upgrade (URL/local): POST /services/apps/local   (name=<url|path>, filename=1, update, explicit_appname)
+ *   install/upgrade (Splunkbase): POST /services/apps/appinstall (name=<splunkbaseId>, update) — legacy path
  *   metadata:         POST /services/apps/local/<app>   (label, version, description)
  *   sharing (ACL):    POST /services/apps/local/<app>/acl   (sharing=app|global, owner=nobody)
  *   state:            POST /services/apps/local/<app>/enable | /disable
+ *
+ * NOTE (Splunk 10.4 REST reference): apps/appinstall is deprecated as of 6.6.0
+ * ("To create an app... see apps/local"). URL/local installs use apps/local;
+ * Splunkbase-id installs keep appinstall because apps/local has no server-side
+ * Splunkbase-catalog resolution.
  *
  * Canvas → Splunk mapping:
  *   source + sourceRef  → appinstall (Splunkbase id, package URL, or local path)
@@ -103,11 +109,26 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         // when the app is absent; auto re-installs the latest package every deploy.
         const shouldInstall = Boolean(sourceRef) && (upgradePolicy === 'auto' || !existing)
         if (shouldInstall) {
-          const installParams: Record<string, string> =
-            source === 'splunkbase'
-              ? { name: sourceRef, update: existing ? '1' : '0' }
-              : { filename: sourceRef, update: existing ? '1' : '0' }
-          await postForm(baseUrl, auth, APP_INSTALL_PATH, installParams)
+          if (source === 'splunkbase') {
+            // Splunkbase-id resolution has no apps/local equivalent, so this keeps
+            // apps/appinstall (deprecated as of 6.6.0 but the only server-side path
+            // that resolves a Splunkbase id). Prefer a URL source where possible.
+            await postForm(baseUrl, auth, APP_INSTALL_PATH, {
+              name: sourceRef,
+              update: existing ? '1' : '0',
+            })
+          } else {
+            // URL / local package — install via the modern apps/local endpoint
+            // (apps/appinstall is deprecated): `name` is the package path/URL,
+            // `filename=1` marks it as a package to fetch, and `explicit_appname`
+            // pins the installed folder to the configuration's app id.
+            await postForm(baseUrl, auth, APP_BASE_PATH, {
+              name: sourceRef,
+              filename: '1',
+              update: existing ? '1' : '0',
+              explicit_appname: appId,
+            })
+          }
           installedApps.push(appId)
         }
       }
