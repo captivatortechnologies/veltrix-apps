@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-15T22:58:59.575Z",
+  "generatedAt": "2026-07-15T23:33:56.769Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -74,6 +74,24 @@
       "sha256": "4e71202628c38875beaefc5995be5a4a2160754c31257011d6850cb1e25f2199",
       "sizeBytes": 436185,
       "publishedAt": "2026-07-15T14:40:51.890Z"
+    },
+    {
+      "appId": "sentinelone",
+      "name": "SentinelOne",
+      "version": "1.0.0",
+      "vendor": "Veltrix",
+      "description": "Manage SentinelOne endpoint security configuration as code through the SentinelOne Management API (v2.1). Covers exclusions, blocklist and allowlist hashes, STAR custom detection rules, the per-scope agent policy, and agent groups — with validation, drift detection and rollback handled by the Security-as-Code pipeline. Objects are scoped across the Account/Site/Group hierarchy via the Scope + Scope ID settings.",
+      "category": "EDR",
+      "icon": "🛡️",
+      "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlNlbnRpbmVsT25lIj4KICA8cmVjdCB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHJ4PSIxMCIgZmlsbD0iIzVDMEZCRCIvPgogIDxwYXRoIGQ9Ik0yNCA5bDEyIDR2OWMwIDgtNS4yIDEzLjYtMTIgMTYtNi44LTIuNC0xMi04LTEyLTE2di05eiIgZmlsbD0iIzhFNDRFQyIvPgogIDxwYXRoIGQ9Ik0yNCAxNWw3IDIuM3Y1LjJjMCA0LjctMyA4LTcgOS41LTQtMS41LTctNC44LTctOS41di01LjJ6IiBmaWxsPSIjZmZmIi8+Cjwvc3ZnPgo=",
+      "logoDark": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlNlbnRpbmVsT25lIj4KICA8cmVjdCB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHJ4PSIxMCIgZmlsbD0iIzBBMEYxQyIvPgogIDxwYXRoIGQ9Ik0yNCA5bDEyIDR2OWMwIDgtNS4yIDEzLjYtMTIgMTYtNi44LTIuNC0xMi04LTEyLTE2di05eiIgZmlsbD0iIzhFNDRFQyIvPgogIDxwYXRoIGQ9Ik0yNCAxNWw3IDIuM3Y1LjJjMCA0LjctMyA4LTcgOS41LTQtMS41LTctNC44LTctOS41di01LjJ6IiBmaWxsPSIjNUMwRkJEIi8+Cjwvc3ZnPgo=",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/sentinelone",
+      "available": true,
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/sentinelone-v1.0.0/sentinelone.zip",
+      "sha256": "2d03b2a57cf99cc57385a1fecd4b05d9c9e3ac27321e77082ddca50a3cef8dc0",
+      "sizeBytes": 133207,
+      "publishedAt": "2026-07-15T23:33:56.745Z"
     },
     {
       "appId": "splunk-cloud",
