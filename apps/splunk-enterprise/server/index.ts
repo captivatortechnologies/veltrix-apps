@@ -19,6 +19,7 @@ import {
   uploadsEnabled,
   deletePackage,
 } from '../lib/s3'
+import { readVersion } from '../lib/versionInput'
 
 // --- small body coercion/validation helpers -----------------------------
 
@@ -29,13 +30,6 @@ function customerOf(request: FastifyRequest): string | null {
 function toInt(value: unknown, fallback: number): number {
   const n = typeof value === 'number' ? value : Number(value)
   return Number.isFinite(n) ? Math.trunc(n) : fallback
-}
-
-function toBool(value: unknown, fallback: boolean): boolean {
-  if (typeof value === 'boolean') return value
-  if (value === 'true') return true
-  if (value === 'false') return false
-  return fallback
 }
 
 /**
@@ -82,53 +76,6 @@ function readByol(body: any): { data: Record<string, unknown>; error?: string } 
     data.cloudProviderId = body.cloudProviderId.trim()
   }
   return { data }
-}
-
-const EMPTY_VERSION: store.VersionInput = {
-  version: '',
-  releaseDate: new Date(0),
-  downloadUrl: null,
-  releaseNotes: null,
-  isActive: true,
-  isLatest: false,
-}
-
-/**
- * Coerce/validate a Splunk version record from a request body. The client may
- * only supply an http(s) download URL here; S3 package references are set by
- * the upload flow (POST /versions/:id/package-url), never by the client.
- */
-function readVersion(body: any): { data: store.VersionInput; error?: string } {
-  const version = typeof body?.version === 'string' ? body.version.trim() : ''
-  if (!version) return { data: EMPTY_VERSION, error: 'Version is required' }
-  if (version.length > 40) return { data: EMPTY_VERSION, error: 'Version must be 40 characters or fewer' }
-  if (!/^[0-9][0-9A-Za-z._-]*$/.test(version))
-    return {
-      data: EMPTY_VERSION,
-      error: 'Version must start with a digit and use only letters, numbers, dots, hyphens or underscores',
-    }
-
-  let releaseDate = new Date()
-  if (body?.releaseDate) {
-    const parsed = new Date(body.releaseDate)
-    if (Number.isNaN(parsed.getTime())) return { data: EMPTY_VERSION, error: 'Release date is invalid' }
-    releaseDate = parsed
-  }
-
-  const downloadUrl = typeof body?.downloadUrl === 'string' ? body.downloadUrl.trim() : ''
-  if (downloadUrl && !/^https?:\/\//i.test(downloadUrl))
-    return { data: EMPTY_VERSION, error: 'Download URL must be an http(s) URL' }
-
-  return {
-    data: {
-      version,
-      releaseDate,
-      downloadUrl: downloadUrl || null,
-      releaseNotes: typeof body?.releaseNotes === 'string' ? body.releaseNotes.trim() || null : null,
-      isActive: toBool(body?.isActive, true),
-      isLatest: toBool(body?.isLatest, false),
-    },
-  }
 }
 
 /** Best-effort publish of a provisioning event; never fails the request. */
