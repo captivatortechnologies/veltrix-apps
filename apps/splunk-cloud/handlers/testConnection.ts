@@ -43,9 +43,10 @@ interface TestConnectionResult {
 // stack. Runs in-process on the platform with the decrypted credential.
 // =============================================================================
 
-function classifyNetworkError(err: unknown, baseUrl: string, stack: string): string {
+function classifyNetworkError(err: unknown, baseUrl: string, stack: string, timeoutSec: number): string {
   const msg = err instanceof Error ? err.message : String(err)
-  if (/abort|timed?\s?out/i.test(msg)) return `Timed out reaching ACS for stack "${stack}". Check the stack name and network reachability.`
+  if (/abort|timed?\s?out/i.test(msg))
+    return `ACS did not respond within ${timeoutSec}s for stack "${stack}". Its Admin Config Service is slow or unreachable from here — retry, or verify the stack name and that the stack is ACS-entitled.`
   if (/ENOTFOUND|getaddrinfo|dns/i.test(msg)) return `Could not resolve ${baseUrl}. Check the ACS base URL.`
   if (/ECONNREFUSED/i.test(msg)) return `Connection refused by ${baseUrl}.`
   return `Could not reach ACS (${baseUrl}) for stack "${stack}": ${msg}`
@@ -56,7 +57,12 @@ export default async function testConnection(ctx: TestConnectionContext): Promis
   if (!host) return { ok: false, message: 'No stack / endpoint is configured for this connection.' }
 
   const stack = resolveStackName(host)
-  const { baseUrl, timeoutMs } = readAcsSettings(ctx.settings)
+  const { baseUrl, timeoutMs: settingsTimeoutMs } = readAcsSettings(ctx.settings)
+  // A connection test must return quickly and finish before the platform's
+  // request-timeout middleware, which otherwise replaces the handler's result
+  // with a generic 408 "Request timeout". Cap the probe well under that (the
+  // deploy-oriented settings default is 30s — too long for an interactive test).
+  const timeoutMs = Math.min(settingsTimeoutMs, 8000)
 
   const apiToken = ctx.credential?.apiToken?.trim() || ''
   const username = ctx.credential?.username?.trim() || ''
@@ -145,7 +151,7 @@ export default async function testConnection(ctx: TestConnectionContext): Promis
   } catch (err) {
     return {
       ok: false,
-      message: classifyNetworkError(err, baseUrl, stack),
+      message: classifyNetworkError(err, baseUrl, stack, Math.round(timeoutMs / 1000)),
       details: [`Stack: ${stack}`, `ACS: ${baseUrl}`],
       latencyMs: Date.now() - started,
     }
