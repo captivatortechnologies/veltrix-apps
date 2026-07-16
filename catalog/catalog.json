@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-16T00:14:13.528Z",
+  "generatedAt": "2026-07-16T01:48:24.562Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -128,6 +128,24 @@
       "sha256": "2d03b2a57cf99cc57385a1fecd4b05d9c9e3ac27321e77082ddca50a3cef8dc0",
       "sizeBytes": 133207,
       "publishedAt": "2026-07-15T23:33:56.745Z"
+    },
+    {
+      "appId": "snyk",
+      "name": "Snyk",
+      "version": "1.0.0",
+      "vendor": "Veltrix",
+      "description": "Manage Snyk organization configuration as code across the Snyk REST and v1 APIs. Covers Snyk Code (SAST) enablement, notification preferences, SCM integration pull-request and auto-upgrade settings, automation service accounts and outbound webhooks — with validation, drift detection and rollback handled by the Security-as-Code pipeline. Auth is a Snyk API token (a service-account token is recommended); the component hostname is the Snyk region API host (api.snyk.io, api.eu.snyk.io, …) and most configuration is scoped to the Organization ID app setting.",
+      "category": "COMPLIANCE",
+      "icon": "🐶",
+      "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlNueWsiPgogIDxyZWN0IHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgcng9IjEwIiBmaWxsPSIjNEM0QTczIi8+CiAgPHBhdGggZD0iTTI0IDEwbDExIDYuM3Y5LjljMCA2LjQtNC42IDEwLjctMTEgMTIuNS02LjQtMS44LTExLTYuMS0xMS0xMi41di05LjlMMjQgMTB6IiBmaWxsPSJub25lIiBzdHJva2U9IiNBQjFERTgiIHN0cm9rZS13aWR0aD0iMi40IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHBhdGggZD0iTTE4LjUgMjQuNWwzLjggMy44IDctNy42IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMi42IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg==",
+      "logoDark": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlNueWsiPgogIDxyZWN0IHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgcng9IjEwIiBmaWxsPSIjMUExODMwIi8+CiAgPHBhdGggZD0iTTI0IDEwbDExIDYuM3Y5LjljMCA2LjQtNC42IDEwLjctMTEgMTIuNS02LjQtMS44LTExLTYuMS0xMS0xMi41di05LjlMMjQgMTB6IiBmaWxsPSJub25lIiBzdHJva2U9IiNDNzdERkYiIHN0cm9rZS13aWR0aD0iMi40IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHBhdGggZD0iTTE4LjUgMjQuNWwzLjggMy44IDctNy42IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMi42IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg==",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/snyk",
+      "available": true,
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/snyk-v1.0.0/snyk.zip",
+      "sha256": "f462255addba194184e59903c9ec33d74decd55414fef32fcda5f1d32175a9fa",
+      "sizeBytes": 106485,
+      "publishedAt": "2026-07-16T01:48:24.545Z"
     },
     {
       "appId": "splunk-cloud",
