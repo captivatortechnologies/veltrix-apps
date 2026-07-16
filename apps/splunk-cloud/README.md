@@ -17,8 +17,16 @@ Enterprise](#how-cloud-differs-from-enterprise).
 | `indexes` | Event/metric indexes: searchable retention, size caps, DDAA/DDSS archival | ACS | `GET/POST /indexes`, `GET/PATCH/DELETE /indexes/{name}` |
 | `hec-tokens` | HTTP Event Collector tokens: default/allowed indexes, source/sourcetype, acknowledgement, enablement | ACS | `GET/POST /inputs/http-event-collectors`, `GET/PATCH/DELETE /inputs/http-event-collectors/{name}` |
 | `ip-allowlists` | Per-feature IP allow lists (`search-api`, `hec`, `s2s`, `search-ui`, `idm-ui`, `idm-api`, `acs`). Cloud-only — there is no Enterprise equivalent | ACS | `GET/POST/DELETE /access/{feature}/ipallowlists` |
+| `outbound-ports` | Outbound connectivity rules: destination subnets the stack may open connections to from a given port (e.g. 8089 for federated search / S2S) | ACS | `GET/POST /access/outbound-ports`, `DELETE /access/outbound-ports/{port}` |
+| `limits` | Editable `limits.conf` settings (`join`, `kv`, `pdf`, `scheduler`, `searchresults`, `spath`, `subsearch`) within ACS min/max bounds | ACS | `GET /limits`, `GET/POST /limits/{stanza}` |
+| `maintenance-windows` | Customer change-freeze policy (a UTC date range holding Splunk- and/or customer-initiated changes). Splunk-scheduled windows are view-only | ACS | `GET/PUT /maintenance-windows/preferences`, `GET /maintenance-windows/schedules` |
+| `ddss-self-storage` | Dynamic Data Self Storage locations: register customer-owned S3/GCS buckets for frozen index data (create-only) | ACS | `GET/POST /cloud-resources/self-storage-locations/buckets` |
+| `app-permissions` | Per-app read/write role permissions (which roles can view/run vs. edit each installed app). Victoria-only | ACS | `GET /permissions/apps`, `GET/PATCH /permissions/apps/{app}` |
 | `apps` | Private apps/add-ons authored as files, built to a `.spl`, vetted by AppInspect, installed via ACS. **This is also where every `.conf` file ships** | ACS + AppInspect | Victoria: `GET/POST /apps/victoria`, `GET/DELETE /apps/victoria/{app}` · Classic: `GET/POST /apps`, `GET/DELETE /apps/{app}` |
 | `roles` | Roles: capabilities, inherited roles, searchable indexes, search filters, quotas | **Splunk Cloud Platform REST API** (ACS cannot manage identity) | `GET/POST /services/authorization/roles`, `GET/POST/DELETE /services/authorization/roles/{role}` |
+| `users` | User role assignment + attributes (roles, email, full name, default app, timezone) for existing users. Passwords out of scope | **REST** (ACS cannot manage identity) | `GET/POST /services/authentication/users/{user}` |
+| `authentication-tokens` | Stack-wide token-auth settings (enablement, default expiration). ACS exposes only per-token CRUD (secrets) | **REST** | `GET/POST /services/admin/token-auth/tokens_auth` |
+| `sso` | SAML SSO identity-provider config (entity ID, IdP SSO/SLO URLs, role/realName/mail attribute mappings). SAML-only; IdP cert uploaded via Splunk Web | **REST** (ACS has no SAML endpoint) | `GET/POST /services/authentication/providers/SAML/{name}` |
 
 ACS endpoints are relative to `https://admin.splunk.com/{stack}/adminconfig/v2`.
 REST endpoints are relative to `https://{stack}.splunkcloud.com:8089` — the

@@ -1,6 +1,6 @@
 id: splunk-cloud
 name: Splunk Cloud Platform
-version: "1.8.6"
+version: "1.8.7"
 vendor: Veltrix
 description: >
   Manage Splunk Cloud Platform configurations as code through the
@@ -377,6 +377,16 @@ client:
       group: settings
       order: 2
       layout: standard
+    # Operations — one-off stack actions (restart, retry failed op, export app),
+    # invoked against a chosen connection. Not configuration deploys.
+    - path: /operations
+      component: OperationsPage
+      label: Operations
+      icon: zap
+      nav: sidebar
+      group: settings
+      order: 3
+      layout: standard
 
 hooks:
   onInstall: hooks/onInstall
@@ -386,6 +396,27 @@ hooks:
 # the Splunk Cloud Admin Config Service (ACS).
 connectivity:
   testHandler: handlers/testConnection
+
+# App operations — one-off actions (not config deploys) invoked from the
+# Operations page and run in-process with the decrypted connection credential
+# via POST /api/apps/splunk-cloud/operations/:operationId.
+operations:
+  - id: restart
+    name: Restart Stack
+    description: Initiate a (rolling) restart of the search head / SHC via the ACS restart-now endpoint
+    handler: operations/restart
+    destructive: true
+    requiresCredential: true
+  - id: retry-failed
+    name: Retry Failed Operation
+    description: Re-submit the latest failed ACS operation (private-app install / HEC token management)
+    handler: operations/retry-failed
+    requiresCredential: true
+  - id: export-app
+    name: Export App
+    description: Download an installed private app as a .tar.gz (Victoria Experience; requires the export_apps capability)
+    handler: operations/export-app
+    requiresCredential: true
 
 settings:
   - key: acs_base_url
