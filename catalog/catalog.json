@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-15T23:58:57.253Z",
+  "generatedAt": "2026-07-16T00:14:13.528Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -92,6 +92,24 @@
       "sha256": "f14b38a684814a930da51133ef5b10fd21b527c90978eee7d1ef35a0b590c73e",
       "sizeBytes": 449108,
       "publishedAt": "2026-07-15T23:58:57.233Z"
+    },
+    {
+      "appId": "rapid7",
+      "name": "Rapid7 InsightVM",
+      "version": "1.0.0",
+      "vendor": "Veltrix",
+      "description": "Manage Rapid7 InsightVM configuration as code through the Security Console API (v3). Covers scan sites, asset groups, tags, scan templates, scan engine pools, shared and site credentials, scan schedules and vulnerability exceptions — with validation, drift detection and rollback handled by the Security-as-Code pipeline. The component hostname is the console host:3780; auth is HTTP Basic.",
+      "category": "COMPLIANCE",
+      "icon": "🎯",
+      "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlJhcGlkNyBJbnNpZ2h0Vk0iPgogIDxyZWN0IHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgcng9IjEwIiBmaWxsPSIjRTgzNjhGIi8+CiAgPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KICA8Y2lyY2xlIGN4PSIyNCIgY3k9IjI0IiByPSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMi41Ii8+CiAgPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMiIgZmlsbD0iI2ZmZiIvPgo8L3N2Zz4K",
+      "logoDark": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlJhcGlkNyBJbnNpZ2h0Vk0iPgogIDxyZWN0IHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgcng9IjEwIiBmaWxsPSIjMEEwRjFDIi8+CiAgPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGNkI5RCIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KICA8Y2lyY2xlIGN4PSIyNCIgY3k9IjI0IiByPSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiNGRjZCOUQiIHN0cm9rZS13aWR0aD0iMi41Ii8+CiAgPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMiIgZmlsbD0iI0ZGNkI5RCIvPgo8L3N2Zz4K",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/rapid7",
+      "available": true,
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/rapid7-v1.0.0/rapid7.zip",
+      "sha256": "bcfe4410232a419fd81bdd0b1c712edb837eae466d2d27e4f161661b113299e5",
+      "sizeBytes": 186543,
+      "publishedAt": "2026-07-16T00:14:13.512Z"
     },
     {
       "appId": "sentinelone",
