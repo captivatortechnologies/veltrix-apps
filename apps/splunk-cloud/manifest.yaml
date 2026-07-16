@@ -1,6 +1,6 @@
 id: splunk-cloud
 name: Splunk Cloud Platform
-version: "1.8.7"
+version: "1.8.8"
 vendor: Veltrix
 description: >
   Manage Splunk Cloud Platform configurations as code through the
@@ -339,10 +339,10 @@ server:
 
 client:
   entry: client/index
-  # Deliberately the TAB layout (the platform default), so the two Splunk apps
-  # showcase both navigations: splunk-enterprise uses the sidebar, this uses the
-  # top tab strip. The strip groups its configuration types behind one
-  # "Configurations" tab and shows them as sub-tabs, so it stays readable.
+  # Sidebar layout (like splunk-enterprise): with 13 configuration types the tab
+  # strip's "Configurations" sub-tabs overflow horizontally, so the app uses the
+  # vertical sidebar, which lists the configuration types cleanly down the side.
+  navLayout: sidebar
   pages:
     - path: /overview
       component: OverviewPage
