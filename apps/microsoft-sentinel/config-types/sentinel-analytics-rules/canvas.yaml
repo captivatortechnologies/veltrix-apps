@@ -1,0 +1,106 @@
+# =============================================================================
+# Canvas Template — Microsoft Sentinel Scheduled Analytics Rule
+#
+# Declares ONE scheduled (KQL) analytics rule — the item. Users add as many as
+# they need. Reconciled by the rule name (slugged into the ARM ruleId, so a
+# re-deploy updates the rule in place). Field keys must match
+# config-types/sentinel-analytics-rules/validate.ts.
+# =============================================================================
+
+id: "sentinel-analytics-rules"
+name: "Scheduled Analytics Rule"
+toolType: "microsoft-sentinel"
+entityType: "sentinel-analytics-rules"
+description: "Define Microsoft Sentinel scheduled (KQL) analytics rules as code via Azure Resource Manager. Reconciled by rule name."
+
+item:
+  label: "Analytics Rule"
+  identityField: "rule_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Rule"
+      icon: "shield"
+      description: "Identity, state and severity"
+      fields:
+        - key: "rule_name"
+          label: "Rule name"
+          fieldType: "text"
+          required: true
+          helpText: "Display name of the rule. Slugged into the ARM ruleId — this is the reconciliation identity."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the rule runs. Disabled rules are created but do not execute."
+
+        - key: "severity"
+          label: "Severity"
+          fieldType: "select"
+          defaultValue: "Medium"
+          options:
+            - { label: "High", value: "High" }
+            - { label: "Medium", value: "Medium" }
+            - { label: "Low", value: "Low" }
+            - { label: "Informational", value: "Informational" }
+
+    - name: "Detection query"
+      icon: "search"
+      description: "The KQL query and how often it runs"
+      fields:
+        - key: "query"
+          label: "KQL query"
+          fieldType: "textarea"
+          required: true
+          helpText: "The Kusto (KQL) query that produces alerts, e.g. SigninLogs | where ResultType != 0"
+
+        - key: "query_frequency"
+          label: "Query frequency (ISO-8601)"
+          fieldType: "text"
+          defaultValue: "PT1H"
+          helpText: "How often the rule runs, as an ISO-8601 duration (e.g. PT1H = hourly, PT5M = every 5 minutes)."
+
+        - key: "query_period"
+          label: "Query period (ISO-8601)"
+          fieldType: "text"
+          defaultValue: "PT1H"
+          helpText: "The look-back window each run inspects, as an ISO-8601 duration (e.g. PT1H, P1D). Should be >= the frequency."
+
+        - key: "trigger_operator"
+          label: "Trigger operator"
+          fieldType: "select"
+          defaultValue: "GreaterThan"
+          options:
+            - { label: "Greater than", value: "GreaterThan" }
+            - { label: "Less than", value: "LessThan" }
+            - { label: "Equal", value: "Equal" }
+            - { label: "Not equal", value: "NotEqual" }
+
+        - key: "trigger_threshold"
+          label: "Trigger threshold"
+          fieldType: "number"
+          defaultValue: 0
+          helpText: "The result count the operator compares against to raise an alert."
+
+    - name: "Grouping & tactics"
+      icon: "layers"
+      description: "MITRE tactics and alert suppression"
+      fields:
+        - key: "tactics"
+          label: "MITRE ATT&CK tactics"
+          fieldType: "tags"
+          helpText: "Optional MITRE tactics (e.g. InitialAccess, Persistence, Exfiltration)."
+
+        - key: "suppression_duration"
+          label: "Suppression duration (ISO-8601)"
+          fieldType: "text"
+          defaultValue: "PT1H"
+          helpText: "How long to suppress re-triggering after the rule fires, as an ISO-8601 duration. Applies only when suppression is enabled."
+
+        - key: "suppression_enabled"
+          label: "Suppression enabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When on, the rule does not re-trigger for the suppression duration after it fires."

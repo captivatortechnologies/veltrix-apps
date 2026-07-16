@@ -1,0 +1,6 @@
+# Defaults for a new scheduled analytics rule item.
+#
+# Intentionally empty — a new item starts from the canvas field defaultValues
+# (enabled=true, severity=Medium, PT1H frequency/period, GreaterThan/0 trigger).
+# Any values here would be a FLAT map keyed by the canvas field keys
+# (rule_name, query, query_frequency, ...).

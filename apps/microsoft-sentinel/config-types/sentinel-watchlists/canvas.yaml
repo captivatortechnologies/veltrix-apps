@@ -1,0 +1,66 @@
+# =============================================================================
+# Canvas Template — Microsoft Sentinel Watchlist
+#
+# Declares ONE watchlist — the item. Users add as many as they need. Reconciled
+# by the watchlist alias (used directly as the ARM watchlistAlias). Inline CSV
+# content is bulk-loaded as watchlist items in the same PUT. Field keys must
+# match config-types/sentinel-watchlists/validate.ts.
+# =============================================================================
+
+id: "sentinel-watchlists"
+name: "Watchlist"
+toolType: "microsoft-sentinel"
+entityType: "sentinel-watchlists"
+description: "Define Microsoft Sentinel watchlists (with inline CSV items) as code via Azure Resource Manager. Reconciled by alias."
+
+item:
+  label: "Watchlist"
+  identityField: "alias"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Watchlist"
+      icon: "list"
+      description: "Identity and metadata"
+      fields:
+        - key: "alias"
+          label: "Alias"
+          fieldType: "text"
+          required: true
+          helpText: "The watchlist alias (the ARM identity). Letters, numbers, hyphens and underscores only."
+
+        - key: "display_name"
+          label: "Display name"
+          fieldType: "text"
+          required: true
+          helpText: "The name shown in the Microsoft Sentinel portal."
+
+        - key: "provider"
+          label: "Provider"
+          fieldType: "text"
+          defaultValue: "Custom"
+          helpText: "The watchlist provider label (free text, e.g. Custom, SOC)."
+
+        - key: "items_search_key"
+          label: "Items search key"
+          fieldType: "text"
+          required: true
+          helpText: "The CSV column used as the search key for joins (must be one of the header columns)."
+
+    - name: "Items"
+      icon: "table"
+      description: "Inline CSV loaded as watchlist items"
+      fields:
+        - key: "items_csv"
+          label: "Items (CSV)"
+          fieldType: "textarea"
+          helpText: >
+            CSV content whose first non-skipped line is the header row. Bulk-loaded
+            as watchlist items on deploy. Leave blank to create an empty watchlist.
+
+        - key: "number_of_lines_to_skip"
+          label: "Header lines to skip"
+          fieldType: "number"
+          defaultValue: 0
+          helpText: "Number of lines before the CSV header row (usually 0)."

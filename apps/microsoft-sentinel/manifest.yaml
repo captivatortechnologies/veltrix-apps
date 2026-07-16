@@ -1,0 +1,200 @@
+id: microsoft-sentinel
+name: Microsoft Sentinel
+version: "1.0.0"
+vendor: Veltrix
+description: >
+  Manage Microsoft Sentinel detection and response content as code through the
+  Azure Resource Manager (ARM) API. v1.0 ships the genuinely CRUD, generally
+  available configuration surface: scheduled (KQL) analytics rules, automation
+  rules, and watchlists — each with validation, drift detection and rollback
+  handled by the Security-as-Code pipeline. Auth is an Azure Entra app
+  registration (OAuth2 client credentials) with the "Microsoft Sentinel
+  Contributor" role scoped to the workspace resource group. The workspace is
+  addressed via the Tenant ID, Subscription ID, Resource Group and Workspace Name
+  app settings. NRT/ML/Threat-Intelligence analytics rule kinds, threat-intel
+  indicator upload, and data connectors are preview or portal-heavy and are out
+  of scope.
+category: SIEM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-sentinel
+icon: "🛡️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Microsoft Sentinel brand: Azure blue with a bright cyan accent.
+branding:
+  primaryColor: "#0078D4"
+  accentColor: "#50E6FF"
+  logo: ./assets/logo.svg
+  logoDark: ./assets/logo-dark.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: sentinel-analytics-rules
+      actions: [read, write, delete]
+      description: Manage Microsoft Sentinel scheduled analytics (detection) rules
+    - resource: sentinel-automation-rules
+      actions: [read, write, delete]
+      description: Manage Microsoft Sentinel automation rules
+    - resource: sentinel-watchlists
+      actions: [read, write, delete]
+      description: Manage Microsoft Sentinel watchlists and their items
+
+pipeline:
+  configurationTypes:
+    - id: sentinel-analytics-rules
+      name: Analytics Rules (Scheduled)
+      description: >
+        Scheduled (KQL) analytics rules via Microsoft.SecurityInsights/alertRules
+        (api-version 2024-09-01, GA). Reconciled by rule name (slugged into the
+        ARM ruleId for an idempotent PUT).
+      canvasTemplate: config-types/sentinel-analytics-rules/canvas.yaml
+      defaultConfig: config-types/sentinel-analytics-rules/defaults.yaml
+      handlers:
+        validate: config-types/sentinel-analytics-rules/validate
+        deploy: config-types/sentinel-analytics-rules/deploy
+        rollback: config-types/sentinel-analytics-rules/rollback
+        healthCheck: config-types/sentinel-analytics-rules/healthCheck
+        driftDetect: config-types/sentinel-analytics-rules/driftDetect
+        getStatus: config-types/sentinel-analytics-rules/getStatus
+      targets:
+        componentTypes: [sentinel-workspace]
+        requiresCredential: true
+        requiresConnectivity: false
+    - id: sentinel-automation-rules
+      name: Automation Rules
+      description: >
+        Automation rules via Microsoft.SecurityInsights/automationRules
+        (api-version 2024-09-01, GA). v1 ships a modify-properties action (set
+        incident severity and/or status); running playbooks is out of scope.
+      canvasTemplate: config-types/sentinel-automation-rules/canvas.yaml
+      defaultConfig: config-types/sentinel-automation-rules/defaults.yaml
+      handlers:
+        validate: config-types/sentinel-automation-rules/validate
+        deploy: config-types/sentinel-automation-rules/deploy
+        rollback: config-types/sentinel-automation-rules/rollback
+        healthCheck: config-types/sentinel-automation-rules/healthCheck
+        driftDetect: config-types/sentinel-automation-rules/driftDetect
+        getStatus: config-types/sentinel-automation-rules/getStatus
+      targets:
+        componentTypes: [sentinel-workspace]
+        requiresCredential: true
+        requiresConnectivity: false
+    - id: sentinel-watchlists
+      name: Watchlists
+      description: >
+        Watchlists (with inline CSV items) via Microsoft.SecurityInsights/watchlists
+        (api-version 2024-09-01, GA — PUT/DELETE are asynchronous and polled to
+        completion). Reconciled by alias.
+      canvasTemplate: config-types/sentinel-watchlists/canvas.yaml
+      defaultConfig: config-types/sentinel-watchlists/defaults.yaml
+      handlers:
+        validate: config-types/sentinel-watchlists/validate
+        deploy: config-types/sentinel-watchlists/deploy
+        rollback: config-types/sentinel-watchlists/rollback
+        healthCheck: config-types/sentinel-watchlists/healthCheck
+        driftDetect: config-types/sentinel-watchlists/driftDetect
+        getStatus: config-types/sentinel-watchlists/getStatus
+      targets:
+        componentTypes: [sentinel-workspace]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/microsoft-sentinel
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs a Sentinel workspace (component)
+    # with the Entra app credential used to reach ARM, with a connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: runs the OAuth2 token handshake and one
+# lightweight authenticated GET of the Log Analytics workspace resource.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: tenant_id
+    type: string
+    label: Tenant ID
+    description: >
+      The Microsoft Entra (Azure AD) directory/tenant GUID. Required to acquire an
+      access token for the app registration.
+    default: ""
+    required: true
+  - key: subscription_id
+    type: string
+    label: Subscription ID
+    description: The Azure subscription GUID that contains the Sentinel workspace.
+    default: ""
+    required: true
+  - key: resource_group
+    type: string
+    label: Resource Group
+    description: The resource group that contains the Log Analytics workspace.
+    default: ""
+    required: true
+  - key: workspace_name
+    type: string
+    label: Workspace Name
+    description: The Log Analytics workspace name that Microsoft Sentinel is enabled on.
+    default: ""
+    required: true
+  - key: azure_cloud
+    type: select
+    label: Azure Cloud
+    description: >
+      The Azure environment the workspace lives in. Determines the login authority
+      and ARM host. GCC-High / DoD use management.usgovcloudapi.net.
+    default: commercial
+    required: false
+    options:
+      - label: Commercial
+        value: commercial
+      - label: US Gov (GCC)
+        value: gcc
+      - label: US Gov (GCC High)
+        value: gcc-high
+      - label: US Gov (DoD)
+        value: dod
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Azure Resource Manager calls.
+    default: 30
+    required: false

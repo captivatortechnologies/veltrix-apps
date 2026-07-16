@@ -1,0 +1,91 @@
+# =============================================================================
+# Canvas Template — Microsoft Sentinel Automation Rule
+#
+# Declares ONE automation rule — the item. Users add as many as they need.
+# Reconciled by the rule name (slugged into the ARM automationRuleId). v1 ships
+# a modify-properties action (set incident severity and/or status); running
+# playbooks is out of scope. Field keys must match
+# config-types/sentinel-automation-rules/validate.ts.
+# =============================================================================
+
+id: "sentinel-automation-rules"
+name: "Automation Rule"
+toolType: "microsoft-sentinel"
+entityType: "sentinel-automation-rules"
+description: "Define Microsoft Sentinel automation rules as code via Azure Resource Manager. Reconciled by rule name."
+
+item:
+  label: "Automation Rule"
+  identityField: "rule_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Rule"
+      icon: "zap"
+      description: "Identity, state and execution order"
+      fields:
+        - key: "rule_name"
+          label: "Rule name"
+          fieldType: "text"
+          required: true
+          helpText: "Display name of the rule. Slugged into the ARM automationRuleId — this is the reconciliation identity."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the rule is active."
+
+        - key: "order"
+          label: "Order"
+          fieldType: "number"
+          defaultValue: 1
+          helpText: "Execution order relative to other automation rules (1–1000, lower runs first)."
+
+    - name: "Trigger"
+      icon: "activity"
+      description: "When the rule runs"
+      fields:
+        - key: "triggers_on"
+          label: "Triggers on"
+          fieldType: "select"
+          defaultValue: "Incidents"
+          options:
+            - { label: "Incidents", value: "Incidents" }
+            - { label: "Alerts", value: "Alerts" }
+
+        - key: "triggers_when"
+          label: "Triggers when"
+          fieldType: "select"
+          defaultValue: "Created"
+          options:
+            - { label: "Created", value: "Created" }
+            - { label: "Updated", value: "Updated" }
+
+    - name: "Action"
+      icon: "edit"
+      description: "Modify-properties action — set at least one of severity or status"
+      fields:
+        - key: "set_severity"
+          label: "Set severity"
+          fieldType: "select"
+          defaultValue: ""
+          helpText: "Optionally set the incident/alert severity."
+          options:
+            - { label: "(No change)", value: "" }
+            - { label: "High", value: "High" }
+            - { label: "Medium", value: "Medium" }
+            - { label: "Low", value: "Low" }
+            - { label: "Informational", value: "Informational" }
+
+        - key: "set_status"
+          label: "Set status"
+          fieldType: "select"
+          defaultValue: ""
+          helpText: "Optionally set the incident status."
+          options:
+            - { label: "(No change)", value: "" }
+            - { label: "New", value: "New" }
+            - { label: "Active", value: "Active" }
+            - { label: "Closed", value: "Closed" }
