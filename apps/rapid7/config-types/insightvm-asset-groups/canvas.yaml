@@ -1,0 +1,57 @@
+# =============================================================================
+# Canvas Template — Rapid7 InsightVM Asset Groups
+#
+# Declares ONE asset group — the item. Users add as many as they need. An asset
+# group is a name + type (static | dynamic); InsightVM assigns a numeric id, so
+# identity for reconciliation is the natural key (name). A dynamic group is
+# defined by a search-criteria JSON object; a static group is populated by
+# tags/manual assignment. Field keys must match
+# config-types/insightvm-asset-groups/validate.ts.
+# =============================================================================
+
+id: "rapid7-insightvm-asset-groups"
+name: "InsightVM Asset Group Configuration"
+toolType: "rapid7"
+entityType: "insightvm-asset-groups"
+description: "Define Rapid7 InsightVM asset groups as code through the Console API (/asset_groups). Reconciled by name; dynamic groups carry a search-criteria JSON object."
+
+item:
+  label: "Asset Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Asset Group"
+      icon: "layers"
+      description: "Name, type and search criteria"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The asset group name (its logical identity for reconciliation)."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional human-readable description of the asset group."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "static"
+          options:
+            - { label: "Static", value: "static" }
+            - { label: "Dynamic", value: "dynamic" }
+          helpText: >
+            Static groups are populated manually or via tags. Dynamic groups auto-populate
+            from the search criteria below.
+
+        - key: "search_criteria_json"
+          label: "Search Criteria (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            JSON search-criteria object — REQUIRED for a dynamic group, ignored for a static one.
+            e.g. {"match":"all","filters":[{"field":"host-name","operator":"contains","value":"db"}]}.

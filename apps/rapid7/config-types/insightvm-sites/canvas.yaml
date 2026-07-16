@@ -1,0 +1,79 @@
+# =============================================================================
+# Canvas Template — Rapid7 InsightVM Sites
+#
+# Declares ONE scan site — the item. Users add as many as they need. A site is a
+# named collection of scan targets plus scan settings (engine, template,
+# importance). InsightVM assigns a numeric id, so identity for reconciliation is
+# the natural key (name). Field keys must match
+# config-types/insightvm-sites/validate.ts.
+# =============================================================================
+
+id: "rapid7-insightvm-sites"
+name: "InsightVM Site Configuration"
+toolType: "rapid7"
+entityType: "insightvm-sites"
+description: "Define Rapid7 InsightVM scan sites as code through the Console API (/sites). Reconciled by name; targets, scan engine and template are managed declaratively."
+
+item:
+  label: "Site"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Site"
+      icon: "globe"
+      description: "Name, description and scan settings"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The site name — its logical identity for reconciliation."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional human-readable description of the site."
+
+        - key: "importance"
+          label: "Importance"
+          fieldType: "select"
+          required: true
+          defaultValue: "normal"
+          options:
+            - { label: "Very Low", value: "very_low" }
+            - { label: "Low", value: "low" }
+            - { label: "Normal", value: "normal" }
+            - { label: "High", value: "high" }
+            - { label: "Very High", value: "very_high" }
+          helpText: "Business importance — weights the risk score of the site's assets."
+
+        - key: "engine_id"
+          label: "Scan Engine ID"
+          fieldType: "number"
+          helpText: "Optional scan engine (or engine pool) id to run this site's scans. Leave blank for the console default."
+
+        - key: "scan_template_id"
+          label: "Scan Template ID"
+          fieldType: "text"
+          helpText: "Optional scan template id (e.g. full-audit-without-web-spider). Leave blank for the console default."
+
+    - name: "Scan Targets"
+      icon: "crosshair"
+      description: "Included and excluded scan targets"
+      fields:
+        - key: "included_addresses"
+          label: "Included Addresses"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The scan targets — one hostname, IP address or CIDR range per line
+            (e.g. 10.0.0.0/24). At least one is required.
+
+        - key: "excluded_addresses"
+          label: "Excluded Addresses"
+          fieldType: "textarea"
+          helpText: >
+            Optional targets to exclude from the scan — one hostname, IP address or
+            CIDR range per line. Leave blank to scan everything included above.

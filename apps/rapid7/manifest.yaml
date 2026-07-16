@@ -1,0 +1,259 @@
+id: rapid7
+name: Rapid7 InsightVM
+version: "1.0.0"
+vendor: Veltrix
+description: >
+  Manage Rapid7 InsightVM configuration as code through the Security Console API
+  (v3). Covers scan sites, asset groups, tags, scan templates, scan engine pools,
+  shared and site credentials, scan schedules and vulnerability exceptions — with
+  validation, drift detection and rollback handled by the Security-as-Code
+  pipeline. The component hostname is the console host:3780; auth is HTTP Basic.
+category: COMPLIANCE
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/rapid7
+icon: "🎯"
+
+platform:
+  minVersion: "1.0.0"
+
+# Rapid7 brand: the Rapid7 magenta with a lighter pink accent.
+branding:
+  primaryColor: "#E8368F"
+  accentColor: "#FF6B9D"
+  logo: ./assets/logo.svg
+  logoDark: ./assets/logo-dark.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: insightvm-sites
+      actions: [read, write, delete]
+      description: Manage Rapid7 InsightVM sites
+    - resource: insightvm-asset-groups
+      actions: [read, write, delete]
+      description: Manage Rapid7 InsightVM asset groups
+    - resource: insightvm-tags
+      actions: [read, write, delete]
+      description: Manage Rapid7 InsightVM tags
+    - resource: insightvm-scan-templates
+      actions: [read, write, delete]
+      description: Manage Rapid7 InsightVM scan templates
+    - resource: insightvm-shared-credentials
+      actions: [read, write, delete]
+      description: Manage Rapid7 InsightVM shared credentials
+    - resource: insightvm-scan-engine-pools
+      actions: [read, write, delete]
+      description: Manage Rapid7 InsightVM scan engine pools
+    - resource: insightvm-vulnerability-exceptions
+      actions: [read, write, delete]
+      description: Manage Rapid7 InsightVM vulnerability exceptions
+    - resource: insightvm-scan-schedules
+      actions: [read, write, delete]
+      description: Manage Rapid7 InsightVM scan schedules
+    - resource: insightvm-site-credentials
+      actions: [read, write, delete]
+      description: Manage Rapid7 InsightVM site credentials
+
+pipeline:
+  configurationTypes:
+    - id: insightvm-sites
+      name: InsightVM Sites
+      description: Scan sites (/sites) — targets, scan engine, scan template and importance
+      canvasTemplate: config-types/insightvm-sites/canvas.yaml
+      defaultConfig: config-types/insightvm-sites/defaults.yaml
+      handlers:
+        validate: config-types/insightvm-sites/validate
+        deploy: config-types/insightvm-sites/deploy
+        rollback: config-types/insightvm-sites/rollback
+        healthCheck: config-types/insightvm-sites/healthCheck
+        driftDetect: config-types/insightvm-sites/driftDetect
+        getStatus: config-types/insightvm-sites/getStatus
+      targets:
+        componentTypes: [insightvm-console]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: insightvm-asset-groups
+      name: InsightVM Asset Groups
+      description: Static / dynamic asset groups (/asset_groups); dynamic carry a search-criteria filter
+      canvasTemplate: config-types/insightvm-asset-groups/canvas.yaml
+      defaultConfig: config-types/insightvm-asset-groups/defaults.yaml
+      handlers:
+        validate: config-types/insightvm-asset-groups/validate
+        deploy: config-types/insightvm-asset-groups/deploy
+        rollback: config-types/insightvm-asset-groups/rollback
+        healthCheck: config-types/insightvm-asset-groups/healthCheck
+        driftDetect: config-types/insightvm-asset-groups/driftDetect
+        getStatus: config-types/insightvm-asset-groups/getStatus
+      targets:
+        componentTypes: [insightvm-console]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: insightvm-tags
+      name: InsightVM Tags
+      description: Criticality / location / owner / custom tags (/tags) with color, risk modifier and search criteria
+      canvasTemplate: config-types/insightvm-tags/canvas.yaml
+      defaultConfig: config-types/insightvm-tags/defaults.yaml
+      handlers:
+        validate: config-types/insightvm-tags/validate
+        deploy: config-types/insightvm-tags/deploy
+        rollback: config-types/insightvm-tags/rollback
+        healthCheck: config-types/insightvm-tags/healthCheck
+        driftDetect: config-types/insightvm-tags/driftDetect
+        getStatus: config-types/insightvm-tags/getStatus
+      targets:
+        componentTypes: [insightvm-console]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: insightvm-scan-templates
+      name: InsightVM Scan Templates
+      description: Scan templates (/scan_templates); string id, clone built-ins rather than overwrite
+      canvasTemplate: config-types/insightvm-scan-templates/canvas.yaml
+      defaultConfig: config-types/insightvm-scan-templates/defaults.yaml
+      handlers:
+        validate: config-types/insightvm-scan-templates/validate
+        deploy: config-types/insightvm-scan-templates/deploy
+        rollback: config-types/insightvm-scan-templates/rollback
+        healthCheck: config-types/insightvm-scan-templates/healthCheck
+        driftDetect: config-types/insightvm-scan-templates/driftDetect
+        getStatus: config-types/insightvm-scan-templates/getStatus
+      targets:
+        componentTypes: [insightvm-console]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: insightvm-shared-credentials
+      name: InsightVM Shared Credentials
+      description: Org-wide shared scan credentials (/shared_credentials); the secret is write-only
+      canvasTemplate: config-types/insightvm-shared-credentials/canvas.yaml
+      defaultConfig: config-types/insightvm-shared-credentials/defaults.yaml
+      handlers:
+        validate: config-types/insightvm-shared-credentials/validate
+        deploy: config-types/insightvm-shared-credentials/deploy
+        rollback: config-types/insightvm-shared-credentials/rollback
+        healthCheck: config-types/insightvm-shared-credentials/healthCheck
+        driftDetect: config-types/insightvm-shared-credentials/driftDetect
+        getStatus: config-types/insightvm-shared-credentials/getStatus
+      targets:
+        componentTypes: [insightvm-console]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: insightvm-scan-engine-pools
+      name: InsightVM Scan Engine Pools
+      description: Scan engine pools (/scan_engine_pools) and their engine membership
+      canvasTemplate: config-types/insightvm-scan-engine-pools/canvas.yaml
+      defaultConfig: config-types/insightvm-scan-engine-pools/defaults.yaml
+      handlers:
+        validate: config-types/insightvm-scan-engine-pools/validate
+        deploy: config-types/insightvm-scan-engine-pools/deploy
+        rollback: config-types/insightvm-scan-engine-pools/rollback
+        healthCheck: config-types/insightvm-scan-engine-pools/healthCheck
+        driftDetect: config-types/insightvm-scan-engine-pools/driftDetect
+        getStatus: config-types/insightvm-scan-engine-pools/getStatus
+      targets:
+        componentTypes: [insightvm-console]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: insightvm-vulnerability-exceptions
+      name: InsightVM Vulnerability Exceptions
+      description: Vulnerability exceptions (/vulnerability_exceptions) with scope, expiration and status
+      canvasTemplate: config-types/insightvm-vulnerability-exceptions/canvas.yaml
+      defaultConfig: config-types/insightvm-vulnerability-exceptions/defaults.yaml
+      handlers:
+        validate: config-types/insightvm-vulnerability-exceptions/validate
+        deploy: config-types/insightvm-vulnerability-exceptions/deploy
+        rollback: config-types/insightvm-vulnerability-exceptions/rollback
+        healthCheck: config-types/insightvm-vulnerability-exceptions/healthCheck
+        driftDetect: config-types/insightvm-vulnerability-exceptions/driftDetect
+        getStatus: config-types/insightvm-vulnerability-exceptions/getStatus
+      targets:
+        componentTypes: [insightvm-console]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: insightvm-scan-schedules
+      name: InsightVM Scan Schedules
+      description: Per-site scan schedules (/sites/{id}/scan_schedules); references the site by name
+      canvasTemplate: config-types/insightvm-scan-schedules/canvas.yaml
+      defaultConfig: config-types/insightvm-scan-schedules/defaults.yaml
+      handlers:
+        validate: config-types/insightvm-scan-schedules/validate
+        deploy: config-types/insightvm-scan-schedules/deploy
+        rollback: config-types/insightvm-scan-schedules/rollback
+        healthCheck: config-types/insightvm-scan-schedules/healthCheck
+        driftDetect: config-types/insightvm-scan-schedules/driftDetect
+        getStatus: config-types/insightvm-scan-schedules/getStatus
+      targets:
+        componentTypes: [insightvm-console]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: insightvm-site-credentials
+      name: InsightVM Site Credentials
+      description: Site-scoped scan credentials (/sites/{id}/site_credentials); references the site by name; the secret is write-only
+      canvasTemplate: config-types/insightvm-site-credentials/canvas.yaml
+      defaultConfig: config-types/insightvm-site-credentials/defaults.yaml
+      handlers:
+        validate: config-types/insightvm-site-credentials/validate
+        deploy: config-types/insightvm-site-credentials/deploy
+        rollback: config-types/insightvm-site-credentials/rollback
+        healthCheck: config-types/insightvm-site-credentials/healthCheck
+        driftDetect: config-types/insightvm-site-credentials/driftDetect
+        getStatus: config-types/insightvm-site-credentials/getStatus
+      targets:
+        componentTypes: [insightvm-console]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/rapid7
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+settings:
+  - key: two_factor_token
+    type: string
+    label: 2FA Token
+    description: >
+      Optional one-time token for a console account with two-factor auth enabled.
+      Prefer a dedicated non-2FA service account for automation.
+    default: ""
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for InsightVM console API calls.
+    default: 30
+    required: false

@@ -1,0 +1,52 @@
+# =============================================================================
+# Canvas Template — Rapid7 InsightVM Scan Templates
+#
+# Declares ONE scan template — the item. Users add as many as they need. Unlike
+# most InsightVM resources, a scan template's identity is a user-settable string
+# `id` (an API slug, e.g. my-full-audit), not a server-assigned number. Identity
+# for reconciliation is that id. Built-in (builtin: true) templates are protected
+# and must be cloned under a new id rather than overwritten. Field keys must match
+# config-types/insightvm-scan-templates/validate.ts.
+# =============================================================================
+
+id: "rapid7-insightvm-scan-templates"
+name: "InsightVM Scan Template Configuration"
+toolType: "rapid7"
+entityType: "insightvm-scan-templates"
+description: "Define Rapid7 InsightVM scan templates as code through the Console API (/scan_templates). Reconciled by the string template id; built-in templates are protected — clone them under a new id."
+
+item:
+  label: "Scan Template"
+  identityField: "template_id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Scan Template"
+      icon: "shield"
+      description: "Id, name and template config"
+      fields:
+        - key: "template_id"
+          label: "Template ID"
+          fieldType: "text"
+          required: true
+          helpText: "The scan template's string id — a slug that is its identity (e.g. my-full-audit). Cannot match a built-in template id."
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "A human-readable name for the scan template."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description of what this scan template does."
+
+        - key: "template_json"
+          label: "Template Config (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON object with the template's checks / policies / discovery
+            configuration, e.g. {"checks":{"categories":{"enabled":["CIFS"]}},"policy":{"enabled":true},"discovery":{"asset":{"collectWhoisInformation":false}}}.
+            Merged over the id / name / description. Leave blank to create a bare template.

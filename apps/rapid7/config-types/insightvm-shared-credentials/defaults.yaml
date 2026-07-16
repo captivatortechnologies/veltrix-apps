@@ -1,0 +1,6 @@
+# Defaults for a new shared credential item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a flat map keyed by the
+# canvas field keys (name, description, credential_json, secret). The secret is
+# write-only and must never be given a default value.

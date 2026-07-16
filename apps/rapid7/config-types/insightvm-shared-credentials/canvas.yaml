@@ -1,0 +1,58 @@
+# =============================================================================
+# Canvas Template — Rapid7 InsightVM Shared Scan Credentials
+#
+# Declares ONE shared scan credential — the item. Users add as many as they need.
+# A credential is a name + an account object + its secret; InsightVM assigns a
+# numeric id, so identity for reconciliation is the natural key (name).
+#
+# ⚠ SECRET-BEARING: the `secret` field is WRITE-ONLY (fieldType: password). It is
+# sent to the console on every create AND update (the API masks it on read) but
+# is NEVER read back, diffed, or stored in rollback state / artifacts / logs.
+# Field keys must match config-types/insightvm-shared-credentials/validate.ts.
+# =============================================================================
+
+id: "rapid7-insightvm-shared-credentials"
+name: "InsightVM Shared Credential Configuration"
+toolType: "rapid7"
+entityType: "insightvm-shared-credentials"
+description: "Define Rapid7 InsightVM shared scan credentials as code through the Console API (/shared_credentials). Reconciled by name; the secret is write-only and always re-sent on deploy."
+
+item:
+  label: "Shared Credential"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Credential"
+      icon: "key"
+      description: "Name, account definition and secret"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The shared credential name — its logical identity for reconciliation."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional human-readable description of the credential."
+
+        - key: "credential_json"
+          label: "Account (JSON, without secret)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The account object WITHOUT the secret, as JSON, e.g.
+            {"service":"ssh","username":"scanner","host":"10.0.0.1","port":22}.
+            The secret below is merged in as account.password at deploy time.
+
+        - key: "secret"
+          label: "Secret (password / key)"
+          fieldType: "password"
+          required: true
+          helpText: >
+            ⚠ WRITE-ONLY. The account password or key. It is sent to the console on every
+            deploy (the API masks it on read) and is never read back, diffed, or stored in
+            rollback data, artifacts or logs.

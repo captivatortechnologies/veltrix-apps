@@ -1,0 +1,65 @@
+# =============================================================================
+# Canvas Template — Rapid7 InsightVM Site Credentials
+#
+# Declares ONE per-site scan credential — the item. A site credential is a CHILD
+# of a site: the handler resolves the site by name, then manages the credential
+# under it (/sites/{id}/site_credentials). Identity is (site name, credential
+# name).
+#
+# ⚠ The `secret` field is a WRITE-ONLY password/key. The InsightVM API masks it
+# on read, so it is never read back, drift-checked or stored — it is re-sent on
+# every deploy. Field keys must match
+# config-types/insightvm-site-credentials/validate.ts.
+# =============================================================================
+
+id: "rapid7-insightvm-site-credentials"
+name: "InsightVM Site Credentials Configuration"
+toolType: "rapid7"
+entityType: "insightvm-site-credentials"
+description: "Define Rapid7 InsightVM per-site scan credentials as code (/sites/{id}/site_credentials). The site is referenced by name; the secret is write-only."
+
+item:
+  label: "Site Credential"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Site Credential"
+      icon: "key"
+      description: "Site, name and account"
+      fields:
+        - key: "site_name"
+          label: "Site Name"
+          fieldType: "text"
+          required: true
+          helpText: "The name of the site this credential belongs to. The site must already exist."
+
+        - key: "name"
+          label: "Credential Name"
+          fieldType: "text"
+          required: true
+          helpText: "A name for this credential (part of the identity, unique within the site)."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description of what this credential is used for."
+
+        - key: "credential_json"
+          label: "Account (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            JSON object with the account WITHOUT the secret, e.g.
+            {"service":"ssh","username":"scanner","port":22}. The write-only
+            secret below is merged in as account.password on deploy.
+
+        - key: "secret"
+          label: "Secret (Password / Key)"
+          fieldType: "password"
+          required: true
+          helpText: >
+            WRITE-ONLY secret (password or private key) for the account. The
+            InsightVM API never returns it, so it is re-sent on every deploy and
+            is never drift-checked.

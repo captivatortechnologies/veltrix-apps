@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template — Rapid7 InsightVM Tags
+#
+# Declares ONE tag — the item. Users add as many as they need. A tag is a
+# name + type; InsightVM assigns a numeric id, so identity for reconciliation is
+# the natural key (name, type). Built-in (source: built-in) tags are protected.
+# Field keys must match config-types/insightvm-tags/validate.ts.
+# =============================================================================
+
+id: "rapid7-insightvm-tags"
+name: "InsightVM Tag Configuration"
+toolType: "rapid7"
+entityType: "insightvm-tags"
+description: "Define Rapid7 InsightVM tags as code through the Console API (/tags). Reconciled by name + type; built-in tags are protected."
+
+item:
+  label: "Tag"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Tag"
+      icon: "tag"
+      description: "Name, type and options"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The tag name (part of its logical identity with the type)."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "custom"
+          options:
+            - { label: "Custom", value: "custom" }
+            - { label: "Criticality", value: "criticality" }
+            - { label: "Location", value: "location" }
+            - { label: "Owner", value: "owner" }
+          helpText: "The tag type."
+
+        - key: "color"
+          label: "Color"
+          fieldType: "text"
+          helpText: "Optional hex color for a custom tag (e.g. #F6821F)."
+
+        - key: "risk_modifier"
+          label: "Risk Modifier"
+          fieldType: "number"
+          helpText: "Only for criticality tags — multiplies the risk score of tagged assets."
+
+        - key: "search_criteria_json"
+          label: "Search Criteria (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON search-criteria object that makes the tag dynamic (auto-applied to matching
+            assets), e.g. {"match":"all","filters":[{"field":"host-name","operator":"contains","value":"db"}]}.
+            Leave blank for a static tag.

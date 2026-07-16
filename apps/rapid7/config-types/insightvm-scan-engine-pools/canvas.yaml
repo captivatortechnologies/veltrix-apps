@@ -1,0 +1,42 @@
+# =============================================================================
+# Canvas Template — Rapid7 InsightVM Scan Engine Pools
+#
+# Declares ONE scan engine pool — the item. Users add as many as they need. A
+# scan engine pool groups one or more scan engines so a site can distribute a
+# scan across them. InsightVM assigns a numeric id, so identity for
+# reconciliation is the natural key (name). Member engines are referenced by
+# NAME (one per line); the handler resolves each name to its live engine id by
+# listing /scan_engines before writing the pool. Field keys must match
+# config-types/insightvm-scan-engine-pools/validate.ts.
+# =============================================================================
+
+id: "rapid7-insightvm-scan-engine-pools"
+name: "InsightVM Scan Engine Pool Configuration"
+toolType: "rapid7"
+entityType: "insightvm-scan-engine-pools"
+description: "Define Rapid7 InsightVM scan engine pools as code through the Console API (/scan_engine_pools). Reconciled by name; member engines are referenced by name and resolved to ids at deploy time."
+
+item:
+  label: "Scan Engine Pool"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Scan Engine Pool"
+      icon: "server"
+      description: "Name and member scan engines"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The scan engine pool name (its logical identity for reconciliation)."
+
+        - key: "engines"
+          label: "Scan Engines"
+          fieldType: "textarea"
+          helpText: >
+            The member scan engines — one scan-engine NAME per line (as shown in the console's
+            Administration > Scan Engines). Each name is resolved to its engine id at deploy time;
+            an unknown name fails the deploy. Leave blank for an empty pool.
