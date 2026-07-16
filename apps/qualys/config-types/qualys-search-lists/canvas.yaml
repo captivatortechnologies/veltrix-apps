@@ -1,0 +1,51 @@
+# =============================================================================
+# Canvas Template — Qualys Static Search Lists
+#
+# Declares ONE static search list — the item. A static search list is a named,
+# fixed set of QIDs used across option profiles, reports and remediation
+# policies. Qualys assigns a numeric id, so identity for reconciliation is the
+# natural key (title). Field keys must match
+# config-types/qualys-search-lists/validate.ts.
+# =============================================================================
+
+id: "qualys-search-lists"
+name: "Qualys Static Search List Configuration"
+toolType: "qualys"
+entityType: "qualys-search-lists"
+description: "Define Qualys static search lists (fixed sets of QIDs) as code through the classic v2 API (/api/2.0/fo/qid/search_list/static/). Reconciled by title."
+
+item:
+  label: "Search List"
+  identityField: "title"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Search List"
+      icon: "list"
+      description: "Title and QIDs"
+      fields:
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: true
+          helpText: "The search list title (its logical identity for reconciliation). Must be unique."
+
+        - key: "qids"
+          label: "QIDs"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            Comma- or whitespace-separated Qualys QIDs (numeric) that make up this static list,
+            e.g. 38173, 86476, 105943. The full set is replaced on each deploy.
+
+        - key: "global"
+          label: "Global (available to all users)"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, the search list is shared across all users in the subscription."
+
+        - key: "comments"
+          label: "Comments"
+          fieldType: "text"
+          helpText: "Optional free-text comments."

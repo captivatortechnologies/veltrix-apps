@@ -1,0 +1,73 @@
+# =============================================================================
+# Canvas Template — Qualys Asset Groups
+#
+# Declares ONE asset group — the item. Users add as many as they need. Qualys
+# assigns a numeric id, so identity for reconciliation is the natural key
+# (title); Qualys also requires titles to be unique and forbids "All". Field
+# keys must match config-types/qualys-asset-groups/validate.ts.
+# =============================================================================
+
+id: "qualys-asset-groups"
+name: "Qualys Asset Group Configuration"
+toolType: "qualys"
+entityType: "qualys-asset-groups"
+description: "Define Qualys asset groups as code through the classic v2 API (/api/2.0/fo/asset/group/). Reconciled by title."
+
+item:
+  label: "Asset Group"
+  identityField: "title"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Asset Group"
+      icon: "layers"
+      description: "Title, targets and metadata"
+      fields:
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: true
+          helpText: "The asset group title (its logical identity for reconciliation). Must be unique; cannot be 'All'."
+
+        - key: "ips"
+          label: "IP Addresses / Ranges"
+          fieldType: "textarea"
+          helpText: >
+            Comma- or whitespace-separated IPs, ranges (10.0.0.1-10.0.0.254) and CIDR blocks to
+            include in the group. Overwrites the group's IP set on each deploy.
+
+        - key: "business_impact"
+          label: "Business Impact"
+          fieldType: "select"
+          defaultValue: ""
+          options:
+            - { label: "Not set", value: "" }
+            - { label: "Critical", value: "critical" }
+            - { label: "High", value: "high" }
+            - { label: "Medium", value: "medium" }
+            - { label: "Low", value: "low" }
+            - { label: "Minimal", value: "minimal" }
+          helpText: "Business impact level used in CVSS environmental scoring for this group."
+
+        - key: "division"
+          label: "Division"
+          fieldType: "text"
+          helpText: "Optional division label for the asset group."
+
+        - key: "location"
+          label: "Location"
+          fieldType: "text"
+          helpText: "Optional location label for the asset group."
+
+        - key: "comments"
+          label: "Comments"
+          fieldType: "text"
+          helpText: "Optional free-text comments."
+
+        - key: "network_id"
+          label: "Network ID"
+          fieldType: "number"
+          helpText: >
+            Optional network id — ONLY for subscriptions with the Network Support feature enabled.
+            Leave blank otherwise.

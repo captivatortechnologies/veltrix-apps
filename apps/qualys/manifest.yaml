@@ -1,0 +1,145 @@
+id: qualys
+name: Qualys
+version: "1.0.0"
+vendor: Veltrix
+description: >
+  Manage Qualys VMDR / Policy Compliance configuration as code through the classic
+  v2 API. Covers asset groups, static search lists (QID sets) and scheduled VM
+  scans — with validation, drift detection and rollback handled by the
+  Security-as-Code pipeline. The component hostname is your Qualys platform API
+  server (Help > About); auth is HTTP Basic with the required X-Requested-With
+  header.
+category: COMPLIANCE
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/qualys
+icon: "🛡️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Qualys brand: the Qualys red with a lighter accent.
+branding:
+  primaryColor: "#C7222A"
+  accentColor: "#ED4A54"
+  logo: ./assets/logo.svg
+  logoDark: ./assets/logo-dark.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: qualys-asset-groups
+      actions: [read, write, delete]
+      description: Manage Qualys asset groups
+    - resource: qualys-search-lists
+      actions: [read, write, delete]
+      description: Manage Qualys static search lists
+    - resource: qualys-scan-schedules
+      actions: [read, write, delete]
+      description: Manage Qualys scan schedules
+
+pipeline:
+  configurationTypes:
+    - id: qualys-asset-groups
+      name: Qualys Asset Groups
+      description: Asset groups (/api/2.0/fo/asset/group/) — title, IP set, business impact and metadata
+      canvasTemplate: config-types/qualys-asset-groups/canvas.yaml
+      defaultConfig: config-types/qualys-asset-groups/defaults.yaml
+      handlers:
+        validate: config-types/qualys-asset-groups/validate
+        deploy: config-types/qualys-asset-groups/deploy
+        rollback: config-types/qualys-asset-groups/rollback
+        healthCheck: config-types/qualys-asset-groups/healthCheck
+        driftDetect: config-types/qualys-asset-groups/driftDetect
+        getStatus: config-types/qualys-asset-groups/getStatus
+      targets:
+        componentTypes: [qualys-platform]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: qualys-search-lists
+      name: Qualys Search Lists
+      description: Static search lists (/api/2.0/fo/qid/search_list/static/) — named, fixed sets of QIDs
+      canvasTemplate: config-types/qualys-search-lists/canvas.yaml
+      defaultConfig: config-types/qualys-search-lists/defaults.yaml
+      handlers:
+        validate: config-types/qualys-search-lists/validate
+        deploy: config-types/qualys-search-lists/deploy
+        rollback: config-types/qualys-search-lists/rollback
+        healthCheck: config-types/qualys-search-lists/healthCheck
+        driftDetect: config-types/qualys-search-lists/driftDetect
+        getStatus: config-types/qualys-search-lists/getStatus
+      targets:
+        componentTypes: [qualys-platform]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: qualys-scan-schedules
+      name: Qualys Scan Schedules
+      description: Scheduled VM scans (/api/2.0/fo/schedule/scan/) — option profile, target and recurrence
+      canvasTemplate: config-types/qualys-scan-schedules/canvas.yaml
+      defaultConfig: config-types/qualys-scan-schedules/defaults.yaml
+      handlers:
+        validate: config-types/qualys-scan-schedules/validate
+        deploy: config-types/qualys-scan-schedules/deploy
+        rollback: config-types/qualys-scan-schedules/rollback
+        healthCheck: config-types/qualys-scan-schedules/healthCheck
+        driftDetect: config-types/qualys-scan-schedules/driftDetect
+        getStatus: config-types/qualys-scan-schedules/getStatus
+      targets:
+        componentTypes: [qualys-platform]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/qualys
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs a Qualys platform (component) with
+    # the Basic-auth credential used to reach it, with a connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: verifies the platform URL + Basic-auth
+# credential via GET /api/2.0/fo/asset/group/?action=list&truncation_limit=1.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Qualys API calls.
+    default: 30
+    required: false

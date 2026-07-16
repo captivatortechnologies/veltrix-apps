@@ -1,0 +1,64 @@
+# =============================================================================
+# Canvas Template — Qualys Scan Schedules
+#
+# Declares ONE scheduled VM scan — the item. A schedule references its option
+# profile by title and (optionally) its target asset groups by title. Timing and
+# any additional Qualys schedule parameters are supplied as a flat JSON object in
+# `schedule_json`. Qualys assigns a numeric id, so identity for reconciliation is
+# the natural key (scan title). Field keys must match
+# config-types/qualys-scan-schedules/validate.ts.
+# =============================================================================
+
+id: "qualys-scan-schedules"
+name: "Qualys Scan Schedule Configuration"
+toolType: "qualys"
+entityType: "qualys-scan-schedules"
+description: "Define Qualys scheduled VM scans as code through the classic v2 API (/api/2.0/fo/schedule/scan/). Reconciled by scan title."
+
+item:
+  label: "Scan Schedule"
+  identityField: "scan_title"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Scan Schedule"
+      icon: "calendar"
+      description: "Title, option profile, target and recurrence"
+      fields:
+        - key: "scan_title"
+          label: "Scan Title"
+          fieldType: "text"
+          required: true
+          helpText: "The schedule's scan title (its logical identity for reconciliation). Must be unique."
+
+        - key: "option_title"
+          label: "Option Profile Title"
+          fieldType: "text"
+          required: true
+          helpText: "The title of an existing option profile to run. Must already exist in the subscription."
+
+        - key: "asset_group_titles"
+          label: "Target Asset Groups"
+          fieldType: "textarea"
+          helpText: >
+            Comma-separated titles of existing asset groups to scan (the scan target). Leave blank
+            only if you provide another target (ip / tag_set_include) in the Schedule JSON below.
+
+        - key: "active"
+          label: "Active"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the schedule is enabled."
+
+        - key: "schedule_json"
+          label: "Schedule (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            Flat JSON object of Qualys schedule parameters. Must include "occurrence"
+            (daily | weekly | monthly). Example:
+            {"occurrence":"weekly","frequency_weeks":1,"weekdays":"1","start_date":"08/01/2026",
+            "start_hour":2,"start_minute":0,"time_zone_code":"US-CA","recurrence":10}.
+            Any additional Qualys schedule parameter (e.g. iscanner_name, ip, tag_set_include)
+            may be added here.
