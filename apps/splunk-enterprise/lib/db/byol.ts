@@ -29,6 +29,10 @@ export interface ByolInput {
   indexerCount: number
   searchHeadCount: number
   cloudProviderId?: string
+  // Deployment target (hosted vs BYOC) — see migration 009.
+  networkMode?: string
+  dnsMode?: string
+  cloudAccountConnectionId?: string
 }
 
 async function attachRegions(db: PlatformDatabaseClient, infra: ByolDto): Promise<ByolDto> {
@@ -78,8 +82,10 @@ export async function createByol(
     // 'not_started' — the deploy route is what moves it to 'provisioning'.
     `INSERT INTO splunk_byol_infrastructure
        (name, deployment_type, environment_type, hosting_type, region,
-        indexer_count, search_head_count, cloud_provider_id, customer_id, status)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::uuid, $9::uuid, 'not_started')
+        indexer_count, search_head_count, cloud_provider_id, customer_id, status,
+        network_mode, dns_mode, cloud_account_connection_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::uuid, $9::uuid, 'not_started',
+             $10, $11, $12::uuid)
      RETURNING *`,
     input.name,
     input.deploymentType,
@@ -90,6 +96,9 @@ export async function createByol(
     input.searchHeadCount,
     input.cloudProviderId ?? null,
     customerId,
+    input.networkMode ?? 'shared',
+    input.dnsMode ?? 'managed',
+    input.cloudAccountConnectionId ?? null,
   )
   const created = mapByol(rows[0])
   await emitStateEvent(db, created, created.status) // 'not_started'

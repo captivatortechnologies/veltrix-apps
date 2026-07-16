@@ -21,6 +21,12 @@ export interface ByolInfrastructure {
   region?: string | null
   indexerRegions?: ByolRegion[]
   searchHeadRegions?: ByolRegion[]
+  /** Deployment target: platform-hosted network, or a customer-owned VPC. Defaults to 'shared'. */
+  networkMode?: 'shared' | 'dedicated' | 'existing' | string
+  /** DNS strategy for the deployment. Defaults to 'managed'. */
+  dnsMode?: 'managed' | 'delegated' | 'private-only' | string
+  /** Platform cloud account connection backing a BYOC (dedicated/existing) deployment. */
+  cloudAccountConnectionId?: string | null
   updatedAt?: string
   createdAt?: string
 }
@@ -88,6 +94,20 @@ export interface CloudRegion {
   isActive?: boolean
 }
 
+/**
+ * Platform cloud account connection — feeds the "Cloud account" picker shown
+ * for BYOC (dedicated/existing network) deployment targets. Sourced from
+ * `GET /api/cloud-accounts`. Only `VERIFIED` accounts matching the selected
+ * cloud provider are offered.
+ */
+export interface CloudAccount {
+  id: string
+  provider: 'aws' | 'azure' | 'gcp' | 'hetzner' | string
+  name: string
+  status: 'UNVERIFIED' | 'VERIFIED' | 'ERROR' | string
+  authMethod?: string
+}
+
 export interface FormState {
   name: string
   deploymentType: string
@@ -97,6 +117,12 @@ export interface FormState {
   region: string
   indexerCount: string
   searchHeadCount: string
+  /** Deployment target: 'shared' (Veltrix-hosted), 'dedicated', or 'existing' (BYOC). */
+  networkMode: string
+  /** DNS strategy: 'managed', 'delegated', or 'private-only'. */
+  dnsMode: string
+  /** Platform cloud account connection id, required when networkMode is BYOC. */
+  cloudAccountConnectionId: string
 }
 
 /**
@@ -141,6 +167,23 @@ export const DEFAULT_DEPLOYMENT_TYPES = [
   { value: 'distributed', label: 'Distributed' },
 ]
 
+/** Network mode options for the "Deployment target" form section. */
+export const NETWORK_MODE_OPTIONS = [
+  { value: 'shared', label: 'Veltrix-hosted (shared)' },
+  { value: 'dedicated', label: 'Dedicated — your cloud (BYOC)' },
+  { value: 'existing', label: 'Existing network — your cloud (BYOC)' },
+]
+
+/** DNS mode options for the "Deployment target" form section. */
+export const DNS_MODE_OPTIONS = [
+  { value: 'managed', label: 'Managed' },
+  { value: 'delegated', label: 'Delegated' },
+  { value: 'private-only', label: 'Private only' },
+]
+
+/** Network modes that require a customer-owned (BYOC) cloud account connection. */
+export const BYOC_NETWORK_MODES = new Set(['dedicated', 'existing'])
+
 export const BLANK_FORM: FormState = {
   name: '',
   deploymentType: 'single',
@@ -149,4 +192,7 @@ export const BLANK_FORM: FormState = {
   region: '',
   indexerCount: '1',
   searchHeadCount: '1',
+  networkMode: 'shared',
+  dnsMode: 'managed',
+  cloudAccountConnectionId: '',
 }

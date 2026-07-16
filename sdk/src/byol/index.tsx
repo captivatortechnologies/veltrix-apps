@@ -23,6 +23,7 @@ export type {
   Tag,
   CloudProvider,
   CloudRegion,
+  CloudAccount,
   FormState,
 } from './types'
 
