@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — Snyk Service Accounts
+#
+# Declares ONE service account — the item. Users add as many as they need. A
+# service account is an automation identity bound to a Snyk org role; identity
+# for reconciliation is the account name. Snyk generates the account's API token
+# / client secret ONCE on create and it is never read back (write-only), so it is
+# NOT a canvas field. auth_type is immutable after creation.
+# Field keys must match config-types/snyk-service-accounts/validate.ts.
+# =============================================================================
+
+id: "snyk-service-accounts"
+name: "Snyk Service Accounts"
+toolType: "snyk"
+entityType: "snyk-service-accounts"
+description: "Define Snyk automation service accounts as code via the REST API (/orgs/{org}/service_accounts). Reconciled by name; the generated API token is shown once by Snyk and is never stored."
+
+item:
+  label: "Service Account"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Service Account"
+      icon: "key"
+      description: "Automation identity, org role and auth type"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The service account name — its logical identity for reconciliation."
+
+        - key: "role_id"
+          label: "Org Role ID"
+          fieldType: "text"
+          required: true
+          helpText: "The Snyk organization role UUID to grant (Snyk > Settings > Members > Roles)."
+
+        - key: "auth_type"
+          label: "Auth Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "api_key"
+          options:
+            - { label: "API Key", value: "api_key" }
+            - { label: "OAuth Client Secret", value: "oauth_client_secret" }
+            - { label: "OAuth Private Key JWT", value: "oauth_private_key_jwt" }
+          helpText: >
+            How the service account authenticates. Immutable after creation — it is
+            sent only when the account is first created and can never be changed here.
+
+        - key: "access_token_ttl_seconds"
+          label: "Access Token TTL (seconds)"
+          fieldType: "number"
+          helpText: >
+            Optional lifetime of issued access tokens, in seconds. Only meaningful for
+            the OAuth auth types; leave blank for API-key accounts.

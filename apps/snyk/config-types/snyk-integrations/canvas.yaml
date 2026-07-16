@@ -1,0 +1,85 @@
+# =============================================================================
+# Canvas Template — Snyk Integration Settings
+#
+# Declares ONE integration — the item. Users add as many as they need. Each item
+# targets an ALREADY-CONNECTED SCM integration (by type) and manages its
+# pull-request test and automatic dependency-upgrade settings via the v1 API
+# (/org/{org}/integrations/{id}/settings). This config type UPDATES in place; it
+# never creates or deletes an integration. Reconciled by integration type.
+# Field keys must match config-types/snyk-integrations/validate.ts.
+# =============================================================================
+
+id: "snyk-integrations"
+name: "Snyk Integration Settings"
+toolType: "snyk"
+entityType: "snyk-integrations"
+description: "Manage an already-connected Snyk SCM integration's pull-request test and automatic dependency-upgrade settings as code via the v1 API. Reconciled by integration type; updates in place only."
+
+item:
+  label: "Integration"
+  identityField: "integration_type"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Integration"
+      icon: "git-branch"
+      description: "The connected SCM integration to configure"
+      fields:
+        - key: "integration_type"
+          label: "Integration Type"
+          fieldType: "select"
+          required: true
+          options:
+            - { label: "GitHub", value: "github" }
+            - { label: "GitHub Enterprise", value: "github-enterprise" }
+            - { label: "GitLab", value: "gitlab" }
+            - { label: "Bitbucket Cloud", value: "bitbucket-cloud" }
+            - { label: "Bitbucket Server", value: "bitbucket-server" }
+            - { label: "Azure Repos", value: "azure-repos" }
+          helpText: >
+            The connected integration to configure. It must already be connected
+            in Snyk — this config type only updates an existing integration's
+            settings, it never creates or removes one. This is the integration's
+            identity.
+
+    - name: "Pull Request Testing"
+      icon: "git-pull-request"
+      description: "Snyk tests opened pull requests for new vulnerabilities"
+      fields:
+        - key: "pull_request_test_enabled"
+          label: "Enable Pull Request Testing"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, Snyk tests each opened pull request and reports new issues as a status check."
+
+        - key: "pull_request_fail_on_any_vulns"
+          label: "Fail on Any Vulnerabilities"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Fail the pull request check when the PR introduces any new vulnerability."
+
+        - key: "pull_request_fail_only_high"
+          label: "Fail Only for High Severity"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Fail the pull request check only for high- (and critical-) severity issues."
+
+    - name: "Automatic Dependency Upgrades"
+      icon: "arrow-up-circle"
+      description: "Snyk opens automatic upgrade pull requests"
+      fields:
+        - key: "auto_dep_upgrade_enabled"
+          label: "Enable Automatic Dependency Upgrades"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, Snyk opens pull requests that upgrade vulnerable dependencies."
+
+        - key: "auto_dep_upgrade_limit"
+          label: "Max Open Upgrade PRs"
+          fieldType: "number"
+          required: false
+          helpText: >
+            Optional cap on the number of open automatic upgrade pull requests
+            Snyk keeps at once. Must be a positive whole number. Leave blank to
+            use Snyk's default.

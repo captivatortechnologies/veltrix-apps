@@ -1,0 +1,33 @@
+# =============================================================================
+# Canvas Template — Snyk SAST (Snyk Code) Settings
+#
+# A SINGLETON org setting: exactly one item, not repeatable. Toggles whether
+# Snyk Code (SAST) is enabled for the organization via the REST settings API
+# (PATCH /orgs/{org_id}/settings/sast). Field keys must match
+# config-types/snyk-sast-settings/validate.ts.
+# =============================================================================
+
+id: "snyk-sast-settings"
+name: "Snyk Code (SAST) Settings"
+toolType: "snyk"
+entityType: "snyk-sast-settings"
+description: "Enable or disable Snyk Code (SAST) for the organization as code via the REST settings API."
+
+item:
+  label: "SAST Settings"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Snyk Code"
+      icon: "shield"
+      description: "Static application security testing (SAST) for the organization"
+      fields:
+        - key: "sast_enabled"
+          label: "Enable Snyk Code (SAST)"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: >
+            When enabled, Snyk Code scans supported repositories for security
+            vulnerabilities in first-party code. Disabling turns off all SAST
+            scanning for this organization.

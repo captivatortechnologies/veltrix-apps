@@ -1,0 +1,191 @@
+id: snyk
+name: Snyk
+version: "1.0.0"
+vendor: Veltrix
+description: >
+  Manage Snyk organization configuration as code across the Snyk REST and v1
+  APIs. Covers Snyk Code (SAST) enablement, notification preferences, SCM
+  integration pull-request and auto-upgrade settings, automation service
+  accounts and outbound webhooks — with validation, drift detection and
+  rollback handled by the Security-as-Code pipeline. Auth is a Snyk API token
+  (a service-account token is recommended); the component hostname is the Snyk
+  region API host (api.snyk.io, api.eu.snyk.io, …) and most configuration is
+  scoped to the Organization ID app setting.
+category: COMPLIANCE
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/snyk
+icon: "🐶"
+
+platform:
+  minVersion: "1.0.0"
+
+# Snyk brand: deep indigo "ink" with a bright purple accent.
+branding:
+  primaryColor: "#4C4A73"
+  accentColor: "#AB1DE8"
+  logo: ./assets/logo.svg
+  logoDark: ./assets/logo-dark.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: snyk-sast-settings
+      actions: [read, write]
+      description: Manage Snyk Code (SAST) settings
+    - resource: snyk-notification-settings
+      actions: [read, write]
+      description: Manage Snyk organization notification settings
+    - resource: snyk-integrations
+      actions: [read, write]
+      description: Manage Snyk SCM/registry integration settings
+    - resource: snyk-service-accounts
+      actions: [read, write, delete]
+      description: Manage Snyk service accounts
+    - resource: snyk-webhooks
+      actions: [read, write, delete]
+      description: Manage Snyk outbound webhooks
+
+pipeline:
+  configurationTypes:
+    - id: snyk-sast-settings
+      name: Snyk Code (SAST) Settings
+      description: Enable or disable Snyk Code (SAST) for the organization (REST settings API); a singleton org setting
+      canvasTemplate: config-types/snyk-sast-settings/canvas.yaml
+      defaultConfig: config-types/snyk-sast-settings/defaults.yaml
+      handlers:
+        validate: config-types/snyk-sast-settings/validate
+        deploy: config-types/snyk-sast-settings/deploy
+        rollback: config-types/snyk-sast-settings/rollback
+        healthCheck: config-types/snyk-sast-settings/healthCheck
+        driftDetect: config-types/snyk-sast-settings/driftDetect
+        getStatus: config-types/snyk-sast-settings/getStatus
+      targets:
+        componentTypes: [snyk-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: snyk-notification-settings
+      name: Snyk Notification Settings
+      description: Organization notification preferences — new-issue alerts, weekly reports and import notices (v1 API); a singleton org setting
+      canvasTemplate: config-types/snyk-notification-settings/canvas.yaml
+      defaultConfig: config-types/snyk-notification-settings/defaults.yaml
+      handlers:
+        validate: config-types/snyk-notification-settings/validate
+        deploy: config-types/snyk-notification-settings/deploy
+        rollback: config-types/snyk-notification-settings/rollback
+        healthCheck: config-types/snyk-notification-settings/healthCheck
+        driftDetect: config-types/snyk-notification-settings/driftDetect
+        getStatus: config-types/snyk-notification-settings/getStatus
+      targets:
+        componentTypes: [snyk-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: snyk-integrations
+      name: Snyk Integration Settings
+      description: Per-integration pull-request test and automatic dependency-upgrade settings, matched by integration type (v1 API)
+      canvasTemplate: config-types/snyk-integrations/canvas.yaml
+      defaultConfig: config-types/snyk-integrations/defaults.yaml
+      handlers:
+        validate: config-types/snyk-integrations/validate
+        deploy: config-types/snyk-integrations/deploy
+        rollback: config-types/snyk-integrations/rollback
+        healthCheck: config-types/snyk-integrations/healthCheck
+        driftDetect: config-types/snyk-integrations/driftDetect
+        getStatus: config-types/snyk-integrations/getStatus
+      targets:
+        componentTypes: [snyk-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: snyk-service-accounts
+      name: Snyk Service Accounts
+      description: Automation service accounts with an org role (REST API); the generated API token is shown once by Snyk and is never stored
+      canvasTemplate: config-types/snyk-service-accounts/canvas.yaml
+      defaultConfig: config-types/snyk-service-accounts/defaults.yaml
+      handlers:
+        validate: config-types/snyk-service-accounts/validate
+        deploy: config-types/snyk-service-accounts/deploy
+        rollback: config-types/snyk-service-accounts/rollback
+        healthCheck: config-types/snyk-service-accounts/healthCheck
+        driftDetect: config-types/snyk-service-accounts/driftDetect
+        getStatus: config-types/snyk-service-accounts/getStatus
+      targets:
+        componentTypes: [snyk-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: snyk-webhooks
+      name: Snyk Webhook Configuration
+      description: Outbound webhooks (v1 API); reconciled by URL, the signing secret is write-only
+      canvasTemplate: config-types/snyk-webhooks/canvas.yaml
+      defaultConfig: config-types/snyk-webhooks/defaults.yaml
+      handlers:
+        validate: config-types/snyk-webhooks/validate
+        deploy: config-types/snyk-webhooks/deploy
+        rollback: config-types/snyk-webhooks/rollback
+        healthCheck: config-types/snyk-webhooks/healthCheck
+        driftDetect: config-types/snyk-webhooks/driftDetect
+        getStatus: config-types/snyk-webhooks/getStatus
+      targets:
+        componentTypes: [snyk-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/snyk
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+settings:
+  - key: org_id
+    type: string
+    label: Organization ID
+    description: >
+      The Snyk organization ID (Snyk: Settings > General > Organization ID). Most
+      Snyk configuration is org-scoped, so this is required for deployments.
+    default: ""
+    required: true
+  - key: api_version
+    type: string
+    label: REST API Version
+    description: >
+      The dated version of the Snyk REST API to target (YYYY-MM-DD). Snyk requires
+      an explicit version on every REST call; leave the default unless you need a
+      newer API surface.
+    default: "2024-10-15"
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Snyk API calls.
+    default: 30
+    required: false

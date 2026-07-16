@@ -1,0 +1,65 @@
+# =============================================================================
+# Canvas Template — Snyk Notification Settings
+#
+# A SINGLETON org setting: exactly one item, not repeatable. Manages the
+# organization's notification preferences via the v1 API
+# (GET/PUT /org/{org_id}/notification-settings). PUT REPLACES the whole object,
+# so the deploy handler read-merge-PUTs to preserve notification types this
+# config type does not manage (e.g. test-limit). Field keys must match
+# config-types/snyk-notification-settings/validate.ts.
+# =============================================================================
+
+id: "snyk-notification-settings"
+name: "Snyk Notification Settings"
+toolType: "snyk"
+entityType: "snyk-notification-settings"
+description: "Manage organization notification preferences (new issues, weekly report, project imported) as code via the Snyk v1 API."
+
+item:
+  label: "Notification Settings"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "New Issues"
+      icon: "shield"
+      description: "Notifications when new issues and remediations are found"
+      fields:
+        - key: "new_issues_enabled"
+          label: "Notify on new issues"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: >
+            When enabled, members are notified about newly discovered issues and
+            available remediations for the organization.
+
+        - key: "new_issues_severity"
+          label: "Minimum severity"
+          fieldType: "select"
+          defaultValue: "high"
+          options:
+            - { label: "Low", value: "low" }
+            - { label: "Medium", value: "medium" }
+            - { label: "High", value: "high" }
+            - { label: "Critical", value: "critical" }
+          helpText: "Only new issues at or above this severity trigger a notification."
+
+    - name: "Reports & Lifecycle"
+      icon: "shield"
+      description: "Scheduled summaries and project lifecycle notifications"
+      fields:
+        - key: "weekly_report_enabled"
+          label: "Send weekly report"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: >
+            When enabled, the organization receives a weekly summary report of
+            its security posture.
+
+        - key: "project_imported_enabled"
+          label: "Notify on project import"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: >
+            When enabled, members are notified when a new project is imported into
+            the organization.

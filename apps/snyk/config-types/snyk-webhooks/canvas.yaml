@@ -1,0 +1,40 @@
+# =============================================================================
+# Canvas Template — Snyk Webhooks
+#
+# Declares ONE webhook — the item. Users add as many as they need. A webhook is
+# a delivery URL + a signing secret. Snyk cannot update a webhook, so identity is
+# the URL; existing URLs are left unchanged. The secret is write-only (password).
+# Field keys must match config-types/snyk-webhooks/validate.ts.
+# =============================================================================
+
+id: "snyk-webhooks"
+name: "Snyk Webhook Configuration"
+toolType: "snyk"
+entityType: "snyk-webhooks"
+description: "Define Snyk outbound webhooks as code via the v1 API (/org/{org}/webhooks). Reconciled by URL; the signing secret is write-only."
+
+item:
+  label: "Webhook"
+  identityField: "url"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Webhook"
+      icon: "webhook"
+      description: "Delivery URL and signing secret"
+      fields:
+        - key: "url"
+          label: "Delivery URL"
+          fieldType: "text"
+          required: true
+          helpText: "The https endpoint Snyk POSTs events to. This is the webhook's identity — Snyk cannot update it in place."
+
+        - key: "secret"
+          label: "Signing Secret"
+          fieldType: "password"
+          required: true
+          helpText: >
+            Secret Snyk uses to sign each payload (X-Hub-Signature). Write-only — it
+            is sent only when a webhook is first created and is never read back. An
+            existing URL is left unchanged, so its secret cannot be rotated here.
