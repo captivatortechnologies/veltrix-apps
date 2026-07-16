@@ -1,0 +1,81 @@
+# =============================================================================
+# Canvas Template — Splunk Cloud Users
+#
+# Declares ONE user — the item. Users add as many entries as they need.
+# Groups are PRESENTATIONAL ONLY: every field below belongs to the same flat
+# item record, which is what config-types/users/deploy.ts reads as
+# `section.fields` for a single user.
+#
+# Users, like roles, are IDENTITY — the ONE class of object (with roles) that
+# ACS cannot manage. They go to the SAME REST API Splunk Enterprise uses,
+# /services/authentication/users, on the stack's management port 8089.
+# See lib/splunkRest.ts for the two prerequisites (Support must open 8089; the
+# caller's IP must be on the `search-api` allow list, which the "IP Allow Lists"
+# configuration type in this app manages).
+#
+# NO PASSWORD FIELD — by design. Creating a user over REST requires a password,
+# but storing/rotating passwords as canvas config is a secret-handling
+# anti-pattern. This type manages role assignment + attributes for EXISTING
+# users only (create the user in Splunk Web first). Field keys mirror Splunk's
+# REST parameter names so the mapping is obvious.
+# =============================================================================
+
+id: "splunk-cloud-users"
+name: "User Configuration"
+toolType: "splunk-cloud"
+entityType: "users"
+description: "Manage Splunk Cloud user role assignment and attributes (roles, email, full name, default app, timezone) for existing users, via the Splunk Cloud Platform REST API. Passwords are out of scope."
+
+item:
+  label: "User"
+  identityField: "username"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "user"
+      description: "Which existing user, and the roles it is granted"
+      fields:
+        - key: "username"
+          label: "Username"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9][A-Za-z0-9._@-]*$"
+            maxLength: 100
+            message: "Letters, numbers, dots, underscores, hyphens and '@' only; must begin with a letter or number. Splunk usernames cannot contain spaces, colons or slashes."
+          helpText: "An EXISTING Splunk Cloud username. This app manages roles/attributes for users that already exist — it does not create users (creation requires a password, which is out of scope)."
+
+        - key: "roles"
+          label: "Roles"
+          fieldType: "tags"
+          required: true
+          helpText: "Roles granted to this user (maps to roles). At least one is required. Assigning admin or sc_admin grants stack-wide administrative access and raises a warning."
+
+    - name: "Profile"
+      icon: "id-card"
+      description: "Optional user attributes"
+      fields:
+        - key: "realname"
+          label: "Full Name"
+          fieldType: "text"
+          helpText: "The user's display name (maps to realname), e.g. \"Ada Lovelace\"."
+
+        - key: "email"
+          label: "Email"
+          fieldType: "text"
+          helpText: "The user's email address (maps to email), used for alert actions and notifications."
+
+        - key: "defaultApp"
+          label: "Default App"
+          fieldType: "text"
+          validation:
+            pattern: "^[A-Za-z0-9][A-Za-z0-9_.-]*$"
+            message: "App id: letters, digits, underscores, dots and hyphens; must start with a letter or digit."
+          helpText: "App the user lands in after login (maps to defaultApp), e.g. search. Overrides the default app of the user's roles."
+
+        - key: "tz"
+          label: "Timezone"
+          fieldType: "text"
+          helpText: "The user's timezone (maps to tz), e.g. America/New_York or Europe/London. Affects how times are rendered for this user."

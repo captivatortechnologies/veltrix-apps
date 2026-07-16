@@ -1,0 +1,6 @@
+# Defaults for the SAML SSO configuration.
+#
+# Intentionally empty: a new configuration starts blank so an operator enters
+# their own SAML provider name, IdP entity ID, SSO URL, attribute mappings and
+# (optionally) certificate. The secret field (idpCertificate) must never carry a
+# default.

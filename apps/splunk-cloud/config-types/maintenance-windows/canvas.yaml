@@ -1,0 +1,71 @@
+# =============================================================================
+# Canvas Template — Splunk Cloud Maintenance Window Change Freeze (ACS)
+#
+# Splunk SCHEDULES maintenance windows; the ACS API only lets customers VIEW
+# them. The customer-controlled setting is the change-freeze policy, held as a
+# SINGLE object per stack under /maintenance-windows/preferences. This template
+# therefore declares exactly ONE change freeze — the item — with UTC calendar
+# dates and an applies-to scope. Field keys must match what
+# config-types/maintenance-windows/validate.ts checks.
+# =============================================================================
+
+id: "splunk-cloud-maintenance-windows"
+name: "Maintenance Window Change Freeze"
+toolType: "splunk-cloud"
+entityType: "maintenance-windows"
+description: "Declare a customer-initiated change freeze (a date range in which Splunk-initiated and/or your own changes are held) via the ACS maintenance-windows API"
+
+item:
+  label: "Change Freeze"
+  identityField: "startDate"
+  # A single change-freeze policy per stack — the ACS maintenance-window
+  # preference is one object, so exactly one item is allowed.
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Change Freeze"
+      icon: "calendar"
+      description: "The window during which changes are frozen, and to whom it applies"
+      fields:
+        - key: "startDate"
+          label: "Start Date (UTC)"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^\\d{4}/\\d{2}/\\d{2}$"
+            message: "Use YYYY/MM/DD, e.g. 2026/12/20"
+          helpText: "First day of the freeze, in YYYY/MM/DD (UTC). The freeze begins at 00:00 UTC on this date."
+
+        - key: "endDate"
+          label: "End Date (UTC)"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^\\d{4}/\\d{2}/\\d{2}$"
+            message: "Use YYYY/MM/DD, e.g. 2027/01/02"
+          helpText: "Last day of the freeze, in YYYY/MM/DD (UTC). The freeze ends at 23:59 UTC on this date. Must be on or after the start date."
+
+        - key: "appliesTo"
+          label: "Applies To"
+          fieldType: "select"
+          required: true
+          defaultValue: "Splunk Initiated Changes Only"
+          options:
+            - label: "Splunk-initiated changes only"
+              value: "Splunk Initiated Changes Only"
+            - label: "Customer and Splunk-initiated changes"
+              value: "Customer and Splunk Initiated Changes"
+          helpText: "Whose changes the freeze blocks. \"Customer and Splunk Initiated Changes\" also blocks your own deployments during the window."
+
+        - key: "reason"
+          label: "Reason"
+          fieldType: "text"
+          required: true
+          helpText: "Why the freeze is requested, e.g. \"End-of-quarter change freeze\". Recorded on the ACS request for audit."
+
+        - key: "tickets"
+          label: "Related Tickets (optional)"
+          fieldType: "tags"
+          required: false
+          helpText: "Optional change/incident ticket references recorded with the freeze."

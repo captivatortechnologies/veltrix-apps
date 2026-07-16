@@ -1,0 +1,47 @@
+# =============================================================================
+# Canvas Template — Splunk Cloud App Permissions (ACS)
+#
+# Declares which roles may READ (view/run) and WRITE (edit) ONE installed app —
+# the item. Users add one item per app. Field keys must match what
+# config-types/app-permissions/validate.ts checks (appName, readRoles, writeRoles).
+#
+# ACS app permissions are Victoria-Experience only and require the sc_admin role.
+# A permissions PATCH fully REPLACES an app's read/write role arrays, so each
+# item declares the complete desired set of roles for that app.
+# =============================================================================
+
+id: "splunk-cloud-app-permissions"
+name: "App Permissions"
+toolType: "splunk-cloud"
+entityType: "app-permissions"
+description: "Assign which roles can read (view/run) and write (edit) each installed app, via the ACS API (Victoria Experience)"
+
+item:
+  label: "App Permission"
+  identityField: "appName"
+  repeatable: true
+  minItems: 1
+  groups:
+    - name: "General"
+      icon: "shield"
+      description: "Installed app and the roles granted access to it"
+      fields:
+        - key: "appName"
+          label: "App Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z][A-Za-z0-9._-]*$"
+            maxLength: 100
+            message: "App id: must start with a letter and contain only letters, digits, '.', '_' and '-'."
+          helpText: "Id of an installed app whose permissions to manage, e.g. splunk_secure_gateway. Manage the app itself with the 'Splunk Apps' configuration type."
+
+        - key: "readRoles"
+          label: "Read Roles"
+          fieldType: "tags"
+          helpText: "Roles that may see and run this app (maps to perms.read). Use '*' for all roles. Lowercase Splunk role names, e.g. user, power, admin."
+
+        - key: "writeRoles"
+          label: "Write Roles"
+          fieldType: "tags"
+          helpText: "Roles that may edit this app's objects (maps to perms.write). Grant narrowly — writing to 'user' or '*' exposes edit access broadly."

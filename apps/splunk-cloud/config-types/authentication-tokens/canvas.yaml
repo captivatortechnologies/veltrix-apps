@@ -1,0 +1,48 @@
+# =============================================================================
+# Canvas Template — Splunk Cloud Authentication Token Settings
+#
+# Declares the stack's token-authentication FEATURE SETTINGS — a SINGLE, stack-
+# wide object (minItems/maxItems both 1, not repeatable). These are SETTINGS,
+# never secret token VALUES: this type never issues, stores or rotates JWT token
+# values.
+#
+# Field keys mirror the Splunk REST / authorize.conf [tokens_auth] parameters so
+# the mapping is obvious. Token-auth settings are NOT an ACS resource — like this
+# app's `roles` type, they go to the Splunk Cloud Platform REST API,
+# /services/admin/token-auth/tokens_auth, on the stack's management port 8089.
+# See lib/splunkRest.ts for the two prerequisites (Support must open 8089; the
+# caller's IP must be on the `search-api` allow list, which the "IP Allow Lists"
+# configuration type in this app manages). Field keys must match what
+# config-types/authentication-tokens/validate.ts checks.
+# =============================================================================
+
+id: "splunk-cloud-authentication-tokens"
+name: "Authentication Token Settings"
+toolType: "splunk-cloud"
+entityType: "authentication-tokens"
+description: "Manage the stack's token-authentication settings (enablement and default token expiration) as code via the Splunk Cloud Platform REST API — not the secret token values"
+
+item:
+  label: "Token Authentication Settings"
+  # Single, stack-wide settings object — exactly one, never a list.
+  identityField: "tokenAuthEnabled"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Token Authentication"
+      icon: "key"
+      description: "Stack-wide token-authentication feature settings"
+      fields:
+        - key: "tokenAuthEnabled"
+          label: "Token Authentication Enabled"
+          fieldType: "checkbox"
+          required: true
+          defaultValue: true
+          helpText: "Turn JWT token authentication on or off for the whole stack (maps to the tokens_auth 'disabled' setting, inverted). Disabling it makes ALL existing tokens on the stack immediately unusable until it is re-enabled."
+
+        - key: "defaultExpiration"
+          label: "Default Token Expiration"
+          fieldType: "text"
+          required: false
+          helpText: "Default lifetime applied to newly issued tokens when none is specified (maps to the tokens_auth 'expiration' setting). Use a Splunk relative-time modifier, e.g. +30d, +12h or +90d. Leave blank to keep the stack's current default (+30d)."

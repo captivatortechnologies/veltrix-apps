@@ -1,0 +1,84 @@
+# =============================================================================
+# Canvas Template — Splunk Cloud DDSS Self Storage Locations (ACS)
+#
+# Declares ONE self-managed self storage location — the item. Each item
+# registers a customer-owned S3 (AWS) or GCS (GCP) bucket on the stack as a
+# Dynamic Data Self Storage (DDSS) destination for frozen index data. Users add
+# one item per bucket/folder. Field keys must match what
+# config-types/ddss-self-storage/validate.ts checks.
+#
+# NOTE: registering a location does NOT attach it to an index. To route an
+# index's frozen data here, set that index's "DDSS Self Storage Bucket" in the
+# "indexes" config type. ACS create-only: locations cannot be modified/deleted.
+# =============================================================================
+
+id: "splunk-cloud-ddss-self-storage"
+name: "DDSS Self Storage Locations"
+toolType: "splunk-cloud"
+entityType: "ddss-self-storage"
+description: "Register customer-owned S3/GCS buckets as Dynamic Data Self Storage (DDSS) destinations for frozen index data, via the ACS API"
+
+item:
+  label: "Self Storage Location"
+  identityField: "title"
+  repeatable: true
+  minItems: 1
+  groups:
+    - name: "General"
+      icon: "database"
+      description: "The self storage location's identity and its cloud bucket"
+      fields:
+        - key: "title"
+          label: "Location Title"
+          fieldType: "text"
+          required: true
+          helpText: "Unique display name for this self storage location on the stack, e.g. \"frozen-prod-archive\"."
+
+        - key: "provider"
+          label: "Cloud Provider"
+          fieldType: "select"
+          defaultValue: "aws"
+          options:
+            - label: "AWS (S3)"
+              value: "aws"
+            - label: "GCP (GCS)"
+              value: "gcp"
+          helpText: "Determines bucket-name validation rules. The bucket must already exist in the same region as the stack."
+
+        - key: "bucketName"
+          label: "Bucket Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-z0-9][a-z0-9._-]*[a-z0-9]$"
+            minLength: 3
+            maxLength: 63
+            message: "3–63 chars, lowercase letters, numbers, dots, hyphens (S3) or underscores (GCS); must begin and end with a letter or number."
+          helpText: "Name of the pre-created S3/GCS bucket. Apply the ACS-generated IAM policy (AWS) or service accounts (GCP) before deploying."
+
+        - key: "folder"
+          label: "Folder / Prefix (optional)"
+          fieldType: "text"
+          required: false
+          helpText: "Optional path within the bucket, relative to its root (no leading \"/\"), e.g. splunk/frozen. Leave blank to use the bucket root."
+
+        - key: "region"
+          label: "Bucket Region (optional)"
+          fieldType: "text"
+          required: false
+          helpText: "Informational only — not sent to ACS. The bucket MUST live in the same region as the Splunk Cloud stack, e.g. us-east-1 (AWS) or us-central1 (GCP)."
+
+        - key: "targetIndex"
+          label: "Target Index (optional)"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^[a-z0-9][a-z0-9_-]*$"
+            message: "Lowercase letters, numbers, underscores, hyphens; must begin with a letter or number."
+          helpText: "The index this location is intended for. Documentation only — actually attaching it is done via the index's DDSS Self Storage Bucket in the \"indexes\" config type."
+
+        - key: "description"
+          label: "Description (optional)"
+          fieldType: "text"
+          required: false
+          helpText: "Optional note stored with the self storage location on the stack."

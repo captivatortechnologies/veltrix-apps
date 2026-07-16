@@ -1,0 +1,83 @@
+# =============================================================================
+# Canvas Template — Splunk Cloud limits.conf Settings (ACS)
+#
+# Declares ONE editable limits.conf setting — the item. Users add one item per
+# setting they want to manage (stanza + setting + value). ACS only exposes a
+# fixed subset of limits.conf for editing; the options below are exactly that
+# subset. Each setting name is unique to one stanza. Field keys must match what
+# config-types/limits/validate.ts checks.
+# =============================================================================
+
+id: "splunk-cloud-limits"
+name: "limits.conf Configuration"
+toolType: "splunk-cloud"
+entityType: "limits"
+description: "Manage the ACS-editable subset of limits.conf settings (join, kv, pdf, scheduler, searchresults, spath, subsearch) as code via the ACS API"
+
+item:
+  label: "limits.conf Setting"
+  identityField: "setting"
+  repeatable: true
+  minItems: 1
+  groups:
+    - name: "General"
+      icon: "gauge"
+      description: "The limits.conf stanza, setting, and value to enforce"
+      fields:
+        - key: "stanza"
+          label: "Stanza"
+          fieldType: "select"
+          required: true
+          options:
+            - label: "join"
+              value: "join"
+            - label: "kv"
+              value: "kv"
+            - label: "pdf"
+              value: "pdf"
+            - label: "scheduler"
+              value: "scheduler"
+            - label: "searchresults"
+              value: "searchresults"
+            - label: "spath"
+              value: "spath"
+            - label: "subsearch"
+              value: "subsearch"
+          helpText: "limits.conf stanza. ACS exposes only these seven stanzas for editing."
+
+        - key: "setting"
+          label: "Setting"
+          fieldType: "select"
+          required: true
+          options:
+            - label: "join → subsearch_maxout"
+              value: "subsearch_maxout"
+            - label: "join → subsearch_maxtime"
+              value: "subsearch_maxtime"
+            - label: "kv → maxchars"
+              value: "maxchars"
+            - label: "kv → limit"
+              value: "limit"
+            - label: "kv → maxcols"
+              value: "maxcols"
+            - label: "pdf → max_rows_per_table"
+              value: "max_rows_per_table"
+            - label: "scheduler → max_per_result_alerts"
+              value: "max_per_result_alerts"
+            - label: "scheduler → max_per_result_alerts_time"
+              value: "max_per_result_alerts_time"
+            - label: "searchresults → maxresultrows"
+              value: "maxresultrows"
+            - label: "spath → extraction_cutoff"
+              value: "extraction_cutoff"
+            - label: "subsearch → maxout"
+              value: "maxout"
+            - label: "subsearch → maxtime"
+              value: "maxtime"
+          helpText: "Setting to edit. Each setting belongs to one stanza (shown as \"stanza → setting\") — pick the one that matches the stanza above."
+
+        - key: "value"
+          label: "Value"
+          fieldType: "number"
+          required: true
+          helpText: "Integer value. ACS enforces a per-setting min/max (e.g. join.subsearch_maxout is 0–100000); an out-of-range value is rejected on deploy."

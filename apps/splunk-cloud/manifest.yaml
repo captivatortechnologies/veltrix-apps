@@ -1,6 +1,6 @@
 id: splunk-cloud
 name: Splunk Cloud Platform
-version: "1.8.5"
+version: "1.8.6"
 vendor: Veltrix
 description: >
   Manage Splunk Cloud Platform configurations as code through the
@@ -125,6 +125,83 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: false
 
+    - id: limits
+      name: limits.conf Settings
+      description: ACS-editable limits.conf settings (join, kv, pdf, scheduler, searchresults, spath, subsearch) managed as code via the ACS /adminconfig/v2/limits endpoint
+      canvasTemplate: config-types/limits/canvas.yaml
+      defaultConfig: config-types/limits/defaults.yaml
+      handlers:
+        validate: config-types/limits/validate
+        deploy: config-types/limits/deploy
+        rollback: config-types/limits/rollback
+        healthCheck: config-types/limits/healthCheck
+        driftDetect: config-types/limits/driftDetect
+        getStatus: config-types/limits/getStatus
+      targets:
+        componentTypes: [splunk-cloud-stack]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: maintenance-windows
+      name: Maintenance Windows
+      description: >
+        Customer-initiated change-freeze policy (a UTC date range holding
+        Splunk-initiated and/or your own changes) managed through the ACS
+        maintenance-windows API. Splunk-scheduled maintenance windows are view-only.
+      canvasTemplate: config-types/maintenance-windows/canvas.yaml
+      defaultConfig: config-types/maintenance-windows/defaults.yaml
+      handlers:
+        validate: config-types/maintenance-windows/validate
+        deploy: config-types/maintenance-windows/deploy
+        rollback: config-types/maintenance-windows/rollback
+        healthCheck: config-types/maintenance-windows/healthCheck
+        driftDetect: config-types/maintenance-windows/driftDetect
+        getStatus: config-types/maintenance-windows/getStatus
+      targets:
+        componentTypes: [splunk-cloud-stack]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ddss-self-storage
+      name: DDSS Self Storage
+      description: >
+        Dynamic Data Self Storage locations — register customer-owned S3 (AWS) or
+        GCS (GCP) buckets as self-managed destinations for frozen index data, via
+        the ACS cloud-resources/self-storage-locations API (create-only)
+      canvasTemplate: config-types/ddss-self-storage/canvas.yaml
+      defaultConfig: config-types/ddss-self-storage/defaults.yaml
+      handlers:
+        validate: config-types/ddss-self-storage/validate
+        deploy: config-types/ddss-self-storage/deploy
+        rollback: config-types/ddss-self-storage/rollback
+        healthCheck: config-types/ddss-self-storage/healthCheck
+        driftDetect: config-types/ddss-self-storage/driftDetect
+        getStatus: config-types/ddss-self-storage/getStatus
+      targets:
+        componentTypes: [splunk-cloud-stack]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: app-permissions
+      name: App Permissions
+      description: >
+        App read/write permissions — which roles can view/run (read) and edit
+        (write) each installed app, managed via the ACS permissions/apps API
+        (Victoria Experience; sc_admin)
+      canvasTemplate: config-types/app-permissions/canvas.yaml
+      defaultConfig: config-types/app-permissions/defaults.yaml
+      handlers:
+        validate: config-types/app-permissions/validate
+        deploy: config-types/app-permissions/deploy
+        rollback: config-types/app-permissions/rollback
+        healthCheck: config-types/app-permissions/healthCheck
+        driftDetect: config-types/app-permissions/driftDetect
+        getStatus: config-types/app-permissions/getStatus
+      targets:
+        componentTypes: [splunk-cloud-stack]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: apps
       name: Splunk Apps
       description: >
@@ -176,6 +253,79 @@ pipeline:
         # `search-api` IP allow list, not a tunnel.
         requiresConnectivity: false
 
+    # Users, like roles, are IDENTITY — which ACS cannot manage. They use the
+    # SAME stack REST API (/services/authentication/users) on management port
+    # 8089, with the same two prerequisites (Support opens 8089; caller IP on the
+    # `search-api` allow list). Passwords are intentionally out of scope: this
+    # manages role assignment + attributes for EXISTING users only.
+    - id: users
+      name: Users
+      description: >
+        Splunk Cloud user role assignment and attributes (roles, email, full name,
+        default app, timezone) for existing users, managed over the Splunk Cloud
+        Platform REST API on the stack's management port 8089 — ACS cannot manage
+        identity. Passwords are out of scope.
+      canvasTemplate: config-types/users/canvas.yaml
+      defaultConfig: config-types/users/defaults.yaml
+      handlers:
+        validate: config-types/users/validate
+        deploy: config-types/users/deploy
+        rollback: config-types/users/rollback
+        healthCheck: config-types/users/healthCheck
+        driftDetect: config-types/users/driftDetect
+        getStatus: config-types/users/getStatus
+      targets:
+        componentTypes: [splunk-cloud-stack]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: authentication-tokens
+      name: Authentication Token Settings
+      description: >
+        Stack-wide token-authentication settings (enablement and default token
+        expiration), managed over the Splunk Cloud Platform REST API on the
+        stack's management port 8089 — ACS exposes only per-token CRUD (secrets)
+      canvasTemplate: config-types/authentication-tokens/canvas.yaml
+      defaultConfig: config-types/authentication-tokens/defaults.yaml
+      handlers:
+        validate: config-types/authentication-tokens/validate
+        deploy: config-types/authentication-tokens/deploy
+        rollback: config-types/authentication-tokens/rollback
+        healthCheck: config-types/authentication-tokens/healthCheck
+        driftDetect: config-types/authentication-tokens/driftDetect
+        getStatus: config-types/authentication-tokens/getStatus
+      targets:
+        componentTypes: [splunk-cloud-stack]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    # SAML SSO is also identity — no ACS endpoint exists. Configured over the
+    # stack REST API (/services/authentication/providers/SAML) on port 8089, like
+    # roles/users. Scoped to SAML (Splunk Cloud has no OIDC REST endpoint); the
+    # IdP certificate is uploaded separately in Splunk Web (idpCertPath is a
+    # server-side path with no inline-cert REST param), and globally enabling SAML
+    # as the stack auth scheme is a separate Splunk Web step.
+    - id: sso
+      name: SAML SSO
+      description: >
+        SAML single-sign-on identity provider configuration (entity ID, IdP SSO/SLO
+        URLs, and role / real-name / mail assertion attribute mappings) managed over
+        the Splunk Cloud Platform REST API on management port 8089 — ACS has no SAML
+        endpoint. The IdP certificate is uploaded separately via Splunk Web.
+      canvasTemplate: config-types/sso/canvas.yaml
+      defaultConfig: config-types/sso/defaults.yaml
+      handlers:
+        validate: config-types/sso/validate
+        deploy: config-types/sso/deploy
+        rollback: config-types/sso/rollback
+        healthCheck: config-types/sso/healthCheck
+        driftDetect: config-types/sso/driftDetect
+        getStatus: config-types/sso/getStatus
+      targets:
+        componentTypes: [splunk-cloud-stack]
+        requiresCredential: true
+        requiresConnectivity: false
+
   pipelineEvents:
     - canvas:validated
     - canvas:deployed
@@ -191,7 +341,7 @@ client:
   entry: client/index
   # Deliberately the TAB layout (the platform default), so the two Splunk apps
   # showcase both navigations: splunk-enterprise uses the sidebar, this uses the
-  # top tab strip. The strip groups its five configuration types behind one
+  # top tab strip. The strip groups its configuration types behind one
   # "Configurations" tab and shows them as sub-tabs, so it stays readable.
   pages:
     - path: /overview

@@ -1,0 +1,6 @@
+# Defaults for the token-authentication settings object.
+#
+# Intentionally empty: the single settings object starts blank so the deploy
+# only changes what the user explicitly declares (a blank field keeps the stack's
+# current value). Users manage their own default value sets and can apply one
+# when creating the item.

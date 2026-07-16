@@ -1,0 +1,114 @@
+# =============================================================================
+# Canvas Template — Splunk Cloud SAML SSO
+#
+# Declares the stack's SINGLE SAML single-sign-on identity-provider
+# configuration — the SAML IdP the stack trusts and the assertion attribute
+# mappings Splunk reads for role / real name / mail. A stack has exactly one SAML
+# SSO config, so this is a single-object item (minItems == maxItems == 1).
+#
+# SAML ONLY. This goes to the Splunk Cloud Platform REST API,
+# /services/authentication/providers/SAML/<providerName>, on the stack's
+# management port 8089 — the SAME :8089 REST mechanism this app's `roles`,
+# `users` and `authentication-tokens` types use, NOT ACS (ACS has no SAML/OIDC
+# IdP endpoint). OIDC has no analogous Splunk REST endpoint and is out of scope.
+# See lib/splunkRest.ts for the two prerequisites (Support must open 8089; the
+# caller's IP must be on the `search-api` allow list, which the "IP Allow Lists"
+# configuration type in this app manages).
+#
+# Field keys mirror Splunk's SAML settings (providerName→name, ssoUrl→idpSSOUrl,
+# sloUrl→idpSLOUrl, roleAttribute/realNameAttribute/mailAttribute) and must match
+# what config-types/sso/validate.ts checks. The IdP Certificate field is password
+# (write-only) and, on Splunk Cloud, must be uploaded via Splunk Web — the SAML
+# REST endpoint accepts a certificate only as a server file path (idpCertPath).
+# =============================================================================
+
+id: "splunk-cloud-sso"
+name: "SAML SSO"
+toolType: "splunk-cloud"
+entityType: "sso"
+description: "Configure the stack's SAML single-sign-on identity provider and assertion attribute mappings via the Splunk Cloud Platform REST API on management port 8089"
+
+item:
+  label: "SAML SSO Configuration"
+  identityField: "providerName"
+  # Single-object: a stack has exactly one SAML SSO configuration.
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Identity Provider"
+      icon: "key-round"
+      description: "The SAML identity provider the stack trusts to authenticate users"
+      fields:
+        - key: "providerName"
+          label: "SAML Provider Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+            maxLength: 100
+            message: "Letters, digits, dots, underscores and hyphens only; must begin with a letter or digit. It names the authentication/providers/SAML entity on the stack (a Splunk entity name and REST path segment), so it cannot contain spaces, slashes or colons."
+          helpText: "Name of the SAML provider configuration on the stack (maps to the REST `name`). e.g. SAML or okta_saml."
+
+        - key: "entityId"
+          label: "IdP Entity ID"
+          fieldType: "text"
+          required: true
+          helpText: "The identity provider's unique entity ID (maps to entityId), typically a URL, e.g. https://idp.example.com/saml/metadata."
+
+        - key: "ssoUrl"
+          label: "IdP SSO URL"
+          fieldType: "text"
+          required: true
+          helpText: "The IdP endpoint that processes single sign-on (maps to idpSSOUrl). Must be https, e.g. https://idp.example.com/sso."
+
+        - key: "sloUrl"
+          label: "IdP Single Logout (SLO) URL"
+          fieldType: "text"
+          required: false
+          helpText: "Optional IdP single-logout endpoint (maps to idpSLOUrl). Must be https when set. Without it, Splunk cannot log the user out of the IdP."
+
+        - key: "signAuthnRequest"
+          label: "Sign AuthnRequests"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Sign the SAML authentication requests Splunk sends to the IdP (maps to signAuthnRequest). Enable only if your IdP requires signed requests."
+
+        - key: "idpCertificate"
+          label: "IdP Certificate (upload separately)"
+          fieldType: "password"
+          required: false
+          helpText: "The IdP's PEM signing certificate. On Splunk Cloud this CANNOT be pushed over REST (the SAML endpoint accepts a certificate only as a server file path, idpCertPath) — upload it in Splunk Web (Settings > Authentication Methods > SAML). Stored write-only here for record only; deploy never sends it."
+
+    - name: "Attribute Mapping"
+      icon: "user-check"
+      description: "Which SAML assertion attributes Splunk reads for role, real name and mail"
+      fields:
+        - key: "roleAttribute"
+          label: "Role Attribute"
+          fieldType: "text"
+          required: false
+          helpText: "Assertion attribute that carries the user's role(s) (maps to roleAttribute). Without it, SSO users authenticate but receive no roles. Splunk's default is \"role\"."
+
+        - key: "realNameAttribute"
+          label: "Real Name Attribute"
+          fieldType: "text"
+          required: false
+          helpText: "Assertion attribute that carries the user's display name (maps to realNameAttribute). Splunk's default is \"realName\"."
+
+        - key: "mailAttribute"
+          label: "Mail Attribute"
+          fieldType: "text"
+          required: false
+          helpText: "Assertion attribute that carries the user's email (maps to mailAttribute). Splunk's default is \"mail\"."
+
+    - name: "Activation"
+      icon: "power"
+      description: "Whether this SAML provider is intended to be the stack's active login method"
+      fields:
+        - key: "enabled"
+          label: "Intended as active SSO"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Mark that this SAML provider is meant to be the stack's login method. Advisory only — deploy defines the SAML provider; making SAML the active auth scheme is a separate Splunk Web step. A misconfigured IdP can lock SSO users out, so keep a Splunk-native local admin login available and verify the handshake first."
