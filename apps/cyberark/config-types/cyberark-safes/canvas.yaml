@@ -1,0 +1,87 @@
+# =============================================================================
+# Canvas Template — CyberArk Safes
+#
+# Declares ONE safe — the item. Users add as many as they need. A safe is a named
+# container for privileged accounts with a retention policy. CyberArk assigns a
+# safeUrlId, so identity for reconciliation is the natural key (safe name).
+# Field keys must match config-types/cyberark-safes/validate.ts.
+# =============================================================================
+
+id: "cyberark-safes"
+name: "CyberArk Safe Configuration"
+toolType: "cyberark"
+entityType: "cyberark-safes"
+description: "Define CyberArk safes as code through the PVWA REST API (/Safes). Reconciled by name; description, retention and CPM are managed declaratively."
+
+item:
+  label: "Safe"
+  identityField: "safe_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Safe"
+      icon: "shield"
+      description: "Name, description and managing CPM"
+      fields:
+        - key: "safe_name"
+          label: "Safe Name"
+          fieldType: "text"
+          required: true
+          helpText: "The safe name (max 28 characters) — its logical identity for reconciliation."
+          validation:
+            maxLength: 28
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional human-readable description of the safe."
+
+        - key: "location"
+          label: "Location"
+          fieldType: "text"
+          helpText: "Optional Vault location for the safe (e.g. \\ for the root). Leave blank for the root."
+
+        - key: "managing_cpm"
+          label: "Managing CPM"
+          fieldType: "text"
+          helpText: >
+            Optional name of the Central Policy Manager that manages accounts in this
+            safe (e.g. PasswordManager). Leave blank to leave it unassigned.
+
+    - name: "Retention"
+      icon: "clock"
+      description: "Version / day retention and purge policy"
+      fields:
+        - key: "retention_type"
+          label: "Retention Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "versions"
+          options:
+            - { label: "By number of versions", value: "versions" }
+            - { label: "By number of days", value: "days" }
+          helpText: "How password history is retained. A safe uses exactly one policy — versions or days."
+
+        - key: "retention_count"
+          label: "Retention Count"
+          fieldType: "number"
+          required: true
+          defaultValue: 7
+          helpText: "The number of versions (or days) of history to retain. Must be a positive whole number."
+          validation:
+            min: 1
+
+        - key: "olac_enabled"
+          label: "Object Level Access Control"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: >
+            Enable per-account (object level) access control. NOTE: OLAC can be
+            enabled but CyberArk does not allow disabling it once a safe exists.
+
+        - key: "auto_purge_enabled"
+          label: "Auto-purge Enabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Automatically purge account history beyond the retention policy."

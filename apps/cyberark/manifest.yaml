@@ -1,0 +1,157 @@
+id: cyberark
+name: CyberArk Privileged Access Manager
+version: "1.0.0"
+vendor: Veltrix
+description: >
+  Manage CyberArk Privileged Access Manager (PVWA) configuration as code through
+  the Privileged Access Security Web Services REST API. Covers safes, safe members
+  (authorizations) and privileged accounts — with validation, drift detection and
+  rollback handled by the Security-as-Code pipeline. The component hostname is the
+  PVWA web server; auth is the PVWA logon flow (a manager username + password,
+  method CyberArk / LDAP / RADIUS) that returns a session token.
+category: IAM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cyberark
+icon: "🔐"
+
+platform:
+  minVersion: "1.0.0"
+
+# CyberArk brand: deep navy with a bright blue accent.
+branding:
+  primaryColor: "#12284C"
+  accentColor: "#0AA5E9"
+  logo: ./assets/logo.svg
+  logoDark: ./assets/logo-dark.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: cyberark-safes
+      actions: [read, write, delete]
+      description: Manage CyberArk safes
+    - resource: cyberark-safe-members
+      actions: [read, write, delete]
+      description: Manage CyberArk safe members and their authorizations
+    - resource: cyberark-accounts
+      actions: [read, write, delete]
+      description: Manage CyberArk privileged accounts
+
+pipeline:
+  configurationTypes:
+    - id: cyberark-safes
+      name: CyberArk Safes
+      description: Safes (/Safes) — the named account containers with retention and CPM policy
+      canvasTemplate: config-types/cyberark-safes/canvas.yaml
+      defaultConfig: config-types/cyberark-safes/defaults.yaml
+      handlers:
+        validate: config-types/cyberark-safes/validate
+        deploy: config-types/cyberark-safes/deploy
+        rollback: config-types/cyberark-safes/rollback
+        healthCheck: config-types/cyberark-safes/healthCheck
+        driftDetect: config-types/cyberark-safes/driftDetect
+        getStatus: config-types/cyberark-safes/getStatus
+      targets:
+        componentTypes: [cyberark-pvwa]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cyberark-safe-members
+      name: CyberArk Safe Members
+      description: Safe members (/Safes/{safe}/Members) — grant Users/Groups/Roles authorizations on a safe
+      canvasTemplate: config-types/cyberark-safe-members/canvas.yaml
+      defaultConfig: config-types/cyberark-safe-members/defaults.yaml
+      handlers:
+        validate: config-types/cyberark-safe-members/validate
+        deploy: config-types/cyberark-safe-members/deploy
+        rollback: config-types/cyberark-safe-members/rollback
+        healthCheck: config-types/cyberark-safe-members/healthCheck
+        driftDetect: config-types/cyberark-safe-members/driftDetect
+        getStatus: config-types/cyberark-safe-members/getStatus
+      targets:
+        componentTypes: [cyberark-pvwa]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cyberark-accounts
+      name: CyberArk Accounts
+      description: Privileged accounts (/Accounts); the account secret is write-only and sent only on create
+      canvasTemplate: config-types/cyberark-accounts/canvas.yaml
+      defaultConfig: config-types/cyberark-accounts/defaults.yaml
+      handlers:
+        validate: config-types/cyberark-accounts/validate
+        deploy: config-types/cyberark-accounts/deploy
+        rollback: config-types/cyberark-accounts/rollback
+        healthCheck: config-types/cyberark-accounts/healthCheck
+        driftDetect: config-types/cyberark-accounts/driftDetect
+        getStatus: config-types/cyberark-accounts/getStatus
+      targets:
+        componentTypes: [cyberark-pvwa]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/cyberark
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs a PVWA component with the manager
+    # username/password credential used to reach it, with a connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: runs the PVWA logon flow then GET /Safes?limit=1.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: auth_method
+    type: select
+    label: Logon Method
+    description: >
+      The PVWA authentication method used at logon. CyberArk uses the manager
+      account's Vault password; LDAP and RADIUS authenticate against the
+      configured directory / RADIUS server.
+    default: CyberArk
+    required: false
+    options:
+      - { label: "CyberArk", value: "CyberArk" }
+      - { label: "LDAP", value: "LDAP" }
+      - { label: "RADIUS", value: "RADIUS" }
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for CyberArk PVWA REST API calls.
+    default: 30
+    required: false

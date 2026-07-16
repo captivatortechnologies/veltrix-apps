@@ -1,0 +1,106 @@
+# =============================================================================
+# Canvas Template — CyberArk Accounts
+#
+# Declares ONE privileged account — the item. Users add as many as they need. An
+# account lives in a safe and is identified by (name, safe). CyberArk assigns an
+# id, so identity for reconciliation is the natural key (name + safe).
+#
+# ⚠ SECRET-BEARING: the `secret` field is WRITE-ONLY (fieldType: password). It is
+# sent to CyberArk ONLY when the account is first created (the API never returns
+# it on read), and is NEVER read back, diffed, or stored in rollback state /
+# artifacts / logs. Existing accounts' secrets are left untouched — rotate them
+# through CyberArk's own change-password workflow. Field keys must match
+# config-types/cyberark-accounts/validate.ts.
+# =============================================================================
+
+id: "cyberark-accounts"
+name: "CyberArk Account Configuration"
+toolType: "cyberark"
+entityType: "cyberark-accounts"
+description: "Define CyberArk privileged accounts as code through the PVWA REST API (/Accounts). Reconciled by (name, safe); the secret is write-only and sent only on create."
+
+item:
+  label: "Account"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Account"
+      icon: "key"
+      description: "Identity, target and platform"
+      fields:
+        - key: "name"
+          label: "Account Name"
+          fieldType: "text"
+          required: true
+          helpText: "The account object name — unique within its safe. Part of the logical identity."
+
+        - key: "safe_name"
+          label: "Safe Name"
+          fieldType: "text"
+          required: true
+          helpText: "The safe that stores this account. The safe must already exist."
+
+        - key: "platform_id"
+          label: "Platform ID"
+          fieldType: "text"
+          required: true
+          helpText: "The CyberArk platform this account is provisioned against (e.g. WinDomain, UnixSSH, MSSQLServer)."
+
+        - key: "address"
+          label: "Address"
+          fieldType: "text"
+          helpText: "The target machine / address the account belongs to (e.g. db01.corp.local)."
+
+        - key: "user_name"
+          label: "Username"
+          fieldType: "text"
+          helpText: "The privileged username on the target (e.g. sa, root, administrator)."
+
+    - name: "Secret"
+      icon: "lock"
+      description: "The write-only secret and its management policy"
+      fields:
+        - key: "secret_type"
+          label: "Secret Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "password"
+          options:
+            - { label: "Password", value: "password" }
+            - { label: "SSH Key", value: "key" }
+          helpText: "Whether the secret is a password or an SSH key."
+
+        - key: "secret"
+          label: "Secret (password / key)"
+          fieldType: "password"
+          helpText: >
+            ⚠ WRITE-ONLY. The account password or SSH key. It is sent to CyberArk ONLY
+            when the account is first created and is never read back, diffed, or stored in
+            rollback data, artifacts or logs. Leave blank to let the CPM / manual workflow
+            provision it. To rotate an existing account's secret, use CyberArk's
+            change-password workflow — this app does not manage rotation.
+
+        - key: "automatic_management_enabled"
+          label: "Automatic Management (CPM)"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Let the Central Policy Manager automatically manage (rotate) this account's secret."
+
+        - key: "manual_management_reason"
+          label: "Manual Management Reason"
+          fieldType: "text"
+          helpText: "Required when automatic management is disabled — the reason the account is managed manually."
+
+    - name: "Platform Properties"
+      icon: "settings"
+      description: "Platform-specific account properties"
+      fields:
+        - key: "platform_account_properties"
+          label: "Platform Account Properties (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional platform-specific properties as a JSON object, e.g.
+            {"Port":"1433","Database":"master"}. Must match the properties the
+            platform requires. Leave blank for none.

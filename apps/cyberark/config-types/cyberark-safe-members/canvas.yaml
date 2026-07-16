@@ -1,0 +1,98 @@
+# =============================================================================
+# Canvas Template — CyberArk Safe Members
+#
+# Declares ONE safe member — the item. Users add as many as they need. A member
+# grants a User / Group / Role a set of authorizations on a named safe. Identity
+# for reconciliation is the (safe name, member name) pair. The granted
+# authorizations are selected from the multiselect below; deploy expands the
+# selection into the full flat boolean permissions object the Gen2 API requires.
+# Field keys must match config-types/cyberark-safe-members/validate.ts.
+# =============================================================================
+
+id: "cyberark-safe-members"
+name: "CyberArk Safe Member Configuration"
+toolType: "cyberark"
+entityType: "cyberark-safe-members"
+description: "Define CyberArk safe members (authorizations) as code through the PVWA REST API (/Safes/{safe}/Members). Reconciled by (safe, member); permissions are managed declaratively."
+
+item:
+  label: "Safe Member"
+  identityField: "member_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Member"
+      icon: "user"
+      description: "The safe, the member and where to resolve them"
+      fields:
+        - key: "safe_name"
+          label: "Safe Name"
+          fieldType: "text"
+          required: true
+          helpText: "The safe this member is granted access to. The safe must already exist."
+
+        - key: "member_name"
+          label: "Member Name"
+          fieldType: "text"
+          required: true
+          helpText: "The user, group or role name — part of the member's logical identity."
+
+        - key: "member_type"
+          label: "Member Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "User"
+          options:
+            - { label: "User", value: "User" }
+            - { label: "Group", value: "Group" }
+            - { label: "Role", value: "Role" }
+          helpText: "The kind of principal this member is. Fixed at creation."
+
+        - key: "search_in"
+          label: "Search In"
+          fieldType: "text"
+          defaultValue: "Vault"
+          helpText: >
+            Where to resolve the member — "Vault" for a Vault user/group, or a
+            configured directory / domain name for an external principal.
+
+        - key: "membership_expiration"
+          label: "Membership Expiration (epoch)"
+          fieldType: "number"
+          helpText: >
+            Optional membership expiration as a Unix epoch timestamp (seconds).
+            Leave blank for a membership that never expires.
+
+    - name: "Permissions"
+      icon: "key"
+      description: "The authorizations granted to this member on the safe"
+      fields:
+        - key: "permissions"
+          label: "Permissions"
+          fieldType: "multiselect"
+          required: true
+          helpText: "Select the authorizations to grant. Unselected authorizations are set to false. At least one is required."
+          options:
+            - { label: "Use Accounts", value: "useAccounts" }
+            - { label: "Retrieve Accounts", value: "retrieveAccounts" }
+            - { label: "List Accounts", value: "listAccounts" }
+            - { label: "Add Accounts", value: "addAccounts" }
+            - { label: "Update Account Content", value: "updateAccountContent" }
+            - { label: "Update Account Properties", value: "updateAccountProperties" }
+            - { label: "Initiate CPM Account Management Operations", value: "initiateCPMAccountManagementOperations" }
+            - { label: "Specify Next Account Content", value: "specifyNextAccountContent" }
+            - { label: "Rename Accounts", value: "renameAccounts" }
+            - { label: "Delete Accounts", value: "deleteAccounts" }
+            - { label: "Unlock Accounts", value: "unlockAccounts" }
+            - { label: "Manage Safe", value: "manageSafe" }
+            - { label: "Manage Safe Members", value: "manageSafeMembers" }
+            - { label: "Backup Safe", value: "backupSafe" }
+            - { label: "View Audit Log", value: "viewAuditLog" }
+            - { label: "View Safe Members", value: "viewSafeMembers" }
+            - { label: "Access Without Confirmation", value: "accessWithoutConfirmation" }
+            - { label: "Create Folders", value: "createFolders" }
+            - { label: "Delete Folders", value: "deleteFolders" }
+            - { label: "Move Accounts and Folders", value: "moveAccountsAndFolders" }
+            - { label: "Requests Authorization Level 1", value: "requestsAuthorizationLevel1" }
+            - { label: "Requests Authorization Level 2", value: "requestsAuthorizationLevel2" }

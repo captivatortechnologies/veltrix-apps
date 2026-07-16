@@ -1,0 +1,7 @@
+# Defaults for a new account item.
+#
+# Intentionally empty: a new item starts blank (canvas field defaultValues still
+# apply in the editor). Any values here would be a flat map keyed by the canvas
+# field keys (name, safe_name, platform_id, address, user_name, secret_type,
+# secret, automatic_management_enabled, manual_management_reason,
+# platform_account_properties). The write-only secret must never be seeded here.

@@ -1,0 +1,7 @@
+# Defaults for a new safe item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank (canvas field defaultValues still apply in the
+# editor). Any values here would be a flat map keyed by the canvas field keys
+# (safe_name, description, location, managing_cpm, retention_type,
+# retention_count, olac_enabled, auto_purge_enabled).
