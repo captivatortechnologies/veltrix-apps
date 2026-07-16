@@ -195,3 +195,43 @@ export async function testConnection(appId: string, credentialId: string): Promi
   }
   return (await res.json()) as TestConnectionResult
 }
+
+/** Result of running an app operation. Mirrors the server operation handler's return. */
+export interface OperationResult {
+  ok: boolean
+  message: string
+  details?: string[]
+  /** Optional structured payload (e.g. an export download URL, a job id). */
+  data?: Record<string, unknown>
+}
+
+/**
+ * Run an app operation — a one-off action (restart, export, retry, …), NOT a
+ * configuration deploy. The platform decrypts the chosen connection's secret and
+ * runs the app's operation handler in-process (the secret is never returned). A
+ * failed operation resolves normally with `{ ok: false, message }` rather than
+ * throwing.
+ *
+ * @param appId       the app that owns the operation, e.g. `splunk-cloud`
+ * @param operationId the operation id declared in the app manifest
+ * @param opts        the connection (credentialId) to authenticate with, + params
+ */
+export async function runOperation(
+  appId: string,
+  operationId: string,
+  opts: { credentialId?: string; params?: Record<string, unknown> } = {},
+): Promise<OperationResult> {
+  const res = await authFetch(
+    `/api/apps/${encodeURIComponent(appId)}/operations/${encodeURIComponent(operationId)}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credentialId: opts.credentialId, params: opts.params ?? {} }),
+    },
+  )
+  if (!res.ok) {
+    const err = await credentialError(res)
+    return { ok: false, message: err.message }
+  }
+  return (await res.json()) as OperationResult
+}
