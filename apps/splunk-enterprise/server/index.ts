@@ -10,6 +10,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import type { AppRouteContext, AppEventPublisher } from '@veltrixsecops/app-sdk'
 import { buildByolResourcePlan, DEPLOYMENT_STEPS } from '../lib/byolTopology'
 import { buildByolPlan } from '../lib/byolPlanDiff'
+import { resolvePlanNetwork, reserveDeployNetwork, NetworkAllocationConflictError } from '../lib/byolNetwork'
 import * as store from '../lib/db'
 import { collectForDate } from '../lib/usage/collector'
 import {
@@ -243,8 +244,12 @@ export default async function registerRoutes(
 
   // Dry-run the deployment plan: diff the DESIRED topology plan against the
   // CURRENTLY persisted resource rows and return the Terraform-style
-  // add/change/destroy summary + tier-grouped lines. Side-effect-free (no
-  // writes, no emit) — the Plan modal fetches this before Apply calls /deploy.
+  // add/change/destroy summary + tier-grouped lines, ENRICHED with the subnet
+  // the network allocator would carve (a dry-run peek) and the canonical
+  // tenant/cost tag set every resource will carry. Side-effect-free (no writes,
+  // no emit, no CIDR commit) — the Plan modal fetches this before Apply calls
+  // /deploy. If the allocator is unreachable the plan degrades gracefully
+  // (tags only + a soft `networkUnavailable` flag) rather than failing.
   fastify.get('/byol/:id/plan', {
     preHandler: [hasPermission('byol', 'read')],
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
@@ -266,7 +271,15 @@ export default async function registerRoutes(
         searchHeadRegions: infra.searchHeadRegions.map((r) => r.region),
       })
       const current = await store.listResources(db, id)
-      reply.send(buildByolPlan(current, desired))
+      const diff = buildByolPlan(current, desired)
+      const { network, tags, networkUnavailable } = await resolvePlanNetwork(infra, customerId, ctx.appId)
+
+      reply.send({
+        ...diff,
+        tags,
+        ...(network ? { network } : {}),
+        ...(networkUnavailable ? { networkUnavailable: true } : {}),
+      })
     },
   })
 
@@ -291,7 +304,27 @@ export default async function registerRoutes(
         searchHeadRegions: infra.searchHeadRegions.map((r) => r.region),
       })
 
+      // Atomically reserve the stack's subnet + derive the tenant/cost tags
+      // before seeding, so both the persisted rows and the emitted event carry
+      // them. A subnet collision (the peeked block was taken between Plan and
+      // Apply) surfaces as a 409 so the modal re-plans; other allocator errors
+      // degrade to a tag-only result (the modeled apply still proceeds).
+      let deployNet
+      try {
+        deployNet = await reserveDeployNetwork(infra, { customerId, appId: ctx.appId, infrastructureId: id })
+      } catch (err) {
+        if (err instanceof NetworkAllocationConflictError) {
+          return reply.status(409).send({ error: 'Subnet allocation conflict — please re-plan and try again.' })
+        }
+        throw err
+      }
+
       const resources = await store.seedResources(db, id, customerId, plan)
+      // Stamp the allocated CIDR onto the foundation/network row so the console +
+      // provisioning worker see the exact subnet this stack was given.
+      if (deployNet.network) {
+        await store.setResourceExternalRef(db, id, 'foundation/network', deployNet.network.subnetCidr)
+      }
       const deployment = await store.createDeployment(db, id, 'deploy', DEPLOYMENT_STEPS, userOf(request))
       const updated = await store.setByolStatus(db, id, 'provisioning')
       await emit(events, 'infrastructure.deploy.requested', {
@@ -299,6 +332,8 @@ export default async function registerRoutes(
         infrastructure: updated,
         plan,
         customerId,
+        tags: deployNet.tags,
+        ...(deployNet.network ? { network: deployNet.network } : {}),
       })
       reply.status(202).send({ infrastructure: updated, deployment, resources })
     },

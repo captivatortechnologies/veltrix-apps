@@ -18,6 +18,7 @@
 // =============================================================================
 
 import { TIER_ORDER } from './byolTopology'
+import type { ByolTags } from './byolTags'
 
 /** A single resource's disposition in a plan. */
 export type PlanAction = 'add' | 'change' | 'destroy' | 'noop'
@@ -77,10 +78,24 @@ export interface ByolPlanGroup {
   items: ByolPlanItem[]
 }
 
-/** The full `GET /byol/:id/plan` response contract. */
+/** The subnet the platform network allocator previewed / reserved for a stack. */
+export interface ByolPlanNetwork {
+  networkRef: string
+  subnetCidr: string
+}
+
+/**
+ * The full `GET /byol/:id/plan` response contract. The core diff (`summary` +
+ * `groups`) is computed by `buildByolPlan`; the server ENRICHES it with a subnet
+ * peek (`network`) + the canonical tenant/cost `tags`, both optional so the plan
+ * degrades gracefully (`networkUnavailable` flags an unreachable allocator).
+ */
 export interface ByolPlan {
   summary: ByolPlanSummary
   groups: ByolPlanGroup[]
+  network?: ByolPlanNetwork
+  tags?: ByolTags
+  networkUnavailable?: boolean
 }
 
 const nz = (v: string | null | undefined): string | null => (v == null ? null : v)

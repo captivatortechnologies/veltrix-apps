@@ -33,6 +33,12 @@ const NOOP_PLAN: ByolPlan = {
   groups: [],
 }
 
+const ENRICHED_PLAN: ByolPlan = {
+  ...CHANGED_PLAN,
+  network: { networkRef: 'vpc-shared-use1', subnetCidr: '10.20.4.0/24' },
+  tags: { 'Veltrix:Customer': 'cust-1', 'Veltrix:App': 'splunk-enterprise', CostCenter: 'cust-1' },
+}
+
 describe('ByolPlanModal', () => {
   const noop = () => {}
 
@@ -73,5 +79,33 @@ describe('ByolPlanModal', () => {
   it('surfaces a plan error inline', () => {
     render(<ByolPlanModal isOpen onClose={noop} plan={null} error="Boom" onApply={noop} />)
     expect(screen.getByText('Boom')).toBeTruthy()
+  })
+
+  it('renders the Network panel with the allocated subnet + network ref', () => {
+    render(<ByolPlanModal isOpen onClose={noop} plan={ENRICHED_PLAN} onApply={noop} />)
+    // The CIDR + network ref are unique to the Network panel ("Network" as bare
+    // text also names the foundation/network resource line, so assert on these).
+    expect(screen.getByText('10.20.4.0/24')).toBeTruthy()
+    expect(screen.getByText('vpc-shared-use1')).toBeTruthy()
+  })
+
+  it('renders the Tags panel with each canonical tag key + value', () => {
+    render(<ByolPlanModal isOpen onClose={noop} plan={ENRICHED_PLAN} onApply={noop} />)
+    expect(screen.getByText('Tags applied to every resource')).toBeTruthy()
+    expect(screen.getByText('Veltrix:Customer')).toBeTruthy()
+    expect(screen.getByText('splunk-enterprise')).toBeTruthy()
+  })
+
+  it('shows a soft-unavailable note when the network allocator was unreachable', () => {
+    const plan: ByolPlan = { ...CHANGED_PLAN, networkUnavailable: true }
+    render(<ByolPlanModal isOpen onClose={noop} plan={plan} onApply={noop} />)
+    expect(screen.getByText(/Subnet allocation preview is temporarily unavailable/i)).toBeTruthy()
+  })
+
+  it('omits the Network + Tags panels when the plan carries neither', () => {
+    render(<ByolPlanModal isOpen onClose={noop} plan={CHANGED_PLAN} onApply={noop} />)
+    expect(screen.queryByText('Tags applied to every resource')).toBeNull()
+    // "Network" as a panel heading is absent; the resource line "Network" is not a heading here
+    // (the foundation/network item is named "Network" — assert the Tags panel is the reliable signal).
   })
 })

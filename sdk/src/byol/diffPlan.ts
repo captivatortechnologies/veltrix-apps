@@ -21,6 +21,7 @@
 // =============================================================================
 
 import { TIER_ORDER } from './topology'
+import type { ByolTags } from './tags'
 
 /** A single resource's disposition in a plan. */
 export type PlanAction = 'add' | 'change' | 'destroy' | 'noop'
@@ -81,10 +82,32 @@ export interface ByolPlanGroup {
   items: ByolPlanItem[]
 }
 
-/** The full `GET /byol/:id/plan` response contract. */
+/** The subnet the platform network allocator previewed / reserved for a stack. */
+export interface ByolPlanNetwork {
+  /** Opaque handle to the shared per-(provider,region) Network (VPC/VNet/…). */
+  networkRef: string
+  /** The /24 subnet CIDR carved for this stack, e.g. `10.20.4.0/24`. */
+  subnetCidr: string
+}
+
+/**
+ * The full `GET /byol/:id/plan` response contract.
+ *
+ * The core diff (`summary` + `groups`) is computed by `buildByolPlan`; the app
+ * server ENRICHES the response with `network` (a dry-run subnet peek) + `tags`
+ * (the canonical tenant/cost tag set). Both are optional so the modal degrades
+ * gracefully: `networkUnavailable` flags that the allocator was unreachable, and
+ * `network` is simply absent for a self-hosted stack where it does not apply.
+ */
 export interface ByolPlan {
   summary: ByolPlanSummary
   groups: ByolPlanGroup[]
+  /** Subnet the allocator would carve for this stack (peek), when applicable. */
+  network?: ByolPlanNetwork
+  /** Canonical tenant / cost-allocation tags every resource will carry. */
+  tags?: ByolTags
+  /** Soft flag: the network allocator was unreachable, so `network` is absent. */
+  networkUnavailable?: boolean
 }
 
 const nz = (v: string | null | undefined): string | null => (v == null ? null : v)

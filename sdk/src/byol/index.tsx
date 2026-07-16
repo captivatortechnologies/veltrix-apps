@@ -24,7 +24,12 @@ export type {
   ByolPlanSummary,
   ByolPlanItem,
   ByolPlanGroup,
+  ByolPlanNetwork,
 } from './diffPlan'
+
+// Tenant / cost-allocation tag builder (pure, React-free — usable server-side)
+export { buildByolTags, BYOL_TAG_KEYS, MANAGED_BY } from './tags'
+export type { ByolTags, ByolTagInput } from './tags'
 
 // Types
 export type {

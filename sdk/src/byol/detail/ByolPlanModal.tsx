@@ -43,6 +43,81 @@ const ACTION_META: Record<PlanAction, { glyph: string; color: string; label: str
 const tierLabel = (tier: string): string =>
   TIER_LABELS[tier as ByolResourceTier] ?? tier.replace(/-/g, ' ')
 
+/** A titled, bordered panel matching the modal's card styling. */
+const InfoPanel: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
+  <div style={{ border: `1px solid ${tokens.border}`, borderRadius: 8, background: tokens.surface2, overflow: 'hidden' }}>
+    <div
+      style={{
+        padding: '8px 12px',
+        borderBottom: `1px solid ${tokens.border}`,
+        fontSize: 11,
+        letterSpacing: '.08em',
+        textTransform: 'uppercase',
+        color: tokens.primary,
+        fontWeight: 700,
+      }}
+    >
+      {title}
+    </div>
+    <div style={{ padding: '10px 12px' }}>{children}</div>
+  </div>
+)
+
+/** Network panel: the subnet the allocator will carve, or a soft-unavailable note. */
+const NetworkPanel: React.FC<{ plan: ByolPlan }> = ({ plan }) => {
+  if (!plan.network) {
+    if (!plan.networkUnavailable) return null
+    return (
+      <InfoPanel title="Network">
+        <div style={{ fontSize: 13, color: tokens.muted }}>
+          Subnet allocation preview is temporarily unavailable — the CIDR is reserved when you apply.
+        </div>
+      </InfoPanel>
+    )
+  }
+  return (
+    <InfoPanel title="Network">
+      <div style={{ fontSize: 13, color: tokens.text }}>
+        Subnet{' '}
+        <code style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', color: tokens.primary }}>
+          {plan.network.subnetCidr}
+        </code>{' '}
+        will be allocated in{' '}
+        <code style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', color: tokens.text }}>
+          {plan.network.networkRef}
+        </code>
+        .
+      </div>
+    </InfoPanel>
+  )
+}
+
+/** Tags panel: every canonical cost/tenant tag each resource will carry. */
+const TagsPanel: React.FC<{ plan: ByolPlan }> = ({ plan }) => {
+  const entries = plan.tags ? Object.entries(plan.tags) : []
+  if (entries.length === 0) return null
+  return (
+    <InfoPanel title="Tags applied to every resource">
+      <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 12px', fontSize: 12 }}>
+        {entries.map(([key, value]) => (
+          <React.Fragment key={key}>
+            <span
+              style={{
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                color: tokens.muted,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {key}
+            </span>
+            <span style={{ color: tokens.text, wordBreak: 'break-all' }}>{value}</span>
+          </React.Fragment>
+        ))}
+      </div>
+    </InfoPanel>
+  )
+}
+
 const SummaryChips: React.FC<{ plan: ByolPlan }> = ({ plan }) => {
   const { add, change, destroy } = plan.summary
   return (
@@ -125,6 +200,8 @@ const PlanBody: React.FC<{ plan: ByolPlan | null; loading?: boolean; error?: str
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <SummaryChips plan={plan} />
+      <NetworkPanel plan={plan} />
+      <TagsPanel plan={plan} />
       {!planHasChanges(plan.summary) ? (
         <div
           style={{
