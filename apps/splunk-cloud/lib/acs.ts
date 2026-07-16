@@ -69,6 +69,17 @@ export function resolveAcsToken(credential: CredentialRef | null): string | null
   return token.length > 0 ? token : null
 }
 
+/**
+ * Heuristic: does a secret look like a Splunk Cloud JWT bearer token? Splunk
+ * auth tokens (Splunk Web → Settings → Tokens, or the ACS /tokens endpoint) are
+ * JWTs — three base64url segments whose header segment starts with `eyJ`. A
+ * login password won't match. The connection test uses this to tell "you pasted
+ * a password" apart from "your JWT is invalid", so it can give the right advice.
+ */
+export function looksLikeJwt(secret: string | null | undefined): boolean {
+  return /^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test((secret ?? '').trim())
+}
+
 export interface AcsRequestOptions {
   baseUrl: string
   stack: string

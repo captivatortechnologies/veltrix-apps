@@ -68,6 +68,16 @@
         "default": "./dist/byol/index.cjs"
       }
     },
+    "./connections": {
+      "import": {
+        "types": "./dist/connections/index.d.ts",
+        "default": "./dist/connections/index.js"
+      },
+      "require": {
+        "types": "./dist/connections/index.d.cts",
+        "default": "./dist/connections/index.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "files": [
