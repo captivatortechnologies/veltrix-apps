@@ -1,0 +1,162 @@
+id: cortex-xsoar
+name: Cortex XSOAR
+version: "1.0.0"
+vendor: Veltrix
+description: >
+  Manage Palo Alto Networks Cortex XSOAR content configuration as code through the
+  XSOAR server REST API. Covers lists, incident types and scheduled jobs — each
+  reconciled by name with validation, drift detection and rollback handled by the
+  Security-as-Code pipeline. Works with Cortex XSOAR 6.x (API-key header) and
+  Cortex XSOAR 8 / the Cortex platform (API key + x-xdr-auth-id via the API gateway).
+category: SOAR
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cortex-xsoar
+icon: "🤖"
+
+platform:
+  minVersion: "1.0.0"
+
+# Palo Alto Networks brand: the PANW orange with a Cortex cyan accent.
+branding:
+  primaryColor: "#FA582D"
+  accentColor: "#00C0E8"
+  logo: ./assets/logo.svg
+  logoDark: ./assets/logo-dark.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: xsoar-lists
+      actions: [read, write, delete]
+      description: Manage Cortex XSOAR lists
+    - resource: xsoar-incident-types
+      actions: [read, write, delete]
+      description: Manage Cortex XSOAR incident types
+    - resource: xsoar-jobs
+      actions: [read, write, delete]
+      description: Manage Cortex XSOAR scheduled jobs
+
+pipeline:
+  configurationTypes:
+    - id: xsoar-lists
+      name: Cortex XSOAR Lists
+      description: Lists via /lists; name-keyed upsert through /lists/save, removed via /lists/delete on rollback
+      canvasTemplate: config-types/xsoar-lists/canvas.yaml
+      defaultConfig: config-types/xsoar-lists/defaults.yaml
+      handlers:
+        validate: config-types/xsoar-lists/validate
+        deploy: config-types/xsoar-lists/deploy
+        rollback: config-types/xsoar-lists/rollback
+        healthCheck: config-types/xsoar-lists/healthCheck
+        driftDetect: config-types/xsoar-lists/driftDetect
+        getStatus: config-types/xsoar-lists/getStatus
+      targets:
+        componentTypes: [xsoar-server]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: xsoar-incident-types
+      name: Cortex XSOAR Incident Types
+      description: Incident types via /incidenttype; name-keyed upsert (version-tracked), removed via /incidenttype/delete on rollback
+      canvasTemplate: config-types/xsoar-incident-types/canvas.yaml
+      defaultConfig: config-types/xsoar-incident-types/defaults.yaml
+      handlers:
+        validate: config-types/xsoar-incident-types/validate
+        deploy: config-types/xsoar-incident-types/deploy
+        rollback: config-types/xsoar-incident-types/rollback
+        healthCheck: config-types/xsoar-incident-types/healthCheck
+        driftDetect: config-types/xsoar-incident-types/driftDetect
+        getStatus: config-types/xsoar-incident-types/getStatus
+      targets:
+        componentTypes: [xsoar-server]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: xsoar-jobs
+      name: Cortex XSOAR Jobs
+      description: Scheduled (time-triggered) jobs via /jobs; name-keyed upsert searched through /jobs/search, removed via DELETE /jobs/{id} on rollback
+      canvasTemplate: config-types/xsoar-jobs/canvas.yaml
+      defaultConfig: config-types/xsoar-jobs/defaults.yaml
+      handlers:
+        validate: config-types/xsoar-jobs/validate
+        deploy: config-types/xsoar-jobs/deploy
+        rollback: config-types/xsoar-jobs/rollback
+        healthCheck: config-types/xsoar-jobs/healthCheck
+        driftDetect: config-types/xsoar-jobs/driftDetect
+        getStatus: config-types/xsoar-jobs/getStatus
+      targets:
+        componentTypes: [xsoar-server]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/cortex-xsoar
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs a Cortex XSOAR server (component)
+    # with the API key used to reach it, with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: verifies the server URL + API key (and the
+# x-xdr-auth-id header for XSOAR 8) via GET /user.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: auth_id
+    type: string
+    label: API Key ID
+    description: >
+      Cortex XSOAR 8 / Cortex platform only: the numeric id of the API key. When
+      set, the app sends the x-xdr-auth-id header and routes requests through the
+      /xsoar API gateway path. Leave blank for Cortex XSOAR 6.x.
+    default: ""
+    required: false
+  - key: api_base_path
+    type: string
+    label: API Base Path
+    description: >
+      Optional override for the REST API base path appended to the server host
+      (e.g. "/xsoar"). Leave blank to auto-select: "/xsoar" when an API Key ID is
+      set (XSOAR 8), otherwise the server root (XSOAR 6.x).
+    default: ""
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Cortex XSOAR API calls.
+    default: 30
+    required: false

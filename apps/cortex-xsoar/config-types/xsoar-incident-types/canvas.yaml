@@ -1,0 +1,71 @@
+# =============================================================================
+# Canvas Template — Cortex XSOAR Incident Types
+#
+# Declares ONE incident type — the item. Users add as many as they need. Incident
+# types are a server collection (/incidenttype); XSOAR assigns a server id, so
+# identity for reconciliation is the type NAME. Built-in / locked types cannot be
+# managed here. Field keys must match config-types/xsoar-incident-types/validate.ts.
+# =============================================================================
+
+id: "cortex-xsoar-incident-types"
+name: "Cortex XSOAR Incident Type Configuration"
+toolType: "cortex-xsoar"
+entityType: "xsoar-incident-types"
+description: "Define Cortex XSOAR incident types as code through the server REST API (/incidenttype). Reconciled by type name; upserted via /incidenttype and removed via /incidenttype/delete on rollback."
+
+item:
+  label: "Incident Type"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Incident Type"
+      icon: "alert-triangle"
+      description: "Name, color and default playbook"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: "The incident type name — its identity. Built-in types (e.g. Unclassified) cannot be managed here."
+
+        - key: "color"
+          label: "Color"
+          fieldType: "text"
+          validation:
+            pattern: "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+          helpText: "Hex color for the incident-type badge, e.g. #29B473."
+
+        - key: "playbookId"
+          label: "Default playbook ID"
+          fieldType: "text"
+          helpText: "ID of the playbook to associate with incidents of this type. Leave blank for none."
+
+        - key: "autorun"
+          label: "Auto-run playbook"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Automatically run the default playbook when an incident of this type is created."
+
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, the incident type is hidden from selection in XSOAR."
+
+    - name: "Scripts"
+      icon: "code"
+      description: "Optional pre-processing and closure scripts"
+      fields:
+        - key: "preProcessingScript"
+          label: "Pre-processing script"
+          fieldType: "text"
+          helpText: "Name/ID of an automation to run before an incident of this type is created. Optional."
+
+        - key: "closureScript"
+          label: "Closure script"
+          fieldType: "text"
+          helpText: "Name/ID of an automation to run when an incident of this type is closed. Optional."

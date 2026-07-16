@@ -1,0 +1,60 @@
+# =============================================================================
+# Canvas Template — Cortex XSOAR Lists
+#
+# Declares ONE list — the item. Users add as many as they need. Lists are a
+# server collection (/lists); a list's id equals its name, so identity for
+# reconciliation is the list NAME. Field keys must match
+# config-types/xsoar-lists/validate.ts.
+# =============================================================================
+
+id: "cortex-xsoar-lists"
+name: "Cortex XSOAR List Configuration"
+toolType: "cortex-xsoar"
+entityType: "xsoar-lists"
+description: "Define Cortex XSOAR lists as code through the server REST API (/lists). Reconciled by list name; upserted via /lists/save and removed via /lists/delete on rollback."
+
+item:
+  label: "List"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "List"
+      icon: "list"
+      description: "Name, type and content"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: "The list name — its identity in XSOAR (a list's id equals its name)."
+
+        - key: "listType"
+          label: "Type"
+          fieldType: "select"
+          defaultValue: "plain_text"
+          options:
+            - { label: "Plain text", value: "plain_text" }
+            - { label: "JSON", value: "JSON" }
+            - { label: "Markdown", value: "markdown" }
+            - { label: "HTML", value: "HTML" }
+            - { label: "CSS", value: "CSS" }
+          helpText: "How XSOAR interprets the list content. JSON lists are validated as JSON."
+
+        - key: "data"
+          label: "Data"
+          fieldType: "textarea"
+          helpText: "The list content. For a JSON list this must be valid JSON."
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          helpText: "Optional tags applied to the list in XSOAR."
+
+        - key: "commitMessage"
+          label: "Commit message"
+          fieldType: "text"
+          helpText: "Optional version-control commit message recorded on save."

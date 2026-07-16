@@ -1,0 +1,70 @@
+# =============================================================================
+# Canvas Template — Cortex XSOAR Jobs
+#
+# Declares ONE scheduled job — the item. Users add as many as they need. Jobs are
+# a server collection (searched via /jobs/search, saved via /jobs); XSOAR assigns
+# a server id, so identity for reconciliation is the job NAME. Field keys must
+# match config-types/xsoar-jobs/validate.ts.
+# =============================================================================
+
+id: "cortex-xsoar-jobs"
+name: "Cortex XSOAR Job Configuration"
+toolType: "cortex-xsoar"
+entityType: "xsoar-jobs"
+description: "Define Cortex XSOAR scheduled (time-triggered) jobs as code through the server REST API (/jobs). Reconciled by job name; upserted via /jobs and removed via DELETE /jobs/{id} on rollback."
+
+item:
+  label: "Job"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Job"
+      icon: "clock"
+      description: "Name, playbook and incident type"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: "The job name — its identity in XSOAR."
+
+        - key: "playbookId"
+          label: "Playbook ID"
+          fieldType: "text"
+          helpText: "ID of the playbook the job runs. A job with no playbook runs nothing."
+
+        - key: "type"
+          label: "Incident type"
+          fieldType: "text"
+          defaultValue: "Unclassified"
+          helpText: "The incident type the job creates its run under. Defaults to Unclassified."
+
+    - name: "Schedule"
+      icon: "calendar"
+      description: "When the job runs"
+      fields:
+        - key: "recurrent"
+          label: "Recurring"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, the job runs repeatedly on the cron schedule below."
+
+        - key: "cron"
+          label: "Cron schedule"
+          fieldType: "text"
+          helpText: "A 5- or 6-field cron expression, e.g. \"0 9 * * *\" for 09:00 daily. Required for a recurring job."
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          helpText: "Optional tags applied to the job in XSOAR."
+
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, the job is created but will not run until enabled in XSOAR."
