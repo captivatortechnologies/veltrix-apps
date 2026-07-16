@@ -1,0 +1,47 @@
+# =============================================================================
+# Canvas Template — Splunk Cloud Outbound Ports (ACS)
+#
+# Declares the destination subnets the stack may open outbound connections to
+# from ONE source port — the item. Users add one item per port. Field keys must
+# match what config-types/outbound-ports/validate.ts checks.
+# =============================================================================
+
+id: "splunk-cloud-outbound-ports"
+name: "Outbound Port Configuration"
+toolType: "splunk-cloud"
+entityType: "outbound-ports"
+description: "Allow the stack to open outbound connections from a port to specific destination subnets, via the ACS API"
+
+item:
+  label: "Outbound Port Rule"
+  identityField: "port"
+  repeatable: true
+  minItems: 1
+  groups:
+    - name: "General"
+      icon: "network"
+      description: "Source port and permitted destination subnets"
+      fields:
+        - key: "port"
+          label: "Port"
+          fieldType: "number"
+          required: true
+          helpText: "Source port the stack opens outbound connections from (1–65535), e.g. 8089 for federated search / S2S."
+
+        - key: "subnets"
+          label: "Destination Subnets (IPv4 CIDR)"
+          fieldType: "tags"
+          required: true
+          helpText: "Destination IPv4 subnets in CIDR notation, e.g. 34.226.34.80/32. Use /32 for a single host."
+
+        - key: "reason"
+          label: "Reason (optional)"
+          fieldType: "text"
+          required: false
+          helpText: "Optional note recorded with the ACS request, e.g. \"federated search to partner stack\"."
+
+        - key: "removeUndeclared"
+          label: "Remove Undeclared Destinations"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, live destinations not declared here are removed on deploy (full reconcile for this port)."

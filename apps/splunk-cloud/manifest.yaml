@@ -1,6 +1,6 @@
 id: splunk-cloud
 name: Splunk Cloud Platform
-version: "1.8.4"
+version: "1.8.5"
 vendor: Veltrix
 description: >
   Manage Splunk Cloud Platform configurations as code through the
@@ -103,6 +103,23 @@ pipeline:
         healthCheck: config-types/ip-allowlists/healthCheck
         driftDetect: config-types/ip-allowlists/driftDetect
         getStatus: config-types/ip-allowlists/getStatus
+      targets:
+        componentTypes: [splunk-cloud-stack]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: outbound-ports
+      name: Outbound Ports
+      description: Outbound connectivity rules — the destination subnets the stack may open connections to from a given port (e.g. 8089 for federated search / S2S)
+      canvasTemplate: config-types/outbound-ports/canvas.yaml
+      defaultConfig: config-types/outbound-ports/defaults.yaml
+      handlers:
+        validate: config-types/outbound-ports/validate
+        deploy: config-types/outbound-ports/deploy
+        rollback: config-types/outbound-ports/rollback
+        healthCheck: config-types/outbound-ports/healthCheck
+        driftDetect: config-types/outbound-ports/driftDetect
+        getStatus: config-types/outbound-ports/getStatus
       targets:
         componentTypes: [splunk-cloud-stack]
         requiresCredential: true
