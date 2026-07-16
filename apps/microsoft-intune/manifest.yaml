@@ -1,0 +1,136 @@
+id: microsoft-intune
+name: Microsoft Intune
+version: "1.0.0"
+vendor: Veltrix
+description: >
+  Manage Microsoft Intune endpoint-security policies as code through the
+  Microsoft Graph API. v1.0 ships Attack Surface Reduction (ASR) rules — the
+  finite, well-defined Defender hardening rule set — with validation, drift
+  detection and rollback handled by the Security-as-Code pipeline. These policies
+  configure Microsoft Defender for Endpoint and can be delivered via Intune MDM
+  or Defender security settings management. Auth is an Azure AD app registration
+  (OAuth2 client credentials) with the Graph DeviceManagementConfiguration
+  permission; the tenant is set via the Tenant ID app setting.
+category: EDR
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-intune
+icon: "🖥️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Microsoft Intune brand: Intune blue with a bright sky-blue accent.
+branding:
+  primaryColor: "#0F3C82"
+  accentColor: "#32B0E7"
+  logo: ./assets/logo.svg
+  logoDark: ./assets/logo-dark.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: intune-asr-rules
+      actions: [read, write, delete]
+      description: Manage Intune Attack Surface Reduction (ASR) rule policies
+
+pipeline:
+  configurationTypes:
+    - id: intune-asr-rules
+      name: Attack Surface Reduction Rules
+      description: >
+        Defender Attack Surface Reduction (ASR) rule policies via the Graph beta
+        settings catalog (endpointSecurityAttackSurfaceReduction). PREVIEW — the
+        Graph deviceManagement/configurationPolicies API is beta; needs an Intune
+        license and the DeviceManagementConfiguration.ReadWrite.All permission
+      canvasTemplate: config-types/intune-asr-rules/canvas.yaml
+      defaultConfig: config-types/intune-asr-rules/defaults.yaml
+      handlers:
+        validate: config-types/intune-asr-rules/validate
+        deploy: config-types/intune-asr-rules/deploy
+        rollback: config-types/intune-asr-rules/rollback
+        healthCheck: config-types/intune-asr-rules/healthCheck
+        driftDetect: config-types/intune-asr-rules/driftDetect
+        getStatus: config-types/intune-asr-rules/getStatus
+      targets:
+        componentTypes: [intune-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/microsoft-intune
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs an Intune tenant (component) with
+    # the Entra app credential used to reach Graph, with a connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: runs the OAuth2 token handshake and one
+# lightweight authenticated GET /deviceManagement/configurationPolicies.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: tenant_id
+    type: string
+    label: Tenant ID
+    description: >
+      The Microsoft Entra (Azure AD) directory/tenant GUID. Required to acquire an
+      access token for the app registration.
+    default: ""
+    required: true
+  - key: azure_cloud
+    type: select
+    label: Azure Cloud
+    description: >
+      The Azure environment the tenant lives in. Determines the login host and
+      Graph host. US Gov High / DoD use graph.microsoft.us.
+    default: commercial
+    required: false
+    options:
+      - label: Commercial
+        value: commercial
+      - label: US Gov (GCC)
+        value: gcc
+      - label: US Gov (GCC High)
+        value: gcc-high
+      - label: US Gov (DoD)
+        value: dod
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Microsoft Graph calls.
+    default: 30
+    required: false

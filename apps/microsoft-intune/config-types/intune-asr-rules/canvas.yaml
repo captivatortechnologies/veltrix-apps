@@ -1,0 +1,242 @@
+# =============================================================================
+# Canvas Template — Intune Attack Surface Reduction (ASR) Rules
+#
+# Declares ONE ASR rule policy — the item. Users add as many as they need.
+# A policy is a name + the 19 ASR rules (each Not configured / Off / Block /
+# Audit / Warn) + optional file/folder exclusions. Reconciled by policy name.
+# Field keys must match config-types/intune-asr-rules/validate.ts and lib/asr.ts.
+# =============================================================================
+
+id: "intune-asr-rules"
+name: "ASR Rule Policy"
+toolType: "microsoft-intune"
+entityType: "intune-asr-rules"
+description: "Define Defender Attack Surface Reduction (ASR) rule policies as code via the Graph settings catalog. Reconciled by policy name."
+
+item:
+  label: "ASR Policy"
+  identityField: "policy_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Policy name and description"
+      fields:
+        - key: "policy_name"
+          label: "Policy name"
+          fieldType: "text"
+          required: true
+          helpText: "The Intune policy name. This is the reconciliation identity."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Intune admin center."
+
+    - name: "ASR Rules"
+      icon: "lock"
+      description: "Each rule: Not configured (omitted from the policy), Off, Block, Audit or Warn"
+      fields:
+        - key: "block_email_executable"
+          label: "Block executable content from email client and webmail"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Off", value: "off" }
+            - { label: "Block", value: "block" }
+            - { label: "Audit", value: "audit" }
+            - { label: "Warn", value: "warn" }
+        - key: "block_office_child_process"
+          label: "Block all Office applications from creating child processes"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Off", value: "off" }
+            - { label: "Block", value: "block" }
+            - { label: "Audit", value: "audit" }
+            - { label: "Warn", value: "warn" }
+        - key: "block_office_executable_content"
+          label: "Block Office applications from creating executable content"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Off", value: "off" }
+            - { label: "Block", value: "block" }
+            - { label: "Audit", value: "audit" }
+            - { label: "Warn", value: "warn" }
+        - key: "block_office_code_injection"
+          label: "Block Office applications from injecting code into other processes"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Off", value: "off" }
+            - { label: "Block", value: "block" }
+            - { label: "Audit", value: "audit" }
+            - { label: "Warn", value: "warn" }
+        - key: "block_js_vbs_download"
+          label: "Block JavaScript or VBScript from launching downloaded executable content"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Off", value: "off" }
+            - { label: "Block", value: "block" }
+            - { label: "Audit", value: "audit" }
+            - { label: "Warn", value: "warn" }
+        - key: "block_obfuscated_scripts"
+          label: "Block execution of potentially obfuscated scripts"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Off", value: "off" }
+            - { label: "Block", value: "block" }
+            - { label: "Audit", value: "audit" }
+            - { label: "Warn", value: "warn" }
+        - key: "block_office_macro_win32"
+          label: "Block Win32 API calls from Office macros"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Off", value: "off" }
+            - { label: "Block", value: "block" }
+            - { label: "Audit", value: "audit" }
+            - { label: "Warn", value: "warn" }
+        - key: "block_untrusted_executables"
+          label: "Block executable files unless they meet a prevalence/age/trusted-list criterion"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Off", value: "off" }
+            - { label: "Block", value: "block" }
+            - { label: "Audit", value: "audit" }
+            - { label: "Warn", value: "warn" }
+        - key: "ransomware_protection"
+          label: "Use advanced protection against ransomware"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Off", value: "off" }
+            - { label: "Block", value: "block" }
+            - { label: "Audit", value: "audit" }
+            - { label: "Warn", value: "warn" }
+        - key: "block_lsass_credential_theft"
+          label: "Block credential stealing from the Windows LSASS subsystem"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Off", value: "off" }
+            - { label: "Block", value: "block" }
+            - { label: "Audit", value: "audit" }
+            - { label: "Warn", value: "warn" }
+        - key: "block_psexec_wmi"
+          label: "Block process creations from PSExec and WMI commands"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Off", value: "off" }
+            - { label: "Block", value: "block" }
+            - { label: "Audit", value: "audit" }
+            - { label: "Warn", value: "warn" }
+        - key: "block_usb_untrusted"
+          label: "Block untrusted and unsigned processes that run from USB"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Off", value: "off" }
+            - { label: "Block", value: "block" }
+            - { label: "Audit", value: "audit" }
+            - { label: "Warn", value: "warn" }
+        - key: "block_office_comm_child_process"
+          label: "Block Office communication apps from creating child processes"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Off", value: "off" }
+            - { label: "Block", value: "block" }
+            - { label: "Audit", value: "audit" }
+            - { label: "Warn", value: "warn" }
+        - key: "block_adobe_child_process"
+          label: "Block Adobe Reader from creating child processes"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Off", value: "off" }
+            - { label: "Block", value: "block" }
+            - { label: "Audit", value: "audit" }
+            - { label: "Warn", value: "warn" }
+        - key: "block_wmi_persistence"
+          label: "Block persistence through WMI event subscription"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Off", value: "off" }
+            - { label: "Block", value: "block" }
+            - { label: "Audit", value: "audit" }
+            - { label: "Warn", value: "warn" }
+        - key: "block_vulnerable_drivers"
+          label: "Block abuse of exploited vulnerable signed drivers"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Off", value: "off" }
+            - { label: "Block", value: "block" }
+            - { label: "Audit", value: "audit" }
+            - { label: "Warn", value: "warn" }
+        - key: "block_webshell_servers"
+          label: "Block Webshell creation for servers (Exchange only)"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Off", value: "off" }
+            - { label: "Block", value: "block" }
+            - { label: "Audit", value: "audit" }
+            - { label: "Warn", value: "warn" }
+        - key: "block_safemode_reboot"
+          label: "Block rebooting machine in Safe Mode"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Off", value: "off" }
+            - { label: "Block", value: "block" }
+            - { label: "Audit", value: "audit" }
+            - { label: "Warn", value: "warn" }
+        - key: "block_impersonated_system_tools"
+          label: "Block use of copied or impersonated system tools"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Off", value: "off" }
+            - { label: "Block", value: "block" }
+            - { label: "Audit", value: "audit" }
+            - { label: "Warn", value: "warn" }
+
+    - name: "Exclusions"
+      icon: "folder"
+      description: "Optional files/folders excluded from all ASR rules"
+      fields:
+        - key: "exclusions"
+          label: "ASR exclusions"
+          fieldType: "tags"
+          helpText: >
+            Optional file or folder paths excluded from every ASR rule in this
+            policy (e.g. a management-agent executable path). Leave blank for none.

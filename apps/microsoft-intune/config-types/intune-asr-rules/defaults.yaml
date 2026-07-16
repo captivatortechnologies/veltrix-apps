@@ -1,0 +1,5 @@
+# Defaults for a new ASR policy item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank (every rule "Not configured"). Any values here would
+# be a flat map keyed by the canvas field keys (policy_name, the 19 rule keys, …).
