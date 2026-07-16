@@ -1,0 +1,34 @@
+# =============================================================================
+# Canvas Template — Panorama Service Groups (/Objects/ServiceGroups)
+#
+# One service group = a name (identity) + member service names. Field keys must
+# match config-types/panorama-service-groups/validate.ts.
+# =============================================================================
+
+id: "panorama-service-groups"
+name: "Panorama Service Group Configuration"
+toolType: "palo-alto-panorama"
+entityType: "panorama-service-groups"
+description: "Define Panorama service groups as code via the PAN-OS REST API (/Objects/ServiceGroups). Reconciled by name."
+
+item:
+  label: "Service Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Service Group"
+      icon: "layers"
+      description: "Name and members"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The service group name — its identity for reconciliation."
+
+        - key: "members"
+          label: "Members"
+          fieldType: "tags"
+          helpText: "Names of service objects/groups to include (must already exist)."

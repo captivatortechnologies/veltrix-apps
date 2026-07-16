@@ -1,0 +1,56 @@
+# =============================================================================
+# Canvas Template — Panorama Address Objects (/Objects/Addresses)
+#
+# One address object = a name (identity) + exactly one value type. Field keys
+# must match config-types/panorama-address-objects/validate.ts.
+# =============================================================================
+
+id: "panorama-address-objects"
+name: "Panorama Address Object Configuration"
+toolType: "palo-alto-panorama"
+entityType: "panorama-address-objects"
+description: "Define Panorama address objects as code via the PAN-OS REST API (/Objects/Addresses). One value type per object; reconciled by name."
+
+item:
+  label: "Address Object"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Address"
+      icon: "globe"
+      description: "Name, value and tags"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The address object name — its identity for reconciliation."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "ip-netmask"
+          options:
+            - { label: "IP / Netmask (e.g. 10.0.0.0/24)", value: "ip-netmask" }
+            - { label: "IP Range (start-end)", value: "ip-range" }
+            - { label: "FQDN", value: "fqdn" }
+          helpText: "The address value type. Exactly one is stored per object."
+
+        - key: "value"
+          label: "Value"
+          fieldType: "text"
+          required: true
+          helpText: "The address value, e.g. 10.0.0.0/24, 10.0.0.1-10.0.0.9, or host.example.com."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description."
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          helpText: "Optional tag names to attach (the tags must already exist)."

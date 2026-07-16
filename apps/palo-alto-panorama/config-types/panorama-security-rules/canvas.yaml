@@ -1,0 +1,104 @@
+# =============================================================================
+# Canvas Template — Panorama Security Pre-Rules (/Policies/SecurityPreRules)
+#
+# One security rule in the device-group PRE rulebase. Zones/source/destination
+# default to "any" and service to "application-default" when left blank. Field
+# keys must match config-types/panorama-security-rules/validate.ts.
+#
+# Deploy these LAST: rules reference zones, address/service objects & groups,
+# applications, tags, log-forwarding profiles and security-profile groups, which
+# must already exist at the target location.
+# =============================================================================
+
+id: "panorama-security-rules"
+name: "Panorama Security Rule Configuration"
+toolType: "palo-alto-panorama"
+entityType: "panorama-security-rules"
+description: "Define Panorama security pre-rules as code via the PAN-OS REST API (/Policies/SecurityPreRules). Reconciled by name."
+
+item:
+  label: "Security Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Rule"
+      icon: "shield"
+      description: "Name and action"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The rule name — its identity for reconciliation."
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "allow"
+          options:
+            - { label: "Allow", value: "allow" }
+            - { label: "Deny", value: "deny" }
+            - { label: "Drop", value: "drop" }
+          helpText: "What the firewall does with matching traffic."
+
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When checked, the rule is deployed disabled."
+
+    - name: "Match"
+      icon: "filter"
+      description: "Zones, addresses, application and service"
+      fields:
+        - key: "from_zones"
+          label: "Source Zones"
+          fieldType: "tags"
+          helpText: "Source security zones. Defaults to 'any' when blank."
+
+        - key: "to_zones"
+          label: "Destination Zones"
+          fieldType: "tags"
+          helpText: "Destination security zones. Defaults to 'any' when blank."
+
+        - key: "source"
+          label: "Source Addresses"
+          fieldType: "tags"
+          helpText: "Source address objects/groups. Defaults to 'any' when blank."
+
+        - key: "destination"
+          label: "Destination Addresses"
+          fieldType: "tags"
+          helpText: "Destination address objects/groups. Defaults to 'any' when blank."
+
+        - key: "application"
+          label: "Applications"
+          fieldType: "tags"
+          helpText: "App-IDs / application groups. Defaults to 'any' when blank."
+
+        - key: "service"
+          label: "Services"
+          fieldType: "tags"
+          helpText: "Service objects/groups. Defaults to 'application-default' when blank."
+
+    - name: "Options"
+      icon: "settings"
+      description: "Logging and profiles"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description."
+
+        - key: "log_setting"
+          label: "Log Forwarding Profile"
+          fieldType: "text"
+          helpText: "Optional log-forwarding profile name (must already exist)."
+
+        - key: "profile_group"
+          label: "Security Profile Group"
+          fieldType: "text"
+          helpText: "Optional security-profile group name to attach (must already exist)."

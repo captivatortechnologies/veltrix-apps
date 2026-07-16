@@ -1,0 +1,50 @@
+# =============================================================================
+# Canvas Template — Panorama Service Objects (/Objects/Services)
+#
+# One service object = a name (identity) + protocol + port. Field keys must
+# match config-types/panorama-service-objects/validate.ts.
+# =============================================================================
+
+id: "panorama-service-objects"
+name: "Panorama Service Object Configuration"
+toolType: "palo-alto-panorama"
+entityType: "panorama-service-objects"
+description: "Define Panorama service objects as code via the PAN-OS REST API (/Objects/Services). Reconciled by name."
+
+item:
+  label: "Service Object"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Service"
+      icon: "server"
+      description: "Name, protocol and port"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The service object name — its identity for reconciliation."
+
+        - key: "protocol"
+          label: "Protocol"
+          fieldType: "select"
+          required: true
+          defaultValue: "tcp"
+          options:
+            - { label: "TCP", value: "tcp" }
+            - { label: "UDP", value: "udp" }
+          helpText: "The transport protocol."
+
+        - key: "port"
+          label: "Port(s)"
+          fieldType: "text"
+          required: true
+          helpText: "A port (443), a range (8000-8100) or a comma list (80,443)."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description."

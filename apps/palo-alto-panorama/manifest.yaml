@@ -1,0 +1,240 @@
+id: palo-alto-panorama
+name: Palo Alto Panorama
+version: "1.0.0"
+vendor: Veltrix
+description: >
+  Manage Palo Alto Networks Panorama / PAN-OS configuration as code through the
+  PAN-OS REST API. Covers tags, address objects, service objects, address groups,
+  service groups and security pre-rules — with validation, drift detection and
+  rollback handled by the Security-as-Code pipeline. Writes land in the Panorama
+  candidate config and are committed to Panorama (XML API) when auto-commit is on.
+  The component hostname is the Panorama management host; auth is a pre-generated
+  PAN-OS API key sent as the X-PAN-KEY header.
+category: NETWORK
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/palo-alto-panorama
+icon: "🔥"
+
+platform:
+  minVersion: "1.0.0"
+
+# Palo Alto Networks brand: the PANW orange with a lighter accent.
+branding:
+  primaryColor: "#FA582D"
+  accentColor: "#FF7A4D"
+  logo: ./assets/logo.svg
+  logoDark: ./assets/logo-dark.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: panorama-tags
+      actions: [read, write, delete]
+      description: Manage Panorama tags
+    - resource: panorama-address-objects
+      actions: [read, write, delete]
+      description: Manage Panorama address objects
+    - resource: panorama-service-objects
+      actions: [read, write, delete]
+      description: Manage Panorama service objects
+    - resource: panorama-address-groups
+      actions: [read, write, delete]
+      description: Manage Panorama address groups
+    - resource: panorama-service-groups
+      actions: [read, write, delete]
+      description: Manage Panorama service groups
+    - resource: panorama-security-rules
+      actions: [read, write, delete]
+      description: Manage Panorama security pre-rules
+
+pipeline:
+  configurationTypes:
+    - id: panorama-tags
+      name: Panorama Tags
+      description: Tags (/Objects/Tags) with color and comments — deploy first; referenced by other objects
+      canvasTemplate: config-types/panorama-tags/canvas.yaml
+      defaultConfig: config-types/panorama-tags/defaults.yaml
+      handlers:
+        validate: config-types/panorama-tags/validate
+        deploy: config-types/panorama-tags/deploy
+        rollback: config-types/panorama-tags/rollback
+        healthCheck: config-types/panorama-tags/healthCheck
+        driftDetect: config-types/panorama-tags/driftDetect
+        getStatus: config-types/panorama-tags/getStatus
+      targets:
+        componentTypes: [panorama]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: panorama-address-objects
+      name: Panorama Address Objects
+      description: Address objects (/Objects/Addresses) — ip-netmask, ip-range or fqdn
+      canvasTemplate: config-types/panorama-address-objects/canvas.yaml
+      defaultConfig: config-types/panorama-address-objects/defaults.yaml
+      handlers:
+        validate: config-types/panorama-address-objects/validate
+        deploy: config-types/panorama-address-objects/deploy
+        rollback: config-types/panorama-address-objects/rollback
+        healthCheck: config-types/panorama-address-objects/healthCheck
+        driftDetect: config-types/panorama-address-objects/driftDetect
+        getStatus: config-types/panorama-address-objects/getStatus
+      targets:
+        componentTypes: [panorama]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: panorama-service-objects
+      name: Panorama Service Objects
+      description: Service objects (/Objects/Services) — tcp/udp ports
+      canvasTemplate: config-types/panorama-service-objects/canvas.yaml
+      defaultConfig: config-types/panorama-service-objects/defaults.yaml
+      handlers:
+        validate: config-types/panorama-service-objects/validate
+        deploy: config-types/panorama-service-objects/deploy
+        rollback: config-types/panorama-service-objects/rollback
+        healthCheck: config-types/panorama-service-objects/healthCheck
+        driftDetect: config-types/panorama-service-objects/driftDetect
+        getStatus: config-types/panorama-service-objects/getStatus
+      targets:
+        componentTypes: [panorama]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: panorama-address-groups
+      name: Panorama Address Groups
+      description: Static / dynamic address groups (/Objects/AddressGroups)
+      canvasTemplate: config-types/panorama-address-groups/canvas.yaml
+      defaultConfig: config-types/panorama-address-groups/defaults.yaml
+      handlers:
+        validate: config-types/panorama-address-groups/validate
+        deploy: config-types/panorama-address-groups/deploy
+        rollback: config-types/panorama-address-groups/rollback
+        healthCheck: config-types/panorama-address-groups/healthCheck
+        driftDetect: config-types/panorama-address-groups/driftDetect
+        getStatus: config-types/panorama-address-groups/getStatus
+      targets:
+        componentTypes: [panorama]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: panorama-service-groups
+      name: Panorama Service Groups
+      description: Service groups (/Objects/ServiceGroups) and their member services
+      canvasTemplate: config-types/panorama-service-groups/canvas.yaml
+      defaultConfig: config-types/panorama-service-groups/defaults.yaml
+      handlers:
+        validate: config-types/panorama-service-groups/validate
+        deploy: config-types/panorama-service-groups/deploy
+        rollback: config-types/panorama-service-groups/rollback
+        healthCheck: config-types/panorama-service-groups/healthCheck
+        driftDetect: config-types/panorama-service-groups/driftDetect
+        getStatus: config-types/panorama-service-groups/getStatus
+      targets:
+        componentTypes: [panorama]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: panorama-security-rules
+      name: Panorama Security Rules
+      description: Security pre-rules (/Policies/SecurityPreRules) — zones, source/dest, app, service, action, profiles
+      canvasTemplate: config-types/panorama-security-rules/canvas.yaml
+      defaultConfig: config-types/panorama-security-rules/defaults.yaml
+      handlers:
+        validate: config-types/panorama-security-rules/validate
+        deploy: config-types/panorama-security-rules/deploy
+        rollback: config-types/panorama-security-rules/rollback
+        healthCheck: config-types/panorama-security-rules/healthCheck
+        driftDetect: config-types/panorama-security-rules/driftDetect
+        getStatus: config-types/panorama-security-rules/getStatus
+      targets:
+        componentTypes: [panorama]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/palo-alto-panorama
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs a Panorama (component) with the
+    # API-key credential used to reach it, with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: verifies the Panorama host + API key via
+# GET /restapi/<version>/Objects/Addresses.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: device_group
+    type: string
+    label: Device Group
+    description: >
+      The Panorama device group to write to. Leave "shared" to target the shared
+      location; any other value uses location=device-group with this name.
+    default: "shared"
+    required: false
+  - key: rest_api_version
+    type: string
+    label: REST API Version
+    description: >
+      PAN-OS REST API version segment in the URL (e.g. v11.0). NOTE: this does not
+      always equal the PAN-OS release — PAN-OS 11.1 serves /restapi/v11.0.
+    default: "v11.0"
+    required: false
+  - key: auto_commit
+    type: boolean
+    label: Auto Commit
+    description: >
+      When enabled, deploy/rollback commit the candidate configuration to Panorama
+      (XML API) and poll the commit job. When disabled, writes stay in the candidate
+      config until an operator commits and pushes to the device group.
+    default: false
+    required: false
+  - key: verify_tls
+    type: boolean
+    label: Verify TLS (informational)
+    description: >
+      Informational only. Handlers run in-process and cannot disable TLS
+      verification, so Panorama's management certificate (often self-signed) must be
+      trusted by the platform host regardless of this value.
+    default: true
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for PAN-OS REST/XML API calls.
+    default: 30
+    required: false

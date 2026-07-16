@@ -1,0 +1,50 @@
+# =============================================================================
+# Canvas Template — Panorama Address Groups (/Objects/AddressGroups)
+#
+# One address group = a name (identity) + a static member list OR a dynamic
+# match filter. Field keys must match
+# config-types/panorama-address-groups/validate.ts.
+# =============================================================================
+
+id: "panorama-address-groups"
+name: "Panorama Address Group Configuration"
+toolType: "palo-alto-panorama"
+entityType: "panorama-address-groups"
+description: "Define Panorama address groups (static or dynamic) as code via the PAN-OS REST API (/Objects/AddressGroups). Reconciled by name."
+
+item:
+  label: "Address Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Address Group"
+      icon: "layers"
+      description: "Name, type and membership"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The address group name — its identity for reconciliation."
+
+        - key: "group_type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "static"
+          options:
+            - { label: "Static (explicit members)", value: "static" }
+            - { label: "Dynamic (tag match filter)", value: "dynamic" }
+          helpText: "Static groups list members explicitly; dynamic groups match on tags."
+
+        - key: "members"
+          label: "Members (static)"
+          fieldType: "tags"
+          helpText: "For a static group: names of address objects/groups to include (must already exist)."
+
+        - key: "dynamic_filter"
+          label: "Match Filter (dynamic)"
+          fieldType: "text"
+          helpText: "For a dynamic group: a tag match expression, e.g. 'web' and 'prod'."

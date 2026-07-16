@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — Panorama Tags (/Objects/Tags)
+#
+# One tag = a name (identity) + optional color + comments. Reconciled by name at
+# the configured location (shared or a device group). Field keys must match
+# config-types/panorama-tags/validate.ts.
+# =============================================================================
+
+id: "panorama-tags"
+name: "Panorama Tag Configuration"
+toolType: "palo-alto-panorama"
+entityType: "panorama-tags"
+description: "Define Panorama tags as code via the PAN-OS REST API (/Objects/Tags). Reconciled by name at the configured location."
+
+item:
+  label: "Tag"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Tag"
+      icon: "tag"
+      description: "Name, color and comments"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The tag name — its identity for reconciliation."
+
+        - key: "color"
+          label: "Color"
+          fieldType: "select"
+          defaultValue: ""
+          options:
+            - { label: "(none)", value: "" }
+            - { label: "Red (color1)", value: "color1" }
+            - { label: "Green (color2)", value: "color2" }
+            - { label: "Blue (color3)", value: "color3" }
+            - { label: "Yellow (color4)", value: "color4" }
+            - { label: "Copper (color5)", value: "color5" }
+            - { label: "Orange (color6)", value: "color6" }
+            - { label: "Purple (color7)", value: "color7" }
+            - { label: "Gray (color8)", value: "color8" }
+            - { label: "Light Green (color9)", value: "color9" }
+            - { label: "Cyan (color10)", value: "color10" }
+            - { label: "Light Gray (color11)", value: "color11" }
+            - { label: "Blue Gray (color12)", value: "color12" }
+            - { label: "Lime (color13)", value: "color13" }
+            - { label: "Black (color14)", value: "color14" }
+            - { label: "Gold (color15)", value: "color15" }
+            - { label: "Brown (color16)", value: "color16" }
+          helpText: "Optional palette color (color1..color16)."
+
+        - key: "comments"
+          label: "Comments"
+          fieldType: "text"
+          helpText: "Optional free-text comment shown on the tag."
