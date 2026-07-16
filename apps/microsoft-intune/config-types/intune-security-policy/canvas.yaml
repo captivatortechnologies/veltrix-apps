@@ -1,0 +1,52 @@
+# =============================================================================
+# Canvas Template — Intune Endpoint Security Policy (import & manage)
+#
+# Declares ONE endpoint-security policy — the item. Users add as many as they
+# need. For families whose settings-catalog schema is too large to hand-author
+# (Antivirus, Firewall, EDR, Disk encryption, Account protection), export the
+# policy JSON from Intune (or a Graph GET with $expand=settings) and paste it
+# here; the pipeline version-controls, deploys, drift-detects and rolls it back
+# by name. Field keys must match config-types/intune-security-policy/validate.ts.
+# =============================================================================
+
+id: "intune-security-policy"
+name: "Endpoint Security Policy (Import)"
+toolType: "microsoft-intune"
+entityType: "intune-security-policy"
+description: "Manage Defender endpoint-security policies (Antivirus / Firewall / EDR / …) as code by importing an exported settings-catalog policy JSON. Reconciled by policy name."
+
+item:
+  label: "Policy"
+  identityField: "policy_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Policy name and description (authoritative — override the imported name)"
+      fields:
+        - key: "policy_name"
+          label: "Policy name"
+          fieldType: "text"
+          required: true
+          helpText: "The Intune policy name. This is the reconciliation identity and overrides the name in the imported JSON."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Intune admin center (overrides the imported description)."
+
+    - name: "Settings JSON"
+      icon: "code"
+      description: "The exported settings-catalog policy JSON"
+      fields:
+        - key: "policy_json"
+          label: "Policy JSON"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            Paste the exported configurationPolicy JSON — it must contain a "settings"
+            array and a "templateReference" (endpointSecurityAntivirus / …Firewall /
+            …EndpointDetectionAndResponse / …DiskEncryption / …AccountProtection).
+            Export it from the Intune admin center or a Graph GET with $expand=settings.

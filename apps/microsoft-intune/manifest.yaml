@@ -1,6 +1,6 @@
 id: microsoft-intune
 name: Microsoft Intune
-version: "1.0.0"
+version: "1.1.0"
 vendor: Veltrix
 description: >
   Manage Microsoft Intune endpoint-security policies as code through the
@@ -35,6 +35,9 @@ permissions:
     - resource: intune-asr-rules
       actions: [read, write, delete]
       description: Manage Intune Attack Surface Reduction (ASR) rule policies
+    - resource: intune-security-policy
+      actions: [read, write, delete]
+      description: Manage imported Intune endpoint-security policies (AV / firewall / EDR / …)
 
 pipeline:
   configurationTypes:
@@ -54,6 +57,27 @@ pipeline:
         healthCheck: config-types/intune-asr-rules/healthCheck
         driftDetect: config-types/intune-asr-rules/driftDetect
         getStatus: config-types/intune-asr-rules/getStatus
+      targets:
+        componentTypes: [intune-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: intune-security-policy
+      name: Endpoint Security Policy (Import)
+      description: >
+        Manage Defender endpoint-security policies (Antivirus / Firewall / EDR /
+        Disk encryption / Account protection) as code by importing an exported
+        settings-catalog policy JSON. Reconciled by name. PREVIEW — the Graph
+        deviceManagement/configurationPolicies API is beta
+      canvasTemplate: config-types/intune-security-policy/canvas.yaml
+      defaultConfig: config-types/intune-security-policy/defaults.yaml
+      handlers:
+        validate: config-types/intune-security-policy/validate
+        deploy: config-types/intune-security-policy/deploy
+        rollback: config-types/intune-security-policy/rollback
+        healthCheck: config-types/intune-security-policy/healthCheck
+        driftDetect: config-types/intune-security-policy/driftDetect
+        getStatus: config-types/intune-security-policy/getStatus
       targets:
         componentTypes: [intune-tenant]
         requiresCredential: true
