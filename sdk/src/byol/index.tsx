@@ -10,6 +10,21 @@
 
 export { ByolInfrastructureManager, default } from './ByolInfrastructureManager'
 export { ByolInfrastructureDetail } from './ByolInfrastructureDetail'
+export { ByolPlanModal } from './detail/ByolPlanModal'
+export type { ByolPlanModalProps } from './detail/ByolPlanModal'
+
+// Plan → Apply diff (pure, React-free — also usable on the server side)
+export { diffPlan, buildByolPlan, planHasChanges } from './diffPlan'
+export type {
+  PlanAction,
+  PlanDiff,
+  PlanDiffCurrent,
+  PlanDiffDesired,
+  ByolPlan,
+  ByolPlanSummary,
+  ByolPlanItem,
+  ByolPlanGroup,
+} from './diffPlan'
 
 // Types
 export type {

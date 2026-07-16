@@ -54,6 +54,18 @@ export interface ByolTopologyInput {
   searchHeadRegions?: string[]
 }
 
+/** Human labels per tier (mirrors the SDK topology). */
+export const TIER_LABELS: Record<ByolResourceTier, string> = {
+  foundation: 'Foundation',
+  'control-plane': 'Control plane',
+  data: 'Data tier — indexer cluster',
+  search: 'Search tier — search head cluster',
+  ingest: 'Ingest & access',
+}
+
+/** Provisioning order the tiers deploy in (also the display order). */
+export const TIER_ORDER: ByolResourceTier[] = ['foundation', 'control-plane', 'data', 'search', 'ingest']
+
 const DISTRIBUTED = 'distributed'
 
 function pickRegion(regions: string[] | undefined, index: number, fallback: string | null): string | null {

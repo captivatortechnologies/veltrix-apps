@@ -9,6 +9,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import type { AppRouteContext, AppEventPublisher } from '@veltrixsecops/app-sdk'
 import { buildByolResourcePlan, DEPLOYMENT_STEPS } from '../lib/byolTopology'
+import { buildByolPlan } from '../lib/byolPlanDiff'
 import * as store from '../lib/db'
 import { collectForDate } from '../lib/usage/collector'
 import {
@@ -239,6 +240,35 @@ export default async function registerRoutes(
   // record to `provisioning`, and emits an event for the (external) provisioning
   // workers. Workers report progress back through the app's onEvent/onWebhook
   // hooks, which advance the persisted resource + step rows.
+
+  // Dry-run the deployment plan: diff the DESIRED topology plan against the
+  // CURRENTLY persisted resource rows and return the Terraform-style
+  // add/change/destroy summary + tier-grouped lines. Side-effect-free (no
+  // writes, no emit) — the Plan modal fetches this before Apply calls /deploy.
+  fastify.get('/byol/:id/plan', {
+    preHandler: [hasPermission('byol', 'read')],
+    handler: async (request: FastifyRequest, reply: FastifyReply) => {
+      const customerId = customerOf(request)
+      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+      const { id } = request.params as { id: string }
+
+      const infra = await store.getByol(db, id, customerId)
+      if (!infra) return reply.status(404).send({ error: 'BYOL infrastructure not found' })
+
+      const desired = buildByolResourcePlan({
+        deploymentType: infra.deploymentType,
+        indexerCount: infra.indexerCount,
+        searchHeadCount: infra.searchHeadCount,
+        hostingType: infra.hosting_type,
+        isCloud: Boolean(infra.cloudProviderId),
+        region: infra.region,
+        indexerRegions: infra.indexerRegions.map((r) => r.region),
+        searchHeadRegions: infra.searchHeadRegions.map((r) => r.region),
+      })
+      const current = await store.listResources(db, id)
+      reply.send(buildByolPlan(current, desired))
+    },
+  })
 
   fastify.post('/byol/:id/deploy', {
     preHandler: [hasPermission('byol', 'write')],
