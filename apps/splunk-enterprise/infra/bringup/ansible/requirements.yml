@@ -1,0 +1,35 @@
+# =============================================================================
+# requirements.yml — Ansible dependencies for the Splunk bring-up.
+#
+# Install with:
+#   ansible-galaxy collection install -r requirements.yml
+#
+# We DRIVE splunk-ansible, we do not vendor it. `splunk.splunk` provides the
+# per-role content (splunk_cluster_master, splunk_indexer, splunk_search_head,
+# splunk_search_head_captain, splunk_deployer, splunk_deployment_server,
+# splunk_license_master, splunk_monitor, splunk_heavy_forwarder, splunk_standalone)
+# referenced by site.yml as "{{ splunk_role_prefix }}<role>".
+#
+# amazon.aws supplies the aws_secret lookup used in group_vars/all.yml to pull
+# the per-tenant splunk.secret / pass4SymmKey / admin hash from Secrets Manager.
+# =============================================================================
+collections:
+  - name: splunk.splunk
+    version: ">=2.0.0"
+  - name: amazon.aws
+    version: ">=7.0.0"
+  - name: community.general
+    version: ">=8.0.0"
+
+# ---------------------------------------------------------------------------
+# ALTERNATIVE (if the splunk.splunk collection is unavailable in your control
+# environment): install the splunk-ansible roles from the upstream repo into a
+# roles path and set `splunk_role_prefix: ""` in group_vars/all.yml so plays
+# reference the bare role names.
+#
+# roles:
+#   - name: splunk-ansible
+#     src: https://github.com/splunk/splunk-ansible
+#     scm: git
+#     version: develop
+# ---------------------------------------------------------------------------

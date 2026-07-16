@@ -21,7 +21,11 @@ import { glob } from 'node:fs/promises'
 
 const only = process.argv.slice(2)
 
-const patterns = ['apps/*/config-types/*/__tests__/*.test.ts', 'apps/*/lib/__tests__/*.test.ts']
+const patterns = [
+  'apps/*/config-types/*/__tests__/*.test.ts',
+  'apps/*/lib/__tests__/*.test.ts',
+  'apps/*/infra/**/__tests__/*.test.ts',
+]
 const files = []
 for (const pattern of patterns) {
   for await (const file of glob(pattern)) files.push(file)

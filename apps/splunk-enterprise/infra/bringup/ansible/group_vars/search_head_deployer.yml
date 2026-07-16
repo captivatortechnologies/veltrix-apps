@@ -1,0 +1,9 @@
+# =============================================================================
+# search_head_deployer — the SHC deployer. Distributes the SHC app bundle to
+# the cluster members (apply shcluster-bundle). It is NOT a deployment server
+# and must NEVER manage SHC members via serverclasses. Registered with the
+# members via SPLUNK_DEPLOYER_URL.
+# =============================================================================
+splunk_role_name: splunk_deployer
+splunk_group_env:
+  SPLUNK_ROLE: splunk_deployer

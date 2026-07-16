@@ -1,5 +1,47 @@
 import type { AppEventContext } from '@veltrixsecops/app-sdk'
 import * as store from '../lib/db'
+import { issueActivation } from '../lib/activationFlow'
+
+/** Default platform console origin for activation links (overridable via the
+ *  event payload or the VELTRIX_CONSOLE_URL env var). */
+const DEFAULT_CONSOLE_URL = 'https://app.veltrixsecops.com'
+
+/**
+ * On a ready environment, mint a one-time activation link and enqueue the email
+ * to the initiating admin. Never throws into the status handler — activation is
+ * best-effort relative to the core status reconciliation. The initiating admin's
+ * email must ride the deployment.status payload (adminEmail / initiatedByEmail);
+ * without it we log and skip (no link can be addressed).
+ */
+async function tryIssueActivation(
+  db: AppEventContext['db'],
+  infrastructureId: string,
+  payload: any,
+): Promise<void> {
+  try {
+    const adminEmail: string | undefined = payload?.adminEmail ?? payload?.initiatedByEmail
+    if (!adminEmail) {
+      console.warn(
+        `[splunk-enterprise] onEvent: ${infrastructureId} ready but no adminEmail in payload; activation link not sent`,
+      )
+      return
+    }
+    const infra = await store.getByolCore(db, infrastructureId)
+    if (!infra) return
+    await issueActivation(db, {
+      customerId: infra.customerId,
+      infrastructureId,
+      environmentName: infra.name,
+      adminUser: payload?.adminUser ?? 'admin',
+      adminEmail,
+      shUrl: payload?.shUrl ?? payload?.searchHeadUrl ?? null,
+      consoleBaseUrl: payload?.consoleUrl ?? process.env.VELTRIX_CONSOLE_URL ?? DEFAULT_CONSOLE_URL,
+      nowMs: Date.now(),
+    })
+  } catch (err) {
+    console.error(`[splunk-enterprise] onEvent: activation issuance failed for ${infrastructureId}:`, err)
+  }
+}
 
 /**
  * Deployment status from the provisioning pipeline → BYOL infrastructure status.
@@ -81,6 +123,8 @@ export default async function onEvent({ db, topic, payload }: AppEventContext): 
   // stays coherent even from a single coarse worker signal.
   if (mapped === 'active' || mapped === 'running') {
     await store.reconcileTerminal(db, infrastructureId, 'succeeded')
+    // Environment is ready → hand the admin credential off via a one-time link.
+    await tryIssueActivation(db, infrastructureId, payload)
   } else if (mapped === 'error' || mapped === 'failed') {
     await store.reconcileTerminal(db, infrastructureId, 'failed')
   }

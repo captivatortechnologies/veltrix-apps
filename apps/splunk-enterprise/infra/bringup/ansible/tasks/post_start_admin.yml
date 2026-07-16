@@ -1,0 +1,37 @@
+# =============================================================================
+# post_start_admin.yml — runs AFTER splunkd is up on a node.
+#
+#   1. Arm force-change-pass=true on `admin` via the authentication/users REST
+#      endpoint, so the seeded password must be rotated on first human login.
+#   2. Delete user-seed.conf — it is consumed on first start; leaving the hash on
+#      disk is needless exposure.
+#
+# All tasks that carry credentials set no_log: true. REST auth uses the plaintext
+# admin password (from Secrets Manager) over the local mgmt port with -k (the
+# internal private-CA cert is not in the controller trust store).
+# =============================================================================
+- name: Wait for splunkd management port to accept connections
+  ansible.builtin.wait_for:
+    host: "{{ splunk_hostname | default(inventory_hostname) }}"
+    port: 8089
+    timeout: 300
+
+- name: Force admin password change on first login (force-change-pass=true)
+  ansible.builtin.uri:
+    url: "https://{{ splunk_hostname | default(inventory_hostname) }}:8089/services/authentication/users/{{ splunk_admin_user }}"
+    method: POST
+    user: "{{ splunk_admin_user }}"
+    password: "{{ splunk_admin_password }}"
+    force_basic_auth: true
+    validate_certs: false
+    body_format: form-urlencoded
+    body:
+      force-change-pass: "true"
+    status_code: [200, 201]
+  no_log: true
+
+- name: Remove the admin user-seed file now that first start has consumed it
+  ansible.builtin.file:
+    path: "{{ splunk_home }}/etc/system/local/user-seed.conf"
+    state: absent
+  no_log: true

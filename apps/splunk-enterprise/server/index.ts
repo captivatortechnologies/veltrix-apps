@@ -22,6 +22,7 @@ import {
   deletePackage,
 } from '../lib/s3'
 import { readVersion } from '../lib/versionInput'
+import { registerActivationRoutes } from './activationRoutes'
 
 // --- small body coercion/validation helpers -----------------------------
 
@@ -131,6 +132,9 @@ export default async function registerRoutes(
   ctx: AppRouteContext,
 ) {
   const { hasPermission, db, events } = ctx
+
+  // --- Activation (one-time credential handoff) routes ---
+  registerActivationRoutes(fastify, ctx)
 
   // --- BYOL Infrastructure Routes ---
 

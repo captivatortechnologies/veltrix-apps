@@ -164,4 +164,19 @@ export async function setByolStatusIfExists(
   return true
 }
 
+/** Minimal id-only lookup (name + customer) for internal event handling. No
+ *  customer scoping — bus events are already platform-trusted, and onEvent has
+ *  the infra id but not the customer id. */
+export async function getByolCore(
+  db: PlatformDatabaseClient,
+  id: string,
+): Promise<{ id: string; name: string; customerId: string } | null> {
+  const rows = await db.$queryRawUnsafe<Row[]>(
+    'SELECT id, name, customer_id FROM splunk_byol_infrastructure WHERE id = $1::uuid',
+    id,
+  )
+  const r = rows[0]
+  return r ? { id: String(r.id), name: String(r.name), customerId: String(r.customer_id) } : null
+}
+
 export type { RegionDto }

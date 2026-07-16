@@ -78,10 +78,22 @@
         "default": "./dist/connections/index.cjs"
       }
     },
+    "./opentofu": {
+      "import": {
+        "types": "./dist/opentofu/index.d.ts",
+        "default": "./dist/opentofu/index.js"
+      },
+      "require": {
+        "types": "./dist/opentofu/index.d.cts",
+        "default": "./dist/opentofu/index.cjs"
+      }
+    },
+    "./opentofu/modules/*": "./opentofu/modules/*",
     "./package.json": "./package.json"
   },
   "files": [
     "dist",
+    "opentofu",
     "README.md"
   ],
   "scripts": {

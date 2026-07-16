@@ -9,6 +9,7 @@ export default defineConfig({
     'ui/index': 'src/ui/index.tsx',
     'byol/index': 'src/byol/index.tsx',
     'connections/index': 'src/connections/index.tsx',
+    'opentofu/index': 'src/opentofu/index.ts',
   },
   format: ['esm', 'cjs'],
   dts: true,
