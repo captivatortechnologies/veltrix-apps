@@ -1,0 +1,7 @@
+# Defaults for a new Wiz cloud configuration rule item.
+#
+# Intentionally empty: the platform starts a new item blank and users manage
+# their own default value sets. Any values here would be a FLAT map keyed by the
+# canvas field keys (name, description, severity, enabled, target_native_types,
+# opa_policy, scope_account_ids, remediation_instructions, function_as_control,
+# security_sub_categories, iac_matcher_type, iac_rego_code).

@@ -1,0 +1,142 @@
+id: wiz
+name: Wiz
+version: "1.0.0"
+vendor: Veltrix
+description: >
+  Manage Wiz (CNAPP / cloud security) configuration as code through the Wiz
+  GraphQL API. Covers service accounts (createServiceAccount — the generated
+  client secret is a write-only output and is never captured) and custom cloud
+  configuration (CSPM) rules — with validation, drift detection and rollback
+  handled by the Security-as-Code pipeline. Authenticates as a Wiz service
+  account via OAuth2 client credentials against the tenant's regional API host.
+category: CLOUD
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/wiz
+icon: "🛡️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Wiz brand: the Wiz blue with a cyan accent.
+branding:
+  primaryColor: "#1355FF"
+  accentColor: "#38E1FF"
+  logo: ./assets/logo.svg
+  logoDark: ./assets/logo-dark.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: wiz-service-accounts
+      actions: [read, write, delete]
+      description: Manage Wiz service accounts
+    - resource: wiz-cloud-config-rules
+      actions: [read, write, delete]
+      description: Manage Wiz custom cloud configuration rules
+
+pipeline:
+  configurationTypes:
+    - id: wiz-service-accounts
+      name: Wiz Service Accounts
+      description: >
+        Wiz service accounts via createServiceAccount; identity by name.
+        Missing accounts are created and existing ones left untouched — the
+        generated client secret is a write-only output and is never captured.
+      canvasTemplate: config-types/wiz-service-accounts/canvas.yaml
+      defaultConfig: config-types/wiz-service-accounts/defaults.yaml
+      handlers:
+        validate: config-types/wiz-service-accounts/validate
+        deploy: config-types/wiz-service-accounts/deploy
+        rollback: config-types/wiz-service-accounts/rollback
+        healthCheck: config-types/wiz-service-accounts/healthCheck
+        driftDetect: config-types/wiz-service-accounts/driftDetect
+        getStatus: config-types/wiz-service-accounts/getStatus
+      targets:
+        componentTypes: [wiz-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: wiz-cloud-config-rules
+      name: Wiz Cloud Configuration Rules
+      description: >
+        Custom cloud configuration (CSPM) rules via
+        createCloudConfigurationRule / updateCloudConfigurationRule; identity by
+        name against non-builtin rules. Each rule evaluates a cloud resource type
+        against a Rego (OPA) policy, with optional IaC scanning.
+      canvasTemplate: config-types/wiz-cloud-config-rules/canvas.yaml
+      defaultConfig: config-types/wiz-cloud-config-rules/defaults.yaml
+      handlers:
+        validate: config-types/wiz-cloud-config-rules/validate
+        deploy: config-types/wiz-cloud-config-rules/deploy
+        rollback: config-types/wiz-cloud-config-rules/rollback
+        healthCheck: config-types/wiz-cloud-config-rules/healthCheck
+        driftDetect: config-types/wiz-cloud-config-rules/driftDetect
+        getStatus: config-types/wiz-cloud-config-rules/getStatus
+      targets:
+        componentTypes: [wiz-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/wiz
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: cloud
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs a Wiz tenant (component) with the
+    # service-account credential used to reach it, with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: verifies the API host + service-account
+# credential via a trivial authenticated GraphQL query ({ __typename }).
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: auth_endpoint
+    type: string
+    label: Auth Endpoint
+    description: >
+      The Wiz OAuth2 token endpoint. Default (current tenants):
+      https://auth.app.wiz.io/oauth/token. Older tenants use
+      https://auth.wiz.io/oauth/token. The OAuth audience (wiz-api vs beyond-api)
+      is derived from this host automatically.
+    default: "https://auth.app.wiz.io/oauth/token"
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Wiz token and GraphQL API calls.
+    default: 30
+    required: false

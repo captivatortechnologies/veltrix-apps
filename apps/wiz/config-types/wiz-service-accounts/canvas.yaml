@@ -1,0 +1,65 @@
+# =============================================================================
+# Canvas Template — Wiz Service Accounts
+#
+# Declares ONE Wiz service account — the item. Users add as many as they need.
+# Service accounts are created through the GraphQL `createServiceAccount`
+# mutation and identified for reconciliation by their `name`.
+#
+# IMPORTANT: the client SECRET Wiz generates for a new service account is shown
+# only ONCE and cannot be re-read. This config type therefore CREATES missing
+# accounts and leaves existing ones untouched (it never mutates or re-creates an
+# account). The generated secret is never captured, stored or logged by the
+# pipeline — rotate it in Wiz to obtain a usable value.
+#
+# Field keys must match config-types/wiz-service-accounts/validate.ts.
+# =============================================================================
+
+id: "wiz-service-accounts"
+name: "Wiz Service Account Configuration"
+toolType: "wiz"
+entityType: "wiz-service-accounts"
+description: "Declare Wiz service accounts as code through the GraphQL API (createServiceAccount). Reconciled by account name; missing accounts are created and existing ones are left untouched (the generated client secret is shown once by Wiz and is never captured here)."
+
+item:
+  label: "Service Account"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Identity"
+      icon: "key"
+      description: "Name and account type"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The service account name — its logical identity in the tenant."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "THIRD_PARTY"
+          options:
+            - { label: "Custom Integration (API)", value: "THIRD_PARTY" }
+            - { label: "Sensor", value: "SENSOR" }
+            - { label: "Kubernetes Admission Controller", value: "KUBERNETES_ADMISSION_CONTROLLER" }
+            - { label: "Broker", value: "BROKER" }
+            - { label: "Kubernetes Connector", value: "KUBERNETES_CONNECTOR" }
+          helpText: "The service account type. Choose Custom Integration (THIRD_PARTY) for GraphQL API access."
+
+    - name: "Access"
+      icon: "shield"
+      description: "API scopes and project assignment"
+      fields:
+        - key: "scopes"
+          label: "API Scopes"
+          fieldType: "tags"
+          helpText: "The Wiz API scopes granted to the account, e.g. read:projects, read:issues, create:automation_rules. Required for a Custom Integration (THIRD_PARTY) account."
+
+        - key: "assigned_project_ids"
+          label: "Assigned Project IDs"
+          fieldType: "tags"
+          helpText: "Optional Wiz project ids to scope the account to. Leave empty to grant tenant-wide access (subject to the scopes above)."

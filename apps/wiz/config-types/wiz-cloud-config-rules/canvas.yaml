@@ -1,0 +1,125 @@
+# =============================================================================
+# Canvas Template — Wiz Custom Cloud Configuration Rules
+#
+# Declares ONE Wiz custom cloud configuration (CSPM) rule — the item. Users add
+# as many as they need. Rules are created / updated through the GraphQL
+# createCloudConfigurationRule / updateCloudConfigurationRule mutations and
+# identified for reconciliation by their `name` (matched against NON-builtin
+# rules only — built-in Wiz rules are never modified).
+#
+# A rule evaluates a cloud resource (targetNativeTypes) against a Rego (OPA)
+# policy; an optional IaC matcher extends the same logic to Infrastructure-as-Code.
+#
+# Field keys must match config-types/wiz-cloud-config-rules/validate.ts.
+# =============================================================================
+
+id: "wiz-cloud-config-rules"
+name: "Wiz Cloud Configuration Rule"
+toolType: "wiz"
+entityType: "wiz-cloud-config-rules"
+description: "Define Wiz custom cloud configuration (CSPM) rules as code through the GraphQL API. Reconciled by rule name against custom (non-builtin) rules; each rule evaluates a cloud resource type against a Rego (OPA) policy, with optional IaC scanning."
+
+item:
+  label: "Cloud Configuration Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Rule"
+      icon: "shield-check"
+      description: "Name, severity and state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The rule name — its logical identity among custom rules."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Wiz console."
+
+        - key: "severity"
+          label: "Severity"
+          fieldType: "select"
+          required: true
+          defaultValue: "MEDIUM"
+          options:
+            - { label: "Informational", value: "INFORMATIONAL" }
+            - { label: "Low", value: "LOW" }
+            - { label: "Medium", value: "MEDIUM" }
+            - { label: "High", value: "HIGH" }
+            - { label: "Critical", value: "CRITICAL" }
+          helpText: "Severity assigned to findings from this rule."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the rule is active and evaluated."
+
+    - name: "Detection"
+      icon: "radar"
+      description: "What the rule targets and how it evaluates"
+      fields:
+        - key: "target_native_types"
+          label: "Target Native Types"
+          fieldType: "tags"
+          required: true
+          helpText: "The cloud resource native types the rule evaluates, e.g. aws.s3.bucket, azure.storageAccount. At least one is required."
+
+        - key: "opa_policy"
+          label: "Cloud Rego (OPA) Policy"
+          fieldType: "textarea"
+          required: true
+          helpText: "The Rego policy evaluated against the cloud resource configuration. A resource passes when the policy result is 'pass'."
+
+        - key: "scope_account_ids"
+          label: "Scope Account IDs"
+          fieldType: "tags"
+          helpText: "Optional Wiz cloud account ids to scope the rule to. Leave empty to apply to all in-scope accounts."
+
+    - name: "Response"
+      icon: "wrench"
+      description: "Remediation and control behaviour"
+      fields:
+        - key: "remediation_instructions"
+          label: "Remediation Instructions"
+          fieldType: "textarea"
+          helpText: "Optional guidance shown with findings on how to remediate."
+
+        - key: "function_as_control"
+          label: "Function As Control"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Generate a Wiz Control (and Issues) from this rule's findings."
+
+        - key: "security_sub_categories"
+          label: "Security Sub-Category IDs"
+          fieldType: "tags"
+          helpText: "Optional Wiz security sub-category ids to map the rule to a framework/standard."
+
+    - name: "Infrastructure as Code"
+      icon: "file-code"
+      description: "Optional IaC scanning matcher"
+      fields:
+        - key: "iac_matcher_type"
+          label: "IaC Matcher Type"
+          fieldType: "select"
+          defaultValue: "none"
+          options:
+            - { label: "None", value: "none" }
+            - { label: "Terraform", value: "TERRAFORM" }
+            - { label: "CloudFormation", value: "CLOUD_FORMATION" }
+            - { label: "Kubernetes", value: "KUBERNETES" }
+            - { label: "Azure Resource Manager", value: "AZURE_RESOURCE_MANAGER" }
+            - { label: "Dockerfile", value: "DOCKER_FILE" }
+            - { label: "Admission Controller", value: "ADMISSION_CONTROLLER" }
+          helpText: "Optionally extend the rule to Infrastructure-as-Code scanning. Requires IaC Rego code below."
+
+        - key: "iac_rego_code"
+          label: "IaC Rego Code"
+          fieldType: "textarea"
+          helpText: "The Rego policy for the selected IaC matcher type. Required when an IaC matcher type is selected; leave empty otherwise."
