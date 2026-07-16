@@ -1,0 +1,103 @@
+# =============================================================================
+# Canvas Template — Defender for Endpoint Custom Detection Rules (PREVIEW)
+#
+# Declares ONE scheduled KQL custom detection rule — the item. Users add as many
+# as they need. Identity is the client-chosen rule_id; the Graph beta API is an
+# upsert on that id. Field keys must match
+# config-types/mde-detection-rules/validate.ts (extractDetectionRuleSpecs).
+#
+# PREVIEW: the Graph detectionRules API is in beta and is commercial-cloud only.
+# =============================================================================
+
+id: "mde-detection-rules"
+name: "Defender Detection Rules"
+toolType: "defender-endpoint"
+entityType: "mde-detection-rules"
+description: "Manage custom detection rules (scheduled KQL detections) as code via the Microsoft Graph beta API. PREVIEW: the Graph detectionRules API is in beta and is commercial-cloud only; it needs the CustomDetection.ReadWrite.All Graph permission."
+
+item:
+  label: "Detection Rule"
+  identityField: "rule_id"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Detection"
+      icon: "search"
+      description: "The scheduled KQL query and how often it runs"
+      fields:
+        - key: "rule_id"
+          label: "Rule ID"
+          fieldType: "text"
+          required: true
+          helpText: "Stable, client-chosen id (lowercase letters, digits, hyphens), e.g. office-encoded-powershell. This is the identity — changing it creates a new rule."
+
+        - key: "display_name"
+          label: "Display name"
+          fieldType: "text"
+          required: true
+          helpText: "Human-readable name shown in the Defender portal."
+
+        - key: "query_text"
+          label: "KQL query"
+          fieldType: "textarea"
+          required: true
+          helpText: "The advanced-hunting (KQL) query that defines the detection."
+
+        - key: "frequency"
+          label: "Run frequency"
+          fieldType: "select"
+          required: true
+          defaultValue: "PT1H"
+          options:
+            - { label: "Every hour", value: "PT1H" }
+            - { label: "Every 3 hours", value: "PT3H" }
+            - { label: "Every 12 hours", value: "PT12H" }
+            - { label: "Every 24 hours", value: "P1D" }
+          helpText: "How often the query runs (ISO-8601 duration)."
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          defaultValue: "enabled"
+          options:
+            - { label: "Enabled", value: "enabled" }
+            - { label: "Disabled", value: "disabled" }
+          helpText: "Whether the rule runs. Supersedes the deprecated isEnabled flag."
+
+    - name: "Alert"
+      icon: "bell"
+      description: "The alert this rule raises on a match"
+      fields:
+        - key: "alert_title"
+          label: "Alert title"
+          fieldType: "text"
+          required: true
+          helpText: "Title shown on alerts this rule raises."
+
+        - key: "alert_description"
+          label: "Alert description"
+          fieldType: "textarea"
+          required: true
+          helpText: "Why this detection matters (shown on alerts)."
+
+        - key: "alert_severity"
+          label: "Alert severity"
+          fieldType: "select"
+          defaultValue: "medium"
+          options:
+            - { label: "Informational", value: "informational" }
+            - { label: "Low", value: "low" }
+            - { label: "Medium", value: "medium" }
+            - { label: "High", value: "high" }
+          helpText: "Severity of the alert (Graph uses lowercase severities)."
+
+        - key: "alert_category"
+          label: "Category"
+          fieldType: "text"
+          helpText: "Optional MITRE ATT&CK tactic / category, e.g. Execution."
+
+        - key: "recommended_actions"
+          label: "Recommended actions"
+          fieldType: "textarea"
+          helpText: "Optional guidance shown to responders on the alert."

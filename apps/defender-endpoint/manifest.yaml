@@ -1,0 +1,192 @@
+id: defender-endpoint
+name: Microsoft Defender for Endpoint
+version: "1.0.0"
+vendor: Veltrix
+description: >
+  Manage Microsoft Defender for Endpoint threat intelligence as code. Covers file,
+  network and certificate indicators (IoCs) via the Defender /api/indicators API,
+  plus custom detection rules (PREVIEW) via the Microsoft Graph beta API — with
+  validation, drift detection and rollback handled by the Security-as-Code
+  pipeline. Auth is an Azure AD app registration (OAuth2 client credentials); the
+  component hostname is the Defender API host (api.security.microsoft.com) and the
+  tenant is set via the Tenant ID app setting.
+category: EDR
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/defender-endpoint
+icon: "🛡️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Microsoft Defender brand: Microsoft blue with a Defender cyan accent.
+branding:
+  primaryColor: "#0078D4"
+  accentColor: "#50E6FF"
+  logo: ./assets/logo.svg
+  logoDark: ./assets/logo-dark.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: mde-file-indicators
+      actions: [read, write, delete]
+      description: Manage Defender file-hash indicators
+    - resource: mde-network-indicators
+      actions: [read, write, delete]
+      description: Manage Defender network indicators (IP / domain / URL)
+    - resource: mde-cert-indicators
+      actions: [read, write, delete]
+      description: Manage Defender certificate indicators
+    - resource: mde-detection-rules
+      actions: [read, write, delete]
+      description: Manage Defender custom detection rules (preview)
+
+pipeline:
+  configurationTypes:
+    - id: mde-file-indicators
+      name: Defender File Indicators
+      description: File-hash indicators (SHA-256 / SHA-1 / MD5) via /api/indicators; reconciled by (type, value)
+      canvasTemplate: config-types/mde-file-indicators/canvas.yaml
+      defaultConfig: config-types/mde-file-indicators/defaults.yaml
+      handlers:
+        validate: config-types/mde-file-indicators/validate
+        deploy: config-types/mde-file-indicators/deploy
+        rollback: config-types/mde-file-indicators/rollback
+        healthCheck: config-types/mde-file-indicators/healthCheck
+        driftDetect: config-types/mde-file-indicators/driftDetect
+        getStatus: config-types/mde-file-indicators/getStatus
+      targets:
+        componentTypes: [mde-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: mde-network-indicators
+      name: Defender Network Indicators
+      description: Network indicators (IP / domain / URL) via /api/indicators; IPs are single addresses (no CIDR)
+      canvasTemplate: config-types/mde-network-indicators/canvas.yaml
+      defaultConfig: config-types/mde-network-indicators/defaults.yaml
+      handlers:
+        validate: config-types/mde-network-indicators/validate
+        deploy: config-types/mde-network-indicators/deploy
+        rollback: config-types/mde-network-indicators/rollback
+        healthCheck: config-types/mde-network-indicators/healthCheck
+        driftDetect: config-types/mde-network-indicators/driftDetect
+        getStatus: config-types/mde-network-indicators/getStatus
+      targets:
+        componentTypes: [mde-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: mde-cert-indicators
+      name: Defender Certificate Indicators
+      description: Certificate indicators (SHA-1 thumbprints) via /api/indicators; reconciled by (type, value)
+      canvasTemplate: config-types/mde-cert-indicators/canvas.yaml
+      defaultConfig: config-types/mde-cert-indicators/defaults.yaml
+      handlers:
+        validate: config-types/mde-cert-indicators/validate
+        deploy: config-types/mde-cert-indicators/deploy
+        rollback: config-types/mde-cert-indicators/rollback
+        healthCheck: config-types/mde-cert-indicators/healthCheck
+        driftDetect: config-types/mde-cert-indicators/driftDetect
+        getStatus: config-types/mde-cert-indicators/getStatus
+      targets:
+        componentTypes: [mde-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: mde-detection-rules
+      name: Defender Custom Detection Rules (Preview)
+      description: Scheduled KQL custom detection rules via the Microsoft Graph beta API. PREVIEW — commercial cloud only, needs the Graph CustomDetection.ReadWrite.All permission
+      canvasTemplate: config-types/mde-detection-rules/canvas.yaml
+      defaultConfig: config-types/mde-detection-rules/defaults.yaml
+      handlers:
+        validate: config-types/mde-detection-rules/validate
+        deploy: config-types/mde-detection-rules/deploy
+        rollback: config-types/mde-detection-rules/rollback
+        healthCheck: config-types/mde-detection-rules/healthCheck
+        driftDetect: config-types/mde-detection-rules/driftDetect
+        getStatus: config-types/mde-detection-rules/getStatus
+      targets:
+        componentTypes: [mde-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/defender-endpoint
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs a Defender tenant (component) with
+    # the Entra app credential used to reach it, with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: runs the OAuth2 token handshake and one
+# lightweight authenticated GET /api/indicators.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: tenant_id
+    type: string
+    label: Tenant ID
+    description: >
+      The Microsoft Entra (Azure AD) directory/tenant GUID. Required to acquire an
+      access token for the app registration.
+    default: ""
+    required: true
+  - key: azure_cloud
+    type: select
+    label: Azure Cloud
+    description: >
+      The Azure environment the tenant lives in. Determines the login host, token
+      audience and default API host. Custom detection rules (Graph) are available
+      only in the commercial cloud.
+    default: commercial
+    required: false
+    options:
+      - label: Commercial
+        value: commercial
+      - label: US Gov (GCC)
+        value: gcc
+      - label: US Gov (GCC High)
+        value: gcc-high
+      - label: US Gov (DoD)
+        value: dod
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Defender / Graph API calls.
+    default: 30
+    required: false

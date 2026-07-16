@@ -1,0 +1,107 @@
+# =============================================================================
+# Canvas Template — Defender for Endpoint File Indicators
+#
+# Declares ONE file indicator (SHA-256 / SHA-1 / MD5 hash) — the item. Users add
+# as many as they need. Identity is (indicatorType, indicatorValue); POST
+# /api/indicators is an upsert on that key. Field keys must match
+# config-types/mde-file-indicators/validate.ts (shared extractIndicatorSpecs).
+# =============================================================================
+
+id: "mde-file-indicators"
+name: "Defender File Indicators"
+toolType: "defender-endpoint"
+entityType: "mde-file-indicators"
+description: "Manage Microsoft Defender for Endpoint file-hash indicators (SHA-256 / SHA-1 / MD5) as code via the /api/indicators API."
+
+item:
+  label: "File Indicator"
+  identityField: "indicator_value"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Indicator"
+      icon: "file"
+      description: "The file hash and how Defender should respond"
+      fields:
+        - key: "indicator_type"
+          label: "Hash type"
+          fieldType: "select"
+          required: true
+          defaultValue: "FileSha256"
+          options:
+            - { label: "SHA-256 (preferred)", value: "FileSha256" }
+            - { label: "SHA-1 (legacy)", value: "FileSha1" }
+            - { label: "MD5 (legacy)", value: "FileMd5" }
+          helpText: "Prefer SHA-256. SHA-1 and MD5 are supported for legacy feeds."
+
+        - key: "indicator_value"
+          label: "File hash"
+          fieldType: "text"
+          required: true
+          helpText: "The file hash: 64 hex chars (SHA-256), 40 (SHA-1) or 32 (MD5)."
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "Block"
+          options:
+            - { label: "Allow", value: "Allowed" }
+            - { label: "Audit", value: "Audit" }
+            - { label: "Block", value: "Block" }
+            - { label: "Block and remediate", value: "BlockAndRemediate" }
+          helpText: "What Defender does on a match. Audit requires Generate alert."
+
+        - key: "severity"
+          label: "Severity"
+          fieldType: "select"
+          defaultValue: "Medium"
+          options:
+            - { label: "Informational", value: "Informational" }
+            - { label: "Low", value: "Low" }
+            - { label: "Medium", value: "Medium" }
+            - { label: "High", value: "High" }
+          helpText: "Severity of the alert raised for this indicator."
+
+        - key: "title"
+          label: "Alert title"
+          fieldType: "text"
+          required: true
+          helpText: "Title shown on alerts this indicator raises."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: true
+          helpText: "Why this indicator exists (shown on alerts)."
+
+        - key: "generate_alert"
+          label: "Generate alert"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Raise an alert on a match. Required when the action is Audit."
+
+    - name: "Advanced"
+      icon: "settings"
+      description: "Optional scope and lifetime"
+      fields:
+        - key: "expiration_time"
+          label: "Expiration (ISO 8601)"
+          fieldType: "text"
+          helpText: "Optional expiry, e.g. 2026-12-31T00:00:00Z. Leave blank for no expiry."
+
+        - key: "rbac_group_names"
+          label: "Device groups"
+          fieldType: "tags"
+          helpText: "Optional existing device-group names to scope this indicator to. Blank = all devices."
+
+        - key: "recommended_actions"
+          label: "Recommended actions"
+          fieldType: "textarea"
+          helpText: "Optional guidance shown to responders on the alert."
+
+        - key: "application"
+          label: "Application"
+          fieldType: "text"
+          helpText: "Optional source application label. Applies to new indicators only."

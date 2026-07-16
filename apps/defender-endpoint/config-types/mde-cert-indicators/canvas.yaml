@@ -1,0 +1,100 @@
+# =============================================================================
+# Canvas Template — Defender for Endpoint Certificate Indicators
+#
+# Declares ONE certificate indicator (SHA-1 thumbprint) — the item. Users add as
+# many as they need. Identity is (indicatorType, indicatorValue); POST
+# /api/indicators is an upsert on that key. Field keys must match
+# config-types/mde-cert-indicators/validate.ts (shared extractIndicatorSpecs).
+# =============================================================================
+
+id: "mde-cert-indicators"
+name: "Defender Certificate Indicators"
+toolType: "defender-endpoint"
+entityType: "mde-cert-indicators"
+description: "Manage Microsoft Defender for Endpoint certificate indicators (SHA-1 thumbprints) as code via the /api/indicators API."
+
+item:
+  label: "Certificate Indicator"
+  identityField: "indicator_value"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Indicator"
+      icon: "shield"
+      description: "The certificate thumbprint and how Defender should respond"
+      fields:
+        - key: "indicator_type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "CertificateThumbprint"
+          options:
+            - { label: "Certificate thumbprint (SHA-1)", value: "CertificateThumbprint" }
+          helpText: "Defender matches files signed by this certificate."
+
+        - key: "indicator_value"
+          label: "Thumbprint"
+          fieldType: "text"
+          required: true
+          helpText: "The certificate SHA-1 thumbprint — 40 hex characters."
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "Block"
+          options:
+            - { label: "Allow", value: "Allowed" }
+            - { label: "Audit", value: "Audit" }
+            - { label: "Block", value: "Block" }
+            - { label: "Block and remediate", value: "BlockAndRemediate" }
+          helpText: "What Defender does on a match. Audit requires Generate alert."
+
+        - key: "severity"
+          label: "Severity"
+          fieldType: "select"
+          defaultValue: "Medium"
+          options:
+            - { label: "Informational", value: "Informational" }
+            - { label: "Low", value: "Low" }
+            - { label: "Medium", value: "Medium" }
+            - { label: "High", value: "High" }
+          helpText: "Severity of the alert raised for this indicator."
+
+        - key: "title"
+          label: "Alert title"
+          fieldType: "text"
+          required: true
+          helpText: "Title shown on alerts this indicator raises."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: true
+          helpText: "Why this indicator exists (shown on alerts)."
+
+        - key: "generate_alert"
+          label: "Generate alert"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Raise an alert on a match. Required when the action is Audit."
+
+    - name: "Advanced"
+      icon: "settings"
+      description: "Optional scope and lifetime"
+      fields:
+        - key: "expiration_time"
+          label: "Expiration (ISO 8601)"
+          fieldType: "text"
+          helpText: "Optional expiry, e.g. 2026-12-31T00:00:00Z. Leave blank for no expiry."
+
+        - key: "rbac_group_names"
+          label: "Device groups"
+          fieldType: "tags"
+          helpText: "Optional existing device-group names to scope this indicator to. Blank = all devices."
+
+        - key: "recommended_actions"
+          label: "Recommended actions"
+          fieldType: "textarea"
+          helpText: "Optional guidance shown to responders on the alert."
