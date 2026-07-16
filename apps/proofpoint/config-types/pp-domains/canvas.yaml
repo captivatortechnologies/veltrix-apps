@@ -1,0 +1,54 @@
+# =============================================================================
+# Canvas Template — Proofpoint Essentials Domains
+#
+# Declares ONE domain — the item. Users add as many as they need. Domains are a
+# sub-resource of the organization (/orgs/{org}/domains); identity for
+# reconciliation is the domain name. Deploy is an UPSERT keyed on the name (PUT an
+# existing domain, POST a new one; never touch domains it didn't declare). Field
+# keys must match config-types/pp-domains/validate.ts.
+# =============================================================================
+
+id: "proofpoint-pp-domains"
+name: "Proofpoint Essentials Domain Configuration"
+toolType: "proofpoint"
+entityType: "pp-domains"
+description: "Manage Proofpoint Essentials protected domains and their inbound mail routing as code through the Essentials Interface API (/orgs/{org}/domains). Reconciled by domain name."
+
+item:
+  label: "Domain"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Domain"
+      icon: "globe"
+      description: "The domain and how mail for it is delivered"
+      fields:
+        - key: "name"
+          label: "Domain name"
+          fieldType: "text"
+          required: true
+          helpText: "The email domain to protect, e.g. acme.com. This is the domain's identity in Proofpoint Essentials."
+
+        - key: "is_active"
+          label: "Active"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether Proofpoint Essentials accepts and filters mail for this domain."
+
+        - key: "is_relay"
+          label: "Relay delivery"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Deliver clean mail to a specific destination host (smart host) instead of by MX lookup. Requires a Destination below."
+
+        - key: "destination"
+          label: "Destination"
+          fieldType: "text"
+          helpText: "The delivery host or IPv4 address for this domain. Required when Relay delivery is enabled."
+
+        - key: "failovers"
+          label: "Failover destinations"
+          fieldType: "tags"
+          helpText: "Optional backup delivery hosts / IPv4 addresses, tried in order if the primary destination is unavailable."

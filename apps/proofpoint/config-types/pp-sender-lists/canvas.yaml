@@ -1,0 +1,43 @@
+# =============================================================================
+# Canvas Template — Proofpoint Essentials Sender Lists
+#
+# Declares ONE sender-list entry — the item. Users add as many as they need. The
+# organization Safe and Blocked sender lists are attributes of the org object
+# (/orgs/{org}); deploy reads them, adds each declared entry that is missing from
+# its target list, and PUTs the org back (additive — it never removes entries it
+# did not add). Identity for reconciliation is the sender value. Field keys must
+# match config-types/pp-sender-lists/validate.ts.
+# =============================================================================
+
+id: "proofpoint-pp-sender-lists"
+name: "Proofpoint Essentials Sender List Configuration"
+toolType: "proofpoint"
+entityType: "pp-sender-lists"
+description: "Manage the Proofpoint Essentials organization Safe and Blocked sender lists as code. Each entry is an email, domain or IP/CIDR; reconciled additively by sender value."
+
+item:
+  label: "Sender"
+  identityField: "sender"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Sender"
+      icon: "mail"
+      description: "The sender and which list it belongs to"
+      fields:
+        - key: "sender"
+          label: "Sender"
+          fieldType: "text"
+          required: true
+          helpText: "An email address (name@domain.com), a domain (domain.com or *@domain.com) or an IP/CIDR. This is the entry's identity."
+
+        - key: "list_type"
+          label: "List"
+          fieldType: "select"
+          required: true
+          defaultValue: "safe"
+          options:
+            - { label: "Safe (allow)", value: "safe" }
+            - { label: "Blocked (deny)", value: "blocked" }
+          helpText: "Add the sender to the organization Safe list (always allow) or Blocked list (always deny)."

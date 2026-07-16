@@ -1,0 +1,143 @@
+id: proofpoint
+name: Proofpoint Essentials
+version: "1.0.0"
+vendor: Veltrix
+description: >
+  Manage Proofpoint Essentials email security configuration as code through the
+  Essentials Interface API (v1). Covers protected domains and their inbound mail
+  routing, plus the organization Safe and Blocked sender lists — with validation,
+  drift detection and rollback handled by the Security-as-Code pipeline. Objects
+  are scoped to the organization named in the Organization (primary domain)
+  setting.
+category: NETWORK
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/proofpoint
+icon: "📧"
+
+platform:
+  minVersion: "1.0.0"
+
+# Proofpoint brand: the Proofpoint teal-green with a lighter teal accent.
+branding:
+  primaryColor: "#008576"
+  accentColor: "#37B6AB"
+  logo: ./assets/logo.svg
+  logoDark: ./assets/logo-dark.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: pp-domains
+      actions: [read, write, delete]
+      description: Manage Proofpoint Essentials protected domains
+    - resource: pp-sender-lists
+      actions: [read, write, delete]
+      description: Manage Proofpoint Essentials Safe / Blocked sender lists
+
+pipeline:
+  configurationTypes:
+    - id: pp-domains
+      name: Proofpoint Domains
+      description: Protected domains + inbound mail routing (is_active / relay + destination / failovers) via /orgs/{org}/domains; upsert keyed on the domain name
+      canvasTemplate: config-types/pp-domains/canvas.yaml
+      defaultConfig: config-types/pp-domains/defaults.yaml
+      handlers:
+        validate: config-types/pp-domains/validate
+        deploy: config-types/pp-domains/deploy
+        rollback: config-types/pp-domains/rollback
+        healthCheck: config-types/pp-domains/healthCheck
+        driftDetect: config-types/pp-domains/driftDetect
+        getStatus: config-types/pp-domains/getStatus
+      targets:
+        componentTypes: [proofpoint]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: pp-sender-lists
+      name: Proofpoint Sender Lists
+      description: Organization Safe (allow) and Blocked (deny) sender entries via the org object (/orgs/{org}); additive by sender value
+      canvasTemplate: config-types/pp-sender-lists/canvas.yaml
+      defaultConfig: config-types/pp-sender-lists/defaults.yaml
+      handlers:
+        validate: config-types/pp-sender-lists/validate
+        deploy: config-types/pp-sender-lists/deploy
+        rollback: config-types/pp-sender-lists/rollback
+        healthCheck: config-types/pp-sender-lists/healthCheck
+        driftDetect: config-types/pp-sender-lists/driftDetect
+        getStatus: config-types/pp-sender-lists/getStatus
+      targets:
+        componentTypes: [proofpoint]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/proofpoint
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs a Proofpoint Essentials stack host
+    # (component) with the admin credentials used to reach it, with a per-row
+    # connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: verifies the stack host + admin credentials
+# and that the configured organization is visible via GET /orgs/{org}.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: org_domain
+    type: string
+    label: Organization (primary domain)
+    description: >
+      The primary domain of the Proofpoint Essentials organization this
+      configuration manages (e.g. acme.com). All domain and sender-list changes are
+      applied to /orgs/<this-domain>.
+    default: ""
+    required: true
+  - key: stack_host
+    type: string
+    label: Stack host
+    description: >
+      The Essentials data-region host (us1–us5 or eu1), used when the connection
+      does not set an endpoint. Example: us1.proofpointessentials.com.
+    default: "us1.proofpointessentials.com"
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Proofpoint Essentials API calls.
+    default: 30
+    required: false
