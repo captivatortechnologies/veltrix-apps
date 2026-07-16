@@ -699,6 +699,14 @@ client:
       label: Setup Guide
       icon: book
       nav: sidebar
+    # Connections — Settings nav group. Pairs a Zscaler tenant (component) with
+    # the OAuth2 client-credentials pair used to reach it, with a connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
 
 connectivity:
   testHandler: handlers/testConnection

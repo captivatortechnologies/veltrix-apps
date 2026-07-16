@@ -339,10 +339,23 @@ client:
       label: Setup Guide
       icon: book
       nav: sidebar
+    # Connections — Settings nav group. Pairs a Cloudflare zone (component) with
+    # the API token used to reach it, with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
 
 hooks:
   onInstall: hooks/onInstall
   onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: verifies the API token via
+# GET /user/tokens/verify.
+connectivity:
+  testHandler: handlers/testConnection
 
 settings:
   - key: account_id

@@ -160,10 +160,23 @@ client:
       label: Setup Guide
       icon: book
       nav: sidebar
+    # Connections — Settings nav group. Pairs a Snyk region host (component) with
+    # the API token used to reach it, with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
 
 hooks:
   onInstall: hooks/onInstall
   onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: verifies the region host + API token via a
+# REST orgs GET.
+connectivity:
+  testHandler: handlers/testConnection
 
 settings:
   - key: org_id

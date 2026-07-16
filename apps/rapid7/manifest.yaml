@@ -237,10 +237,23 @@ client:
       label: Setup Guide
       icon: book
       nav: sidebar
+    # Connections — Settings nav group. Pairs an InsightVM console (component)
+    # with the Basic-auth credential used to reach it, with a connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
 
 hooks:
   onInstall: hooks/onInstall
   onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: verifies the console host + Basic-auth
+# credential via GET /sites?size=1.
+connectivity:
+  testHandler: handlers/testConnection
 
 settings:
   - key: two_factor_token

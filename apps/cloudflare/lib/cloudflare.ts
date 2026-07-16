@@ -209,6 +209,14 @@ export class CloudflareClient {
     return !('error' in (await this.resolveAccountId()))
   }
 
+  /**
+   * Verify the API token itself (GET /user/tokens/verify) — a token-scoped probe
+   * that needs no zone or account. Used by the connection test.
+   */
+  async verifyToken(): Promise<CloudflareResponse> {
+    return this.request('GET', '/user/tokens/verify', {})
+  }
+
   // ---- transport -----------------------------------------------------------
 
   private async request(
