@@ -14,7 +14,7 @@ export interface AnalyticsRollbackEntry {
   ruleName: string
   ruleId: string
   existed: boolean
-  prior?: { kind?: string; etag?: string; properties?: unknown }
+  prior?: { kind?: string; properties?: unknown }
 }
 
 /** The Microsoft.SecurityInsights ScheduledAlertRule request body for a spec. */
@@ -64,12 +64,12 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       let existed = false
       if (current.status === 200) {
         existed = true
-        const prior = parseJson<{ kind?: string; etag?: string; properties?: unknown }>(current.body)
+        const prior = parseJson<{ kind?: string; properties?: unknown }>(current.body)
         rollbackState.push({
           ruleName: spec.ruleName,
           ruleId: spec.ruleId,
           existed: true,
-          prior: { kind: prior?.kind, etag: prior?.etag, properties: prior?.properties },
+          prior: { kind: prior?.kind, properties: prior?.properties },
         })
       } else if (current.status === 404) {
         rollbackState.push({ ruleName: spec.ruleName, ruleId: spec.ruleId, existed: false })

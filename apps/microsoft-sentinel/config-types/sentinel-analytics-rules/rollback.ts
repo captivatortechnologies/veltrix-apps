@@ -5,7 +5,9 @@ import type { AnalyticsRollbackEntry } from './deploy'
 /**
  * Roll back analytics rules using the state captured during deploy: rules this
  * deploy created are deleted; rules it updated are restored to their prior
- * kind/properties (etag preserved for optimistic concurrency).
+ * kind/properties via an unconditional PUT. The captured etag is intentionally
+ * NOT sent — this deploy already bumped it, so the prior etag is stale and would
+ * fail the service's optimistic-concurrency check.
  */
 export default async function rollback(ctx: RollbackContext): Promise<RollbackResult> {
   const built = buildSentinelClient(ctx.component.hostname, ctx.credential, ctx.settings)
@@ -27,7 +29,7 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
           throw new Error(`Failed to delete analytics rule "${entry.ruleName}": ${armErrorMessage(res)}`)
         }
       } else if (entry.prior) {
-        const body = { kind: entry.prior.kind ?? 'Scheduled', etag: entry.prior.etag, properties: entry.prior.properties }
+        const body = { kind: entry.prior.kind ?? 'Scheduled', properties: entry.prior.properties }
         const res = await client.request('PUT', path, { apiVersion: SENTINEL_API_VERSION, body })
         if (!res.ok) throw new Error(`Failed to restore analytics rule "${entry.ruleName}": ${armErrorMessage(res)}`)
       }

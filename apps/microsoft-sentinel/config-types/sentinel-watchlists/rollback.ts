@@ -33,7 +33,6 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
       } else if (entry.prior?.properties) {
         const p = entry.prior.properties
         const body = {
-          etag: entry.prior.etag,
           properties: {
             displayName: p.displayName,
             provider: p.provider,

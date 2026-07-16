@@ -83,6 +83,12 @@ describe('Sentinel Analytics Rules Validate Handler', () => {
     expect(result.errors.some((e) => e.code === 'invalid_operator')).toBe(true)
   })
 
+  it('rejects tactics that are not AttackTactic enum values', async () => {
+    const result = await validate(makeCtx([{ name: 'r', fields: { ...validRule, tactics: ['InitialAccess', 'NotATactic'] } }]))
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.code === 'invalid_tactic')).toBe(true)
+  })
+
   it('rejects duplicate rule names that slug to the same id', async () => {
     const result = await validate(
       makeCtx([

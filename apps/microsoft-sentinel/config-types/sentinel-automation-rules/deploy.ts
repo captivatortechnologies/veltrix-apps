@@ -14,7 +14,7 @@ export interface AutomationRollbackEntry {
   ruleName: string
   ruleId: string
   existed: boolean
-  prior?: { etag?: string; properties?: unknown }
+  prior?: { properties?: unknown }
 }
 
 /** The Microsoft.SecurityInsights AutomationRule request body for a spec. */
@@ -71,8 +71,8 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       let existed = false
       if (current.status === 200) {
         existed = true
-        const prior = parseJson<{ etag?: string; properties?: unknown }>(current.body)
-        rollbackState.push({ ruleName: spec.ruleName, ruleId: spec.ruleId, existed: true, prior: { etag: prior?.etag, properties: prior?.properties } })
+        const prior = parseJson<{ properties?: unknown }>(current.body)
+        rollbackState.push({ ruleName: spec.ruleName, ruleId: spec.ruleId, existed: true, prior: { properties: prior?.properties } })
       } else if (current.status === 404) {
         rollbackState.push({ ruleName: spec.ruleName, ruleId: spec.ruleId, existed: false })
       } else {

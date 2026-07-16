@@ -5,7 +5,9 @@ import type { AutomationRollbackEntry } from './deploy'
 /**
  * Roll back automation rules using the state captured during deploy: rules this
  * deploy created are deleted; rules it updated are restored to their prior
- * properties (etag preserved for optimistic concurrency).
+ * properties via an unconditional PUT. The captured etag is intentionally NOT
+ * sent — this deploy already bumped it, so the prior etag is stale and would
+ * fail the service's optimistic-concurrency check.
  */
 export default async function rollback(ctx: RollbackContext): Promise<RollbackResult> {
   const built = buildSentinelClient(ctx.component.hostname, ctx.credential, ctx.settings)
@@ -29,7 +31,7 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
       } else if (entry.prior) {
         const res = await client.request('PUT', path, {
           apiVersion: SENTINEL_API_VERSION,
-          body: { etag: entry.prior.etag, properties: entry.prior.properties },
+          body: { properties: entry.prior.properties },
         })
         if (!res.ok) throw new Error(`Failed to restore automation rule "${entry.ruleName}": ${armErrorMessage(res)}`)
       }

@@ -14,7 +14,7 @@ export interface WatchlistRollbackEntry {
   alias: string
   existed: boolean
   /** Prior metadata only — GET does not return rawContent, so item content cannot be restored. */
-  prior?: { etag?: string; properties?: Record<string, unknown> }
+  prior?: { properties?: Record<string, unknown> }
 }
 
 /**
@@ -65,8 +65,8 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       let existed = false
       if (current.status === 200) {
         existed = true
-        const prior = parseJson<{ etag?: string; properties?: Record<string, unknown> }>(current.body)
-        rollbackState.push({ alias: spec.alias, existed: true, prior: { etag: prior?.etag, properties: prior?.properties } })
+        const prior = parseJson<{ properties?: Record<string, unknown> }>(current.body)
+        rollbackState.push({ alias: spec.alias, existed: true, prior: { properties: prior?.properties } })
       } else if (current.status === 404) {
         rollbackState.push({ alias: spec.alias, existed: false })
       } else {

@@ -3,6 +3,13 @@ import { isIso8601Duration, slugify } from '../../lib/sentinel'
 
 export const SEVERITIES = ['High', 'Medium', 'Low', 'Informational'] as const
 export const TRIGGER_OPERATORS = ['GreaterThan', 'LessThan', 'Equal', 'NotEqual'] as const
+/** Microsoft.SecurityInsights AttackTactic enum (api-version 2024-09-01). */
+export const ATTACK_TACTICS = [
+  'Reconnaissance', 'ResourceDevelopment', 'InitialAccess', 'Execution', 'Persistence',
+  'PrivilegeEscalation', 'DefenseEvasion', 'CredentialAccess', 'Discovery', 'LateralMovement',
+  'Collection', 'Exfiltration', 'CommandAndControl', 'Impact', 'PreAttack',
+  'ImpairProcessControl', 'InhibitResponseFunction',
+] as const
 
 export type Severity = (typeof SEVERITIES)[number]
 export type TriggerOperator = (typeof TRIGGER_OPERATORS)[number]
@@ -168,6 +175,16 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
         message: `Suppression duration "${spec.suppressionDuration}" must be an ISO-8601 duration (e.g. PT1H)`,
         code: 'invalid_duration',
       })
+    }
+
+    for (const tactic of spec.tactics) {
+      if (!ATTACK_TACTICS.includes(tactic as (typeof ATTACK_TACTICS)[number])) {
+        errors.push({
+          field: `${prefix}.tactics`,
+          message: `Invalid MITRE tactic "${tactic}" — must be a Microsoft.SecurityInsights AttackTactic value`,
+          code: 'invalid_tactic',
+        })
+      }
     }
   }
 
