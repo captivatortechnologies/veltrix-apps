@@ -13,6 +13,13 @@
 // browser (bundled into the client bundle). Keep the two in sync.
 // =============================================================================
 
+import {
+  effectivePlacement,
+  allocateNodesBySite,
+  type ClusterPlacement,
+  type ControlPlaneLayout,
+} from './byolPlacement'
+
 export type ByolResourceTier = 'foundation' | 'control-plane' | 'data' | 'search' | 'ingest'
 
 export type ByolResourceKind =
@@ -33,6 +40,8 @@ export type ByolResourceKind =
   | 'hec'
   | 'heavy-forwarder'
   | 'standalone'
+  // A single instance running several combined control-plane management roles.
+  | 'management-node'
 
 export interface ByolResourcePlanItem {
   planKey: string
@@ -41,6 +50,10 @@ export interface ByolResourcePlanItem {
   name: string
   role: string
   region: string | null
+  /** Availability zone within `region` (multi-AZ placement); null otherwise. */
+  zone?: string | null
+  /** Machine-readable roles this instance runs — drives control-plane bring-up. */
+  roles?: string[]
 }
 
 export interface ByolTopologyInput {
@@ -52,6 +65,99 @@ export interface ByolTopologyInput {
   region?: string | null
   indexerRegions?: string[]
   searchHeadRegions?: string[]
+  /** Control-plane consolidation layout (distributed only). Defaults to 'dedicated'. */
+  controlPlaneLayout?: ControlPlaneLayout
+  /** Heavy forwarder count (distributed only). Defaults to 1. */
+  heavyForwarderCount?: number
+  /** Multi-site placement of the indexer cluster (indexer/search tiers only). */
+  indexerPlacement?: ClusterPlacement | null
+  /** Multi-site placement of the search-head cluster. */
+  searchHeadPlacement?: ClusterPlacement | null
+}
+
+/** A control-plane management role that can be dedicated or combined onto a node. */
+type ControlPlaneRole =
+  | 'license-manager'
+  | 'cluster-manager'
+  | 'sh-deployer'
+  | 'deployment-server'
+  | 'monitoring-console'
+
+const CONTROL_PLANE_ROLE_META: Record<ControlPlaneRole, { kind: ByolResourceKind; name: string; role: string }> = {
+  'license-manager': { kind: 'license-manager', name: 'License Manager', role: 'Serves BYOL license pool' },
+  'cluster-manager': { kind: 'cluster-manager', name: 'Cluster Manager', role: 'Indexer cluster coordinator' },
+  'sh-deployer': { kind: 'sh-deployer', name: 'SH Deployer', role: 'Search head cluster deployer' },
+  'deployment-server': { kind: 'deployment-server', name: 'Deployment Server', role: 'Forwarder app distribution' },
+  'monitoring-console': { kind: 'monitoring-console', name: 'Monitoring Console', role: 'Fleet health & DMC' },
+}
+
+/**
+ * Group the five management roles into instances per consolidation layout. The
+ * cluster manager and SH deployer stay isolated when consolidating; only the
+ * lighter roles combine. Mirrors the SDK topology.
+ */
+function controlPlaneGroups(layout: ControlPlaneLayout): ControlPlaneRole[][] {
+  switch (layout) {
+    case 'single':
+      return [['license-manager', 'cluster-manager', 'sh-deployer', 'deployment-server', 'monitoring-console']]
+    case 'consolidated':
+      return [['cluster-manager'], ['sh-deployer'], ['license-manager', 'deployment-server', 'monitoring-console']]
+    case 'dedicated':
+    default:
+      return [['license-manager'], ['cluster-manager'], ['sh-deployer'], ['deployment-server'], ['monitoring-console']]
+  }
+}
+
+/** Build the control-plane instances for a layout (each running one or more roles). */
+function buildControlPlane(layout: ControlPlaneLayout, region: string | null): ByolResourcePlanItem[] {
+  return controlPlaneGroups(layout).map((roles) => {
+    if (roles.length === 1) {
+      const meta = CONTROL_PLANE_ROLE_META[roles[0]]
+      return { planKey: `control-plane/${roles[0]}`, tier: 'control-plane', kind: meta.kind, name: meta.name, role: meta.role, region, roles: [roles[0]] }
+    }
+    const label = roles.map((r) => CONTROL_PLANE_ROLE_META[r].name).join(' · ')
+    return {
+      planKey: 'control-plane/management',
+      tier: 'control-plane',
+      kind: 'management-node',
+      name: roles.length >= 5 ? 'Management node (all roles)' : 'Management node',
+      role: label,
+      region,
+      roles: [...roles],
+    }
+  })
+}
+
+interface NodeSite {
+  region: string | null
+  zone: string | null
+}
+
+/**
+ * Resolve the per-node region/zone for a cluster tier. Multi-site placement
+ * (indexer/search only) spreads nodes across sites by percent. Falls back to the
+ * legacy per-node region round-robin otherwise. Mirrors the SDK topology.
+ */
+function assignNodeSites(
+  count: number,
+  placement: ClusterPlacement | null | undefined,
+  primaryRegion: string | null,
+  legacyRegions: string[] | undefined,
+): NodeSite[] {
+  const eff = effectivePlacement(placement ?? undefined, true)
+  if (eff.mode === 'multi-site' && eff.sites && eff.sites.length >= 2) {
+    const granularity = eff.granularity ?? 'az'
+    const out: NodeSite[] = []
+    for (const alloc of allocateNodesBySite(count, eff.sites)) {
+      for (let k = 0; k < alloc.count; k++) {
+        out.push(granularity === 'az' ? { region: primaryRegion, zone: alloc.site } : { region: alloc.site, zone: null })
+      }
+    }
+    return out
+  }
+  const out: NodeSite[] = []
+  for (let i = 0; i < count; i++) out.push({ region: pickRegion(legacyRegions, i, primaryRegion), zone: null })
+  return out
 }
 
 /** Human labels per tier (mirrors the SDK topology). */
@@ -104,14 +210,14 @@ export function buildByolResourcePlan(input: ByolTopologyInput): ByolResourcePla
   }
 
   // --- Control plane ---
-  items.push({ planKey: 'control-plane/license-manager', tier: 'control-plane', kind: 'license-manager', name: 'License Manager', role: 'Serves BYOL license pool', region: primaryRegion })
-  items.push({ planKey: 'control-plane/cluster-manager', tier: 'control-plane', kind: 'cluster-manager', name: 'Cluster Manager', role: 'Indexer cluster coordinator', region: primaryRegion })
-  items.push({ planKey: 'control-plane/sh-deployer', tier: 'control-plane', kind: 'sh-deployer', name: 'SH Deployer', role: 'Search head cluster deployer', region: primaryRegion })
-  items.push({ planKey: 'control-plane/deployment-server', tier: 'control-plane', kind: 'deployment-server', name: 'Deployment Server', role: 'Forwarder app distribution', region: primaryRegion })
-  items.push({ planKey: 'control-plane/monitoring-console', tier: 'control-plane', kind: 'monitoring-console', name: 'Monitoring Console', role: 'Fleet health & DMC', region: primaryRegion })
+  // Always in the main region; consolidation only changes how many instances the
+  // management roles run on.
+  items.push(...buildControlPlane(input.controlPlaneLayout ?? 'dedicated', primaryRegion))
 
   // --- Data tier: indexer cluster ---
+  // Only this tier and the search tier accept multi-site placement.
   const indexerCount = Math.max(1, input.indexerCount ?? 1)
+  const indexerSites = assignNodeSites(indexerCount, input.indexerPlacement, primaryRegion, input.indexerRegions)
   for (let i = 0; i < indexerCount; i++) {
     items.push({
       planKey: `data/indexer-${i + 1}`,
@@ -119,12 +225,14 @@ export function buildByolResourcePlan(input: ByolTopologyInput): ByolResourcePla
       kind: 'indexer',
       name: `Indexer peer ${i + 1}`,
       role: 'Cluster peer node',
-      region: pickRegion(input.indexerRegions, i, primaryRegion),
+      region: indexerSites[i].region,
+      zone: indexerSites[i].zone,
     })
   }
 
   // --- Search tier: search head cluster ---
   const searchHeadCount = Math.max(1, input.searchHeadCount ?? 1)
+  const searchHeadSites = assignNodeSites(searchHeadCount, input.searchHeadPlacement, primaryRegion, input.searchHeadRegions)
   for (let i = 0; i < searchHeadCount; i++) {
     items.push({
       planKey: `search/search-head-${i + 1}`,
@@ -132,14 +240,25 @@ export function buildByolResourcePlan(input: ByolTopologyInput): ByolResourcePla
       kind: 'search-head',
       name: `Search head ${i + 1}`,
       role: i === 0 ? 'SHC captain candidate' : 'SHC member',
-      region: pickRegion(input.searchHeadRegions, i, primaryRegion),
+      region: searchHeadSites[i].region,
+      zone: searchHeadSites[i].zone,
     })
   }
 
   // --- Ingest & access ---
+  // Ingest is always main-region. Heavy forwarders default to 1; more on demand.
   items.push({ planKey: 'ingest/hec', tier: 'ingest', kind: 'hec', name: 'HTTP Event Collector', role: 'Token endpoint via LB', region: primaryRegion })
-  items.push({ planKey: 'ingest/heavy-forwarder-1', tier: 'ingest', kind: 'heavy-forwarder', name: 'Heavy Forwarder 1', role: 'Ingest routing / props', region: primaryRegion })
-  items.push({ planKey: 'ingest/heavy-forwarder-2', tier: 'ingest', kind: 'heavy-forwarder', name: 'Heavy Forwarder 2', role: 'Ingest routing / props', region: pickRegion(input.indexerRegions, 1, primaryRegion) })
+  const heavyForwarderCount = Math.max(1, input.heavyForwarderCount ?? 1)
+  for (let i = 0; i < heavyForwarderCount; i++) {
+    items.push({
+      planKey: `ingest/heavy-forwarder-${i + 1}`,
+      tier: 'ingest',
+      kind: 'heavy-forwarder',
+      name: `Heavy Forwarder ${i + 1}`,
+      role: 'Ingest routing / props',
+      region: primaryRegion,
+    })
+  }
 
   return items.map((it, i) => stampOrder(it, i))
 }
