@@ -28,6 +28,18 @@ jobs:
       - name: Install tooling
         run: npm ci
 
+      # Build the SDK and link it into the repo's node_modules so the validator's
+      # client bundle-check can resolve the BUNDLED sdk component subpaths
+      # (@veltrixsecops/app-sdk/byol, /connections). Without this the bundle check
+      # fails to resolve those imports for any app that uses them.
+      - name: Build and link the app SDK
+        run: |
+          npm --prefix sdk ci
+          npm --prefix sdk run build
+          mkdir -p node_modules/@veltrixsecops
+          ln -sfn "$PWD/sdk" node_modules/@veltrixsecops/app-sdk
+          node -e "require.resolve('@veltrixsecops/app-sdk/byol'); require.resolve('@veltrixsecops/app-sdk/connections'); console.log('SDK subpaths resolve OK')"
+
       - name: Detect changed apps
         id: detect
         run: |
@@ -109,6 +121,11 @@ jobs:
         if: steps.detect.outputs.apps != '' || steps.detect.outputs.template_changed == 'true'
         run: |
           npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+          # npm ci wipes node_modules, removing the SDK link — re-create it so
+          # test bundling resolves the @veltrixsecops/app-sdk/* subpaths
+          # (byol, connections, opentofu) that apps import.
+          mkdir -p node_modules/@veltrixsecops
+          ln -sfn "$PWD/sdk" node_modules/@veltrixsecops/app-sdk
           npm test
 
   secret-scan:
