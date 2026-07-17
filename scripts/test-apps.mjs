@@ -14,10 +14,9 @@
 
 import { build } from 'esbuild'
 import { spawn } from 'node:child_process'
-import { mkdtemp, rm, mkdir } from 'node:fs/promises'
+import { mkdtemp, rm, mkdir, readdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, relative, sep } from 'node:path'
-import { glob } from 'node:fs/promises'
 
 const only = process.argv.slice(2)
 
@@ -26,13 +25,48 @@ const patterns = [
   'apps/*/lib/__tests__/*.test.ts',
   'apps/*/infra/**/__tests__/*.test.ts',
 ]
-const files = []
-for (const pattern of patterns) {
-  for await (const file of glob(pattern)) files.push(file)
+
+// node:fs/promises `glob` is Node 22+, but CI/runtime target Node 20 — expand
+// the patterns ourselves against a recursive listing of apps/. Supports `*`
+// (one path segment), `**/` (zero or more segments) and `**` (any).
+function globToRegExp(pattern) {
+  let re = '^'
+  for (let i = 0; i < pattern.length; i++) {
+    const c = pattern[i]
+    if (c === '*') {
+      if (pattern[i + 1] === '*') {
+        i++
+        if (pattern[i + 1] === '/') {
+          i++
+          re += '(?:[^/]+/)*' // **/ across zero or more path segments
+        } else {
+          re += '.*' // ** across any characters
+        }
+      } else {
+        re += '[^/]*' // * within a single path segment
+      }
+    } else if ('.+^${}()|[]\\'.includes(c)) {
+      re += `\\${c}` // escape regex specials
+    } else {
+      re += c
+    }
+  }
+  return new RegExp(`${re}$`)
 }
 
+const regexes = patterns.map(globToRegExp)
+let listing = []
+try {
+  listing = await readdir('apps', { recursive: true })
+} catch {
+  listing = []
+}
+const files = listing
+  .map((entry) => `apps/${entry.split(sep).join('/')}`)
+  .filter((file) => regexes.some((re) => re.test(file)))
+
 const selected = files
-  .filter((f) => only.length === 0 || only.some((app) => f.includes(`apps${sep}${app}${sep}`)))
+  .filter((f) => only.length === 0 || only.some((app) => f.includes(`apps/${app}/`)))
   .sort()
 
 if (selected.length === 0) {
