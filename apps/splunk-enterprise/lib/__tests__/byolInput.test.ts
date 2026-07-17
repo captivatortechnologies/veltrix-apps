@@ -101,6 +101,31 @@ describe('readByol — placement', () => {
     expect(error).toMatch(/Search head placement: .*Too many sites/)
   })
 
+  it('rejects region-granularity (multi-region) placement — not yet provisionable', () => {
+    const { error } = readByol(
+      distributedBody({
+        indexerPlacement: { mode: 'multi-site', granularity: 'region', sites: [
+          { site: 'us-east-1', percent: 50 },
+          { site: 'us-west-2', percent: 50 },
+        ] },
+      }),
+    )
+    expect(error).toMatch(/multi-region placement is not available yet/)
+  })
+
+  it('allows availability-zone placement', () => {
+    const { error } = readByol(
+      distributedBody({
+        indexerCount: 4,
+        indexerPlacement: { mode: 'multi-site', granularity: 'az', sites: [
+          { site: 'us-east-1a', percent: 50 },
+          { site: 'us-east-1b', percent: 50 },
+        ] },
+      }),
+    )
+    expect(error).toBeUndefined()
+  })
+
   it('drops placement entirely for a single-instance deployment', () => {
     const { data } = readByol({
       name: 'Dev',
