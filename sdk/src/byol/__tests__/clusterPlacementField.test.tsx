@@ -70,6 +70,40 @@ describe('ClusterPlacementField', () => {
     expect(next.sites).toHaveLength(3)
   })
 
+  it('offers GCP-style zone options (region-letter) for a GCP provider', () => {
+    render(
+      <ClusterPlacementField
+        label="Indexer placement"
+        placement={{ mode: 'multi-site', granularity: 'az', sites: [{ site: 'a', percent: 50 }, { site: 'b', percent: 50 }] }}
+        nodeCount={4}
+        primaryRegion="us-central1"
+        providerCode="gcp"
+        regionOptions={regionOptions}
+        onChange={vi.fn()}
+      />,
+    )
+    const values = screen.getAllByRole('option').map((o) => (o as HTMLOptionElement).value)
+    expect(values).toContain('us-central1-a')
+    expect(values).not.toContain('us-central1a') // not AWS-style
+  })
+
+  it('offers Azure numeric zones for an Azure provider', () => {
+    render(
+      <ClusterPlacementField
+        label="Indexer placement"
+        placement={{ mode: 'multi-site', granularity: 'az', sites: [{ site: '1', percent: 50 }, { site: '2', percent: 50 }] }}
+        nodeCount={4}
+        primaryRegion="eastus"
+        providerCode="azure"
+        regionOptions={regionOptions}
+        onChange={vi.fn()}
+      />,
+    )
+    const values = screen.getAllByRole('option').map((o) => (o as HTMLOptionElement).value)
+    expect(values).toContain('1')
+    expect(values).toContain('2')
+  })
+
   it('distributes percentages evenly', () => {
     const onChange = renderField({
       mode: 'multi-site',

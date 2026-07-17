@@ -427,6 +427,7 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
             showCloudAccount={showCloudAccount}
             cloudAccountOptions={cloudAccountOptions}
             selectedProviderName={selectedProvider?.name}
+            providerCode={selectedProvider?.code}
           />
         </FormDialog>
       </>
@@ -542,6 +543,8 @@ interface FormBodyProps {
   cloudAccountOptions: Array<{ value: string; label: string }>
   /** Selected cloud provider's display name, for the "no verified account" note. */
   selectedProviderName?: string
+  /** Selected cloud provider's code (aws|azure|gcp|hetzner), for cloud-aware zone naming. */
+  providerCode?: string
 }
 
 /** A labelled sub-group of related fields, so the form reads as scannable sections. */
@@ -571,6 +574,7 @@ const FormBody: React.FC<FormBodyProps> = ({
   showCloudAccount,
   cloudAccountOptions,
   selectedProviderName,
+  providerCode,
 }) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
     <Input label="Name" value={form.name} onChange={(e) => setField('name', e.target.value)} placeholder="e.g. Production cluster" fullWidth autoFocus />
@@ -646,6 +650,7 @@ const FormBody: React.FC<FormBodyProps> = ({
             placement={form.indexerPlacement}
             nodeCount={Math.max(1, Number(form.indexerCount) || 1)}
             primaryRegion={form.region}
+            providerCode={providerCode}
             regionOptions={regionOptions}
             onChange={(p) => setField('indexerPlacement', p)}
           />
@@ -654,6 +659,7 @@ const FormBody: React.FC<FormBodyProps> = ({
             placement={form.searchHeadPlacement}
             nodeCount={Math.max(1, Number(form.searchHeadCount) || 1)}
             primaryRegion={form.region}
+            providerCode={providerCode}
             regionOptions={regionOptions}
             onChange={(p) => setField('searchHeadPlacement', p)}
           />

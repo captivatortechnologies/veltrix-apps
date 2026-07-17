@@ -22,6 +22,8 @@ interface ClusterPlacementFieldProps {
   nodeCount: number
   /** The deployment's main region — the single-site home and the AZ prefix. */
   primaryRegion: string
+  /** Cloud provider code (aws|azure|gcp|hetzner) — zone naming differs per cloud. */
+  providerCode?: string
   /** Cloud regions offered when spreading by region. */
   regionOptions: Array<{ value: string; label: string }>
   onChange: (placement: ClusterPlacement) => void
@@ -32,11 +34,18 @@ const MODE_OPTIONS = [
   { value: 'multi-site', label: 'Multi-site — spread nodes by percent' },
 ]
 
-const AZ_LETTERS = ['a', 'b', 'c', 'd', 'e', 'f']
+// Availability-zone naming differs per cloud: AWS `us-east-1a`, GCP `us-central1-a`,
+// Azure numeric zones (1/2/3). Hetzner has no in-location AZs — use region granularity.
+const AWS_AZ_LETTERS = ['a', 'b', 'c', 'd', 'e', 'f']
+const GCP_AZ_LETTERS = ['a', 'b', 'c', 'd', 'f']
+const AZURE_ZONES = ['1', '2', '3']
 
-function azOptions(region: string): Array<{ value: string; label: string }> {
+function azOptionsFor(providerCode: string | undefined, region: string): Array<{ value: string; label: string }> {
+  const code = (providerCode || 'aws').toLowerCase()
   const base = region || 'region'
-  return AZ_LETTERS.map((l) => ({ value: `${base}${l}`, label: `${base}${l}` }))
+  if (code === 'azure') return AZURE_ZONES.map((z) => ({ value: z, label: `Zone ${z}` }))
+  if (code === 'gcp') return GCP_AZ_LETTERS.map((l) => ({ value: `${base}-${l}`, label: `${base}-${l}` }))
+  return AWS_AZ_LETTERS.map((l) => ({ value: `${base}${l}`, label: `${base}${l}` }))
 }
 
 /** Integer percents summing to 100, with the remainder on the first sites. */
@@ -50,11 +59,12 @@ function evenPercents(count: number): number[] {
 function defaultSites(
   granularity: PlacementGranularity,
   primaryRegion: string,
+  providerCode: string | undefined,
   regionOptions: Array<{ value: string; label: string }>,
 ): PlacementSite[] {
   const [p0, p1] = evenPercents(2)
   if (granularity === 'az') {
-    const az = azOptions(primaryRegion)
+    const az = azOptionsFor(providerCode, primaryRegion)
     return [
       { site: az[0]?.value ?? `${primaryRegion}a`, percent: p0 },
       { site: az[1]?.value ?? `${primaryRegion}b`, percent: p1 },
@@ -74,13 +84,14 @@ export const ClusterPlacementField: React.FC<ClusterPlacementFieldProps> = ({
   placement,
   nodeCount,
   primaryRegion,
+  providerCode,
   regionOptions,
   onChange,
 }) => {
   const multi = placement.mode === 'multi-site'
   const granularity: PlacementGranularity = placement.granularity ?? 'az'
   const sites = placement.sites ?? []
-  const siteOptions = granularity === 'az' ? azOptions(primaryRegion) : regionOptions
+  const siteOptions = granularity === 'az' ? azOptionsFor(providerCode, primaryRegion) : regionOptions
 
   const emit = (next: PlacementSite[]) => onChange({ mode: 'multi-site', granularity, sites: next })
 
@@ -89,14 +100,14 @@ export const ClusterPlacementField: React.FC<ClusterPlacementFieldProps> = ({
     onChange({
       mode: 'multi-site',
       granularity,
-      sites: sites.length >= 2 ? sites : defaultSites(granularity, primaryRegion, regionOptions),
+      sites: sites.length >= 2 ? sites : defaultSites(granularity, primaryRegion, providerCode, regionOptions),
     })
   }
 
   const setGranularity = (value: string) => {
     const g = value as PlacementGranularity
     // Sites are granularity-specific (AZ ids vs region codes) — reset to defaults.
-    onChange({ mode: 'multi-site', granularity: g, sites: defaultSites(g, primaryRegion, regionOptions) })
+    onChange({ mode: 'multi-site', granularity: g, sites: defaultSites(g, primaryRegion, providerCode, regionOptions) })
   }
 
   const updateSite = (i: number, patch: Partial<PlacementSite>) =>

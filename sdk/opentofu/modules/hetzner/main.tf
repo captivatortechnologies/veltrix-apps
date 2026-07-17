@@ -183,10 +183,10 @@ locals {
   }
 
   # Fixed foundation label sets (values written pre-sanitized: "/" -> "_").
-  labels_network     = merge(local.base_labels, { "Name" = "${local.stack_label}-network", "Veltrix_PlanKey" = "foundation_network", "Veltrix_Tier" = "foundation", "veltrix-stack" = local.stack_label })
-  labels_storage     = merge(local.base_labels, { "Name" = "${local.stack_label}-volume", "Veltrix_PlanKey" = "foundation_storage", "Veltrix_Tier" = "foundation", "veltrix-stack" = local.stack_label })
-  labels_lb          = merge(local.base_labels, { "Name" = "${local.stack_label}-lb", "Veltrix_PlanKey" = "foundation_load-balancer", "Veltrix_Tier" = "foundation", "veltrix-stack" = local.stack_label })
-  labels_firewall    = merge(local.base_labels, { "Name" = "${local.stack_label}-fw", "Veltrix_PlanKey" = "foundation_network", "Veltrix_Tier" = "foundation", "veltrix-stack" = local.stack_label })
+  labels_network  = merge(local.base_labels, { "Name" = "${local.stack_label}-network", "Veltrix_PlanKey" = "foundation_network", "Veltrix_Tier" = "foundation", "veltrix-stack" = local.stack_label })
+  labels_storage  = merge(local.base_labels, { "Name" = "${local.stack_label}-volume", "Veltrix_PlanKey" = "foundation_storage", "Veltrix_Tier" = "foundation", "veltrix-stack" = local.stack_label })
+  labels_lb       = merge(local.base_labels, { "Name" = "${local.stack_label}-lb", "Veltrix_PlanKey" = "foundation_load-balancer", "Veltrix_Tier" = "foundation", "veltrix-stack" = local.stack_label })
+  labels_firewall = merge(local.base_labels, { "Name" = "${local.stack_label}-fw", "Veltrix_PlanKey" = "foundation_network", "Veltrix_Tier" = "foundation", "veltrix-stack" = local.stack_label })
 
   # Per-compute-node label set (base + sanitized meta + the stack selector label).
   compute_labels = {

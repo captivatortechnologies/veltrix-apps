@@ -448,6 +448,8 @@ resource "azurerm_linux_virtual_machine" "node" {
   computer_name       = local.node_short_labels[each.key]
   location            = var.region
   resource_group_name = azurerm_resource_group.env.name
+  # Multi-AZ placement: pin to the node's availability zone when set (null = non-zonal).
+  zone = each.value.zone
   size = coalesce(
     lookup(var.vm_sizes_by_kind, each.value.kind, null),
     lookup(var.vm_sizes, each.value.tier, null),

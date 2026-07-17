@@ -279,10 +279,10 @@ resource "google_compute_subnetwork" "env" {
 resource "google_compute_firewall" "node" {
   for_each = local.fw_ingress
 
-  name      = substr("${local.stack_tag}-${each.key}", 0, 63)
-  project   = var.project
-  network   = local.network_self_link
-  direction = "INGRESS"
+  name        = substr("${local.stack_tag}-${each.key}", 0, 63)
+  project     = var.project
+  network     = local.network_self_link
+  direction   = "INGRESS"
   description = each.value.description
 
   allow {
@@ -310,7 +310,8 @@ resource "google_compute_instance" "node" {
 
   name    = substr(lower("${local.stack_tag}-${local.node_short_labels[each.key]}"), 0, 63)
   project = var.project
-  zone    = var.zone
+  # Multi-AZ placement: pin to the node's zone when set, else the default zone.
+  zone = coalesce(each.value.zone, var.zone)
   machine_type = coalesce(
     lookup(var.machine_types_by_kind, each.value.kind, null),
     lookup(var.machine_types, each.value.tier, null),
