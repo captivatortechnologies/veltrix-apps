@@ -42,6 +42,20 @@ jobs:
       - name: Install tooling
         run: npm ci
 
+      # Build the SDK and link it into the repo's node_modules so the client
+      # bundler can resolve the BUNDLED sdk component subpaths (e.g.
+      # @veltrixsecops/app-sdk/byol, /connections) that are not host-runtime
+      # shims. bundle-app-client.mjs adds <repo>/node_modules to esbuild's
+      # nodePaths; without this link those imports fail and the release build
+      # of any app that uses them silently never publishes.
+      - name: Build and link the app SDK
+        run: |
+          npm --prefix sdk ci
+          npm --prefix sdk run build
+          mkdir -p node_modules/@veltrixsecops
+          ln -sfn "$PWD/sdk" node_modules/@veltrixsecops/app-sdk
+          node -e "require.resolve('@veltrixsecops/app-sdk/byol'); require.resolve('@veltrixsecops/app-sdk/connections'); console.log('SDK subpaths resolve OK')"
+
       - name: Detect apps to release
         id: detect
         run: |

@@ -86,16 +86,19 @@ export function resolveClientEntry(appRoot, entry) {
  * Returns the output path, or null when the app declares no client entry.
  */
 export async function bundleAppClient({ appRoot, entry, nodePaths = [], write = true }) {
-  const entryFile = resolveClientEntry(appRoot, entry)
+  // esbuild requires absWorkingDir to be absolute; resolve so callers may pass
+  // a relative appRoot (e.g. "apps/foo") without the build erroring.
+  const absAppRoot = path.resolve(appRoot)
+  const entryFile = resolveClientEntry(absAppRoot, entry)
   if (!entryFile) return null
 
-  const outFile = path.join(appRoot, CLIENT_BUNDLE_PATH)
+  const outFile = path.join(absAppRoot, CLIENT_BUNDLE_PATH)
   await build({
     entryPoints: [entryFile],
     outfile: outFile,
     // Paths in output comments are printed relative to this — without it the
     // (temp) staging path leaks into the bundle and breaks reproducibility.
-    absWorkingDir: appRoot,
+    absWorkingDir: absAppRoot,
     bundle: true,
     format: 'esm',
     platform: 'browser',
