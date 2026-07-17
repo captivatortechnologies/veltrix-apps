@@ -35,4 +35,9 @@ describe('buildByolTags (app copy)', () => {
     expect(custom.CostCenter).toBe('CC-42')
     expect(custom.Owner).toBe('user-7')
   })
+
+  it('uses the customer shortname when set, else the UUID', () => {
+    expect(buildByolTags({ ...BASE, customerShortName: 'acme-prod' })['Veltrix:Customer']).toBe('acme-prod')
+    expect(buildByolTags({ ...BASE, customerShortName: null })['Veltrix:Customer']).toBe('cust-1')
+  })
 })

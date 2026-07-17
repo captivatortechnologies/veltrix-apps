@@ -33,6 +33,11 @@ function customerOf(request: FastifyRequest): string | null {
   return (request as any).user?.customerId ?? null
 }
 
+/** The tenant's human-readable shortname (injected by the platform), or null. */
+function customerShortNameOf(request: FastifyRequest): string | null {
+  return (request as any).user?.customerShortName ?? null
+}
+
 function userOf(request: FastifyRequest): string | null {
   return (request as any).user?.id ?? null
 }
@@ -235,7 +240,12 @@ export default async function registerRoutes(
       const desired = buildByolResourcePlan(topologyInputFor(infra))
       const current = await store.listResources(db, id)
       const diff = buildByolPlan(current, desired)
-      const { network, tags, networkUnavailable } = await resolvePlanNetwork(infra, customerId, ctx.appId)
+      const { network, tags, networkUnavailable } = await resolvePlanNetwork(
+        infra,
+        customerId,
+        ctx.appId,
+        customerShortNameOf(request),
+      )
 
       reply.send({
         ...diff,
@@ -265,7 +275,12 @@ export default async function registerRoutes(
       // degrade to a tag-only result (the modeled apply still proceeds).
       let deployNet
       try {
-        deployNet = await reserveDeployNetwork(infra, { customerId, appId: ctx.appId, infrastructureId: id })
+        deployNet = await reserveDeployNetwork(infra, {
+          customerId,
+          appId: ctx.appId,
+          infrastructureId: id,
+          customerShortName: customerShortNameOf(request),
+        })
       } catch (err) {
         if (err instanceof NetworkAllocationConflictError) {
           return reply.status(409).send({ error: 'Subnet allocation conflict — please re-plan and try again.' })
