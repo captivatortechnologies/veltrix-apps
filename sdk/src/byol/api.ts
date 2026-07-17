@@ -5,6 +5,7 @@
 
 import { authFetch } from '../client'
 import type { ByolInfrastructure, ByolResource, ByolDeployment } from './types'
+import type { ByolPlan } from './diffPlan'
 
 /** Best-effort extraction of an error message from a failed Response. */
 export async function errorText(res: Response): Promise<string> {
@@ -42,6 +43,15 @@ export function getResources(apiBase: string, id: string): Promise<ByolResource[
 
 export function getDeployments(apiBase: string, id: string): Promise<ByolDeployment[]> {
   return authFetch(`${apiBase}/${id}/deployments`).then((r) => json<ByolDeployment[]>(r))
+}
+
+/**
+ * Dry-run the deployment plan — a side-effect-free diff of the desired topology
+ * against the currently persisted resources. Powers the Plan modal shown before
+ * Apply. Writes nothing; the subsequent Apply is the existing `deployInfra`.
+ */
+export function getPlan(apiBase: string, id: string): Promise<ByolPlan> {
+  return authFetch(`${apiBase}/${id}/plan`).then((r) => json<ByolPlan>(r))
 }
 
 /** Request an end-to-end deploy. Returns the updated infra + the new run. */

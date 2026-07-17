@@ -10,6 +10,26 @@
 
 export { ByolInfrastructureManager, default } from './ByolInfrastructureManager'
 export { ByolInfrastructureDetail } from './ByolInfrastructureDetail'
+export { ByolPlanModal } from './detail/ByolPlanModal'
+export type { ByolPlanModalProps } from './detail/ByolPlanModal'
+
+// Plan → Apply diff (pure, React-free — also usable on the server side)
+export { diffPlan, buildByolPlan, planHasChanges } from './diffPlan'
+export type {
+  PlanAction,
+  PlanDiff,
+  PlanDiffCurrent,
+  PlanDiffDesired,
+  ByolPlan,
+  ByolPlanSummary,
+  ByolPlanItem,
+  ByolPlanGroup,
+  ByolPlanNetwork,
+} from './diffPlan'
+
+// Tenant / cost-allocation tag builder (pure, React-free — usable server-side)
+export { buildByolTags, BYOL_TAG_KEYS, MANAGED_BY } from './tags'
+export type { ByolTags, ByolTagInput } from './tags'
 
 // Types
 export type {

@@ -6,6 +6,7 @@ import {
   getInfra,
   getResources,
   getDeployments,
+  getPlan,
   deployInfra,
   destroyInfra,
   lifecycleInfra,
@@ -14,6 +15,7 @@ import {
 } from './api'
 import type { ByolInfrastructure, ByolResource, ByolDeployment, ByolConfigLink } from './types'
 import { SELF_HOSTED_LABEL } from './types'
+import type { ByolPlan } from './diffPlan'
 import { tokens, StatusPill, Meta, ProgressMeter } from './detail/shared'
 import { OverviewTab } from './detail/OverviewTab'
 import { ResourcesTab } from './detail/ResourcesTab'
@@ -21,6 +23,10 @@ import { ActivityTab } from './detail/ActivityTab'
 import { AccessTab } from './detail/AccessTab'
 import { ConfigurationTab } from './detail/ConfigurationTab'
 import { SettingsTab } from './detail/SettingsTab'
+import { ByolPlanModal } from './detail/ByolPlanModal'
+
+/** How often the detail view re-polls while a deployment is in flight. */
+const PROVISIONING_POLL_MS = 4000
 
 type Section = 'overview' | 'resources' | 'activity' | 'access' | 'config' | 'settings'
 
@@ -102,6 +108,13 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // --- Plan → Apply modal state ---
+  const [planOpen, setPlanOpen] = useState(false)
+  const [plan, setPlan] = useState<ByolPlan | null>(null)
+  const [planLoading, setPlanLoading] = useState(false)
+  const [planError, setPlanError] = useState<string | null>(null)
+  const [applying, setApplying] = useState(false)
+
   const id = initialInfra.id
 
   // Keep the latest list row available as a fallback without churning `load`.
@@ -146,6 +159,23 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
     onChanged()
   }, [load, onChanged])
 
+  // While a deployment (or teardown) is in flight, re-poll so the persisted
+  // resource/step rows — and thus the ProgressMeter — animate toward terminal
+  // state without the user having to hit Refresh. Cleared on unmount or as soon
+  // as the status leaves the transient state.
+  const transient = infra.status === 'provisioning' || infra.status === 'destroying'
+  useEffect(() => {
+    if (!transient) return
+    let active = true
+    const timer = setInterval(() => {
+      if (active) void refresh()
+    }, PROVISIONING_POLL_MS)
+    return () => {
+      active = false
+      clearInterval(timer)
+    }
+  }, [transient, refresh])
+
   const runAction = useCallback(
     async (fn: () => Promise<unknown>) => {
       setBusy(true)
@@ -162,7 +192,39 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
     [refresh],
   )
 
-  const onDeploy = () => runAction(() => deployInfra(apiBase, id).then(() => setSection('activity')))
+  // Deploy is now a two-phase flow: open the plan modal and fetch the dry-run
+  // diff (spinner in the modal); Apply is what actually POSTs /deploy.
+  const openPlan = useCallback(() => {
+    setPlanOpen(true)
+    setPlan(null)
+    setPlanError(null)
+    setPlanLoading(true)
+    getPlan(apiBase, id)
+      .then((p) => setPlan(p))
+      .catch((e) => setPlanError((e as Error).message))
+      .finally(() => setPlanLoading(false))
+  }, [apiBase, id])
+
+  const closePlan = useCallback(() => {
+    if (applying) return
+    setPlanOpen(false)
+  }, [applying])
+
+  const onApply = useCallback(async () => {
+    setApplying(true)
+    setPlanError(null)
+    try {
+      await deployInfra(apiBase, id)
+      setPlanOpen(false)
+      setSection('activity')
+      await refresh()
+    } catch (e) {
+      setPlanError((e as Error).message)
+    } finally {
+      setApplying(false)
+    }
+  }, [apiBase, id, refresh])
+
   const onDestroy = () => {
     if (typeof window !== 'undefined' && !window.confirm(`Destroy all resources for "${infra.name}"? This cannot be undone.`)) return
     void runAction(() => destroyInfra(apiBase, id).then(() => setSection('activity')))
@@ -198,8 +260,8 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
   const provider = infra.hosting_type || (infra.cloudProviderId ? 'Cloud' : SELF_HOSTED_LABEL)
 
   const primaryAction = (() => {
-    if (notStarted) return <Button variant="primary" size="sm" onClick={onDeploy} isLoading={busy}>Deploy environment</Button>
-    if (failed) return <Button variant="primary" size="sm" onClick={onDeploy} isLoading={busy}>Retry deployment</Button>
+    if (notStarted) return <Button variant="primary" size="sm" onClick={openPlan} disabled={busy}>Deploy environment</Button>
+    if (failed) return <Button variant="primary" size="sm" onClick={openPlan} disabled={busy}>Retry deployment</Button>
     if (provisioning) return <Button variant="primary" size="sm" onClick={() => setSection('activity')}>View progress</Button>
     return null
   })()
@@ -371,6 +433,17 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
           <div style={{ flex: 1, minWidth: 0, padding: '22px 24px' }}>{content}</div>
         </div>
       </div>
+
+      <ByolPlanModal
+        isOpen={planOpen}
+        onClose={closePlan}
+        plan={plan}
+        loading={planLoading}
+        error={planError}
+        applying={applying}
+        onApply={onApply}
+        infraName={infra.name}
+      />
     </div>
   )
 }

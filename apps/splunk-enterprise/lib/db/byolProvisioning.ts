@@ -141,6 +141,28 @@ export async function setResourceStatus(
   return affected > 0
 }
 
+/**
+ * Stamp a resource's external ref (e.g. the allocated subnet CIDR on the
+ * foundation/network row) by plan key, WITHOUT touching its status. Overwrites
+ * any prior ref. Returns whether a row matched.
+ */
+export async function setResourceExternalRef(
+  db: PlatformDatabaseClient,
+  infrastructureId: string,
+  planKey: string,
+  externalRef: string,
+): Promise<boolean> {
+  const affected = await db.$executeRawUnsafe(
+    `UPDATE splunk_byol_resource
+       SET external_ref = $3, updated_at = now()
+     WHERE infrastructure_id = $1::uuid AND plan_key = $2`,
+    infrastructureId,
+    planKey,
+    externalRef,
+  )
+  return affected > 0
+}
+
 /** Move every resource for an infrastructure to a status (terminal reconciliation). */
 export async function setAllResourceStatuses(
   db: PlatformDatabaseClient,
