@@ -63,8 +63,8 @@ variable "network_mode" {
       existing  — BYOC: data-source a customer-designated VNet (network_ref in
                   network_resource_group) and create subnets inside it.
   EOT
-  type    = string
-  default = "shared"
+  type        = string
+  default     = "shared"
 
   validation {
     condition     = contains(["shared", "dedicated", "existing"], var.network_mode)
@@ -90,8 +90,8 @@ variable "network_lookup_by" {
     azurerm_virtual_network data source — there is no by-id VNet data source — so
     "id" is accepted but treated the same as "name". Kept for uniform tfvars.
   EOT
-  type    = string
-  default = "name"
+  type        = string
+  default     = "name"
 
   validation {
     condition     = contains(["name", "id", "tag"], var.network_lookup_by)
@@ -111,8 +111,8 @@ variable "subnet_cidr" {
     (IPAM-allocated for hosted). Ignored for dedicated (subnets are carved from
     vpc_cidr). Empty is allowed only when dedicated.
   EOT
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
 
   validation {
     condition     = var.subnet_cidr == "" || can(cidrhost(var.subnet_cidr, 0))
@@ -126,8 +126,8 @@ variable "vpc_cidr" {
     App Gateway /20 (index 0) and a private compute /20 (index 1) are carved from
     it. Named `vpc_cidr` for cross-cloud contract parity. Ignored otherwise.
   EOT
-  type    = string
-  default = "10.60.0.0/16"
+  type        = string
+  default     = "10.60.0.0/16"
 
   validation {
     condition     = can(cidrhost(var.vpc_cidr, 0))
@@ -143,8 +143,8 @@ variable "appgw_subnet_cidr" {
     module's extra_lb_subnet_ids. Required for a load-balancer in shared|existing;
     ignored for dedicated (the module carves the App Gateway subnet from vpc_cidr).
   EOT
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
 
   validation {
     condition     = var.appgw_subnet_cidr == "" || can(cidrhost(var.appgw_subnet_cidr, 0))
@@ -169,10 +169,14 @@ variable "plan" {
   type = list(object({
     plan_key = string
     tier     = string # foundation | control-plane | data | search | ingest
-    kind     = string # network | storage | indexer | search-head | ... (see byolTopology.ts)
+    kind     = string # network | storage | indexer | search-head | management-node | ...
     name     = optional(string, "")
     role     = optional(string, "")
     region   = optional(string, null)
+    # Multi-AZ placement: the Azure availability zone ("1"|"2"|"3") this node is
+    # pinned to (null = non-zonal). Azure subnets are regional; only the VM zone varies.
+    zone  = optional(string, null)
+    roles = optional(list(string), [])
   }))
 
   validation {
@@ -190,8 +194,8 @@ variable "vm_sizes" {
     vm_size. Kind-level overrides go in vm_sizes_by_kind. (Mirrors AWS
     instance_types.)
   EOT
-  type    = map(string)
-  default = {}
+  type        = map(string)
+  default     = {}
 }
 
 variable "vm_sizes_by_kind" {
@@ -203,7 +207,7 @@ variable "vm_sizes_by_kind" {
 variable "vm_size" {
   description = "Fallback Azure VM size for any compute plan item with no tier/kind override. (Mirrors AWS default_instance_type.)"
   type        = string
-  default     = "Standard_D2s_v5"
+  default     = "Standard_B2s"
 }
 
 variable "os_disk_gb" {
@@ -221,8 +225,8 @@ variable "image_ref" {
     image (scaffold only) — production MUST supply a hardened, tool-preinstalled
     image id. (Mirrors AWS ami_id.)
   EOT
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
 }
 
 variable "admin_username" {
@@ -238,8 +242,8 @@ variable "admin_ssh_public_key" {
     complex random password per apply and enables password auth (so a minimal
     plan still applies). (Mirrors AWS key_name.)
   EOT
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
 }
 
 # --- Foundation options ----------------------------------------------------
@@ -263,8 +267,8 @@ variable "dns_mode" {
                      certificate_arn on the App Gateway listener instead.
       private-only — no public DNS; reached via the customer network (ZTNA/VPN).
   EOT
-  type    = string
-  default = "managed"
+  type        = string
+  default     = "managed"
 
   validation {
     condition     = contains(["managed", "delegated", "private-only"], var.dns_mode)
@@ -279,8 +283,8 @@ variable "public_dns_zone_name" {
     (Veltrix's for hosted, the customer's for BYOC customer-owned). This holds the
     ROLE of AWS's route53_zone_id.
   EOT
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
 }
 
 variable "public_dns_rg" {
@@ -304,8 +308,8 @@ variable "certificate_arn" {
     appgw_identity_id (a user-assigned identity with GET access to that Key Vault).
     Empty => the App Gateway serves HTTP only (no HTTPS listener).
   EOT
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
 }
 
 variable "appgw_identity_id" {
@@ -316,8 +320,8 @@ variable "appgw_identity_id" {
     is a worker/caller responsibility (analogous to AWS's cross-account ACM
     validation in delegated mode). Empty => no HTTPS listener.
   EOT
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
 }
 
 variable "web_ingress_cidr" {
@@ -328,8 +332,8 @@ variable "web_ingress_cidr" {
     is best expressed as a WAF custom rule rather than a subnet NSG — that is a
     follow-on and is NOT wired here (the module does not narrow ingress by this var).
   EOT
-  type    = string
-  default = "0.0.0.0/0"
+  type        = string
+  default     = "0.0.0.0/0"
 }
 
 variable "alb_auth" {
@@ -365,8 +369,8 @@ variable "create_private_zone" {
     dns_domain is empty. Mutually complementary with private_zone_id: set
     private_zone_id instead to reuse an existing zone.
   EOT
-  type    = bool
-  default = false
+  type        = bool
+  default     = false
 }
 
 variable "private_zone_id" {
@@ -378,8 +382,8 @@ variable "private_zone_id" {
     the "reuse an existing zone" flag. Leave empty (and set create_private_zone) to
     have the module create the zone.
   EOT
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
 }
 
 variable "private_zone_resource_group" {
@@ -400,7 +404,7 @@ variable "foundation_kinds" {
     Any plan item whose kind is NOT in this set (and not named by compute_kinds)
     is a compute node. Kept in sync with FOUNDATION_KINDS in spec.ts.
   EOT
-  type = list(string)
+  type        = list(string)
   default = [
     "network", "storage", "secrets", "tls",
     "load-balancer", "dns", "license-file", "hec",
@@ -414,8 +418,8 @@ variable "compute_kinds" {
     whose kind is not in foundation_kinds (so an app's roles are compute
     automatically).
   EOT
-  type    = list(string)
-  default = []
+  type        = list(string)
+  default     = []
 }
 
 variable "security_rules" {
@@ -469,8 +473,8 @@ variable "dns_prefixes" {
     { indexer = "idx", search-head = "sh", cluster-manager = "mgmt" }). A compute
     kind absent from the map falls back to the kind string itself.
   EOT
-  type    = map(string)
-  default = {}
+  type        = map(string)
+  default     = {}
 }
 
 variable "waf_enabled" {
@@ -490,5 +494,5 @@ variable "tags" {
     NSG rules, storage containers, and NIC associations are not taggable and carry
     no tags.
   EOT
-  type    = map(string)
+  type        = map(string)
 }

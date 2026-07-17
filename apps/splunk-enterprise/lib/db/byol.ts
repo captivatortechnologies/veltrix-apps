@@ -8,7 +8,18 @@
 
 import type { PlatformDatabaseClient } from '@veltrixsecops/app-sdk'
 import { mapByol, mapRegion, type ByolDto, type RegionDto, type Row } from './mappers'
+import {
+  normalizeControlPlaneLayout,
+  type ClusterPlacement,
+  type ControlPlaneLayout,
+} from '../byolPlacement'
 import { recordStateEvent } from './usage'
+
+/** Serialize a placement for a JSONB column (null when single-site / absent). */
+function placementJson(placement?: ClusterPlacement | null): string | null {
+  if (!placement || placement.mode !== 'multi-site') return null
+  return JSON.stringify(placement)
+}
 
 /** Append a lifecycle state event for an infra (foundation for node-hours billing). */
 async function emitStateEvent(db: PlatformDatabaseClient, infra: ByolDto, status: string): Promise<void> {
@@ -33,6 +44,12 @@ export interface ByolInput {
   networkMode?: string
   dnsMode?: string
   cloudAccountConnectionId?: string
+  // Topology authoring (control-plane consolidation, forwarders, placement) — see migration 010.
+  controlPlaneLayout?: ControlPlaneLayout
+  heavyForwarderCount?: number
+  indexerPlacement?: ClusterPlacement | null
+  searchHeadPlacement?: ClusterPlacement | null
+  instanceType?: string | null
 }
 
 async function attachRegions(db: PlatformDatabaseClient, infra: ByolDto): Promise<ByolDto> {
@@ -83,9 +100,13 @@ export async function createByol(
     `INSERT INTO splunk_byol_infrastructure
        (name, deployment_type, environment_type, hosting_type, region,
         indexer_count, search_head_count, cloud_provider_id, customer_id, status,
-        network_mode, dns_mode, cloud_account_connection_id)
+        network_mode, dns_mode, cloud_account_connection_id,
+        control_plane_layout, heavy_forwarder_count, indexer_placement, search_head_placement,
+        instance_type)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8::uuid, $9::uuid, 'not_started',
-             $10, $11, $12::uuid)
+             $10, $11, $12::uuid,
+             $13, $14, $15::jsonb, $16::jsonb,
+             $17)
      RETURNING *`,
     input.name,
     input.deploymentType,
@@ -99,6 +120,11 @@ export async function createByol(
     input.networkMode ?? 'shared',
     input.dnsMode ?? 'managed',
     input.cloudAccountConnectionId ?? null,
+    normalizeControlPlaneLayout(input.controlPlaneLayout),
+    Math.max(1, Math.floor(input.heavyForwarderCount ?? 1)),
+    placementJson(input.indexerPlacement),
+    placementJson(input.searchHeadPlacement),
+    input.instanceType?.trim() || null,
   )
   const created = mapByol(rows[0])
   await emitStateEvent(db, created, created.status) // 'not_started'
@@ -114,7 +140,11 @@ export async function updateByol(
     `UPDATE splunk_byol_infrastructure SET
        name = $2, deployment_type = $3, environment_type = $4, hosting_type = $5,
        region = $6, indexer_count = $7, search_head_count = $8,
-       cloud_provider_id = COALESCE($9::uuid, cloud_provider_id), updated_at = now()
+       cloud_provider_id = COALESCE($9::uuid, cloud_provider_id),
+       control_plane_layout = $10, heavy_forwarder_count = $11,
+       indexer_placement = $12::jsonb, search_head_placement = $13::jsonb,
+       instance_type = $14,
+       updated_at = now()
      WHERE id = $1::uuid
      RETURNING *`,
     id,
@@ -126,6 +156,11 @@ export async function updateByol(
     input.indexerCount,
     input.searchHeadCount,
     input.cloudProviderId ?? null,
+    normalizeControlPlaneLayout(input.controlPlaneLayout),
+    Math.max(1, Math.floor(input.heavyForwarderCount ?? 1)),
+    placementJson(input.indexerPlacement),
+    placementJson(input.searchHeadPlacement),
+    input.instanceType?.trim() || null,
   )
   return attachRegions(db, mapByol(rows[0]))
 }

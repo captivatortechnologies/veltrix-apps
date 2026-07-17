@@ -31,11 +31,15 @@ import {
   NETWORK_MODE_OPTIONS,
   DNS_MODE_OPTIONS,
   BYOC_NETWORK_MODES,
+  CONTROL_PLANE_LAYOUT_OPTIONS,
+  INSTANCE_TYPE_EXAMPLES,
   BLANK_FORM,
 } from './types'
 import { StatusPill, tokens } from './detail/shared'
 import { errorText, formatDate } from './api'
 import { ByolInfrastructureDetail } from './ByolInfrastructureDetail'
+import { ClusterPlacementField } from './ClusterPlacementField'
+import { validatePlacement } from './placement'
 
 /**
  * Reusable BYOL infrastructure manager: a searchable/filterable list whose rows
@@ -163,6 +167,11 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
       networkMode: row.networkMode ?? 'shared',
       dnsMode: row.dnsMode ?? 'managed',
       cloudAccountConnectionId: row.cloudAccountConnectionId ?? '',
+      controlPlaneLayout: row.controlPlaneLayout ?? 'dedicated',
+      heavyForwarderCount: String(row.heavyForwarderCount ?? 1),
+      instanceType: row.instanceType ?? '',
+      indexerPlacement: row.indexerPlacement ?? { mode: 'single' },
+      searchHeadPlacement: row.searchHeadPlacement ?? { mode: 'single' },
     })
     setFormError(null)
     setDialogOpen(true)
@@ -198,6 +207,18 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
         setFormError('Distributed deployments require at least 2 search heads')
         return
       }
+      if (showRegion) {
+        const indexerErr = validatePlacement(form.indexerPlacement, indexerCount)
+        if (indexerErr) {
+          setFormError(`Indexer placement: ${indexerErr}`)
+          return
+        }
+        const searchErr = validatePlacement(form.searchHeadPlacement, searchHeadCount)
+        if (searchErr) {
+          setFormError(`Search head placement: ${searchErr}`)
+          return
+        }
+      }
     }
     if (showCloudAccount && !form.cloudAccountConnectionId) {
       setFormError('Select a verified cloud account for a BYOC deployment target')
@@ -205,6 +226,11 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
     }
     const selfHosted = form.providerId === SELF_HOSTED
     const selectedCloud = cloudProviders.find((c) => c.id === form.providerId)
+    const distributed = form.deploymentType === 'distributed'
+    // Placement only applies to a distributed cloud deployment (needs AZs/regions);
+    // single-instance or self-hosted always collapses to a single site.
+    const normalizePlacement = (p: FormState['indexerPlacement']) =>
+      distributed && showRegion && p?.mode === 'multi-site' ? p : { mode: 'single' as const }
     setSubmitting(true)
     setFormError(null)
     const payload = {
@@ -219,6 +245,14 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
       networkMode: form.networkMode,
       dnsMode: form.dnsMode,
       cloudAccountConnectionId: showCloudAccount ? form.cloudAccountConnectionId : undefined,
+      // Topology authoring — only meaningful for distributed deployments.
+      controlPlaneLayout: distributed ? form.controlPlaneLayout : 'dedicated',
+      heavyForwarderCount: distributed ? Math.max(1, Number(form.heavyForwarderCount) || 1) : 1,
+      // Compute size override; empty → the cloud default (t2.medium-class). Only
+      // meaningful for a cloud deployment.
+      instanceType: !selfHosted ? form.instanceType.trim() || undefined : undefined,
+      indexerPlacement: normalizePlacement(form.indexerPlacement),
+      searchHeadPlacement: normalizePlacement(form.searchHeadPlacement),
     }
     try {
       const res = await authFetch(editing ? `${apiBase}/${editing.id}` : apiBase, {
@@ -393,6 +427,7 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
             showCloudAccount={showCloudAccount}
             cloudAccountOptions={cloudAccountOptions}
             selectedProviderName={selectedProvider?.name}
+            providerCode={selectedProvider?.code}
           />
         </FormDialog>
       </>
@@ -508,7 +543,24 @@ interface FormBodyProps {
   cloudAccountOptions: Array<{ value: string; label: string }>
   /** Selected cloud provider's display name, for the "no verified account" note. */
   selectedProviderName?: string
+  /** Selected cloud provider's code (aws|azure|gcp|hetzner), for cloud-aware zone naming. */
+  providerCode?: string
 }
+
+/** A labelled sub-group of related fields, so the form reads as scannable sections. */
+const FormSection: React.FC<{ title: string; description?: string; children: React.ReactNode }> = ({
+  title,
+  description,
+  children,
+}) => (
+  <div>
+    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: tokens.text }}>{title}</p>
+    {description ? (
+      <p style={{ margin: '2px 0 0', fontSize: 12, color: tokens.muted }}>{description}</p>
+    ) : null}
+    <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 12 }}>{children}</div>
+  </div>
+)
 
 const FormBody: React.FC<FormBodyProps> = ({
   form,
@@ -522,6 +574,7 @@ const FormBody: React.FC<FormBodyProps> = ({
   showCloudAccount,
   cloudAccountOptions,
   selectedProviderName,
+  providerCode,
 }) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
     <Input label="Name" value={form.name} onChange={(e) => setField('name', e.target.value)} placeholder="e.g. Production cluster" fullWidth autoFocus />
@@ -536,45 +589,113 @@ const FormBody: React.FC<FormBodyProps> = ({
       ) : null}
     </div>
 
-    <div>
-      <p style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 600, color: tokens.text }}>Deployment target</p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <Select
-            label="Network"
-            value={form.networkMode}
-            onChange={(value) => setField('networkMode', value)}
-            options={NETWORK_MODE_OPTIONS}
-          />
-          <Select label="DNS" value={form.dnsMode} onChange={(value) => setField('dnsMode', value)} options={DNS_MODE_OPTIONS} />
-        </div>
-        {showCloudAccount ? (
-          <>
-            <Select
-              label="Cloud account *"
-              value={form.cloudAccountConnectionId}
-              onChange={(value) => setField('cloudAccountConnectionId', value)}
-              options={cloudAccountOptions}
-              placeholder={cloudAccountOptions.length ? 'Select a verified cloud account…' : 'No verified cloud accounts'}
-              disabled={cloudAccountOptions.length === 0}
-              helperText="Required for a dedicated or existing-network (BYOC) deployment."
-            />
-            {cloudAccountOptions.length === 0 ? (
-              <Alert variant="warning" title="No verified cloud account available">
-                {selectedProviderName
-                  ? `No verified ${selectedProviderName} cloud account found. Register and verify a cloud account first in Settings → Cloud Accounts.`
-                  : 'Register and verify a cloud account first in Settings → Cloud Accounts.'}
-              </Alert>
-            ) : null}
-          </>
-        ) : null}
+    <FormSection title="Deployment target">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <Select
+          label="Network"
+          value={form.networkMode}
+          onChange={(value) => setField('networkMode', value)}
+          options={NETWORK_MODE_OPTIONS}
+        />
+        <Select label="DNS" value={form.dnsMode} onChange={(value) => setField('dnsMode', value)} options={DNS_MODE_OPTIONS} />
       </div>
-    </div>
+      {showCloudAccount ? (
+        <>
+          <Select
+            label="Cloud account *"
+            value={form.cloudAccountConnectionId}
+            onChange={(value) => setField('cloudAccountConnectionId', value)}
+            options={cloudAccountOptions}
+            placeholder={cloudAccountOptions.length ? 'Select a verified cloud account…' : 'No verified cloud accounts'}
+            disabled={cloudAccountOptions.length === 0}
+            helperText="Required for a dedicated or existing-network (BYOC) deployment."
+          />
+          {cloudAccountOptions.length === 0 ? (
+            <Alert variant="warning" title="No verified cloud account available">
+              {selectedProviderName
+                ? `No verified ${selectedProviderName} cloud account found. Register and verify a cloud account first in Settings → Cloud Accounts.`
+                : 'Register and verify a cloud account first in Settings → Cloud Accounts.'}
+            </Alert>
+          ) : null}
+        </>
+      ) : null}
+    </FormSection>
 
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-      <Input label="Indexers" type="number" value={form.indexerCount} onChange={(e) => setField('indexerCount', e.target.value)} fullWidth />
-      <Input label="Search heads" type="number" value={form.searchHeadCount} onChange={(e) => setField('searchHeadCount', e.target.value)} fullWidth />
-    </div>
+    <FormSection
+      title="Topology"
+      description={
+        form.deploymentType === 'distributed'
+          ? 'Distributed deployments need at least 3 indexers and 2 search heads.'
+          : 'Number of indexer and search-head nodes to provision.'
+      }
+    >
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <Input label="Indexers" type="number" min={1} value={form.indexerCount} onChange={(e) => setField('indexerCount', e.target.value)} fullWidth />
+        <Input label="Search heads" type="number" min={1} value={form.searchHeadCount} onChange={(e) => setField('searchHeadCount', e.target.value)} fullWidth />
+      </div>
+      {form.providerId && form.providerId !== SELF_HOSTED ? (
+        <Input
+          label="Compute size (instance type)"
+          value={form.instanceType}
+          onChange={(e) => setField('instanceType', e.target.value)}
+          placeholder={INSTANCE_TYPE_EXAMPLES.aws}
+          fullWidth
+          helperText={`Leave blank for the cloud default (~2 vCPU / 4 GB). Examples: AWS ${INSTANCE_TYPE_EXAMPLES.aws}, Azure ${INSTANCE_TYPE_EXAMPLES.azure}, GCP ${INSTANCE_TYPE_EXAMPLES.gcp}, Hetzner ${INSTANCE_TYPE_EXAMPLES.hetzner}. Applies to every node; you can change it here later.`}
+        />
+      ) : null}
+      {showRegion ? (
+        <>
+          <ClusterPlacementField
+            label="Indexer cluster placement"
+            placement={form.indexerPlacement}
+            nodeCount={Math.max(1, Number(form.indexerCount) || 1)}
+            primaryRegion={form.region}
+            providerCode={providerCode}
+            regionOptions={regionOptions}
+            onChange={(p) => setField('indexerPlacement', p)}
+          />
+          <ClusterPlacementField
+            label="Search head cluster placement"
+            placement={form.searchHeadPlacement}
+            nodeCount={Math.max(1, Number(form.searchHeadCount) || 1)}
+            primaryRegion={form.region}
+            providerCode={providerCode}
+            regionOptions={regionOptions}
+            onChange={(p) => setField('searchHeadPlacement', p)}
+          />
+        </>
+      ) : null}
+    </FormSection>
+
+    {form.deploymentType === 'distributed' ? (
+      <>
+        <FormSection
+          title="Control plane"
+          description="How many instances the five management roles run on — fewer instances cut cost, more give isolation and HA."
+        >
+          <Select
+            label="Consolidation"
+            value={form.controlPlaneLayout}
+            onChange={(value) => setField('controlPlaneLayout', value as FormState['controlPlaneLayout'])}
+            options={CONTROL_PLANE_LAYOUT_OPTIONS.map((o) => ({ value: o.value, label: `${o.label} — ${o.description}` }))}
+          />
+        </FormSection>
+
+        <FormSection
+          title="Ingest"
+          description="Heavy forwarders for ingest routing. One is provisioned by default; add more for higher throughput."
+        >
+          <Input
+            label="Heavy forwarders"
+            type="number"
+            min={1}
+            value={form.heavyForwarderCount}
+            onChange={(e) => setField('heavyForwarderCount', e.target.value)}
+            fullWidth
+          />
+        </FormSection>
+      </>
+    ) : null}
   </div>
 )
 

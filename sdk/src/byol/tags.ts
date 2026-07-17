@@ -24,6 +24,12 @@
 export interface ByolTagInput {
   /** Tenant id — cost attribution + tenant isolation. */
   customerId: string
+  /**
+   * Human-readable, unique tenant shortname (set in Settings → Organization).
+   * Used as the `Veltrix:Customer` value so cloud tags are legible; falls back
+   * to `customerId` when the tenant has not set one.
+   */
+  customerShortName?: string | null
   /** Unique environment id (the infrastructure record id). */
   infrastructureId: string
   /** Human environment name. */
@@ -68,23 +74,25 @@ function s(value: string | null | undefined): string {
  * Build the canonical cost-allocation / tenant-isolation tag set for a BYOL
  * environment. Pure: the same input always yields the same ordered map.
  *
- *   Veltrix:Customer    = customerId
+ *   Veltrix:Customer    = customerShortName ?? customerId
  *   Veltrix:Environment = infrastructureId      (unique env id)
  *   Veltrix:EnvName     = name
  *   Veltrix:EnvType     = environmentType       (prod / staging / …)
  *   Veltrix:App         = appId                 (splunk-enterprise, …)
  *   Veltrix:ManagedBy   = Veltrix               (constant; tag-scoped IAM)
- *   CostCenter          = costCenter ?? customerId
- *   Owner               = owner ?? customerId
+ *   CostCenter          = costCenter ?? the customer label
+ *   Owner               = owner ?? the customer label
  */
 export function buildByolTags(input: ByolTagInput): ByolTags {
   const customerId = s(input.customerId)
-  const costCenter = s(input.costCenter) || customerId
-  const owner = s(input.owner) || customerId
+  // Prefer the human-readable shortname; fall back to the UUID when unset.
+  const customerLabel = s(input.customerShortName) || customerId
+  const costCenter = s(input.costCenter) || customerLabel
+  const owner = s(input.owner) || customerLabel
 
   // Object literal in canonical key order — string keys preserve insertion order.
   return {
-    'Veltrix:Customer': customerId,
+    'Veltrix:Customer': customerLabel,
     'Veltrix:Environment': s(input.infrastructureId),
     'Veltrix:EnvName': s(input.name),
     'Veltrix:EnvType': s(input.environmentType),

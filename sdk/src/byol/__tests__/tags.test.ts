@@ -44,6 +44,24 @@ describe('buildByolTags', () => {
     expect(tags.Owner).toBe('cust-1')
   })
 
+  it('uses the customer shortname for Customer / CostCenter / Owner when set', () => {
+    const tags = buildByolTags({ ...BASE, customerShortName: 'acme-prod' })
+    expect(tags['Veltrix:Customer']).toBe('acme-prod')
+    expect(tags.CostCenter).toBe('acme-prod')
+    expect(tags.Owner).toBe('acme-prod')
+  })
+
+  it('falls back to the customerId when the shortname is blank/absent', () => {
+    expect(buildByolTags({ ...BASE, customerShortName: '   ' })['Veltrix:Customer']).toBe('cust-1')
+    expect(buildByolTags({ ...BASE, customerShortName: null })['Veltrix:Customer']).toBe('cust-1')
+  })
+
+  it('lets an explicit costCenter / owner override the shortname', () => {
+    const tags = buildByolTags({ ...BASE, customerShortName: 'acme-prod', costCenter: 'CC-42', owner: 'user-7' })
+    expect(tags.CostCenter).toBe('CC-42')
+    expect(tags.Owner).toBe('user-7')
+  })
+
   it('is pure — the same input yields an equal map', () => {
     expect(buildByolTags(BASE)).toEqual(buildByolTags(BASE))
   })

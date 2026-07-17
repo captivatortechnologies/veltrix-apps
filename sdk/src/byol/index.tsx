@@ -31,6 +31,10 @@ export type {
 export { buildByolTags, BYOL_TAG_KEYS, MANAGED_BY } from './tags'
 export type { ByolTags, ByolTagInput } from './tags'
 
+// Cluster placement allocation (pure, React-free — usable server-side)
+export { allocateNodesBySite, validatePlacement, effectivePlacement } from './placement'
+export type { SiteAllocation } from './placement'
+
 // Types
 export type {
   ByolInfrastructure,
@@ -45,6 +49,16 @@ export type {
   CloudRegion,
   CloudAccount,
   FormState,
+  ControlPlaneLayout,
+  PlacementGranularity,
+  PlacementSite,
+  ClusterPlacement,
+} from './types'
+export {
+  SINGLE_SITE_PLACEMENT,
+  MIN_HEAVY_FORWARDERS,
+  CONTROL_PLANE_LAYOUT_OPTIONS,
+  PLACEMENT_GRANULARITY_OPTIONS,
 } from './types'
 
 // Status helpers

@@ -77,8 +77,8 @@ variable "network_mode" {
       existing  — BYOC: data-source a customer-designated hcloud_network
                   (network_ref) and create a subnet inside it (subnet_cidr).
   EOT
-  type    = string
-  default = "shared"
+  type        = string
+  default     = "shared"
 
   validation {
     condition     = contains(["shared", "dedicated", "existing"], var.network_mode)
@@ -106,8 +106,8 @@ variable "network_lookup_by" {
     ("tag" is kept for cross-cloud name parity with the AWS module, mapped to
     Hetzner's label selector — Hetzner networks carry labels, not tags.)
   EOT
-  type    = string
-  default = "name"
+  type        = string
+  default     = "name"
 
   validation {
     condition     = contains(["name", "id", "tag"], var.network_lookup_by)
@@ -121,8 +121,8 @@ variable "subnet_cidr" {
     set, for dedicated). Empty is allowed only when dedicated (the whole vpc_cidr
     is then used as a single subnet).
   EOT
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
 
   validation {
     condition     = var.subnet_cidr == "" || can(cidrhost(var.subnet_cidr, 0))
@@ -136,8 +136,8 @@ variable "vpc_cidr" {
     A single cloud subnet is carved from it (subnet_cidr, or the whole range).
     Ignored otherwise. Named `vpc_cidr` for cross-cloud contract parity.
   EOT
-  type    = string
-  default = "10.60.0.0/16"
+  type        = string
+  default     = "10.60.0.0/16"
 
   validation {
     condition     = can(cidrhost(var.vpc_cidr, 0))
@@ -162,10 +162,15 @@ variable "plan" {
   type = list(object({
     plan_key = string
     tier     = string # foundation | control-plane | data | search | ingest
-    kind     = string # network | storage | indexer | search-head | ... (see byolTopology.ts)
+    kind     = string # network | storage | indexer | search-head | management-node | ...
     name     = optional(string, "")
     role     = optional(string, "")
     region   = optional(string, null)
+    # Accepted for cross-cloud plan-shape parity. Hetzner has no in-location AZs,
+    # so `zone` is unused here (multi-site uses locations via region granularity);
+    # `roles` carries a consolidated control-plane node's role set for bring-up.
+    zone  = optional(string, null)
+    roles = optional(list(string), [])
   }))
 
   validation {
@@ -186,8 +191,8 @@ variable "server_types" {
     (foundation|control-plane|data|search|ingest). Missing tiers fall back to
     default_server_type. Kind-level overrides go in server_types_by_kind.
   EOT
-  type    = map(string)
-  default = {}
+  type        = map(string)
+  default     = {}
 }
 
 variable "server_types_by_kind" {
@@ -216,8 +221,8 @@ variable "image" {
     debian-12) or a snapshot id. Defaults to ubuntu-22.04 (scaffold only);
     production SHOULD supply a hardened, tool-preinstalled snapshot id.
   EOT
-  type    = string
-  default = "ubuntu-22.04"
+  type        = string
+  default     = "ubuntu-22.04"
 }
 
 variable "ssh_keys" {
@@ -247,8 +252,8 @@ variable "dns_mode" {
                      uses certificate_arn on its HTTPS service.
       private-only — no public DNS; reached via the customer network (ZTNA/VPN).
   EOT
-  type    = string
-  default = "managed"
+  type        = string
+  default     = "managed"
 
   validation {
     condition     = contains(["managed", "delegated", "private-only"], var.dns_mode)
@@ -264,8 +269,8 @@ variable "certificate_arn" {
     Empty => the LB serves plain HTTP on the listener port (documented). Named
     `certificate_arn` for cross-cloud contract parity; it is NOT an AWS ARN.
   EOT
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
 }
 
 variable "create_private_zone" {
@@ -275,8 +280,8 @@ variable "create_private_zone" {
     NO-OP: no zone/record is created. Per-node FQDNs are still emitted as
     `node_fqdns` for the bring-up layer (hetznerdns provider or /etc/hosts).
   EOT
-  type    = bool
-  default = false
+  type        = bool
+  default     = false
 }
 
 variable "private_zone_id" {
@@ -285,8 +290,8 @@ variable "private_zone_id" {
     Hetzner has no in-provider DNS, so it is UNUSED here (documented no-op); kept
     so the worker can pass a uniform variable set across clouds.
   EOT
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
 }
 
 # --- Declarative infra spec (rendered from the app's InfraSpec) -----------
@@ -300,7 +305,7 @@ variable "foundation_kinds" {
     Any plan item whose kind is NOT in this set (and not named by compute_kinds)
     is a compute node. Kept in sync with FOUNDATION_KINDS in spec.ts.
   EOT
-  type = list(string)
+  type        = list(string)
   default = [
     "network", "storage", "secrets", "tls",
     "load-balancer", "dns", "license-file", "hec",
@@ -314,8 +319,8 @@ variable "compute_kinds" {
     whose kind is not in foundation_kinds (so an app's roles are compute
     automatically).
   EOT
-  type    = list(string)
-  default = []
+  type        = list(string)
+  default     = []
 }
 
 variable "security_rules" {
@@ -368,8 +373,8 @@ variable "dns_prefixes" {
     { indexer = "idx", search-head = "sh", cluster-manager = "mgmt" }). A compute
     kind absent from the map falls back to the kind string itself.
   EOT
-  type    = map(string)
-  default = {}
+  type        = map(string)
+  default     = {}
 }
 
 variable "waf_enabled" {
@@ -414,5 +419,5 @@ variable "tags" {
     identity is scoped by Veltrix:ManagedBy = Veltrix, so this map MUST include
     it (it becomes the Veltrix_ManagedBy label).
   EOT
-  type = map(string)
+  type        = map(string)
 }

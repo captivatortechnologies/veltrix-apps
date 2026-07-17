@@ -35,6 +35,10 @@ export interface ByolResourceDto {
   name: string
   role: string | null
   region: string | null
+  /** Availability zone within `region` for a multi-AZ-placed node; null otherwise. */
+  zone: string | null
+  /** Management roles a consolidated control-plane instance runs; null otherwise. */
+  roles: string[] | null
   status: string
   externalRef: string | null
   message: string | null
@@ -42,6 +46,20 @@ export interface ByolResourceDto {
   sortOrder: number
   createdAt: Date
   updatedAt: Date
+}
+
+/** Parse a JSONB roles value (object from the driver, or a JSON string). */
+function parseRoles(value: unknown): string[] | null {
+  if (value == null) return null
+  let arr: any = value
+  if (typeof value === 'string') {
+    try {
+      arr = JSON.parse(value)
+    } catch {
+      return null
+    }
+  }
+  return Array.isArray(arr) ? arr.filter((r) => typeof r === 'string') : null
 }
 
 export function mapResource(r: Row): ByolResourceDto {
@@ -53,6 +71,8 @@ export function mapResource(r: Row): ByolResourceDto {
     name: r.name,
     role: r.role ?? null,
     region: r.region ?? null,
+    zone: r.zone ?? null,
+    roles: parseRoles(r.roles),
     status: r.status,
     externalRef: r.external_ref ?? null,
     message: r.message ?? null,
@@ -97,11 +117,12 @@ export async function seedResources(
   for (const item of plan) {
     await db.$executeRawUnsafe(
       `INSERT INTO splunk_byol_resource
-         (infrastructure_id, tier, kind, name, role, region, status, plan_key, sort_order, customer_id)
-       VALUES ($1::uuid, $2, $3, $4, $5, $6, 'provisioning', $7, $8, $9::uuid)
+         (infrastructure_id, tier, kind, name, role, region, zone, roles, status, plan_key, sort_order, customer_id)
+       VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8::jsonb, 'provisioning', $9, $10, $11::uuid)
        ON CONFLICT (infrastructure_id, plan_key)
        DO UPDATE SET tier = EXCLUDED.tier, kind = EXCLUDED.kind, name = EXCLUDED.name,
-                     role = EXCLUDED.role, region = EXCLUDED.region, status = 'provisioning',
+                     role = EXCLUDED.role, region = EXCLUDED.region, zone = EXCLUDED.zone,
+                     roles = EXCLUDED.roles, status = 'provisioning',
                      sort_order = EXCLUDED.sort_order, updated_at = now()`,
       infrastructureId,
       item.tier,
@@ -109,6 +130,8 @@ export async function seedResources(
       item.name,
       item.role,
       item.region,
+      item.zone ?? null,
+      item.roles && item.roles.length ? JSON.stringify(item.roles) : null,
       item.planKey,
       item.sortOrder,
       customerId,

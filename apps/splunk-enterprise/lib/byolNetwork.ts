@@ -107,9 +107,15 @@ function networkRequestFor(
 }
 
 /** Derive the canonical tag set for an infra. */
-function tagsFor(infra: ByolNetworkInfra, customerId: string, appId: string): ByolTags {
+function tagsFor(
+  infra: ByolNetworkInfra,
+  customerId: string,
+  appId: string,
+  customerShortName?: string | null,
+): ByolTags {
   return buildByolTags({
     customerId,
+    customerShortName,
     infrastructureId: infra.id,
     name: infra.name,
     environmentType: infra.environmentType,
@@ -126,8 +132,9 @@ export async function resolvePlanNetwork(
   infra: ByolNetworkInfra,
   customerId: string,
   appId: string,
+  customerShortName?: string | null,
 ): Promise<PlanNetworkResult> {
-  const tags = tagsFor(infra, customerId, appId)
+  const tags = tagsFor(infra, customerId, appId, customerShortName)
   const request = networkRequestFor(infra, customerId)
 
   // Self-hosted / no region → a Network genuinely does not apply (no flag).
@@ -152,9 +159,9 @@ export async function resolvePlanNetwork(
  */
 export async function reserveDeployNetwork(
   infra: ByolNetworkInfra,
-  opts: { customerId: string; appId: string; infrastructureId: string },
+  opts: { customerId: string; appId: string; infrastructureId: string; customerShortName?: string | null },
 ): Promise<DeployNetworkResult> {
-  const tags = tagsFor(infra, opts.customerId, opts.appId)
+  const tags = tagsFor(infra, opts.customerId, opts.appId, opts.customerShortName)
   const request = networkRequestFor(infra, opts.customerId)
 
   if (!request || !isNetworkApiConfigured()) return { tags }

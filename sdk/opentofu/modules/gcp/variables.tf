@@ -74,8 +74,8 @@ variable "network_mode" {
       existing  — BYOC: data-source a customer-designated network (network_ref) and
                   create a subnetwork inside it (subnet_cidr).
   EOT
-  type    = string
-  default = "shared"
+  type        = string
+  default     = "shared"
 
   validation {
     condition     = contains(["shared", "dedicated", "existing"], var.network_mode)
@@ -100,8 +100,8 @@ variable "network_lookup_by" {
     GCP has no tag-based network lookup, so both `tag` and `id` resolve
     network_ref as the network NAME. Used for shared|existing.
   EOT
-  type    = string
-  default = "tag"
+  type        = string
+  default     = "tag"
 
   validation {
     condition     = contains(["tag", "id"], var.network_lookup_by)
@@ -115,8 +115,8 @@ variable "subnet_cidr" {
     for hosted). Ignored for dedicated (the subnetwork range is vpc_cidr). Empty is
     allowed only when dedicated.
   EOT
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
 
   validation {
     condition     = var.subnet_cidr == "" || can(cidrhost(var.subnet_cidr, 0))
@@ -130,8 +130,8 @@ variable "vpc_cidr" {
     (BYOC). GCP custom-mode networks have no parent range; this whole CIDR becomes
     the stack's single regional subnetwork. Ignored otherwise.
   EOT
-  type    = string
-  default = "10.60.0.0/16"
+  type        = string
+  default     = "10.60.0.0/16"
 
   validation {
     condition     = can(cidrhost(var.vpc_cidr, 0))
@@ -156,10 +156,14 @@ variable "plan" {
   type = list(object({
     plan_key = string
     tier     = string # foundation | control-plane | data | search | ingest
-    kind     = string # network | storage | indexer | search-head | ... (see byolTopology.ts)
+    kind     = string # network | storage | indexer | search-head | management-node | ...
     name     = optional(string, "")
     role     = optional(string, "")
     region   = optional(string, null)
+    # Multi-AZ placement: the GCP zone (e.g. us-central1-b) this node is pinned to
+    # (null = var.zone). GCP subnets are regional, so only the instance zone varies.
+    zone  = optional(string, null)
+    roles = optional(list(string), [])
   }))
 
   validation {
@@ -176,8 +180,8 @@ variable "machine_types" {
     (foundation|control-plane|data|search|ingest). Missing tiers fall back to
     default_machine_type. Kind-level overrides go in machine_types_by_kind.
   EOT
-  type    = map(string)
-  default = {}
+  type        = map(string)
+  default     = {}
 }
 
 variable "machine_types_by_kind" {
@@ -189,7 +193,7 @@ variable "machine_types_by_kind" {
 variable "default_machine_type" {
   description = "Fallback machine type for any compute plan item with no tier/kind override."
   type        = string
-  default     = "n2-standard-2"
+  default     = "e2-medium"
 }
 
 variable "boot_disk_gb" {
@@ -206,8 +210,8 @@ variable "image" {
     image name. If empty, the module falls back to the latest Debian 12 image
     (scaffold only) — production MUST supply a hardened, tool-preinstalled image.
   EOT
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
 }
 
 variable "ssh_public_key" {
@@ -216,8 +220,8 @@ variable "ssh_public_key" {
     `user:ssh-rsa AAAA... comment`. Empty = none (published to the instance's
     ssh-keys metadata when set).
   EOT
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
 }
 
 # --- Foundation options ----------------------------------------------------
@@ -242,8 +246,8 @@ variable "dns_mode" {
                      HTTPS proxy instead.
       private-only — no public DNS; reached via the customer network (ZTNA/VPN).
   EOT
-  type    = string
-  default = "managed"
+  type        = string
+  default     = "managed"
 
   validation {
     condition     = contains(["managed", "delegated", "private-only"], var.dns_mode)
@@ -265,8 +269,8 @@ variable "certificate_arn" {
     kept as `certificate_arn` for cross-cloud contract uniformity). Empty otherwise
     (the module issues its own managed cert in dns_mode = managed).
   EOT
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
 }
 
 variable "alb_auth" {
@@ -303,8 +307,8 @@ variable "create_private_zone" {
     Ignored when dns_domain is empty. Mutually complementary with private_zone_id:
     set private_zone_id instead to reuse an existing zone.
   EOT
-  type    = bool
-  default = false
+  type        = bool
+  default     = false
 }
 
 variable "private_zone_id" {
@@ -314,8 +318,8 @@ variable "private_zone_id" {
     (and set create_private_zone) to have the module create the zone. Named
     private_zone_id for cross-cloud parity; on GCP it is the managed-zone name.
   EOT
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
 }
 
 # --- Declarative infra spec (rendered from the app's InfraSpec) -----------
@@ -330,7 +334,7 @@ variable "foundation_kinds" {
     Any plan item whose kind is NOT in this set (and not named by compute_kinds)
     is a compute node. Kept in sync with FOUNDATION_KINDS in spec.ts.
   EOT
-  type = list(string)
+  type        = list(string)
   default = [
     "network", "storage", "secrets", "tls",
     "load-balancer", "dns", "license-file", "hec",
@@ -344,8 +348,8 @@ variable "compute_kinds" {
     whose kind is not in foundation_kinds (so an app's roles are compute
     automatically).
   EOT
-  type    = list(string)
-  default = []
+  type        = list(string)
+  default     = []
 }
 
 variable "security_rules" {
@@ -400,8 +404,8 @@ variable "dns_prefixes" {
     { indexer = "idx", search-head = "sh", cluster-manager = "mgmt" }). A compute
     kind absent from the map falls back to the kind string itself.
   EOT
-  type    = map(string)
-  default = {}
+  type        = map(string)
+  default     = {}
 }
 
 variable "waf_enabled" {
@@ -420,5 +424,5 @@ variable "tags" {
     CostCenter, ...) are invalid GCP label keys. Must include Veltrix:ManagedBy
     (the OIDC/WIF apply identity is scoped by veltrix_managedby = veltrix).
   EOT
-  type    = map(string)
+  type        = map(string)
 }

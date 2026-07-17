@@ -22,6 +22,8 @@
 /** Context a BYOL tag set is derived from — everything the app already holds. */
 export interface ByolTagInput {
   customerId: string
+  /** Human-readable, unique tenant shortname; falls back to `customerId`. */
+  customerShortName?: string | null
   infrastructureId: string
   name: string
   environmentType: string
@@ -59,11 +61,13 @@ function s(value: string | null | undefined): string {
  */
 export function buildByolTags(input: ByolTagInput): ByolTags {
   const customerId = s(input.customerId)
-  const costCenter = s(input.costCenter) || customerId
-  const owner = s(input.owner) || customerId
+  // Prefer the human-readable shortname; fall back to the UUID when unset.
+  const customerLabel = s(input.customerShortName) || customerId
+  const costCenter = s(input.costCenter) || customerLabel
+  const owner = s(input.owner) || customerLabel
 
   return {
-    'Veltrix:Customer': customerId,
+    'Veltrix:Customer': customerLabel,
     'Veltrix:Environment': s(input.infrastructureId),
     'Veltrix:EnvName': s(input.name),
     'Veltrix:EnvType': s(input.environmentType),

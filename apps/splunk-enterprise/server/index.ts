@@ -9,6 +9,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import type { AppRouteContext, AppEventPublisher } from '@veltrixsecops/app-sdk'
 import { buildByolResourcePlan, DEPLOYMENT_STEPS } from '../lib/byolTopology'
+import { readByol } from '../lib/byolInput'
 import { buildByolPlan } from '../lib/byolPlanDiff'
 import { resolvePlanNetwork, reserveDeployNetwork, NetworkAllocationConflictError } from '../lib/byolNetwork'
 import * as store from '../lib/db'
@@ -30,6 +31,11 @@ import { registerActivationRoutes } from './activationRoutes'
 
 function customerOf(request: FastifyRequest): string | null {
   return (request as any).user?.customerId ?? null
+}
+
+/** The tenant's human-readable shortname (injected by the platform), or null. */
+function customerShortNameOf(request: FastifyRequest): string | null {
+  return (request as any).user?.customerShortName ?? null
 }
 
 function userOf(request: FastifyRequest): string | null {
@@ -69,77 +75,22 @@ function parseCollectDate(query: unknown): Date {
   return new Date(Date.now() - 24 * 60 * 60 * 1000)
 }
 
-function toInt(value: unknown, fallback: number): number {
-  const n = typeof value === 'number' ? value : Number(value)
-  return Number.isFinite(n) ? Math.trunc(n) : fallback
-}
-
-/**
- * Editable scalar fields for a BYOL infrastructure record, coerced from a
- * request body. Region associations (indexerRegions / searchHeadRegions) and
- * the splunkUpgrade relation are intentionally NOT written here.
- * TODO regions: manage indexer/search-head region relation rows in a later pass.
- */
-function readByol(body: any): { data: Record<string, unknown>; error?: string } {
-  const name = typeof body?.name === 'string' ? body.name.trim() : ''
-  if (!name) return { data: {}, error: 'Name is required' }
-  if (name.length > 120) return { data: {}, error: 'Name must be 120 characters or fewer' }
-
-  const deploymentType = typeof body?.deploymentType === 'string' ? body.deploymentType.trim() : 'single'
-  const environmentType = typeof body?.environmentType === 'string' ? body.environmentType.trim() : ''
-  // Provider name (a platform cloud-provider name, or "Self-Hosted"); no default
-  // — Kubernetes is no longer a hosting option.
-  const hostingType = typeof body?.hosting_type === 'string' ? body.hosting_type.trim() : ''
-  // Cloud region (only meaningful for a distributed cloud deployment).
-  const region = typeof body?.region === 'string' ? body.region.trim() : ''
-
-  const indexerCount = toInt(body?.indexerCount, 1)
-  const searchHeadCount = toInt(body?.searchHeadCount, 1)
-  if (indexerCount < 1) return { data: {}, error: 'indexerCount must be at least 1' }
-  if (searchHeadCount < 1) return { data: {}, error: 'searchHeadCount must be at least 1' }
-
-  // "Distributed" is the multi-node Splunk topology (single instance is the other).
-  if (deploymentType === 'distributed') {
-    if (indexerCount < 3) return { data: {}, error: 'Distributed deployments require at least 3 indexers' }
-    if (searchHeadCount < 2) return { data: {}, error: 'Distributed deployments require at least 2 search heads' }
+/** Map a persisted infra to the topology builder's input (single source of truth). */
+function topologyInputFor(infra: store.ByolDto) {
+  return {
+    deploymentType: infra.deploymentType,
+    indexerCount: infra.indexerCount,
+    searchHeadCount: infra.searchHeadCount,
+    hostingType: infra.hosting_type,
+    isCloud: Boolean(infra.cloudProviderId),
+    region: infra.region,
+    indexerRegions: infra.indexerRegions.map((r) => r.region),
+    searchHeadRegions: infra.searchHeadRegions.map((r) => r.region),
+    controlPlaneLayout: infra.controlPlaneLayout,
+    heavyForwarderCount: infra.heavyForwarderCount,
+    indexerPlacement: infra.indexerPlacement,
+    searchHeadPlacement: infra.searchHeadPlacement,
   }
-
-  // Deployment target: shared = Veltrix-hosted; dedicated/existing = BYOC (into
-  // the customer's own cloud account). Defaults keep hosted behaviour unchanged.
-  const networkMode = typeof body?.networkMode === 'string' ? body.networkMode.trim() : 'shared'
-  if (!['shared', 'dedicated', 'existing'].includes(networkMode)) {
-    return { data: {}, error: 'networkMode must be one of: shared, dedicated, existing' }
-  }
-  const dnsMode = typeof body?.dnsMode === 'string' ? body.dnsMode.trim() : 'managed'
-  if (!['managed', 'delegated', 'private-only'].includes(dnsMode)) {
-    return { data: {}, error: 'dnsMode must be one of: managed, delegated, private-only' }
-  }
-  const cloudAccountConnectionId =
-    typeof body?.cloudAccountConnectionId === 'string' ? body.cloudAccountConnectionId.trim() : ''
-  // BYOC modes must name the cloud account to deploy into.
-  if ((networkMode === 'dedicated' || networkMode === 'existing') && !cloudAccountConnectionId) {
-    return { data: {}, error: 'A cloud account is required when deploying into your own cloud (dedicated/existing)' }
-  }
-
-  const data: Record<string, unknown> = {
-    name,
-    deploymentType,
-    environmentType,
-    hosting_type: hostingType,
-    region,
-    indexerCount,
-    searchHeadCount,
-    networkMode,
-    dnsMode,
-  }
-  // cloudProviderId is optional (String?); only set when explicitly provided.
-  if (typeof body?.cloudProviderId === 'string' && body.cloudProviderId.trim()) {
-    data.cloudProviderId = body.cloudProviderId.trim()
-  }
-  if (cloudAccountConnectionId) {
-    data.cloudAccountConnectionId = cloudAccountConnectionId
-  }
-  return { data }
 }
 
 /** Best-effort publish of a provisioning event; never fails the request. */
@@ -286,19 +237,15 @@ export default async function registerRoutes(
       const infra = await store.getByol(db, id, customerId)
       if (!infra) return reply.status(404).send({ error: 'BYOL infrastructure not found' })
 
-      const desired = buildByolResourcePlan({
-        deploymentType: infra.deploymentType,
-        indexerCount: infra.indexerCount,
-        searchHeadCount: infra.searchHeadCount,
-        hostingType: infra.hosting_type,
-        isCloud: Boolean(infra.cloudProviderId),
-        region: infra.region,
-        indexerRegions: infra.indexerRegions.map((r) => r.region),
-        searchHeadRegions: infra.searchHeadRegions.map((r) => r.region),
-      })
+      const desired = buildByolResourcePlan(topologyInputFor(infra))
       const current = await store.listResources(db, id)
       const diff = buildByolPlan(current, desired)
-      const { network, tags, networkUnavailable } = await resolvePlanNetwork(infra, customerId, ctx.appId)
+      const { network, tags, networkUnavailable } = await resolvePlanNetwork(
+        infra,
+        customerId,
+        ctx.appId,
+        customerShortNameOf(request),
+      )
 
       reply.send({
         ...diff,
@@ -319,16 +266,7 @@ export default async function registerRoutes(
       const infra = await store.getByol(db, id, customerId)
       if (!infra) return reply.status(404).send({ error: 'BYOL infrastructure not found' })
 
-      const plan = buildByolResourcePlan({
-        deploymentType: infra.deploymentType,
-        indexerCount: infra.indexerCount,
-        searchHeadCount: infra.searchHeadCount,
-        hostingType: infra.hosting_type,
-        isCloud: Boolean(infra.cloudProviderId),
-        region: infra.region,
-        indexerRegions: infra.indexerRegions.map((r) => r.region),
-        searchHeadRegions: infra.searchHeadRegions.map((r) => r.region),
-      })
+      const plan = buildByolResourcePlan(topologyInputFor(infra))
 
       // Atomically reserve the stack's subnet + derive the tenant/cost tags
       // before seeding, so both the persisted rows and the emitted event carry
@@ -337,7 +275,12 @@ export default async function registerRoutes(
       // degrade to a tag-only result (the modeled apply still proceeds).
       let deployNet
       try {
-        deployNet = await reserveDeployNetwork(infra, { customerId, appId: ctx.appId, infrastructureId: id })
+        deployNet = await reserveDeployNetwork(infra, {
+          customerId,
+          appId: ctx.appId,
+          infrastructureId: id,
+          customerShortName: customerShortNameOf(request),
+        })
       } catch (err) {
         if (err instanceof NetworkAllocationConflictError) {
           return reply.status(409).send({ error: 'Subnet allocation conflict — please re-plan and try again.' })

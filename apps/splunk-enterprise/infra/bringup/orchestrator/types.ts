@@ -37,6 +37,8 @@ export interface RawPlanItem {
   name?: string;
   role?: string;
   region?: string | null;
+  zone?: string | null;
+  roles?: string[] | null;
 }
 
 /** A plan item after normalization — the shape the pure logic operates on. */
@@ -46,6 +48,8 @@ export interface NormalizedPlanItem {
   kind: string;
   name: string;
   role: string;
+  /** Management roles a consolidated `management-node` runs; empty otherwise. */
+  roles: string[];
 }
 
 /** The tofu-output JSON, as produced by `tofu output -json` (root outputs). */
