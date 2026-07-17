@@ -101,16 +101,25 @@ describe('readByol — placement', () => {
     expect(error).toMatch(/Search head placement: .*Too many sites/)
   })
 
-  it('rejects region-granularity (multi-region) placement — not yet provisionable', () => {
+  const regionPlacement = { mode: 'multi-site', granularity: 'region', sites: [
+    { site: 'us-east-1', percent: 50 },
+    { site: 'us-west-2', percent: 50 },
+  ] } as const
+
+  it('rejects region-granularity placement unless the network is dedicated (BYOC)', () => {
+    const { error } = readByol(distributedBody({ indexerPlacement: regionPlacement }))
+    expect(error).toMatch(/multi-region placement requires a dedicated cloud fabric/)
+  })
+
+  it('allows region-granularity placement in a dedicated (BYOC) deployment', () => {
     const { error } = readByol(
       distributedBody({
-        indexerPlacement: { mode: 'multi-site', granularity: 'region', sites: [
-          { site: 'us-east-1', percent: 50 },
-          { site: 'us-west-2', percent: 50 },
-        ] },
+        networkMode: 'dedicated',
+        cloudAccountConnectionId: 'acct-1',
+        indexerPlacement: regionPlacement,
       }),
     )
-    expect(error).toMatch(/multi-region placement is not available yet/)
+    expect(error).toBeUndefined()
   })
 
   it('allows availability-zone placement', () => {

@@ -73,3 +73,18 @@ output "node_fqdns" {
   EOT
   value       = local.node_fqdns
 }
+
+output "vpc_cidr" {
+  description = "CIDR of the VPC this stack runs in — the created VPC (dedicated) or the allocated subnet block otherwise. Used by the root to wire cross-region peering routes + peer security-group rules."
+  value       = local.is_dedicated ? var.vpc_cidr : var.subnet_cidr
+}
+
+output "private_route_table_id" {
+  description = "Id of the private (compute) route table for dedicated fabrics; empty otherwise. The root adds cross-region VPC-peering routes to it for multi-region satellites."
+  value       = local.is_dedicated ? aws_route_table.private[0].id : ""
+}
+
+output "private_zone_id" {
+  description = "Id of the private DNS zone (when dns_domain is set + a zone is created/supplied); empty otherwise. The root associates it with multi-region satellite VPCs so their nodes resolve the main region's function FQDNs."
+  value       = local.want_private_dns ? local.private_zone_id : ""
+}

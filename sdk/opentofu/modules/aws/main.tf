@@ -178,6 +178,23 @@ locals {
       if !(s == "alb" && !local.has_lb)
     }
   ]...)
+
+  # Cross-region cluster traffic: peers in a PEERED VPC (a multi-region indexer/
+  # search-head satellite) are in a different security group, so the "self" rules
+  # don't reach them. For every intra-cluster ("self") rule, allow the same port
+  # from each peer VPC CIDR. Empty peer_cidrs (the single-region default) yields
+  # no extra rules — fully backward compatible.
+  sg_peer_ingress = merge([
+    for r in var.security_rules : {
+      for cidr in(contains(r.sources, "self") ? var.peer_cidrs : []) :
+      "${r.port}-${r.protocol}-peer-${cidr}" => {
+        port        = r.port
+        protocol    = r.protocol
+        cidr        = cidr
+        description = "port ${r.port} (${r.protocol}) from peer VPC ${cidr}"
+      }
+    }
+  ]...)
 }
 
 data "aws_availability_zones" "available" {
@@ -330,16 +347,21 @@ resource "aws_route_table" "private" {
   count  = local.is_dedicated ? 1 : 0
   vpc_id = aws_vpc.env[0].id
 
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.env[0].id
-  }
-
   tags = merge(local.base_tags, {
     Name              = "${local.name_prefix}-private-rt"
     "Veltrix:PlanKey" = "foundation/network"
     "Veltrix:Tier"    = "foundation"
   })
+}
+
+# Default egress via NAT — a SEPARATE aws_route (not an inline `route` block) so
+# the root can add cross-region VPC-peering routes to this same table without the
+# inline-vs-resource conflict the AWS provider forbids. Same route, no behavior change.
+resource "aws_route" "private_nat" {
+  count                  = local.is_dedicated ? 1 : 0
+  route_table_id         = aws_route_table.private[0].id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.env[0].id
 }
 
 resource "aws_route_table_association" "public" {
@@ -437,6 +459,21 @@ resource "aws_vpc_security_group_ingress_rule" "node" {
     null
   )
   cidr_ipv4 = each.value.source == "admin" ? var.admin_cidr : null
+
+  tags = merge(local.base_tags, { Name = "${local.name_prefix}-${each.key}" })
+}
+
+# Cross-region cluster ingress: same intra-cluster ports, from each peered VPC's
+# CIDR (multi-region satellites). Empty when peer_cidrs is empty (single-region).
+resource "aws_vpc_security_group_ingress_rule" "peer" {
+  for_each = local.sg_peer_ingress
+
+  security_group_id = aws_security_group.splunk.id
+  from_port         = each.value.port
+  to_port           = each.value.port
+  ip_protocol       = each.value.protocol
+  description       = each.value.description
+  cidr_ipv4         = each.value.cidr
 
   tags = merge(local.base_tags, { Name = "${local.name_prefix}-${each.key}" })
 }

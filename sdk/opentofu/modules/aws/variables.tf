@@ -122,6 +122,17 @@ variable "admin_cidr" {
   default     = "10.0.0.0/8"
 }
 
+variable "peer_cidrs" {
+  description = <<-EOT
+    CIDRs of PEERED VPCs whose nodes are part of this cluster (multi-region
+    indexer/search-head satellites). Each is allowed on the same intra-cluster
+    ("self") ports so cross-region replication/management works over VPC peering.
+    Empty (the single-region default) adds no rules.
+  EOT
+  type        = list(string)
+  default     = []
+}
+
 # --- The plan (topology) --------------------------------------------------
 
 variable "plan" {
