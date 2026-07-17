@@ -78,6 +78,10 @@ export interface ByolDto {
   github_deployment_id: string | null
   hosting_type: string
   region: string | null
+  // Deployment target (hosted vs BYOC) — see migration 009.
+  networkMode: string
+  dnsMode: string
+  cloudAccountConnectionId: string | null
   createdAt: Date
   updatedAt: Date
   indexerRegions: RegionDto[]
@@ -99,6 +103,9 @@ export function mapByol(r: Row): ByolDto {
     github_deployment_id: r.github_deployment_id ?? null,
     hosting_type: r.hosting_type,
     region: r.region ?? null,
+    networkMode: r.network_mode ?? 'shared',
+    dnsMode: r.dns_mode ?? 'managed',
+    cloudAccountConnectionId: r.cloud_account_connection_id ?? null,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     indexerRegions: [],

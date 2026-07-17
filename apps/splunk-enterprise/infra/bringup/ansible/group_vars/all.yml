@@ -1,0 +1,85 @@
+# =============================================================================
+# group_vars/all.yml — shared Splunk bring-up variables.
+#
+# Values are resolved LAZILY. The secret material is fetched at run time from
+# AWS Secrets Manager (per-tenant KMS CMK) via the amazon.aws.aws_secret lookup,
+# which runs on the CONTROLLER (the CI runner). The controller's role therefore
+# needs secretsmanager:GetSecretValue + kms:Decrypt on the tenant CMK.
+#
+# SECURITY: every task that consumes any of these secret vars sets `no_log: true`
+# (see tasks/pre_start_secrets.yml, tasks/post_start_admin.yml). Do NOT run the
+# play with -vvv in CI — that can echo templated vars.
+# =============================================================================
+
+splunk_home: /opt/splunk
+splunk_user: splunk
+splunk_group: splunk
+
+# Region for the aws_secret lookup (set from the inventory all.vars, env fallback).
+splunk_secrets_region: "{{ hostvars[inventory_hostname].splunk_secrets_region | default(lookup('env','AWS_REGION')) | default('us-east-1', true) }}"
+
+# The foundation/secrets JSON blob — one Secrets Manager secret per tenant.
+# Expected keys (cleartext; splunkd encrypts pass4SymmKey/secret on first start):
+#   splunk_secret            -> $SPLUNK_HOME/etc/auth/splunk.secret content
+#   admin_password           -> plaintext admin (post-start REST auth only)
+#   admin_hashed_password    -> `splunk hash-passwd` output for user-seed.conf
+#   pass4_general            -> [general] pass4SymmKey
+#   pass4_clustering         -> [clustering] pass4SymmKey  (indexer cluster)
+#   pass4_shclustering       -> [shclustering] pass4SymmKey (search-head cluster)
+#   pass4_deployment         -> [deployment] pass4SymmKey  (deployment server)
+_splunk_secret_blob: >-
+  {{ lookup('amazon.aws.aws_secret', splunk_secrets_arn, region=splunk_secrets_region) | from_json }}
+
+# Admin identity. HASHED goes into user-seed.conf (never plaintext argv/env for
+# the seed); plaintext is used ONLY for splunkd REST auth after start.
+splunk_admin_user: admin
+splunk_admin_password: "{{ _splunk_secret_blob.admin_password }}"
+splunk_admin_hashed_password: "{{ _splunk_secret_blob.admin_hashed_password }}"
+
+# splunk.secret — identical per tenant, placed 0600 splunk:splunk BEFORE first start.
+splunk_secret_value: "{{ _splunk_secret_blob.splunk_secret }}"
+
+# pass4SymmKey PER CONTEXT — identical within a context, DIFFERENT across.
+# Written as CLEARTEXT; splunkd encrypts on first start (then unrecoverable, so
+# the cleartext is RETAINED in Secrets Manager for scaling new members).
+pass4_general: "{{ _splunk_secret_blob.pass4_general }}"
+pass4_idxc: "{{ _splunk_secret_blob.pass4_clustering }}"
+pass4_shc: "{{ _splunk_secret_blob.pass4_shclustering }}"
+pass4_deployment: "{{ _splunk_secret_blob.pass4_deployment }}"
+
+# --- Internal TLS (per-node AWS Private CA certs; peer pinning ON) -----------
+# S2S(9997) / mgmt(8089) / replication(9887) verify both cert chain AND name.
+splunk_tls_dir: "{{ splunk_home }}/etc/auth/veltrix"
+splunk_tls_server_cert: "{{ splunk_tls_dir }}/{{ splunk_hostname | default(inventory_hostname) }}-server.pem"
+splunk_tls_ca_cert: "{{ splunk_tls_dir }}/ca.pem"
+splunk_ssl_verify_server_cert: true
+splunk_ssl_verify_server_name: true
+
+# --- splunk-ansible driving interface ---------------------------------------
+# splunk-ansible is DRIVEN via SPLUNK_* env vars (see ADVANCED.md); site.yml
+# layers SPLUNK_ROLE per phase over this base. We deliberately do NOT override
+# the big `splunk` dict (Ansible replaces, not merges, dict vars) — env is the
+# supported, non-clobbering interface.
+splunk_base_env:
+  SPLUNK_HOME: "{{ splunk_home }}"
+  SPLUNK_START_ARGS: "--accept-license"
+  SPLUNK_PASSWORD: "{{ splunk_admin_password }}"
+  SPLUNK_SECRET: "{{ splunk_secret_value }}"
+  SPLUNK_PASS4SYMMKEY: "{{ pass4_general }}"
+  # Indexer cluster context.
+  SPLUNK_IDXC_PASS4SYMMKEY: "{{ pass4_idxc }}"
+  SPLUNK_IDXC_LABEL: "{{ splunk_idxc_label | default('idxc') }}"
+  SPLUNK_IDXC_REPLICATION_FACTOR: "{{ splunk_replication_factor | default(3) }}"
+  SPLUNK_IDXC_SEARCH_FACTOR: "{{ splunk_search_factor | default(2) }}"
+  SPLUNK_CLUSTER_MASTER_URL: "{{ splunk_cluster_manager_fqdn | default('') }}"
+  # Search-head cluster context.
+  SPLUNK_SHC_PASS4SYMMKEY: "{{ pass4_shc }}"
+  SPLUNK_SHC_LABEL: "{{ splunk_shc_label | default('shc') }}"
+  SPLUNK_SHC_REPLICATION_FACTOR: "{{ splunk_shc_replication_factor | default(3) }}"
+  SPLUNK_DEPLOYER_URL: "{{ splunk_deployer_fqdn | default('') }}"
+  SPLUNK_SEARCH_HEAD_CAPTAIN_URL: "{{ splunk_shc_captain_fqdn | default('') }}"
+
+# Role reference prefix. Default targets the `splunk.splunk` Ansible collection
+# (see requirements.yml). If you instead install the splunk-ansible roles into a
+# roles path, set this to "" so plays reference bare role names.
+splunk_role_prefix: "splunk.splunk."

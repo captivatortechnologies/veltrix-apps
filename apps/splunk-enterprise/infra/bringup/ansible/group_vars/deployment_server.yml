@@ -1,0 +1,10 @@
+# =============================================================================
+# deployment_server — forwarder management ([deployment] pass4SymmKey) for
+# universal/heavy forwarders ONLY. It must NEVER manage search-head-cluster
+# members (that is the deployer's job) — mixing the two corrupts the SHC.
+# =============================================================================
+splunk_role_name: splunk_deployment_server
+splunk_group_env:
+  SPLUNK_ROLE: splunk_deployment_server
+  # Distinct [deployment] context pass4SymmKey (different from idxc/shc/general).
+  SPLUNK_DEPLOYMENT_SERVER_PASS4SYMMKEY: "{{ pass4_deployment }}"

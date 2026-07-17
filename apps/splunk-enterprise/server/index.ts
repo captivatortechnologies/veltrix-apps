@@ -22,6 +22,7 @@ import {
   deletePackage,
 } from '../lib/s3'
 import { readVersion } from '../lib/versionInput'
+import { registerActivationRoutes } from './activationRoutes'
 
 // --- small body coercion/validation helpers -----------------------------
 
@@ -101,6 +102,23 @@ function readByol(body: any): { data: Record<string, unknown>; error?: string } 
     if (searchHeadCount < 2) return { data: {}, error: 'Distributed deployments require at least 2 search heads' }
   }
 
+  // Deployment target: shared = Veltrix-hosted; dedicated/existing = BYOC (into
+  // the customer's own cloud account). Defaults keep hosted behaviour unchanged.
+  const networkMode = typeof body?.networkMode === 'string' ? body.networkMode.trim() : 'shared'
+  if (!['shared', 'dedicated', 'existing'].includes(networkMode)) {
+    return { data: {}, error: 'networkMode must be one of: shared, dedicated, existing' }
+  }
+  const dnsMode = typeof body?.dnsMode === 'string' ? body.dnsMode.trim() : 'managed'
+  if (!['managed', 'delegated', 'private-only'].includes(dnsMode)) {
+    return { data: {}, error: 'dnsMode must be one of: managed, delegated, private-only' }
+  }
+  const cloudAccountConnectionId =
+    typeof body?.cloudAccountConnectionId === 'string' ? body.cloudAccountConnectionId.trim() : ''
+  // BYOC modes must name the cloud account to deploy into.
+  if ((networkMode === 'dedicated' || networkMode === 'existing') && !cloudAccountConnectionId) {
+    return { data: {}, error: 'A cloud account is required when deploying into your own cloud (dedicated/existing)' }
+  }
+
   const data: Record<string, unknown> = {
     name,
     deploymentType,
@@ -109,10 +127,15 @@ function readByol(body: any): { data: Record<string, unknown>; error?: string } 
     region,
     indexerCount,
     searchHeadCount,
+    networkMode,
+    dnsMode,
   }
   // cloudProviderId is optional (String?); only set when explicitly provided.
   if (typeof body?.cloudProviderId === 'string' && body.cloudProviderId.trim()) {
     data.cloudProviderId = body.cloudProviderId.trim()
+  }
+  if (cloudAccountConnectionId) {
+    data.cloudAccountConnectionId = cloudAccountConnectionId
   }
   return { data }
 }
@@ -131,6 +154,9 @@ export default async function registerRoutes(
   ctx: AppRouteContext,
 ) {
   const { hasPermission, db, events } = ctx
+
+  // --- Activation (one-time credential handoff) routes ---
+  registerActivationRoutes(fastify, ctx)
 
   // --- BYOL Infrastructure Routes ---
 
@@ -269,6 +295,13 @@ export default async function registerRoutes(
         infrastructure: updated,
         plan,
         customerId,
+        // Deployment target for the worker's resolveProvider (hosted vs BYOC).
+        networkMode: updated.networkMode,
+        dnsMode: updated.dnsMode,
+        cloudAccountConnectionId: updated.cloudAccountConnectionId,
+        // The initiating admin — the activation hook emails them the one-time
+        // link when the environment is ready (see hooks/onEvent + lib/activation).
+        adminEmail: (request as any).user?.email ?? null,
       })
       reply.status(202).send({ infrastructure: updated, deployment, resources })
     },

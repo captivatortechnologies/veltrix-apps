@@ -1,0 +1,13 @@
+# =============================================================================
+# cluster_search_head — search-head-cluster member ([shclustering], shc
+# pass4SymmKey). Exactly one member carries bootstrap_captain=true (lowest
+# ordinal) and is bootstrapped as captain in a dedicated phase.
+#
+# NOTE: when the plan has < 3 search heads the inventory sets splunk_shc_enabled
+# = false; these hosts are then configured as INDEPENDENT (standalone) search
+# heads against the indexer cluster — no captain, no deployer bundle push. The
+# site.yml SHC phases are guarded on splunk_shc_enabled accordingly.
+# =============================================================================
+splunk_role_name: splunk_search_head
+splunk_group_env:
+  SPLUNK_ROLE: splunk_search_head

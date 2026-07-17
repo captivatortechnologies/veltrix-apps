@@ -7,6 +7,7 @@ import {
   Button,
   Input,
   Select,
+  Alert,
   FormDialog,
   DataTable,
   FilterBar,
@@ -22,13 +23,17 @@ import {
   type Tag,
   type CloudProvider,
   type CloudRegion,
+  type CloudAccount,
   type FormState,
   SELF_HOSTED,
   SELF_HOSTED_LABEL,
   DEFAULT_DEPLOYMENT_TYPES,
+  NETWORK_MODE_OPTIONS,
+  DNS_MODE_OPTIONS,
+  BYOC_NETWORK_MODES,
   BLANK_FORM,
 } from './types'
-import { StatusPill } from './detail/shared'
+import { StatusPill, tokens } from './detail/shared'
 import { errorText, formatDate } from './api'
 import { ByolInfrastructureDetail } from './ByolInfrastructureDetail'
 
@@ -50,6 +55,7 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
   const [tags, setTags] = useState<Tag[]>([])
   const [cloudProviders, setCloudProviders] = useState<CloudProvider[]>([])
   const [regions, setRegions] = useState<CloudRegion[]>([])
+  const [cloudAccounts, setCloudAccounts] = useState<CloudAccount[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -89,7 +95,8 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
     void load()
   }, [load])
 
-  // Reference lists: environment tags + platform cloud providers. Best-effort.
+  // Reference lists: environment tags + platform cloud providers + cloud account
+  // connections (for BYOC deployment targets). Best-effort.
   useEffect(() => {
     authFetch('/api/tags')
       .then((res) => (res.ok ? res.json() : []))
@@ -101,10 +108,15 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
         setCloudProviders(Array.isArray(data) ? data.filter((c) => c.isActive !== false) : []),
       )
       .catch(() => setCloudProviders([]))
+    authFetch('/api/cloud-accounts')
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: CloudAccount[]) => setCloudAccounts(Array.isArray(data) ? data : []))
+      .catch(() => setCloudAccounts([]))
   }, [])
 
   const isCloud = form.providerId !== '' && form.providerId !== SELF_HOSTED
   const showRegion = isCloud && form.deploymentType === 'distributed'
+  const showCloudAccount = BYOC_NETWORK_MODES.has(form.networkMode)
 
   // Load the selected cloud provider's regions when needed for the region picker.
   useEffect(() => {
@@ -148,6 +160,9 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
       region: row.region ?? '',
       indexerCount: String(row.indexerCount ?? 1),
       searchHeadCount: String(row.searchHeadCount ?? 1),
+      networkMode: row.networkMode ?? 'shared',
+      dnsMode: row.dnsMode ?? 'managed',
+      cloudAccountConnectionId: row.cloudAccountConnectionId ?? '',
     })
     setFormError(null)
     setDialogOpen(true)
@@ -160,6 +175,12 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
 
   const setField = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }))
+
+  // A cloud account is scoped to a provider — switching providers invalidates any
+  // previously selected account (the Cloud account options are recomputed to match
+  // the new provider, so keeping the stale id around would let it slip into submit).
+  const handleProviderChange = (value: string) =>
+    setForm((prev) => ({ ...prev, providerId: value, cloudAccountConnectionId: '' }))
 
   const handleSubmit = async () => {
     if (!form.name.trim()) {
@@ -178,6 +199,10 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
         return
       }
     }
+    if (showCloudAccount && !form.cloudAccountConnectionId) {
+      setFormError('Select a verified cloud account for a BYOC deployment target')
+      return
+    }
     const selfHosted = form.providerId === SELF_HOSTED
     const selectedCloud = cloudProviders.find((c) => c.id === form.providerId)
     setSubmitting(true)
@@ -191,6 +216,9 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
       region: showRegion ? form.region : '',
       indexerCount,
       searchHeadCount,
+      networkMode: form.networkMode,
+      dnsMode: form.dnsMode,
+      cloudAccountConnectionId: showCloudAccount ? form.cloudAccountConnectionId : undefined,
     }
     try {
       const res = await authFetch(editing ? `${apiBase}/${editing.id}` : apiBase, {
@@ -245,6 +273,22 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
   const regionOptions = useMemo(
     () => regions.map((r) => ({ value: r.code, label: `${r.name} (${r.code})` })),
     [regions],
+  )
+  const selectedProvider = useMemo(
+    () => cloudProviders.find((c) => c.id === form.providerId),
+    [cloudProviders, form.providerId],
+  )
+  // Only verified accounts, narrowed to the selected cloud provider (when one is picked).
+  const verifiedCloudAccounts = useMemo(
+    () =>
+      cloudAccounts.filter(
+        (a) => a.status === 'VERIFIED' && (!selectedProvider?.code || a.provider === selectedProvider.code),
+      ),
+    [cloudAccounts, selectedProvider],
+  )
+  const cloudAccountOptions = useMemo(
+    () => verifiedCloudAccounts.map((a) => ({ value: a.id, label: `${a.name} (${a.provider})` })),
+    [verifiedCloudAccounts],
   )
 
   const statusFilterOptions = useMemo(() => {
@@ -333,18 +377,22 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
           onSubmit={handleSubmit}
           submitText={editing ? 'Save changes' : 'Create infrastructure'}
           isSubmitting={submitting}
-          submitDisabled={!form.name.trim()}
+          submitDisabled={!form.name.trim() || (showCloudAccount && !form.cloudAccountConnectionId)}
           error={formError}
           size="md"
         >
           <FormBody
             form={form}
             setField={setField}
+            onProviderChange={handleProviderChange}
             deploymentTypes={deploymentTypes}
             environmentOptions={environmentOptions}
             providerOptions={providerOptions}
             regionOptions={regionOptions}
             showRegion={showRegion}
+            showCloudAccount={showCloudAccount}
+            cloudAccountOptions={cloudAccountOptions}
+            selectedProviderName={selectedProvider?.name}
           />
         </FormDialog>
       </>
@@ -420,18 +468,22 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
         onSubmit={handleSubmit}
         submitText={editing ? 'Save changes' : 'Create infrastructure'}
         isSubmitting={submitting}
-        submitDisabled={!form.name.trim()}
+        submitDisabled={!form.name.trim() || (showCloudAccount && !form.cloudAccountConnectionId)}
         error={formError}
         size="md"
       >
         <FormBody
           form={form}
           setField={setField}
+          onProviderChange={handleProviderChange}
           deploymentTypes={deploymentTypes}
           environmentOptions={environmentOptions}
           providerOptions={providerOptions}
           regionOptions={regionOptions}
           showRegion={showRegion}
+          showCloudAccount={showCloudAccount}
+          cloudAccountOptions={cloudAccountOptions}
+          selectedProviderName={selectedProvider?.name}
         />
       </FormDialog>
     </Card>
@@ -443,21 +495,33 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
 interface FormBodyProps {
   form: FormState
   setField: <K extends keyof FormState>(key: K, value: FormState[K]) => void
+  /** Provider-specific onChange (also clears a now-mismatched cloud account selection). */
+  onProviderChange: (value: string) => void
   deploymentTypes: Array<{ value: string; label: string }>
   environmentOptions: Array<{ value: string; label: string }>
   providerOptions: Array<{ value: string; label: string }>
   regionOptions: Array<{ value: string; label: string }>
   showRegion: boolean
+  /** Whether the current network mode is BYOC (dedicated/existing) and needs a cloud account. */
+  showCloudAccount: boolean
+  /** Verified cloud accounts, narrowed to the selected provider when one is picked. */
+  cloudAccountOptions: Array<{ value: string; label: string }>
+  /** Selected cloud provider's display name, for the "no verified account" note. */
+  selectedProviderName?: string
 }
 
 const FormBody: React.FC<FormBodyProps> = ({
   form,
   setField,
+  onProviderChange,
   deploymentTypes,
   environmentOptions,
   providerOptions,
   regionOptions,
   showRegion,
+  showCloudAccount,
+  cloudAccountOptions,
+  selectedProviderName,
 }) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
     <Input label="Name" value={form.name} onChange={(e) => setField('name', e.target.value)} placeholder="e.g. Production cluster" fullWidth autoFocus />
@@ -466,11 +530,47 @@ const FormBody: React.FC<FormBodyProps> = ({
       <Select label="Environment" value={form.environmentType} onChange={(value) => setField('environmentType', value)} options={environmentOptions} />
     </div>
     <div style={{ display: 'grid', gridTemplateColumns: showRegion ? '1fr 1fr' : '1fr', gap: 12 }}>
-      <Select label="Provider" value={form.providerId} onChange={(value) => setField('providerId', value)} options={providerOptions} />
+      <Select label="Provider" value={form.providerId} onChange={onProviderChange} options={providerOptions} />
       {showRegion ? (
         <Select label="Region" value={form.region} onChange={(value) => setField('region', value)} options={regionOptions} />
       ) : null}
     </div>
+
+    <div>
+      <p style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 600, color: tokens.text }}>Deployment target</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <Select
+            label="Network"
+            value={form.networkMode}
+            onChange={(value) => setField('networkMode', value)}
+            options={NETWORK_MODE_OPTIONS}
+          />
+          <Select label="DNS" value={form.dnsMode} onChange={(value) => setField('dnsMode', value)} options={DNS_MODE_OPTIONS} />
+        </div>
+        {showCloudAccount ? (
+          <>
+            <Select
+              label="Cloud account *"
+              value={form.cloudAccountConnectionId}
+              onChange={(value) => setField('cloudAccountConnectionId', value)}
+              options={cloudAccountOptions}
+              placeholder={cloudAccountOptions.length ? 'Select a verified cloud account…' : 'No verified cloud accounts'}
+              disabled={cloudAccountOptions.length === 0}
+              helperText="Required for a dedicated or existing-network (BYOC) deployment."
+            />
+            {cloudAccountOptions.length === 0 ? (
+              <Alert variant="warning" title="No verified cloud account available">
+                {selectedProviderName
+                  ? `No verified ${selectedProviderName} cloud account found. Register and verify a cloud account first in Settings → Cloud Accounts.`
+                  : 'Register and verify a cloud account first in Settings → Cloud Accounts.'}
+              </Alert>
+            ) : null}
+          </>
+        ) : null}
+      </div>
+    </div>
+
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
       <Input label="Indexers" type="number" value={form.indexerCount} onChange={(e) => setField('indexerCount', e.target.value)} fullWidth />
       <Input label="Search heads" type="number" value={form.searchHeadCount} onChange={(e) => setField('searchHeadCount', e.target.value)} fullWidth />

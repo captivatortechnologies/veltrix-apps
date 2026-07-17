@@ -13,6 +13,7 @@ const AccessServersPage = React.lazy(() => import('./pages/AccessServersPage'))
 const ConnectionsPage = React.lazy(() => import('./pages/ConnectionsPage'))
 const BYOLPage = React.lazy(() => import('./pages/BYOLPage'))
 const UpgradesPage = React.lazy(() => import('./pages/UpgradesPage'))
+const ActivatePage = React.lazy(() => import('./pages/ActivatePage'))
 
 export default {
   id: 'splunk-enterprise',
@@ -23,6 +24,7 @@ export default {
     ConnectionsPage,
     BYOLPage,
     UpgradesPage,
+    ActivatePage,
   },
   sidebarItems: [
     { path: '/apps/splunk-enterprise/overview', label: 'Overview', icon: 'home' },

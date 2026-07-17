@@ -1,0 +1,12 @@
+# =============================================================================
+# heavy_forwarder — forwards to the indexer CLUSTER via indexer discovery
+# (forwarder asks the cluster manager for the current peer list on 8089) rather
+# than a static outputs.conf server list, so it tracks peer scale-in/out. Uses
+# SPLUNK_CLUSTER_MASTER_URL + the [clustering] pass4SymmKey for discovery.
+# =============================================================================
+splunk_role_name: splunk_heavy_forwarder
+splunk_group_env:
+  SPLUNK_ROLE: splunk_heavy_forwarder
+  # Enable indexer discovery against the cluster manager (not a static list).
+  SPLUNK_ENABLE_INDEXER_DISCOVERY: "true"
+  SPLUNK_INDEXER_DISCOVERY_MASTER_URI: "{{ splunk_cluster_manager_fqdn | default('') }}"

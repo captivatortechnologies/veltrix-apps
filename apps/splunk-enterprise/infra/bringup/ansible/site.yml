@@ -1,0 +1,213 @@
+# =============================================================================
+# site.yml — Splunk Enterprise bring-up (ORDERED phases).
+#
+# This wrapper DRIVES splunk-ansible (the splunk.splunk collection roles); it
+# does NOT vendor them. Ordering is enforced structurally: one PLAY per phase,
+# executed top-to-bottom, each gated on the prior phase's splunkd being up. See
+# README.md for the ordering rationale and the secrets/first-start warning.
+#
+# Every phase:
+#   pre_tasks  -> tasks/pre_start_secrets.yml  (splunk.secret + hashed seed, 0600,
+#                 BEFORE first start; no_log)
+#   roles      -> {{ splunk_role_prefix }}{{ splunk_role_name }}   (per group_vars)
+#   post_tasks -> tasks/post_start_admin.yml   (force-change-pass; delete seed)
+#   environment-> splunk_base_env + the group's splunk_group_env (SPLUNK_ROLE ...)
+#
+# Requires: ansible-galaxy collection install -r requirements.yml
+# Invoked as: ansible-playbook -i <inventory.yml> site.yml
+# =============================================================================
+
+# --- Phase 1: License Manager (up FIRST so peers can register on start) ------
+- name: "Phase 1 — License Manager"
+  hosts: license_master
+  gather_facts: true
+  become: true
+  environment: "{{ splunk_base_env | combine(splunk_group_env | default({})) }}"
+  pre_tasks:
+    - ansible.builtin.import_tasks: tasks/pre_start_secrets.yml
+  roles:
+    - role: "{{ splunk_role_prefix }}{{ splunk_role_name }}"
+  post_tasks:
+    - ansible.builtin.import_tasks: tasks/post_start_admin.yml
+
+# --- Phase 2: Cluster Manager ([clustering] mode=manager, RF/SF, pass4SymmKey)-
+- name: "Phase 2 — Cluster Manager"
+  hosts: cluster_manager
+  gather_facts: true
+  become: true
+  environment: "{{ splunk_base_env | combine(splunk_group_env | default({})) }}"
+  pre_tasks:
+    - ansible.builtin.import_tasks: tasks/pre_start_secrets.yml
+  roles:
+    - role: "{{ splunk_role_prefix }}{{ splunk_role_name }}"
+  post_tasks:
+    - ansible.builtin.import_tasks: tasks/post_start_admin.yml
+    - name: Wait for the cluster manager REST endpoint (gates Phase 3)
+      ansible.builtin.uri:
+        url: "https://{{ splunk_hostname }}:8089/services/cluster/manager/info?output_mode=json"
+        method: GET
+        user: "{{ splunk_admin_user }}"
+        password: "{{ splunk_admin_password }}"
+        force_basic_auth: true
+        validate_certs: false
+        status_code: [200]
+      register: _cm_info
+      retries: 30
+      delay: 10
+      until: _cm_info.status == 200
+      no_log: true
+
+# --- Phase 3: Indexer peers join (mode=peer, manager_uri, pass4SymmKey) -------
+- name: "Phase 3 — Indexer cluster peers"
+  hosts: cluster_indexer
+  gather_facts: true
+  become: true
+  environment: "{{ splunk_base_env | combine(splunk_group_env | default({})) }}"
+  pre_tasks:
+    - ansible.builtin.import_tasks: tasks/pre_start_secrets.yml
+  roles:
+    - role: "{{ splunk_role_prefix }}{{ splunk_role_name }}"
+  post_tasks:
+    - ansible.builtin.import_tasks: tasks/post_start_admin.yml
+
+# --- Phase 4: Deployment Server (forwarder mgmt ONLY; never SHC members) ------
+- name: "Phase 4 — Deployment Server"
+  hosts: deployment_server
+  gather_facts: true
+  become: true
+  environment: "{{ splunk_base_env | combine(splunk_group_env | default({})) }}"
+  pre_tasks:
+    - ansible.builtin.import_tasks: tasks/pre_start_secrets.yml
+  roles:
+    - role: "{{ splunk_role_prefix }}{{ splunk_role_name }}"
+  post_tasks:
+    - ansible.builtin.import_tasks: tasks/post_start_admin.yml
+
+# --- Phase 5: SHC members start ([shclustering] member, shc pass4SymmKey) -----
+#     Only when a real SHC is formed (>= 3 members). Otherwise these hosts run as
+#     independent search heads (configured by the same role, no captain/deployer).
+- name: "Phase 5 — Search-head cluster members"
+  hosts: cluster_search_head
+  gather_facts: true
+  become: true
+  environment: "{{ splunk_base_env | combine(splunk_group_env | default({})) }}"
+  pre_tasks:
+    - ansible.builtin.import_tasks: tasks/pre_start_secrets.yml
+  roles:
+    - role: "{{ splunk_role_prefix }}{{ splunk_role_name }}"
+  post_tasks:
+    - ansible.builtin.import_tasks: tasks/post_start_admin.yml
+
+# --- Phase 6: Bootstrap the SHC captain on ONE member -------------------------
+- name: "Phase 6 — Bootstrap SHC captain"
+  hosts: cluster_search_head
+  gather_facts: false
+  become: true
+  environment: "{{ splunk_base_env | combine(splunk_group_env | default({}), {'SPLUNK_ROLE': 'splunk_search_head_captain'}) }}"
+  tasks:
+    - name: Bootstrap captain (only on the flagged member, only when SHC enabled)
+      when:
+        - splunk_shc_enabled | default(false) | bool
+        - bootstrap_captain | default(false) | bool
+      block:
+        - name: Apply the search_head_captain role on the elected member
+          ansible.builtin.import_role:
+            name: "{{ splunk_role_prefix }}splunk_search_head_captain"
+        - name: Wait for the SHC captain to report service_ready_flag=1
+          ansible.builtin.uri:
+            url: "https://{{ splunk_hostname }}:8089/services/shcluster/captain/info?output_mode=json"
+            method: GET
+            user: "{{ splunk_admin_user }}"
+            password: "{{ splunk_admin_password }}"
+            force_basic_auth: true
+            validate_certs: false
+            status_code: [200]
+          register: _cap
+          retries: 30
+          delay: 10
+          until:
+            - _cap.status == 200
+            - (_cap.json.entry[0].content.service_ready_flag | int) == 1
+          no_log: true
+
+# --- Phase 7: Integrate SHC <-> indexer cluster + register the Deployer -------
+#     The search_head role wires SPLUNK_CLUSTER_MASTER_URL (search peers) and
+#     SPLUNK_DEPLOYER_URL (deployer registration); this phase asserts it took.
+- name: "Phase 7 — Integrate SHC with the indexer cluster"
+  hosts: cluster_search_head
+  gather_facts: false
+  become: true
+  environment: "{{ splunk_base_env | combine(splunk_group_env | default({})) }}"
+  tasks:
+    - name: Ensure each search head peers with the indexer cluster manager
+      when: splunk_indexer_cluster_enabled | default(false) | bool
+      ansible.builtin.command:
+        cmd: >-
+          {{ splunk_home }}/bin/splunk edit cluster-config
+          -mode searchhead
+          -manager_uri https://{{ splunk_cluster_manager_fqdn }}:8089
+          -secret {{ pass4_idxc }}
+          -auth {{ splunk_admin_user }}:{{ splunk_admin_password }}
+      register: _shc_peer
+      changed_when: "'already' not in (_shc_peer.stdout | default(''))"
+      failed_when:
+        - _shc_peer.rc != 0
+        - "'already' not in (_shc_peer.stderr | default(''))"
+      no_log: true
+
+# --- Phase 8: Deployer pushes the SHC app bundle ------------------------------
+- name: "Phase 8 — Deployer pushes the SHC bundle"
+  hosts: search_head_deployer
+  gather_facts: false
+  become: true
+  environment: "{{ splunk_base_env | combine(splunk_group_env | default({})) }}"
+  tasks:
+    - name: Apply the SHC bundle to the members via the captain
+      when: splunk_shc_enabled | default(false) | bool
+      ansible.builtin.command:
+        cmd: >-
+          {{ splunk_home }}/bin/splunk apply shcluster-bundle
+          -target https://{{ splunk_shc_captain_fqdn }}:8089
+          -auth {{ splunk_admin_user }}:{{ splunk_admin_password }} --answer-yes
+      register: _bundle
+      changed_when: "'successfully' in (_bundle.stdout | default('') | lower)"
+      no_log: true
+
+# --- Phase 9: Heavy forwarders (indexer discovery via the cluster manager) ----
+- name: "Phase 9 — Heavy forwarders"
+  hosts: heavy_forwarder
+  gather_facts: true
+  become: true
+  environment: "{{ splunk_base_env | combine(splunk_group_env | default({})) }}"
+  pre_tasks:
+    - ansible.builtin.import_tasks: tasks/pre_start_secrets.yml
+  roles:
+    - role: "{{ splunk_role_prefix }}{{ splunk_role_name }}"
+  post_tasks:
+    - ansible.builtin.import_tasks: tasks/post_start_admin.yml
+
+# --- Phase 10: Monitoring Console (distributed mode, LAST) --------------------
+- name: "Phase 10 — Monitoring Console"
+  hosts: monitoring_console
+  gather_facts: true
+  become: true
+  environment: "{{ splunk_base_env | combine(splunk_group_env | default({})) }}"
+  pre_tasks:
+    - ansible.builtin.import_tasks: tasks/pre_start_secrets.yml
+  roles:
+    - role: "{{ splunk_role_prefix }}{{ splunk_role_name }}"
+  post_tasks:
+    - ansible.builtin.import_tasks: tasks/post_start_admin.yml
+
+# --- Standalone (single all-in-one; independent of the clustered phases) ------
+- name: "Standalone all-in-one nodes"
+  hosts: standalone
+  gather_facts: true
+  become: true
+  environment: "{{ splunk_base_env | combine(splunk_group_env | default({})) }}"
+  pre_tasks:
+    - ansible.builtin.import_tasks: tasks/pre_start_secrets.yml
+  roles:
+    - role: "{{ splunk_role_prefix }}{{ splunk_role_name }}"
+  post_tasks:
+    - ansible.builtin.import_tasks: tasks/post_start_admin.yml

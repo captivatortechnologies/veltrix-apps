@@ -1,0 +1,9 @@
+# =============================================================================
+# license_master — the license manager. Brought up FIRST so every other node
+# can register against it as a license slave on start. Commonly colocated on the
+# cluster_manager node (the inventory folds mgmt into this group when there is
+# no dedicated license-manager kind).
+# =============================================================================
+splunk_role_name: splunk_license_master
+splunk_group_env:
+  SPLUNK_ROLE: splunk_license_master

@@ -1,0 +1,9 @@
+# =============================================================================
+# monitoring_console — the distributed Monitoring Console (DMC). Brought up LAST
+# and configured in DISTRIBUTED mode with every other node added as a search
+# peer, so it observes the whole deployment. Commonly colocated on cluster_manager.
+# =============================================================================
+splunk_role_name: splunk_monitor
+splunk_group_env:
+  SPLUNK_ROLE: splunk_monitor
+  SPLUNK_MONITORING_CONSOLE_MODE: distributed

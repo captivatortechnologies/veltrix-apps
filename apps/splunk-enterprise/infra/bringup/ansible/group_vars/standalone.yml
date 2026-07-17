@@ -1,0 +1,8 @@
+# =============================================================================
+# standalone — a single all-in-one Splunk Enterprise instance (indexing +
+# search + web on one node). No clustering; used for the smallest tenants. Still
+# gets the per-tenant splunk.secret + hashed admin seed + force-change-pass.
+# =============================================================================
+splunk_role_name: splunk_standalone
+splunk_group_env:
+  SPLUNK_ROLE: splunk_standalone

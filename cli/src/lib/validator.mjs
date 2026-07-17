@@ -489,10 +489,20 @@ export function validateApp(appDirArg) {
   // App code runs inside the platform server process; modules and constructs
   // that spawn processes, evaluate strings as code, or kill the process are
   // treated the way AppInspect treats them for Splunk Cloud vetting.
+  //
+  // EXCEPTION — apps/<app>/infra/** is out-of-process BYOI provisioning tooling
+  // (the app's InfraSpec bring-up: OpenTofu drivers, ansible runners, health
+  // gates). The platform's provisioning WORKER spawns these as child processes /
+  // CI steps — exactly like it spawns tofu and ansible themselves — so they are
+  // NOT in-process app code and are exempt from the spawn / process.exit /
+  // node:fs rules. The genuine safety rules (no directory escape, no
+  // @prisma/client, no eval/new Function, no shipped secrets) still apply.
   const IMPORT_RE = /(?:from\s+|require\(\s*|import\(\s*)['"]([^'"]+)['"]/g
   for (const file of codeFiles) {
     const relFile = path.relative(appDir, file)
     const isTestFile = /(^|[\\/])__tests__[\\/]/.test(relFile) || /\.test\.[a-z]+$/.test(relFile)
+    // Top-level infra/ dir = out-of-process provisioning tooling (see above).
+    const isProvisioning = /^infra[\\/]/.test(relFile)
     const source = fs.readFileSync(file, 'utf8')
     for (const match of source.matchAll(IMPORT_RE)) {
       const spec = match[1]
@@ -509,9 +519,9 @@ export function validateApp(appDirArg) {
           `${relFile} imports "${spec}" — apps must not depend on the platform's ` +
             'Prisma client. Use ctx.platform / ctx.db from @veltrixsecops/app-sdk instead.',
         )
-      } else if (FORBIDDEN_MODULES.has(spec)) {
+      } else if (FORBIDDEN_MODULES.has(spec) && !isProvisioning) {
         err(`security: ${relFile} imports "${spec}" — apps run in-process and must not spawn processes or evaluate code`)
-      } else if (REVIEW_MODULES.has(spec) && !isTestFile) {
+      } else if (REVIEW_MODULES.has(spec) && !isTestFile && !isProvisioning) {
         warn(`security: ${relFile} imports "${spec}" — filesystem/OS access is rarely needed by an API-driven app; expect review scrutiny`)
       }
     }
@@ -523,7 +533,7 @@ export function validateApp(appDirArg) {
     if (/\bnew\s+Function\s*\(/.test(source)) {
       err(`security: ${relFile} uses new Function() — string evaluation is not allowed in app code`)
     }
-    if (/\bprocess\.exit\s*\(/.test(source)) {
+    if (/\bprocess\.exit\s*\(/.test(source) && !isProvisioning) {
       err(`security: ${relFile} calls process.exit() — apps run inside the platform server and must never terminate the process`)
     }
   }

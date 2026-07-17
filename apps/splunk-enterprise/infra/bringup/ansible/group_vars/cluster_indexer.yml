@@ -1,0 +1,8 @@
+# =============================================================================
+# cluster_indexer — indexer-cluster peer (mode=peer). Joins the manager via
+# SPLUNK_CLUSTER_MASTER_URL + the [clustering] pass4SymmKey, receives data on
+# 9997 and replicates on 9887. RF/SF are enforced by the manager, not the peer.
+# =============================================================================
+splunk_role_name: splunk_indexer
+splunk_group_env:
+  SPLUNK_ROLE: splunk_indexer

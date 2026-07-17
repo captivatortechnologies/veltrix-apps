@@ -1,0 +1,10 @@
+# =============================================================================
+# cluster_manager — the indexer-cluster manager (a.k.a. cluster master).
+# Reference topology colocates License Manager / Deployment Server / Monitoring
+# Console here UNLESS the plan carries dedicated kinds (the inventory folds this
+# host into those groups automatically; the LM/DS/MC phases then no-op or reuse
+# this host). Sets [clustering] mode=manager, RF/SF, pass4SymmKey.
+# =============================================================================
+splunk_role_name: splunk_cluster_master
+splunk_group_env:
+  SPLUNK_ROLE: splunk_cluster_master

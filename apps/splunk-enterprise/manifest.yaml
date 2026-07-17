@@ -169,6 +169,14 @@ client:
       group: page
       order: 9
       layout: standard
+    # Activation — the one-time credential handoff, reached only from the emailed
+    # single-use link (?token=…), so it is hidden from the nav.
+    - path: /activate
+      component: ActivatePage
+      label: Activate
+      icon: key
+      nav: hidden
+      layout: standard
 
 hooks:
   onInstall: hooks/onInstall
