@@ -15,3 +15,10 @@ ALTER TABLE splunk_byol_infrastructure
   ADD COLUMN IF NOT EXISTS heavy_forwarder_count INTEGER NOT NULL DEFAULT 1,
   ADD COLUMN IF NOT EXISTS indexer_placement JSONB,
   ADD COLUMN IF NOT EXISTS search_head_placement JSONB;
+
+-- Per-resource placement detail, seeded from the derived topology plan:
+--   zone:  the availability zone within `region` for a multi-AZ-placed node.
+--   roles: the management roles a consolidated control-plane instance runs.
+ALTER TABLE splunk_byol_resource
+  ADD COLUMN IF NOT EXISTS zone TEXT,
+  ADD COLUMN IF NOT EXISTS roles JSONB;

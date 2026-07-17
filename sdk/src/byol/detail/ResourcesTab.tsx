@@ -41,7 +41,7 @@ const ResourceCard: React.FC<{ resource: ByolResource }> = ({ resource }) => (
     </div>
     {resource.role ? <div style={{ fontSize: 11, color: tokens.faint }}>{resource.role}</div> : null}
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 11, color: tokens.muted }}>
-      <span>{resource.region || '—'}</span>
+      <span>{resource.zone ? `${resource.region ?? ''} · ${resource.zone}` : resource.region || '—'}</span>
       <span style={{ fontFamily: 'var(--font-mono, ui-monospace, monospace)', color: tokens.faint }}>
         {resource.externalRef || '—'}
       </span>

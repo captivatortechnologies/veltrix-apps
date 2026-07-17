@@ -87,6 +87,10 @@ export interface ByolResource {
   name: string
   role: string | null
   region: string | null
+  /** Availability zone within `region` for a multi-AZ-placed node; null otherwise. */
+  zone?: string | null
+  /** Management roles a consolidated control-plane instance runs; null otherwise. */
+  roles?: string[] | null
   status: string
   externalRef: string | null
   message: string | null
