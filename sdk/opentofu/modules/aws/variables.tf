@@ -55,8 +55,8 @@ variable "network_mode" {
       existing  — BYOC: data-source a customer-designated VPC (network_ref) and
                   create subnets inside it (subnet_cidr).
   EOT
-  type    = string
-  default = "shared"
+  type        = string
+  default     = "shared"
 
   validation {
     condition     = contains(["shared", "dedicated", "existing"], var.network_mode)
@@ -93,8 +93,8 @@ variable "subnet_cidr" {
     hosted). Ignored for dedicated (subnets are carved from vpc_cidr). Empty is
     allowed only when dedicated.
   EOT
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
 
   validation {
     condition     = var.subnet_cidr == "" || can(cidrhost(var.subnet_cidr, 0))
@@ -107,8 +107,8 @@ variable "vpc_cidr" {
     CIDR for the VPC CREATED when network_mode = dedicated (BYOC). Public and
     private /20 subnets are carved from it across 2 AZs. Ignored otherwise.
   EOT
-  type    = string
-  default = "10.60.0.0/16"
+  type        = string
+  default     = "10.60.0.0/16"
 
   validation {
     condition     = can(cidrhost(var.vpc_cidr, 0))
@@ -138,9 +138,9 @@ variable "plan" {
     role     = optional(string, "")
     region   = optional(string, null)
     # Multi-AZ placement: the availability zone this node is pinned to (null = default).
-    zone     = optional(string, null)
+    zone = optional(string, null)
     # Consolidated control-plane roles this instance runs (drives bring-up config).
-    roles    = optional(list(string), [])
+    roles = optional(list(string), [])
   }))
 
   validation {
@@ -157,8 +157,8 @@ variable "instance_types" {
     (foundation|control-plane|data|search|ingest). Missing tiers fall back to
     default_instance_type. Kind-level overrides go in instance_types_by_kind.
   EOT
-  type    = map(string)
-  default = {}
+  type        = map(string)
+  default     = {}
 }
 
 variable "instance_types_by_kind" {
@@ -187,8 +187,8 @@ variable "ami_id" {
     Amazon Linux 2023 image (scaffold only) — production MUST supply a hardened,
     Splunk-preinstalled AMI id per region.
   EOT
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
 }
 
 variable "key_name" {
@@ -218,8 +218,8 @@ variable "dns_mode" {
                      listener instead.
       private-only — no public DNS; reached via the customer network (ZTNA/VPN).
   EOT
-  type    = string
-  default = "managed"
+  type        = string
+  default     = "managed"
 
   validation {
     condition     = contains(["managed", "delegated", "private-only"], var.dns_mode)
@@ -240,8 +240,8 @@ variable "certificate_arn" {
     cert). Empty otherwise (the module issues its own ACM cert in dns_mode =
     managed).
   EOT
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
 }
 
 variable "extra_lb_subnet_ids" {
@@ -251,8 +251,8 @@ variable "extra_lb_subnet_ids" {
     subnet is single-AZ. Ignored for dedicated (the module creates multi-AZ
     public subnets itself). Required for a load-balancer in shared|existing.
   EOT
-  type    = list(string)
-  default = []
+  type        = list(string)
+  default     = []
 }
 
 variable "web_ingress_cidr" {
@@ -261,8 +261,8 @@ variable "web_ingress_cidr" {
     0.0.0.0/0 because the v1 posture is a public ALB fronted by WAF + optional
     Cognito MFA. Narrow this to an office/VPN range to restrict access.
   EOT
-  type    = string
-  default = "0.0.0.0/0"
+  type        = string
+  default     = "0.0.0.0/0"
 }
 
 variable "alb_auth" {
@@ -298,8 +298,8 @@ variable "create_private_zone" {
     Ignored when dns_domain is empty. Mutually complementary with
     private_zone_id: set private_zone_id instead to reuse an existing zone.
   EOT
-  type    = bool
-  default = false
+  type        = bool
+  default     = false
 }
 
 variable "private_zone_id" {
@@ -308,8 +308,8 @@ variable "private_zone_id" {
     into. Takes precedence over create_private_zone when non-empty. Leave empty
     (and set create_private_zone) to have the module create the zone.
   EOT
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
 }
 
 # --- Declarative infra spec (rendered from the app's InfraSpec) -----------
@@ -323,7 +323,7 @@ variable "foundation_kinds" {
     Any plan item whose kind is NOT in this set (and not named by compute_kinds)
     is a compute node. Kept in sync with FOUNDATION_KINDS in spec.ts.
   EOT
-  type = list(string)
+  type        = list(string)
   default = [
     "network", "storage", "secrets", "tls",
     "load-balancer", "dns", "license-file", "hec",
@@ -337,8 +337,8 @@ variable "compute_kinds" {
     whose kind is not in foundation_kinds (so an app's roles are compute
     automatically).
   EOT
-  type    = list(string)
-  default = []
+  type        = list(string)
+  default     = []
 }
 
 variable "security_rules" {
@@ -391,8 +391,8 @@ variable "dns_prefixes" {
     { indexer = "idx", search-head = "sh", cluster-manager = "mgmt" }). A compute
     kind absent from the map falls back to the kind string itself.
   EOT
-  type    = map(string)
-  default = {}
+  type        = map(string)
+  default     = {}
 }
 
 variable "waf_enabled" {
@@ -410,5 +410,5 @@ variable "tags" {
     CostCenter, Owner, ...). The OIDC apply role is scoped by
     Veltrix:ManagedBy = Veltrix, so this map MUST include it.
   EOT
-  type    = map(string)
+  type        = map(string)
 }

@@ -64,7 +64,7 @@ locals {
   # Resolved network + subnet sets, uniform across all three modes:
   #   dedicated -> the created VPC + its private (compute) / public (ALB) subnets
   #   shared/existing -> the looked-up VPC + the single allocated subnet
-  network_id = local.is_dedicated ? aws_vpc.env[0].id : data.aws_vpc.shared[0].id
+  network_id         = local.is_dedicated ? aws_vpc.env[0].id : data.aws_vpc.shared[0].id
   compute_subnet_ids = local.is_dedicated ? [for s in aws_subnet.private : s.id] : [aws_subnet.env[0].id]
   lb_subnet_ids = local.is_dedicated ? [for s in aws_subnet.public : s.id] : concat(
     [aws_subnet.env[0].id], var.extra_lb_subnet_ids,
@@ -457,7 +457,7 @@ resource "aws_vpc_security_group_egress_rule" "node_all" {
 resource "aws_instance" "node" {
   for_each = local.compute_nodes
 
-  ami           = local.resolved_ami
+  ami = local.resolved_ami
   instance_type = coalesce(
     lookup(var.instance_types_by_kind, each.value.kind, null),
     lookup(var.instance_types, each.value.tier, null),
@@ -480,8 +480,8 @@ resource "aws_instance" "node" {
     "Veltrix:Kind"    = each.value.kind
     "Veltrix:Role"    = each.value.role
     # Consolidated control-plane roles + placement zone (topology authoring).
-    "Veltrix:Roles"   = join(",", each.value.roles)
-    "Veltrix:Zone"    = coalesce(each.value.zone, "")
+    "Veltrix:Roles" = join(",", each.value.roles)
+    "Veltrix:Zone"  = coalesce(each.value.zone, "")
   })
 }
 
@@ -595,10 +595,10 @@ resource "aws_lb_target_group" "search" {
   target_type = "instance"
 
   health_check {
-    path     = var.load_balancer.health_check_path
-    protocol = var.load_balancer.health_check_protocol != "" ? var.load_balancer.health_check_protocol : var.load_balancer.target_protocol
-    port     = "traffic-port"
-    matcher  = var.load_balancer.health_check_matcher
+    path                = var.load_balancer.health_check_path
+    protocol            = var.load_balancer.health_check_protocol != "" ? var.load_balancer.health_check_protocol : var.load_balancer.target_protocol
+    port                = "traffic-port"
+    matcher             = var.load_balancer.health_check_matcher
     healthy_threshold   = 3
     unhealthy_threshold = 3
     interval            = 30
