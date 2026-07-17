@@ -163,6 +163,10 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
       networkMode: row.networkMode ?? 'shared',
       dnsMode: row.dnsMode ?? 'managed',
       cloudAccountConnectionId: row.cloudAccountConnectionId ?? '',
+      controlPlaneLayout: row.controlPlaneLayout ?? 'dedicated',
+      heavyForwarderCount: String(row.heavyForwarderCount ?? 1),
+      indexerPlacement: row.indexerPlacement ?? { mode: 'single' },
+      searchHeadPlacement: row.searchHeadPlacement ?? { mode: 'single' },
     })
     setFormError(null)
     setDialogOpen(true)
@@ -510,6 +514,21 @@ interface FormBodyProps {
   selectedProviderName?: string
 }
 
+/** A labelled sub-group of related fields, so the form reads as scannable sections. */
+const FormSection: React.FC<{ title: string; description?: string; children: React.ReactNode }> = ({
+  title,
+  description,
+  children,
+}) => (
+  <div>
+    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: tokens.text }}>{title}</p>
+    {description ? (
+      <p style={{ margin: '2px 0 0', fontSize: 12, color: tokens.muted }}>{description}</p>
+    ) : null}
+    <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 12 }}>{children}</div>
+  </div>
+)
+
 const FormBody: React.FC<FormBodyProps> = ({
   form,
   setField,
@@ -536,45 +555,51 @@ const FormBody: React.FC<FormBodyProps> = ({
       ) : null}
     </div>
 
-    <div>
-      <p style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 600, color: tokens.text }}>Deployment target</p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <Select
-            label="Network"
-            value={form.networkMode}
-            onChange={(value) => setField('networkMode', value)}
-            options={NETWORK_MODE_OPTIONS}
-          />
-          <Select label="DNS" value={form.dnsMode} onChange={(value) => setField('dnsMode', value)} options={DNS_MODE_OPTIONS} />
-        </div>
-        {showCloudAccount ? (
-          <>
-            <Select
-              label="Cloud account *"
-              value={form.cloudAccountConnectionId}
-              onChange={(value) => setField('cloudAccountConnectionId', value)}
-              options={cloudAccountOptions}
-              placeholder={cloudAccountOptions.length ? 'Select a verified cloud account…' : 'No verified cloud accounts'}
-              disabled={cloudAccountOptions.length === 0}
-              helperText="Required for a dedicated or existing-network (BYOC) deployment."
-            />
-            {cloudAccountOptions.length === 0 ? (
-              <Alert variant="warning" title="No verified cloud account available">
-                {selectedProviderName
-                  ? `No verified ${selectedProviderName} cloud account found. Register and verify a cloud account first in Settings → Cloud Accounts.`
-                  : 'Register and verify a cloud account first in Settings → Cloud Accounts.'}
-              </Alert>
-            ) : null}
-          </>
-        ) : null}
+    <FormSection title="Deployment target">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <Select
+          label="Network"
+          value={form.networkMode}
+          onChange={(value) => setField('networkMode', value)}
+          options={NETWORK_MODE_OPTIONS}
+        />
+        <Select label="DNS" value={form.dnsMode} onChange={(value) => setField('dnsMode', value)} options={DNS_MODE_OPTIONS} />
       </div>
-    </div>
+      {showCloudAccount ? (
+        <>
+          <Select
+            label="Cloud account *"
+            value={form.cloudAccountConnectionId}
+            onChange={(value) => setField('cloudAccountConnectionId', value)}
+            options={cloudAccountOptions}
+            placeholder={cloudAccountOptions.length ? 'Select a verified cloud account…' : 'No verified cloud accounts'}
+            disabled={cloudAccountOptions.length === 0}
+            helperText="Required for a dedicated or existing-network (BYOC) deployment."
+          />
+          {cloudAccountOptions.length === 0 ? (
+            <Alert variant="warning" title="No verified cloud account available">
+              {selectedProviderName
+                ? `No verified ${selectedProviderName} cloud account found. Register and verify a cloud account first in Settings → Cloud Accounts.`
+                : 'Register and verify a cloud account first in Settings → Cloud Accounts.'}
+            </Alert>
+          ) : null}
+        </>
+      ) : null}
+    </FormSection>
 
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-      <Input label="Indexers" type="number" value={form.indexerCount} onChange={(e) => setField('indexerCount', e.target.value)} fullWidth />
-      <Input label="Search heads" type="number" value={form.searchHeadCount} onChange={(e) => setField('searchHeadCount', e.target.value)} fullWidth />
-    </div>
+    <FormSection
+      title="Topology"
+      description={
+        form.deploymentType === 'distributed'
+          ? 'Distributed deployments need at least 3 indexers and 2 search heads.'
+          : 'Number of indexer and search-head nodes to provision.'
+      }
+    >
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <Input label="Indexers" type="number" min={1} value={form.indexerCount} onChange={(e) => setField('indexerCount', e.target.value)} fullWidth />
+        <Input label="Search heads" type="number" min={1} value={form.searchHeadCount} onChange={(e) => setField('searchHeadCount', e.target.value)} fullWidth />
+      </div>
+    </FormSection>
   </div>
 )
 

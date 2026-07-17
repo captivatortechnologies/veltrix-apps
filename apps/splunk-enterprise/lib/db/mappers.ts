@@ -7,6 +7,13 @@
 // an app-owned table. These mappers are the single place that shape is defined.
 // =============================================================================
 
+import {
+  parsePlacement,
+  normalizeControlPlaneLayout,
+  type ClusterPlacement,
+  type ControlPlaneLayout,
+} from '../byolPlacement'
+
 export type Row = Record<string, any>
 
 export interface SplunkVersionDto {
@@ -82,6 +89,11 @@ export interface ByolDto {
   networkMode: string
   dnsMode: string
   cloudAccountConnectionId: string | null
+  // Topology authoring (control-plane consolidation, forwarders, placement) — see migration 010.
+  controlPlaneLayout: ControlPlaneLayout
+  heavyForwarderCount: number
+  indexerPlacement: ClusterPlacement | null
+  searchHeadPlacement: ClusterPlacement | null
   createdAt: Date
   updatedAt: Date
   indexerRegions: RegionDto[]
@@ -106,6 +118,10 @@ export function mapByol(r: Row): ByolDto {
     networkMode: r.network_mode ?? 'shared',
     dnsMode: r.dns_mode ?? 'managed',
     cloudAccountConnectionId: r.cloud_account_connection_id ?? null,
+    controlPlaneLayout: normalizeControlPlaneLayout(r.control_plane_layout),
+    heavyForwarderCount: Number(r.heavy_forwarder_count ?? 1),
+    indexerPlacement: parsePlacement(r.indexer_placement),
+    searchHeadPlacement: parsePlacement(r.search_head_placement),
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     indexerRegions: [],

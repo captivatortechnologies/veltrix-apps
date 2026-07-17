@@ -8,6 +8,45 @@ export interface ByolRegion {
   region: string
 }
 
+/**
+ * Control-plane consolidation layout. Trades HA/isolation for cost by combining
+ * management roles onto fewer instances:
+ *  - `dedicated`   — 5 instances, one role each (LM, CM, SH-deployer, DS, MC).
+ *  - `consolidated`— ~3 instances; CM and SH-deployer stay isolated, the rest combine.
+ *  - `single`      — 1 manager node running every management role (small / non-HA).
+ * Applies to distributed deployments; single-instance deployments ignore it.
+ */
+export type ControlPlaneLayout = 'dedicated' | 'consolidated' | 'single'
+
+/** How a cluster's sites are addressed: availability zones (same region) or regions. */
+export type PlacementGranularity = 'az' | 'region'
+
+/** One placement target with its share of the cluster's nodes. */
+export interface PlacementSite {
+  /** AZ id (e.g. `us-east-1a`) when granularity is `az`, or a region code (e.g. `us-west-2`) when `region`. */
+  site: string
+  /** Percent of the cluster's nodes placed on this site. Percents across a cluster's sites sum to 100. */
+  percent: number
+}
+
+/**
+ * Placement of a single cluster tier. `single` keeps every node in the standard
+ * main region/zone; `multi-site` spreads nodes across `sites` by percent.
+ * ONLY the indexer and search-head tiers accept multi-site placement — every
+ * other tier is always single-site in the main region.
+ */
+export interface ClusterPlacement {
+  mode: 'single' | 'multi-site'
+  granularity?: PlacementGranularity
+  sites?: PlacementSite[]
+}
+
+/** Default single-site placement (all nodes in the main region). */
+export const SINGLE_SITE_PLACEMENT: ClusterPlacement = { mode: 'single' }
+
+/** Minimum heavy forwarders in a distributed ingest tier. */
+export const MIN_HEAVY_FORWARDERS = 1
+
 export interface ByolInfrastructure {
   id: string
   name: string
@@ -27,6 +66,14 @@ export interface ByolInfrastructure {
   dnsMode?: 'managed' | 'delegated' | 'private-only' | string
   /** Platform cloud account connection backing a BYOC (dedicated/existing) deployment. */
   cloudAccountConnectionId?: string | null
+  /** Control-plane consolidation layout (distributed only). Defaults to 'dedicated'. */
+  controlPlaneLayout?: ControlPlaneLayout
+  /** Heavy forwarder count in the ingest tier (distributed only). Defaults to 1. */
+  heavyForwarderCount?: number
+  /** Placement of the indexer cluster — single-site or multi-site by percent. */
+  indexerPlacement?: ClusterPlacement
+  /** Placement of the search-head cluster — single-site or multi-site by percent. */
+  searchHeadPlacement?: ClusterPlacement
   updatedAt?: string
   createdAt?: string
 }
@@ -123,6 +170,14 @@ export interface FormState {
   dnsMode: string
   /** Platform cloud account connection id, required when networkMode is BYOC. */
   cloudAccountConnectionId: string
+  /** Control-plane consolidation layout (distributed only). */
+  controlPlaneLayout: ControlPlaneLayout
+  /** Heavy forwarder count as a form string (distributed only, min 1). */
+  heavyForwarderCount: string
+  /** Placement of the indexer cluster. */
+  indexerPlacement: ClusterPlacement
+  /** Placement of the search-head cluster. */
+  searchHeadPlacement: ClusterPlacement
 }
 
 /**
@@ -184,6 +239,23 @@ export const DNS_MODE_OPTIONS = [
 /** Network modes that require a customer-owned (BYOC) cloud account connection. */
 export const BYOC_NETWORK_MODES = new Set(['dedicated', 'existing'])
 
+/** Control-plane consolidation options for the "Control plane" form section. */
+export const CONTROL_PLANE_LAYOUT_OPTIONS: Array<{
+  value: ControlPlaneLayout
+  label: string
+  description: string
+}> = [
+  { value: 'dedicated', label: 'Dedicated', description: '5 servers — one management role each (highest isolation).' },
+  { value: 'consolidated', label: 'Consolidated', description: '~3 servers — cluster manager and SH deployer isolated, rest combined.' },
+  { value: 'single', label: 'Single node', description: '1 server running every management role (lowest cost, non-HA).' },
+]
+
+/** Placement granularity options for a cluster's "Placement" form section. */
+export const PLACEMENT_GRANULARITY_OPTIONS: Array<{ value: PlacementGranularity; label: string }> = [
+  { value: 'az', label: 'Availability zones (same region)' },
+  { value: 'region', label: 'Regions (multi-region)' },
+]
+
 export const BLANK_FORM: FormState = {
   name: '',
   deploymentType: 'single',
@@ -195,4 +267,8 @@ export const BLANK_FORM: FormState = {
   networkMode: 'shared',
   dnsMode: 'managed',
   cloudAccountConnectionId: '',
+  controlPlaneLayout: 'dedicated',
+  heavyForwarderCount: '1',
+  indexerPlacement: { mode: 'single' },
+  searchHeadPlacement: { mode: 'single' },
 }
