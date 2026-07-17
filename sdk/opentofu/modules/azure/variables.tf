@@ -203,7 +203,7 @@ variable "vm_sizes_by_kind" {
 variable "vm_size" {
   description = "Fallback Azure VM size for any compute plan item with no tier/kind override. (Mirrors AWS default_instance_type.)"
   type        = string
-  default     = "Standard_D2s_v5"
+  default     = "Standard_B2s"
 }
 
 variable "os_disk_gb" {

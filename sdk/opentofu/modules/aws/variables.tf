@@ -166,7 +166,7 @@ variable "instance_types_by_kind" {
 variable "default_instance_type" {
   description = "Fallback EC2 instance type for any compute plan item with no tier/kind override."
   type        = string
-  default     = "m6i.large"
+  default     = "t2.medium"
 }
 
 variable "root_volume_gb" {

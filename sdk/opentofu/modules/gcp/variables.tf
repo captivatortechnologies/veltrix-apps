@@ -189,7 +189,7 @@ variable "machine_types_by_kind" {
 variable "default_machine_type" {
   description = "Fallback machine type for any compute plan item with no tier/kind override."
   type        = string
-  default     = "n2-standard-2"
+  default     = "e2-medium"
 }
 
 variable "boot_disk_gb" {

@@ -70,6 +70,8 @@ export interface ByolInfrastructure {
   controlPlaneLayout?: ControlPlaneLayout
   /** Heavy forwarder count in the ingest tier (distributed only). Defaults to 1. */
   heavyForwarderCount?: number
+  /** Compute size override for every node (e.g. AWS `t2.medium`); empty = cloud default. */
+  instanceType?: string | null
   /** Placement of the indexer cluster — single-site or multi-site by percent. */
   indexerPlacement?: ClusterPlacement
   /** Placement of the search-head cluster — single-site or multi-site by percent. */
@@ -178,6 +180,8 @@ export interface FormState {
   controlPlaneLayout: ControlPlaneLayout
   /** Heavy forwarder count as a form string (distributed only, min 1). */
   heavyForwarderCount: string
+  /** Compute size override for every node; empty = cloud default (t2.medium-class). */
+  instanceType: string
   /** Placement of the indexer cluster. */
   indexerPlacement: ClusterPlacement
   /** Placement of the search-head cluster. */
@@ -273,6 +277,18 @@ export const BLANK_FORM: FormState = {
   cloudAccountConnectionId: '',
   controlPlaneLayout: 'dedicated',
   heavyForwarderCount: '1',
+  instanceType: '',
   indexerPlacement: { mode: 'single' },
   searchHeadPlacement: { mode: 'single' },
+}
+
+/**
+ * Example compute sizes per cloud (~2 vCPU / 4 GB), shown as form guidance. An
+ * empty instanceType uses the module default, which is the first of each here.
+ */
+export const INSTANCE_TYPE_EXAMPLES: Record<string, string> = {
+  aws: 't2.medium',
+  azure: 'Standard_B2s',
+  gcp: 'e2-medium',
+  hetzner: 'cx22',
 }

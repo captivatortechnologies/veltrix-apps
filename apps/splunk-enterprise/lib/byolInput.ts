@@ -72,6 +72,10 @@ export function readByol(body: any): { data: Record<string, unknown>; error?: st
     return { data: {}, error: 'A cloud account is required when deploying into your own cloud (dedicated/existing)' }
   }
 
+  // Compute size override; empty/whitespace → null (use the cloud default).
+  const instanceTypeRaw = typeof body?.instanceType === 'string' ? body.instanceType.trim() : ''
+  const instanceType = instanceTypeRaw || null
+
   const data: Record<string, unknown> = {
     name,
     deploymentType,
@@ -86,6 +90,7 @@ export function readByol(body: any): { data: Record<string, unknown>; error?: st
     heavyForwarderCount,
     indexerPlacement,
     searchHeadPlacement,
+    instanceType,
   }
   // cloudProviderId is optional (String?); only set when explicitly provided.
   if (typeof body?.cloudProviderId === 'string' && body.cloudProviderId.trim()) {

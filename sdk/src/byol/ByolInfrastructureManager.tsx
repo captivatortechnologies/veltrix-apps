@@ -32,6 +32,7 @@ import {
   DNS_MODE_OPTIONS,
   BYOC_NETWORK_MODES,
   CONTROL_PLANE_LAYOUT_OPTIONS,
+  INSTANCE_TYPE_EXAMPLES,
   BLANK_FORM,
 } from './types'
 import { StatusPill, tokens } from './detail/shared'
@@ -168,6 +169,7 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
       cloudAccountConnectionId: row.cloudAccountConnectionId ?? '',
       controlPlaneLayout: row.controlPlaneLayout ?? 'dedicated',
       heavyForwarderCount: String(row.heavyForwarderCount ?? 1),
+      instanceType: row.instanceType ?? '',
       indexerPlacement: row.indexerPlacement ?? { mode: 'single' },
       searchHeadPlacement: row.searchHeadPlacement ?? { mode: 'single' },
     })
@@ -246,6 +248,9 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
       // Topology authoring — only meaningful for distributed deployments.
       controlPlaneLayout: distributed ? form.controlPlaneLayout : 'dedicated',
       heavyForwarderCount: distributed ? Math.max(1, Number(form.heavyForwarderCount) || 1) : 1,
+      // Compute size override; empty → the cloud default (t2.medium-class). Only
+      // meaningful for a cloud deployment.
+      instanceType: !selfHosted ? form.instanceType.trim() || undefined : undefined,
       indexerPlacement: normalizePlacement(form.indexerPlacement),
       searchHeadPlacement: normalizePlacement(form.searchHeadPlacement),
     }
@@ -624,6 +629,16 @@ const FormBody: React.FC<FormBodyProps> = ({
         <Input label="Indexers" type="number" min={1} value={form.indexerCount} onChange={(e) => setField('indexerCount', e.target.value)} fullWidth />
         <Input label="Search heads" type="number" min={1} value={form.searchHeadCount} onChange={(e) => setField('searchHeadCount', e.target.value)} fullWidth />
       </div>
+      {form.providerId && form.providerId !== SELF_HOSTED ? (
+        <Input
+          label="Compute size (instance type)"
+          value={form.instanceType}
+          onChange={(e) => setField('instanceType', e.target.value)}
+          placeholder={INSTANCE_TYPE_EXAMPLES.aws}
+          fullWidth
+          helperText={`Leave blank for the cloud default (~2 vCPU / 4 GB). Examples: AWS ${INSTANCE_TYPE_EXAMPLES.aws}, Azure ${INSTANCE_TYPE_EXAMPLES.azure}, GCP ${INSTANCE_TYPE_EXAMPLES.gcp}, Hetzner ${INSTANCE_TYPE_EXAMPLES.hetzner}. Applies to every node; you can change it here later.`}
+        />
+      ) : null}
       {showRegion ? (
         <>
           <ClusterPlacementField

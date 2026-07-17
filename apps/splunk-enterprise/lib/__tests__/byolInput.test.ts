@@ -49,6 +49,17 @@ describe('readByol — control plane + forwarders', () => {
   })
 })
 
+describe('readByol — instance type', () => {
+  it('trims a provided instance type', () => {
+    expect(readByol(distributedBody({ instanceType: '  t2.large ' })).data.instanceType).toBe('t2.large')
+  })
+
+  it('coerces an empty/absent instance type to null (cloud default)', () => {
+    expect(readByol(distributedBody({ instanceType: '   ' })).data.instanceType).toBeNull()
+    expect(readByol(distributedBody()).data.instanceType).toBeNull()
+  })
+})
+
 describe('readByol — placement', () => {
   it('accepts a valid multi-site indexer placement', () => {
     const { data, error } = readByol(

@@ -94,6 +94,8 @@ export interface ByolDto {
   heavyForwarderCount: number
   indexerPlacement: ClusterPlacement | null
   searchHeadPlacement: ClusterPlacement | null
+  /** Compute size override for every node; null = cloud default. See migration 011. */
+  instanceType: string | null
   createdAt: Date
   updatedAt: Date
   indexerRegions: RegionDto[]
@@ -122,6 +124,7 @@ export function mapByol(r: Row): ByolDto {
     heavyForwarderCount: Number(r.heavy_forwarder_count ?? 1),
     indexerPlacement: parsePlacement(r.indexer_placement),
     searchHeadPlacement: parsePlacement(r.search_head_placement),
+    instanceType: r.instance_type ?? null,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     indexerRegions: [],
