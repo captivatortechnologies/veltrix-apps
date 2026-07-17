@@ -31,11 +31,14 @@ import {
   NETWORK_MODE_OPTIONS,
   DNS_MODE_OPTIONS,
   BYOC_NETWORK_MODES,
+  CONTROL_PLANE_LAYOUT_OPTIONS,
   BLANK_FORM,
 } from './types'
 import { StatusPill, tokens } from './detail/shared'
 import { errorText, formatDate } from './api'
 import { ByolInfrastructureDetail } from './ByolInfrastructureDetail'
+import { ClusterPlacementField } from './ClusterPlacementField'
+import { validatePlacement } from './placement'
 
 /**
  * Reusable BYOL infrastructure manager: a searchable/filterable list whose rows
@@ -202,6 +205,18 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
         setFormError('Distributed deployments require at least 2 search heads')
         return
       }
+      if (showRegion) {
+        const indexerErr = validatePlacement(form.indexerPlacement, indexerCount)
+        if (indexerErr) {
+          setFormError(`Indexer placement: ${indexerErr}`)
+          return
+        }
+        const searchErr = validatePlacement(form.searchHeadPlacement, searchHeadCount)
+        if (searchErr) {
+          setFormError(`Search head placement: ${searchErr}`)
+          return
+        }
+      }
     }
     if (showCloudAccount && !form.cloudAccountConnectionId) {
       setFormError('Select a verified cloud account for a BYOC deployment target')
@@ -209,6 +224,11 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
     }
     const selfHosted = form.providerId === SELF_HOSTED
     const selectedCloud = cloudProviders.find((c) => c.id === form.providerId)
+    const distributed = form.deploymentType === 'distributed'
+    // Placement only applies to a distributed cloud deployment (needs AZs/regions);
+    // single-instance or self-hosted always collapses to a single site.
+    const normalizePlacement = (p: FormState['indexerPlacement']) =>
+      distributed && showRegion && p?.mode === 'multi-site' ? p : { mode: 'single' as const }
     setSubmitting(true)
     setFormError(null)
     const payload = {
@@ -223,6 +243,11 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
       networkMode: form.networkMode,
       dnsMode: form.dnsMode,
       cloudAccountConnectionId: showCloudAccount ? form.cloudAccountConnectionId : undefined,
+      // Topology authoring — only meaningful for distributed deployments.
+      controlPlaneLayout: distributed ? form.controlPlaneLayout : 'dedicated',
+      heavyForwarderCount: distributed ? Math.max(1, Number(form.heavyForwarderCount) || 1) : 1,
+      indexerPlacement: normalizePlacement(form.indexerPlacement),
+      searchHeadPlacement: normalizePlacement(form.searchHeadPlacement),
     }
     try {
       const res = await authFetch(editing ? `${apiBase}/${editing.id}` : apiBase, {
@@ -599,7 +624,57 @@ const FormBody: React.FC<FormBodyProps> = ({
         <Input label="Indexers" type="number" min={1} value={form.indexerCount} onChange={(e) => setField('indexerCount', e.target.value)} fullWidth />
         <Input label="Search heads" type="number" min={1} value={form.searchHeadCount} onChange={(e) => setField('searchHeadCount', e.target.value)} fullWidth />
       </div>
+      {showRegion ? (
+        <>
+          <ClusterPlacementField
+            label="Indexer cluster placement"
+            placement={form.indexerPlacement}
+            nodeCount={Math.max(1, Number(form.indexerCount) || 1)}
+            primaryRegion={form.region}
+            regionOptions={regionOptions}
+            onChange={(p) => setField('indexerPlacement', p)}
+          />
+          <ClusterPlacementField
+            label="Search head cluster placement"
+            placement={form.searchHeadPlacement}
+            nodeCount={Math.max(1, Number(form.searchHeadCount) || 1)}
+            primaryRegion={form.region}
+            regionOptions={regionOptions}
+            onChange={(p) => setField('searchHeadPlacement', p)}
+          />
+        </>
+      ) : null}
     </FormSection>
+
+    {form.deploymentType === 'distributed' ? (
+      <>
+        <FormSection
+          title="Control plane"
+          description="How many instances the five management roles run on — fewer instances cut cost, more give isolation and HA."
+        >
+          <Select
+            label="Consolidation"
+            value={form.controlPlaneLayout}
+            onChange={(value) => setField('controlPlaneLayout', value as FormState['controlPlaneLayout'])}
+            options={CONTROL_PLANE_LAYOUT_OPTIONS.map((o) => ({ value: o.value, label: `${o.label} — ${o.description}` }))}
+          />
+        </FormSection>
+
+        <FormSection
+          title="Ingest"
+          description="Heavy forwarders for ingest routing. One is provisioned by default; add more for higher throughput."
+        >
+          <Input
+            label="Heavy forwarders"
+            type="number"
+            min={1}
+            value={form.heavyForwarderCount}
+            onChange={(e) => setField('heavyForwarderCount', e.target.value)}
+            fullWidth
+          />
+        </FormSection>
+      </>
+    ) : null}
   </div>
 )
 
