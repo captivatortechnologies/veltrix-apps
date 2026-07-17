@@ -117,7 +117,92 @@ export interface AppManifest {
     testHandler?: string
   }
 
+  /**
+   * Connection lifecycle declarations. `onboarding` opts the app into the
+   * platform's one-click connection onboarding: the app declares what it needs
+   * (a named onboarding adapter + parameters) and the platform drives it.
+   * Microsoft Entra admin-consent (`provider: 'entra-admin-consent'`) is the
+   * first adapter; nothing here is provider-specific to the platform core.
+   */
+  connection?: AppConnectionDeclaration
+
   settings?: AppSettingDeclaration[]
+}
+
+/** App-declared connection lifecycle capabilities. */
+export interface AppConnectionDeclaration {
+  onboarding?: ConnectionOnboardingDescriptor
+}
+
+/**
+ * Declarative "one-click connect" descriptor. The platform reads it to render a
+ * "Connect …" button and to drive a named onboarding adapter; the app supplies
+ * only data, never platform code.
+ */
+export interface ConnectionOnboardingDescriptor {
+  /** Names a platform onboarding adapter (e.g. `entra-admin-consent`). */
+  provider: string
+  /** Button label in the Connections UI (e.g. "Connect Microsoft Defender"). */
+  label: string
+  params?: ConnectionOnboardingParams
+  /**
+   * Optional app-provided finalize hook (extensionless path). Run in-process
+   * after a successful onboarding, exactly like `connectivity.testHandler`.
+   */
+  onboardingHandler?: string
+}
+
+export interface ConnectionOnboardingParams {
+  /** App-setting key whose value selects the sovereign cloud (e.g. `azure_cloud`). */
+  cloudSetting?: string
+  /**
+   * App permissions this connection needs — for display + audience selection.
+   * The effective grant is fixed on the connector app registration, not here.
+   */
+  requiredResourceAccess?: OnboardingRequiredResource[]
+  /** What the flow captures and where it maps back onto the connection. */
+  capture?: OnboardingCapture
+  /** True → the connection uses the platform token broker and stores NO secret. */
+  brokered?: boolean
+  /**
+   * App settings the admin must supply BEFORE the consent click (they cannot be
+   * derived from consent), e.g. Sentinel's subscription/resource-group/workspace.
+   */
+  requiredSettings?: string[]
+  /** Post-consent provisioning steps the adapter runs (e.g. Sentinel ARM RBAC). */
+  provisioning?: OnboardingProvisioningStep[]
+}
+
+export interface OnboardingRequiredResource {
+  /** Well-known resource name or appId (e.g. `WindowsDefenderATP`, `Graph`). */
+  resource: string
+  /** Application permissions requested on that resource (display only). */
+  appPermissions: string[]
+}
+
+export interface OnboardingCapture {
+  /**
+   * Where to write the consented tenant id. `setting:<key>` writes it into the
+   * named app setting (the app libs read it as their `tenant_id`).
+   */
+  tenantId?: string
+}
+
+/** A post-consent provisioning step. Only ARM role assignment exists today. */
+export interface OnboardingProvisioningStep {
+  type: 'arm-role-assignment'
+  /** Well-known built-in role name (resolved to a role-definition id by the adapter). */
+  role: string
+  /** ARM scope granularity for the assignment. */
+  scope: 'resourceGroup' | 'subscription'
+  /**
+   * How the ARM token for the assignment is obtained:
+   *   - `manual` (default): show a portal deep-link/CLI + a verify probe. No
+   *     extra platform privilege — consent does not grant ARM RBAC.
+   *   - `delegated`: opt-in second delegated-ARM leg (requires the admin to hold
+   *     Owner / User Access Administrator). Not implemented in the first cut.
+   */
+  armToken?: 'manual' | 'delegated'
 }
 
 /**

@@ -192,6 +192,32 @@ export interface PlatformDataApi {
   listComponents(filter?: { types?: string[] }): Promise<ComponentRef[]>
 }
 
+// --- Identity broker (brokered / consent-onboarded connections) ---
+
+/**
+ * App-only token broker, provided on handler contexts as `ctx.identity` for
+ * connections onboarded through the platform's consent flow. It lets a handler
+ * mint an app-only access token for a customer tenant WITHOUT holding any
+ * secret of its own — the platform uses the central multi-tenant connector
+ * app's credentials, does the client-credentials exchange against the customer
+ * tenant, and caches (~1h).
+ *
+ * Dual token source (back-compatible): a brokered connection carries no secret,
+ * so its handler reads the token via `ctx.identity`; a BYO-secret connection
+ * keeps self-minting from `ctx.credential`. Detect brokered by the absence of a
+ * credential secret (and the presence of `ctx.identity`).
+ */
+export interface IdentityBroker {
+  getAccessToken(opts: {
+    /** Consented customer Entra tenant id. */
+    tenantId: string
+    /** Token audience, e.g. `https://graph.microsoft.com` (no `/.default`). */
+    resource: string
+    /** Sovereign cloud override; defaults to the connection's cloud. */
+    cloud?: string
+  }): Promise<string>
+}
+
 // --- Handler contexts ---
 
 export interface PipelineContext {
@@ -203,6 +229,11 @@ export interface PipelineContext {
   user: UserRef
   settings: Record<string, unknown>
   platform: PlatformDataApi
+  /**
+   * App-only token broker for brokered (consent-onboarded) connections.
+   * Optional so existing BYO-secret handlers and contexts are unaffected.
+   */
+  identity?: IdentityBroker
 }
 
 export interface DeployContext extends PipelineContext {
@@ -268,6 +299,14 @@ export interface TestConnectionContext {
   connectivity: ConnectivityRef | null
   connectivityProvider: ConnectivityProviderRef | null
   settings: Record<string, unknown>
+  /**
+   * App-only token broker for brokered (consent-onboarded) connections. A
+   * brokered connection's `credential` carries no secret, so its test handler
+   * mints a token via `ctx.identity.getAccessToken({ tenantId, resource })`
+   * instead of the per-credential client-credentials path. Optional and
+   * back-compatible: BYO-secret handlers ignore it.
+   */
+  identity?: IdentityBroker
 }
 
 /** Outcome of a connection test. `ok` gates the ✓/✗; `details` are extra lines. */

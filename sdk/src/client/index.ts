@@ -61,6 +61,15 @@ export type { Credential, CredentialSummary, CredentialInput } from '../types/pl
 export type { TestConnectionResult } from '../types/pipeline'
 export type { OperationResult } from './credentials'
 
+// Connection onboarding — the one-click "Connect …" flow (consent + broker).
+// Framework-free; uses `authFetch`.
+export { startOnboarding, getOnboardingStatus, revokeOnboarding } from './onboarding'
+export type {
+  StartOnboardingInput,
+  StartOnboardingResult,
+  OnboardingStatus,
+} from './onboarding'
+
 /** Name of the global the platform installs before loading app bundles. */
 export const HOST_RUNTIME_GLOBAL = '__VELTRIX_APP_RUNTIME__'
 

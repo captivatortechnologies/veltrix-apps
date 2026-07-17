@@ -7,6 +7,7 @@ import {
   listEnvironments,
   resolveTool,
   testConnection,
+  startOnboarding,
   type CredentialSummary,
   type EnvironmentRef,
   type TestConnectionResult,
@@ -69,6 +70,25 @@ export interface ConnectionsManagerProps {
    * username IS the required identifier (e.g. Client ID, Access key).
    */
   usernameOptionalForToken?: boolean
+  /**
+   * One-click onboarding descriptor (the client-safe subset the platform
+   * advertises in the app's `/enabled` payload as `connection.onboarding`). When
+   * provided, a primary "Connect …" button drives the platform onboarding flow
+   * (e.g. Entra admin consent) — no secret is entered by the user. Omit it and
+   * the manager renders exactly as before (manual "Add connection" only).
+   */
+  onboarding?: OnboardingDescriptorSummary
+}
+
+/** Client-safe onboarding descriptor from the `/enabled` payload. */
+export interface OnboardingDescriptorSummary {
+  provider: string
+  /** Button/label text, e.g. "Connect Microsoft Defender". */
+  label: string
+  /** True → brokered (no secret ever entered by the user). */
+  brokered: boolean
+  /** App settings the admin must supply before the consent redirect. */
+  requiredSettings: string[]
 }
 
 /** Per-connection test state: in-flight, or the last result. */
@@ -121,6 +141,7 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
   tokenUsernamePlaceholder = 'service account (optional)',
   passwordUsernamePlaceholder = 'e.g. svc_veltrix',
   usernameOptionalForToken = true,
+  onboarding,
 }) => {
   const authTypes = useMemo(
     () => [
@@ -150,6 +171,15 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
   const [formError, setFormError] = useState<string | null>(null)
   const [tests, setTests] = useState<Record<string, TestState>>({})
 
+  // --- One-click onboarding ("Connect …") state ---
+  const [onboardOpen, setOnboardOpen] = useState(false)
+  const [onboardName, setOnboardName] = useState('')
+  const [onboardEnvironmentId, setOnboardEnvironmentId] = useState('')
+  const [onboardSettings, setOnboardSettings] = useState<Record<string, string>>({})
+  const [onboardSubmitting, setOnboardSubmitting] = useState(false)
+  const [onboardError, setOnboardError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+
   const load = useCallback(async () => {
     setIsLoading(true)
     setError(null)
@@ -171,6 +201,71 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
   useEffect(() => {
     void load()
   }, [load])
+
+  // Surface the result of a completed onboarding redirect
+  // (`…/connections?onboarded=ok|error`) and strip the params from the URL.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const outcome = params.get('onboarded')
+    if (!outcome) return
+    if (outcome === 'ok') {
+      setNotice(
+        params.get('pending') === 'manual'
+          ? 'Connection created. One manual step remains — see the connection to finish setup.'
+          : 'Connection created successfully.',
+      )
+    } else {
+      setError(`Onboarding failed: ${params.get('reason') || 'unknown error'}`)
+    }
+    params.delete('onboarded')
+    params.delete('pending')
+    params.delete('reason')
+    params.delete('connectionId')
+    const qs = params.toString()
+    window.history.replaceState({}, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`)
+  }, [])
+
+  const openOnboard = () => {
+    setOnboardName('')
+    setOnboardEnvironmentId('')
+    setOnboardSettings({})
+    setOnboardError(null)
+    setOnboardOpen(true)
+  }
+
+  const handleStartOnboarding = async () => {
+    if (!onboarding) return
+    const name = onboardName.trim()
+    if (!name) {
+      setOnboardError('Name is required')
+      return
+    }
+    if (!onboardEnvironmentId) {
+      setOnboardError('Environment is required')
+      return
+    }
+    const missing = onboarding.requiredSettings.filter((k) => !onboardSettings[k]?.trim())
+    if (missing.length > 0) {
+      setOnboardError(`Please provide: ${missing.join(', ')}`)
+      return
+    }
+    setOnboardSubmitting(true)
+    setOnboardError(null)
+    try {
+      const { authorizeUrl } = await startOnboarding(appId, {
+        environmentId: onboardEnvironmentId,
+        connectionName: name,
+        settings: onboardSettings,
+      })
+      // Full-page navigation to the provider's hosted consent page. The
+      // platform's static callback redirects back here with `?onboarded=…`.
+      if (typeof window !== 'undefined') window.location.assign(authorizeUrl)
+    } catch (e) {
+      setOnboardError((e as Error).message)
+      setOnboardSubmitting(false)
+    }
+  }
 
   const openCreate = () => {
     setEditing(null)
@@ -430,7 +525,12 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
             <Button variant="secondary" size="sm" onClick={() => void load()} isLoading={isLoading}>
               Refresh
             </Button>
-            <Button variant="primary" size="sm" onClick={openCreate}>
+            {onboarding ? (
+              <Button variant="primary" size="sm" onClick={openOnboard}>
+                {onboarding.label}
+              </Button>
+            ) : null}
+            <Button variant={onboarding ? 'secondary' : 'primary'} size="sm" onClick={openCreate}>
               Add connection
             </Button>
           </div>
@@ -439,6 +539,13 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
         <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{title}</h2>
       </CardHeader>
       <CardBody>
+        {notice ? (
+          <div role="status" style={{ marginBottom: 12 }}>
+            <Badge variant="success" size="sm">
+              {notice}
+            </Badge>
+          </div>
+        ) : null}
         {error ? (
           <p role="alert">Failed to load connections: {error}</p>
         ) : (
@@ -566,6 +673,61 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
           />
         </div>
       </FormDialog>
+
+      {onboarding ? (
+        <FormDialog
+          isOpen={onboardOpen}
+          onClose={() => {
+            if (!onboardSubmitting) setOnboardOpen(false)
+          }}
+          title={onboarding.label}
+          description={
+            onboarding.brokered
+              ? "You'll approve this on your provider's sign-in page — no secret is entered or stored here."
+              : "You'll authorize this on your provider's sign-in page."
+          }
+          onSubmit={handleStartOnboarding}
+          submitText="Continue to sign-in"
+          isSubmitting={onboardSubmitting}
+          submitDisabled={!onboardName.trim() || !onboardEnvironmentId}
+          error={onboardError}
+          size="md"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <Input
+              label="Name"
+              value={onboardName}
+              onChange={(e) => setOnboardName(e.target.value)}
+              placeholder={namePlaceholder}
+              fullWidth
+              autoFocus
+              spellCheck={false}
+              autoComplete="off"
+            />
+            <Select
+              label="Environment"
+              options={environmentOptions}
+              value={onboardEnvironmentId}
+              onChange={(value) => setOnboardEnvironmentId(value)}
+              helperText="The deployment scope this connection belongs to."
+              fullWidth
+            />
+            {onboarding.requiredSettings.map((key) => (
+              <Input
+                key={key}
+                label={key}
+                value={onboardSettings[key] ?? ''}
+                onChange={(e) =>
+                  setOnboardSettings((prev) => ({ ...prev, [key]: e.target.value }))
+                }
+                fullWidth
+                spellCheck={false}
+                autoComplete="off"
+              />
+            ))}
+          </div>
+        </FormDialog>
+      ) : null}
     </Card>
   )
 }
