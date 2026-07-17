@@ -121,6 +121,11 @@ jobs:
         if: steps.detect.outputs.apps != '' || steps.detect.outputs.template_changed == 'true'
         run: |
           npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+          # npm ci wipes node_modules, removing the SDK link — re-create it so
+          # test bundling resolves the @veltrixsecops/app-sdk/* subpaths
+          # (byol, connections, opentofu) that apps import.
+          mkdir -p node_modules/@veltrixsecops
+          ln -sfn "$PWD/sdk" node_modules/@veltrixsecops/app-sdk
           npm test
 
   secret-scan:
