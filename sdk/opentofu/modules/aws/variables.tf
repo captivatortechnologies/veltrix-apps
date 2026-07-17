@@ -133,10 +133,14 @@ variable "plan" {
   type = list(object({
     plan_key = string
     tier     = string # foundation | control-plane | data | search | ingest
-    kind     = string # network | storage | indexer | search-head | ... (see byolTopology.ts)
+    kind     = string # network | storage | indexer | search-head | management-node | ...
     name     = optional(string, "")
     role     = optional(string, "")
     region   = optional(string, null)
+    # Multi-AZ placement: the availability zone this node is pinned to (null = default).
+    zone     = optional(string, null)
+    # Consolidated control-plane roles this instance runs (drives bring-up config).
+    roles    = optional(list(string), [])
   }))
 
   validation {

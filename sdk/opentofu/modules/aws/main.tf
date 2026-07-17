@@ -55,6 +55,12 @@ locals {
   # Two AZs for a multi-AZ dedicated fabric (and the ALB's 2-subnet minimum).
   azs = slice(data.aws_availability_zones.available.names, 0, 2)
 
+  # Availability zones the plan pins nodes to (multi-AZ placement — indexer /
+  # search-head only). Unioned with the default AZs so a dedicated fabric creates
+  # a compute subnet for every zone a node needs.
+  placement_azs = distinct(compact([for r in var.plan : r.zone]))
+  all_azs       = distinct(concat(local.azs, local.placement_azs))
+
   # Resolved network + subnet sets, uniform across all three modes:
   #   dedicated -> the created VPC + its private (compute) / public (ALB) subnets
   #   shared/existing -> the looked-up VPC + the single allocated subnet
@@ -63,10 +69,22 @@ locals {
   lb_subnet_ids = local.is_dedicated ? [for s in aws_subnet.public : s.id] : concat(
     [aws_subnet.env[0].id], var.extra_lb_subnet_ids,
   )
-  # Compute nodes are spread round-robin across the available compute subnets.
+  # AZ name -> compute subnet id. Dedicated mode has a private subnet per AZ;
+  # shared/existing has only the single allocated subnet, so this stays empty and
+  # every node falls back to that subnet (multi-AZ needs a dedicated fabric).
+  compute_subnet_by_az = local.is_dedicated ? {
+    for az in local.all_azs : az => aws_subnet.private[az].id
+  } : {}
+  # Pin each node to the subnet in its `zone` when one exists; otherwise spread
+  # round-robin across the available compute subnets (backward-compatible default
+  # for single-site plans, which carry no zone).
   compute_subnet_for = {
     for idx, k in sort(keys(local.compute_nodes)) : k =>
-    local.compute_subnet_ids[idx % length(local.compute_subnet_ids)]
+    lookup(
+      local.compute_subnet_by_az,
+      coalesce(local.compute_nodes[k].zone, "__no_zone__"),
+      local.compute_subnet_ids[idx % length(local.compute_subnet_ids)],
+    )
   }
 
   # --- DNS mode: managed (in-account) / delegated (worker x-account) / none
@@ -253,13 +271,13 @@ resource "aws_subnet" "public" {
   })
 }
 
-# Private subnets (one per AZ) — carry the compute nodes. Offset by 8 => distinct
-# /20 blocks that never overlap the public ones.
+# Private subnets (one per AZ the plan uses) — carry the compute nodes. Offset by
+# 8 => distinct /20 blocks that never overlap the public ones.
 resource "aws_subnet" "private" {
-  for_each          = local.is_dedicated ? toset(local.azs) : toset([])
+  for_each          = local.is_dedicated ? toset(local.all_azs) : toset([])
   vpc_id            = aws_vpc.env[0].id
   availability_zone = each.key
-  cidr_block        = cidrsubnet(var.vpc_cidr, 4, index(local.azs, each.key) + 8)
+  cidr_block        = cidrsubnet(var.vpc_cidr, 4, index(local.all_azs, each.key) + 8)
 
   tags = merge(local.base_tags, {
     Name              = "${local.name_prefix}-private-${each.key}"
@@ -461,6 +479,9 @@ resource "aws_instance" "node" {
     "Veltrix:Tier"    = each.value.tier
     "Veltrix:Kind"    = each.value.kind
     "Veltrix:Role"    = each.value.role
+    # Consolidated control-plane roles + placement zone (topology authoring).
+    "Veltrix:Roles"   = join(",", each.value.roles)
+    "Veltrix:Zone"    = coalesce(each.value.zone, "")
   })
 }
 
