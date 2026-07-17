@@ -207,3 +207,82 @@ test('toInventoryYaml emits all: children groups and per-host vars', () => {
   assert.match(yaml, /splunk_secrets_arn: "arn:aws:secretsmanager:us-east-1:1:secret:x"/);
   assert.match(yaml, /splunk_cluster_manager_fqdn: mgmt1\.ex\.internal/);
 });
+
+// --- Control-plane consolidation (management-node) -------------------------
+
+function distributedCoreIps(): Record<string, string> {
+  return {
+    'data/indexer-1': '10.0.0.21',
+    'data/indexer-2': '10.0.0.22',
+    'data/indexer-3': '10.0.0.23',
+    'search/search-head-1': '10.0.0.31',
+    'search/search-head-2': '10.0.0.32',
+    'search/search-head-3': '10.0.0.33',
+  };
+}
+
+const distributedCore: RawPlanItem[] = [
+  { planKey: 'data/indexer-1', tier: 'data', kind: 'indexer' },
+  { planKey: 'data/indexer-2', tier: 'data', kind: 'indexer' },
+  { planKey: 'data/indexer-3', tier: 'data', kind: 'indexer' },
+  { planKey: 'search/search-head-1', tier: 'search', kind: 'search-head' },
+  { planKey: 'search/search-head-2', tier: 'search', kind: 'search-head' },
+  { planKey: 'search/search-head-3', tier: 'search', kind: 'search-head' },
+];
+
+test('consolidated: a management-node joins each of its role groups and is NOT skipped', () => {
+  const plan: RawPlanItem[] = [
+    { planKey: 'control-plane/cluster-manager', tier: 'control-plane', kind: 'cluster-manager' },
+    { planKey: 'control-plane/sh-deployer', tier: 'control-plane', kind: 'sh-deployer' },
+    {
+      planKey: 'control-plane/management',
+      tier: 'control-plane',
+      kind: 'management-node',
+      roles: ['license-manager', 'deployment-server', 'monitoring-console'],
+    },
+    ...distributedCore,
+  ];
+  const ips = {
+    'control-plane/cluster-manager': '10.0.0.10',
+    'control-plane/sh-deployer': '10.0.0.11',
+    'control-plane/management': '10.0.0.12',
+    ...distributedCoreIps(),
+  };
+  const model = deriveInventory({ plan: normalizePlan(plan), tofu: tofu(ips) });
+
+  // Never silently skipped as "not a Splunk compute kind".
+  assert.ok(!model.warnings.some((w) => w.includes('control-plane/management') && w.includes('not a Splunk')));
+
+  const mgmt = model.hosts.find((h) => h.planKey === 'control-plane/management');
+  assert.ok(mgmt, 'management-node host exists');
+  assert.equal(mgmt.ansibleHost, '10.0.0.12');
+  assert.deepEqual([...mgmt.groups].sort(), ['deployment_server', 'license_master', 'monitoring_console']);
+  // The dedicated cluster-manager keeps ONLY cluster_manager (LM/DS/MC live on the mgmt node).
+  const cm = model.hosts.find((h) => h.planKey === 'control-plane/cluster-manager');
+  assert.deepEqual(cm.groups, ['cluster_manager']);
+});
+
+test('single-node: one management-node carries every management role and forms the cluster', () => {
+  const plan: RawPlanItem[] = [
+    {
+      planKey: 'control-plane/management',
+      tier: 'control-plane',
+      kind: 'management-node',
+      roles: ['license-manager', 'cluster-manager', 'sh-deployer', 'deployment-server', 'monitoring-console'],
+    },
+    ...distributedCore,
+  ];
+  const ips = { 'control-plane/management': '10.0.0.12', ...distributedCoreIps() };
+  const model = deriveInventory({ plan: normalizePlan(plan), tofu: tofu(ips) });
+
+  const mgmt = model.hosts.find((h) => h.planKey === 'control-plane/management');
+  assert.ok(mgmt, 'management-node host exists');
+  // Primary SPLUNK_ROLE is the highest-precedence role it carries (cluster-manager).
+  assert.equal(mgmt.splunkRole, 'splunk_cluster_manager');
+  assert.deepEqual(
+    [...mgmt.groups].sort(),
+    ['cluster_manager', 'deployment_server', 'license_master', 'monitoring_console', 'search_head_deployer'],
+  );
+  // The indexer cluster forms because the management-node supplies the cluster-manager role.
+  assert.equal(model.vars.indexerClusterEnabled, true);
+});

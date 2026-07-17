@@ -55,6 +55,18 @@ const KIND_META: Record<SplunkKind, KindMeta> = {
   standalone: { prefix: 'so', group: 'standalone', role: 'splunk_standalone' },
 };
 
+/** The consolidated control-plane kind — one host running several management roles. */
+const MANAGEMENT_NODE_KIND = 'management-node';
+
+/** Precedence for a consolidated node's PRIMARY splunk role (SPLUNK_ROLE); highest wins. */
+const ROLE_PRECEDENCE: SplunkKind[] = [
+  'cluster-manager',
+  'sh-deployer',
+  'license-manager',
+  'deployment-server',
+  'monitoring-console',
+];
+
 const ALL_GROUPS: SplunkGroup[] = [
   'cluster_manager',
   'cluster_indexer',
@@ -90,6 +102,7 @@ export function normalizePlan(raw: RawPlanItem[] | { plan?: RawPlanItem[] }): No
     kind: item.kind,
     name: item.name ?? '',
     role: item.role ?? '',
+    roles: Array.isArray(item.roles) ? item.roles.filter((r): r is string => typeof r === 'string') : [],
   }));
 }
 
@@ -147,14 +160,20 @@ export function deriveInventory(input: DeriveInput): InventoryModel {
   // Keep only real compute kinds; warn (not throw) on anything unexpected so an
   // evolving topology never hard-fails the whole bring-up.
   const computePlan = plan.filter((p) => {
-    if (isSplunkKind(p.kind)) return true;
+    if (isSplunkKind(p.kind) || p.kind === MANAGEMENT_NODE_KIND) return true;
     warnings.push(`Skipping plan item ${p.planKey}: kind "${p.kind}" is not a Splunk compute kind`);
     return false;
   });
 
-  // Group plan items by kind, each sorted by natural plan_key order → ordinals.
+  // A consolidated `management-node` runs several management roles on ONE host, so
+  // it is handled separately (added to each of its roles' groups) rather than
+  // grouped by a single kind.
+  const managementNodes = computePlan.filter((p) => p.kind === MANAGEMENT_NODE_KIND);
+
+  // Group single-role plan items by kind, each sorted by natural plan_key order → ordinals.
   const byKind = new Map<SplunkKind, NormalizedPlanItem[]>();
   for (const item of computePlan) {
+    if (item.kind === MANAGEMENT_NODE_KIND) continue;
     const kind = item.kind as SplunkKind;
     const list = byKind.get(kind) ?? [];
     list.push(item);
@@ -162,16 +181,20 @@ export function deriveInventory(input: DeriveInput): InventoryModel {
   }
   for (const list of byKind.values()) list.sort((a, b) => naturalCompare(a.planKey, b.planKey));
 
+  // A role is present if a dedicated kind carries it OR a management-node lists it.
+  const roleCount = (kind: SplunkKind) =>
+    (byKind.get(kind)?.length ?? 0) + managementNodes.filter((mn) => mn.roles.includes(kind)).length;
+
   const counts = {
-    indexer: byKind.get('indexer')?.length ?? 0,
-    searchHead: byKind.get('search-head')?.length ?? 0,
-    clusterManager: byKind.get('cluster-manager')?.length ?? 0,
-    deployer: byKind.get('sh-deployer')?.length ?? 0,
-    licenseManager: byKind.get('license-manager')?.length ?? 0,
-    deploymentServer: byKind.get('deployment-server')?.length ?? 0,
-    monitoringConsole: byKind.get('monitoring-console')?.length ?? 0,
-    heavyForwarder: byKind.get('heavy-forwarder')?.length ?? 0,
-    standalone: byKind.get('standalone')?.length ?? 0,
+    indexer: roleCount('indexer'),
+    searchHead: roleCount('search-head'),
+    clusterManager: roleCount('cluster-manager'),
+    deployer: roleCount('sh-deployer'),
+    licenseManager: roleCount('license-manager'),
+    deploymentServer: roleCount('deployment-server'),
+    monitoringConsole: roleCount('monitoring-console'),
+    heavyForwarder: roleCount('heavy-forwarder'),
+    standalone: roleCount('standalone'),
   };
 
   const indexerClusterEnabled = counts.indexer > 0 && counts.clusterManager > 0;
@@ -244,6 +267,42 @@ export function deriveInventory(input: DeriveInput): InventoryModel {
       addToGroup(meta.group, alias);
     });
   }
+
+  // --- Consolidated management nodes: one host in EACH of its role groups ----
+  // A `management-node` (control-plane consolidation) runs several management
+  // roles on one box. It becomes a single host that is a member of every role's
+  // group; its SPLUNK_ROLE is the highest-precedence role it carries.
+  managementNodes.forEach((mn, idx) => {
+    const roles = mn.roles.filter((r): r is SplunkKind => isSplunkKind(r));
+    if (roles.length === 0) {
+      warnings.push(`Skipping management-node ${mn.planKey}: it lists no recognized management roles.`);
+      return;
+    }
+    const primary = ROLE_PRECEDENCE.find((r) => roles.includes(r)) ?? roles[0];
+    const meta = KIND_META[primary];
+    const ordinal = idx + 1;
+    const alias = `${meta.prefix}${ordinal}`;
+    const ansibleHost = privateIps[mn.planKey];
+    if (!ansibleHost) {
+      throw new Error(
+        `No private IP for plan_key "${mn.planKey}" in tofu output instance_private_ips. ` +
+          `The root stack must re-export module.instance_private_ips.`,
+      );
+    }
+    const fqdn = resolveFqdn(mn.planKey, meta.prefix, ordinal, nodeFqdns, dnsDomain, warnings);
+    const nodeGroups = [...new Set(roles.map((r) => KIND_META[r].group))];
+    hosts.push({
+      alias,
+      planKey: mn.planKey,
+      kind: primary,
+      ansibleHost,
+      fqdn,
+      splunkRole: meta.role,
+      groups: nodeGroups,
+      bootstrapCaptain: false,
+    });
+    for (const g of nodeGroups) addToGroup(g, alias);
+  });
 
   // --- Colocation: fold management roles onto the cluster-manager -------
   // The reference topology runs License Manager / Deployment Server / Monitoring
