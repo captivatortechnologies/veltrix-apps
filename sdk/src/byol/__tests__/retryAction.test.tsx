@@ -124,6 +124,33 @@ describe('Failed-run primary action', () => {
     await waitFor(() => expect(calls.some((c) => c.method === 'GET' && c.url.endsWith('/plan'))).toBe(true))
   })
 
+  it('shows "Re-provision" for a deprovisioned environment and opens the deploy plan', async () => {
+    const calls: FetchCall[] = []
+    const DEPROV = { ...FAILED, status: 'deprovisioned' }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string, init?: RequestInit) => {
+        const url = String(input)
+        const method = init?.method ?? 'GET'
+        calls.push({ url, method })
+        if (url.endsWith('/plan')) return { ok: true, status: 200, json: async () => ({ summary: { add: 0, change: 0, destroy: 0, noop: 0 }, groups: [] }) }
+        if (url.endsWith('/resources')) return { ok: true, status: 200, json: async () => [] }
+        if (url.endsWith('/deployments')) return { ok: true, status: 200, json: async () => [deployment('destroy', '2026-07-10T12:00:00Z')] }
+        return { ok: true, status: 200, json: async () => DEPROV }
+      }) as unknown as typeof fetch,
+    )
+    render(
+      <ByolInfrastructureDetail apiBase="/api/apps/x/byol" initialInfra={DEPROV} onBack={() => {}} onEdit={() => {}} onDeleted={() => {}} onChanged={() => {}} />,
+    )
+    await waitFor(() => expect(screen.getByText('BYOL001')).toBeTruthy())
+
+    // Re-provision wins over the destroy-action retry (status isn't 'failed').
+    const reprovision = await screen.findByRole('button', { name: 'Re-provision' })
+    expect(screen.queryByRole('button', { name: 'Retry Destroy' })).toBeNull()
+    fireEvent.click(reprovision)
+    await waitFor(() => expect(calls.some((c) => c.method === 'GET' && c.url.endsWith('/plan'))).toBe(true))
+  })
+
   it('falls back to "Retry deployment" when no deployment runs have loaded yet', async () => {
     const calls: FetchCall[] = []
     stubFetch(calls, [])

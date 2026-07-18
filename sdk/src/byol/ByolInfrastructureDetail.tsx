@@ -317,6 +317,9 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
   const failed = status === 'failed' || status === 'error'
   const provisioning = status === 'provisioning' || status === 'destroying'
   const running = isRunning(status)
+  // A torn-down environment can be stood up again — re-provisioning re-runs the plan
+  // against the now-empty state (resources were reset to not_started on teardown).
+  const deprovisioned = status === 'deprovisioned' || status === 'decommissioned'
 
   // `deployments` is ordered newest-first (see `listDeployments` — ORDER BY
   // started_at DESC), so [0] is the run that produced the current failed
@@ -336,6 +339,7 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
 
   const primaryAction = (() => {
     if (notStarted) return <Button variant="primary" size="sm" onClick={openPlan} disabled={busy}>Deploy environment</Button>
+    if (deprovisioned) return <Button variant="primary" size="sm" onClick={openPlan} disabled={busy}>Re-provision</Button>
     if (failedDestroy) return <Button variant="danger" size="sm" onClick={openDestroy} disabled={busy}>Retry Destroy</Button>
     if (failed) return <Button variant="primary" size="sm" onClick={openPlan} disabled={busy}>Retry deployment</Button>
     if (provisioning) return <Button variant="primary" size="sm" onClick={() => setSection('activity')}>View progress</Button>
