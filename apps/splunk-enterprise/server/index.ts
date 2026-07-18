@@ -339,12 +339,24 @@ export default async function registerRoutes(
       const infra = await store.getByol(db, id, customerId)
       if (!infra) return reply.status(404).send({ error: 'BYOL infrastructure not found' })
 
+      // tofu destroy still renders the config (validation + data sources + provider),
+      // so the destroy event must carry the SAME deploy config — plan, network mode,
+      // account, tags — or the worker re-renders an empty shared stack and fails.
+      const plan = buildByolResourcePlan(topologyInputFor(infra))
+      const destroyNet = await resolvePlanNetwork(infra, customerId, ctx.appId, customerShortNameOf(request))
+
       const deployment = await store.createDeployment(db, id, 'destroy', DESTROY_STEPS, userOf(request))
       const updated = await store.setByolStatus(db, id, 'destroying')
       await emit(events, 'infrastructure.destroy.requested', {
         infrastructureId: id,
         infrastructure: updated,
+        plan,
         customerId,
+        networkMode: updated.networkMode,
+        dnsMode: updated.dnsMode,
+        cloudAccountConnectionId: updated.cloudAccountConnectionId,
+        tags: destroyNet.tags,
+        ...(destroyNet.network ? { network: destroyNet.network } : {}),
       })
       reply.status(202).send({ infrastructure: updated, deployment })
     },
