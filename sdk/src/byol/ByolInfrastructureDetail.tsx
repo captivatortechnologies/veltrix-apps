@@ -443,6 +443,7 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
         applying={applying}
         onApply={onApply}
         infraName={infra.name}
+        allowApplyWithoutChanges={infra.status === 'failed' || infra.status === 'error' || infra.status === 'not_started'}
       />
     </div>
   )

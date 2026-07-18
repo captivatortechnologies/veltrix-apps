@@ -34,6 +34,7 @@ import {
   CONTROL_PLANE_LAYOUT_OPTIONS,
   INSTANCE_TYPE_EXAMPLES,
   BLANK_FORM,
+  editFormState,
 } from './types'
 import { StatusPill, tokens } from './detail/shared'
 import { errorText, formatDate } from './api'
@@ -150,29 +151,8 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
   }
 
   const openEdit = (row: ByolInfrastructure) => {
-    const providerId = row.cloudProviderId
-      ? row.cloudProviderId
-      : row.hosting_type === SELF_HOSTED_LABEL
-        ? SELF_HOSTED
-        : ''
     setEditing(row)
-    setForm({
-      name: row.name ?? '',
-      deploymentType: row.deploymentType ?? 'single',
-      environmentType: row.environmentType ?? '',
-      providerId,
-      region: row.region ?? '',
-      indexerCount: String(row.indexerCount ?? 1),
-      searchHeadCount: String(row.searchHeadCount ?? 1),
-      networkMode: row.networkMode ?? 'shared',
-      dnsMode: row.dnsMode ?? 'managed',
-      cloudAccountConnectionId: row.cloudAccountConnectionId ?? '',
-      controlPlaneLayout: row.controlPlaneLayout ?? 'dedicated',
-      heavyForwarderCount: String(row.heavyForwarderCount ?? 1),
-      instanceType: row.instanceType ?? '',
-      indexerPlacement: row.indexerPlacement ?? { mode: 'single' },
-      searchHeadPlacement: row.searchHeadPlacement ?? { mode: 'single' },
-    })
+    setForm(editFormState(row))
     setFormError(null)
     setDialogOpen(true)
   }
