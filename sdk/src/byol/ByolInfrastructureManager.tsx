@@ -121,7 +121,13 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
 
   const isCloud = form.providerId !== '' && form.providerId !== SELF_HOSTED
   const showRegion = isCloud && form.deploymentType === 'distributed'
-  const showCloudAccount = BYOC_NETWORK_MODES.has(form.networkMode)
+  // Every cloud deploy can pick a verified account — the tenant's own (customer)
+  // for BYOC, or a Veltrix-managed (platform) account for a hosted deploy. BYOC
+  // (dedicated/existing) REQUIRES one (whose VPC to use); hosted (shared) is
+  // optional (falls back to the default provisioning identity).
+  const isByoc = BYOC_NETWORK_MODES.has(form.networkMode)
+  const showCloudAccount = isCloud
+  const cloudAccountRequired = isByoc
 
   // Load the selected cloud provider's regions when needed for the region picker.
   useEffect(() => {
@@ -200,7 +206,7 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
         }
       }
     }
-    if (showCloudAccount && !form.cloudAccountConnectionId) {
+    if (cloudAccountRequired && !form.cloudAccountConnectionId) {
       setFormError('Select a verified cloud account for a BYOC deployment target')
       return
     }
@@ -301,7 +307,11 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
     [cloudAccounts, selectedProvider],
   )
   const cloudAccountOptions = useMemo(
-    () => verifiedCloudAccounts.map((a) => ({ value: a.id, label: `${a.name} (${a.provider})` })),
+    () =>
+      verifiedCloudAccounts.map((a) => ({
+        value: a.id,
+        label: `${a.name} (${a.provider}${a.scope === 'platform' ? ' · Veltrix-managed' : ''})`,
+      })),
     [verifiedCloudAccounts],
   )
 
@@ -391,7 +401,7 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
           onSubmit={handleSubmit}
           submitText={editing ? 'Save changes' : 'Create infrastructure'}
           isSubmitting={submitting}
-          submitDisabled={!form.name.trim() || (showCloudAccount && !form.cloudAccountConnectionId)}
+          submitDisabled={!form.name.trim() || (cloudAccountRequired && !form.cloudAccountConnectionId)}
           error={formError}
           size="md"
         >
@@ -405,6 +415,7 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
             regionOptions={regionOptions}
             showRegion={showRegion}
             showCloudAccount={showCloudAccount}
+            cloudAccountRequired={cloudAccountRequired}
             cloudAccountOptions={cloudAccountOptions}
             selectedProviderName={selectedProvider?.name}
             providerCode={selectedProvider?.code}
@@ -483,7 +494,7 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
         onSubmit={handleSubmit}
         submitText={editing ? 'Save changes' : 'Create infrastructure'}
         isSubmitting={submitting}
-        submitDisabled={!form.name.trim() || (showCloudAccount && !form.cloudAccountConnectionId)}
+        submitDisabled={!form.name.trim() || (cloudAccountRequired && !form.cloudAccountConnectionId)}
         error={formError}
         size="md"
       >
@@ -497,6 +508,7 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
           regionOptions={regionOptions}
           showRegion={showRegion}
           showCloudAccount={showCloudAccount}
+          cloudAccountRequired={cloudAccountRequired}
           cloudAccountOptions={cloudAccountOptions}
           selectedProviderName={selectedProvider?.name}
         />
@@ -519,6 +531,8 @@ interface FormBodyProps {
   showRegion: boolean
   /** Whether the current network mode is BYOC (dedicated/existing) and needs a cloud account. */
   showCloudAccount: boolean
+  /** Whether an account MUST be picked (BYOC) vs optional (hosted platform account). */
+  cloudAccountRequired: boolean
   /** Verified cloud accounts, narrowed to the selected provider when one is picked. */
   cloudAccountOptions: Array<{ value: string; label: string }>
   /** Selected cloud provider's display name, for the "no verified account" note. */
@@ -552,6 +566,7 @@ const FormBody: React.FC<FormBodyProps> = ({
   regionOptions,
   showRegion,
   showCloudAccount,
+  cloudAccountRequired,
   cloudAccountOptions,
   selectedProviderName,
   providerCode,
@@ -582,15 +597,25 @@ const FormBody: React.FC<FormBodyProps> = ({
       {showCloudAccount ? (
         <>
           <Select
-            label="Cloud account *"
+            label={cloudAccountRequired ? 'Cloud account *' : 'Cloud account'}
             value={form.cloudAccountConnectionId}
             onChange={(value) => setField('cloudAccountConnectionId', value)}
             options={cloudAccountOptions}
-            placeholder={cloudAccountOptions.length ? 'Select a verified cloud account…' : 'No verified cloud accounts'}
+            placeholder={
+              cloudAccountOptions.length
+                ? 'Select a verified cloud account…'
+                : cloudAccountRequired
+                  ? 'No verified cloud accounts'
+                  : 'None — use the default provisioning identity'
+            }
             disabled={cloudAccountOptions.length === 0}
-            helperText="Required for a dedicated or existing-network (BYOC) deployment."
+            helperText={
+              cloudAccountRequired
+                ? 'Required for a dedicated or existing-network (BYOC) deployment.'
+                : 'Optional — the Veltrix-managed account this hosted deployment provisions through.'
+            }
           />
-          {cloudAccountOptions.length === 0 ? (
+          {cloudAccountRequired && cloudAccountOptions.length === 0 ? (
             <Alert variant="warning" title="No verified cloud account available">
               {selectedProviderName
                 ? `No verified ${selectedProviderName} cloud account found. Register and verify a cloud account first in Settings → Cloud Accounts.`
