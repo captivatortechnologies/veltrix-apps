@@ -159,6 +159,12 @@ export interface CloudAccount {
   name: string
   status: 'UNVERIFIED' | 'VERIFIED' | 'ERROR' | string
   authMethod?: string
+  /**
+   * 'customer' — the tenant's own account (BYOC / dedicated / existing).
+   * 'platform' — a Veltrix-managed account a hosted (shared) deployment provisions
+   * through. The form offers platform accounts for hosted, customer accounts for BYOC.
+   */
+  scope?: 'customer' | 'platform' | string
 }
 
 export interface FormState {
