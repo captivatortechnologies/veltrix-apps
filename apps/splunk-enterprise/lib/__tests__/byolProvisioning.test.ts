@@ -111,6 +111,18 @@ describe('reconcileTerminal', () => {
 
     expect(db.find(/UPDATE splunk_byol_resource SET status = \$2/)).toBeUndefined()
   })
+
+  it('resets resources to not_started on a successful teardown (never ready)', async () => {
+    const db = new FakeDb()
+    db.queue([]) // getLatestDeployment() → none
+
+    await reconcileTerminal(db as any, 'infra-1', 'destroyed')
+
+    // A teardown resets resources to 'not_started' — never 'ready' (which the toEqual
+    // pins exactly, so a regression to 'ready'/'active' fails here).
+    const updAll = db.find(/UPDATE splunk_byol_resource SET status = \$2/)
+    expect(updAll?.params).toEqual(['infra-1', 'not_started'])
+  })
 })
 
 describe('listResources', () => {

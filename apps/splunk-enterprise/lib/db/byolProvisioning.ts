@@ -384,11 +384,22 @@ export async function setDeploymentStatus(
 export async function reconcileTerminal(
   db: PlatformDatabaseClient,
   infrastructureId: string,
-  outcome: 'succeeded' | 'failed',
+  outcome: 'succeeded' | 'failed' | 'destroyed',
 ): Promise<void> {
   const latest = await getLatestDeployment(db, infrastructureId)
   if (outcome === 'succeeded') {
     await setAllResourceStatuses(db, infrastructureId, 'ready')
+    if (latest) {
+      for (const step of latest.steps) {
+        if (step.status !== 'done') await advanceStep(db, latest.id, step.key, 'done')
+      }
+      await setDeploymentStatus(db, latest.id, 'succeeded')
+    }
+  } else if (outcome === 'destroyed') {
+    // A successful teardown: the run + its steps are done, but the resources no
+    // longer exist. Reset them to 'not_started' so a later re-deploy re-provisions
+    // from scratch (they must NOT read as 'ready' — that's a live-infra signal).
+    await setAllResourceStatuses(db, infrastructureId, 'not_started')
     if (latest) {
       for (const step of latest.steps) {
         if (step.status !== 'done') await advanceStep(db, latest.id, step.key, 'done')

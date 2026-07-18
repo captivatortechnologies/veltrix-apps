@@ -111,8 +111,23 @@ export default async function onEvent({ db, topic, payload }: AppEventContext): 
 
   const rawStatus = payload?.status
   if (!rawStatus) return
+  const raw = String(rawStatus).toLowerCase()
+  const isFailure = raw === 'failed' || raw === 'error'
 
-  const mapped = DEPLOY_STATUS_MAP[String(rawStatus).toLowerCase()] ?? String(rawStatus)
+  // A destroy terminal is ambiguous by status alone: the CI path (emit-status.mjs)
+  // publishes the same 'completed' for a successful deploy AND a successful destroy.
+  // Disambiguate via the latest run's action (plus the direct-apply worker's explicit
+  // 'deprovisioned') so a teardown NEVER maps to 'active', re-marks resources 'ready',
+  // or re-sends an activation email for infrastructure that was just torn down.
+  const latestRun = await store.getLatestDeployment(db, infrastructureId)
+  const isDestroy =
+    raw === 'deprovisioned' || payload?.action === 'destroy' || latestRun?.action === 'destroy'
+
+  const mapped = isDestroy
+    ? isFailure
+      ? 'error'
+      : 'deprovisioned'
+    : DEPLOY_STATUS_MAP[raw] ?? String(rawStatus)
   const updated = await store.setByolStatusIfExists(db, infrastructureId, mapped)
   if (!updated) {
     console.warn(`[splunk-enterprise] onEvent: no BYOL infrastructure ${infrastructureId}; skipped`)
@@ -121,7 +136,10 @@ export default async function onEvent({ db, topic, payload }: AppEventContext): 
 
   // Reconcile the persisted plan + run on terminal outcomes so the detail view
   // stays coherent even from a single coarse worker signal.
-  if (mapped === 'active' || mapped === 'running') {
+  if (isDestroy) {
+    await store.reconcileTerminal(db, infrastructureId, isFailure ? 'failed' : 'destroyed')
+    // No activation email on a teardown — the environment no longer exists.
+  } else if (mapped === 'active' || mapped === 'running') {
     await store.reconcileTerminal(db, infrastructureId, 'succeeded')
     // Environment is ready → hand the admin credential off via a one-time link.
     await tryIssueActivation(db, infrastructureId, payload)
