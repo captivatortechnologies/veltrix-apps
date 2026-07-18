@@ -236,11 +236,16 @@ export const DEFAULT_DEPLOYMENT_TYPES = [
   { value: 'distributed', label: 'Distributed' },
 ]
 
-/** Network mode options for the "Deployment target" form section. */
+/**
+ * Network mode options for the "Deployment target" form section. Dedicated is listed
+ * first because it is the default: OpenTofu provisions a self-contained VPC. 'shared'
+ * requires a platform-managed base network to attach to (not yet provisioned), so it
+ * is offered but not the default.
+ */
 export const NETWORK_MODE_OPTIONS = [
-  { value: 'shared', label: 'Veltrix-hosted (shared)' },
   { value: 'dedicated', label: 'Dedicated — your cloud (BYOC)' },
   { value: 'existing', label: 'Existing network — your cloud (BYOC)' },
+  { value: 'shared', label: 'Veltrix-hosted (shared)' },
 ]
 
 /** DNS mode options for the "Deployment target" form section. */
@@ -310,7 +315,11 @@ export const BLANK_FORM: FormState = {
   region: '',
   indexerCount: '1',
   searchHeadCount: '1',
-  networkMode: 'shared',
+  // New cloud infra defaults to 'dedicated' — OpenTofu creates its own VPC and the
+  // deployment depends on nothing pre-existing. 'shared' attaches to a Veltrix-managed
+  // base network that must be provisioned by a separate platform tofu stack; until that
+  // stack exists, defaulting to 'shared' produces "no matching VPC" at apply time.
+  networkMode: 'dedicated',
   dnsMode: 'managed',
   cloudAccountConnectionId: '',
   controlPlaneLayout: 'dedicated',
