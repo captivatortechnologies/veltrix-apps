@@ -151,9 +151,16 @@ locals {
     )
   }
 
+  # Domain for the INTERNAL zone + node FQDNs. Distinct from var.dns_domain (which
+  # also drives the PUBLIC ALB record + ACM cert): a dedicated fabric with no public
+  # domain still wants internal FQDNs (cm1.<internal>, idx1.<internal>) but must NOT
+  # trigger public DNS/ACM. Falls back to dns_domain so a public-domain deploy is
+  # unchanged.
+  private_domain = var.private_dns_domain != "" ? var.private_dns_domain : var.dns_domain
+
   # plan_key -> function FQDN in the private zone. Empty when no domain is set.
-  node_fqdns = var.dns_domain != "" ? {
-    for k, label in local.node_short_labels : k => "${label}.${var.dns_domain}"
+  node_fqdns = local.private_domain != "" ? {
+    for k, label in local.node_short_labels : k => "${label}.${local.private_domain}"
   } : {}
 
   # --- Private DNS zone resolution --------------------------------------
@@ -162,8 +169,8 @@ locals {
   # plan-time-known intent used to gate the per-node record for_each (the zone id
   # itself may stay computed until apply, which is fine for a record attribute
   # but NOT for a for_each key set).
-  create_private_zone = var.create_private_zone && var.dns_domain != "" && var.private_zone_id == ""
-  want_private_dns    = var.dns_domain != "" && (var.private_zone_id != "" || local.create_private_zone)
+  create_private_zone = var.create_private_zone && local.private_domain != "" && var.private_zone_id == ""
+  want_private_dns    = local.private_domain != "" && (var.private_zone_id != "" || local.create_private_zone)
   private_zone_id = var.private_zone_id != "" ? var.private_zone_id : (
     local.create_private_zone ? aws_route53_zone.private[0].id : ""
   )
@@ -959,7 +966,7 @@ resource "aws_route53_record" "env" {
 
 resource "aws_route53_zone" "private" {
   count = local.create_private_zone ? 1 : 0
-  name  = var.dns_domain
+  name  = local.private_domain
 
   vpc {
     vpc_id = local.network_id

@@ -216,6 +216,12 @@ variable "dns_domain" {
   default     = ""
 }
 
+variable "private_dns_domain" {
+  description = "Domain for the INTERNAL (intra-cluster) private zone + node FQDNs, e.g. splunk-enterprise.internal. Kept separate from dns_domain so a dedicated fabric with no public domain gets cm1/idx1/sh1 FQDNs without triggering public DNS/ACM. Empty falls back to dns_domain."
+  type        = string
+  default     = ""
+}
+
 variable "dns_mode" {
   description = <<-EOT
     How the PUBLIC (analyst-facing) DNS name + TLS cert are handled. The PRIVATE
