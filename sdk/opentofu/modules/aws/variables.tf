@@ -412,6 +412,12 @@ variable "waf_enabled" {
   default     = true
 }
 
+variable "artifacts_bucket" {
+  description = "S3 bucket holding staged Splunk .tgz artifacts the bring-up layer installs from. Empty ('') disables the artifacts IAM grant on the node role."
+  type        = string
+  default     = ""
+}
+
 # --- Tags (threaded onto every resource) ----------------------------------
 
 variable "tags" {

@@ -42,6 +42,12 @@ locals {
   has_dns          = length([for r in var.plan : r if r.kind == "dns"]) > 0 && var.route53_zone_id != ""
   has_hec          = length([for r in var.plan : r if r.kind == "hec"]) > 0
 
+  # Instance-profile inline policy references only the secret ARNs this stack created
+  # ([*] splat yields [] when the count-gated resource is absent). node_needs_inline
+  # gates the inline policy so we never attach an empty document.
+  node_secret_arns  = concat(aws_secretsmanager_secret.env[*].arn, aws_secretsmanager_secret.license[*].arn)
+  node_needs_inline = local.has_storage || length(local.node_secret_arns) > 0 || var.artifacts_bucket != ""
+
   resolved_ami = var.ami_id != "" ? var.ami_id : data.aws_ami.al2023.id
 
   # A per-resource Name/plan_key is merged INTO the canonical tag set so every
@@ -503,6 +509,9 @@ resource "aws_instance" "node" {
   subnet_id              = local.compute_subnet_for[each.key]
   vpc_security_group_ids = [aws_security_group.splunk.id]
   key_name               = var.key_name != "" ? var.key_name : null
+  # Instance profile gives the bring-up layer SSM reachability (no SSH) plus scoped
+  # reads of the secret bundle, the SmartStore bucket, and the Splunk artifacts bucket.
+  iam_instance_profile = aws_iam_instance_profile.node.name
 
   root_block_device {
     volume_size = var.root_volume_gb
@@ -511,7 +520,9 @@ resource "aws_instance" "node" {
   }
 
   tags = merge(local.base_tags, {
-    Name              = "${local.name_prefix}-${each.value.kind}"
+    # Meaningful, unique per-node name (e.g. <prefix>-cm1 / -idx1 / -sh1) instead of
+    # colliding on kind. node_short_labels also feeds the private-DNS FQDNs.
+    Name              = "${local.name_prefix}-${local.node_short_labels[each.key]}"
     "Veltrix:PlanKey" = each.key
     "Veltrix:Tier"    = each.value.tier
     "Veltrix:Kind"    = each.value.kind
@@ -520,6 +531,81 @@ resource "aws_instance" "node" {
     "Veltrix:Roles" = join(",", each.value.roles)
     "Veltrix:Zone"  = each.value.zone != null ? each.value.zone : ""
   })
+}
+
+# --- Instance IAM: SSM reachability + Secrets + S3 (SmartStore + artifacts) ---
+# Every node gets an instance profile so the bring-up layer can reach it over SSM
+# Run Command (no SSH, no inbound), read its admin-seed / pass4SymmKey bundle,
+# read/write the SmartStore bucket, and pull the Splunk .tgz from the artifacts bucket.
+
+data "aws_iam_policy_document" "node_assume" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "node" {
+  name               = "${local.name_prefix}-node"
+  assume_role_policy = data.aws_iam_policy_document.node_assume.json
+  tags               = local.base_tags
+}
+
+# SSM Run Command / Session Manager connectivity + inventory.
+resource "aws_iam_role_policy_attachment" "node_ssm" {
+  role       = aws_iam_role.node.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+# Scoped inline policy: only the ARNs this stack actually created.
+data "aws_iam_policy_document" "node_inline" {
+  dynamic "statement" {
+    for_each = length(local.node_secret_arns) > 0 ? [1] : []
+    content {
+      sid       = "ReadSecrets"
+      actions   = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"]
+      resources = local.node_secret_arns
+    }
+  }
+  dynamic "statement" {
+    for_each = local.has_storage ? [1] : []
+    content {
+      sid       = "SmartStoreBucket"
+      actions   = ["s3:ListBucket", "s3:GetBucketLocation"]
+      resources = [aws_s3_bucket.objstore[0].arn]
+    }
+  }
+  dynamic "statement" {
+    for_each = local.has_storage ? [1] : []
+    content {
+      sid       = "SmartStoreObjects"
+      actions   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
+      resources = ["${aws_s3_bucket.objstore[0].arn}/*"]
+    }
+  }
+  dynamic "statement" {
+    for_each = var.artifacts_bucket != "" ? [1] : []
+    content {
+      sid       = "SplunkArtifacts"
+      actions   = ["s3:GetObject", "s3:ListBucket"]
+      resources = ["arn:aws:s3:::${var.artifacts_bucket}", "arn:aws:s3:::${var.artifacts_bucket}/*"]
+    }
+  }
+}
+
+resource "aws_iam_role_policy" "node" {
+  count  = local.node_needs_inline ? 1 : 0
+  name   = "${local.name_prefix}-node"
+  role   = aws_iam_role.node.id
+  policy = data.aws_iam_policy_document.node_inline.json
+}
+
+resource "aws_iam_instance_profile" "node" {
+  name = "${local.name_prefix}-node"
+  role = aws_iam_role.node.name
 }
 
 # --- Storage: object-storage bucket (e.g. Splunk SmartStore, warm/cold) -----
