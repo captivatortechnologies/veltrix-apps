@@ -63,7 +63,11 @@ describe('ByolInfrastructureDetail (fallback render)', () => {
     expect(screen.getByText(/Back to infrastructure/)).toBeTruthy()
     // sidebar nav buttons carry their label as a title — unambiguous.
     for (const s of ['Overview', 'Resources', 'Activity', 'Access', 'Configuration', 'Settings']) {
-      expect(screen.getByTitle(s)).toBeTruthy()
+      const btn = screen.getByTitle(s)
+      expect(btn).toBeTruthy()
+      // Icons must be real inline SVGs (font-independent) — not Unicode glyphs,
+      // which vanished under the platform shell font. Regression guard.
+      expect(btn.querySelector('svg')).toBeTruthy()
     }
     // not_started → the primary action offers to deploy
     expect(screen.getByText('Deploy environment')).toBeTruthy()

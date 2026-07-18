@@ -9,7 +9,7 @@ const STRIPE: Record<string, string> = {
   provisioning: tokens.info,
   attention: tokens.warning,
   failed: tokens.danger,
-  not_started: 'var(--color-border-strong, #d1d5db)',
+  not_started: tokens.borderStrong,
 }
 
 const LEGEND: Array<{ status: string; label: string }> = [

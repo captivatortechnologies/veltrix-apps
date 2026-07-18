@@ -9,7 +9,7 @@ const NODE_COLOR: Record<string, string> = {
   done: tokens.success,
   running: tokens.info,
   failed: tokens.danger,
-  pending: 'var(--color-border-strong, #d1d5db)',
+  pending: tokens.borderStrong,
 }
 
 const StepNode: React.FC<{ step: ByolDeploymentStep; last: boolean }> = ({ step, last }) => (

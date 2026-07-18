@@ -54,7 +54,7 @@ export const PlanLine: React.FC<{ item: ByolPlan['groups'][number]['items'][numb
           fontSize: 14,
           lineHeight: 1,
           color: meta.color,
-          background: 'var(--color-surface-secondary, #f9fafb)',
+          background: tokens.surface2,
         }}
       >
         {meta.glyph}

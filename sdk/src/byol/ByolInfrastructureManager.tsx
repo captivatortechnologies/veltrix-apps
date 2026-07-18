@@ -282,7 +282,7 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
     { key: 'searchHeadCount', header: 'Search heads', align: 'right', render: (row) => row.searchHeadCount ?? '—' },
     { key: 'status', header: 'Status', render: (row) => <StatusPill status={row.status} /> },
     { key: 'updatedAt', header: 'Updated', render: (row) => formatDate(row.updatedAt) },
-    { key: 'chevron', header: '', align: 'right', width: '32px', render: () => <span aria-hidden style={{ color: 'var(--color-text-subtle, #9ca3af)' }}>›</span> },
+    { key: 'chevron', header: '', align: 'right', width: '32px', render: () => <span aria-hidden style={{ color: tokens.faint }}>›</span> },
   ]
 
   const environmentOptions = useMemo(() => tags.map((t) => ({ value: t.name, label: t.name })), [tags])
@@ -447,7 +447,7 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
       </CardHeader>
       <CardBody>
         {error ? (
-          <p style={{ color: 'var(--color-danger, #dc2626)' }}>Failed to load BYOL infrastructure: {error}</p>
+          <p style={{ color: tokens.danger }}>Failed to load BYOL infrastructure: {error}</p>
         ) : null}
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>

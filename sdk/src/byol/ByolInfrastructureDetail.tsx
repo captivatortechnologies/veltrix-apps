@@ -25,19 +25,30 @@ import { ConfigurationTab } from './detail/ConfigurationTab'
 import { SettingsTab } from './detail/SettingsTab'
 import { ByolPlanModal } from './detail/ByolPlanModal'
 import { DestroyPlanModal } from './detail/DestroyPlanModal'
+import {
+  OverviewIcon,
+  ResourcesIcon,
+  ActivityIcon,
+  AccessIcon,
+  ConfigurationIcon,
+  SettingsIcon,
+  type IconProps,
+} from './detail/icons'
 
 /** How often the detail view re-polls while a deployment is in flight. */
 const PROVISIONING_POLL_MS = 4000
 
 type Section = 'overview' | 'resources' | 'activity' | 'access' | 'config' | 'settings'
 
-const SECTIONS: Array<{ key: Section; label: string; icon: string }> = [
-  { key: 'overview', label: 'Overview', icon: '◈' },
-  { key: 'resources', label: 'Resources', icon: '▦' },
-  { key: 'activity', label: 'Activity', icon: '◷' },
-  { key: 'access', label: 'Access', icon: '⇲' },
-  { key: 'config', label: 'Configuration', icon: '⚙' },
-  { key: 'settings', label: 'Settings', icon: '⋯' },
+// Inline-SVG icons (font-independent) rather than Unicode glyphs, which failed
+// to render in the platform shell font — see detail/icons.tsx.
+const SECTIONS: Array<{ key: Section; label: string; Icon: React.FC<IconProps> }> = [
+  { key: 'overview', label: 'Overview', Icon: OverviewIcon },
+  { key: 'resources', label: 'Resources', Icon: ResourcesIcon },
+  { key: 'activity', label: 'Activity', Icon: ActivityIcon },
+  { key: 'access', label: 'Access', Icon: AccessIcon },
+  { key: 'config', label: 'Configuration', Icon: ConfigurationIcon },
+  { key: 'settings', label: 'Settings', Icon: SettingsIcon },
 ]
 
 export interface ByolInfrastructureDetailProps {
@@ -448,6 +459,7 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
             </div>
             {SECTIONS.map((s) => {
               const active = s.key === section
+              const { Icon } = s
               return (
                 <button
                   key={s.key}
@@ -474,7 +486,9 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
                   {active ? (
                     <span style={{ position: 'absolute', left: 0, top: 8, bottom: 8, width: 3, borderRadius: '0 3px 3px 0', background: tokens.primary }} />
                   ) : null}
-                  <span style={{ width: 18, textAlign: 'center', flex: 'none', fontSize: 14 }} aria-hidden>{s.icon}</span>
+                  <span style={{ width: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
+                    <Icon size={16} />
+                  </span>
                   {collapsed ? null : <span style={{ flex: 1 }}>{s.label}</span>}
                   {!collapsed && s.key === 'resources' && displayResources.length > 0 ? (
                     <span style={{ fontSize: 11, fontWeight: 600, color: tokens.faint }}>{displayResources.length}</span>

@@ -3,20 +3,38 @@ import { Badge } from '../../ui'
 import { statusVariant, statusLabel, resourceStatusVariant, resourceStatusLabel } from '../status'
 import type { ByolResource } from '../types'
 
-// Themed tokens with fallbacks — the host supplies the real values (dark/light +
-// tenant branding); the fallbacks keep the component legible outside the platform.
+// Themed tokens — bound to the platform design-system contract in
+// `client/src/styles/tokens.css`. Those `--color-*` variables live on
+// `:root`/`.dark`, cascade into the app subtree, and flip with light/dark, so
+// consuming them here is what makes BYOL follow the active theme automatically.
+//
+// Two rules that the previous version got wrong:
+//   1. The design tokens are *space-separated RGB triples* (e.g. `17 24 39`),
+//      meant to be wrapped in `rgb(...)` — not used as bare colours.
+//   2. The real names are `--color-surface[-raised/-sunken]`, `--color-border`,
+//      and the `--color-content-*` text family — not `--color-text*` /
+//      `--color-surface-secondary`, which never existed (so those silently fell
+//      back to hardcoded light hex and never darkened).
+// The triple inside each `var()` fallback keeps the component legible when it
+// renders outside the platform (design tokens undefined → light theme).
+//
+// `primary` is the exception: `--veltrix-app-primary` is a *hex* variable the
+// host injects per app (AppShell brand scope), so it is used directly.
+const rgbToken = (name: string, fallback: string): string => `rgb(var(${name}, ${fallback}))`
+
 export const tokens = {
-  border: 'var(--color-border, #e5e7eb)',
-  surface: 'var(--color-surface, #ffffff)',
-  surface2: 'var(--color-surface-secondary, #f9fafb)',
-  text: 'var(--color-text, #111827)',
-  muted: 'var(--color-text-muted, #6b7280)',
-  faint: 'var(--color-text-subtle, #9ca3af)',
+  border: rgbToken('--color-border', '229 231 235'),
+  borderStrong: rgbToken('--color-border-strong', '209 213 219'),
+  surface: rgbToken('--color-surface-raised', '255 255 255'), // cards / panels / active nav
+  surface2: rgbToken('--color-surface', '249 250 251'), // page surface — sidebar / insets
+  text: rgbToken('--color-content-primary', '17 24 39'),
+  muted: rgbToken('--color-content-secondary', '75 85 99'),
+  faint: rgbToken('--color-content-tertiary', '156 163 175'),
   primary: 'var(--veltrix-app-primary, #FF6600)',
-  danger: 'var(--color-danger, #dc2626)',
-  success: 'var(--color-success, #16a34a)',
-  info: 'var(--color-info, #2563eb)',
-  warning: 'var(--color-warning, #d97706)',
+  danger: rgbToken('--color-danger', '220 38 38'),
+  success: rgbToken('--color-success', '22 163 74'),
+  info: rgbToken('--color-info', '14 116 144'),
+  warning: rgbToken('--color-warning', '161 98 7'),
 }
 
 /** Overall infrastructure status badge. */
@@ -51,7 +69,7 @@ function barColor(status: string): string {
     case 'failed':
       return tokens.danger
     default:
-      return 'var(--color-border-strong, #d1d5db)'
+      return tokens.borderStrong
   }
 }
 
