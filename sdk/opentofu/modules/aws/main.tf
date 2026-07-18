@@ -518,7 +518,7 @@ resource "aws_instance" "node" {
     "Veltrix:Role"    = each.value.role
     # Consolidated control-plane roles + placement zone (topology authoring).
     "Veltrix:Roles" = join(",", each.value.roles)
-    "Veltrix:Zone"  = coalesce(each.value.zone, "")
+    "Veltrix:Zone"  = each.value.zone != null ? each.value.zone : ""
   })
 }
 
