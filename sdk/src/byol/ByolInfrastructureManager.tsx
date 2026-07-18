@@ -127,7 +127,10 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
   // optional (falls back to the default provisioning identity).
   const isByoc = BYOC_NETWORK_MODES.has(form.networkMode)
   const showCloudAccount = isCloud
-  const cloudAccountRequired = isByoc
+  // A BYOC (dedicated/existing) target needs a cloud account — but only for a CLOUD
+  // deploy. Self-hosted ignores networkMode entirely, so it must never gate Save on
+  // an account it doesn't even show a picker for.
+  const cloudAccountRequired = isByoc && isCloud
 
   // Load the selected cloud provider's regions when needed for the region picker.
   useEffect(() => {

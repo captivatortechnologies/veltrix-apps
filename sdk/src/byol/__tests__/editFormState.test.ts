@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { editFormState } from '../types'
+import { editFormState, BLANK_FORM } from '../types'
 import type { ByolInfrastructure } from '../types'
 
 describe('editFormState — Edit topology renders accurate state', () => {
@@ -72,5 +72,13 @@ describe('editFormState — Edit topology renders accurate state', () => {
   it('resolves a self-hosted row to the SELF_HOSTED provider sentinel', () => {
     const form = editFormState({ id: 'i', name: 'x', hosting_type: 'Self-Hosted', status: 'active' } as ByolInfrastructure)
     expect(form.providerId).toBe('self-hosted')
+  })
+})
+
+describe('new-infra default deployment target', () => {
+  it('defaults a fresh form to dedicated (OpenTofu provisions its own VPC)', () => {
+    // Shared attaches to a platform base network that does not yet exist, so new
+    // infra must not default into it. Existing rows still reflect their stored value.
+    expect(BLANK_FORM.networkMode).toBe('dedicated')
   })
 })
