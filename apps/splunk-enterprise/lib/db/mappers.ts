@@ -96,6 +96,8 @@ export interface ByolDto {
   searchHeadPlacement: ClusterPlacement | null
   /** Compute size override for every node; null = cloud default. See migration 011. */
   instanceType: string | null
+  /** Selected Splunk version catalog entry id; null = no selection (deploy uses its own default). See migration 012. */
+  versionId: string | null
   createdAt: Date
   updatedAt: Date
   indexerRegions: RegionDto[]
@@ -125,6 +127,7 @@ export function mapByol(r: Row): ByolDto {
     indexerPlacement: parsePlacement(r.indexer_placement),
     searchHeadPlacement: parsePlacement(r.search_head_placement),
     instanceType: r.instance_type ?? null,
+    versionId: r.version_id ?? null,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     indexerRegions: [],

@@ -76,6 +76,8 @@ export interface ByolInfrastructure {
   indexerPlacement?: ClusterPlacement
   /** Placement of the search-head cluster — single-site or multi-site by percent. */
   searchHeadPlacement?: ClusterPlacement
+  /** Selected software version (app catalog entry id) to install on every node. */
+  versionId?: string
   updatedAt?: string
   createdAt?: string
 }
@@ -192,6 +194,8 @@ export interface FormState {
   indexerPlacement: ClusterPlacement
   /** Placement of the search-head cluster. */
   searchHeadPlacement: ClusterPlacement
+  /** Selected software version (app catalog entry id); empty = app-default. */
+  versionId: string
 }
 
 /**
@@ -223,6 +227,18 @@ export interface ByolInfrastructureManagerProps {
   configBase?: string
   /** Configuration links to surface in the detail view (app-supplied). */
   configLinks?: ByolConfigLink[]
+  /**
+   * Software version options for the "Splunk version" form picker (app-supplied —
+   * the SDK has no notion of Splunk). Omit or pass an empty array to hide the
+   * picker entirely (e.g. an app with no version catalog).
+   */
+  versionOptions?: Array<{ value: string; label: string }>
+  /**
+   * Version id a NEW infrastructure's form should default to (typically the
+   * catalog's "latest" entry). Ignored when `versionOptions` is empty. Existing
+   * rows always reflect their own stored `versionId`, never this default.
+   */
+  defaultVersionId?: string
 }
 
 // --- Constants --------------------------------------------------------------
@@ -304,6 +320,7 @@ export function editFormState(row: ByolInfrastructure): FormState {
     instanceType: row.instanceType ?? '',
     indexerPlacement: row.indexerPlacement ?? { mode: 'single' },
     searchHeadPlacement: row.searchHeadPlacement ?? { mode: 'single' },
+    versionId: row.versionId ?? '',
   }
 }
 
@@ -327,6 +344,7 @@ export const BLANK_FORM: FormState = {
   instanceType: '',
   indexerPlacement: { mode: 'single' },
   searchHeadPlacement: { mode: 'single' },
+  versionId: '',
 }
 
 /**

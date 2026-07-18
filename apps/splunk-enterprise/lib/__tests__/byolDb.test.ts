@@ -34,6 +34,7 @@ function fakeDb() {
     indexer_placement: null,
     search_head_placement: null,
     instance_type: null,
+    version_id: null,
     created_at: new Date(),
     updated_at: new Date(),
   }
@@ -60,6 +61,7 @@ const input: ByolInput = {
   networkMode: 'dedicated',
   dnsMode: 'managed',
   cloudAccountConnectionId: 'acct-1',
+  versionId: 'v-10-4',
 }
 
 describe('updateByol persists the deployment target', () => {
@@ -88,5 +90,50 @@ describe('createByol persists the deployment target', () => {
     expect(insert!.sql).toMatch(/cloud_account_connection_id/)
     expect(insert!.args).toContain('dedicated')
     expect(insert!.args).toContain('acct-1')
+  })
+})
+
+// =============================================================================
+// Regression: the selected Splunk version (version_id) must round-trip through
+// both create and update — it feeds the deploy route's splunkDownloadUrl lookup.
+// =============================================================================
+
+describe('createByol persists the selected Splunk version', () => {
+  it('inserts version_id', async () => {
+    const { db, calls } = fakeDb()
+    await createByol(db, 'cust-1', input)
+
+    const insert = calls.find((c) => c.sql.includes('INSERT INTO splunk_byol_infrastructure'))
+    expect(insert).toBeTruthy()
+    expect(insert!.sql).toMatch(/version_id/)
+    expect(insert!.args).toContain('v-10-4')
+  })
+
+  it('persists null when no version is selected', async () => {
+    const { db, calls } = fakeDb()
+    await createByol(db, 'cust-1', { ...input, versionId: undefined })
+
+    const insert = calls.find((c) => c.sql.includes('INSERT INTO splunk_byol_infrastructure'))
+    expect(insert!.args[insert!.args.length - 1]).toBeNull()
+  })
+})
+
+describe('updateByol persists the selected Splunk version', () => {
+  it('writes version_id', async () => {
+    const { db, calls } = fakeDb()
+    await updateByol(db, 'i1', input)
+
+    const update = calls.find((c) => c.sql.includes('UPDATE splunk_byol_infrastructure'))
+    expect(update).toBeTruthy()
+    expect(update!.sql).toMatch(/version_id\s*=/)
+    expect(update!.args).toContain('v-10-4')
+  })
+
+  it('persists null when the version selection is cleared', async () => {
+    const { db, calls } = fakeDb()
+    await updateByol(db, 'i1', { ...input, versionId: null })
+
+    const update = calls.find((c) => c.sql.includes('UPDATE splunk_byol_infrastructure'))
+    expect(update!.args[update!.args.length - 1]).toBeNull()
   })
 })

@@ -50,6 +50,8 @@ export interface ByolInput {
   indexerPlacement?: ClusterPlacement | null
   searchHeadPlacement?: ClusterPlacement | null
   instanceType?: string | null
+  // Selected Splunk version catalog entry id — see migration 012.
+  versionId?: string | null
 }
 
 async function attachRegions(db: PlatformDatabaseClient, infra: ByolDto): Promise<ByolDto> {
@@ -102,11 +104,11 @@ export async function createByol(
         indexer_count, search_head_count, cloud_provider_id, customer_id, status,
         network_mode, dns_mode, cloud_account_connection_id,
         control_plane_layout, heavy_forwarder_count, indexer_placement, search_head_placement,
-        instance_type)
+        instance_type, version_id)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8::uuid, $9::uuid, 'not_started',
              $10, $11, $12::uuid,
              $13, $14, $15::jsonb, $16::jsonb,
-             $17)
+             $17, $18)
      RETURNING *`,
     input.name,
     input.deploymentType,
@@ -125,6 +127,7 @@ export async function createByol(
     placementJson(input.indexerPlacement),
     placementJson(input.searchHeadPlacement),
     input.instanceType?.trim() || null,
+    input.versionId?.trim() || null,
   )
   const created = mapByol(rows[0])
   await emitStateEvent(db, created, created.status) // 'not_started'
@@ -145,6 +148,7 @@ export async function updateByol(
        indexer_placement = $12::jsonb, search_head_placement = $13::jsonb,
        instance_type = $14,
        network_mode = $15, dns_mode = $16, cloud_account_connection_id = $17::uuid,
+       version_id = $18,
        updated_at = now()
      WHERE id = $1::uuid
      RETURNING *`,
@@ -165,6 +169,7 @@ export async function updateByol(
     input.networkMode ?? 'shared',
     input.dnsMode ?? 'managed',
     input.cloudAccountConnectionId ?? null,
+    input.versionId?.trim() || null,
   )
   return attachRegions(db, mapByol(rows[0]))
 }

@@ -296,6 +296,18 @@ export default async function registerRoutes(
       }
       const deployment = await store.createDeployment(db, id, 'deploy', DEPLOYMENT_STEPS, userOf(request))
       const updated = await store.setByolStatus(db, id, 'provisioning')
+
+      // Resolve the selected Splunk version (system or tenant-owned catalog entry)
+      // to its installer reference — an https:// URL or an s3://bucket/key URI
+      // (an uploaded package). Omitted when no version is selected or the
+      // resolved version has no download URL; the worker then uses its own
+      // default installer/version.
+      let splunkDownloadUrl: string | undefined
+      if (updated.versionId) {
+        const version = await store.getReadableVersion(db, updated.versionId, customerId)
+        if (version?.downloadUrl) splunkDownloadUrl = version.downloadUrl
+      }
+
       await emit(events, 'infrastructure.deploy.requested', {
         infrastructureId: id,
         infrastructure: updated,
@@ -311,6 +323,7 @@ export default async function registerRoutes(
         // Tenant/cost-allocation tags + the reserved subnet, derived at Apply time.
         tags: deployNet.tags,
         ...(deployNet.network ? { network: deployNet.network } : {}),
+        ...(splunkDownloadUrl ? { splunkDownloadUrl } : {}),
       })
       reply.status(202).send({ infrastructure: updated, deployment, resources })
     },

@@ -40,6 +40,39 @@ describe('ByolInfrastructureManager (fallback render)', () => {
   })
 })
 
+describe('ByolInfrastructureManager — Splunk version picker (app-supplied, SDK stays generic)', () => {
+  beforeEach(() => stubFetch([]))
+  afterEach(() => vi.unstubAllGlobals())
+
+  const versionOptions = [
+    { value: 'v-10-4', label: '10.4.0 · latest' },
+    { value: 'v-9-4', label: '9.4.2' },
+  ]
+
+  it('renders the version picker, defaulted to defaultVersionId, when versionOptions are supplied', async () => {
+    render(
+      <ByolInfrastructureManager
+        apiBase="/api/apps/x/byol"
+        versionOptions={versionOptions}
+        defaultVersionId="v-10-4"
+      />,
+    )
+    await waitFor(() => expect(screen.getByText('New infrastructure')).toBeTruthy())
+    fireEvent.click(screen.getByText('New infrastructure'))
+    const select = (await screen.findByLabelText('Splunk version')) as HTMLSelectElement
+    expect(select.value).toBe('v-10-4')
+    expect(screen.getByText('9.4.2')).toBeTruthy()
+  })
+
+  it('omits the version picker entirely when no versionOptions are supplied', async () => {
+    render(<ByolInfrastructureManager apiBase="/api/apps/x/byol" />)
+    await waitFor(() => expect(screen.getByText('New infrastructure')).toBeTruthy())
+    fireEvent.click(screen.getByText('New infrastructure'))
+    await waitFor(() => expect(screen.getByText('New BYOL infrastructure')).toBeTruthy())
+    expect(screen.queryByLabelText('Splunk version')).toBeNull()
+  })
+})
+
 describe('ByolInfrastructureDetail (fallback render)', () => {
   beforeEach(() => stubFetch([]))
   afterEach(() => vi.unstubAllGlobals())

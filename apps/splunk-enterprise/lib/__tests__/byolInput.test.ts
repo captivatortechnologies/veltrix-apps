@@ -60,6 +60,17 @@ describe('readByol — instance type', () => {
   })
 })
 
+describe('readByol — version selection', () => {
+  it('trims a provided versionId', () => {
+    expect(readByol(distributedBody({ versionId: '  v-10-4  ' })).data.versionId).toBe('v-10-4')
+  })
+
+  it('coerces an empty/absent versionId to null (no version selected)', () => {
+    expect(readByol(distributedBody({ versionId: '   ' })).data.versionId).toBeNull()
+    expect(readByol(distributedBody()).data.versionId).toBeNull()
+  })
+})
+
 describe('readByol — placement', () => {
   it('accepts a valid multi-site indexer placement', () => {
     const { data, error } = readByol(

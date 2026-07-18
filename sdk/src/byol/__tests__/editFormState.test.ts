@@ -28,6 +28,7 @@ describe('editFormState — Edit topology renders accurate state', () => {
         ],
       },
       searchHeadPlacement: { mode: 'single' },
+      versionId: 'v-10-4',
       status: 'failed',
     }
 
@@ -54,6 +55,7 @@ describe('editFormState — Edit topology renders accurate state', () => {
         ],
       },
       searchHeadPlacement: { mode: 'single' },
+      versionId: 'v-10-4',
     })
   })
 
@@ -67,6 +69,7 @@ describe('editFormState — Edit topology renders accurate state', () => {
     expect(form.instanceType).toBe('')
     expect(form.indexerPlacement).toEqual({ mode: 'single' })
     expect(form.searchHeadPlacement).toEqual({ mode: 'single' })
+    expect(form.versionId).toBe('')
   })
 
   it('resolves a self-hosted row to the SELF_HOSTED provider sentinel', () => {
@@ -80,5 +83,9 @@ describe('new-infra default deployment target', () => {
     // Shared attaches to a platform base network that does not yet exist, so new
     // infra must not default into it. Existing rows still reflect their stored value.
     expect(BLANK_FORM.networkMode).toBe('dedicated')
+  })
+
+  it('leaves versionId blank — the manager seeds it from defaultVersionId at open-create time', () => {
+    expect(BLANK_FORM.versionId).toBe('')
   })
 })

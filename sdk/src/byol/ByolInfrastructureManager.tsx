@@ -55,6 +55,8 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
   deploymentTypes = DEFAULT_DEPLOYMENT_TYPES,
   configBase,
   configLinks,
+  versionOptions = [],
+  defaultVersionId,
 }) => {
   const [infrastructure, setInfrastructure] = useState<ByolInfrastructure[]>([])
   const [tags, setTags] = useState<Tag[]>([])
@@ -154,7 +156,10 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
 
   const openCreate = () => {
     setEditing(null)
-    setForm(BLANK_FORM)
+    // A fresh infrastructure defaults its version to the app-supplied "latest"
+    // (defaultVersionId) when one is available; an existing row's Edit form
+    // always reflects its own stored versionId instead (see editFormState).
+    setForm({ ...BLANK_FORM, versionId: defaultVersionId ?? '' })
     setFormError(null)
     setDialogOpen(true)
   }
@@ -242,6 +247,7 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
       instanceType: !selfHosted ? form.instanceType.trim() || undefined : undefined,
       indexerPlacement: normalizePlacement(form.indexerPlacement),
       searchHeadPlacement: normalizePlacement(form.searchHeadPlacement),
+      versionId: form.versionId || undefined,
     }
     try {
       const res = await authFetch(editing ? `${apiBase}/${editing.id}` : apiBase, {
@@ -422,6 +428,7 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
             cloudAccountOptions={cloudAccountOptions}
             selectedProviderName={selectedProvider?.name}
             providerCode={selectedProvider?.code}
+            versionOptions={versionOptions}
           />
         </FormDialog>
       </>
@@ -514,6 +521,7 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
           cloudAccountRequired={cloudAccountRequired}
           cloudAccountOptions={cloudAccountOptions}
           selectedProviderName={selectedProvider?.name}
+          versionOptions={versionOptions}
         />
       </FormDialog>
     </Card>
@@ -542,6 +550,8 @@ interface FormBodyProps {
   selectedProviderName?: string
   /** Selected cloud provider's code (aws|azure|gcp|hetzner), for cloud-aware zone naming. */
   providerCode?: string
+  /** Software version options (app-supplied); the picker is hidden when empty. */
+  versionOptions: Array<{ value: string; label: string }>
 }
 
 /** A labelled sub-group of related fields, so the form reads as scannable sections. */
@@ -573,6 +583,7 @@ const FormBody: React.FC<FormBodyProps> = ({
   cloudAccountOptions,
   selectedProviderName,
   providerCode,
+  versionOptions,
 }) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
     <Input label="Name" value={form.name} onChange={(e) => setField('name', e.target.value)} placeholder="e.g. Production cluster" fullWidth autoFocus />
@@ -637,6 +648,16 @@ const FormBody: React.FC<FormBodyProps> = ({
           : 'Number of indexer and search-head nodes to provision.'
       }
     >
+      {versionOptions.length > 0 ? (
+        <Select
+          label="Splunk version"
+          value={form.versionId}
+          onChange={(value) => setField('versionId', value)}
+          options={versionOptions}
+          placeholder="Use the app's default version"
+          helperText="The Splunk release installed on every node. Leave unset to use the app's default installer."
+        />
+      ) : null}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <Input label="Indexers" type="number" min={1} value={form.indexerCount} onChange={(e) => setField('indexerCount', e.target.value)} fullWidth />
         <Input label="Search heads" type="number" min={1} value={form.searchHeadCount} onChange={(e) => setField('searchHeadCount', e.target.value)} fullWidth />

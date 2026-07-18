@@ -91,6 +91,11 @@ export function readByol(body: any): { data: Record<string, unknown>; error?: st
   const instanceTypeRaw = typeof body?.instanceType === 'string' ? body.instanceType.trim() : ''
   const instanceType = instanceTypeRaw || null
 
+  // Selected Splunk version (a splunk_version catalog entry id); empty/absent →
+  // null, meaning the deploy uses its own default installer/version.
+  const versionIdRaw = typeof body?.versionId === 'string' ? body.versionId.trim() : ''
+  const versionId = versionIdRaw || null
+
   const data: Record<string, unknown> = {
     name,
     deploymentType,
@@ -106,6 +111,7 @@ export function readByol(body: any): { data: Record<string, unknown>; error?: st
     indexerPlacement,
     searchHeadPlacement,
     instanceType,
+    versionId,
   }
   // cloudProviderId is optional (String?); only set when explicitly provided.
   if (typeof body?.cloudProviderId === 'string' && body.cloudProviderId.trim()) {
