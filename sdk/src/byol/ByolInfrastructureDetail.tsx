@@ -318,6 +318,13 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
   const provisioning = status === 'provisioning' || status === 'destroying'
   const running = isRunning(status)
 
+  // `deployments` is ordered newest-first (see `listDeployments` — ORDER BY
+  // started_at DESC), so [0] is the run that produced the current failed
+  // status. A failed *destroy* must retry the teardown, not re-provision —
+  // defaults to the deploy retry path when no runs have loaded yet.
+  const latestRunAction = deployments[0]?.action
+  const failedDestroy = failed && latestRunAction === 'destroy'
+
   // Persisted plan when it exists; otherwise the derived plan (pre-deploy).
   const derived = resources.length === 0
   const displayResources = useMemo(
@@ -329,6 +336,7 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
 
   const primaryAction = (() => {
     if (notStarted) return <Button variant="primary" size="sm" onClick={openPlan} disabled={busy}>Deploy environment</Button>
+    if (failedDestroy) return <Button variant="danger" size="sm" onClick={openDestroy} disabled={busy}>Retry Destroy</Button>
     if (failed) return <Button variant="primary" size="sm" onClick={openPlan} disabled={busy}>Retry deployment</Button>
     if (provisioning) return <Button variant="primary" size="sm" onClick={() => setSection('activity')}>View progress</Button>
     return null
