@@ -24,6 +24,7 @@ import { AccessTab } from './detail/AccessTab'
 import { ConfigurationTab } from './detail/ConfigurationTab'
 import { SettingsTab } from './detail/SettingsTab'
 import { ByolPlanModal } from './detail/ByolPlanModal'
+import { DestroyPlanModal } from './detail/DestroyPlanModal'
 
 /** How often the detail view re-polls while a deployment is in flight. */
 const PROVISIONING_POLL_MS = 4000
@@ -115,10 +116,21 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
   const [planError, setPlanError] = useState<string | null>(null)
   const [applying, setApplying] = useState(false)
 
-  // Danger-zone confirmations — the platform's real confirmation dialog (portaled
-  // to document.body, themed via the host's brand tokens) when running inside
-  // Veltrix; fails closed (no destructive action proceeds) outside it. Replaces
-  // the native window.confirm() this view used to call directly.
+  // --- Destroy plan modal state ---
+  // Mirrors the Plan → Apply flow above: "Destroy infrastructure" opens a modal
+  // that previews exactly what will be torn down (every current resource, as a
+  // destroy plan) rather than a generic yes/no text confirmation.
+  const [destroyOpen, setDestroyOpen] = useState(false)
+  const [destroyResources, setDestroyResources] = useState<ByolResource[] | null>(null)
+  const [destroyLoading, setDestroyLoading] = useState(false)
+  const [destroyError, setDestroyError] = useState<string | null>(null)
+  const [destroying, setDestroying] = useState(false)
+
+  // Danger-zone confirmation for Delete — the platform's real confirmation dialog
+  // (portaled to document.body, themed via the host's brand tokens) when running
+  // inside Veltrix; fails closed (no destructive action proceeds) outside it.
+  // Replaces the native window.confirm() this view used to call directly. Destroy
+  // uses the richer DestroyPlanModal below instead of this text confirmation.
   const { confirm } = useConfirmDialog()
 
   const id = initialInfra.id
@@ -231,17 +243,42 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
     }
   }, [apiBase, id, refresh])
 
-  const onDestroy = async () => {
-    const ok = await confirm({
-      title: 'Destroy infrastructure',
-      message: `Destroy all resources for "${infra.name}"? This cannot be undone.`,
-      confirmText: 'Destroy',
-      cancelText: 'Cancel',
-      variant: 'danger',
-    })
-    if (!ok) return
-    void runAction(() => destroyInfra(apiBase, id).then(() => setSection('activity')))
-  }
+  // Destroy is a two-phase flow, mirroring Deploy: open the destroy-plan modal
+  // (a fresh resource fetch so the preview reflects reality even if `resources`
+  // is stale), and only POST /destroy when the user confirms inside the modal.
+  const openDestroy = useCallback(() => {
+    setDestroyOpen(true)
+    setDestroyError(null)
+    setDestroyResources(null)
+    setDestroyLoading(true)
+    getResources(apiBase, id)
+      .then((res) => setDestroyResources(res))
+      // A failed refetch must never block Destroy — fall back to whatever the
+      // detail view already has loaded (possibly empty; the modal handles that).
+      .catch(() => setDestroyResources(resources))
+      .finally(() => setDestroyLoading(false))
+  }, [apiBase, id, resources])
+
+  const closeDestroy = useCallback(() => {
+    if (destroying) return
+    setDestroyOpen(false)
+  }, [destroying])
+
+  const confirmDestroy = useCallback(async () => {
+    setDestroying(true)
+    setDestroyError(null)
+    try {
+      await destroyInfra(apiBase, id)
+      setDestroyOpen(false)
+      setSection('activity')
+      await refresh()
+    } catch (e) {
+      setDestroyError((e as Error).message)
+    } finally {
+      setDestroying(false)
+    }
+  }, [apiBase, id, refresh])
+
   const onLifecycle = (action: 'start' | 'stop' | 'restart') => runAction(() => lifecycleInfra(apiBase, id, action))
   const onDelete = async () => {
     const ok = await confirm({
@@ -304,7 +341,7 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
             infra={infra}
             busy={busy}
             onEdit={() => onEdit(infra)}
-            onDestroy={onDestroy}
+            onDestroy={openDestroy}
             onDelete={onDelete}
           />
         )
@@ -464,6 +501,17 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
         onApply={onApply}
         infraName={infra.name}
         allowApplyWithoutChanges={infra.status === 'failed' || infra.status === 'error' || infra.status === 'not_started'}
+      />
+
+      <DestroyPlanModal
+        isOpen={destroyOpen}
+        onClose={closeDestroy}
+        resources={destroyResources}
+        loading={destroyLoading}
+        error={destroyError}
+        destroying={destroying}
+        onConfirm={confirmDestroy}
+        infraName={infra.name}
       />
     </div>
   )

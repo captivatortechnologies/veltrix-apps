@@ -1,8 +1,8 @@
 import React from 'react'
 import { Modal, Button, Badge, Spinner } from '../../ui'
-import { TIER_LABELS, type ByolResourceTier } from '../topology'
-import { planHasChanges, type ByolPlan, type PlanAction } from '../diffPlan'
+import { planHasChanges, type ByolPlan } from '../diffPlan'
 import { tokens } from './shared'
+import { PlanGroup } from './planLines'
 
 // =============================================================================
 // ByolPlanModal — a Terraform-style "Plan" preview shown before Apply.
@@ -37,17 +37,6 @@ export interface ByolPlanModalProps {
    */
   allowApplyWithoutChanges?: boolean
 }
-
-/** Per-action visual language: glyph + colour + short label. */
-const ACTION_META: Record<PlanAction, { glyph: string; color: string; label: string }> = {
-  add: { glyph: '+', color: tokens.success, label: 'add' },
-  change: { glyph: '~', color: tokens.warning, label: 'change' },
-  destroy: { glyph: '−', color: tokens.danger, label: 'destroy' },
-  noop: { glyph: '·', color: tokens.faint, label: 'no change' },
-}
-
-const tierLabel = (tier: string): string =>
-  TIER_LABELS[tier as ByolResourceTier] ?? tier.replace(/-/g, ' ')
 
 /** A titled, bordered panel matching the modal's card styling. */
 const InfoPanel: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
@@ -138,54 +127,6 @@ const SummaryChips: React.FC<{ plan: ByolPlan }> = ({ plan }) => {
   )
 }
 
-const PlanLine: React.FC<{ item: ByolPlan['groups'][number]['items'][number] }> = ({ item }) => {
-  const meta = ACTION_META[item.action]
-  return (
-    <div
-      style={{
-        position: 'relative',
-        border: `1px solid ${tokens.border}`,
-        borderRadius: 8,
-        background: tokens.surface,
-        padding: '10px 12px 10px 14px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        overflow: 'hidden',
-      }}
-    >
-      <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: meta.color }} />
-      <span
-        aria-hidden
-        title={meta.label}
-        style={{
-          flex: 'none',
-          width: 20,
-          height: 20,
-          borderRadius: 5,
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontWeight: 700,
-          fontSize: 14,
-          lineHeight: 1,
-          color: meta.color,
-          background: 'var(--color-surface-secondary, #f9fafb)',
-        }}
-      >
-        {meta.glyph}
-      </span>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontWeight: 600, fontSize: 13, color: tokens.text, textDecoration: item.action === 'destroy' ? 'line-through' : 'none' }}>
-          {item.name}
-        </div>
-        {item.role ? <div style={{ fontSize: 11, color: tokens.faint }}>{item.role}</div> : null}
-      </div>
-      <span style={{ fontSize: 11, color: tokens.muted, flex: 'none' }}>{item.region || '—'}</span>
-    </div>
-  )
-}
-
 const PlanBody: React.FC<{
   plan: ByolPlan | null
   loading?: boolean
@@ -225,26 +166,7 @@ const PlanBody: React.FC<{
             : 'No changes. Infrastructure is up to date.'}
         </div>
       ) : (
-        plan.groups.map((group) => (
-          <div key={group.tier}>
-            <h3
-              style={{
-                margin: '0 0 8px',
-                fontSize: 12,
-                letterSpacing: '.08em',
-                textTransform: 'uppercase',
-                color: tokens.primary,
-              }}
-            >
-              {tierLabel(group.tier)}
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {group.items.map((item) => (
-                <PlanLine key={item.planKey} item={item} />
-              ))}
-            </div>
-          </div>
-        ))
+        plan.groups.map((group) => <PlanGroup key={group.tier} tier={group.tier} items={group.items} />)
       )}
     </div>
   )
