@@ -132,23 +132,29 @@ locals {
     for k, r in local.compute_nodes : k => lookup(var.dns_prefixes, r.kind, r.kind)
   }
 
-  # Deterministic per-kind ordinal: the label index is the key's position within
-  # its kind's lexically-sorted plan_key list (1-based via index()+1). Distinct
-  # keys therefore get unique, collision-free ordinals independent of the plan's
-  # input order (e.g. idx1, idx2 / sh1, sh2). NOTE: ordering is lexical, so with
-  # >=10 nodes of a kind the label index may differ from the plan_key's numeric
-  # suffix — it stays unique and stable, which is all the inventory contract needs.
+  # Per-kind sorted plan_key list — the fallback ordinal source for role-based keys
+  # (management nodes) that carry no numeric suffix. Numbered tiers (indexer / search-head
+  # / heavy-forwarder) instead take their ordinal from the plan_key suffix; see
+  # node_ordinal below.
   node_keys_by_kind = {
     for kind in distinct([for k, r in local.compute_nodes : r.kind]) : kind => sort([
       for k, r in local.compute_nodes : k if r.kind == kind
     ])
   }
-  node_short_labels = {
-    for k, r in local.compute_nodes : k => format(
-      "%s%d",
-      local.node_prefix[k],
-      index(local.node_keys_by_kind[r.kind], k) + 1,
+  # A node's ordinal is the NUMERIC SUFFIX of its plan_key (data/indexer-3 -> 3), so its
+  # label is stable and identity-preserving: indexer-3 is ALWAYS idx3, even after
+  # indexer-2 is removed, and scaling down drops the highest ordinal without renumbering
+  # the survivors. Role-based keys with no numeric suffix (management nodes) fall back to
+  # a stable lexical position.
+  node_ordinal = {
+    for k, r in local.compute_nodes : k => (
+      length(regexall("[0-9]+$", k)) > 0
+      ? tonumber(regexall("[0-9]+$", k)[0])
+      : index(local.node_keys_by_kind[r.kind], k) + 1
     )
+  }
+  node_short_labels = {
+    for k, r in local.compute_nodes : k => format("%s%d", local.node_prefix[k], local.node_ordinal[k])
   }
 
   # Domain for the INTERNAL zone + node FQDNs. Distinct from var.dns_domain (which
