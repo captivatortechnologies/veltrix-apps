@@ -153,8 +153,18 @@ locals {
       : index(local.node_keys_by_kind[r.kind], k) + 1
     )
   }
+  # Customer shortname prefix for hostnames — derived from the Veltrix:Customer tag
+  # (the shortname when set, else the customer UUID, which we skip). Sanitized to a
+  # DNS/label-safe token so every node's hostname/serverName/FQDN carries the customer,
+  # e.g. acme-cm1 / acme-idx3. Empty (no shortname) stays backward-compatible (cm1/idx3).
+  tag_customer = lower(lookup(var.tags, "Veltrix:Customer", ""))
+  customer_prefix = (
+    local.tag_customer == "" || length(regexall("^[0-9a-f]{8}-[0-9a-f]{4}-", local.tag_customer)) > 0
+    ? ""
+    : "${trim(replace(local.tag_customer, "/[^a-z0-9]+/", "-"), "-")}-"
+  )
   node_short_labels = {
-    for k, r in local.compute_nodes : k => format("%s%d", local.node_prefix[k], local.node_ordinal[k])
+    for k, r in local.compute_nodes : k => format("%s%s%d", local.customer_prefix, local.node_prefix[k], local.node_ordinal[k])
   }
 
   # Domain for the INTERNAL zone + node FQDNs. Distinct from var.dns_domain (which
