@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Button, Spinner } from '../ui'
+import { Button, Spinner, useConfirmDialog } from '../ui'
 import { buildByolResourcePlan } from './topology'
 import { isRunning, isNotStarted } from './status'
 import {
@@ -115,6 +115,12 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
   const [planError, setPlanError] = useState<string | null>(null)
   const [applying, setApplying] = useState(false)
 
+  // Danger-zone confirmations — the platform's real confirmation dialog (portaled
+  // to document.body, themed via the host's brand tokens) when running inside
+  // Veltrix; fails closed (no destructive action proceeds) outside it. Replaces
+  // the native window.confirm() this view used to call directly.
+  const { confirm } = useConfirmDialog()
+
   const id = initialInfra.id
 
   // Keep the latest list row available as a fallback without churning `load`.
@@ -225,13 +231,27 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
     }
   }, [apiBase, id, refresh])
 
-  const onDestroy = () => {
-    if (typeof window !== 'undefined' && !window.confirm(`Destroy all resources for "${infra.name}"? This cannot be undone.`)) return
+  const onDestroy = async () => {
+    const ok = await confirm({
+      title: 'Destroy infrastructure',
+      message: `Destroy all resources for "${infra.name}"? This cannot be undone.`,
+      confirmText: 'Destroy',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    })
+    if (!ok) return
     void runAction(() => destroyInfra(apiBase, id).then(() => setSection('activity')))
   }
   const onLifecycle = (action: 'start' | 'stop' | 'restart') => runAction(() => lifecycleInfra(apiBase, id, action))
   const onDelete = async () => {
-    if (typeof window !== 'undefined' && !window.confirm(`Delete "${infra.name}"? This cannot be undone.`)) return
+    const ok = await confirm({
+      title: 'Delete infrastructure record',
+      message: `Delete "${infra.name}"? This cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    })
+    if (!ok) return
     setBusy(true)
     setError(null)
     try {
