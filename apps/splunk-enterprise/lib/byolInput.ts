@@ -53,17 +53,18 @@ export function readByol(body: any): { data: Record<string, unknown>; error?: st
     if (indexerErr) return { data: {}, error: `Indexer placement: ${indexerErr}` }
     const searchErr = validatePlacement(searchHeadPlacement, searchHeadCount)
     if (searchErr) return { data: {}, error: `Search head placement: ${searchErr}` }
-    // Multi-region (region granularity) provisioning is not implemented yet — the
-    // module places every node in the deploy region — so reject it loudly rather
-    // than silently collapsing a "multi-region" plan into a single region.
+    // Multi-region (region granularity) provisions per-region satellite VPCs peered
+    // back to the main region — which requires a dedicated (BYOC) cloud fabric the
+    // module owns (a hosted/shared network is a single looked-up VPC). Require it.
+    const networkModeRaw = typeof body?.networkMode === 'string' ? body.networkMode.trim() : 'shared'
     for (const [label, p] of [
       ['Indexer', indexerPlacement],
       ['Search head', searchHeadPlacement],
     ] as const) {
-      if (p?.mode === 'multi-site' && p.granularity === 'region') {
+      if (p?.mode === 'multi-site' && p.granularity === 'region' && networkModeRaw !== 'dedicated') {
         return {
           data: {},
-          error: `${label} placement: multi-region placement is not available yet — use availability-zone placement (same region).`,
+          error: `${label} placement: multi-region placement requires a dedicated cloud fabric (BYOC) — set the deployment network to "dedicated".`,
         }
       }
     }
