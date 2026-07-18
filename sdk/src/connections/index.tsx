@@ -25,6 +25,7 @@ import {
   FilterBar,
   SortSelect,
   Pagination,
+  useConfirmDialog,
   type DataTableColumn,
   type FilterDefinition,
   type SortOption,
@@ -143,6 +144,7 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
   usernameOptionalForToken = true,
   onboarding,
 }) => {
+  const { confirm } = useConfirmDialog()
   const authTypes = useMemo(
     () => [
       { value: 'password', label: 'Username & password' },
@@ -356,7 +358,14 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
   }
 
   const handleDelete = async (row: CredentialSummary) => {
-    if (typeof window !== 'undefined' && !window.confirm(`Remove the connection "${row.name}"? This cannot be undone.`)) return
+    const ok = await confirm({
+      title: 'Remove connection',
+      message: `Remove the connection "${row.name}"? This cannot be undone.`,
+      confirmText: 'Remove',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    })
+    if (!ok) return
     try {
       await removeCredential(row.id)
       await load()

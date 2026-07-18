@@ -15,6 +15,7 @@ import {
   FilterBar,
   SortSelect,
   Pagination,
+  useConfirmDialog,
   type DataTableColumn,
   type FilterDefinition,
   type SortOption,
@@ -90,6 +91,7 @@ async function errorText(res: Response): Promise<string> {
  * and attach the installer by download URL or by uploading the package to S3.
  */
 export default function VersionsPage() {
+  const { confirm } = useConfirmDialog()
   const [versions, setVersions] = useState<SplunkVersion[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -231,7 +233,14 @@ export default function VersionsPage() {
   }
 
   async function handleDelete(row: SplunkVersion) {
-    if (!window.confirm(`Delete version ${row.version}? This also removes any uploaded package.`)) return
+    const ok = await confirm({
+      title: 'Delete version',
+      message: `Delete version ${row.version}? This also removes any uploaded package.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    })
+    if (!ok) return
     setDeletingId(row.id)
     try {
       const res = await authFetch(`${API}/${row.id}`, { method: 'DELETE' })

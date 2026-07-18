@@ -26,6 +26,7 @@ import {
   FilterBar,
   SortSelect,
   Pagination,
+  useConfirmDialog,
   type DataTableColumn,
   type FilterDefinition,
   type SortOption,
@@ -98,6 +99,7 @@ const BLANK_FORM: FormState = {
  * reached through. Backed by the platform's deployment targets (components).
  */
 export default function AccessServersPage() {
+  const { confirm } = useConfirmDialog()
   const [servers, setServers] = useState<InventoryItem[]>([])
   const [connections, setConnections] = useState<CredentialSummary[]>([])
   const [providers, setProviders] = useState<ConnectivityProviderRef[]>([])
@@ -229,7 +231,14 @@ export default function AccessServersPage() {
   }
 
   const handleDelete = async (row: InventoryItem) => {
-    if (!window.confirm(`Remove access server "${row.hostname}"? This cannot be undone.`)) return
+    const ok = await confirm({
+      title: 'Remove access server',
+      message: `Remove access server "${row.hostname}"? This cannot be undone.`,
+      confirmText: 'Remove',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    })
+    if (!ok) return
     try {
       await removeInventoryItem(row.id)
       await load()
