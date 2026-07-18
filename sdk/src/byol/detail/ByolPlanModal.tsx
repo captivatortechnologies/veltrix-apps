@@ -30,6 +30,12 @@ export interface ByolPlanModalProps {
   onApply: () => void
   /** Optional environment name, shown in the subtitle. */
   infraName?: string
+  /**
+   * Allow Apply even when the plan has no add/change/destroy — for a redeployable
+   * environment (a failed or never-deployed infra) where the user is RE-running
+   * the same plan rather than making a change.
+   */
+  allowApplyWithoutChanges?: boolean
 }
 
 /** Per-action visual language: glyph + colour + short label. */
@@ -180,11 +186,12 @@ const PlanLine: React.FC<{ item: ByolPlan['groups'][number]['items'][number] }> 
   )
 }
 
-const PlanBody: React.FC<{ plan: ByolPlan | null; loading?: boolean; error?: string | null }> = ({
-  plan,
-  loading,
-  error,
-}) => {
+const PlanBody: React.FC<{
+  plan: ByolPlan | null
+  loading?: boolean
+  error?: string | null
+  allowApplyWithoutChanges?: boolean
+}> = ({ plan, loading, error, allowApplyWithoutChanges }) => {
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '24px 0', color: tokens.muted, fontSize: 13 }}>
@@ -213,7 +220,9 @@ const PlanBody: React.FC<{ plan: ByolPlan | null; loading?: boolean; error?: str
             padding: '10px 14px',
           }}
         >
-          No changes. Infrastructure is up to date.
+          {allowApplyWithoutChanges
+            ? 'No plan changes — the previous run did not complete. Apply to re-run the deployment with the same plan.'
+            : 'No changes. Infrastructure is up to date.'}
         </div>
       ) : (
         plan.groups.map((group) => (
@@ -255,9 +264,10 @@ export const ByolPlanModal: React.FC<ByolPlanModalProps> = ({
   applying,
   onApply,
   infraName,
+  allowApplyWithoutChanges,
 }) => {
   const noChanges = !plan || !planHasChanges(plan.summary)
-  const applyDisabled = loading || applying || noChanges
+  const applyDisabled = loading || applying || (noChanges && !allowApplyWithoutChanges)
 
   return (
     <Modal
@@ -278,7 +288,7 @@ export const ByolPlanModal: React.FC<ByolPlanModalProps> = ({
         </>
       }
     >
-      <PlanBody plan={plan} loading={loading} error={error} />
+      <PlanBody plan={plan} loading={loading} error={error} allowApplyWithoutChanges={allowApplyWithoutChanges} />
     </Modal>
   )
 }

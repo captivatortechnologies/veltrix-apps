@@ -264,6 +264,38 @@ export const PLACEMENT_GRANULARITY_OPTIONS: Array<{ value: PlacementGranularity;
   { value: 'region', label: 'Regions (multi-region)' },
 ]
 
+/**
+ * Map a persisted infrastructure record back into the editable form state, so
+ * "Edit topology" renders the accurate current values (placement, consolidation,
+ * forwarders, instance size, network target, …). Missing fields fall back to the
+ * same defaults a new form uses, so a legacy row (created before these fields
+ * existed) opens cleanly. Pure — safe to unit test.
+ */
+export function editFormState(row: ByolInfrastructure): FormState {
+  const providerId = row.cloudProviderId
+    ? row.cloudProviderId
+    : row.hosting_type === SELF_HOSTED_LABEL
+      ? SELF_HOSTED
+      : ''
+  return {
+    name: row.name ?? '',
+    deploymentType: row.deploymentType ?? 'single',
+    environmentType: row.environmentType ?? '',
+    providerId,
+    region: row.region ?? '',
+    indexerCount: String(row.indexerCount ?? 1),
+    searchHeadCount: String(row.searchHeadCount ?? 1),
+    networkMode: row.networkMode ?? 'shared',
+    dnsMode: row.dnsMode ?? 'managed',
+    cloudAccountConnectionId: row.cloudAccountConnectionId ?? '',
+    controlPlaneLayout: row.controlPlaneLayout ?? 'dedicated',
+    heavyForwarderCount: String(row.heavyForwarderCount ?? 1),
+    instanceType: row.instanceType ?? '',
+    indexerPlacement: row.indexerPlacement ?? { mode: 'single' },
+    searchHeadPlacement: row.searchHeadPlacement ?? { mode: 'single' },
+  }
+}
+
 export const BLANK_FORM: FormState = {
   name: '',
   deploymentType: 'single',

@@ -396,6 +396,13 @@ export async function reconcileTerminal(
       await setDeploymentStatus(db, latest.id, 'succeeded')
     }
   } else {
+    // Mark every resource that did not reach 'ready' as 'failed' so the plan diff
+    // treats them as needing re-provision (needsReplan) — otherwise they stay in
+    // 'provisioning' and a retry sees "no changes" and can't re-apply.
+    await db.$executeRawUnsafe(
+      "UPDATE splunk_byol_resource SET status = 'failed', updated_at = now() WHERE infrastructure_id = $1::uuid AND status <> 'ready'",
+      infrastructureId,
+    )
     if (latest) {
       const running = latest.steps.find((s) => s.status === 'running')
       if (running) await advanceStep(db, latest.id, running.key, 'failed')
