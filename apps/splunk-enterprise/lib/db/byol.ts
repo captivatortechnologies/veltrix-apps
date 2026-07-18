@@ -144,6 +144,7 @@ export async function updateByol(
        control_plane_layout = $10, heavy_forwarder_count = $11,
        indexer_placement = $12::jsonb, search_head_placement = $13::jsonb,
        instance_type = $14,
+       network_mode = $15, dns_mode = $16, cloud_account_connection_id = $17::uuid,
        updated_at = now()
      WHERE id = $1::uuid
      RETURNING *`,
@@ -161,6 +162,9 @@ export async function updateByol(
     placementJson(input.indexerPlacement),
     placementJson(input.searchHeadPlacement),
     input.instanceType?.trim() || null,
+    input.networkMode ?? 'shared',
+    input.dnsMode ?? 'managed',
+    input.cloudAccountConnectionId ?? null,
   )
   return attachRegions(db, mapByol(rows[0]))
 }
