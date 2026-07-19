@@ -43,7 +43,7 @@ On merge, CI publishes an immutable release `splunk-enterprise-v<new-version>`, 
 
 ### Develop against your tenant (sandbox dev loop)
 
-The Veltrix platform is a hosted SaaS, so instead of running it locally you run your work-in-progress app inside a **sandbox** in your own tenant, synced live from your editor by the [Veltrix CLI](cli/README.md):
+The Veltrix platform runs as a hosted SaaS or a self-hostable open-source [Community Edition](https://github.com/captivatortechnologies/veltrix-community). Either way, the recommended app-dev loop is to run your work-in-progress app inside a **sandbox** in your own tenant, synced live from your editor by the [Veltrix CLI](cli/README.md):
 
 ```bash
 npm install -g @veltrixsecops/cli

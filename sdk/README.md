@@ -1,6 +1,6 @@
 # @veltrixsecops/app-sdk
 
-The official SDK for building [Veltrix](https://veltrixsecops.com) Security-as-Code apps. Community apps live in the open-source [veltrix-apps](https://github.com/captivatortechnologies/veltrix-apps) repository; the Veltrix platform itself is a hosted SaaS.
+The official SDK for building [Veltrix](https://veltrixsecops.com) Security-as-Code apps. Community apps live in the open-source [veltrix-apps](https://github.com/captivatortechnologies/veltrix-apps) repository; the Veltrix platform runs as a hosted SaaS or a free, self-hostable open-source [Community Edition](https://github.com/captivatortechnologies/veltrix-community).
 
 A Veltrix app packages everything needed to manage one security tool's configuration as code: pipeline handlers (validate → deploy → rollback → health-check → drift-detect → status), canvas templates, database migrations, lifecycle hooks, and optional client pages. This SDK provides the typed contracts and helpers for all of it.
 
