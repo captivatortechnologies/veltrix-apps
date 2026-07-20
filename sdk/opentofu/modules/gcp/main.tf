@@ -49,7 +49,7 @@ locals {
   # google_compute_instance.node[...] addresses, so status maps 1:1 back to rows.
   # Tool-agnostic: an explicit compute_kinds allow-list wins; otherwise compute =
   # any plan item whose kind is NOT a generic foundation kind. So an app's roles
-  # (Splunk indexer/search-head, Security Onion sensor/manager, ...) are compute
+  # (app nodes, e.g. any clustered workload's tiers) are compute
   # automatically, with no per-tool list in the module.
   compute_nodes = {
     for r in var.plan : r.plan_key => r
@@ -131,7 +131,7 @@ locals {
   ) : ""
 
   # Compute nodes that sit behind the LB — the kinds the app named as LB targets
-  # (e.g. Splunk search-head/standalone). try() keeps it null-safe when no spec.
+  # (e.g. the app's web/standalone nodes). try() keeps it null-safe when no spec.
   lb_target_kinds = try(var.load_balancer.target_kinds, [])
   search_targets = {
     for k, r in local.compute_nodes : k => r
@@ -338,7 +338,7 @@ resource "google_compute_instance" "node" {
   labels = local.labels
 }
 
-# --- Storage: object-storage bucket (e.g. Splunk SmartStore, warm/cold) -----
+# --- Storage: object-storage bucket (e.g. SmartStore, warm/cold tiers) -----
 # Generic GCS bucket for the app's bulk/object storage. Private: uniform
 # bucket-level access + enforced public-access prevention (no ACLs, no public).
 

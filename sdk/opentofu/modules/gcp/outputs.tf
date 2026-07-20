@@ -5,7 +5,7 @@
 # plan_key -> external cloud ref (GCP self-link / id). The CI apply reads this
 # (via `tofu output -json`) and/or the parsed apply stream and emits
 # `resource.status {planKey, status, externalRef}` per key, which the app's
-# onEvent hook maps onto the matching splunk_byol_resource row. Output NAMES are
+# onEvent hook maps onto the matching BYOL-resource row. Output NAMES are
 # identical to sdk/opentofu/modules/aws.
 # =============================================================================
 

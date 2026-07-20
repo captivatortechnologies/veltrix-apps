@@ -3,7 +3,8 @@
 Tool-agnostic OpenTofu modules that every BYOI app composes to provision a fully
 Veltrix-hosted environment. **There is no per-tool HCL** — an app declares its
 shape as data (an `InfraSpec`) and the SDK renders it into these modules' tfvars.
-Splunk Enterprise, Security Onion, or any other tool reuse the same modules.
+Any tool — a log/analytics platform, a sensor fleet, a clustered database, and so
+on — reuses the same modules.
 
 ## The three layers
 

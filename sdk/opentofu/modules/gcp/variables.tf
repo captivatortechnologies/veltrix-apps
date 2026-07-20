@@ -13,7 +13,7 @@
 # renderInfraVars and MUST match across clouds. Deployment variables keep the same
 # NAMES as AWS; GCP specifics (project/zone/image/machine-type) are added.
 #
-# The `plan` list is the SAME topology the app persists as `splunk_byol_resource`
+# The `plan` list is the SAME topology the app persists as its BYOL-resource
 # rows. Keying compute by `plan_key` is the contract that lets the CI apply report
 # `resource.status` back per row (see outputs.tf + ci/emit-status.mjs).
 # =============================================================================
@@ -21,7 +21,7 @@
 # --- Identity / naming / tenancy ------------------------------------------
 
 variable "app_id" {
-  description = "Owning app id, e.g. splunk-enterprise. Used for naming + state key."
+  description = "Owning app id, e.g. my-app. Used for naming + state key."
   type        = string
 }
 
@@ -151,7 +151,7 @@ variable "plan" {
   description = <<-EOT
     Ordered resource plan from the app topology. One object per resource the
     environment needs. `plan_key` is the stable key that maps 1:1 to a
-    `splunk_byol_resource` row; the CI apply emits resource.status per plan_key.
+    BYOL-resource row; the CI apply emits resource.status per plan_key.
   EOT
   type = list(object({
     plan_key = string
@@ -325,7 +325,7 @@ variable "private_zone_id" {
 # --- Declarative infra spec (rendered from the app's InfraSpec) -----------
 # These are what make the module tool-agnostic. The app declares its ports /
 # front-door / DNS as DATA (sdk/src/opentofu/spec.ts InfraSpec) and the SDK
-# renders them here. NOTHING below is Splunk-specific. This block is
+# renders them here. NOTHING below is app-specific. This block is
 # byte-identical to sdk/opentofu/modules/aws/variables.tf.
 
 variable "foundation_kinds" {

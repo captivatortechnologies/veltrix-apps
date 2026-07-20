@@ -5,7 +5,7 @@
 # plan_key -> external cloud ref. The CI apply reads this (via `tofu output
 # -json`) and/or the parsed apply stream and emits `resource.status
 # {planKey, status, externalRef}` per key, which the app's onEvent hook maps
-# onto the matching splunk_byol_resource row. Output NAMES are identical to the
+# onto the matching BYOL-resource row. Output NAMES are identical to the
 # AWS module; hcloud ids are numeric-in-state so they are tostring()'d to keep
 # the ref map a uniform map(string).
 # =============================================================================

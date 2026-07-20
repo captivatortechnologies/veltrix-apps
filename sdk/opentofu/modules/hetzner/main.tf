@@ -421,7 +421,7 @@ resource "hcloud_load_balancer_target" "web" {
 
 # --- MFA (alb_auth): NO-OP (no LB-level OIDC on Hetzner) ------------------
 # `var.alb_auth` is accepted for contract parity but realizes NOTHING — Hetzner
-# LBs have no Cognito/OIDC equivalent. Enforce MFA at the app (Splunk SAML/OIDC)
+# LBs have no Cognito/OIDC equivalent. Enforce MFA at the app (its own SAML/OIDC)
 # or via an external identity-aware proxy. Documented, not faked.
 
 # --- DNS records: NONE created (see gap notes at top) ---------------------

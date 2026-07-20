@@ -5,7 +5,7 @@
 # plan_key -> external cloud ref. The CI apply reads this (via `tofu output
 # -json`) and/or the parsed apply stream and emits `resource.status
 # {planKey, status, externalRef}` per key, which the app's onEvent hook maps
-# onto the matching splunk_byol_resource row.
+# onto the matching BYOL-resource row.
 # =============================================================================
 
 locals {
@@ -66,8 +66,8 @@ output "instance_private_ips" {
 output "node_fqdns" {
   description = <<-EOT
     plan_key -> function FQDN (e.g. idx1.<dns_domain>, sh1.<dns_domain>) for each
-    compute node. The bring-up layer uses these to build its Splunk inventory
-    (cluster/SHC peer resolution). Populated whenever dns_domain is set; the
+    compute node. The bring-up layer uses these to build its cluster inventory
+    (cluster peer resolution). Populated whenever dns_domain is set; the
     matching A records are only created when a private zone is present
     (create_private_zone or private_zone_id). Empty when dns_domain is unset.
   EOT

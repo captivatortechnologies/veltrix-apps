@@ -19,7 +19,7 @@
 # --- Identity / naming / tenancy ------------------------------------------
 
 variable "app_id" {
-  description = "Owning app id, e.g. splunk-enterprise. Used for naming + state key."
+  description = "Owning app id, e.g. my-app. Used for naming + state key."
   type        = string
 }
 
@@ -157,7 +157,7 @@ variable "plan" {
   description = <<-EOT
     Ordered resource plan from the app topology. One object per resource the
     environment needs. `plan_key` is the stable key that maps 1:1 to a
-    `splunk_byol_resource` row; the CI apply emits resource.status per plan_key.
+    BYOL-resource row; the CI apply emits resource.status per plan_key.
   EOT
   type = list(object({
     plan_key = string
@@ -297,7 +297,7 @@ variable "private_zone_id" {
 # --- Declarative infra spec (rendered from the app's InfraSpec) -----------
 # These are BYTE-IDENTICAL to the AWS module (same names, types, defaults,
 # validations) so `renderInfraVars` (sdk/src/opentofu/render.ts) feeds every
-# cloud module unchanged. NOTHING below is Splunk-specific or cloud-specific.
+# cloud module unchanged. NOTHING below is app-specific or cloud-specific.
 
 variable "foundation_kinds" {
   description = <<-EOT
@@ -385,7 +385,7 @@ variable "waf_enabled" {
 
 variable "alb_auth" {
   description = <<-EOT
-    Optional OIDC/Cognito MFA enforced at the ALB, in front of Splunk Web. When
+    Optional OIDC/Cognito MFA enforced at the ALB, in front of the app's web UI. When
     enabled, the HTTPS listener authenticates against the given Cognito user pool
     BEFORE forwarding to the search target group. Leave disabled (default) for a
     v1 public ALB + WAF posture without ALB-level auth. When enabled, all three

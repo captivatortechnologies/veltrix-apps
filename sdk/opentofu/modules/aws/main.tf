@@ -24,7 +24,7 @@ locals {
   # aws_instance.node[...] addresses, so status maps 1:1 back to resource rows.
   # Tool-agnostic: an explicit compute_kinds allow-list wins; otherwise compute =
   # any plan item whose kind is NOT a generic foundation kind. So an app's roles
-  # (Splunk indexer/search-head, Security Onion sensor/manager, ...) are compute
+  # (app nodes, e.g. any clustered workload's tiers) are compute
   # automatically, with no per-tool list in the module.
   compute_nodes = {
     for r in var.plan : r.plan_key => r
@@ -116,7 +116,7 @@ locals {
   alb_auth_enabled = var.alb_auth.enabled
 
   # Compute nodes that sit behind the ALB — the kinds the app named as LB targets
-  # (e.g. Splunk search-head/standalone). try() keeps it null-safe when no spec.
+  # (e.g. the app's web/standalone nodes). try() keeps it null-safe when no spec.
   lb_target_kinds = try(var.load_balancer.target_kinds, [])
   search_targets = {
     for k, r in local.compute_nodes : k => r
@@ -408,9 +408,9 @@ resource "aws_route_table_association" "private" {
 # --- Security groups: SG-to-SG least privilege ----------------------------
 # Two SGs replace the old flat-CIDR SG:
 #   * alb  — public edge, only 443/80 from the web ingress CIDR.
-#   * node — Splunk hosts; peer ports self-reference the node SG so intra-cluster
+#   * node — app compute hosts; peer ports self-reference the node SG so intra-cluster
 #            traffic is scoped to *this stack's* instances (not a whole CIDR), and
-#            Splunk Web is reachable only via the ALB (or admin CIDR with no ALB).
+#            the app's web UI is reachable only via the ALB (or admin CIDR with no ALB).
 
 # Public ALB edge SG. Only created when the plan carries a load-balancer.
 resource "aws_security_group" "alb" {
@@ -533,7 +533,7 @@ resource "aws_instance" "node" {
   vpc_security_group_ids = [aws_security_group.splunk.id]
   key_name               = var.key_name != "" ? var.key_name : null
   # Instance profile gives the bring-up layer SSM reachability (no SSH) plus scoped
-  # reads of the secret bundle, the SmartStore bucket, and the Splunk artifacts bucket.
+  # reads of the secret bundle, the SmartStore bucket, and the app's install-artifacts bucket.
   iam_instance_profile = aws_iam_instance_profile.node.name
 
   root_block_device {
@@ -559,7 +559,7 @@ resource "aws_instance" "node" {
 # --- Instance IAM: SSM reachability + Secrets + S3 (SmartStore + artifacts) ---
 # Every node gets an instance profile so the bring-up layer can reach it over SSM
 # Run Command (no SSH, no inbound), read its admin-seed / pass4SymmKey bundle,
-# read/write the SmartStore bucket, and pull the Splunk .tgz from the artifacts bucket.
+# read/write the SmartStore bucket, and pull the app's install artifacts from the artifacts bucket.
 
 data "aws_iam_policy_document" "node_assume" {
   statement {
@@ -631,7 +631,7 @@ resource "aws_iam_instance_profile" "node" {
   role = aws_iam_role.node.name
 }
 
-# --- Storage: object-storage bucket (e.g. Splunk SmartStore, warm/cold) -----
+# --- Storage: object-storage bucket (e.g. SmartStore, warm/cold tiers) -----
 # Generic S3 bucket for the app's bulk/object storage. The tool's meaning is
 # app-defined (InfraSpec.storage); the module just provisions a private bucket.
 
@@ -974,8 +974,8 @@ resource "aws_route53_record" "env" {
 
 # --- Private DNS: intra-cluster function FQDNs ----------------------------
 # A private hosted zone (associated with the shared VPC) gives every node a
-# stable function FQDN (idx1.<domain>, sh1.<domain>, cm1.<domain>, ...). Splunk's
-# cluster/SHC config references peers by these names, and the bring-up layer uses
+# stable function FQDN (idx1.<domain>, sh1.<domain>, cm1.<domain>, ...). The app's
+# clustering config references peers by these names, and the bring-up layer uses
 # node_fqdns (see outputs) to build its inventory. The PUBLIC ALB record above is
 # unaffected. Either create the zone here (create_private_zone) or reuse a
 # caller-supplied one (private_zone_id).

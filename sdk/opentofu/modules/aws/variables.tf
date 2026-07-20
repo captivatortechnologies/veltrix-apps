@@ -3,11 +3,11 @@
 #
 # One BYOL environment (a "stack") = one dedicated /24 subnet carved from the
 # shared Veltrix Network (VPC), plus one compute resource per plan item and the
-# storage / secrets / TLS / LB / DNS a Splunk tier needs. The shared VPC is
+# storage / secrets / TLS / LB / DNS an app tier needs. The shared VPC is
 # Veltrix-owned and is looked up (data source), NEVER created here.
 #
-# The `plan` list is the SAME topology the app persists as `splunk_byol_resource`
-# rows (see apps/splunk-enterprise/lib/byolTopology.ts). Keying compute by
+# The `plan` list is the SAME topology the app persists as its BYOL-resource
+# rows (see the app's byolTopology). Keying compute by
 # `plan_key` is the contract that lets the CI apply report `resource.status`
 # back per row (see outputs.tf + ci/emit-status.mjs).
 # =============================================================================
@@ -15,7 +15,7 @@
 # --- Identity / naming / tenancy ------------------------------------------
 
 variable "app_id" {
-  description = "Owning app id, e.g. splunk-enterprise. Used for naming + state key."
+  description = "Owning app id, e.g. my-app. Used for naming + state key."
   type        = string
 }
 
@@ -139,7 +139,7 @@ variable "plan" {
   description = <<-EOT
     Ordered resource plan from the app topology. One object per resource the
     environment needs. `plan_key` is the stable key that maps 1:1 to a
-    `splunk_byol_resource` row; the CI apply emits resource.status per plan_key.
+    BYOL-resource row; the CI apply emits resource.status per plan_key.
   EOT
   type = list(object({
     plan_key = string
@@ -194,9 +194,9 @@ variable "root_volume_gb" {
 
 variable "ami_id" {
   description = <<-EOT
-    AMI for Splunk compute nodes. If empty, the module falls back to the latest
+    AMI for app compute nodes. If empty, the module falls back to the latest
     Amazon Linux 2023 image (scaffold only) — production MUST supply a hardened,
-    Splunk-preinstalled AMI id per region.
+    app-preinstalled (custom) AMI id per region.
   EOT
   type        = string
   default     = ""
@@ -217,7 +217,7 @@ variable "dns_domain" {
 }
 
 variable "private_dns_domain" {
-  description = "Domain for the INTERNAL (intra-cluster) private zone + node FQDNs, e.g. splunk-enterprise.internal. Kept separate from dns_domain so a dedicated fabric with no public domain gets cm1/idx1/sh1 FQDNs without triggering public DNS/ACM. Empty falls back to dns_domain."
+  description = "Domain for the INTERNAL (intra-cluster) private zone + node FQDNs, e.g. my-app.internal. Kept separate from dns_domain so a dedicated fabric with no public domain gets cm1/idx1/sh1 FQDNs without triggering public DNS/ACM. Empty falls back to dns_domain."
   type        = string
   default     = ""
 }
@@ -274,7 +274,7 @@ variable "extra_lb_subnet_ids" {
 
 variable "web_ingress_cidr" {
   description = <<-EOT
-    CIDR allowed to reach the PUBLIC ALB on 443/80 (Splunk Web). Defaults to
+    CIDR allowed to reach the PUBLIC ALB on 443/80 (the app's web UI). Defaults to
     0.0.0.0/0 because the v1 posture is a public ALB fronted by WAF + optional
     Cognito MFA. Narrow this to an office/VPN range to restrict access.
   EOT
@@ -284,7 +284,7 @@ variable "web_ingress_cidr" {
 
 variable "alb_auth" {
   description = <<-EOT
-    Optional OIDC/Cognito MFA enforced at the ALB, in front of Splunk Web. When
+    Optional OIDC/Cognito MFA enforced at the ALB, in front of the app's web UI. When
     enabled, the HTTPS listener authenticates against the given Cognito user pool
     BEFORE forwarding to the search target group. Leave disabled (default) for a
     v1 public ALB + WAF posture without ALB-level auth. When enabled, all three
@@ -332,7 +332,7 @@ variable "private_zone_id" {
 # --- Declarative infra spec (rendered from the app's InfraSpec) -----------
 # These are what make the module tool-agnostic. The app declares its ports /
 # front-door / DNS as DATA (sdk/src/opentofu/spec.ts InfraSpec) and the SDK
-# renders them here. NOTHING below is Splunk-specific.
+# renders them here. NOTHING below is app-specific.
 
 variable "foundation_kinds" {
   description = <<-EOT
@@ -419,7 +419,7 @@ variable "waf_enabled" {
 }
 
 variable "artifacts_bucket" {
-  description = "S3 bucket holding staged Splunk .tgz artifacts the bring-up layer installs from. Empty ('') disables the artifacts IAM grant on the node role."
+  description = "S3 bucket holding the app's staged install artifacts the bring-up layer installs from. Empty ('') disables the artifacts IAM grant on the node role."
   type        = string
   default     = ""
 }

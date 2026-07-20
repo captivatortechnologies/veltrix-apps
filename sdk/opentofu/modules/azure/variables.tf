@@ -21,7 +21,7 @@
 # --- Identity / naming / tenancy ------------------------------------------
 
 variable "app_id" {
-  description = "Owning app id, e.g. splunk-enterprise. Used for naming + state key."
+  description = "Owning app id, e.g. my-app. Used for naming + state key."
   type        = string
 }
 
@@ -395,7 +395,7 @@ variable "private_zone_resource_group" {
 # --- Declarative infra spec (rendered from the app's InfraSpec) -----------
 # These are what make the module tool-agnostic. The app declares its ports /
 # front-door / DNS as DATA (sdk/src/opentofu/spec.ts InfraSpec) and the SDK
-# renders them here. NOTHING below is Splunk-specific. This block is BYTE-IDENTICAL
+# renders them here. NOTHING below is app-specific. This block is BYTE-IDENTICAL
 # across the aws/azure/gcp/hetzner modules — it is exactly what renderInfraVars emits.
 
 variable "foundation_kinds" {
