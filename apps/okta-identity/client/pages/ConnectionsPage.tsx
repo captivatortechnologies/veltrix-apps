@@ -14,6 +14,9 @@ export default function ConnectionsPage() {
       tokenUsernamePlaceholder="not required for an SSWS token"
       endpointPlaceholder="e.g. https://dev-12345.okta.com"
       endpointHelper="Okta org domain this connection reaches."
+      // Saving a connection also registers the okta-org deploy target (its
+      // config types target componentTypes: [okta-org]), so Deploy is enabled.
+      componentType="okta-org"
     />
   )
 }

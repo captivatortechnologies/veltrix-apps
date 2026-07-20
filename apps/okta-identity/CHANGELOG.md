@@ -3,6 +3,16 @@
 All notable changes to the Okta app are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## 1.7.1 — 2026-07-20
+
+### Fixed
+- Saving a Connection now also registers its **deploy target** (an `okta-org`
+  component whose hostname is the connection's endpoint, linked to the
+  credential and environment). Previously a connection created only a credential,
+  so Deploy stayed disabled ("register an okta-org connection to deploy") even
+  though the connection tested green. Re-saving an existing connection back-fills
+  its target. Requires app-sdk ≥ 3.3.0.
+
 ## 1.7.0 — 2026-07-20
 
 ### Changed

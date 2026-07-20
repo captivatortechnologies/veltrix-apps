@@ -8,6 +8,9 @@ import {
   resolveTool,
   testConnection,
   startOnboarding,
+  listInventory,
+  addInventoryItem,
+  updateInventoryItem,
   type CredentialSummary,
   type EnvironmentRef,
   type TestConnectionResult,
@@ -79,6 +82,16 @@ export interface ConnectionsManagerProps {
    * the manager renders exactly as before (manual "Add connection" only).
    */
   onboarding?: OnboardingDescriptorSummary
+  /**
+   * The platform component type this app deploys to (a config type's
+   * `targets.componentTypes`, e.g. "okta-org"). When set, saving a connection
+   * ALSO registers/updates a deploy-target Component — hostname taken from the
+   * endpoint, linked to the new credential + environment — so the app can
+   * actually deploy. A connection alone is only a credential, not a deploy
+   * target, so without this Deploy stays disabled. Omit for apps that manage
+   * their own components.
+   */
+  componentType?: string
 }
 
 /** Client-safe onboarding descriptor from the `/enabled` payload. */
@@ -118,6 +131,55 @@ const BLANK_FORM: FormState = {
 function toCredentialType(authType: string): string {
   return authType === 'token' ? 'TOKEN' : 'PASSWORD'
 }
+
+/** Host portion of an endpoint URL (no scheme/path) — a component's hostname. */
+function hostFromEndpoint(endpoint: string): string {
+  const trimmed = (endpoint || '').trim()
+  if (!trimmed) return ''
+  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+  try {
+    return new URL(withScheme).host
+  } catch {
+    return trimmed.replace(/^https?:\/\//i, '').replace(/[/?#].*$/, '')
+  }
+}
+
+/**
+ * Ensure a deploy-target Component exists for a just-saved connection. A
+ * connection is only a credential; deploying requires a Component whose `type`
+ * includes the app's componentType (the deploy engine reads its hostname for the
+ * target and resolves the linked credential). Idempotent per (componentType,
+ * environment): updates the matching target's host/credential link, else creates
+ * one. Requires an endpoint (its host becomes the component hostname); a blank
+ * endpoint is a no-op. Callers treat any failure as non-fatal.
+ */
+async function ensureConnectionComponent(params: {
+  componentType: string
+  toolId?: string
+  credentialId: string
+  endpoint: string
+  environmentId: string
+}): Promise<void> {
+  const hostname = hostFromEndpoint(params.endpoint)
+  if (!hostname) {
+    throw new Error('An endpoint is required to register a deploy target for this connection.')
+  }
+  const items = await listInventory()
+  const existing = items.find(
+    (c) =>
+      (c.type ?? []).includes(params.componentType) &&
+      (params.environmentId ? (c.tags ?? []).some((t) => t.id === params.environmentId) : true),
+  )
+  const input = {
+    hostname,
+    type: [params.componentType],
+    toolId: params.toolId,
+    credentialId: params.credentialId,
+    tagIds: params.environmentId ? [params.environmentId] : [],
+  }
+  if (existing) await updateInventoryItem(existing.id, input)
+  else await addInventoryItem(input)
+}
 function fromCredentialType(type: string | null | undefined): string {
   return type === 'TOKEN' ? 'token' : 'password'
 }
@@ -143,6 +205,7 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
   passwordUsernamePlaceholder = 'e.g. svc_veltrix',
   usernameOptionalForToken = true,
   onboarding,
+  componentType,
 }) => {
   const { confirm } = useConfirmDialog()
   const authTypes = useMemo(
@@ -317,6 +380,8 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
     const tagIds = [form.environmentId]
 
     try {
+      let credentialId: string
+      let toolId: string | undefined
       if (editing) {
         const update: Record<string, unknown> = {
           name,
@@ -330,6 +395,7 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
           else update.password = secret
         }
         await updateCredential(editing.id, update)
+        credentialId = editing.id
       } else {
         const tool = await resolveTool(appName)
         if (!tool) {
@@ -337,7 +403,8 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
             `No "${appName}" tool found for your organization — make sure the app is installed before adding connections.`,
           )
         }
-        await createCredential({
+        toolId = tool.id
+        const created = await createCredential({
           name,
           username,
           password: form.authType === 'password' ? secret : '',
@@ -347,7 +414,30 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
           toolId: tool.id,
           tagIds,
         })
+        credentialId = created.id
       }
+
+      // Register/refresh the deploy target so the app can actually deploy to this
+      // connection. Best-effort — a component failure must not lose the saved
+      // credential, so surface it as a notice and let the user re-save to retry.
+      if (componentType) {
+        try {
+          if (!toolId) toolId = (await resolveTool(appName))?.id
+          await ensureConnectionComponent({
+            componentType,
+            toolId,
+            credentialId,
+            endpoint,
+            environmentId: form.environmentId,
+          })
+        } catch (compErr) {
+          setNotice(
+            `Connection saved, but registering its deploy target failed: ${(compErr as Error).message} ` +
+              'Re-save the connection to retry.',
+          )
+        }
+      }
+
       setDialogOpen(false)
       await load()
     } catch (e) {
