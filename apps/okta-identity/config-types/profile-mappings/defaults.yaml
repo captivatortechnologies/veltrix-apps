@@ -1,0 +1,8 @@
+# Defaults for a new profile-mapping item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (sourceId, targetId, propertiesJson), since a profile
+# mapping's presentational groups share one flat item record, e.g.:
+#   sourceId: oty1a2b3c4
+#   targetId: 0oa1a2b3c4

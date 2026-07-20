@@ -1,0 +1,11 @@
+# Defaults for a new linked-object-definition item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (primaryName, primaryTitle, primaryDescription, associatedName,
+# associatedTitle, associatedDescription), since a definition's presentational
+# groups (Primary + Associated) share one flat item record, e.g.:
+#   primaryName: manager
+#   primaryTitle: Manager
+#   associatedName: subordinate
+#   associatedTitle: Subordinate

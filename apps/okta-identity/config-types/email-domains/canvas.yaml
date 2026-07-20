@@ -1,0 +1,79 @@
+# =============================================================================
+# Canvas Template — Okta Custom Email Domains
+#
+# Declares ONE custom email domain — the item. Users add as many domains as they
+# need. A domain's identity in Okta is its NAME (the `domain`); deploy lists email
+# domains, matches on the domain, and PUTs (update) or POSTs (create) — there is
+# NO upsert.
+#
+# ONE item = ONE custom email domain bound to a brand. Only displayName and
+# userName are updatable in place; domain, brandId and validationSubdomain are
+# IMMUTABLE — changing them requires deleting and recreating the domain. A newly
+# created domain is UNVERIFIED: Okta returns DNS records the operator must add to
+# their DNS, then verify out of band (this app never auto-verifies).
+#
+# Field keys must match what config-types/email-domains/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-email-domains"
+name: "Email Domain Configuration"
+toolType: "okta-identity"
+entityType: "email-domains"
+description: "Define Okta custom email domains as code through the Okta Email Domains API. A domain is bound to a brand; domain, brand and validation subdomain are immutable (delete-and-recreate to change). New domains are created UNVERIFIED — the operator adds the returned DNS records and verifies out of band; this app never auto-verifies."
+
+item:
+  label: "Email Domain"
+  identityField: "domain"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Domain"
+      icon: "globe"
+      description: "The custom mail domain and the brand it is bound to (immutable)"
+      fields:
+        - key: "domain"
+          label: "Email Domain"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The custom mail domain, e.g. mail.example.com. This is the logical
+            identity deploy matches on and is IMMUTABLE — to change it, delete the
+            domain and recreate it. Must be unique within this canvas.
+
+        - key: "brandId"
+          label: "Brand ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The id of the Okta brand this email domain is associated with. IMMUTABLE
+            — an email domain cannot be re-pointed at a different brand in place;
+            delete and recreate to change it.
+
+        - key: "validationSubdomain"
+          label: "Validation Subdomain"
+          fieldType: "text"
+          defaultValue: "mail"
+          helpText: >
+            The subdomain Okta uses to validate the domain (default "mail").
+            IMMUTABLE — delete and recreate the domain to change it.
+
+    - name: "Sender"
+      icon: "mail"
+      description: "The sender display name and username (both updatable in place)"
+      fields:
+        - key: "displayName"
+          label: "Sender Display Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The display name shown on mail sent from this domain, e.g. "Acme
+            Security". Updatable in place via PUT.
+
+        - key: "userName"
+          label: "Sender Username"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The local-part / username of the sender address (the part before the
+            @), e.g. "no-reply". Updatable in place via PUT.

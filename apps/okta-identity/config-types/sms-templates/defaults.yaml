@@ -1,0 +1,8 @@
+# Defaults for a new SMS-template item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (name, type, template, translationsJson), e.g.:
+#   type: SMS_VERIFY_CODE
+#   template: 'Your ${org.name} verification code is ${code}'
+#   translationsJson: '{"es":"Tu codigo de ${org.name} es ${code}"}'

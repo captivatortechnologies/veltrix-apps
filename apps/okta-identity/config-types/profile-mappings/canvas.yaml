@@ -1,0 +1,76 @@
+# =============================================================================
+# Canvas Template — Okta Profile Mappings (attribute transforms)
+#
+# Declares the property mappings of ONE profile mapping — the item. Users add as
+# many mapping items as they need. A profile mapping transforms attributes FROM a
+# source profile TO a target profile; this config type manages only the per-target
+# property expressions on a mapping.
+#
+# UPDATE-ONLY: Okta owns WHICH mappings exist between WHICH source/target — a
+# mapping exists implicitly when a source profile and a target profile are
+# connected (provisioned). There is NO create and NO delete here; you can only
+# update a mapping's property expressions. Okta's update is a PARTIAL MERGE, so
+# only the target-property names you declare are touched — set a property to
+# {"expression":null,"pushStatus":null} to REMOVE it; unmanaged property mappings
+# are never pruned.
+#
+# Field keys must match what config-types/profile-mappings/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-profile-mappings"
+name: "Profile Mapping Configuration"
+toolType: "okta-identity"
+entityType: "profile-mappings"
+description: "Manage Okta profile mappings (attribute transforms) as code through the Okta Mappings API. One item is the property mappings of one (source, target) mapping. Update-only: mappings are created implicitly when a source/target profile is connected — there is no create or delete — and property mappings are merged one at a time (set a property to null expression/pushStatus to remove it); unmanaged property mappings are never pruned."
+
+item:
+  label: "Profile Mapping"
+  identityField: "targetId"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Mapping"
+      icon: "arrow-right"
+      description: "Which (source -> target) mapping's property expressions to manage"
+      fields:
+        - key: "sourceId"
+          label: "Source ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The SOURCE profile id — a UserType id (e.g. 'oty1a2b3c4') or an app
+            instance id (e.g. '0oa1a2b3c4'). Attributes are read FROM this source.
+            Half of the (sourceId, targetId) identity. Okta owns which mappings
+            exist between which source/target; this only manages the property
+            expressions on an existing mapping.
+
+        - key: "targetId"
+          label: "Target ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The TARGET profile id — a UserType id (e.g. 'oty1a2b3c4') or an app
+            instance id (e.g. '0oa1a2b3c4'). Attributes are written TO this target.
+            Pairs with Source ID to identify the mapping. The mapping must already
+            exist (it is created implicitly when the source/target profile is
+            connected); this config type never creates or deletes a mapping.
+
+    - name: "Properties"
+      icon: "list"
+      description: "The per-target-property expressions to add, update or remove"
+      fields:
+        - key: "propertiesJson"
+          label: "Property Mappings (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A JSON OBJECT keyed by TARGET property NAME. Each value is either
+            {"expression":"user.firstName","pushStatus":"PUSH"} to set a mapping, or
+            {"expression":null,"pushStatus":null} to REMOVE that property mapping.
+            "pushStatus" must be "PUSH" or "DONT_PUSH". Example:
+            {"firstName":{"expression":"user.firstName","pushStatus":"PUSH"},
+            "displayName":{"expression":"user.firstName + \" \" + user.lastName",
+            "pushStatus":"DONT_PUSH"},"legacyId":{"expression":null,
+            "pushStatus":null}}. This MERGES — only the property names you list are
+            touched; other property mappings on the same mapping are left untouched.

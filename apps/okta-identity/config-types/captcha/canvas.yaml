@@ -1,0 +1,88 @@
+# =============================================================================
+# Canvas Template — Okta CAPTCHA
+#
+# Declares the org's SINGLE CAPTCHA configuration — an Okta org supports AT MOST
+# ONE CAPTCHA instance, so this item is NOT repeatable (minItems/maxItems 1) and
+# has no identity field. It bundles the CAPTCHA instance with the org-wide
+# enablement setting:
+#   - the instance   GET/POST/PUT/DELETE /api/v1/captchas[/{id}]
+#   - org enablement GET/PUT/DELETE       /api/v1/org/captcha  ({captchaId, enabledPages})
+#
+# secretKey is WRITE-ONLY: Okta never returns it, so it is re-asserted on every
+# deploy and is EXCLUDED from drift detection. Deleting the instance requires the
+# org-wide setting to no longer reference it first (a rollback handles that order).
+#
+# Field keys must match what config-types/captcha/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-captcha"
+name: "CAPTCHA Configuration"
+toolType: "okta-identity"
+entityType: "captcha"
+description: "Configure the Okta org CAPTCHA (hCaptcha or reCAPTCHA v2) as code through the Okta Management API. A singleton — one CAPTCHA instance plus the org-wide pages it protects (sign-in / SSPR / SSR). The secret key is write-only (re-entered each deploy, excluded from drift); the instance is detached from the org before deletion."
+
+item:
+  label: "CAPTCHA Configuration"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "CAPTCHA Instance"
+      icon: "shield"
+      description: "The CAPTCHA provider instance (one per org)"
+      fields:
+        - key: "name"
+          label: "Instance Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            A name for the CAPTCHA instance in Okta (e.g. "Org hCaptcha").
+
+        - key: "type"
+          label: "Provider"
+          fieldType: "select"
+          required: true
+          defaultValue: "HCAPTCHA"
+          options:
+            - label: "hCaptcha"
+              value: "HCAPTCHA"
+            - label: "reCAPTCHA v2"
+              value: "RECAPTCHA_V2"
+          helpText: >
+            The CAPTCHA provider. Okta supports hCaptcha and reCAPTCHA v2.
+
+        - key: "siteKey"
+          label: "Site Key"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The site key issued by the CAPTCHA provider — used to render the
+            widget on the page. Not a secret (it is exposed to browsers).
+
+        - key: "secretKey"
+          label: "Secret Key"
+          fieldType: "password"
+          required: true
+          helpText: >
+            The secret key issued by the CAPTCHA provider for server-side
+            validation. WRITE-ONLY — Okta never returns it, so it must be
+            re-entered on every deploy and is excluded from drift detection.
+
+    - name: "Org Enablement"
+      icon: "toggle-right"
+      description: "Which end-user pages the CAPTCHA protects org-wide"
+      fields:
+        - key: "enabledPages"
+          label: "Enabled Pages"
+          fieldType: "multiselect"
+          options:
+            - label: "Sign-in page"
+              value: "SIGN_IN"
+            - label: "Self-service password recovery"
+              value: "SSPR"
+            - label: "Self-service registration"
+              value: "SSR"
+          helpText: >
+            The end-user pages the CAPTCHA is enforced on. Leave empty to keep the
+            instance configured but DISABLE it org-wide (captchaId + enabledPages
+            are cleared). Full replace — omitting a page removes its protection.

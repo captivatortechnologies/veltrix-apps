@@ -1,0 +1,10 @@
+# Defaults for the singleton rate-limit-settings item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (adminNotificationsEnabled, perClientDefaultMode,
+# perClientLoginPageMode, perClientOAuth2AuthorizeMode, perClientOIEAppIntentMode,
+# warningThresholdPercent), e.g.:
+#   adminNotificationsEnabled: true
+#   perClientDefaultMode: ENFORCE
+#   warningThresholdPercent: 90

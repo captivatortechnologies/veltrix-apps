@@ -1,0 +1,83 @@
+# =============================================================================
+# Canvas Template — Okta User Linked Objects
+#
+# Declares ONE linked-object DEFINITION — the item. A definition links two user
+# relationship names: a primary side and its associated (inverse) side, e.g.
+# "manager" <-> "subordinate". Users add as many definitions as they need. A
+# definition's identity in Okta is its PRIMARY name; deploy lists definitions and
+# matches on the primary name.
+#
+# A linked-object definition is IMMUTABLE — Okta exposes NO update endpoint. To
+# change one you delete it (which removes every user link that uses it) and
+# recreate it. deploy therefore only ever creates a missing definition or leaves
+# a matching one untouched; a definition that already exists but DIFFERS is
+# surfaced as an error rather than silently changed.
+#
+# Field keys must match what config-types/linked-objects/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-linked-objects"
+name: "Linked Object Configuration"
+toolType: "okta-identity"
+entityType: "linked-objects"
+description: "Define Okta user linked-object relationships (e.g. manager <-> subordinate) as code through the Okta Linked Objects API. A definition links a primary relationship name to its associated inverse. Definitions are immutable — there is no update, so changing one means deleting and recreating it, which removes all existing user links that use it."
+
+item:
+  label: "Linked Object Definition"
+  identityField: "primaryName"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Primary"
+      icon: "link"
+      description: "The primary side of the relationship — the identity of the definition"
+      fields:
+        - key: "primaryName"
+          label: "Primary Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            API name of the primary side (e.g. "manager"). Use only letters,
+            digits and underscores, and it may not start with a digit. This is the
+            logical identity deploy matches on; it must be unique within this
+            canvas.
+
+        - key: "primaryTitle"
+          label: "Primary Title"
+          fieldType: "text"
+          required: true
+          helpText: >
+            Human-readable display name of the primary side (e.g. "Manager").
+
+        - key: "primaryDescription"
+          label: "Primary Description"
+          fieldType: "textarea"
+          helpText: >
+            Optional description of the primary side of the relationship.
+
+    - name: "Associated"
+      icon: "git-branch"
+      description: "The associated (inverse) side of the relationship"
+      fields:
+        - key: "associatedName"
+          label: "Associated Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            API name of the associated side (e.g. "subordinate"). Use only
+            letters, digits and underscores, and it may not start with a digit. It
+            must differ from the primary name.
+
+        - key: "associatedTitle"
+          label: "Associated Title"
+          fieldType: "text"
+          required: true
+          helpText: >
+            Human-readable display name of the associated side (e.g. "Subordinate").
+
+        - key: "associatedDescription"
+          label: "Associated Description"
+          fieldType: "textarea"
+          helpText: >
+            Optional description of the associated side of the relationship.

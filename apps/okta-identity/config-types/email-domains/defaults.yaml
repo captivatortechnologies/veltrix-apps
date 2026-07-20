@@ -1,0 +1,10 @@
+# Defaults for a new email-domain item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (domain, brandId, validationSubdomain, displayName, userName),
+# since a domain's presentational groups share one flat item record, e.g.:
+#   domain: mail.example.com
+#   validationSubdomain: mail
+#   displayName: Acme Security
+#   userName: no-reply

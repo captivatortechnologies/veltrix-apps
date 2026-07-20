@@ -1,0 +1,128 @@
+# =============================================================================
+# Canvas Template — Okta Org Rate Limit Settings
+#
+# Declares the org's SINGLE rate-limit configuration — there is exactly one per
+# org (a singleton), so this item is NOT repeatable (minItems/maxItems 1) and has
+# no identity field. It bundles the three org-level rate-limit endpoints, each a
+# GET/PUT singleton of its own:
+#   - admin-notifications  GET/PUT /api/v1/rate-limit-settings/admin-notifications
+#   - per-client           GET/PUT /api/v1/rate-limit-settings/per-client
+#   - warning-threshold    GET/PUT /api/v1/rate-limit-settings/warning-threshold
+# There is no create/delete and no lifecycle — each PUT is a full replace.
+#
+# Field keys must match what config-types/rate-limit-settings/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-rate-limit-settings"
+name: "Rate Limit Settings Configuration"
+toolType: "okta-identity"
+entityType: "rate-limit-settings"
+description: "Configure Okta org rate-limit settings as code through the Okta Management API. A singleton covering admin notifications, per-client rate-limit enforcement (default + per use case), and the warning-threshold percentage. Each part is updated as a full replace; there is no create, delete or lifecycle."
+
+item:
+  label: "Rate Limit Settings"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Admin Notifications"
+      icon: "bell"
+      description: "Whether Okta emails super admins when API rate limits are hit"
+      fields:
+        - key: "adminNotificationsEnabled"
+          label: "Admin Notifications Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: >
+            When enabled, Okta sends rate-limit notifications to super admins.
+            Maps to notificationsEnabled on
+            /rate-limit-settings/admin-notifications.
+
+    - name: "Per-Client Rate Limits"
+      icon: "sliders"
+      description: "Per-client (per-IP/device) rate-limit enforcement for public endpoints"
+      fields:
+        - key: "perClientDefaultMode"
+          label: "Default Mode"
+          fieldType: "select"
+          required: true
+          defaultValue: "ENFORCE"
+          options:
+            - label: "Enforce (apply per-client limits)"
+              value: "ENFORCE"
+            - label: "Preview (log only, do not block)"
+              value: "PREVIEW"
+            - label: "Disable (no per-client limits)"
+              value: "DISABLE"
+          helpText: >
+            The default per-client rate-limit mode applied to any use case in the
+            absence of a more specific override. Maps to defaultMode on
+            /rate-limit-settings/per-client.
+
+        - key: "perClientLoginPageMode"
+          label: "Login Page Override"
+          fieldType: "select"
+          defaultValue: "INHERIT"
+          options:
+            - label: "Inherit default"
+              value: "INHERIT"
+            - label: "Enforce"
+              value: "ENFORCE"
+            - label: "Preview"
+              value: "PREVIEW"
+            - label: "Disable"
+              value: "DISABLE"
+          helpText: >
+            Optional per-client mode override for the LOGIN_PAGE use case. Leave on
+            "Inherit default" to omit the override so the default mode applies.
+
+        - key: "perClientOAuth2AuthorizeMode"
+          label: "OAuth2 Authorize Override"
+          fieldType: "select"
+          defaultValue: "INHERIT"
+          options:
+            - label: "Inherit default"
+              value: "INHERIT"
+            - label: "Enforce"
+              value: "ENFORCE"
+            - label: "Preview"
+              value: "PREVIEW"
+            - label: "Disable"
+              value: "DISABLE"
+          helpText: >
+            Optional per-client mode override for the OAUTH2_AUTHORIZE use case.
+            Leave on "Inherit default" to omit the override.
+
+        - key: "perClientOIEAppIntentMode"
+          label: "OIE App Intent Override"
+          fieldType: "select"
+          defaultValue: "INHERIT"
+          options:
+            - label: "Inherit default"
+              value: "INHERIT"
+            - label: "Enforce"
+              value: "ENFORCE"
+            - label: "Preview"
+              value: "PREVIEW"
+            - label: "Disable"
+              value: "DISABLE"
+          helpText: >
+            Optional per-client mode override for the OIE_APP_INTENT use case.
+            Leave on "Inherit default" to omit the override.
+
+    - name: "Warning Threshold"
+      icon: "gauge"
+      description: "The rate-limit usage percentage that triggers a warning notification"
+      fields:
+        - key: "warningThresholdPercent"
+          label: "Warning Threshold (%)"
+          fieldType: "number"
+          defaultValue: 90
+          validation:
+            min: 30
+            max: 90
+          helpText: >
+            Percentage of a rate limit that, when exceeded, triggers a warning
+            notification. An integer between 30 and 90 (default 90 for Workforce
+            orgs, 60 for CIAM). Maps to warningThreshold on
+            /rate-limit-settings/warning-threshold.

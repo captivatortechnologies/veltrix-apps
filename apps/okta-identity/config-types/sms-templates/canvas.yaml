@@ -1,0 +1,79 @@
+# =============================================================================
+# Canvas Template — Okta Custom SMS Templates
+#
+# Declares ONE custom SMS template — the item. Users add as many templates as
+# they need. A template's identity in Okta is its NAME; deploy lists templates,
+# matches on the name, and PUTs (full replace) or POSTs (create) accordingly —
+# there is NO upsert.
+#
+# ONE item = ONE custom SMS template of type SMS_VERIFY_CODE. There are no
+# protected/system SMS templates and no lifecycle/status — a template is simply
+# created, replaced or deleted. The template body carries macros such as ${code}
+# and ${org.name}. Optional per-language translations are authored as a single
+# JSON object in `translationsJson`.
+#
+# Field keys must match what config-types/sms-templates/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-sms-templates"
+name: "SMS Template Configuration"
+toolType: "okta-identity"
+entityType: "sms-templates"
+description: "Define Okta custom SMS templates (type SMS_VERIFY_CODE) as code through the Okta Templates API. Each template carries a body with macros like ${code} and optional per-language translations. A template is created, full-replaced or deleted; there is no lifecycle."
+
+item:
+  label: "SMS Template"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Template"
+      icon: "message-square"
+      description: "Template name, type and the SMS body"
+      fields:
+        - key: "name"
+          label: "Template Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 50
+          helpText: >
+            Name of the custom SMS template in Okta (max 50 chars). Must be unique
+            within this canvas — it is the logical identity deploy matches on.
+
+        - key: "type"
+          label: "Template Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "SMS_VERIFY_CODE"
+          options:
+            - label: "SMS Verify Code"
+              value: "SMS_VERIFY_CODE"
+          helpText: >
+            The template type. Okta only supports SMS_VERIFY_CODE for custom SMS
+            templates.
+
+        - key: "template"
+          label: "SMS Body"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 161
+          helpText: >
+            The SMS message body (max 161 chars). Use macros such as ${code} for
+            the verification code and ${org.name} for the org name,
+            e.g. "Your ${org.name} verification code is ${code}".
+
+    - name: "Translations"
+      icon: "languages"
+      description: "Optional per-language translations of the SMS body"
+      fields:
+        - key: "translationsJson"
+          label: "Translations (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON object mapping a 2-letter ISO-639-1 language code to the
+            translated body (each max 161 chars), merged into the API body,
+            e.g. {"es":"Tu codigo de ${org.name} es ${code}","fr":"Votre code ${org.name} est ${code}"}.
+            Leave blank for no translations.

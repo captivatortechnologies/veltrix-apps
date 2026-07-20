@@ -45,6 +45,16 @@ or `acme.oktapreview.com`) and attach the credential.
 | User Types | User type definitions (name immutable; default type protected) | `/meta/types/user` |
 | Custom Admin Roles | Least-privilege custom admin roles + permissions | `/iam/roles` |
 | Resource Sets | Resource collections that scope custom admin roles | `/iam/resource-sets` |
+| Resource Set Bindings | Grant a role to members within a resource set | `.../bindings` |
+| Profile Schemas | Custom attributes on user-type / group profile schemas (update-only) | `/meta/schemas` |
+| Profile Mappings | Attribute transforms between a source and target profile (update-only merge) | `/mappings` |
+| Features | Self-service feature toggles (enable/disable lifecycle; no create/delete) | `/features` |
+| CAPTCHA | Org CAPTCHA instance + org-wide enablement (secret key write-only; singleton) | `/captchas`, `/org/captcha` |
+| Linked Objects | User linked-object definitions (immutable — delete-and-recreate to change) | `/meta/schemas/user/linkedObjects` |
+| Rate Limit Settings | Admin notifications, per-client enforcement, warning threshold (singleton) | `/rate-limit-settings/*` |
+| Brands | Brands + their single theme (colors + touchpoint variants; default brand protected) | `/brands`, `.../themes` |
+| Email Domains | Custom email domains (sender name/username; DNS verification is external) | `/email-domains` |
+| SMS Templates | Custom SMS templates (SMS_VERIFY_CODE text + localized translations) | `/templates/sms` |
 
 ## Okta-specific behaviour the app handles
 

@@ -1,0 +1,6 @@
+# Defaults for the singleton CAPTCHA item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (name, type, siteKey, secretKey, enabledPages). Never seed a
+# real secretKey here — it is a write-only credential the operator enters.

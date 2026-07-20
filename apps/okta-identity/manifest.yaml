@@ -1,6 +1,6 @@
 id: okta-identity
 name: Okta
-version: "1.5.0"
+version: "1.6.0"
 vendor: Veltrix
 description: >
   Manage Okta configuration as code through the Okta Management API. Covers
@@ -9,9 +9,11 @@ description: >
   authorization servers (scopes / claims / policies), applications and group
   assignments, plus security and IAM governance — ThreatInsight, log streams,
   device assurance policies, user types, custom admin roles with resource sets
-  and their role bindings, and custom profile-schema attributes — with
-  validation, drift detection and rollback handled by the Security-as-Code
-  pipeline.
+  and their role bindings, custom profile-schema attributes and profile mappings,
+  self-service feature toggles, CAPTCHA, user linked-object definitions, org
+  rate-limit settings, brands and their themes, custom email domains and SMS
+  templates — with validation, drift detection and rollback handled by the
+  Security-as-Code pipeline.
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/okta-identity
@@ -105,6 +107,30 @@ permissions:
     - resource: profile-schemas
       actions: [read, write]
       description: Manage custom attributes on Okta profile schemas (user-type and group schemas; update-only)
+    - resource: profile-mappings
+      actions: [read, write]
+      description: Manage Okta profile mappings (attribute transforms between a source and target profile; update-only)
+    - resource: features
+      actions: [read, write]
+      description: Manage Okta self-service feature toggles (enable/disable lifecycle; no create/delete)
+    - resource: captcha
+      actions: [read, write, delete]
+      description: Manage the Okta CAPTCHA instance and org-wide CAPTCHA settings (secret key is write-only)
+    - resource: linked-objects
+      actions: [read, write, delete]
+      description: Manage Okta user linked-object definitions (primary/associated relationships)
+    - resource: rate-limit-settings
+      actions: [read, write]
+      description: Manage Okta org rate-limit settings (admin notifications, per-client enforcement, warning threshold; update-only)
+    - resource: brands
+      actions: [read, write, delete]
+      description: Manage Okta brands and their theme (colors + touchpoint variants; the default brand is protected from deletion)
+    - resource: email-domains
+      actions: [read, write, delete]
+      description: Manage Okta custom email domains (sender display name / username; DNS verification is external)
+    - resource: sms-templates
+      actions: [read, write, delete]
+      description: Manage Okta custom SMS templates (SMS_VERIFY_CODE text + localized translations)
 
 pipeline:
   configurationTypes:
@@ -513,6 +539,142 @@ pipeline:
         healthCheck: config-types/profile-schemas/healthCheck
         driftDetect: config-types/profile-schemas/driftDetect
         getStatus: config-types/profile-schemas/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: profile-mappings
+      name: Profile Mappings
+      description: Attribute transforms between a source and target profile (update-only merge; properties reconciled by name; a null property removes the mapping)
+      canvasTemplate: config-types/profile-mappings/canvas.yaml
+      defaultConfig: config-types/profile-mappings/defaults.yaml
+      handlers:
+        validate: config-types/profile-mappings/validate
+        deploy: config-types/profile-mappings/deploy
+        rollback: config-types/profile-mappings/rollback
+        healthCheck: config-types/profile-mappings/healthCheck
+        driftDetect: config-types/profile-mappings/driftDetect
+        getStatus: config-types/profile-mappings/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: features
+      name: Features
+      description: Self-service feature toggles (enable/disable lifecycle; no create/delete; mode=force honors dependencies)
+      canvasTemplate: config-types/features/canvas.yaml
+      defaultConfig: config-types/features/defaults.yaml
+      handlers:
+        validate: config-types/features/validate
+        deploy: config-types/features/deploy
+        rollback: config-types/features/rollback
+        healthCheck: config-types/features/healthCheck
+        driftDetect: config-types/features/driftDetect
+        getStatus: config-types/features/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: captcha
+      name: CAPTCHA
+      description: Org CAPTCHA (hCaptcha / reCAPTCHA v2) instance + org-wide enablement (singleton; secretKey write-only; detached from org before delete)
+      canvasTemplate: config-types/captcha/canvas.yaml
+      defaultConfig: config-types/captcha/defaults.yaml
+      handlers:
+        validate: config-types/captcha/validate
+        deploy: config-types/captcha/deploy
+        rollback: config-types/captcha/rollback
+        healthCheck: config-types/captcha/healthCheck
+        driftDetect: config-types/captcha/driftDetect
+        getStatus: config-types/captcha/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: linked-objects
+      name: Linked Objects
+      description: User linked-object definitions (primary/associated relationships; immutable — delete-and-recreate to change; created ones removed on rollback)
+      canvasTemplate: config-types/linked-objects/canvas.yaml
+      defaultConfig: config-types/linked-objects/defaults.yaml
+      handlers:
+        validate: config-types/linked-objects/validate
+        deploy: config-types/linked-objects/deploy
+        rollback: config-types/linked-objects/rollback
+        healthCheck: config-types/linked-objects/healthCheck
+        driftDetect: config-types/linked-objects/driftDetect
+        getStatus: config-types/linked-objects/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: brands
+      name: Brands
+      description: Brands and their single theme (colors + touchpoint variants; the default brand is protected from deletion; logos out of scope)
+      canvasTemplate: config-types/brands/canvas.yaml
+      defaultConfig: config-types/brands/defaults.yaml
+      handlers:
+        validate: config-types/brands/validate
+        deploy: config-types/brands/deploy
+        rollback: config-types/brands/rollback
+        healthCheck: config-types/brands/healthCheck
+        driftDetect: config-types/brands/driftDetect
+        getStatus: config-types/brands/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: email-domains
+      name: Email Domains
+      description: Custom email domains (sender display name / username updatable; domain/brand/subdomain immutable; DNS verification is external; delete blocked while in use)
+      canvasTemplate: config-types/email-domains/canvas.yaml
+      defaultConfig: config-types/email-domains/defaults.yaml
+      handlers:
+        validate: config-types/email-domains/validate
+        deploy: config-types/email-domains/deploy
+        rollback: config-types/email-domains/rollback
+        healthCheck: config-types/email-domains/healthCheck
+        driftDetect: config-types/email-domains/driftDetect
+        getStatus: config-types/email-domains/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: sms-templates
+      name: SMS Templates
+      description: Custom SMS templates (SMS_VERIFY_CODE text + localized translations; 161-char cap)
+      canvasTemplate: config-types/sms-templates/canvas.yaml
+      defaultConfig: config-types/sms-templates/defaults.yaml
+      handlers:
+        validate: config-types/sms-templates/validate
+        deploy: config-types/sms-templates/deploy
+        rollback: config-types/sms-templates/rollback
+        healthCheck: config-types/sms-templates/healthCheck
+        driftDetect: config-types/sms-templates/driftDetect
+        getStatus: config-types/sms-templates/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: rate-limit-settings
+      name: Rate Limit Settings
+      description: Org rate-limit settings — admin notifications, per-client enforcement (default + per use case), warning threshold (singleton; update-only)
+      canvasTemplate: config-types/rate-limit-settings/canvas.yaml
+      defaultConfig: config-types/rate-limit-settings/defaults.yaml
+      handlers:
+        validate: config-types/rate-limit-settings/validate
+        deploy: config-types/rate-limit-settings/deploy
+        rollback: config-types/rate-limit-settings/rollback
+        healthCheck: config-types/rate-limit-settings/healthCheck
+        driftDetect: config-types/rate-limit-settings/driftDetect
+        getStatus: config-types/rate-limit-settings/getStatus
       targets:
         componentTypes: [okta-org]
         requiresCredential: true

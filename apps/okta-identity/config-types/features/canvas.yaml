@@ -1,0 +1,69 @@
+# =============================================================================
+# Canvas Template — Okta Self-Service Feature Toggles
+#
+# Declares ONE self-service feature toggle — the item. Users add as many as they
+# need. A feature's identity in Okta is its NAME; deploy lists features, matches
+# on the name (case-insensitive) and toggles it to the desired state through the
+# feature's ENABLE/DISABLE lifecycle endpoint.
+#
+# Features are UPDATE-ONLY — there is NO create and NO delete. A name that does
+# not match an existing self-service feature in the org is an error at deploy
+# time (a feature cannot be created through the API):
+#   - GET  /features                         list all self-service features
+#   - POST /features/{id}/ENABLE|DISABLE     toggle it (mode=force optional)
+#
+# Field keys must match what config-types/features/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-features"
+name: "Feature Toggles Configuration"
+toolType: "okta-identity"
+entityType: "features"
+description: "Manage Okta self-service feature toggles as code through the Okta Features API. Each feature is matched by name and enabled or disabled via its lifecycle endpoint; force-dependencies optionally overrides Okta's dependency/dependent restrictions. Features are update-only — there is no create, delete or definition to author."
+
+item:
+  label: "Feature"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Feature"
+      icon: "toggle-right"
+      description: "The self-service feature to toggle and the state to hold it in"
+      fields:
+        - key: "name"
+          label: "Feature Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The display name of the self-service feature exactly as it appears in
+            Okta (matched case-insensitively). Must be unique within this canvas —
+            it is the logical identity deploy matches on. The feature must already
+            exist in the org: features cannot be created through the API.
+
+        - key: "status"
+          label: "Desired State"
+          fieldType: "select"
+          required: true
+          defaultValue: "ENABLED"
+          options:
+            - label: "Enabled"
+              value: "ENABLED"
+            - label: "Disabled"
+              value: "DISABLED"
+          helpText: >
+            The lifecycle state to hold the feature in. Applied via Okta's feature
+            ENABLE/DISABLE lifecycle endpoint. Re-applying the same state is a
+            no-op.
+
+        - key: "forceDependencies"
+          label: "Force Dependencies"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: >
+            When enabled, deploy sends mode=force so Okta also enables the
+            feature's required dependencies (when enabling) or disables its
+            dependents (when disabling), instead of failing on that restriction.
+            Leave off to have Okta reject a toggle that would violate a
+            dependency.

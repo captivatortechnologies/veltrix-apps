@@ -1,0 +1,113 @@
+# =============================================================================
+# Canvas Template — Okta Brands
+#
+# Declares ONE brand — the item. Users add as many brands as they need. A brand's
+# logical identity is its NAME; deploy LISTs brands, matches by name, and PUTs
+# (update) or POSTs (create) accordingly — there is NO upsert. Each brand carries
+# a single THEME (Okta supports one theme per brand), reconciled as a sub-resource
+# under the brand: GET /brands/{id}/themes then PUT /brands/{id}/themes/{themeId}.
+#
+# The default brand (isDefault: true) is PROTECTED — it may be updated in place but
+# is never created or deleted. Logos / favicon / background images are binary
+# uploads via separate endpoints and are OUT OF SCOPE here (colors + touchpoint
+# variants only).
+#
+# Field keys must match what config-types/brands/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-brands"
+name: "Brand Configuration"
+toolType: "okta-identity"
+entityType: "brands"
+description: "Define Okta brands and their theme as code through the Okta Management API. Manages brand settings (name, privacy policy, locale, Powered-by-Okta) and the brand's single theme (colors + touchpoint variants). The default brand is protected from deletion; logo/favicon/background image uploads are out of scope (binary endpoints)."
+
+item:
+  label: "Brand"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Brand"
+      icon: "palette"
+      description: "Brand identity and end-user experience settings"
+      fields:
+        - key: "name"
+          label: "Brand Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            Name of the brand in Okta. Must be unique within this canvas — it is
+            the logical identity deploy matches on. The org's default brand may be
+            updated in place but is never deleted.
+
+        - key: "removePoweredByOkta"
+          label: "Remove \"Powered by Okta\""
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: >
+            Removes "Powered by Okta" from the sign-in page (redirect auth) and the
+            copyright line from the End-User Dashboard.
+
+        - key: "customPrivacyPolicyUrl"
+          label: "Custom Privacy Policy URL"
+          fieldType: "text"
+          helpText: >
+            Optional custom privacy-policy URL (must be https). Setting it requires
+            "Agree to custom privacy policy" to be checked. Cleared if left blank.
+
+        - key: "agreeToCustomPrivacyPolicy"
+          label: "Agree to Custom Privacy Policy"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: >
+            Consent required by Okta when setting a custom privacy-policy URL.
+
+        - key: "locale"
+          label: "Locale"
+          fieldType: "text"
+          helpText: >
+            Optional default locale for the brand (e.g. "en", "fr"). Cleared if
+            left blank.
+
+        - key: "emailDomainId"
+          label: "Email Domain ID"
+          fieldType: "text"
+          helpText: >
+            Optional id of a custom email domain associated with this brand.
+
+    - name: "Theme"
+      icon: "droplet"
+      description: "The brand's theme colors and touchpoint variants (logos are out of scope)"
+      fields:
+        - key: "primaryColorHex"
+          label: "Primary Color"
+          fieldType: "text"
+          helpText: >
+            Primary color as a 6-digit hex code, e.g. #1662dd. Leave blank to keep
+            the theme's current primary color.
+
+        - key: "primaryColorContrastHex"
+          label: "Primary Contrast Color"
+          fieldType: "text"
+          helpText: "Contrast color for the primary color, 6-digit hex, e.g. #000000."
+
+        - key: "secondaryColorHex"
+          label: "Secondary Color"
+          fieldType: "text"
+          helpText: "Secondary color as a 6-digit hex code, e.g. #ebebed."
+
+        - key: "secondaryColorContrastHex"
+          label: "Secondary Contrast Color"
+          fieldType: "text"
+          helpText: "Contrast color for the secondary color, 6-digit hex, e.g. #000000."
+
+        - key: "themeConfigJson"
+          label: "Theme Variants (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON object of touchpoint variants merged into the theme, e.g.
+            {"signInPageTouchPointVariant":"OKTA_DEFAULT","emailTemplateTouchPointVariant":"FULL_THEME"}.
+            Keys: signInPageTouchPointVariant, endUserDashboardTouchPointVariant,
+            errorPageTouchPointVariant, emailTemplateTouchPointVariant,
+            loadingPageTouchPointVariant. Leave blank to keep current variants.
