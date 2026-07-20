@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-20T16:48:32.941Z",
+  "generatedAt": "2026-07-20T17:48:45.933Z",
   "apps": [
     {
       "appId": "cloudflare",
       "name": "Cloudflare",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "vendor": "Veltrix",
       "description": "Manage Cloudflare configuration as code through the Cloudflare API (v4). Covers DNS, the WAF/firewall Rulesets engine (custom rules, rate limiting, redirects, transforms and managed-ruleset overrides), zone settings, account Lists, and Zero Trust (Access applications/policies/groups/service-tokens and Gateway rules/lists) — with validation, drift detection and rollback handled by the Security-as-Code pipeline. The component hostname is the zone domain; the app resolves zone and account ids automatically.",
       "category": "NETWORK",
@@ -16,10 +16,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cloudflare",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cloudflare-v1.0.0/cloudflare.zip",
-      "sha256": "cd7a510a760d8da840227a74d7c2990af0b487e05d4a9683b942ee4ceb659464",
-      "sizeBytes": 301502,
-      "publishedAt": "2026-07-17T02:01:17.987Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cloudflare-v1.1.0/cloudflare.zip",
+      "sha256": "a129a4a218b395eaa091ff0510229d8e890a0359587428d17d3935c70484a58a",
+      "sizeBytes": 302307,
+      "publishedAt": "2026-07-20T17:48:45.884Z",
+      "releaseNotes": "## 1.1.0 — 2026-07-20\n\n### Changed\n- Grouped the **Configurations** sidebar into 5 collapsible sections — Zone, WAF\n  & Security, Rules & Lists, Zero Trust · Access, and Zero Trust · Gateway — so\n  all 14 configuration types stay navigable. Sections collapse by default,\n  remember whether you left them open, and always expand the one you're\n  currently working in.",
+      "releasedAt": "2026-07-20T00:00:00.000Z"
     },
     {
       "appId": "cortex-xsoar",
@@ -114,7 +116,7 @@
     {
       "appId": "hashicorp-vault",
       "name": "HashiCorp Vault",
-      "version": "1.2.2",
+      "version": "1.3.0",
       "vendor": "Veltrix",
       "description": "Manage HashiCorp Vault configuration as code through the Vault HTTP API. Covers ACL policies (HCL), auth methods, secret engine mounts, and audit devices, with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
@@ -124,10 +126,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/hashicorp-vault",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/hashicorp-vault-v1.2.2/hashicorp-vault.zip",
-      "sha256": "23cc1c656b0c5b19a0c9c9f3b82e366fc91e0cb5d7f33a40a586ec20dfd07867",
-      "sizeBytes": 295569,
-      "publishedAt": "2026-07-17T02:01:18.006Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/hashicorp-vault-v1.3.0/hashicorp-vault.zip",
+      "sha256": "9329f5a5a8be37480ad110e216697cf86d1b8d18bd62ac282f6109f4c8136483",
+      "sizeBytes": 296339,
+      "publishedAt": "2026-07-20T17:48:45.901Z",
+      "releaseNotes": "## 1.3.0 — 2026-07-20\n\n### Changed\n- Grouped the **Configurations** sidebar into 5 collapsible sections — Policies,\n  Authentication, Secrets, Operations, and Identity — so all 11 configuration\n  types stay navigable. Sections collapse by default, remember whether you left\n  them open, and always expand the one you're currently working in.",
+      "releasedAt": "2026-07-20T00:00:00.000Z"
     },
     {
       "appId": "microsoft-intune",
@@ -168,7 +172,7 @@
     {
       "appId": "okta-identity",
       "name": "Okta",
-      "version": "1.6.0",
+      "version": "1.7.0",
       "vendor": "Veltrix",
       "description": "Manage Okta configuration as code through the Okta Management API. Covers policies and their rules, group rules, groups, network zones, trusted origins, behavior rules, authenticators, identity providers, event / inline hooks, authorization servers (scopes / claims / policies), applications and group assignments, plus security and IAM governance — ThreatInsight, log streams, device assurance policies, user types, custom admin roles with resource sets and their role bindings, custom profile-schema attributes and profile mappings, self-service feature toggles, CAPTCHA, user linked-object definitions, org rate-limit settings, brands and their themes, custom email domains and SMS templates — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
@@ -178,10 +182,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/okta-identity",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/okta-identity-v1.6.0/okta-identity.zip",
-      "sha256": "d686fd61b1bd468bb3a6446b70f75db23788278a130e9ead1c6786b4469f9386",
-      "sizeBytes": 797678,
-      "publishedAt": "2026-07-20T16:48:32.922Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/okta-identity-v1.7.0/okta-identity.zip",
+      "sha256": "a517338144a69663fae1e09cc7300df75475e94a7a51d06125f4bd09fefbd76a",
+      "sizeBytes": 798336,
+      "publishedAt": "2026-07-20T17:48:45.908Z",
+      "releaseNotes": "## 1.7.0 — 2026-07-20\n\n### Changed\n- Grouped the **Configurations** sidebar into 10 collapsible sections — Policies\n  & Rules, Authentication, Directory, Applications, Authorization Servers,\n  Network & Security, IAM Governance, Profile & Schema, Integrations, and\n  Branding & Notifications — so all 32 configuration types stay navigable.\n  Sections collapse by default, remember whether you left them open, and always\n  expand the one you're currently working in.",
+      "releasedAt": "2026-07-20T00:00:00.000Z"
     },
     {
       "appId": "palo-alto-panorama",
@@ -240,7 +246,7 @@
     {
       "appId": "rapid7",
       "name": "Rapid7 InsightVM",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "vendor": "Veltrix",
       "description": "Manage Rapid7 InsightVM configuration as code through the Security Console API (v3). Covers scan sites, asset groups, tags, scan templates, scan engine pools, shared and site credentials, scan schedules and vulnerability exceptions — with validation, drift detection and rollback handled by the Security-as-Code pipeline. The component hostname is the console host:3780; auth is HTTP Basic.",
       "category": "COMPLIANCE",
@@ -250,10 +256,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/rapid7",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/rapid7-v1.0.0/rapid7.zip",
-      "sha256": "4f52d4296001f1944c969833238b5b9188f3f66d32ace0e6901de6c0776359fc",
-      "sizeBytes": 204364,
-      "publishedAt": "2026-07-17T02:01:18.019Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/rapid7-v1.1.0/rapid7.zip",
+      "sha256": "caaf25803f20564090cd954ae045f1432a8628167c0b4b9104b2112ebd0d6ec9",
+      "sizeBytes": 205122,
+      "publishedAt": "2026-07-20T17:48:45.912Z",
+      "releaseNotes": "## 1.1.0 — 2026-07-20\n\n### Changed\n- Grouped the **Configurations** sidebar into 4 collapsible sections — Scanning,\n  Assets, Credentials, and Findings — so all 9 configuration types stay\n  navigable. Sections collapse by default, remember whether you left them open,\n  and always expand the one you're currently working in.",
+      "releasedAt": "2026-07-20T00:00:00.000Z"
     },
     {
       "appId": "sentinelone",
@@ -294,7 +302,7 @@
     {
       "appId": "splunk-cloud",
       "name": "Splunk Cloud Platform",
-      "version": "1.8.9",
+      "version": "1.9.0",
       "vendor": "Veltrix",
       "description": "Manage Splunk Cloud Platform configurations as code through the Admin Config Service (ACS) API. Includes index management, HTTP Event Collector (HEC) tokens, IP allow lists, and private apps/add-ons (built to a .spl, vetted by AppInspect, installed through ACS). Roles are managed through the Splunk Cloud Platform REST API on the stack's management port 8089 — ACS cannot manage identity.",
       "category": "SIEM",
@@ -304,10 +312,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-cloud",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-cloud-v1.8.9/splunk-cloud.zip",
-      "sha256": "9ba3a70c81a32379e6a8e20644132e1ff21537c425f4cf17f4dc0ab955df2159",
-      "sizeBytes": 478625,
-      "publishedAt": "2026-07-17T02:01:18.025Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-cloud-v1.9.0/splunk-cloud.zip",
+      "sha256": "7ead58f68c6e6953b03e42bd06b32c1f121ba43dbca02b75c7bc3d027932b8c5",
+      "sizeBytes": 479428,
+      "publishedAt": "2026-07-20T17:48:45.919Z",
+      "releaseNotes": "## 1.9.0 — 2026-07-20\n\n### Changed\n- Grouped the **Configurations** sidebar into 5 collapsible sections — Data,\n  Network & Access, System Settings, Apps, and Access Control — so all 13\n  configuration types stay navigable. Sections collapse by default, remember\n  whether you left them open, and always expand the one you're currently\n  working in.",
+      "releasedAt": "2026-07-20T00:00:00.000Z"
     },
     {
       "appId": "splunk-enterprise",
@@ -348,7 +358,7 @@
     {
       "appId": "tenable-vm",
       "name": "Tenable Vulnerability Management",
-      "version": "1.1.2",
+      "version": "1.2.0",
       "vendor": "Veltrix",
       "description": "Manage Tenable Vulnerability Management (tenable.io) configuration as code through the Tenable VM REST API. Covers scheduled scans, asset tags, and scan exclusions (blackout windows), with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "COMPLIANCE",
@@ -358,10 +368,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/tenable-vm",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/tenable-vm-v1.1.2/tenable-vm.zip",
-      "sha256": "d0c9b550dfb40de1704fee5bc52b36f6d71d95750715d53e7b420fdaaf668c63",
-      "sizeBytes": 420884,
-      "publishedAt": "2026-07-17T02:01:18.032Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/tenable-vm-v1.2.0/tenable-vm.zip",
+      "sha256": "cab48a1f77c60b32a0a8410f0b099fc0982dfba84e92936bc69c81a04d244a2f",
+      "sizeBytes": 421718,
+      "publishedAt": "2026-07-20T17:48:45.922Z",
+      "releaseNotes": "## 1.2.0 — 2026-07-20\n\n### Changed\n- Grouped the **Configurations** sidebar into 7 collapsible sections — Scanning,\n  Assets, Credentials & Connectors, Organization, Agents, Findings, and Access\n  Control — so all 18 configuration types stay navigable. Sections collapse by\n  default, remember whether you left them open, and always expand the one you're\n  currently working in.",
+      "releasedAt": "2026-07-20T00:00:00.000Z"
     },
     {
       "appId": "wiz",
@@ -384,7 +396,7 @@
     {
       "appId": "zscaler",
       "name": "Zscaler",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "vendor": "Veltrix",
       "description": "Manage Zscaler Internet Access (ZIA) and Zscaler Private Access (ZPA) configuration as code through the Zscaler OneAPI. Covers URL filtering, cloud firewall, DLP, SSL inspection, locations and admin config on ZIA, and application segments, server/segment groups, connectors and access policy on ZPA - with validation, drift detection and rollback handled by the Security-as-Code pipeline. ZIA changes are staged and activated as a batch; ZPA changes apply immediately.",
       "category": "NETWORK",
@@ -394,10 +406,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/zscaler",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/zscaler-v1.1.0/zscaler.zip",
-      "sha256": "f70c5eaf33792b66ce08f4f295bca96bd3f2b90496fc37b1be460fbd17bb8083",
-      "sizeBytes": 697216,
-      "publishedAt": "2026-07-17T02:01:18.037Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/zscaler-v1.2.0/zscaler.zip",
+      "sha256": "a1d0a4d180cbe833de10f33b73e2d6fd432f924d6a4639e366013c3c55ba5050",
+      "sizeBytes": 698080,
+      "publishedAt": "2026-07-20T17:48:45.925Z",
+      "releaseNotes": "## 1.2.0 — 2026-07-20\n\n### Changed\n- Grouped the **Configurations** sidebar into 7 collapsible sections split by\n  service — ZIA (Policy Rules, Objects & Groups, DLP, Traffic Forwarding,\n  Administration) and ZPA (Infrastructure, Applications & Policy) — so all 32\n  configuration types stay navigable. Sections collapse by default, remember\n  whether you left them open, and always expand the one you're currently\n  working in.",
+      "releasedAt": "2026-07-20T00:00:00.000Z"
     }
   ]
 }
