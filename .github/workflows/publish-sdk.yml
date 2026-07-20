@@ -61,17 +61,33 @@ jobs:
         working-directory: sdk
         run: npm ci --no-audit --no-fund
 
-      # prepublishOnly runs typecheck + build
+      # prepublishOnly runs typecheck + build. Best-effort: a publish failure
+      # (e.g. the @veltrixsecops npm scope isn't claimed yet, or NPM_TOKEN lacks
+      # publish access) must NOT red-fail CI — apps in this repo bundle the SDK
+      # from source, so app releases are unaffected. It warns loudly and the
+      # tag/release below only runs when the publish actually succeeded.
       - name: Publish to npm
+        id: publish
         if: steps.resolve.outputs.already_published == 'false'
         working-directory: sdk
-        run: npm publish --provenance --access public
+        run: |
+          set +e
+          npm publish --provenance --access public
+          code=$?
+          set -e
+          if [ "$code" -eq 0 ]; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=SDK not published::npm publish exited $code — @veltrixsecops/app-sdk was NOT published. Expected until the npm scope is claimed and a valid NPM_TOKEN with publish access is set as a repo secret. Apps bundle the SDK from source, so this does not affect app releases."
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Tag the release and create GitHub release
-        # Only self-tag on the branch/dispatch path — a tag-triggered run already has its tag.
-        if: steps.resolve.outputs.already_published == 'false' && github.ref_type != 'tag'
+        # Only when we actually published, and only self-tag on the branch/dispatch
+        # path — a tag-triggered run already has its tag.
+        if: steps.publish.outputs.published == 'true' && github.ref_type != 'tag'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
