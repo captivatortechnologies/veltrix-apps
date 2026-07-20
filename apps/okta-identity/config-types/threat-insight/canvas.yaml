@@ -1,0 +1,57 @@
+# =============================================================================
+# Canvas Template — Okta ThreatInsight Settings
+#
+# Declares the org's SINGLE ThreatInsight configuration — there is exactly one
+# per org (a singleton), so this item is NOT repeatable (minItems/maxItems 1) and
+# has no identity field. Okta reads it at GET /threats/configuration and updates
+# it (a full replace) at POST /threats/configuration — there is no create/delete
+# and no lifecycle.
+#
+# ThreatInsight evaluates requests against Okta's threat intelligence: `action`
+# controls whether suspicious requests are ignored, logged, or blocked, and
+# `excludeZones` exempts trusted network zones from evaluation.
+#
+# Field keys must match what config-types/threat-insight/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-threat-insight"
+name: "ThreatInsight Configuration"
+toolType: "okta-identity"
+entityType: "threat-insight"
+description: "Configure Okta ThreatInsight (org-level suspicious-request handling) as code through the Okta Management API. A singleton: `action` selects none / audit / block; `excludeZones` exempts trusted network zones. Updated as a full replace; there is no create, delete or lifecycle."
+
+item:
+  label: "ThreatInsight Configuration"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "ThreatInsight"
+      icon: "shield"
+      description: "How Okta handles requests flagged by threat intelligence"
+      fields:
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "audit"
+          options:
+            - label: "None (ThreatInsight disabled)"
+              value: "none"
+            - label: "Audit (log flagged requests to the System Log)"
+              value: "audit"
+            - label: "Block (log and block flagged requests)"
+              value: "block"
+          helpText: >
+            What Okta does with a request flagged by ThreatInsight. none disables
+            it; audit logs the request to the System Log; block logs AND blocks
+            the request. Values are lower-case (none / audit / block).
+
+        - key: "excludeZones"
+          label: "Exempt Network Zones"
+          fieldType: "tags"
+          helpText: >
+            Optional list of Network Zone IDs (IP-type zones, e.g. nzoabc123...)
+            whose traffic is exempt from ThreatInsight evaluation. Requests from
+            IPs in these zones are neither logged nor blocked. Leave empty for no
+            exemptions. Full replace — omitting a zone here removes the exemption.

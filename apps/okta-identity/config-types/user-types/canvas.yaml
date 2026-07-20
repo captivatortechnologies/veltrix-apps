@@ -1,0 +1,63 @@
+# =============================================================================
+# Canvas Template — Okta User Types
+#
+# Declares ONE user type — the item. Users add as many as they need. A user
+# type's identity in Okta is its NAME; deploy lists user types, matches on the
+# name, and PUTs (update) or POSTs (create) accordingly — there is NO upsert.
+#
+# ONE item = ONE user type: a named container for a distinct user profile schema
+# (e.g. Employee vs Contractor). NOTE: `name` is IMMUTABLE after creation — Okta
+# rejects any change to it — so it is only ever used as the match key. Okta caps
+# an org at 10 user types (1 auto-created default + up to 9 custom); the default
+# type cannot be deleted, nor can any type still assigned to users.
+#
+# Field keys must match what config-types/user-types/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-user-types"
+name: "User Type Configuration"
+toolType: "okta-identity"
+entityType: "user-types"
+description: "Define Okta user types as code through the Okta Management API. A user type is a named container for a distinct user profile schema. `name` is immutable after creation; the built-in default type and any type assigned to users are protected from deletion. Profile ATTRIBUTES themselves are managed by Okta's Schemas API, not here."
+
+item:
+  label: "User Type"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 9
+  groups:
+    - name: "User Type"
+      icon: "users"
+      description: "Machine name, display name and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z][A-Za-z0-9_]*$"
+            maxLength: 255
+          helpText: >
+            Machine name of the user type — the logical identity deploy matches
+            on. Must start with a letter and contain only letters, digits and
+            underscores. IMMUTABLE after creation: Okta rejects any change, so it
+            is never updated once the type exists. Must be unique within this
+            canvas.
+
+        - key: "displayName"
+          label: "Display Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            Human-friendly name shown in the Okta Admin console (e.g.
+            "Contractor"). Required. Unlike name, this can be changed on update.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: >
+            Optional description of what this user type is for. Cleared if left
+            blank (update is a full replace).

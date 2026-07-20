@@ -1,0 +1,71 @@
+# =============================================================================
+# Canvas Template — Okta Custom Admin Roles
+#
+# Declares ONE custom admin role — the item. Users add as many as they need. A
+# role's identity in Okta is its LABEL; deploy lists roles, matches on the label,
+# and PUTs (update) or POSTs (create) accordingly — there is NO upsert.
+#
+# ONE item = ONE CUSTOM admin role: a named, least-privilege bundle of Okta
+# permission types (e.g. okta.users.read). Okta's STANDARD/built-in admin roles
+# (SUPER_ADMIN, ORG_ADMIN, …) are NOT managed here — they are predefined and
+# assigned to principals through the role-assignment API. To grant a custom role
+# scoped access you pair it with a Resource Set via a binding (out of scope here).
+#
+# IMPORTANT: Okta only accepts the full permission set at CREATE time. On update,
+# label/description are replaced via PUT while permissions are reconciled one at a
+# time through the role's /permissions sub-resource — the app handles this.
+#
+# Field keys must match what config-types/custom-admin-roles/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-custom-admin-roles"
+name: "Custom Admin Role Configuration"
+toolType: "okta-identity"
+entityType: "custom-admin-roles"
+description: "Define Okta CUSTOM admin roles as code through the Okta Roles API — least-privilege bundles of permission types matched by label. Okta's standard/built-in admin roles are protected and never managed here; permissions are reconciled through the role's /permissions sub-resource on update."
+
+item:
+  label: "Custom Admin Role"
+  identityField: "label"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Role"
+      icon: "shield"
+      description: "Role label and description"
+      fields:
+        - key: "label"
+          label: "Label"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            Display label of the custom role — the logical identity deploy matches
+            on. Must be unique within this canvas and cannot be one of Okta's
+            standard/built-in admin role types (e.g. SUPER_ADMIN, ORG_ADMIN),
+            which are managed by Okta, not here.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            Description of what the role is for (required by Okta).
+
+    - name: "Permissions"
+      icon: "key"
+      description: "The Okta permission types this role grants"
+      fields:
+        - key: "permissions"
+          label: "Permissions"
+          fieldType: "tags"
+          required: true
+          helpText: >
+            One or more Okta permission types, e.g. okta.users.read,
+            okta.users.manage, okta.groups.manage, okta.apps.read. At least one is
+            required. The set is applied at create; on update the app adds/removes
+            individual permissions to converge. Names are checked against the
+            expected okta.* shape (a warning only — Okta owns the authoritative,
+            evolving catalog and rejects an unknown permission at deploy time).

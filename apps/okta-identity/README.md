@@ -39,6 +39,12 @@ or `acme.oktapreview.com`) and attach the credential.
 | Auth Server Policies | OAuth access policies + rules | `.../policies` |
 | Applications | App integrations (OIDC/SAML/SWA/bookmark) — secrets write-only | `/apps` |
 | App Group Assignments | Assign groups to applications | `/apps/{id}/groups` |
+| ThreatInsight | Org suspicious-request handling (none/audit/block) + exempt zones (singleton) | `/threats/configuration` |
+| Log Streams | System Log export to AWS EventBridge / Splunk Cloud (Splunk token write-only) | `/logStreams` |
+| Device Assurance Policies | Per-platform device posture requirements | `/device-assurances` |
+| User Types | User type definitions (name immutable; default type protected) | `/meta/types/user` |
+| Custom Admin Roles | Least-privilege custom admin roles + permissions | `/iam/roles` |
+| Resource Sets | Resource collections that scope custom admin roles | `/iam/resource-sets` |
 
 ## Okta-specific behaviour the app handles
 
@@ -58,6 +64,21 @@ Okta objects are `id`-keyed with **no upsert**, and several have lifecycle rules
 - **Group membership is opt-in per group.** Don't manage static membership on a group targeted by a
   group rule — rule-assigned members can't be removed through the membership API and would show as
   permanent drift.
+- **Write-only secrets are excluded from drift.** The event-hook auth header value, inline-hook secret,
+  IdP/app client secrets and the Splunk log-stream HEC token are never returned by Okta, so they are
+  re-sent on deploy where the API allows and never drift-checked. (The log-stream token is additionally
+  immutable, so it is sent only at create.)
+- **Immutable fields → delete-and-recreate.** A log stream's `type`/`settings`, a device assurance
+  policy's `platform`, and a user type's `name` cannot be changed after creation; the app resends them
+  unchanged on update and surfaces a clear "delete and recreate" error if you change them.
+- **Sub-resource reconciliation.** Custom admin role permissions and resource-set resources are only
+  accepted in bulk at create time. On update the app diffs the desired set against live and adds/removes
+  members one at a time through the role's `/permissions` and the set's `/resources` sub-resources.
+- **Delete preconditions are surfaced.** A device assurance policy mapped to an Authentication Policy,
+  a user type still assigned to users, and a custom role/resource set still bound to a principal cannot
+  be deleted until the reference is removed — the app reports the specific reason on a failed rollback.
+- **Protected/system objects are never created or deleted:** the default user type, Okta's standard
+  admin roles (`SUPER_ADMIN`, `ORG_ADMIN`, …), and the ThreatInsight singleton (updated in place only).
 
 The complex, per-type parts (password complexity/age/lockout, MFA authenticator settings, policy
 rules, zone gateway/ASN definitions) are authored as JSON inside the canvas, since their schema is

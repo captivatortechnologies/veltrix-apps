@@ -1,12 +1,16 @@
 id: okta-identity
 name: Okta
-version: "1.3.2"
+version: "1.4.0"
 vendor: Veltrix
 description: >
   Manage Okta configuration as code through the Okta Management API. Covers
-  sign-on / password / authenticator-enrollment policies and their rules, group
-  rules, groups, and network zones, with validation, drift detection and
-  rollback handled by the Security-as-Code pipeline.
+  policies and their rules, group rules, groups, network zones, trusted origins,
+  behavior rules, authenticators, identity providers, event / inline hooks,
+  authorization servers (scopes / claims / policies), applications and group
+  assignments, plus security and IAM governance — ThreatInsight, log streams,
+  device assurance policies, user types, and custom admin roles with resource
+  sets — with validation, drift detection and rollback handled by the
+  Security-as-Code pipeline.
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/okta-identity
@@ -76,6 +80,24 @@ permissions:
     - resource: app-group-assignments
       actions: [read, write, delete]
       description: Manage Okta application group assignments
+    - resource: threat-insight
+      actions: [read, write]
+      description: Manage Okta ThreatInsight org settings (suspicious-request action + exempt zones)
+    - resource: log-streams
+      actions: [read, write, delete]
+      description: Manage Okta log streams (AWS EventBridge / Splunk Cloud System Log export)
+    - resource: device-assurance-policies
+      actions: [read, write, delete]
+      description: Manage Okta device assurance policies (per-platform device posture requirements)
+    - resource: user-types
+      actions: [read, write, delete]
+      description: Manage Okta user types (named user profile-schema containers)
+    - resource: custom-admin-roles
+      actions: [read, write, delete]
+      description: Manage Okta custom admin roles (least-privilege permission bundles)
+    - resource: resource-sets
+      actions: [read, write, delete]
+      description: Manage Okta resource sets (resource collections that scope custom admin roles)
 
 pipeline:
   configurationTypes:
@@ -348,6 +370,108 @@ pipeline:
         healthCheck: config-types/app-group-assignments/healthCheck
         driftDetect: config-types/app-group-assignments/driftDetect
         getStatus: config-types/app-group-assignments/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: threat-insight
+      name: ThreatInsight
+      description: Org ThreatInsight settings — suspicious-request action (none/audit/block) + exempt zones (singleton)
+      canvasTemplate: config-types/threat-insight/canvas.yaml
+      defaultConfig: config-types/threat-insight/defaults.yaml
+      handlers:
+        validate: config-types/threat-insight/validate
+        deploy: config-types/threat-insight/deploy
+        rollback: config-types/threat-insight/rollback
+        healthCheck: config-types/threat-insight/healthCheck
+        driftDetect: config-types/threat-insight/driftDetect
+        getStatus: config-types/threat-insight/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: log-streams
+      name: Log Streams
+      description: System Log export to AWS EventBridge / Splunk Cloud (type + settings immutable; Splunk token write-only; lifecycle activate/deactivate)
+      canvasTemplate: config-types/log-streams/canvas.yaml
+      defaultConfig: config-types/log-streams/defaults.yaml
+      handlers:
+        validate: config-types/log-streams/validate
+        deploy: config-types/log-streams/deploy
+        rollback: config-types/log-streams/rollback
+        healthCheck: config-types/log-streams/healthCheck
+        driftDetect: config-types/log-streams/driftDetect
+        getStatus: config-types/log-streams/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: device-assurance-policies
+      name: Device Assurance Policies
+      description: Per-platform device posture requirements (a mapped policy must be unmapped before delete; platform immutable)
+      canvasTemplate: config-types/device-assurance-policies/canvas.yaml
+      defaultConfig: config-types/device-assurance-policies/defaults.yaml
+      handlers:
+        validate: config-types/device-assurance-policies/validate
+        deploy: config-types/device-assurance-policies/deploy
+        rollback: config-types/device-assurance-policies/rollback
+        healthCheck: config-types/device-assurance-policies/healthCheck
+        driftDetect: config-types/device-assurance-policies/driftDetect
+        getStatus: config-types/device-assurance-policies/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: user-types
+      name: User Types
+      description: User type definitions (name immutable; the default type and assigned types are protected from deletion)
+      canvasTemplate: config-types/user-types/canvas.yaml
+      defaultConfig: config-types/user-types/defaults.yaml
+      handlers:
+        validate: config-types/user-types/validate
+        deploy: config-types/user-types/deploy
+        rollback: config-types/user-types/rollback
+        healthCheck: config-types/user-types/healthCheck
+        driftDetect: config-types/user-types/driftDetect
+        getStatus: config-types/user-types/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: custom-admin-roles
+      name: Custom Admin Roles
+      description: Custom (least-privilege) admin roles; standard/built-in roles protected; permissions reconciled via sub-resource
+      canvasTemplate: config-types/custom-admin-roles/canvas.yaml
+      defaultConfig: config-types/custom-admin-roles/defaults.yaml
+      handlers:
+        validate: config-types/custom-admin-roles/validate
+        deploy: config-types/custom-admin-roles/deploy
+        rollback: config-types/custom-admin-roles/rollback
+        healthCheck: config-types/custom-admin-roles/healthCheck
+        driftDetect: config-types/custom-admin-roles/driftDetect
+        getStatus: config-types/custom-admin-roles/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: resource-sets
+      name: Resource Sets
+      description: Resource sets that scope custom admin roles; resources (ORN/URL) reconciled via sub-resource
+      canvasTemplate: config-types/resource-sets/canvas.yaml
+      defaultConfig: config-types/resource-sets/defaults.yaml
+      handlers:
+        validate: config-types/resource-sets/validate
+        deploy: config-types/resource-sets/deploy
+        rollback: config-types/resource-sets/rollback
+        healthCheck: config-types/resource-sets/healthCheck
+        driftDetect: config-types/resource-sets/driftDetect
+        getStatus: config-types/resource-sets/getStatus
       targets:
         componentTypes: [okta-org]
         requiresCredential: true

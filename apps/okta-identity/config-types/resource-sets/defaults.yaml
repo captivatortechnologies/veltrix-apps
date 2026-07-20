@@ -1,0 +1,8 @@
+# Defaults for a new resource-set item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (label, description, resources), since a resource set's
+# presentational groups share one flat item record, e.g.:
+#   resources:
+#     - orn:okta:directory:00o1a2b3c4:groups

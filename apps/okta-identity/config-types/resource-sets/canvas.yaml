@@ -1,0 +1,65 @@
+# =============================================================================
+# Canvas Template — Okta Resource Sets
+#
+# Declares ONE resource set — the item. Users add as many as they need. A
+# resource set's identity in Okta is its LABEL; deploy lists resource sets,
+# matches on the label, and PUTs (update) or POSTs (create) — there is NO upsert.
+#
+# ONE item = ONE resource set: a named collection of Okta resources (ORNs or REST
+# URLs) that a custom admin role is scoped to via a binding (bindings are out of
+# scope of this config type). Okta only accepts the full resources list at CREATE
+# time; on update, PUT replaces label/description while the resources are
+# reconciled through the set's /resources sub-resource — the app handles this.
+#
+# Field keys must match what config-types/resource-sets/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-resource-sets"
+name: "Resource Set Configuration"
+toolType: "okta-identity"
+entityType: "resource-sets"
+description: "Define Okta resource sets as code through the Okta Roles API — named collections of resources (ORNs or REST URLs) that scope a custom admin role, matched by label. Resources are reconciled through the set's /resources sub-resource on update; a resource set pairs with a custom role via a binding (managed elsewhere)."
+
+item:
+  label: "Resource Set"
+  identityField: "label"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Resource Set"
+      icon: "layers"
+      description: "Resource set label and description"
+      fields:
+        - key: "label"
+          label: "Label"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            Display label of the resource set — the logical identity deploy
+            matches on. Must be unique within this canvas.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            Description of what the resource set groups (required by Okta).
+
+    - name: "Resources"
+      icon: "list"
+      description: "The Okta resources (ORNs or REST URLs) in this set"
+      fields:
+        - key: "resources"
+          label: "Resources"
+          fieldType: "tags"
+          required: true
+          helpText: >
+            One or more Okta resources, each an ORN or a REST URL, e.g.
+            orn:okta:directory:00o1a2b3c4:groups,
+            https://your-org.okta.com/api/v1/users, or
+            https://your-org.okta.com/api/v1/groups/00g.... At least one is
+            required (Okta caps a set at 1000). The list is applied at create; on
+            update the app adds/removes individual resources to converge.

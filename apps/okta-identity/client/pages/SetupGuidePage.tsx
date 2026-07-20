@@ -1,7 +1,20 @@
 import React from 'react'
 import { Badge, Card, CardBody, Tabs } from '@veltrixsecops/app-sdk/ui'
 
-const MANAGES = ['Policies & rules', 'Group rules', 'Groups', 'Network zones']
+const MANAGES = [
+  'Policies & rules',
+  'Groups & rules',
+  'Network zones',
+  'Authenticators & IdPs',
+  'Authorization servers',
+  'Apps & assignments',
+  'Event & inline hooks',
+  'Log streams',
+  'ThreatInsight',
+  'Device assurance',
+  'User types',
+  'Custom admin roles & resource sets',
+]
 
 /**
  * Step-by-step connection guide, rendered with the platform design-system

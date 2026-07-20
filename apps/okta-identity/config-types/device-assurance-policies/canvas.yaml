@@ -1,0 +1,83 @@
+# =============================================================================
+# Canvas Template — Okta Device Assurance Policies
+#
+# Declares ONE device assurance policy — the item. Users add as many as they need.
+# A policy's identity in Okta is its NAME; deploy lists policies, matches on the
+# name, and PUTs (update) or POSTs (create) accordingly — there is NO upsert.
+#
+# ONE item = ONE device assurance policy for a single platform (ANDROID, CHROMEOS,
+# IOS, MACOS, WINDOWS). The platform-specific requirements (osVersion,
+# diskEncryptionType, screenLockType, jailbreak, secureHardwarePresent,
+# thirdPartySignalProviders, …) are authored as a JSON blob in `configJson` and
+# merged into the create/update body. There is no lifecycle; a policy that is
+# mapped to an Authentication Policy cannot be deleted until it is unmapped.
+#
+# Field keys must match what config-types/device-assurance-policies/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-device-assurance-policies"
+name: "Device Assurance Policy Configuration"
+toolType: "okta-identity"
+entityType: "device-assurance-policies"
+description: "Define Okta device assurance policies as code through the Okta Management API — per-platform device posture requirements (OS version, disk encryption, screen lock, jailbreak/secure-hardware, Chrome Device Trust). Matched by name; platform is immutable; a policy mapped to an Authentication Policy must be unmapped before deletion."
+
+item:
+  label: "Device Assurance Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Policy"
+      icon: "smartphone"
+      description: "Policy name and target platform"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            Display name of the device assurance policy — the logical identity
+            deploy matches on. Must be unique within this canvas.
+
+        - key: "platform"
+          label: "Platform"
+          fieldType: "select"
+          required: true
+          defaultValue: "MACOS"
+          options:
+            - label: "macOS"
+              value: "MACOS"
+            - label: "Windows"
+              value: "WINDOWS"
+            - label: "iOS"
+              value: "IOS"
+            - label: "Android"
+              value: "ANDROID"
+            - label: "ChromeOS"
+              value: "CHROMEOS"
+          helpText: >
+            The device platform this policy applies to. IMMUTABLE after creation —
+            Okta rejects a platform change, so to retarget you delete and recreate
+            the policy.
+
+    - name: "Requirements"
+      icon: "check-circle"
+      description: "The platform-specific device posture requirements, as JSON"
+      fields:
+        - key: "configJson"
+          label: "Requirements (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            JSON object of the platform-specific requirements, merged into the API
+            body. Examples — macOS:
+            {"diskEncryptionType":{"include":["ALL_INTERNAL_VOLUMES"]},"screenLockType":{"include":["BIOMETRIC","PASSCODE"]},"osVersion":{"minimum":"14.0.0"},"secureHardwarePresent":true};
+            Windows: {"osVersion":{"minimum":"10.0.19045"},"diskEncryptionType":{"include":["ALL_INTERNAL_VOLUMES"]},"screenLockType":{"include":["PASSCODE"]}};
+            iOS: {"osVersion":{"minimum":"17.0"},"jailbreak":false,"screenLockType":{"include":["BIOMETRIC"]}};
+            Android: {"osVersion":{"minimum":"14"},"diskEncryptionType":{"include":["USER"]},"jailbreak":false};
+            ChromeOS: {"thirdPartySignalProviders":{"dtc":{}}}. diskEncryptionType
+            and screenLockType are objects wrapping an "include" array. Provide at
+            least one requirement.

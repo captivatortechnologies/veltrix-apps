@@ -1,0 +1,98 @@
+# =============================================================================
+# Canvas Template — Okta Log Streams
+#
+# Declares ONE log stream — the item. Users add as many as they need. A stream's
+# identity in Okta is its NAME; deploy lists streams, matches on the name, and
+# PUTs (update) or POSTs (create) accordingly — there is NO upsert.
+#
+# ONE item = ONE log stream that exports System Log events to either AWS
+# EventBridge (aws_eventbridge) or Splunk Cloud (splunk_cloud_logstreaming). The
+# `type` and the whole `settings` block are WRITE-ONCE (immutable after create):
+# to change them you delete and recreate. The Splunk HEC `token` is a WRITE-ONLY
+# secret entered separately — Okta never returns it, so it is set only at create.
+# `status` (ACTIVE/INACTIVE) is driven through the activate/deactivate lifecycle,
+# not the body.
+#
+# Field keys must match what config-types/log-streams/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-log-streams"
+name: "Log Stream Configuration"
+toolType: "okta-identity"
+entityType: "log-streams"
+description: "Define Okta log streams as code through the Okta Log Streaming API — export System Log events to AWS EventBridge or Splunk Cloud. The type and settings are immutable after creation (delete/recreate to change); the Splunk HEC token is a write-only secret set only at create; status is driven via the activate/deactivate lifecycle."
+
+item:
+  label: "Log Stream"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Stream"
+      icon: "activity"
+      description: "Stream name, destination type and lifecycle status"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            Name of the log stream — the logical identity deploy matches on. Must
+            be unique within this canvas.
+
+        - key: "type"
+          label: "Destination Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "aws_eventbridge"
+          options:
+            - label: "AWS EventBridge"
+              value: "aws_eventbridge"
+            - label: "Splunk Cloud"
+              value: "splunk_cloud_logstreaming"
+          helpText: >
+            The streaming destination. IMMUTABLE after creation — Okta rejects a
+            type change, so to switch destinations you delete and recreate the
+            stream.
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          defaultValue: "ACTIVE"
+          options:
+            - label: "Active"
+              value: "ACTIVE"
+            - label: "Inactive"
+              value: "INACTIVE"
+          helpText: >
+            Desired lifecycle state. Applied via Okta's log-stream
+            activate/deactivate endpoints, not the update body.
+
+    - name: "Settings"
+      icon: "sliders"
+      description: "Destination settings (immutable after create) and the Splunk secret"
+      fields:
+        - key: "settingsJson"
+          label: "Settings (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            JSON object of the destination settings (WRITE-ONCE — immutable after
+            create). AWS EventBridge:
+            {"accountId":"123456789012","eventSourceName":"okta-eventsource","region":"us-east-1"}.
+            Splunk Cloud (token goes in the field below, NOT here):
+            {"host":"acme.splunkcloud.com","edition":"aws"} (edition is aws,
+            aws_govcloud or gcp; host is the domain only, no scheme).
+
+        - key: "splunkToken"
+          label: "Splunk HEC Token"
+          fieldType: "password"
+          helpText: >
+            WRITE-ONLY secret — the Splunk Cloud HTTP Event Collector token. Only
+            used for a Splunk stream, and only at CREATE time (the token is
+            immutable and Okta never returns it, so it cannot be drift-checked or
+            changed later — to rotate it you delete and recreate the stream).
+            Leave blank for AWS EventBridge.

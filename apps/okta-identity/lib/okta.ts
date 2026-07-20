@@ -53,7 +53,7 @@ export interface OktaResponse {
   nextUrl: string | null
 }
 
-export type OktaMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
+export type OktaMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 
