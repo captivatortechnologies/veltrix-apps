@@ -436,7 +436,7 @@ resource "aws_security_group" "alb" {
   }
 
   egress {
-    description = "All egress (forward to Splunk nodes)"
+    description = "All egress (forward to app nodes)"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
