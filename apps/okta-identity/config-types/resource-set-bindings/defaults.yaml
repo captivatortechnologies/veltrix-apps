@@ -1,0 +1,8 @@
+# Defaults for a new resource-set-binding item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (resourceSet, role, members), since a binding's presentational
+# groups share one flat item record, e.g.:
+#   members:
+#     - https://your-org.okta.com/api/v1/groups/00g1a2b3c4

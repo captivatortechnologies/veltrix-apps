@@ -1,6 +1,6 @@
 id: okta-identity
 name: Okta
-version: "1.4.0"
+version: "1.5.0"
 vendor: Veltrix
 description: >
   Manage Okta configuration as code through the Okta Management API. Covers
@@ -8,9 +8,10 @@ description: >
   behavior rules, authenticators, identity providers, event / inline hooks,
   authorization servers (scopes / claims / policies), applications and group
   assignments, plus security and IAM governance — ThreatInsight, log streams,
-  device assurance policies, user types, and custom admin roles with resource
-  sets — with validation, drift detection and rollback handled by the
-  Security-as-Code pipeline.
+  device assurance policies, user types, custom admin roles with resource sets
+  and their role bindings, and custom profile-schema attributes — with
+  validation, drift detection and rollback handled by the Security-as-Code
+  pipeline.
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/okta-identity
@@ -98,6 +99,12 @@ permissions:
     - resource: resource-sets
       actions: [read, write, delete]
       description: Manage Okta resource sets (resource collections that scope custom admin roles)
+    - resource: resource-set-bindings
+      actions: [read, write, delete]
+      description: Manage Okta resource set bindings (grant a role to members within a resource set)
+    - resource: profile-schemas
+      actions: [read, write]
+      description: Manage custom attributes on Okta profile schemas (user-type and group schemas; update-only)
 
 pipeline:
   configurationTypes:
@@ -472,6 +479,40 @@ pipeline:
         healthCheck: config-types/resource-sets/healthCheck
         driftDetect: config-types/resource-sets/driftDetect
         getStatus: config-types/resource-sets/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: resource-set-bindings
+      name: Resource Set Bindings
+      description: Grant a role (custom or standard) to members (users/groups) within a resource set; members reconciled one-at-a-time via the /members sub-resource
+      canvasTemplate: config-types/resource-set-bindings/canvas.yaml
+      defaultConfig: config-types/resource-set-bindings/defaults.yaml
+      handlers:
+        validate: config-types/resource-set-bindings/validate
+        deploy: config-types/resource-set-bindings/deploy
+        rollback: config-types/resource-set-bindings/rollback
+        healthCheck: config-types/resource-set-bindings/healthCheck
+        driftDetect: config-types/resource-set-bindings/driftDetect
+        getStatus: config-types/resource-set-bindings/getStatus
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: profile-schemas
+      name: Profile Schemas
+      description: Custom attributes on user-type / group profile schemas (update-only; base attributes immutable; remove via null; unmanaged custom attributes never pruned)
+      canvasTemplate: config-types/profile-schemas/canvas.yaml
+      defaultConfig: config-types/profile-schemas/defaults.yaml
+      handlers:
+        validate: config-types/profile-schemas/validate
+        deploy: config-types/profile-schemas/deploy
+        rollback: config-types/profile-schemas/rollback
+        healthCheck: config-types/profile-schemas/healthCheck
+        driftDetect: config-types/profile-schemas/driftDetect
+        getStatus: config-types/profile-schemas/getStatus
       targets:
         componentTypes: [okta-org]
         requiresCredential: true

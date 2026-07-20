@@ -1,0 +1,78 @@
+# =============================================================================
+# Canvas Template — Okta Resource Set Bindings
+#
+# Declares ONE binding — the item. Users add as many as they need. A binding
+# GRANTS a role (a custom admin role, or a standard role type) to a set of
+# members (users/groups) WITHIN a resource set — it is the piece that ties the
+# `custom-admin-roles` + `resource-sets` config types together into a working,
+# least-privilege admin grant.
+#
+# ONE item = ONE (resourceSet, role) binding plus its members. The binding's
+# logical identity is the (resourceSet, role) PAIR — the same role can be bound
+# in many resource sets and a resource set can hold many role bindings, so
+# neither key alone identifies the binding; config-types/resource-set-bindings/
+# validate.ts enforces (resourceSet, role) uniqueness across the canvas.
+#
+# Okta only accepts the full members list at CREATE time; on update the members
+# are reconciled through the binding's /members sub-resource (PATCH additions,
+# DELETE removals) — the app handles this. Okta deletes a binding when its last
+# member is removed, so a binding always has at least one member.
+#
+# Field keys must match what config-types/resource-set-bindings/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-resource-set-bindings"
+name: "Resource Set Binding Configuration"
+toolType: "okta-identity"
+entityType: "resource-set-bindings"
+description: "Define Okta resource set bindings as code through the Okta Roles API — grant a role (a custom admin role id, or a standard role type) to members (users/groups) scoped to a resource set. One item is one (resourceSet, role) binding with its members; members are reconciled through the binding's /members sub-resource on update. Pairs with the custom-admin-roles and resource-sets config types."
+
+item:
+  label: "Binding"
+  identityField: "role"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Binding"
+      icon: "shield"
+      description: "The (resource set, role) pair this grant binds"
+      fields:
+        - key: "resourceSet"
+          label: "Resource Set"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The id or label of the Okta resource set this grant is scoped to (e.g.
+            'iamoJDFKa...' or a resource-set label). Half of the binding's logical
+            identity — the binding lives under
+            /iam/resource-sets/{resourceSet}/bindings. Manage the resource set
+            itself with the Resource Sets config type.
+
+        - key: "role"
+          label: "Role"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The role to grant: the id of a CUSTOM admin role (e.g. 'cr0Yq6...') or
+            a STANDARD role type (e.g. HELP_DESK_ADMIN, USER_ADMIN). The other half
+            of the (resourceSet, role) identity. Use the role id / type — not a
+            display label. Manage custom roles with the Custom Admin Roles config
+            type.
+
+    - name: "Members"
+      icon: "users"
+      description: "The users / groups granted the role within the resource set"
+      fields:
+        - key: "members"
+          label: "Members"
+          fieldType: "tags"
+          required: true
+          helpText: >
+            One or more Okta principals granted the role, each an Okta user/group
+            REST URL or an ORN, e.g.
+            https://your-org.okta.com/api/v1/groups/00g...,
+            https://your-org.okta.com/api/v1/users/00u.... At least one is
+            required (Okta removes the binding if its last member is unassigned).
+            The list is applied at create; on update the app adds/removes
+            individual members to converge.

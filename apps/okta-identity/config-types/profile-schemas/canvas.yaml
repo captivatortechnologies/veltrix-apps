@@ -1,0 +1,80 @@
+# =============================================================================
+# Canvas Template — Okta Profile Schemas (custom attributes)
+#
+# Declares the CUSTOM attributes of ONE profile schema — the item. Users add as
+# many schema items as they need. A profile schema defines the ATTRIBUTES of a
+# profile object; this config type manages only the `#custom` subschema of:
+#   - a USER schema (one per user type — pairs with the User Types config type;
+#     use the user-type id, or "default" for the default type), or
+#   - the single GROUP schema (always "default").
+#
+# UPDATE-ONLY: the schema object itself is NEVER created or deleted — only its
+# custom attributes are added / updated / removed. Okta's BASE (#base) attributes
+# (login, firstName, name, description, ...) are immutable and cannot be managed
+# here. Okta's update is a PARTIAL merge, so only the attribute names you declare
+# are touched — set an attribute to `null` to REMOVE it; unmanaged custom
+# attributes are never pruned. App (per-app) user schemas are out of scope.
+#
+# Field keys must match what config-types/profile-schemas/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-profile-schemas"
+name: "Profile Schema Configuration"
+toolType: "okta-identity"
+entityType: "profile-schemas"
+description: "Manage CUSTOM profile attributes on Okta profile schemas as code through the Okta Schemas API. One item is the custom (#custom) attribute set of one user-type schema or the group schema. Update-only: the schema object is never created or deleted and base (#base) attributes are immutable; attributes are merged one at a time (set an attribute to null to remove it) and unmanaged custom attributes are never pruned. Pairs with the User Types config type."
+
+item:
+  label: "Profile Schema"
+  identityField: "schemaType"
+  repeatable: true
+  minItems: 1
+  maxItems: 20
+  groups:
+    - name: "Schema"
+      icon: "layers"
+      description: "Which profile schema's custom attributes to manage"
+      fields:
+        - key: "schemaType"
+          label: "Schema Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "user"
+          options:
+            - label: "User schema (per user type)"
+              value: "user"
+            - label: "Group schema (single, shared)"
+              value: "group"
+          helpText: >
+            Which profile schema family to manage. "user" targets the schema of a
+            user type (see Schema ID below); "group" targets the single shared
+            group schema. Half of the (schemaType, userTypeId) identity.
+
+        - key: "userTypeId"
+          label: "User Type ID"
+          fieldType: "text"
+          helpText: >
+            For a USER schema, the user-type id (e.g. 'oty1a2b3c4') or "default"
+            for the org's default user type. Leave blank to target "default".
+            Ignored for the group schema (there is only one group schema). Pairs
+            with the User Types config type — create the user type first, then
+            manage its custom attributes here.
+
+    - name: "Custom Attributes"
+      icon: "list"
+      description: "The custom (#custom) attributes to add, update or remove"
+      fields:
+        - key: "attributesJson"
+          label: "Custom Attributes (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A JSON OBJECT keyed by custom attribute NAME. Each value is either an
+            attribute definition object or null to REMOVE that attribute. Example:
+            {"badgeId":{"title":"Badge ID","type":"string","description":"Physical
+            badge number","required":false,"minLength":1,"maxLength":32,
+            "permissions":[{"principal":"SELF","action":"READ_ONLY"}]},
+            "legacyId":null}. Attribute "type" must be one of string, integer,
+            number, boolean, array. A name must not collide with a BASE attribute
+            (those are immutable). Only the names you list are touched — other
+            custom attributes are left untouched.
