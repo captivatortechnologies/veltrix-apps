@@ -25,6 +25,9 @@ import {
   deletePackage,
 } from '../lib/s3'
 import { readVersion } from '../lib/versionInput'
+import { readLicenseInput } from '../lib/licenseInput'
+import { parseSplunkLicenseXml } from '../lib/licenseXml'
+import { getLiveLicenseStatus } from '../lib/liveLicense'
 import { registerActivationRoutes } from './activationRoutes'
 
 // --- small body coercion/validation helpers -----------------------------
@@ -613,6 +616,81 @@ export default async function registerRoutes(
       if (!owned) return reply.status(404).send({ error: 'Upgrade operation not found' })
 
       await store.setUpgradeOperationStatus(db, id, status)
+      reply.status(204).send()
+    },
+  })
+
+  // --- License Management Routes ---
+  //
+  // Two data sources back the License page:
+  //   1. Recorded license XML (always available) — the operator pastes/uploads a
+  //      Splunk `.lic`; the server parses it (lib/licenseXml) and records the
+  //      extracted fields (quota, expiration, features, ...) tenant-scoped.
+  //   2. Live licenser status (best-effort) — when the tenant has a working
+  //      Splunk Connection, /licenses/live pulls /services/licenser/licenses
+  //      (+ pools) for real-time stack usage. It degrades to { available: false }
+  //      when no connection exists or the instance is unreachable.
+
+  fastify.get('/licenses', {
+    preHandler: [hasPermission('licenses', 'read')],
+    handler: async (request, reply) => {
+      const customerId = customerOf(request)
+      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+      const licenses = await store.listLicenses(db, customerId)
+      reply.send(licenses)
+    },
+  })
+
+  // Best-effort live licenser read over the tenant's Splunk Connection. The
+  // client passes the chosen connection via `?credentialId=<id>`; the platform's
+  // credential seam (ctx.resolveConnection) decrypts it server-side. Never errors
+  // — returns { available: false, reason: 'no-connection' } when no credentialId
+  // is supplied or none resolves, and { available: false, reason } when the
+  // instance can't be reached.
+  fastify.get('/licenses/live', {
+    preHandler: [hasPermission('licenses', 'read')],
+    handler: async (request, reply) => {
+      const customerId = customerOf(request)
+      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+      const rawCredentialId = (request.query as { credentialId?: unknown })?.credentialId
+      const credentialId = typeof rawCredentialId === 'string' ? rawCredentialId.trim() : ''
+      if (!credentialId) return reply.send({ available: false, reason: 'no-connection' })
+      const result = await getLiveLicenseStatus(ctx.resolveConnection, customerId, credentialId)
+      reply.send(result)
+    },
+  })
+
+  fastify.post('/licenses', {
+    preHandler: [hasPermission('licenses', 'write')],
+    handler: async (request: FastifyRequest, reply: FastifyReply) => {
+      const customerId = customerOf(request)
+      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+
+      const { xml, error: inputError } = readLicenseInput(request.body)
+      if (inputError || !xml) return reply.status(400).send({ error: inputError ?? 'License XML is required' })
+
+      const { data, error } = parseSplunkLicenseXml(xml)
+      if (error || !data) return reply.status(400).send({ error: error ?? 'Could not parse the license XML' })
+      if (!data.guid) {
+        return reply.status(400).send({ error: 'License XML has no <guid> — it does not look like a Splunk license' })
+      }
+
+      const recorded = await store.recordLicense(db, customerId, data, xml, userOf(request))
+      reply.status(201).send(recorded)
+    },
+  })
+
+  fastify.delete('/licenses/:id', {
+    preHandler: [hasPermission('licenses', 'delete')],
+    handler: async (request: FastifyRequest, reply: FastifyReply) => {
+      const customerId = customerOf(request)
+      if (!customerId) return reply.status(401).send({ error: 'Authentication required' })
+      const { id } = request.params as { id: string }
+
+      const existing = await store.getLicense(db, id, customerId)
+      if (!existing) return reply.status(404).send({ error: 'License not found' })
+
+      await store.deleteLicense(db, id, customerId)
       reply.status(204).send()
     },
   })

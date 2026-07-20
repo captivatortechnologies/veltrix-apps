@@ -13,6 +13,7 @@ import {
   type ClusterPlacement,
   type ControlPlaneLayout,
 } from '../byolPlacement'
+import { deriveLicenseStatus, type LicenseStatus } from '../licenseXml'
 
 export type Row = Record<string, any>
 
@@ -46,6 +47,55 @@ export function mapVersion(r: Row): SplunkVersionDto {
     features: r.features ?? null,
     customerId: r.customer_id ?? null,
     system: r.customer_id == null,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  }
+}
+
+// --- Recorded Splunk license (migration 013) --------------------------------
+
+export interface SplunkLicenseDto {
+  id: string
+  label: string
+  licenseType: string
+  groupId: string
+  stackId: string
+  quotaBytes: number
+  windowPeriod: number
+  maxViolations: number
+  creationTime: Date | null
+  expirationTime: Date | null
+  guid: string
+  features: string[]
+  /** Derived display status (active | expiring-soon | expired | unknown). */
+  status: LicenseStatus
+  /** Whole days until expiry; negative once expired, null when no expiration. */
+  daysToExpiry: number | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export function mapLicense(r: Row): SplunkLicenseDto {
+  // quota is a BIGINT column — the raw driver may hand it back as a BigInt or a
+  // string, so normalize through Number. Realistic license quotas fit a double.
+  const expirationTime = r.expiration_time ? new Date(r.expiration_time) : null
+  const { status, daysToExpiry } = deriveLicenseStatus(expirationTime)
+  return {
+    id: r.id,
+    label: r.label ?? '',
+    licenseType: r.license_type ?? '',
+    groupId: r.group_id ?? '',
+    stackId: r.stack_id ?? '',
+    quotaBytes: r.quota_bytes == null ? 0 : Number(r.quota_bytes),
+    windowPeriod: r.window_period == null ? 0 : Number(r.window_period),
+    maxViolations: r.max_violations == null ? 0 : Number(r.max_violations),
+    creationTime: r.creation_time ? new Date(r.creation_time) : null,
+    expirationTime,
+    guid: r.guid ?? '',
+    // JSONB round-trips as a parsed array via the raw driver; be defensive.
+    features: Array.isArray(r.features) ? r.features.map(String) : [],
+    status,
+    daysToExpiry,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   }

@@ -83,6 +83,27 @@ export async function getEntityContent(
 }
 
 /**
+ * GET a Splunk REST endpoint and parse its JSON response. Appends
+ * `output_mode=json` (Splunk defaults to XML otherwise). Throws on a non-2xx
+ * (via splunkRequest) or on invalid JSON — callers that need graceful
+ * degradation wrap this in try/catch (see lib/liveLicense.ts).
+ */
+export async function getJson<T = any>(
+  baseUrl: string,
+  auth: Record<string, string>,
+  entityPath: string,
+  timeoutMs?: number,
+): Promise<T> {
+  const sep = entityPath.includes('?') ? '&' : '?'
+  const text = await splunkRequest(`${baseUrl}${entityPath}${sep}output_mode=json`, {
+    method: 'GET',
+    headers: auth,
+    timeoutMs,
+  })
+  return JSON.parse(text) as T
+}
+
+/**
  * Encode a Splunk REST payload as application/x-www-form-urlencoded.
  * Array values are appended once per element (Splunk's multi-value
  * convention for parameters like `capabilities` and `imported_roles`).

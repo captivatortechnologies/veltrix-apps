@@ -1,6 +1,6 @@
 id: splunk-enterprise
 name: Splunk Enterprise
-version: "1.16.13"
+version: "1.17.0"
 vendor: Veltrix
 description: >
   Manage Splunk Enterprise configurations as code.
@@ -51,6 +51,9 @@ permissions:
     - resource: usage
       actions: [read, write]
       description: Read BYOL infrastructure usage metering and run the daily usage collector
+    - resource: licenses
+      actions: [read, write, delete]
+      description: Record and track Splunk Enterprise license files (quota, expiration, features) and read live licenser status
 
 database:
   migrations: migrations
@@ -168,6 +171,17 @@ client:
       nav: sidebar
       group: page
       order: 9
+      layout: standard
+    # License — record + track a Splunk Enterprise license XML (quota, expiration,
+    # features, status) and, when a Splunk Connection exists, show live licenser
+    # stack usage. Sits right after Upgrades in the page nav group.
+    - path: /license
+      component: LicensePage
+      label: License
+      icon: file-text
+      nav: sidebar
+      group: page
+      order: 10
       layout: standard
     # Activation — the one-time credential handoff, reached only from the emailed
     # single-use link (?token=…), so it is hidden from the nav.
