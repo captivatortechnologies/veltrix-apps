@@ -1,6 +1,6 @@
 id: rapid7
 name: Rapid7 InsightVM
-version: "1.0.0"
+version: "1.1.0"
 vendor: Veltrix
 description: >
   Manage Rapid7 InsightVM configuration as code through the Security Console API
@@ -60,6 +60,7 @@ permissions:
 pipeline:
   configurationTypes:
     - id: insightvm-sites
+      group: "Scanning"
       name: InsightVM Sites
       description: Scan sites (/sites) — targets, scan engine, scan template and importance
       canvasTemplate: config-types/insightvm-sites/canvas.yaml
@@ -77,6 +78,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: insightvm-asset-groups
+      group: "Assets"
       name: InsightVM Asset Groups
       description: Static / dynamic asset groups (/asset_groups); dynamic carry a search-criteria filter
       canvasTemplate: config-types/insightvm-asset-groups/canvas.yaml
@@ -94,6 +96,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: insightvm-tags
+      group: "Assets"
       name: InsightVM Tags
       description: Criticality / location / owner / custom tags (/tags) with color, risk modifier and search criteria
       canvasTemplate: config-types/insightvm-tags/canvas.yaml
@@ -111,6 +114,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: insightvm-scan-templates
+      group: "Scanning"
       name: InsightVM Scan Templates
       description: Scan templates (/scan_templates); string id, clone built-ins rather than overwrite
       canvasTemplate: config-types/insightvm-scan-templates/canvas.yaml
@@ -128,6 +132,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: insightvm-shared-credentials
+      group: "Credentials"
       name: InsightVM Shared Credentials
       description: Org-wide shared scan credentials (/shared_credentials); the secret is write-only
       canvasTemplate: config-types/insightvm-shared-credentials/canvas.yaml
@@ -145,6 +150,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: insightvm-scan-engine-pools
+      group: "Scanning"
       name: InsightVM Scan Engine Pools
       description: Scan engine pools (/scan_engine_pools) and their engine membership
       canvasTemplate: config-types/insightvm-scan-engine-pools/canvas.yaml
@@ -162,6 +168,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: insightvm-vulnerability-exceptions
+      group: "Findings"
       name: InsightVM Vulnerability Exceptions
       description: Vulnerability exceptions (/vulnerability_exceptions) with scope, expiration and status
       canvasTemplate: config-types/insightvm-vulnerability-exceptions/canvas.yaml
@@ -179,6 +186,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: insightvm-scan-schedules
+      group: "Scanning"
       name: InsightVM Scan Schedules
       description: Per-site scan schedules (/sites/{id}/scan_schedules); references the site by name
       canvasTemplate: config-types/insightvm-scan-schedules/canvas.yaml
@@ -196,6 +204,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: insightvm-site-credentials
+      group: "Credentials"
       name: InsightVM Site Credentials
       description: Site-scoped scan credentials (/sites/{id}/site_credentials); references the site by name; the secret is write-only
       canvasTemplate: config-types/insightvm-site-credentials/canvas.yaml

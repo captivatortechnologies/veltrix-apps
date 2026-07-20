@@ -1,6 +1,6 @@
 id: tenable-vm
 name: Tenable Vulnerability Management
-version: "1.1.2"
+version: "1.2.0"
 vendor: Veltrix
 description: >
   Manage Tenable Vulnerability Management (tenable.io) configuration as code
@@ -88,6 +88,7 @@ pipeline:
     # A scan carries the schedule (Tenable puts the recurrence on the scan, not
     # the policy). It references a scan template and, optionally, a scan policy.
     - id: scans
+      group: "Scanning"
       name: Scans
       description: Scheduled scans — targets, scan template, optional policy, and recurrence (rrules)
       canvasTemplate: config-types/scans/canvas.yaml
@@ -106,6 +107,7 @@ pipeline:
 
     # Target groups are deprecated in Tenable — tags replace them.
     - id: tags
+      group: "Assets"
       name: Asset Tags
       description: Asset tags (category/value pairs; static, or dynamic via asset filters)
       canvasTemplate: config-types/tags/canvas.yaml
@@ -123,6 +125,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: exclusions
+      group: "Scanning"
       name: Exclusions
       description: Scan exclusions / blackout windows — targets and a recurring schedule
       canvasTemplate: config-types/exclusions/canvas.yaml
@@ -141,6 +144,7 @@ pipeline:
 
 
     - id: networks
+      group: "Assets"
       name: Networks
       description: Network objects for scanner/asset segmentation
       canvasTemplate: config-types/networks/canvas.yaml
@@ -158,6 +162,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: policies
+      group: "Scanning"
       name: Scan Policies
       description: Reusable scan policies (scan templates)
       canvasTemplate: config-types/policies/canvas.yaml
@@ -175,6 +180,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: credentials
+      group: "Credentials & Connectors"
       name: Managed Credentials
       description: Scan credentials (secrets are write-only)
       canvasTemplate: config-types/credentials/canvas.yaml
@@ -192,6 +198,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: folders
+      group: "Organization"
       name: Folders
       description: Scan folders
       canvasTemplate: config-types/folders/canvas.yaml
@@ -209,6 +216,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: agent-groups
+      group: "Agents"
       name: Agent Groups
       description: Agent groupings
       canvasTemplate: config-types/agent-groups/canvas.yaml
@@ -226,6 +234,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: scanner-groups
+      group: "Scanning"
       name: Scanner Groups
       description: Scanner groupings
       canvasTemplate: config-types/scanner-groups/canvas.yaml
@@ -243,6 +252,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: agent-exclusions
+      group: "Agents"
       name: Agent Exclusions
       description: Agent-scan blackout windows
       canvasTemplate: config-types/agent-exclusions/canvas.yaml
@@ -260,6 +270,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: recast-rules
+      group: "Findings"
       name: Recast Rules
       description: Severity recast / accept-risk rules
       canvasTemplate: config-types/recast-rules/canvas.yaml
@@ -277,6 +288,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: asset-attributes
+      group: "Assets"
       name: Asset Attributes
       description: Custom asset-attribute definitions
       canvasTemplate: config-types/asset-attributes/canvas.yaml
@@ -294,6 +306,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: connectors
+      group: "Credentials & Connectors"
       name: Cloud Connectors
       description: AWS/Azure/GCP asset connectors (secret-bearing)
       canvasTemplate: config-types/connectors/canvas.yaml
@@ -311,6 +324,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: profiles
+      group: "Organization"
       name: Profiles
       description: Scanner/agent performance profiles
       canvasTemplate: config-types/profiles/canvas.yaml
@@ -328,6 +342,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: user-groups
+      group: "Access Control"
       name: User Groups
       description: User groups (identity)
       canvasTemplate: config-types/user-groups/canvas.yaml
@@ -345,6 +360,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: roles
+      group: "Access Control"
       name: Roles
       description: Custom RBAC roles (identity)
       canvasTemplate: config-types/roles/canvas.yaml
@@ -362,6 +378,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: permissions
+      group: "Access Control"
       name: Permissions
       description: Access-control permission grants v3 (identity)
       canvasTemplate: config-types/permissions/canvas.yaml
@@ -379,6 +396,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: users
+      group: "Access Control"
       name: Users
       description: User accounts (identity — often SSO/SCIM-governed)
       canvasTemplate: config-types/users/canvas.yaml

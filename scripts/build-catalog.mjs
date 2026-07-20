@@ -16,6 +16,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import yaml from 'js-yaml'
+import { readChangelogEntry } from '../cli/src/lib/changelog.mjs'
 
 function arg(name, fallback) {
   const i = process.argv.indexOf(`--${name}`)
@@ -78,12 +79,19 @@ for (const dirent of fs.readdirSync(appsDir, { withFileTypes: true })) {
   let release
   if (fs.existsSync(zipPath)) {
     const buffer = fs.readFileSync(zipPath)
+    const publishedAt = new Date().toISOString()
+    // Release notes for this exact version come from the app's CHANGELOG.md;
+    // the platform's upgrade banner renders them. Prefer the CHANGELOG's dated
+    // heading for `releasedAt`, falling back to the publish timestamp.
+    const changelog = readChangelogEntry(path.join(appDir, 'CHANGELOG.md'), manifest.version)
     release = {
       version: manifest.version,
       downloadUrl: `https://github.com/${repo}/releases/download/${appId}-v${manifest.version}/${appId}.zip`,
       sha256: crypto.createHash('sha256').update(buffer).digest('hex'),
       sizeBytes: buffer.byteLength,
-      publishedAt: new Date().toISOString(),
+      publishedAt,
+      ...(changelog?.notes ? { releaseNotes: changelog.notes } : {}),
+      releasedAt: changelog?.date ? `${changelog.date}T00:00:00.000Z` : publishedAt,
     }
   } else if (prior?.downloadUrl) {
     release = {
@@ -92,6 +100,8 @@ for (const dirent of fs.readdirSync(appsDir, { withFileTypes: true })) {
       sha256: prior.sha256,
       sizeBytes: prior.sizeBytes,
       publishedAt: prior.publishedAt,
+      ...(prior.releaseNotes ? { releaseNotes: prior.releaseNotes } : {}),
+      ...(prior.releasedAt ? { releasedAt: prior.releasedAt } : {}),
     }
   } else {
     console.warn(`Skipping ${appId}: no built package and no prior release info`)
@@ -115,6 +125,8 @@ for (const dirent of fs.readdirSync(appsDir, { withFileTypes: true })) {
     sha256: release.sha256,
     sizeBytes: release.sizeBytes,
     publishedAt: release.publishedAt,
+    ...(release.releaseNotes ? { releaseNotes: release.releaseNotes } : {}),
+    ...(release.releasedAt ? { releasedAt: release.releasedAt } : {}),
   })
 }
 

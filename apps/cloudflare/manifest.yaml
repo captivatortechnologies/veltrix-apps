@@ -1,6 +1,6 @@
 id: cloudflare
 name: Cloudflare
-version: "1.0.0"
+version: "1.1.0"
 vendor: Veltrix
 description: >
   Manage Cloudflare configuration as code through the Cloudflare API (v4). Covers
@@ -77,6 +77,7 @@ permissions:
 pipeline:
   configurationTypes:
     - id: cloudflare-dns-records
+      group: "Zone"
       name: Cloudflare DNS Records
       description: DNS records (/dns_records); matched by type + name (+ content for multi-value types)
       canvasTemplate: config-types/cloudflare-dns-records/canvas.yaml
@@ -94,6 +95,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: cloudflare-waf-custom-rules
+      group: "WAF & Security"
       name: Cloudflare WAF Custom Rules
       description: WAF custom rules — rulesets phase http_request_firewall_custom, matched by rule ref
       canvasTemplate: config-types/cloudflare-waf-custom-rules/canvas.yaml
@@ -111,6 +113,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: cloudflare-rate-limiting-rules
+      group: "WAF & Security"
       name: Cloudflare Rate Limiting Rules
       description: Rate limiting rules — rulesets phase http_ratelimit, matched by rule ref
       canvasTemplate: config-types/cloudflare-rate-limiting-rules/canvas.yaml
@@ -128,6 +131,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: cloudflare-redirect-rules
+      group: "Rules & Lists"
       name: Cloudflare Redirect Rules
       description: Single redirects — rulesets phase http_request_dynamic_redirect, matched by rule ref
       canvasTemplate: config-types/cloudflare-redirect-rules/canvas.yaml
@@ -145,6 +149,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: cloudflare-transform-rules
+      group: "Rules & Lists"
       name: Cloudflare Transform Rules
       description: URL rewrite + request/response header transforms (rulesets); phase-parameterized, matched by ref
       canvasTemplate: config-types/cloudflare-transform-rules/canvas.yaml
@@ -162,6 +167,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: cloudflare-managed-rulesets
+      group: "WAF & Security"
       name: Cloudflare Managed Rulesets
       description: Deploy and override Cloudflare-managed WAF rulesets (phase http_request_firewall_managed)
       canvasTemplate: config-types/cloudflare-managed-rulesets/canvas.yaml
@@ -179,6 +185,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: cloudflare-zone-settings
+      group: "Zone"
       name: Cloudflare Zone Settings
       description: Zone settings (SSL mode, security level, min TLS, always-use-HTTPS, ...) via /settings
       canvasTemplate: config-types/cloudflare-zone-settings/canvas.yaml
@@ -196,6 +203,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: cloudflare-lists
+      group: "Rules & Lists"
       name: Cloudflare Lists
       description: Account rules lists (IP / hostname / ASN) and their items (/rules/lists); matched by name
       canvasTemplate: config-types/cloudflare-lists/canvas.yaml
@@ -213,6 +221,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: cloudflare-access-applications
+      group: "Zero Trust · Access"
       name: Cloudflare Access Applications
       description: Zero Trust Access applications (/access/apps)
       canvasTemplate: config-types/cloudflare-access-applications/canvas.yaml
@@ -230,6 +239,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: cloudflare-access-policies
+      group: "Zero Trust · Access"
       name: Cloudflare Access Policies
       description: Reusable Zero Trust Access policies (/access/policies)
       canvasTemplate: config-types/cloudflare-access-policies/canvas.yaml
@@ -247,6 +257,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: cloudflare-access-groups
+      group: "Zero Trust · Access"
       name: Cloudflare Access Groups
       description: Zero Trust Access groups (/access/groups)
       canvasTemplate: config-types/cloudflare-access-groups/canvas.yaml
@@ -264,6 +275,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: cloudflare-access-service-tokens
+      group: "Zero Trust · Access"
       name: Cloudflare Access Service Tokens
       description: Access service tokens (/access/service_tokens); the client secret is write-only
       canvasTemplate: config-types/cloudflare-access-service-tokens/canvas.yaml
@@ -281,6 +293,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: cloudflare-gateway-policies
+      group: "Zero Trust · Gateway"
       name: Cloudflare Gateway Policies
       description: Zero Trust Gateway rules (/gateway/rules)
       canvasTemplate: config-types/cloudflare-gateway-policies/canvas.yaml
@@ -298,6 +311,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: cloudflare-gateway-lists
+      group: "Zero Trust · Gateway"
       name: Cloudflare Gateway Lists
       description: Zero Trust Gateway lists (/gateway/lists)
       canvasTemplate: config-types/cloudflare-gateway-lists/canvas.yaml

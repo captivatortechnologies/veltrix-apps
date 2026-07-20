@@ -13,6 +13,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import yaml from 'js-yaml'
+import { readChangelogEntry } from './changelog.mjs'
 
 const APP_ID_RE = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/
 const SEMVER_RE = /^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/
@@ -169,6 +170,30 @@ export function validateApp(appDirArg) {
     }
   } else {
     warn('packaging: package.json is missing (needed for typecheck and version tracking)')
+  }
+
+  // Release notes — every version must record what changed so the in-product
+  // upgrade banner can show it. Enforced once an app adopts a CHANGELOG.md
+  // (a missing changelog is only a nudge, so apps can adopt it incrementally).
+  const changelogPath = path.join(appDir, 'CHANGELOG.md')
+  if (fs.existsSync(changelogPath)) {
+    const entry = manifest.version ? readChangelogEntry(changelogPath, manifest.version) : null
+    if (!entry) {
+      err(
+        `release notes: CHANGELOG.md has no entry for version ${manifest.version} — add a ` +
+          `"## ${manifest.version} — <YYYY-MM-DD>" section describing the release`,
+      )
+    } else if (!entry.date) {
+      warn(
+        `release notes: CHANGELOG.md entry for ${manifest.version} has no date — add ` +
+          '"— YYYY-MM-DD" to the heading so the catalog can record when it shipped',
+      )
+    }
+  } else {
+    warn(
+      'release notes: add a CHANGELOG.md — version bumps should record what changed ' +
+        '(surfaced in the in-product upgrade banner)',
+    )
   }
 
   if (manifest.homepage && !/^https:\/\//.test(manifest.homepage)) {

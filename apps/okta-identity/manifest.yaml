@@ -1,6 +1,6 @@
 id: okta-identity
 name: Okta
-version: "1.6.0"
+version: "1.7.0"
 vendor: Veltrix
 description: >
   Manage Okta configuration as code through the Okta Management API. Covers
@@ -135,6 +135,7 @@ permissions:
 pipeline:
   configurationTypes:
     - id: policies
+      group: "Policies & Rules"
       name: Policies
       description: Sign-on / password / authenticator-enrollment policies and their rules
       canvasTemplate: config-types/policies/canvas.yaml
@@ -152,6 +153,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: group-rules
+      group: "Directory"
       name: Group Rules
       description: Dynamic group-assignment rules (must be deactivated before change)
       canvasTemplate: config-types/group-rules/canvas.yaml
@@ -169,6 +171,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: groups
+      group: "Directory"
       name: Groups
       description: Okta groups (OKTA_GROUP) and their memberships (built-in groups are protected)
       canvasTemplate: config-types/groups/canvas.yaml
@@ -186,6 +189,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: network-zones
+      group: "Network & Security"
       name: Network Zones
       description: Network zones — IP (CIDR gateways) and dynamic (ASN/geo); system zones protected
       canvasTemplate: config-types/network-zones/canvas.yaml
@@ -204,6 +208,7 @@ pipeline:
 
 
     - id: trusted-origins
+      group: "Network & Security"
       name: Trusted Origins
       description: CORS / redirect / iframe-embed origin allowlist
       canvasTemplate: config-types/trusted-origins/canvas.yaml
@@ -221,6 +226,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: behavior-rules
+      group: "Policies & Rules"
       name: Behavior Rules
       description: Behavioral detection rules (velocity, anomalous location/IP/device)
       canvasTemplate: config-types/behavior-rules/canvas.yaml
@@ -238,6 +244,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: authenticators
+      group: "Authentication"
       name: Authenticators
       description: Authenticator configuration and enablement (no delete; built-ins update-only)
       canvasTemplate: config-types/authenticators/canvas.yaml
@@ -255,6 +262,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: idps
+      group: "Authentication"
       name: Identity Providers
       description: External IdPs (OIDC/SAML/social) — sensitive; secrets excluded from drift
       canvasTemplate: config-types/idps/canvas.yaml
@@ -272,6 +280,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: event-hooks
+      group: "Integrations"
       name: Event Hooks
       description: Event hooks (delete needs INACTIVE; auth header is write-only)
       canvasTemplate: config-types/event-hooks/canvas.yaml
@@ -289,6 +298,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: inline-hooks
+      group: "Integrations"
       name: Inline Hooks
       description: Inline hooks (token/SAML/registration transforms; secret write-only; org cap 50)
       canvasTemplate: config-types/inline-hooks/canvas.yaml
@@ -306,6 +316,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: authorization-servers
+      group: "Authorization Servers"
       name: Authorization Servers
       description: Custom OAuth authorization servers (the 'default' server is protected)
       canvasTemplate: config-types/authorization-servers/canvas.yaml
@@ -323,6 +334,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: auth-server-scopes
+      group: "Authorization Servers"
       name: Auth Server Scopes
       description: OAuth scopes on an authorization server (system scopes skipped)
       canvasTemplate: config-types/auth-server-scopes/canvas.yaml
@@ -340,6 +352,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: auth-server-claims
+      group: "Authorization Servers"
       name: Auth Server Claims
       description: OAuth claims on an authorization server (system claims skipped)
       canvasTemplate: config-types/auth-server-claims/canvas.yaml
@@ -357,6 +370,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: auth-server-policies
+      group: "Authorization Servers"
       name: Auth Server Policies
       description: OAuth access policies + rules on an authorization server (system policies skipped)
       canvasTemplate: config-types/auth-server-policies/canvas.yaml
@@ -375,6 +389,7 @@ pipeline:
 
 
     - id: apps
+      group: "Applications"
       name: Applications
       description: Application integrations (OIDC/SAML/SWA/bookmark); secrets write-only; system apps protected
       canvasTemplate: config-types/apps/canvas.yaml
@@ -392,6 +407,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: app-group-assignments
+      group: "Applications"
       name: App Group Assignments
       description: Assign groups to applications (priority, profile overrides)
       canvasTemplate: config-types/app-group-assignments/canvas.yaml
@@ -409,6 +425,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: threat-insight
+      group: "Network & Security"
       name: ThreatInsight
       description: Org ThreatInsight settings — suspicious-request action (none/audit/block) + exempt zones (singleton)
       canvasTemplate: config-types/threat-insight/canvas.yaml
@@ -426,6 +443,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: log-streams
+      group: "Integrations"
       name: Log Streams
       description: System Log export to AWS EventBridge / Splunk Cloud (type + settings immutable; Splunk token write-only; lifecycle activate/deactivate)
       canvasTemplate: config-types/log-streams/canvas.yaml
@@ -443,6 +461,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: device-assurance-policies
+      group: "Policies & Rules"
       name: Device Assurance Policies
       description: Per-platform device posture requirements (a mapped policy must be unmapped before delete; platform immutable)
       canvasTemplate: config-types/device-assurance-policies/canvas.yaml
@@ -460,6 +479,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: user-types
+      group: "Directory"
       name: User Types
       description: User type definitions (name immutable; the default type and assigned types are protected from deletion)
       canvasTemplate: config-types/user-types/canvas.yaml
@@ -477,6 +497,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: custom-admin-roles
+      group: "IAM Governance"
       name: Custom Admin Roles
       description: Custom (least-privilege) admin roles; standard/built-in roles protected; permissions reconciled via sub-resource
       canvasTemplate: config-types/custom-admin-roles/canvas.yaml
@@ -494,6 +515,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: resource-sets
+      group: "IAM Governance"
       name: Resource Sets
       description: Resource sets that scope custom admin roles; resources (ORN/URL) reconciled via sub-resource
       canvasTemplate: config-types/resource-sets/canvas.yaml
@@ -511,6 +533,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: resource-set-bindings
+      group: "IAM Governance"
       name: Resource Set Bindings
       description: Grant a role (custom or standard) to members (users/groups) within a resource set; members reconciled one-at-a-time via the /members sub-resource
       canvasTemplate: config-types/resource-set-bindings/canvas.yaml
@@ -528,6 +551,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: profile-schemas
+      group: "Profile & Schema"
       name: Profile Schemas
       description: Custom attributes on user-type / group profile schemas (update-only; base attributes immutable; remove via null; unmanaged custom attributes never pruned)
       canvasTemplate: config-types/profile-schemas/canvas.yaml
@@ -545,6 +569,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: profile-mappings
+      group: "Profile & Schema"
       name: Profile Mappings
       description: Attribute transforms between a source and target profile (update-only merge; properties reconciled by name; a null property removes the mapping)
       canvasTemplate: config-types/profile-mappings/canvas.yaml
@@ -562,6 +587,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: features
+      group: "Profile & Schema"
       name: Features
       description: Self-service feature toggles (enable/disable lifecycle; no create/delete; mode=force honors dependencies)
       canvasTemplate: config-types/features/canvas.yaml
@@ -579,6 +605,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: captcha
+      group: "Network & Security"
       name: CAPTCHA
       description: Org CAPTCHA (hCaptcha / reCAPTCHA v2) instance + org-wide enablement (singleton; secretKey write-only; detached from org before delete)
       canvasTemplate: config-types/captcha/canvas.yaml
@@ -596,6 +623,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: linked-objects
+      group: "Directory"
       name: Linked Objects
       description: User linked-object definitions (primary/associated relationships; immutable — delete-and-recreate to change; created ones removed on rollback)
       canvasTemplate: config-types/linked-objects/canvas.yaml
@@ -613,6 +641,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: brands
+      group: "Branding & Notifications"
       name: Brands
       description: Brands and their single theme (colors + touchpoint variants; the default brand is protected from deletion; logos out of scope)
       canvasTemplate: config-types/brands/canvas.yaml
@@ -630,6 +659,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: email-domains
+      group: "Branding & Notifications"
       name: Email Domains
       description: Custom email domains (sender display name / username updatable; domain/brand/subdomain immutable; DNS verification is external; delete blocked while in use)
       canvasTemplate: config-types/email-domains/canvas.yaml
@@ -647,6 +677,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: sms-templates
+      group: "Branding & Notifications"
       name: SMS Templates
       description: Custom SMS templates (SMS_VERIFY_CODE text + localized translations; 161-char cap)
       canvasTemplate: config-types/sms-templates/canvas.yaml
@@ -664,6 +695,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: rate-limit-settings
+      group: "Network & Security"
       name: Rate Limit Settings
       description: Org rate-limit settings — admin notifications, per-client enforcement (default + per use case), warning threshold (singleton; update-only)
       canvasTemplate: config-types/rate-limit-settings/canvas.yaml

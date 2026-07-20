@@ -1,6 +1,6 @@
 id: hashicorp-vault
 name: HashiCorp Vault
-version: "1.2.2"
+version: "1.3.0"
 vendor: Veltrix
 description: >
   Manage HashiCorp Vault configuration as code through the Vault HTTP API.
@@ -65,6 +65,7 @@ permissions:
 pipeline:
   configurationTypes:
     - id: policies
+      group: "Policies"
       name: ACL Policies
       description: Vault ACL policies authored in HCL (upsert by name; root/default are protected)
       canvasTemplate: config-types/policies/canvas.yaml
@@ -82,6 +83,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: auth-methods
+      group: "Authentication"
       name: Auth Methods
       description: Vault auth method mounts and tuning (type is immutable; token/ is protected)
       canvasTemplate: config-types/auth-methods/canvas.yaml
@@ -99,6 +101,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: secret-mounts
+      group: "Secrets"
       name: Secret Engines
       description: Vault secret engine mounts and tuning (type immutable; disabling destroys data)
       canvasTemplate: config-types/secret-mounts/canvas.yaml
@@ -116,6 +119,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: audit-devices
+      group: "Operations"
       name: Audit Devices
       description: Vault audit devices (no tune — a change is disable+re-enable; a bad target can block Vault)
       canvasTemplate: config-types/audit-devices/canvas.yaml
@@ -134,6 +138,7 @@ pipeline:
 
 
     - id: password-policies
+      group: "Policies"
       name: Password Policies
       description: Password generation policies (HCL length + charset rules)
       canvasTemplate: config-types/password-policies/canvas.yaml
@@ -151,6 +156,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: identity-entities
+      group: "Identity"
       name: Identity Entities
       description: Identity entities (policies, metadata, disabled) via name-keyed upsert
       canvasTemplate: config-types/identity-entities/canvas.yaml
@@ -168,6 +174,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: identity-groups
+      group: "Identity"
       name: Identity Groups
       description: Identity groups — internal (explicit members) or external (auth-managed)
       canvasTemplate: config-types/identity-groups/canvas.yaml
@@ -185,6 +192,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: rate-limit-quotas
+      group: "Operations"
       name: Rate Limit Quotas
       description: Request rate-limit quotas (rate/interval/path); path="" is the global limiter
       canvasTemplate: config-types/rate-limit-quotas/canvas.yaml
@@ -202,6 +210,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: mfa-methods
+      group: "Authentication"
       name: MFA Methods
       description: Login MFA methods (totp/duo/okta/pingid); secrets are write-only
       canvasTemplate: config-types/mfa-methods/canvas.yaml
@@ -219,6 +228,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: mfa-login-enforcement
+      group: "Authentication"
       name: MFA Login Enforcement
       description: Binds MFA methods to logins by auth method / group / entity
       canvasTemplate: config-types/mfa-login-enforcement/canvas.yaml
@@ -236,6 +246,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: plugins
+      group: "Operations"
       name: Plugins
       description: External plugin catalog registrations (auth/database/secret); never touches built-ins
       canvasTemplate: config-types/plugins/canvas.yaml

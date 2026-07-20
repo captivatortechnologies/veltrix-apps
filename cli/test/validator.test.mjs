@@ -515,3 +515,32 @@ test('SDK freshness: declaring ^2.1.0 or newer while importing @veltrixsecops/ap
   )
   assert.equal(warningsMatching(result, /app-sdk\/ui/).length, 0)
 })
+
+// --- Release notes (CHANGELOG.md) ---------------------------------------------
+
+test('release notes: a missing CHANGELOG.md is a warning, not an error', () => {
+  const result = validateApp(makeApp())
+  assert.deepEqual(errorsMatching(result, /release notes:/), [])
+  assert.equal(warningsMatching(result, /release notes: add a CHANGELOG\.md/).length, 1)
+})
+
+test('release notes: a CHANGELOG entry matching the manifest version passes clean', () => {
+  const result = validateApp(
+    makeApp({ 'CHANGELOG.md': '# Changelog\n\n## 1.0.0 — 2026-07-20\n\n- Initial release.\n' }),
+  )
+  assert.deepEqual(errorsMatching(result, /release notes:/), [])
+  assert.deepEqual(warningsMatching(result, /release notes:/), [])
+})
+
+test('release notes: a CHANGELOG without an entry for the current version is an error', () => {
+  const result = validateApp(
+    makeApp({ 'CHANGELOG.md': '# Changelog\n\n## 0.9.0 — 2026-06-01\n\n- Old.\n' }),
+  )
+  assert.equal(errorsMatching(result, /CHANGELOG\.md has no entry for version 1\.0\.0/).length, 1)
+})
+
+test('release notes: a dateless CHANGELOG heading warns but does not error', () => {
+  const result = validateApp(makeApp({ 'CHANGELOG.md': '# Changelog\n\n## 1.0.0\n\n- Notes.\n' }))
+  assert.deepEqual(errorsMatching(result, /release notes:/), [])
+  assert.equal(warningsMatching(result, /entry for 1\.0\.0 has no date/).length, 1)
+})

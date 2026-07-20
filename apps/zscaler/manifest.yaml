@@ -1,6 +1,6 @@
 id: zscaler
 name: Zscaler
-version: "1.1.0"
+version: "1.2.0"
 vendor: Veltrix
 description: >
   Manage Zscaler Internet Access (ZIA) and Zscaler Private Access (ZPA)
@@ -131,6 +131,7 @@ permissions:
 pipeline:
   configurationTypes:
     - id: zia-url-filtering-rules
+      group: "ZIA · Policy Rules"
       name: ZIA URL Filtering Rules
       description: URL filtering policy rules (/urlFilteringRules); staged then activated as a batch
       canvasTemplate: config-types/zia-url-filtering-rules/canvas.yaml
@@ -148,6 +149,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zia-url-categories
+      group: "ZIA · Objects & Groups"
       name: ZIA URL Categories
       description: Custom URL categories (/urlCategories); predefined categories are read-only references
       canvasTemplate: config-types/zia-url-categories/canvas.yaml
@@ -165,6 +167,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zia-firewall-rules
+      group: "ZIA · Policy Rules"
       name: ZIA Cloud Firewall Rules
       description: Cloud firewall filtering rules (/firewallFilteringRules)
       canvasTemplate: config-types/zia-firewall-rules/canvas.yaml
@@ -182,6 +185,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zia-firewall-dns-rules
+      group: "ZIA · Policy Rules"
       name: ZIA DNS Control Rules
       description: Cloud firewall DNS control rules (/firewallDnsRules)
       canvasTemplate: config-types/zia-firewall-dns-rules/canvas.yaml
@@ -199,6 +203,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zia-firewall-ips-rules
+      group: "ZIA · Policy Rules"
       name: ZIA IPS Control Rules
       description: Cloud firewall IPS control rules (/firewallIpsRules)
       canvasTemplate: config-types/zia-firewall-ips-rules/canvas.yaml
@@ -216,6 +221,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zia-ssl-inspection-rules
+      group: "ZIA · Policy Rules"
       name: ZIA SSL Inspection Rules
       description: TLS/SSL inspection rules (/sslInspectionRules)
       canvasTemplate: config-types/zia-ssl-inspection-rules/canvas.yaml
@@ -233,6 +239,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zia-file-type-rules
+      group: "ZIA · Policy Rules"
       name: ZIA File Type Control Rules
       description: File type control rules (/fileTypeRules)
       canvasTemplate: config-types/zia-file-type-rules/canvas.yaml
@@ -250,6 +257,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zia-sandbox-rules
+      group: "ZIA · Policy Rules"
       name: ZIA Sandbox Rules
       description: Sandbox / advanced threat policy rules (/sandboxRules)
       canvasTemplate: config-types/zia-sandbox-rules/canvas.yaml
@@ -267,6 +275,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zia-web-dlp-rules
+      group: "ZIA · Policy Rules"
       name: ZIA Web DLP Rules
       description: Web DLP rules (/webDlpRules)
       canvasTemplate: config-types/zia-web-dlp-rules/canvas.yaml
@@ -284,6 +293,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zia-network-services
+      group: "ZIA · Objects & Groups"
       name: ZIA Network Services
       description: Custom network services (/networkServices); predefined services are read-only
       canvasTemplate: config-types/zia-network-services/canvas.yaml
@@ -301,6 +311,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zia-network-service-groups
+      group: "ZIA · Objects & Groups"
       name: ZIA Network Service Groups
       description: Network service groups (/networkServiceGroups)
       canvasTemplate: config-types/zia-network-service-groups/canvas.yaml
@@ -318,6 +329,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zia-network-app-groups
+      group: "ZIA · Objects & Groups"
       name: ZIA Network Application Groups
       description: Network application groups (/networkApplicationGroups)
       canvasTemplate: config-types/zia-network-app-groups/canvas.yaml
@@ -335,6 +347,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zia-ip-source-groups
+      group: "ZIA · Objects & Groups"
       name: ZIA IP Source Groups
       description: IP source groups (/ipSourceGroups)
       canvasTemplate: config-types/zia-ip-source-groups/canvas.yaml
@@ -352,6 +365,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zia-ip-destination-groups
+      group: "ZIA · Objects & Groups"
       name: ZIA IP Destination Groups
       description: IP destination groups (/ipDestinationGroups)
       canvasTemplate: config-types/zia-ip-destination-groups/canvas.yaml
@@ -369,6 +383,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zia-dlp-dictionaries
+      group: "ZIA · DLP"
       name: ZIA DLP Dictionaries
       description: Custom DLP dictionaries (/dlpDictionaries); predefined dictionaries are read-only
       canvasTemplate: config-types/zia-dlp-dictionaries/canvas.yaml
@@ -386,6 +401,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zia-dlp-engines
+      group: "ZIA · DLP"
       name: ZIA DLP Engines
       description: Custom DLP engines (/dlpEngines); predefined engines are read-only
       canvasTemplate: config-types/zia-dlp-engines/canvas.yaml
@@ -403,6 +419,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zia-dlp-notification-templates
+      group: "ZIA · DLP"
       name: ZIA DLP Notification Templates
       description: DLP notification templates (/dlpNotificationTemplates)
       canvasTemplate: config-types/zia-dlp-notification-templates/canvas.yaml
@@ -420,6 +437,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zia-locations
+      group: "ZIA · Traffic Forwarding"
       name: ZIA Locations
       description: Locations (/locations)
       canvasTemplate: config-types/zia-locations/canvas.yaml
@@ -437,6 +455,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zia-vpn-credentials
+      group: "ZIA · Traffic Forwarding"
       name: ZIA VPN Credentials
       description: IPSec VPN credentials (/vpnCredentials); the pre-shared key is write-only
       canvasTemplate: config-types/zia-vpn-credentials/canvas.yaml
@@ -454,6 +473,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zia-gre-tunnels
+      group: "ZIA · Traffic Forwarding"
       name: ZIA GRE Tunnels
       description: GRE tunnels (/greTunnels)
       canvasTemplate: config-types/zia-gre-tunnels/canvas.yaml
@@ -471,6 +491,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zia-static-ips
+      group: "ZIA · Traffic Forwarding"
       name: ZIA Static IPs
       description: Static IP addresses (/staticIP)
       canvasTemplate: config-types/zia-static-ips/canvas.yaml
@@ -488,6 +509,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zia-admin-roles
+      group: "ZIA · Administration"
       name: ZIA Admin Roles
       description: Administrator roles (/adminRoles); built-in roles are protected
       canvasTemplate: config-types/zia-admin-roles/canvas.yaml
@@ -505,6 +527,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zia-admin-users
+      group: "ZIA · Administration"
       name: ZIA Admin Users
       description: Administrator users (/adminUsers); the password is write-only
       canvasTemplate: config-types/zia-admin-users/canvas.yaml
@@ -522,6 +545,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zia-rule-labels
+      group: "ZIA · Objects & Groups"
       name: ZIA Rule Labels
       description: Rule labels (/ruleLabels)
       canvasTemplate: config-types/zia-rule-labels/canvas.yaml
@@ -539,6 +563,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zpa-app-connector-groups
+      group: "ZPA · Infrastructure"
       name: ZPA App Connector Groups
       description: App Connector groups (/appConnectorGroup)
       canvasTemplate: config-types/zpa-app-connector-groups/canvas.yaml
@@ -556,6 +581,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zpa-service-edge-groups
+      group: "ZPA · Infrastructure"
       name: ZPA Service Edge Groups
       description: Private Service Edge groups (/serviceEdgeGroup)
       canvasTemplate: config-types/zpa-service-edge-groups/canvas.yaml
@@ -573,6 +599,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zpa-servers
+      group: "ZPA · Infrastructure"
       name: ZPA Servers
       description: Application servers (/server)
       canvasTemplate: config-types/zpa-servers/canvas.yaml
@@ -590,6 +617,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zpa-server-groups
+      group: "ZPA · Infrastructure"
       name: ZPA Server Groups
       description: Server groups (/serverGroup); reference app connector groups
       canvasTemplate: config-types/zpa-server-groups/canvas.yaml
@@ -607,6 +635,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zpa-segment-groups
+      group: "ZPA · Applications & Policy"
       name: ZPA Segment Groups
       description: Segment groups (/segmentGroup)
       canvasTemplate: config-types/zpa-segment-groups/canvas.yaml
@@ -624,6 +653,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zpa-application-segments
+      group: "ZPA · Applications & Policy"
       name: ZPA Application Segments
       description: Application segments (/application); reference segment + server groups
       canvasTemplate: config-types/zpa-application-segments/canvas.yaml
@@ -641,6 +671,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zpa-provisioning-keys
+      group: "ZPA · Infrastructure"
       name: ZPA Provisioning Keys
       description: Connector / Service-Edge provisioning keys; the key value is write-only
       canvasTemplate: config-types/zpa-provisioning-keys/canvas.yaml
@@ -658,6 +689,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: zpa-policy-rules
+      group: "ZPA · Applications & Policy"
       name: ZPA Policy Rules
       description: Access / timeout / forwarding / inspection / isolation policy rules (policySet model)
       canvasTemplate: config-types/zpa-policy-rules/canvas.yaml

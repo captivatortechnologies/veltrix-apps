@@ -1,6 +1,6 @@
 id: splunk-cloud
 name: Splunk Cloud Platform
-version: "1.8.9"
+version: "1.9.0"
 vendor: Veltrix
 description: >
   Manage Splunk Cloud Platform configurations as code through the
@@ -58,6 +58,7 @@ permissions:
 pipeline:
   configurationTypes:
     - id: indexes
+      group: "Data"
       name: Indexes
       description: Splunk Cloud index definitions (datatype, searchable retention, sizing, DDAA/DDSS archival)
       canvasTemplate: config-types/indexes/canvas.yaml
@@ -75,6 +76,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: hec-tokens
+      group: "Data"
       name: HEC Tokens
       description: HTTP Event Collector token definitions (default index, allowed indexes, acknowledgement)
       canvasTemplate: config-types/hec-tokens/canvas.yaml
@@ -92,6 +94,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: ip-allowlists
+      group: "Network & Access"
       name: IP Allow Lists
       description: Per-feature IP allow lists (search-api, hec, s2s, search-ui, idm-ui, idm-api, acs)
       canvasTemplate: config-types/ip-allowlists/canvas.yaml
@@ -109,6 +112,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: outbound-ports
+      group: "Network & Access"
       name: Outbound Ports
       description: Outbound connectivity rules — the destination subnets the stack may open connections to from a given port (e.g. 8089 for federated search / S2S)
       canvasTemplate: config-types/outbound-ports/canvas.yaml
@@ -126,6 +130,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: limits
+      group: "System Settings"
       name: limits.conf Settings
       description: ACS-editable limits.conf settings (join, kv, pdf, scheduler, searchresults, spath, subsearch) managed as code via the ACS /adminconfig/v2/limits endpoint
       canvasTemplate: config-types/limits/canvas.yaml
@@ -143,6 +148,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: maintenance-windows
+      group: "System Settings"
       name: Maintenance Windows
       description: >
         Customer-initiated change-freeze policy (a UTC date range holding
@@ -163,6 +169,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: ddss-self-storage
+      group: "Data"
       name: DDSS Self Storage
       description: >
         Dynamic Data Self Storage locations — register customer-owned S3 (AWS) or
@@ -183,6 +190,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: app-permissions
+      group: "Apps"
       name: App Permissions
       description: >
         App read/write permissions — which roles can view/run (read) and edit
@@ -203,6 +211,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: apps
+      group: "Apps"
       name: Splunk Apps
       description: >
         Splunk Cloud private apps and add-ons — authored as files, built to a .spl,
@@ -231,6 +240,7 @@ pipeline:
     # (closed by default), and the caller's IP must be on the stack's `search-api`
     # IP allow list — which the `ip-allowlists` type above manages.
     - id: roles
+      group: "Access Control"
       name: Roles
       description: >
         Splunk Cloud roles (capabilities, inherited roles, searchable indexes,
@@ -259,6 +269,7 @@ pipeline:
     # `search-api` allow list). Passwords are intentionally out of scope: this
     # manages role assignment + attributes for EXISTING users only.
     - id: users
+      group: "Access Control"
       name: Users
       description: >
         Splunk Cloud user role assignment and attributes (roles, email, full name,
@@ -280,6 +291,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: authentication-tokens
+      group: "Access Control"
       name: Authentication Token Settings
       description: >
         Stack-wide token-authentication settings (enablement and default token
@@ -306,6 +318,7 @@ pipeline:
     # server-side path with no inline-cert REST param), and globally enabling SAML
     # as the stack auth scheme is a separate Splunk Web step.
     - id: sso
+      group: "Access Control"
       name: SAML SSO
       description: >
         SAML single-sign-on identity provider configuration (entity ID, IdP SSO/SLO
