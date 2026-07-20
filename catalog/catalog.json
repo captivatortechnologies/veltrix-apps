@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-20T17:48:45.933Z",
+  "generatedAt": "2026-07-20T19:52:12.162Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -172,7 +172,7 @@
     {
       "appId": "okta-identity",
       "name": "Okta",
-      "version": "1.7.0",
+      "version": "1.7.1",
       "vendor": "Veltrix",
       "description": "Manage Okta configuration as code through the Okta Management API. Covers policies and their rules, group rules, groups, network zones, trusted origins, behavior rules, authenticators, identity providers, event / inline hooks, authorization servers (scopes / claims / policies), applications and group assignments, plus security and IAM governance — ThreatInsight, log streams, device assurance policies, user types, custom admin roles with resource sets and their role bindings, custom profile-schema attributes and profile mappings, self-service feature toggles, CAPTCHA, user linked-object definitions, org rate-limit settings, brands and their themes, custom email domains and SMS templates — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
@@ -182,11 +182,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/okta-identity",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/okta-identity-v1.7.0/okta-identity.zip",
-      "sha256": "a517338144a69663fae1e09cc7300df75475e94a7a51d06125f4bd09fefbd76a",
-      "sizeBytes": 798336,
-      "publishedAt": "2026-07-20T17:48:45.908Z",
-      "releaseNotes": "## 1.7.0 — 2026-07-20\n\n### Changed\n- Grouped the **Configurations** sidebar into 10 collapsible sections — Policies\n  & Rules, Authentication, Directory, Applications, Authorization Servers,\n  Network & Security, IAM Governance, Profile & Schema, Integrations, and\n  Branding & Notifications — so all 32 configuration types stay navigable.\n  Sections collapse by default, remember whether you left them open, and always\n  expand the one you're currently working in.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/okta-identity-v1.7.1/okta-identity.zip",
+      "sha256": "d77efda9d430c41ade88e333b4eb10f9bc3c4a5c4ac5ad27eeb56493cb14a384",
+      "sizeBytes": 799434,
+      "publishedAt": "2026-07-20T19:52:12.135Z",
+      "releaseNotes": "## 1.7.1 — 2026-07-20\n\n### Fixed\n- Saving a Connection now also registers its **deploy target** (an `okta-org`\n  component whose hostname is the connection's endpoint, linked to the\n  credential and environment). Previously a connection created only a credential,\n  so Deploy stayed disabled (\"register an okta-org connection to deploy\") even\n  though the connection tested green. Re-saving an existing connection back-fills\n  its target. Requires app-sdk ≥ 3.3.0.",
       "releasedAt": "2026-07-20T00:00:00.000Z"
     },
     {
