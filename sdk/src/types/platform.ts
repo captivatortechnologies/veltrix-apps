@@ -275,6 +275,30 @@ export interface AppEventPublisher {
 }
 
 /**
+ * A tenant Connection (a stored {@link Credential}) resolved to its DECRYPTED
+ * secret + endpoint, returned by {@link AppRouteContext.resolveConnection}.
+ *
+ * SERVER-SIDE ONLY. The secret fields (`password` / `apiToken` / `certificate`)
+ * are in the clear — use them to reach the connected system from a route, and
+ * NEVER return them to the client or log them.
+ */
+export interface ResolvedConnection {
+  id: string
+  /** Human-readable connection label. */
+  name: string
+  /** API base URL / management endpoint (non-secret), or null. */
+  endpoint: string | null
+  /** Account / client id the credential authenticates as. */
+  username: string
+  /** Decrypted password (empty string for token-only connections). */
+  password: string
+  /** Decrypted API token, or null. */
+  apiToken: string | null
+  /** Decrypted client certificate, or null. */
+  certificate: string | null
+}
+
+/**
  * Context passed to an app's server route module (the `server.entry`
  * declared in manifest.yaml). The platform mounts the module as a Fastify
  * plugin under `/api/apps/<appId>` with auth + app-enabled checks applied;
@@ -293,4 +317,15 @@ export interface AppRouteContext {
    * pass it straight into a route's `preHandler` array.
    */
   hasPermission: (resource: string, action: string) => any
+  /**
+   * Resolve one of the tenant's Connections (a stored Credential, by id) to its
+   * DECRYPTED secret + endpoint, so a route can reach the connected system
+   * WITHOUT re-implementing the platform's credential decryption or querying
+   * platform tables directly. Scoped to `customerId` (the tenant boundary);
+   * returns null when no matching connection exists. The decrypted secret stays
+   * server-side — never send it to the client. Pass a `credentialId` the app
+   * obtained from its own connections list (e.g. the SDK `listCredentials`
+   * helper), mirroring the platform's own "test connection" resolution.
+   */
+  resolveConnection: (customerId: string, credentialId: string) => Promise<ResolvedConnection | null>
 }
