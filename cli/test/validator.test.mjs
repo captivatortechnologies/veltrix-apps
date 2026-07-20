@@ -360,6 +360,43 @@ test('canvas: multiselect defaultValue entries must be option values', () => {
   assert.equal(errorsMatching(result, /"turbo" is not one of its option values/).length, 1)
 })
 
+// --- Conditional visibility (visibleWhen) + locked keyvalue (lockKeys) --------
+
+const withVisibleWhen = (body) =>
+  ITEM_CANVAS.replace(
+    '          fieldType: number\n          defaultValue: 100\n',
+    `          fieldType: number\n          defaultValue: 100\n${body}`,
+  )
+
+test('canvas: a visibleWhen referencing a sibling field passes clean', () => {
+  const canvas = withVisibleWhen('          visibleWhen:\n            field: mode\n            equals: fast\n')
+  const result = validateApp(makeApp({ 'config-types/configs/canvas.yaml': canvas }))
+  assert.deepEqual(errorsMatching(result, /visibleWhen/), [])
+})
+
+test('canvas: visibleWhen referencing an unknown field is an error', () => {
+  const canvas = withVisibleWhen('          visibleWhen:\n            field: ghost\n            equals: fast\n')
+  const result = validateApp(makeApp({ 'config-types/configs/canvas.yaml': canvas }))
+  assert.equal(errorsMatching(result, /visibleWhen\.field "ghost" does not match/).length, 1)
+})
+
+test('canvas: visibleWhen with both equals and in is an error', () => {
+  const canvas = withVisibleWhen(
+    '          visibleWhen:\n            field: mode\n            equals: fast\n            in: [fast]\n',
+  )
+  const result = validateApp(makeApp({ 'config-types/configs/canvas.yaml': canvas }))
+  assert.equal(errorsMatching(result, /visibleWhen must set exactly one of/).length, 1)
+})
+
+test('canvas: lockKeys on a non-keyvalue field is an error', () => {
+  const canvas = ITEM_CANVAS.replace(
+    '          fieldType: text\n          required: true',
+    '          fieldType: text\n          required: true\n          lockKeys: true',
+  )
+  const result = validateApp(makeApp({ 'config-types/configs/canvas.yaml': canvas }))
+  assert.equal(errorsMatching(result, /lockKeys only applies to a "keyvalue"/).length, 1)
+})
+
 test('settings: select default must be an option value', () => {
   const manifest =
     MANIFEST +

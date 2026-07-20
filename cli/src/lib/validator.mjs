@@ -775,6 +775,23 @@ function validateCanvasItem(item, label, err, warn) {
     })
   })
 
+  // A field's visibleWhen must reference a sibling field key declared in the item.
+  for (const [key, field] of fields) {
+    const cond = field?.visibleWhen
+    if (
+      cond &&
+      typeof cond === 'object' &&
+      typeof cond.field === 'string' &&
+      cond.field.trim() &&
+      !fields.has(cond.field)
+    ) {
+      err(
+        `canvas: ${label} field "${key}".visibleWhen.field "${cond.field}" does not match any ` +
+          'field key declared in the item',
+      )
+    }
+  }
+
   if (item.identityField !== undefined) {
     const id = item.identityField
     if (typeof id !== 'string' || !id.trim()) {
@@ -887,6 +904,37 @@ function validateCanvasField(field, fLabel, err, warn) {
     }
     if (typeof v.min === 'number' && typeof v.max === 'number' && v.min > v.max) {
       err(`canvas: ${fLabel}.validation has min (${v.min}) greater than max (${v.max})`)
+    }
+  }
+
+  // visibleWhen — conditional visibility keyed on a sibling field's value.
+  // Shape only here; the sibling-key reference is checked in validateCanvasItem
+  // (which knows every field key in the item).
+  const vw = field?.visibleWhen
+  if (vw !== undefined) {
+    if (!vw || typeof vw !== 'object' || Array.isArray(vw)) {
+      err(`canvas: ${fLabel}.visibleWhen must be an object, e.g. { field: "mode", equals: "json" }`)
+    } else {
+      if (typeof vw.field !== 'string' || !vw.field.trim()) {
+        err(`canvas: ${fLabel}.visibleWhen.field must be the key of a sibling field`)
+      }
+      const hasEquals = vw.equals !== undefined
+      const hasIn = vw.in !== undefined
+      if (hasEquals === hasIn) {
+        err(`canvas: ${fLabel}.visibleWhen must set exactly one of "equals" or "in"`)
+      }
+      if (hasIn && (!Array.isArray(vw.in) || vw.in.length === 0)) {
+        err(`canvas: ${fLabel}.visibleWhen.in must be a non-empty array of values`)
+      }
+    }
+  }
+
+  // lockKeys — read-only keys (edit values only); only meaningful on keyvalue.
+  if (field?.lockKeys !== undefined) {
+    if (typeof field.lockKeys !== 'boolean') {
+      err(`canvas: ${fLabel}.lockKeys must be a boolean`)
+    } else if (field.lockKeys && field.fieldType !== 'keyvalue') {
+      err(`canvas: ${fLabel}.lockKeys only applies to a "keyvalue" field (got "${field.fieldType}")`)
     }
   }
 }
