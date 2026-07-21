@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-21T15:49:39.608Z",
+  "generatedAt": "2026-07-21T16:05:11.704Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -172,7 +172,7 @@
     {
       "appId": "okta-identity",
       "name": "Okta",
-      "version": "1.8.0",
+      "version": "1.8.1",
       "vendor": "Veltrix",
       "description": "Manage Okta configuration as code through the Okta Management API. Covers policies and their rules, group rules, groups, network zones, trusted origins, behavior rules, authenticators, identity providers, event / inline hooks, authorization servers (scopes / claims / policies), applications and group assignments, plus security and IAM governance — ThreatInsight, log streams, device assurance policies, user types, custom admin roles with resource sets and their role bindings, custom profile-schema attributes and profile mappings, self-service feature toggles, CAPTCHA, user linked-object definitions, org rate-limit settings, brands and their themes, custom email domains and SMS templates — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
@@ -182,11 +182,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/okta-identity",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/okta-identity-v1.8.0/okta-identity.zip",
-      "sha256": "b2660f9a1d563ec13364ea5897ce277febb9018430391ecbf34a8fd8927d362e",
-      "sizeBytes": 806323,
-      "publishedAt": "2026-07-21T15:49:39.586Z",
-      "releaseNotes": "## 1.8.0 — 2026-07-21\n\n### Added\n- **Live group picker** for a policy's *Scoped Groups* (`groupIncludeIds`). The\n  field now lists the connected org's real OKTA_GROUP groups (name shown, id\n  stored) with type-to-search, instead of free-text group ids — so you can't\n  reference a group that doesn't exist. Powered by a new generic options\n  provider (`config-types/lib/oktaOptions`) run server-side against the\n  connection. Requires app-sdk ≥ 3.4.0.\n- **Live pre-validation of scoped group ids.** Validate now verifies each\n  referenced policy group id exists in the target Okta org and fails cleanly\n  (\"group … not found\") *before* a deploy, instead of surfacing the 404\n  mid-deploy. Best-effort — validate stays static-only when no connection is\n  registered.\n\n### Changed\n- **Rename-safe group identity.** Group deploy now records each group's Okta id\n  per canvas item and matches by that stored id on the next deploy — so renaming\n  a group's **Name** updates the *same* Okta group in place instead of creating\n  a duplicate and orphaning the old one. Falls back to name matching for the\n  first deploy or when a stored id no longer resolves.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/okta-identity-v1.8.1/okta-identity.zip",
+      "sha256": "ddf74dc0a503d39cd747aaab784ba21071cc4a567e8f5eeccbbb0f92cebffb7b",
+      "sizeBytes": 807684,
+      "publishedAt": "2026-07-21T16:05:11.680Z",
+      "releaseNotes": "## 1.8.1 — 2026-07-21\n\n### Changed\n- **Rename-safe policy identity.** Policy deploy now records each policy's Okta id\n  per canvas item and matches by that stored id (verifying the immutable policy\n  type) on the next deploy — so renaming a policy's **Name** updates the *same*\n  Okta policy in place instead of creating a duplicate. Falls back to (type, name)\n  matching for the first deploy. Completes the rename-safe identity started for\n  groups in 1.8.0.",
       "releasedAt": "2026-07-21T00:00:00.000Z"
     },
     {
