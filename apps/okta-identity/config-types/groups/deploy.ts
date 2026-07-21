@@ -60,6 +60,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   // canvas item id -> okta group id, persisted in rollbackData so the NEXT deploy
   // matches (and can rename) the same group by id instead of creating a duplicate.
   const resourceIds: Record<string, string> = {}
+  const warnings: string[] = []
   const priorResourceIds = await readPriorResourceIds(ctx)
 
   try {
@@ -140,10 +141,23 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       // never read or write membership.
       if (spec.manageMembership) {
         const current = await getCurrentMemberIds(client, groupId)
-        // Attach the prior member set to the (already-pushed) rollback entry.
-        const entry = rollbackState[rollbackState.length - 1]
-        entry.priorMembers = current
-        await reconcileMembership(client, groupId, spec, current)
+        if (current === null) {
+          // The resolved group can't be read (404) — a stale/duplicate id that
+          // resolved on GET but isn't live for member ops, or a group still
+          // settling in Okta after a delete. Deploy the profile but skip
+          // membership rather than failing the whole batch; drop the stale id so
+          // the next deploy re-matches this item to a live group by name.
+          if (spec.itemId) delete resourceIds[spec.itemId]
+          warnings.push(
+            `membership for "${spec.name}" was not applied: group ${groupId} could not be read ` +
+              `(it may have been deleted or is still settling in Okta). Re-deploy to apply membership.`,
+          )
+        } else {
+          // Attach the prior member set to the (already-pushed) rollback entry.
+          const entry = rollbackState[rollbackState.length - 1]
+          entry.priorMembers = current
+          await reconcileMembership(client, groupId, spec, current)
+        }
       }
 
       deployed.push(spec.name)
@@ -151,8 +165,10 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
 
     return {
       success: true,
-      message: `Deployed ${deployed.length} group(s) to Okta org at ${baseUrl}: ${deployed.join(', ')}`,
-      artifacts: { baseUrl, deployedGroups: deployed },
+      message:
+        `Deployed ${deployed.length} group(s) to Okta org at ${baseUrl}: ${deployed.join(', ')}` +
+        (warnings.length ? ` — ${warnings.length} warning(s): ${warnings.join('; ')}` : ''),
+      artifacts: { baseUrl, deployedGroups: deployed, warnings },
       // resourceIds carries the item->group-id identity map forward (rename-safe).
       rollbackData: { previousState: rollbackState, createdIds, resourceIds },
     }
@@ -240,8 +256,15 @@ export async function findConflictingGroup(client: OktaClient, name: string): Pr
  * NOTE: rule-assigned members also appear here — see driftDetect / the canvas
  * warning; they cannot be removed via this API.
  */
-export async function getCurrentMemberIds(client: OktaClient, groupId: string): Promise<string[]> {
-  const res = await client.request('GET', `/groups/${groupId}/users`, { query: { limit: MEMBER_READ_LIMIT } })
+export async function getCurrentMemberIds(client: OktaClient, groupId: string): Promise<string[] | null> {
+  const res = await client.request('GET', `/groups/${encodeURIComponent(groupId)}/users`, {
+    query: { limit: MEMBER_READ_LIMIT },
+  })
+  // A 404 means the group id no longer resolves to a live group (deleted, or a
+  // stale/duplicate id still settling in Okta). Signal that with null so callers
+  // can skip membership for just this group instead of failing the whole deploy;
+  // other errors are still real failures.
+  if (res.status === 404) return null
   if (!res.ok) {
     throw new Error(`Failed to list members of group ${groupId}: ${oktaErrorMessage(res)}`)
   }

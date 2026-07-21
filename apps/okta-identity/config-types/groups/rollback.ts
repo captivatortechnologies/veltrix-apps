@@ -76,7 +76,9 @@ async function restoreMembership(
   priorMembers: string[],
 ): Promise<void> {
   const desired = new Set(priorMembers)
-  const current = await getCurrentMemberIds(client, groupId)
+  // null = group not found (404); treat as empty so rollback still attempts to
+  // restore the prior members rather than crashing on the read.
+  const current = (await getCurrentMemberIds(client, groupId)) ?? []
   const currentSet = new Set(current)
 
   // Re-add members that were present before the deploy.

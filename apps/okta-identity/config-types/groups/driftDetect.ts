@@ -67,7 +67,9 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     if (spec.manageMembership && live.id) {
       try {
         const current = await getCurrentMemberIds(client, live.id)
-        if (!sameSet(spec.memberUserIds, current)) {
+        // null = the group could not be read (404); skip the membership-drift check
+        // rather than reporting a spurious diff against an empty set.
+        if (current !== null && !sameSet(spec.memberUserIds, current)) {
           diffs.push({
             field: `${spec.name}.members`,
             expected: spec.memberUserIds.slice().sort().join(', ') || 'none',

@@ -3,6 +3,19 @@
 All notable changes to the Okta app are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## 1.8.2 — 2026-07-21
+
+### Fixed
+- **A stale group id no longer fails the whole Groups deploy.** When a group's
+  stored Okta id resolved on read but was not live for member operations (a
+  deleted/duplicate id, or one still settling in Okta), membership listing
+  returned `404 Resource not found (UserGroup)` and aborted the entire batch
+  ("0 of N groups"). Membership now treats that 404 as "group not readable":
+  the group's profile still deploys, membership is skipped for just that group
+  with a warning in the result, and the stale id is dropped so the next deploy
+  re-matches the item to a live group by name. Drift-detection and rollback
+  tolerate the same 404 instead of throwing.
+
 ## 1.8.1 — 2026-07-21
 
 ### Changed
