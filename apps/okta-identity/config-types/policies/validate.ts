@@ -43,6 +43,9 @@ export const POLICY_READONLY_FIELDS = [
 
 export interface PolicySpec {
   sectionName: string
+  /** Stable canvas item id — survives renames; used to match a live policy by the
+   *  external id stored from the prior deploy (rename-safe identity). */
+  itemId?: string
   /** Policy type — OKTA_SIGN_ON | PASSWORD | MFA_ENROLL; part of the identity. */
   type: string
   /** Policy name — the other half of the (type, name) logical identity. */
@@ -116,6 +119,7 @@ export function extractPolicySpecs(canvas: CanvasSnapshot): PolicySpec[] {
 
     return {
       sectionName: section.name,
+      itemId: section.id,
       type: typeof fields.type === 'string' ? fields.type.trim() : '',
       name: typeof fields.name === 'string' ? fields.name.trim() : '',
       description,

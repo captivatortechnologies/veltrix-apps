@@ -3,6 +3,16 @@
 All notable changes to the Okta app are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## 1.8.1 — 2026-07-21
+
+### Changed
+- **Rename-safe policy identity.** Policy deploy now records each policy's Okta id
+  per canvas item and matches by that stored id (verifying the immutable policy
+  type) on the next deploy — so renaming a policy's **Name** updates the *same*
+  Okta policy in place instead of creating a duplicate. Falls back to (type, name)
+  matching for the first deploy. Completes the rename-safe identity started for
+  groups in 1.8.0.
+
 ## 1.8.0 — 2026-07-21
 
 ### Added

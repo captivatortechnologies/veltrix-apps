@@ -61,6 +61,10 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const rollbackState: PolicyRollbackEntry[] = []
   const createdPolicyIds: string[] = []
   const deployed: string[] = []
+  // canvas item id -> okta policy id, persisted in rollbackData so the NEXT deploy
+  // matches (and can rename) the same policy by id instead of creating a duplicate.
+  const resourceIds: Record<string, string> = {}
+  const priorResourceIds = await readPriorResourceIds(ctx)
 
   try {
     for (const spec of specs) {
@@ -71,7 +75,18 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       const settings = resolveSettings(spec)
       const rules = resolveRules(spec, label)
 
-      const existing = await findPolicy(client, spec.type, spec.name)
+      // Match order: (1) the external id stored for this canvas item on the last
+      // deploy — RENAME-SAFE: a name change still updates the SAME policy; the
+      // fetched policy must be the same (immutable) type. (2) by (type, name) for
+      // the first deploy / items with no stored id (or a stale stored id).
+      let existing: LivePolicy | null = null
+      const priorId = spec.itemId ? priorResourceIds[spec.itemId] : undefined
+      if (priorId) {
+        existing = await getPolicyById(client, priorId, spec.type)
+      }
+      if (!existing) {
+        existing = await findPolicy(client, spec.type, spec.name)
+      }
 
       let policyId: string
       let priorStatus: string | undefined
@@ -111,6 +126,9 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
 
       rollbackState.push(entry)
 
+      // Remember the resolved id for this canvas item (rename-safe next deploy).
+      if (spec.itemId) resourceIds[spec.itemId] = policyId
+
       // Move to the desired status via lifecycle (status transitions are NOT
       // done through the policy body). Compare against the pre-change status.
       await reconcileStatus(client, policyId, priorStatus, spec.status || 'ACTIVE', label)
@@ -127,7 +145,8 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       success: true,
       message: `Deployed ${deployed.length} policy(ies) to Okta org at ${baseUrl}: ${deployed.join(', ')}`,
       artifacts: { baseUrl, deployedPolicies: deployed },
-      rollbackData: { previousState: rollbackState, createdPolicyIds },
+      // resourceIds carries the item->policy-id identity map forward (rename-safe).
+      rollbackData: { previousState: rollbackState, createdPolicyIds, resourceIds },
     }
   } catch (error) {
     return {
@@ -137,7 +156,12 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       }`,
       artifacts: { baseUrl, deployedPolicies: deployed },
       // Partial rollback data lets the platform revert what was already applied.
-      rollbackData: { previousState: rollbackState, createdPolicyIds },
+      // Carry forward the ids resolved so far so a retry stays rename-safe.
+      rollbackData: {
+        previousState: rollbackState,
+        createdPolicyIds,
+        resourceIds: { ...priorResourceIds, ...resourceIds },
+      },
     }
   }
 }
@@ -166,6 +190,37 @@ export async function findPolicy(
     )
   }
   return res.items.find((p) => p.name === name) ?? null
+}
+
+/**
+ * Read the canvas-item-id -> policy-id map this canvas stored on its last
+ * SUCCEEDED deploy (rollbackData.resourceIds), so a rename can update the same
+ * policy by id. Best-effort — {} when there is no prior deploy or the read fails.
+ */
+async function readPriorResourceIds(ctx: DeployContext): Promise<Record<string, string>> {
+  try {
+    const prior = await ctx.platform.getLatestDeployment(ctx.canvas.canvasId, { status: 'SUCCEEDED' })
+    const rb = prior?.rollbackData as { resourceIds?: Record<string, string> } | undefined
+    return rb?.resourceIds ?? {}
+  } catch {
+    return {}
+  }
+}
+
+/**
+ * Fetch a policy by id, returning it only when it exists and is the expected
+ * (immutable) type. Returns null on 404 / any non-ok / a type mismatch, so a
+ * stale or repurposed stored id cleanly falls back to (type, name) matching.
+ */
+async function getPolicyById(
+  client: OktaClient,
+  id: string,
+  expectedType: string,
+): Promise<LivePolicy | null> {
+  const res = await client.request('GET', `/policies/${encodeURIComponent(id)}`)
+  if (!res.ok) return null
+  const policy = parseJson<LivePolicy>(res.body)
+  return policy && policy.id && policy.type === expectedType ? policy : null
 }
 
 /** List every rule under a policy (following pagination). */
