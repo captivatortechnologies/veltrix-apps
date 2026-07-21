@@ -145,6 +145,23 @@ function hostFromEndpoint(endpoint: string): string {
 }
 
 /**
+ * Port portion of an endpoint URL — an explicit port if present, else the
+ * scheme default (443 for https, 80 for http). The platform's component create
+ * schema requires `port`, so a deploy target always needs one.
+ */
+function portFromEndpoint(endpoint: string): string {
+  const trimmed = (endpoint || '').trim()
+  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+  try {
+    const url = new URL(withScheme)
+    if (url.port) return url.port
+    return url.protocol === 'http:' ? '80' : '443'
+  } catch {
+    return '443'
+  }
+}
+
+/**
  * Ensure a deploy-target Component exists for a just-saved connection. A
  * connection is only a credential; deploying requires a Component whose `type`
  * includes the app's componentType (the deploy engine reads its hostname for the
@@ -172,6 +189,7 @@ async function ensureConnectionComponent(params: {
   )
   const input = {
     hostname,
+    port: portFromEndpoint(params.endpoint),
     type: [params.componentType],
     toolId: params.toolId,
     credentialId: params.credentialId,
