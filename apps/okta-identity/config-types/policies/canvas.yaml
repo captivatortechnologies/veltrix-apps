@@ -90,12 +90,15 @@ item:
             activate/deactivate lifecycle endpoints, not by editing other fields.
 
         - key: "groupIncludeIds"
-          label: "Scoped Group IDs"
-          fieldType: "tags"
+          label: "Scoped Groups"
+          fieldType: "remote-multiselect"
+          optionsSource: "groups"
+          optionsMulti: true
           helpText: >
-            Okta group IDs (e.g. 00g1abc...) this policy applies to — becomes the
-            policy condition people.groups.include. Leave empty to apply to all
-            users. These are group IDs, not names.
+            The Okta groups this policy applies to — becomes the policy condition
+            people.groups.include. Pick from the connected org's live groups (the
+            group name is shown, its id is stored); type to search. Leave empty to
+            apply to all users. Requires a saved connection to load the group list.
 
     - name: "Settings"
       icon: "sliders"

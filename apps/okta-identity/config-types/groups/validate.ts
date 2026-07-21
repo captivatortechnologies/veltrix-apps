@@ -19,6 +19,9 @@ export const RESERVED_GROUP_NAMES = ['everyone']
 
 export interface GroupSpec {
   sectionName: string
+  /** Stable canvas item id — survives renames; used to match a live group by the
+   *  external id stored from the prior deploy (rename-safe identity). */
+  itemId?: string
   /** Group name — profile.name; the logical identity live groups are matched on. */
   name: string
   description?: string
@@ -85,6 +88,7 @@ export function extractGroupSpecs(canvas: CanvasSnapshot): GroupSpec[] {
 
     return {
       sectionName: section.name,
+      itemId: section.id,
       name: typeof fields.name === 'string' ? fields.name.trim() : '',
       description,
       manageMembership: coerceBoolean(fields.manageMembership, false),

@@ -57,6 +57,10 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const rollbackState: GroupRollbackEntry[] = []
   const createdIds: string[] = []
   const deployed: string[] = []
+  // canvas item id -> okta group id, persisted in rollbackData so the NEXT deploy
+  // matches (and can rename) the same group by id instead of creating a duplicate.
+  const resourceIds: Record<string, string> = {}
+  const priorResourceIds = await readPriorResourceIds(ctx)
 
   try {
     // List every OKTA_GROUP once; match candidates in memory by profile.name.
@@ -68,7 +72,18 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         throw new Error(`Refusing to manage reserved built-in group "${spec.name}"`)
       }
 
-      const existing = findGroupByName(oktaGroups, spec.name)
+      // Match order: (1) the external id stored for this canvas item on the last
+      // deploy — RENAME-SAFE: a name change still updates the SAME group; (2) by
+      // profile.name for the first deploy / items with no stored id (or whose
+      // stored id no longer resolves to a live OKTA_GROUP).
+      let existing: LiveGroup | null = null
+      const priorId = spec.itemId ? priorResourceIds[spec.itemId] : undefined
+      if (priorId) {
+        existing = await getGroupById(client, priorId)
+      }
+      if (!existing) {
+        existing = findGroupByName(oktaGroups, spec.name)
+      }
       let groupId: string
 
       if (existing?.id) {
@@ -118,6 +133,9 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         })
       }
 
+      // Remember the resolved id for this canvas item (rename-safe next deploy).
+      if (spec.itemId) resourceIds[spec.itemId] = groupId
+
       // Membership is OPT-IN. Only reconcile when explicitly enabled; when off,
       // never read or write membership.
       if (spec.manageMembership) {
@@ -135,7 +153,8 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       success: true,
       message: `Deployed ${deployed.length} group(s) to Okta org at ${baseUrl}: ${deployed.join(', ')}`,
       artifacts: { baseUrl, deployedGroups: deployed },
-      rollbackData: { previousState: rollbackState, createdIds },
+      // resourceIds carries the item->group-id identity map forward (rename-safe).
+      rollbackData: { previousState: rollbackState, createdIds, resourceIds },
     }
   } catch (error) {
     return {
@@ -145,7 +164,12 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       }`,
       artifacts: { baseUrl, deployedGroups: deployed },
       // Partial rollback data lets the platform revert what was already applied.
-      rollbackData: { previousState: rollbackState, createdIds },
+      // Carry forward the ids resolved so far so a retry stays rename-safe.
+      rollbackData: {
+        previousState: rollbackState,
+        createdIds,
+        resourceIds: { ...priorResourceIds, ...resourceIds },
+      },
     }
   }
 }
@@ -168,6 +192,33 @@ export async function listOktaGroups(client: OktaClient): Promise<LiveGroup[]> {
 /** Find an OKTA_GROUP by exact profile.name; null when absent. */
 export function findGroupByName(groups: LiveGroup[], name: string): LiveGroup | null {
   return groups.find((g) => g.type === OKTA_GROUP_TYPE && g.profile?.name === name) ?? null
+}
+
+/**
+ * Read the canvas-item-id -> group-id map this canvas stored on its last
+ * SUCCEEDED deploy (rollbackData.resourceIds), so a rename can update the same
+ * group by id. Best-effort — {} when there is no prior deploy or the read fails.
+ */
+async function readPriorResourceIds(ctx: DeployContext): Promise<Record<string, string>> {
+  try {
+    const prior = await ctx.platform.getLatestDeployment(ctx.canvas.canvasId, { status: 'SUCCEEDED' })
+    const rb = prior?.rollbackData as { resourceIds?: Record<string, string> } | undefined
+    return rb?.resourceIds ?? {}
+  } catch {
+    return {}
+  }
+}
+
+/**
+ * Fetch a group by id, returning it only when it is a live OKTA_GROUP. Returns
+ * null on 404 / any non-ok / a non-OKTA_GROUP, so a stale or repurposed stored id
+ * cleanly falls back to name matching.
+ */
+async function getGroupById(client: OktaClient, id: string): Promise<LiveGroup | null> {
+  const res = await client.request('GET', `/groups/${encodeURIComponent(id)}`)
+  if (!res.ok) return null
+  const group = parseJson<LiveGroup>(res.body)
+  return group && group.id && group.type === OKTA_GROUP_TYPE ? group : null
 }
 
 /**

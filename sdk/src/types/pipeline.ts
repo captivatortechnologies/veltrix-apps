@@ -174,6 +174,13 @@ export interface DeploymentSummary {
   startedAt: string
   completedAt: string | null
   environment: EnvironmentRef
+  /**
+   * The app-owned rollback/identity data this deployment stored (DeployResult
+   * .rollbackData). A deploy handler reads its OWN prior data here — e.g. the
+   * external ids it assigned per canvas item — so the next deploy can match
+   * existing objects by stable id (supporting rename) instead of by name.
+   */
+  rollbackData?: unknown
 }
 
 /**
@@ -234,7 +241,53 @@ export interface PipelineContext {
    * Optional so existing BYO-secret handlers and contexts are unaffected.
    */
   identity?: IdentityBroker
+  /**
+   * The resolved deploy target + decrypted credential for this config type's
+   * environment, when a connection exists. Present on deploy/rollback/etc. (where
+   * they are required), and now ALSO provided (best-effort) to `validate` so a
+   * validator can do LIVE checks against the target system (e.g. verifying a
+   * referenced id exists) — see the okta-identity live group-id validation.
+   * Both are optional/null on the base context: validate must still work with no
+   * connection (static-only), and a handler must null-check before using them.
+   */
+  component?: ComponentRef | null
+  credential?: CredentialRef | null
 }
+
+// --- Options providers (live field options for the config canvas) ---
+
+/** One selectable option returned by an app's options provider. */
+export interface OptionItem {
+  /** The stored value (e.g. an Okta group id). */
+  value: string
+  /** The human label shown in the picker (e.g. the group name). */
+  label: string
+  /** Optional secondary text (e.g. the id, a type, a description). */
+  description?: string
+}
+
+/**
+ * Context for an app "options provider" — the handler that powers a live
+ * `remote-multiselect` config field. The platform resolves the connection
+ * (decrypted credential + component) for the app/config type's environment and
+ * runs the provider in-process, so it can call the target system directly.
+ */
+export interface OptionsProviderContext {
+  appId: string
+  customerId: string
+  configTypeId: string
+  /** Which option set the field asked for — the field's `optionsSource`. */
+  source: string
+  /** Optional free-text search entered in the field. */
+  query?: string
+  component: ComponentRef | null
+  credential: CredentialRef | null
+  settings: Record<string, unknown>
+  identity?: IdentityBroker
+}
+
+/** An app handler that returns live options for a `remote-multiselect` field. */
+export type OptionsProvider = (ctx: OptionsProviderContext) => Promise<OptionItem[]>
 
 export interface DeployContext extends PipelineContext {
   component: ComponentRef

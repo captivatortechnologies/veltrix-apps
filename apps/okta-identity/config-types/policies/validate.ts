@@ -1,6 +1,10 @@
 import type { CanvasSnapshot, PipelineContext, ValidationResult } from '@veltrixsecops/app-sdk'
+import { buildOktaClient } from '../../lib/okta'
 
 // --- Okta Policies API constraints -------------------------------------------
+
+/** Upper bound on live group-existence checks per validate, to bound latency. */
+export const MAX_LIVE_GROUP_CHECKS = 50
 
 /** The three policy types this config type manages (canvas select values). */
 export const POLICY_TYPES = ['OKTA_SIGN_ON', 'PASSWORD', 'MFA_ENROLL'] as const
@@ -336,6 +340,43 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
         })
       }
       seenPairs.add(key)
+    }
+  }
+
+  // Live pre-validation: when a connection is available (validate now receives the
+  // resolved credential + component best-effort), verify every referenced Scoped
+  // Group ID actually exists in the target Okta org — so a bad id fails cleanly at
+  // Validate instead of mid-deploy. Skipped entirely when validate runs without a
+  // connection (static-only). A transient (non-404) API error never false-flags an
+  // id, and total checks are capped to bound latency.
+  if (ctx.credential && ctx.component?.hostname) {
+    const built = buildOktaClient(ctx.component.hostname, ctx.credential, ctx.settings)
+    if (!('error' in built)) {
+      const { client } = built
+      const existence = new Map<string, boolean>()
+      let checks = 0
+      for (const spec of specs) {
+        for (const gid of spec.groupIncludeIds) {
+          if (checks >= MAX_LIVE_GROUP_CHECKS) break
+          let exists = existence.get(gid)
+          if (exists === undefined) {
+            checks++
+            const res = await client.request('GET', `/groups/${encodeURIComponent(gid)}`)
+            // 404 => truly missing. Any other non-ok (401/403/5xx) is treated as
+            // "unknown" and NOT flagged, so a token/permission blip can't produce
+            // false validation errors.
+            exists = res.status !== 404
+            existence.set(gid, exists)
+          }
+          if (exists === false) {
+            errors.push({
+              field: `${spec.sectionName}.groupIncludeIds`,
+              message: `Scoped group "${gid}" was not found in this Okta org (people.groups.include)`,
+              code: 'group_not_found',
+            })
+          }
+        }
+      }
     }
   }
 

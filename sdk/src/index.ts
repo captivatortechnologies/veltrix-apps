@@ -72,6 +72,9 @@ export type {
   TestConnectionContext,
   TestConnectionResult,
   TestConnectionHandler,
+  OptionItem,
+  OptionsProviderContext,
+  OptionsProvider,
 } from './types/pipeline'
 
 // Platform types

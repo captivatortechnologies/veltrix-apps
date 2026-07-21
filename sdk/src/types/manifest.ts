@@ -240,6 +240,12 @@ export interface AppConfigurationTypeManifest {
     healthCheck: string
     driftDetect?: string | null
     getStatus: string
+    /**
+     * Optional options provider — powers live `remote-multiselect` config fields
+     * (returns {value,label} options fetched from the target system). Loaded like
+     * driftDetect (optional); omit when the config type has no live-option fields.
+     */
+    options?: string | null
   }
 
   targets: {
