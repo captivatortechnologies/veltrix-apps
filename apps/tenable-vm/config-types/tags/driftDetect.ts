@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildTenableClient } from '../../lib/tenable'
+import { attachDriftActor, veltrixActorLogins } from '../lib/tenableAudit'
 import { findTagValue } from './deploy'
 import { extractTagSpecs, parseFilterObject } from './validate'
 
@@ -19,14 +20,17 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const { client } = built
 
   const specs = extractTagSpecs(ctx.deployedConfig).filter((s) => s.category && s.value)
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
 
   for (const spec of specs) {
+    const before = diffs.length
     const label = `${spec.category}:${spec.value}`
     try {
       const live = await findTagValue(client, spec.category, spec.value)
 
       if (!live) {
         diffs.push({ field: label, expected: 'exists', actual: 'missing', severity: 'critical' })
+        await attachDriftActor(client, diffs.slice(before), { targetName: spec.value, excludeActorLogins })
         continue
       }
 
@@ -54,6 +58,13 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           severity: 'info',
         })
       }
+
+      // Attribute every diff this tag produced to the last change (once).
+      await attachDriftActor(client, diffs.slice(before), {
+        targetId: live.uuid,
+        targetName: spec.value,
+        excludeActorLogins,
+      })
     } catch (error) {
       diffs.push({
         field: label,

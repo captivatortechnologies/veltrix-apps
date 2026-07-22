@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildTenableClient } from '../../lib/tenable'
+import { attachDriftActor, veltrixActorLogins } from '../lib/tenableAudit'
 import { findUser } from './deploy'
 import { extractUserSpecs } from './validate'
 
@@ -25,13 +26,16 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const { client } = built
 
   const specs = extractUserSpecs(ctx.deployedConfig).filter((s) => s.username)
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
 
   for (const spec of specs) {
+    const before = diffs.length
     try {
       const live = await findUser(client, spec.username)
 
       if (!live) {
         diffs.push({ field: spec.username, expected: 'exists', actual: 'missing', severity: 'critical' })
+        await attachDriftActor(client, diffs.slice(before), { targetName: spec.username, excludeActorLogins })
         continue
       }
 
@@ -67,6 +71,13 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
 
       // NOTE: password is intentionally NOT compared here — Tenable never
       // returns it, so it cannot be read back to detect drift (see the header).
+
+      // Attribute every diff this user produced to the last change (once).
+      await attachDriftActor(client, diffs.slice(before), {
+        targetId: live.id,
+        targetName: spec.username,
+        excludeActorLogins,
+      })
     } catch (error) {
       diffs.push({
         field: spec.username,

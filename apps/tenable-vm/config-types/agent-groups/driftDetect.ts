@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildTenableClient } from '../../lib/tenable'
+import { attachDriftActor, veltrixActorLogins } from '../lib/tenableAudit'
 import { findAgentGroup } from './deploy'
 import { extractAgentGroupSpecs } from './validate'
 
@@ -21,13 +22,16 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const { client } = built
 
   const specs = extractAgentGroupSpecs(ctx.deployedConfig).filter((s) => s.name)
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
 
   for (const spec of specs) {
+    const before = diffs.length
     const label = `${spec.name} (scanner ${spec.scannerId})`
     try {
       const live = await findAgentGroup(client, spec.scannerId, spec.name)
       if (!live) {
         diffs.push({ field: label, expected: 'exists', actual: 'missing', severity: 'critical' })
+        await attachDriftActor(client, diffs.slice(before), { targetName: spec.name, excludeActorLogins })
       }
     } catch (error) {
       diffs.push({

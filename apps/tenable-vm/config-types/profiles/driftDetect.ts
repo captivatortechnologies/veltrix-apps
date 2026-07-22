@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildTenableClient } from '../../lib/tenable'
+import { attachDriftActor, veltrixActorLogins } from '../lib/tenableAudit'
 import { findProfile, getProfileById, profileIdentifier } from './deploy'
 import { extractProfileSpecs, parseSettingsObject } from './validate'
 
@@ -21,13 +22,16 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const { client } = built
 
   const specs = extractProfileSpecs(ctx.deployedConfig).filter((s) => s.name)
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
 
   for (const spec of specs) {
+    const before = diffs.length
     try {
       const live = await findProfile(client, spec.name)
 
       if (!live) {
         diffs.push({ field: spec.name, expected: 'exists', actual: 'missing', severity: 'critical' })
+        await attachDriftActor(client, diffs.slice(before), { targetName: spec.name, excludeActorLogins })
         continue
       }
 
@@ -52,6 +56,13 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           }
         }
       }
+
+      // Attribute every diff this profile produced to the last change (once).
+      await attachDriftActor(client, diffs.slice(before), {
+        targetId: profileIdentifier(live),
+        targetName: spec.name,
+        excludeActorLogins,
+      })
     } catch (error) {
       diffs.push({
         field: spec.name,

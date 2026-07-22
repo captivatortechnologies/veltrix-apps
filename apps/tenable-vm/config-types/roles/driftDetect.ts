@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildTenableClient } from '../../lib/tenable'
+import { attachDriftActor, veltrixActorLogins } from '../lib/tenableAudit'
 import { findRole } from './deploy'
 import { extractRoleSpecs, livePermissionStrings } from './validate'
 
@@ -20,13 +21,16 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const { client } = built
 
   const specs = extractRoleSpecs(ctx.deployedConfig).filter((s) => s.name)
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
 
   for (const spec of specs) {
+    const before = diffs.length
     try {
       const live = await findRole(client, spec.name)
 
       if (!live) {
         diffs.push({ field: spec.name, expected: 'exists', actual: 'missing', severity: 'critical' })
+        await attachDriftActor(client, diffs.slice(before), { targetName: spec.name, excludeActorLogins })
         continue
       }
 
@@ -53,6 +57,13 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           severity: 'info',
         })
       }
+
+      // Attribute every diff this role produced to the last change (once).
+      await attachDriftActor(client, diffs.slice(before), {
+        targetId: live.uuid,
+        targetName: spec.name,
+        excludeActorLogins,
+      })
     } catch (error) {
       diffs.push({
         field: spec.name,

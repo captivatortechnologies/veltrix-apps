@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildTenableClient } from '../../lib/tenable'
+import { attachDriftActor, veltrixActorLogins } from '../lib/tenableAudit'
 import { findRecastRule } from './deploy'
 import { buildRecastFilter, extractRecastRuleSpecs } from './validate'
 
@@ -23,13 +24,17 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     (s) => s.name && s.resourceType && s.action && s.pluginId,
   )
 
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
+
   for (const spec of specs) {
+    const before = diffs.length
     const label = spec.name
     try {
       const live = await findRecastRule(client, spec)
 
       if (!live) {
         diffs.push({ field: label, expected: 'exists', actual: 'missing', severity: 'critical' })
+        await attachDriftActor(client, diffs.slice(before), { targetName: spec.name, excludeActorLogins })
         continue
       }
 
@@ -68,6 +73,13 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           severity: 'info',
         })
       }
+
+      // Attribute every diff this rule produced to the last change (once).
+      await attachDriftActor(client, diffs.slice(before), {
+        targetId: live.rule_id,
+        targetName: spec.name,
+        excludeActorLogins,
+      })
     } catch (error) {
       diffs.push({
         field: label,
