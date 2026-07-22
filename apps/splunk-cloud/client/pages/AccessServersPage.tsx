@@ -144,6 +144,27 @@ export default function AccessServersPage() {
     void load()
   }, [load])
 
+  // Refetch the dialog's lookups (connections + ZTNA providers + environments)
+  // without flipping the page's loading state. The connection you pick for a
+  // server may have been created on the Connections page after this page mounted,
+  // so re-pull on every dialog open — otherwise the dropdown shows a stale list
+  // (e.g. "— None —" only) even though the connection exists.
+  const refreshLookups = useCallback(async () => {
+    try {
+      const tool = await resolveTool(APP_NAME)
+      const [creds, provs, envs] = await Promise.all([
+        tool ? listCredentials(tool.id) : Promise.resolve([] as CredentialSummary[]),
+        listConnectivityProviders(),
+        listEnvironments(),
+      ])
+      setConnections(creds)
+      setProviders(provs)
+      setEnvironments(envs)
+    } catch {
+      // Best-effort — keep whatever we already have; the dialog still works.
+    }
+  }, [])
+
   const connectionName = (id?: string | null) => connections.find((c) => c.id === id)?.name
   const providerName = (id?: string | null) => providers.find((p) => p.id === id)?.name
 
@@ -152,10 +173,12 @@ export default function AccessServersPage() {
     setForm(BLANK_FORM)
     setFormError(null)
     setDialogOpen(true)
+    void refreshLookups()
   }
 
   const openEdit = (row: InventoryItem) => {
     setEditing(row)
+    void refreshLookups()
     setForm({
       hostname: row.hostname ?? '',
       port: row.port ?? '443',

@@ -3,6 +3,14 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.1 — 2026-07-22
+
+### Fixed
+- Access Servers: the Add/Edit dialog now refetches connections, ZTNA providers,
+  and environments each time it opens, so a connection created on the Connections
+  page appears in the "Connection" dropdown immediately instead of requiring a
+  page refresh (the list was previously loaded only once on page mount).
+
 ## 1.19.0 — 2026-07-22
 
 ### Added
