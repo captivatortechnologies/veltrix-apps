@@ -1,5 +1,6 @@
 import type { DriftContext, DriftResult, DriftDiff } from '@veltrixsecops/app-sdk'
 import { buildSplunkUrl, buildAuthHeader } from '../../lib/splunkApi'
+import { auditClientFromBase, attachDriftActor, veltrixActorLogins } from '../lib/splunkAudit'
 import { APP_BASE_PATH } from './deploy'
 
 /**
@@ -22,11 +23,17 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const baseUrl = buildSplunkUrl(component, connectivity)
   const auth = buildAuthHeader(credential)
 
+  // Who/when attribution: resolved per drifted object from the _audit index,
+  // excluding the connection's own service account (our deploys). Best-effort.
+  const auditClient = auditClientFromBase(baseUrl, auth)
+  const excludeLogins = veltrixActorLogins(credential)
+
   for (const section of deployedConfig.sections) {
     const fields = section.fields
     const appId = fields.name as string
     if (!appId) continue
 
+    const objectDiffs: DriftDiff[] = []
     try {
       const res = await fetch(`${baseUrl}${APP_BASE_PATH}/${encodeURIComponent(appId)}?output_mode=json`, {
         method: 'GET', headers: auth, signal: AbortSignal.timeout(15_000),
@@ -34,49 +41,55 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
 
       if (!res.ok) {
         if (res.status === 404) {
-          diffs.push({ field: appId, expected: 'installed', actual: 'missing', severity: 'critical' })
+          objectDiffs.push({ field: appId, expected: 'installed', actual: 'missing', severity: 'critical' })
         }
-        continue
-      }
+      } else {
+        const data = JSON.parse(await res.text())
+        const actual = data?.entry?.[0]?.content || {}
 
-      const data = JSON.parse(await res.text())
-      const actual = data?.entry?.[0]?.content || {}
-
-      // Enabled state
-      const expectEnabled = ((fields.state as string | undefined) ?? 'enabled') !== 'disabled'
-      const actuallyDisabled = actual.disabled === true || actual.disabled === '1' || actual.disabled === 1
-      const actuallyEnabled = !actuallyDisabled
-      if (actuallyEnabled !== expectEnabled) {
-        diffs.push({
-          field: `${appId}.state`,
-          expected: expectEnabled ? 'enabled' : 'disabled',
-          actual: actuallyEnabled ? 'enabled' : 'disabled',
-          severity: expectEnabled ? 'critical' : 'warning',
-        })
-      }
-
-      // Version pin
-      if (typeof fields.version === 'string' && fields.version) {
-        const actualVersion = String(actual.version ?? '')
-        if (actualVersion !== fields.version) {
-          diffs.push({ field: `${appId}.version`, expected: fields.version, actual: actualVersion, severity: 'warning' })
+        // Enabled state
+        const expectEnabled = ((fields.state as string | undefined) ?? 'enabled') !== 'disabled'
+        const actuallyDisabled = actual.disabled === true || actual.disabled === '1' || actual.disabled === 1
+        const actuallyEnabled = !actuallyDisabled
+        if (actuallyEnabled !== expectEnabled) {
+          objectDiffs.push({
+            field: `${appId}.state`,
+            expected: expectEnabled ? 'enabled' : 'disabled',
+            actual: actuallyEnabled ? 'enabled' : 'disabled',
+            severity: expectEnabled ? 'critical' : 'warning',
+          })
         }
-      }
 
-      // Display label
-      if (typeof fields.label === 'string' && fields.label) {
-        const actualLabel = String(actual.label ?? '')
-        if (actualLabel !== fields.label) {
-          diffs.push({ field: `${appId}.label`, expected: fields.label, actual: actualLabel, severity: 'info' })
+        // Version pin
+        if (typeof fields.version === 'string' && fields.version) {
+          const actualVersion = String(actual.version ?? '')
+          if (actualVersion !== fields.version) {
+            objectDiffs.push({ field: `${appId}.version`, expected: fields.version, actual: actualVersion, severity: 'warning' })
+          }
+        }
+
+        // Display label
+        if (typeof fields.label === 'string' && fields.label) {
+          const actualLabel = String(actual.label ?? '')
+          if (actualLabel !== fields.label) {
+            objectDiffs.push({ field: `${appId}.label`, expected: fields.label, actual: actualLabel, severity: 'info' })
+          }
         }
       }
     } catch (error) {
-      diffs.push({
+      objectDiffs.push({
         field: appId,
         expected: 'reachable',
         actual: `unreachable: ${error instanceof Error ? error.message : 'unknown'}`,
         severity: 'critical',
       })
+    }
+
+    // Only query the audit index for objects that actually drifted; attribute
+    // WHO/WHEN once for the object and stamp it onto all of its diffs.
+    if (objectDiffs.length > 0) {
+      await attachDriftActor(auditClient, objectDiffs, { objectName: appId, excludeActorLogins: excludeLogins })
+      diffs.push(...objectDiffs)
     }
   }
 
