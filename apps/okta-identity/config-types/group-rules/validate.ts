@@ -70,6 +70,31 @@ export function liveExpression(live: LiveGroupRule): string {
   return typeof live.conditions?.expression?.value === 'string' ? live.conditions.expression.value : ''
 }
 
+// Tokens that make an expression evaluate to a Boolean: comparisons, logical
+// operators, and Okta EL functions that RETURN a boolean.
+const BOOLEAN_OPERATORS = /(==|!=|<=|>=|<|>)|(&&|\|\|)|\b(AND|OR)\b/i
+const BOOLEAN_FUNCTIONS =
+  /\b(stringContains|startsWith|endsWith|matches|contains|isMemberOfGroupName|equals|isEmpty|isNotEmpty|isPresent)\s*\(/i
+// String-BUILDING signals: concatenation, or EL functions that return a String.
+const STRING_BUILDERS =
+  /\+|\b(toUpperCase|toLowerCase|substringBefore|substringAfter|substringBetween|substring|append|replaceFirst|replace|trim|concat|convert)\s*\(/i
+
+/**
+ * Conservative heuristic: true when an expression looks like it BUILDS A STRING
+ * (concatenation / string-transform functions) yet has NO comparison, logical
+ * operator, or boolean-returning function — so it probably does not resolve to a
+ * Boolean, which a group-rule condition requires. Deliberately quiet: any boolean
+ * signal suppresses the warning, so valid conditions (incl. those that use string
+ * functions inside a comparison, e.g. substringAfter(...) == "x") never trip it.
+ * Not authoritative — Okta type-checks the EL at create/deploy.
+ */
+export function expressionLikelyNotBoolean(expression: string): boolean {
+  const e = (expression ?? '').trim()
+  if (!e) return false
+  if (BOOLEAN_OPERATORS.test(e) || BOOLEAN_FUNCTIONS.test(e)) return false
+  return STRING_BUILDERS.test(e)
+}
+
 /**
  * True when two group-id lists describe the same SET (order-independent). The
  * `actions` block is immutable, so deploy uses this to decide update-in-place
@@ -145,6 +170,18 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
         field: `${prefix}.expression`,
         message: 'Rule expression is required — an Okta Expression Language condition, e.g. user.department=="Engineering"',
         code: 'required',
+      })
+    } else if (expressionLikelyNotBoolean(spec.expression)) {
+      // Heuristic (not authoritative — Okta type-checks the EL at deploy): the
+      // expression uses string-building but has no comparison/logical operator,
+      // so it probably yields a String, which a group-rule condition may not.
+      warnings.push({
+        field: `${prefix}.expression`,
+        message:
+          'This expression looks like it builds a string rather than a true/false condition. A group ' +
+          'rule must resolve to a Boolean — e.g. user.department == "Sales" or ' +
+          'String.stringContains(user.email, "@acme.com"). Okta will reject a non-Boolean expression on deploy.',
+        code: 'expression_not_boolean',
       })
     }
 

@@ -3,6 +3,18 @@
 All notable changes to the Okta app are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## 1.8.7 — 2026-07-21
+
+### Added
+- **Validate-time warning for a group-rule expression that isn't a Boolean.** A
+  rule condition must resolve to true/false; an expression that only builds a
+  string (concatenation / `toUpperCase`/`substring…` with no comparison or logical
+  operator) now raises a warning at Validate — e.g. *"looks like it builds a string
+  rather than a true/false condition"* — instead of only failing later at deploy
+  when Okta type-checks it. Conservative: any comparison, `AND`/`OR`, or
+  boolean-returning function (`stringContains`, `isMemberOfGroupName`, …) suppresses
+  it, so valid conditions never trip the warning.
+
 ## 1.8.6 — 2026-07-21
 
 ### Changed

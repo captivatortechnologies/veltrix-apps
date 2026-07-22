@@ -4,6 +4,7 @@ import validate, {
   sameGroupIds,
   liveGroupIds,
   liveExpression,
+  expressionLikelyNotBoolean,
   MAX_GROUP_RULE_NAME_LENGTH,
 } from '../validate'
 import type { PipelineContext, PlatformDataApi } from '@veltrixsecops/app-sdk'
@@ -211,5 +212,27 @@ describe('liveGroupIds / liveExpression', () => {
   })
   it('returns an empty string when the expression is absent', () => {
     expect(liveExpression({})).toBe('')
+  })
+})
+
+describe('expressionLikelyNotBoolean', () => {
+  it('flags a string-building expression (concat + string functions, no comparison)', () => {
+    const expr =
+      'toUpperCase(substringBefore(substringAfter(user.email, "@"), ".")) + "\\" + toLowerCase(user.lastName)'
+    expect(expressionLikelyNotBoolean(expr)).toBe(true)
+  })
+
+  it('does NOT flag valid boolean conditions', () => {
+    expect(expressionLikelyNotBoolean('user.department == "Sales"')).toBe(false)
+    expect(expressionLikelyNotBoolean('String.stringContains(user.email, "@acme.com")')).toBe(false)
+    // string function INSIDE a comparison is fine
+    expect(expressionLikelyNotBoolean('substringAfter(user.email, "@") == "acme.com"')).toBe(false)
+    expect(expressionLikelyNotBoolean('user.department == "Sales" AND !user.isContractor')).toBe(false)
+    expect(expressionLikelyNotBoolean('!user.isMemberOfGroupName("Contractors")')).toBe(false)
+  })
+
+  it('does NOT flag a bare boolean attribute or an empty string', () => {
+    expect(expressionLikelyNotBoolean('user.emailVerified')).toBe(false)
+    expect(expressionLikelyNotBoolean('')).toBe(false)
   })
 })
