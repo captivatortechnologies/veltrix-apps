@@ -1,6 +1,6 @@
 id: splunk-enterprise
 name: Splunk Enterprise
-version: "1.19.1"
+version: "1.19.2"
 vendor: Veltrix
 description: >
   Manage Splunk Enterprise configurations as code.
@@ -159,7 +159,7 @@ client:
       label: BYOL Infrastructure
       icon: server
       nav: sidebar
-      group: page
+      group: config
       order: 8
       layout: standard
     # Upgrades hosts two in-page tabs: available Splunk versions (reference)
@@ -170,19 +170,19 @@ client:
       label: Upgrades
       icon: refresh-cw
       nav: sidebar
-      group: page
+      group: config
       order: 9
       layout: standard
     # License — record + track a Splunk Enterprise license XML (quota, expiration,
     # features, status) and, when a Splunk Connection exists, show live licenser
-    # stack usage. Sits right after Upgrades in the page nav group.
+    # stack usage. Lives in the Settings nav group with Access Servers/Connections.
     - path: /license
       component: LicensePage
       label: License
       icon: file-text
       nav: sidebar
-      group: page
-      order: 10
+      group: settings
+      order: 0
       layout: standard
     # Activation — the one-time credential handoff, reached only from the emailed
     # single-use link (?token=…), so it is hidden from the nav.

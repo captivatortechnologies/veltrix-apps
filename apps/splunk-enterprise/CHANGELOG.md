@@ -3,6 +3,14 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.2 — 2026-07-22
+
+### Changed
+- Sidebar layout: moved **BYOL Infrastructure** and **Upgrades** into the
+  Configurations group (alongside HEC Tokens / Splunk Apps) and **License** into
+  the Settings group (with Access Servers / Connections), so the top Pages group
+  stays to Overview / Setup Guide / Pipeline.
+
 ## 1.19.1 — 2026-07-22
 
 ### Fixed
