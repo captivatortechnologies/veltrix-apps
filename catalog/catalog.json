@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-22T03:53:50.372Z",
+  "generatedAt": "2026-07-22T14:41:54.915Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -172,7 +172,7 @@
     {
       "appId": "okta-identity",
       "name": "Okta",
-      "version": "1.9.0",
+      "version": "1.10.0",
       "vendor": "Veltrix",
       "description": "Manage Okta configuration as code through the Okta Management API. Covers policies and their rules, group rules, groups, network zones, trusted origins, behavior rules, authenticators, identity providers, event / inline hooks, authorization servers (scopes / claims / policies), applications and group assignments, plus security and IAM governance — ThreatInsight, log streams, device assurance policies, user types, custom admin roles with resource sets and their role bindings, custom profile-schema attributes and profile mappings, self-service feature toggles, CAPTCHA, user linked-object definitions, org rate-limit settings, brands and their themes, custom email domains and SMS templates — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
@@ -182,11 +182,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/okta-identity",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/okta-identity-v1.9.0/okta-identity.zip",
-      "sha256": "1e8353cd1647b9302508b8c9e589965028c94ea489dfa99e8ce4adf837ee62e1",
-      "sizeBytes": 855746,
-      "publishedAt": "2026-07-22T03:22:58.918Z",
-      "releaseNotes": "## 1.9.0 — 2026-07-22\n\n### Added\n- **Users config type (safe-by-design).** Manage a CONTROLLED set of Okta users\n  as code — break-glass admins, service/bot accounts, sandbox seed users — via\n  the Users API. Deliberately NOT for general workforce management (that belongs\n  to HR/SCIM provisioning). Guarantees:\n  - Only users declared in the canvas are managed (matched by stored id, then by\n    login); a user NOT in the canvas is never read or written.\n  - Users are **never deleted** — the strongest action is deactivate\n    (DEPROVISIONED), and only when an item's Status is set to Deactivated.\n  - Per user: create (STAGED), update profile, and reconcile lifecycle toward the\n    desired status (activate / unsuspend / suspend / deactivate). Login is the\n    identity (rename-safe). Full validate/deploy/rollback/health/drift handlers;\n    rollback deactivates created users rather than deleting them.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/okta-identity-v1.10.0/okta-identity.zip",
+      "sha256": "68f054ddd00217bebe8280c4410a9db67f68f0ed22f80841a8d21ce2b3dbd8b3",
+      "sizeBytes": 863158,
+      "publishedAt": "2026-07-22T14:41:54.897Z",
+      "releaseNotes": "## 1.10.0 — 2026-07-22\n\n### Added\n- **Drift attribution — \"who changed it + when\".** When drift is detected on a\n  managed Okta object (groups, group rules, users, network zones, policies), each\n  reported difference is now annotated with the person who made the last manual\n  change and when, resolved from the Okta **System Log**. The platform stores the\n  `actor` on each diff and the drift view renders it, so a drift alert answers\n  *who* and *when*, not just *what*.\n  - Attribution queries the System Log per drifted object, filtered by the\n    object's Okta id (`target.id eq …`), or by name (free-text `q`) as a\n    best-effort fallback for a deleted object with no live id.\n  - It picks the most recent **human** (`actor.type === \"User\"`), non-Veltrix\n    event, preferring change-type events (`group.lifecycle.*`,\n    `group.user_membership.*`, `user.lifecycle.*`, `user.account.*`, `policy.*`,\n    `zone.*`, …) and falling back to the most recent human event otherwise.\n  - Veltrix's own deploys (which run under the connection's admin identity) are\n    excluded via the connection login, so the attribution reflects the *manual*\n    change rather than our deploy.\n  - **Strictly best-effort:** attribution never throws and never fails a drift\n    check — on any error, an empty log, or no usable event, the diff is reported\n    without an actor. Only objects that actually drifted are queried (one log\n    query per drifted object).",
       "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
