@@ -3,6 +3,30 @@
 All notable changes to the Okta app are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## 1.10.0 — 2026-07-22
+
+### Added
+- **Drift attribution — "who changed it + when".** When drift is detected on a
+  managed Okta object (groups, group rules, users, network zones, policies), each
+  reported difference is now annotated with the person who made the last manual
+  change and when, resolved from the Okta **System Log**. The platform stores the
+  `actor` on each diff and the drift view renders it, so a drift alert answers
+  *who* and *when*, not just *what*.
+  - Attribution queries the System Log per drifted object, filtered by the
+    object's Okta id (`target.id eq …`), or by name (free-text `q`) as a
+    best-effort fallback for a deleted object with no live id.
+  - It picks the most recent **human** (`actor.type === "User"`), non-Veltrix
+    event, preferring change-type events (`group.lifecycle.*`,
+    `group.user_membership.*`, `user.lifecycle.*`, `user.account.*`, `policy.*`,
+    `zone.*`, …) and falling back to the most recent human event otherwise.
+  - Veltrix's own deploys (which run under the connection's admin identity) are
+    excluded via the connection login, so the attribution reflects the *manual*
+    change rather than our deploy.
+  - **Strictly best-effort:** attribution never throws and never fails a drift
+    check — on any error, an empty log, or no usable event, the diff is reported
+    without an actor. Only objects that actually drifted are queried (one log
+    query per drifted object).
+
 ## 1.9.0 — 2026-07-22
 
 ### Added

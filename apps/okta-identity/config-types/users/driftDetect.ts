@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildOktaClient } from '../../lib/okta'
+import { attachDriftActor, veltrixActorLogins } from '../lib/oktaSystemLog'
 import { getUserByLogin } from './deploy'
 import { extractUserSpecs, ACTIVE_LIKE_STATUSES, type UserSpec, type LiveUser, type UserStatus } from './validate'
 
@@ -18,8 +19,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const { client } = built
 
   const specs = extractUserSpecs(ctx.deployedConfig).filter((s) => s.login)
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
 
   for (const spec of specs) {
+    const before = diffs.length
     let live: LiveUser | null
     try {
       live = await getUserByLogin(client, spec.login)
@@ -30,6 +33,8 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
 
     if (!live) {
       diffs.push({ field: spec.login, expected: 'exists', actual: 'missing', severity: 'critical' })
+      // Deleted/absent — no live id; attribute by login (best-effort).
+      await attachDriftActor(client, diffs.slice(before), { targetName: spec.login, excludeActorLogins })
       continue
     }
 
@@ -52,6 +57,13 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         severity: 'warning',
       })
     }
+
+    // Attribute every diff this user produced to the last human change (once).
+    await attachDriftActor(client, diffs.slice(before), {
+      targetId: live.id,
+      targetName: spec.login,
+      excludeActorLogins,
+    })
   }
 
   return { hasDrift: diffs.length > 0, diffs }

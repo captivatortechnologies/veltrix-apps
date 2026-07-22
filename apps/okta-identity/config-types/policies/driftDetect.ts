@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildOktaClient } from '../../lib/okta'
+import { attachDriftActor, veltrixActorLogins } from '../lib/oktaSystemLog'
 import { findPolicy, listPolicyRules } from './deploy'
 import { extractPolicySpecs, parseRulesArray, parseSettingsObject, ruleName } from './validate'
 
@@ -28,14 +29,18 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const { client } = built
 
   const specs = extractPolicySpecs(ctx.deployedConfig).filter((s) => s.type && s.name)
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
 
   for (const spec of specs) {
+    const before = diffs.length
     const label = `${spec.type}:${spec.name}`
     try {
       const live = await findPolicy(client, spec.type, spec.name)
 
       if (!live) {
         diffs.push({ field: label, expected: 'exists', actual: 'missing', severity: 'critical' })
+        // Deleted/absent — no live id; attribute by name (best-effort).
+        await attachDriftActor(client, diffs.slice(before), { targetName: spec.name, excludeActorLogins })
         continue
       }
 
@@ -113,6 +118,13 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           })
         }
       }
+
+      // Attribute every diff this policy produced to the last human change (once).
+      await attachDriftActor(client, diffs.slice(before), {
+        targetId: live.id,
+        targetName: spec.name,
+        excludeActorLogins,
+      })
     } catch (error) {
       diffs.push({
         field: label,

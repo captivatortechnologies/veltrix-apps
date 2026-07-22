@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildOktaClient } from '../../lib/okta'
+import { attachDriftActor, veltrixActorLogins } from '../lib/oktaSystemLog'
 import { findZone } from './deploy'
 import { extractZoneSpecs, parseConfigObject } from './validate'
 
@@ -21,13 +22,17 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const { client } = built
 
   const specs = extractZoneSpecs(ctx.deployedConfig).filter((s) => s.name && s.type)
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
 
   for (const spec of specs) {
+    const before = diffs.length
     try {
       const live = await findZone(client, spec.name)
 
       if (!live) {
         diffs.push({ field: spec.name, expected: 'exists', actual: 'missing', severity: 'critical' })
+        // Deleted/absent — no live id; attribute by name (best-effort).
+        await attachDriftActor(client, diffs.slice(before), { targetName: spec.name, excludeActorLogins })
         continue
       }
 
@@ -72,6 +77,13 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           severity: 'warning',
         })
       }
+
+      // Attribute every diff this zone produced to the last human change (once).
+      await attachDriftActor(client, diffs.slice(before), {
+        targetId: live.id,
+        targetName: spec.name,
+        excludeActorLogins,
+      })
     } catch (error) {
       diffs.push({
         field: spec.name,
