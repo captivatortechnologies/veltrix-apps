@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-22T00:32:50.705Z",
+  "generatedAt": "2026-07-22T00:50:57.242Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -172,7 +172,7 @@
     {
       "appId": "okta-identity",
       "name": "Okta",
-      "version": "1.8.3",
+      "version": "1.8.4",
       "vendor": "Veltrix",
       "description": "Manage Okta configuration as code through the Okta Management API. Covers policies and their rules, group rules, groups, network zones, trusted origins, behavior rules, authenticators, identity providers, event / inline hooks, authorization servers (scopes / claims / policies), applications and group assignments, plus security and IAM governance — ThreatInsight, log streams, device assurance policies, user types, custom admin roles with resource sets and their role bindings, custom profile-schema attributes and profile mappings, self-service feature toggles, CAPTCHA, user linked-object definitions, org rate-limit settings, brands and their themes, custom email domains and SMS templates — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
@@ -182,11 +182,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/okta-identity",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/okta-identity-v1.8.3/okta-identity.zip",
-      "sha256": "13ef4097c2d4f021c6c990524f21f2e7bf4fb114ef7d6be767304500b24e6336",
-      "sizeBytes": 810306,
-      "publishedAt": "2026-07-22T00:32:50.684Z",
-      "releaseNotes": "## 1.8.3 — 2026-07-21\n\n### Changed\n- **Live Groups picker for a Group Rule's target groups.** The rule's *Target\n  Groups* field (`groupIds`) is now a searchable multi-select backed by the\n  connected org's live OKTA_GROUP groups (name shown, id stored) — the same\n  picker used for a policy's Scoped Groups — instead of a free-text \"type a group\n  id and press Enter\" box. Adds the shared `options` handler to the Group Rules\n  config type; the stored value shape (an array of group ids) is unchanged, so\n  existing rules keep working.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/okta-identity-v1.8.4/okta-identity.zip",
+      "sha256": "38ded373e5a7c1db63ecdacf4c01c414035008aa12727062920377bf43fbeb4f",
+      "sizeBytes": 814225,
+      "publishedAt": "2026-07-22T00:50:57.220Z",
+      "releaseNotes": "## 1.8.4 — 2026-07-21\n\n### Changed\n- **Live Members picker for a Group.** A group's *Members* field (`memberUserIds`)\n  is now a searchable multi-select over the connected org's users (name + email\n  shown, user id stored) instead of a free-text id box. Adds a `users` source to\n  the shared options provider and the `options` handler to the Groups config type.\n- **Live Zones picker for ThreatInsight exemptions.** *Exempt Network Zones*\n  (`excludeZones`) is now a searchable multi-select over the org's Network Zones\n  (name shown, id stored). Adds a `zones` source + the `options` handler to the\n  ThreatInsight config type.\n\nBoth store the same value shape as before (an array of ids), so existing configs\nkeep working.",
       "releasedAt": "2026-07-21T00:00:00.000Z"
     },
     {
