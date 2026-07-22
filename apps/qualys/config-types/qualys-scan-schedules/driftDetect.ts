@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildQualysClient } from '../../lib/qualys'
+import { attachDriftActor, veltrixActorLogins } from '../lib/qualysActivityLog'
 import { listSchedules } from './deploy'
 import { extractScheduleSpecs, scheduleKey, type LiveSchedule } from './validate'
 
@@ -22,14 +23,21 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const specs = extractScheduleSpecs(ctx.deployedConfig).filter((s) => s.scanTitle)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
 
+  // Connection identity our own deploys appear under — excluded so attribution
+  // reflects the MANUAL change, not a Veltrix deploy.
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
+
   try {
     const live = await listSchedules(client)
     const byKey = new Map<string, LiveSchedule>(live.map((s) => [scheduleKey({ scanTitle: s.title }), s]))
 
     for (const spec of specs) {
+      const before = diffs.length
       const found = byKey.get(scheduleKey(spec))
       if (!found) {
         diffs.push({ field: spec.scanTitle, expected: 'exists', actual: 'missing', severity: 'critical' })
+        // Deleted/absent — no live id; attribute by name (best-effort).
+        await attachDriftActor(client, diffs.slice(before), { targetName: spec.scanTitle, excludeActorLogins })
         continue
       }
       if (found.active !== spec.active) {
@@ -48,6 +56,13 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           severity: 'warning',
         })
       }
+
+      // Attribute every diff this schedule produced to the last human change (once).
+      await attachDriftActor(client, diffs.slice(before), {
+        targetId: found.id,
+        targetName: spec.scanTitle,
+        excludeActorLogins,
+      })
     }
   } catch (error) {
     diffs.push({

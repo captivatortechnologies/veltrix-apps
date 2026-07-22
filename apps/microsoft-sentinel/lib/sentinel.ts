@@ -153,6 +153,7 @@ export class SentinelClient {
   private readonly armBase: string
   private readonly tokenUrl: string
   private readonly resource: string
+  private readonly subscriptionId: string
   private readonly workspaceScope: string
   private readonly clientId: string
   private readonly clientSecret: string
@@ -171,6 +172,7 @@ export class SentinelClient {
     this.armBase = `https://${opts.profile.armHost}`
     this.tokenUrl = `https://${opts.profile.loginHost}/${opts.tenantId}/oauth2/v2.0/token`
     this.resource = `https://${opts.profile.armHost}`
+    this.subscriptionId = opts.subscriptionId
     this.workspaceScope =
       `/subscriptions/${opts.subscriptionId}` +
       `/resourceGroups/${opts.resourceGroup}` +
@@ -183,6 +185,11 @@ export class SentinelClient {
   /** The Log Analytics workspace resource path (for the connectivity probe). */
   workspacePath(): string {
     return this.workspaceScope
+  }
+
+  /** The subscription-scope ARM path, for subscription-level providers (e.g. Microsoft.Insights Activity Log). */
+  subscriptionPath(): string {
+    return `/subscriptions/${this.subscriptionId}`
   }
 
   /** Build a Microsoft.SecurityInsights child-resource path, e.g. sentinelPath('/alertRules/foo'). */

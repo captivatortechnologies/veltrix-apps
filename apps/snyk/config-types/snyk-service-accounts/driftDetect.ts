@@ -1,7 +1,11 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildSnykClient } from '../../lib/snyk'
+import { attachDriftActor, veltrixActorLogins } from '../../lib/snykAuditLog'
 import { listServiceAccounts } from './deploy'
 import { extractServiceAccountSpecs, saKey, type LiveServiceAccount } from './validate'
+
+/** Snyk audit event-name prefixes for service-account changes (best-effort attribution). */
+const SERVICE_ACCOUNT_EVENT_PREFIXES = ['org.service_account']
 
 /**
  * Detect drift between the deployed service accounts and the live org. A declared
@@ -22,16 +26,16 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
 
   try {
     const live = await listServiceAccounts(client)
+    const excludeActorLogins = veltrixActorLogins(ctx.credential)
     const byName = new Map<string, LiveServiceAccount>(
       live.filter((a) => a.attributes?.name).map((a) => [saKey(a.attributes!.name as string), a]),
     )
     for (const spec of specs) {
+      const before = diffs.length
       const found = byName.get(saKey(spec.name))
       if (!found) {
         diffs.push({ field: `service_account:${spec.name}`, expected: 'exists', actual: 'missing', severity: 'critical' })
-        continue
-      }
-      if (spec.roleId && found.attributes?.role_id && found.attributes.role_id !== spec.roleId) {
+      } else if (spec.roleId && found.attributes?.role_id && found.attributes.role_id !== spec.roleId) {
         diffs.push({
           field: `service_account:${spec.name}.role_id`,
           expected: spec.roleId,
@@ -39,6 +43,14 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           severity: 'warning',
         })
       }
+
+      // Attribute this service account's drift ("who changed it + when") — best-effort.
+      await attachDriftActor(client, diffs.slice(before), {
+        targetId: found?.id,
+        targetName: spec.name,
+        eventPrefixes: SERVICE_ACCOUNT_EVENT_PREFIXES,
+        excludeActorLogins,
+      })
     }
   } catch (error) {
     diffs.push({

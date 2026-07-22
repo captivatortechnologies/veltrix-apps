@@ -1,7 +1,11 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildSnykClient } from '../../lib/snyk'
+import { attachDriftActor, veltrixActorLogins } from '../../lib/snykAuditLog'
 import { listIntegrations, readIntegrationSettings } from './deploy'
 import { extractIntegrationSpecs, integrationKey } from './validate'
+
+/** Snyk audit event-name prefixes for integration changes (best-effort attribution). */
+const INTEGRATION_EVENT_PREFIXES = ['org.integration']
 
 /**
  * Detect drift between the deployed integration settings and the live org. A
@@ -22,22 +26,31 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
 
   try {
     const integrations = await listIntegrations(client)
+    const excludeActorLogins = veltrixActorLogins(ctx.credential)
 
     for (const spec of specs) {
+      const before = diffs.length
       const integrationId = integrations[integrationKey(spec.integrationType)]
       if (!integrationId) {
         diffs.push({ field: `integration:${spec.integrationType}`, expected: 'connected', actual: 'missing', severity: 'critical' })
-        continue
+      } else {
+        const live = await readIntegrationSettings(client, integrationId)
+        compareSetting(diffs, spec.integrationType, 'pullRequestTestEnabled', spec.prTestEnabled, live.pullRequestTestEnabled)
+        compareSetting(diffs, spec.integrationType, 'pullRequestFailOnAnyVulns', spec.prFailOnAny, live.pullRequestFailOnAnyVulns)
+        compareSetting(diffs, spec.integrationType, 'pullRequestFailOnlyForHighSeverity', spec.prFailOnlyHigh, live.pullRequestFailOnlyForHighSeverity)
+        compareSetting(diffs, spec.integrationType, 'autoDepUpgradeEnabled', spec.autoDepUpgradeEnabled, live.autoDepUpgradeEnabled)
+        if (spec.autoDepUpgradeLimit !== undefined) {
+          compareSetting(diffs, spec.integrationType, 'autoDepUpgradeLimit', spec.autoDepUpgradeLimit, live.autoDepUpgradeLimit)
+        }
       }
 
-      const live = await readIntegrationSettings(client, integrationId)
-      compareSetting(diffs, spec.integrationType, 'pullRequestTestEnabled', spec.prTestEnabled, live.pullRequestTestEnabled)
-      compareSetting(diffs, spec.integrationType, 'pullRequestFailOnAnyVulns', spec.prFailOnAny, live.pullRequestFailOnAnyVulns)
-      compareSetting(diffs, spec.integrationType, 'pullRequestFailOnlyForHighSeverity', spec.prFailOnlyHigh, live.pullRequestFailOnlyForHighSeverity)
-      compareSetting(diffs, spec.integrationType, 'autoDepUpgradeEnabled', spec.autoDepUpgradeEnabled, live.autoDepUpgradeEnabled)
-      if (spec.autoDepUpgradeLimit !== undefined) {
-        compareSetting(diffs, spec.integrationType, 'autoDepUpgradeLimit', spec.autoDepUpgradeLimit, live.autoDepUpgradeLimit)
-      }
+      // Attribute this integration's drift ("who changed it + when") — best-effort.
+      await attachDriftActor(client, diffs.slice(before), {
+        targetId: integrationId,
+        targetName: spec.integrationType,
+        eventPrefixes: INTEGRATION_EVENT_PREFIXES,
+        excludeActorLogins,
+      })
     }
   } catch (error) {
     diffs.push({

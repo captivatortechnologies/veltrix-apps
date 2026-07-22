@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildSentinelClient } from '../../lib/sentinel'
+import { attachDriftActor, veltrixActorLogins } from '../../lib/sentinelActivityLog'
 import { listAlertRules } from './healthCheck'
 import { extractRuleSpecs } from './validate'
 
@@ -29,14 +30,21 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const specs = extractRuleSpecs(ctx.deployedConfig).filter((s) => s.ruleName)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
 
+  // Veltrix's own deploys authenticate as the app registration — excluded so
+  // attribution reflects the MANUAL change, not a Veltrix deploy.
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
+
   try {
     const live = await listAlertRules(client)
     const byId = new Map(live.filter((r) => r.name).map((r) => [(r.name as string).toLowerCase(), r]))
 
     for (const spec of specs) {
+      const before = diffs.length
+      const resourceId = client.sentinelPath(`/alertRules/${spec.ruleId}`)
       const liveRule = byId.get(spec.ruleId.toLowerCase())
       if (!liveRule) {
         diffs.push({ field: `rule:${spec.ruleName}`, expected: 'exists', actual: 'missing', severity: 'critical' })
+        await attachDriftActor(client, diffs.slice(before), { resourceId, excludeActorLogins })
         continue
       }
       const props = liveRule.properties ?? {}
@@ -47,6 +55,9 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           diffs.push({ field: `${spec.ruleName}.${label}`, expected: String(want ?? ''), actual: String(have ?? ''), severity: 'warning' })
         }
       }
+      // Attribute every diff this rule produced to the last human change (once);
+      // a no-op (no query) when the rule did not drift.
+      await attachDriftActor(client, diffs.slice(before), { resourceId, excludeActorLogins })
     }
   } catch (error) {
     diffs.push({ field: 'sentinel', expected: 'reachable', actual: `unreachable: ${error instanceof Error ? error.message : 'unknown'}`, severity: 'critical' })

@@ -32,6 +32,7 @@ import type {
   ValidationResult,
 } from '@veltrixsecops/app-sdk'
 import { buildMdeClient, mdeErrorMessage, parseJson, type MdeClient } from './mde'
+import { attachDriftActor, indicatorAuditEvents, veltrixActorLogins } from './mdeAuditLog'
 
 // Valid action set (verified): Warn is Defender-for-Cloud-Apps only; Alert /
 // AlertAndBlock are legacy (removed Jan 2022) — not accepted for authoring.
@@ -71,6 +72,13 @@ export interface LiveIndicator {
   recommendedActions?: string
   rbacGroupNames?: string[]
   generateAlert?: boolean
+  // Audit stamps used for drift attribution ("who changed it + when").
+  createdBy?: string | null
+  createdBySource?: string | null
+  sourceType?: string | null
+  creationTimeDateTimeUtc?: string | null
+  lastUpdatedBy?: string | null
+  lastUpdateTime?: string | null
 }
 
 /** The (indicatorType, indicatorValue) natural key — an indicator's identity. */
@@ -395,6 +403,10 @@ export async function driftIndicators(ctx: DriftContext): Promise<DriftResult> {
   const specs = extractIndicatorSpecs(ctx.deployedConfig).filter((s) => s.indicatorType && s.indicatorValue)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
 
+  // Veltrix's own deploys are stamped with the app registration identity —
+  // excluded so attribution reflects the MANUAL change, not a Veltrix deploy.
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
+
   try {
     const live = await listIndicators(client)
     const byKey = new Map<string, LiveIndicator>(
@@ -403,9 +415,11 @@ export async function driftIndicators(ctx: DriftContext): Promise<DriftResult> {
         .map((i) => [indicatorKey(i.indicatorType as string, i.indicatorValue as string), i]),
     )
     for (const spec of specs) {
+      const before = diffs.length
       const found = byKey.get(indicatorKey(spec.indicatorType, spec.indicatorValue))
       const label = `${spec.indicatorType} ${spec.indicatorValue}`
       if (!found) {
+        // Missing/deleted — the object's stamps are gone, so it is unattributable.
         diffs.push({ field: label, expected: 'exists', actual: 'missing', severity: 'critical' })
         continue
       }
@@ -415,6 +429,9 @@ export async function driftIndicators(ctx: DriftContext): Promise<DriftResult> {
       if (spec.severity && (found.severity ?? '') !== spec.severity) {
         diffs.push({ field: `${label}.severity`, expected: spec.severity, actual: found.severity ?? 'not set', severity: 'info' })
       }
+      // Attribute every diff this indicator produced to its last human change
+      // (once); a no-op when the indicator did not drift.
+      attachDriftActor(diffs.slice(before), indicatorAuditEvents(found), excludeActorLogins)
     }
   } catch (error) {
     diffs.push({ field: 'mde', expected: 'reachable', actual: `unreachable: ${error instanceof Error ? error.message : 'unknown'}`, severity: 'critical' })

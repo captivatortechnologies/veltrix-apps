@@ -1,7 +1,11 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildSnykClient } from '../../lib/snyk'
+import { attachDriftActor, veltrixActorLogins } from '../../lib/snykAuditLog'
 import { readSastSettings } from './deploy'
 import { extractSastSettings } from './validate'
+
+/** Snyk audit event-name prefixes for org SAST/settings changes (best-effort attribution). */
+const SAST_EVENT_PREFIXES = ['org.sast_settings', 'org.settings']
 
 /**
  * Detect drift between the deployed SAST settings and the live org: compare the
@@ -28,6 +32,12 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         severity: 'warning',
       })
     }
+
+    // Org-singleton: attribute the SAST setting change ("who changed it + when") — best-effort.
+    await attachDriftActor(client, diffs, {
+      eventPrefixes: SAST_EVENT_PREFIXES,
+      excludeActorLogins: veltrixActorLogins(ctx.credential),
+    })
   } catch (error) {
     diffs.push({
       field: 'snyk',

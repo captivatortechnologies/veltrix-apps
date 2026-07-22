@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildWizClient } from '../../lib/wiz'
+import { attachDriftActor, veltrixActorLogins } from '../lib/wizAuditLog'
 import { listServiceAccounts } from './deploy'
 import { accountKey, extractServiceAccountSpecs, sameStringSet, type LiveServiceAccount } from './validate'
 
@@ -20,6 +21,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const specs = extractServiceAccountSpecs(ctx.deployedConfig).filter((s) => s.name)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
 
+  // Connection identity our own deploys appear under — excluded so attribution
+  // reflects the MANUAL change, not a Veltrix deploy.
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
+
   try {
     const live = await listServiceAccounts(client)
     const byName = new Map<string, LiveServiceAccount>(
@@ -27,10 +32,13 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     )
 
     for (const spec of specs) {
+      const before = diffs.length
       const label = spec.name
       const found = byName.get(accountKey(spec.name))
       if (!found) {
         diffs.push({ field: label, expected: 'exists', actual: 'missing', severity: 'critical' })
+        // Deleted/absent — no live id; attribute the deletion by name (best-effort).
+        await attachDriftActor(client, diffs.slice(before), { targetName: spec.name, excludeActorLogins })
         continue
       }
       if (found.type && found.type !== spec.type) {
@@ -45,6 +53,13 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           severity: 'warning',
         })
       }
+
+      // Attribute every diff this account produced to the last human change (once).
+      await attachDriftActor(client, diffs.slice(before), {
+        targetId: found.id,
+        targetName: spec.name,
+        excludeActorLogins,
+      })
     }
   } catch (error) {
     diffs.push({

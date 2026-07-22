@@ -39,6 +39,7 @@ import {
   type PanoramaSettings,
   type UpsertSpec,
 } from './panorama'
+import { attachDriftActor, veltrixActorLogins } from './panoramaAudit'
 
 export const COMPONENT_TYPE = 'panorama'
 
@@ -229,13 +230,22 @@ export async function runDriftDetect<T extends { name: string }>(
     if (name) byName.set(name, entry)
   }
 
+  // Veltrix's own deploys are recorded in the config log under the connection
+  // admin — exclude it so attribution reflects the MANUAL change, not our deploy.
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
+
   for (const spec of specs) {
     const found = byName.get(spec.name.toLowerCase())
-    if (!found) {
-      diffs.push({ field: spec.name, expected: 'exists', actual: 'missing', severity: 'critical' })
-      continue
+    // Diffs for THIS object, so attribution resolves once per drifted object.
+    const objectDiffs: DriftDiff[] = found
+      ? compare(spec, found)
+      : [{ field: spec.name, expected: 'exists', actual: 'missing', severity: 'critical' }]
+
+    if (objectDiffs.length > 0) {
+      // Best-effort "who + when" — never throws, never fails a drift check.
+      await attachDriftActor(client, objectDiffs, { objectName: spec.name, excludeActorLogins })
+      diffs.push(...objectDiffs)
     }
-    diffs.push(...compare(spec, found))
   }
 
   return { hasDrift: diffs.length > 0, diffs }

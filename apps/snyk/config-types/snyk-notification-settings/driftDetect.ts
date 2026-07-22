@@ -1,7 +1,11 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildSnykClient } from '../../lib/snyk'
+import { attachDriftActor, veltrixActorLogins } from '../../lib/snykAuditLog'
 import { readNotificationSettings } from './deploy'
 import { extractNotificationSpec } from './validate'
+
+/** Snyk audit event-name prefixes for org notification/settings changes (best-effort attribution). */
+const NOTIFICATION_EVENT_PREFIXES = ['org.notification_settings', 'org.notification', 'org.settings']
 
 /**
  * Detect drift between the deployed notification settings and the live org:
@@ -58,6 +62,12 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         severity: 'warning',
       })
     }
+
+    // Org-singleton: attribute the notification setting change ("who changed it + when") — best-effort.
+    await attachDriftActor(client, diffs, {
+      eventPrefixes: NOTIFICATION_EVENT_PREFIXES,
+      excludeActorLogins: veltrixActorLogins(ctx.credential),
+    })
   } catch (error) {
     diffs.push({
       field: 'snyk',

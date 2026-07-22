@@ -36,6 +36,13 @@ const SHARED_LOCATION = 'shared'
 /** Upper bound on how long a single commit job is polled before giving up. */
 const MAX_COMMIT_POLL_MS = 60_000
 const COMMIT_POLL_INTERVAL_MS = 3_000
+/**
+ * The config audit-log query (used only for best-effort drift attribution) is
+ * bounded far tighter than a commit — one query runs per drifted object and must
+ * never hold up a drift check, so it polls briefly and gives up quietly.
+ */
+const CONFIG_LOG_MAX_POLL_MS = 5_000
+const CONFIG_LOG_POLL_INTERVAL_MS = 500
 
 export interface PanoramaSettings {
   /** REST API version segment, e.g. "v11.0". */
@@ -270,6 +277,32 @@ export class PanoramaClient {
       await sleep(COMMIT_POLL_INTERVAL_MS)
     }
     return { finished: false, ok: false, detail: `still running after ${MAX_COMMIT_POLL_MS / 1000}s (last: ${last})` }
+  }
+
+  /**
+   * Run a PAN-OS config audit-log query and return the raw XML result body. The
+   * log API is async: POST starts the job (type=log&log-type=config), then GET
+   * (action=get&job-id=...) is polled until the job reaches FIN or a tight
+   * best-effort deadline elapses. Returns { ok:false } on any error, an enqueue
+   * with no job id, or a timeout — so drift attribution built on top stays
+   * best-effort and never blocks a drift check.
+   */
+  async fetchConfigLog(query: string, nlogs: number): Promise<{ ok: boolean; body: string }> {
+    const start = await this.xml({ type: 'log', 'log-type': 'config', query, nlogs: String(nlogs) })
+    if (!start.ok) return { ok: false, body: '' }
+    const jobId = extractXmlTag(start.body, 'job')
+    if (!jobId) return { ok: false, body: '' }
+
+    const deadline = Date.now() + CONFIG_LOG_MAX_POLL_MS
+    while (Date.now() < deadline) {
+      const res = await this.xml({ type: 'log', action: 'get', 'job-id': jobId })
+      if (res.ok) {
+        const status = extractXmlTag(res.body, 'status')
+        if (status && status.toUpperCase() === 'FIN') return { ok: true, body: res.body }
+      }
+      await sleep(CONFIG_LOG_POLL_INTERVAL_MS)
+    }
+    return { ok: false, body: '' }
   }
 
   private async send(

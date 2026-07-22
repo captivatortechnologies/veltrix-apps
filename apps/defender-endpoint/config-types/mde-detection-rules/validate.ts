@@ -60,6 +60,11 @@ export interface LiveRule {
       recommendedActions?: string
     }
   }
+  // Audit stamps used for drift attribution ("who changed it + when").
+  createdBy?: string | null
+  createdDateTime?: string | null
+  lastModifiedBy?: string | null
+  lastModifiedDateTime?: string | null
 }
 
 /** The case-insensitive id key — a detection rule's identity. */

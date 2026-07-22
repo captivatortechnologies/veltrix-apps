@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildWizClient } from '../../lib/wiz'
+import { attachDriftActor, veltrixActorLogins } from '../lib/wizAuditLog'
 import { listCustomCloudConfigRules, readRule } from './deploy'
 import { extractCloudConfigRuleSpecs, ruleKey, type LiveCloudConfigRule } from './validate'
 
@@ -21,6 +22,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const specs = extractCloudConfigRuleSpecs(ctx.deployedConfig).filter((s) => s.name && s.opaPolicy)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
 
+  // Connection identity our own deploys appear under — excluded so attribution
+  // reflects the MANUAL change, not a Veltrix deploy.
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
+
   try {
     const live = await listCustomCloudConfigRules(client)
     const byName = new Map<string, LiveCloudConfigRule>(
@@ -28,10 +33,13 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     )
 
     for (const spec of specs) {
+      const before = diffs.length
       const label = spec.name
       const found = byName.get(ruleKey(spec.name))
       if (!found || !found.id) {
         diffs.push({ field: label, expected: 'exists', actual: 'missing', severity: 'critical' })
+        // Deleted/absent — no live id; attribute the deletion by name (best-effort).
+        await attachDriftActor(client, diffs.slice(before), { targetName: spec.name, excludeActorLogins })
         continue
       }
 
@@ -46,6 +54,13 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
       if ((full.opaPolicy ?? '').trim() !== spec.opaPolicy.trim()) {
         diffs.push({ field: `${label}.opa_policy`, expected: 'as declared', actual: 'changed in Wiz', severity: 'warning' })
       }
+
+      // Attribute every diff this rule produced to the last human change (once).
+      await attachDriftActor(client, diffs.slice(before), {
+        targetId: found.id,
+        targetName: spec.name,
+        excludeActorLogins,
+      })
     }
   } catch (error) {
     diffs.push({
