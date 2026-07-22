@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-22T03:22:58.931Z",
+  "generatedAt": "2026-07-22T03:53:50.372Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -302,7 +302,7 @@
     {
       "appId": "splunk-cloud",
       "name": "Splunk Cloud Platform",
-      "version": "1.9.0",
+      "version": "1.10.0",
       "vendor": "Veltrix",
       "description": "Manage Splunk Cloud Platform configurations as code through the Admin Config Service (ACS) API. Includes index management, HTTP Event Collector (HEC) tokens, IP allow lists, and private apps/add-ons (built to a .spl, vetted by AppInspect, installed through ACS). Roles are managed through the Splunk Cloud Platform REST API on the stack's management port 8089 — ACS cannot manage identity.",
       "category": "SIEM",
@@ -312,17 +312,17 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-cloud",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-cloud-v1.9.0/splunk-cloud.zip",
-      "sha256": "7ead58f68c6e6953b03e42bd06b32c1f121ba43dbca02b75c7bc3d027932b8c5",
-      "sizeBytes": 479428,
-      "publishedAt": "2026-07-20T17:48:45.919Z",
-      "releaseNotes": "## 1.9.0 — 2026-07-20\n\n### Changed\n- Grouped the **Configurations** sidebar into 5 collapsible sections — Data,\n  Network & Access, System Settings, Apps, and Access Control — so all 13\n  configuration types stay navigable. Sections collapse by default, remember\n  whether you left them open, and always expand the one you're currently\n  working in.",
-      "releasedAt": "2026-07-20T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-cloud-v1.10.0/splunk-cloud.zip",
+      "sha256": "dcba4f0b27b8707a5acb38f2d51bccd18a20e88b747e0f620f095df6f89b6a82",
+      "sizeBytes": 487735,
+      "publishedAt": "2026-07-22T03:53:50.357Z",
+      "releaseNotes": "## 1.10.0 — 2026-07-21\n\n### Added\n- **Live ACS-backed pickers for object-reference fields.** Config fields that\n  name another live Splunk Cloud object are now searchable pickers instead of\n  free-text, backed by the stack's Admin Config Service (ACS) with the JWT the\n  app already uses:\n  - HEC Tokens **Default Index** (`remote-select`) and **Allowed Indexes**\n    (`remote-multiselect`) — search the stack's live indexes (ACS `/indexes`).\n  - App Permissions **App** (`remote-select`) — search the stack's installed\n    apps, built-in premium apps included (ACS `/permissions/apps`).\n\n  Stored value shapes are unchanged (single index / list of index names / single\n  app id), so the existing validate/deploy/drift handlers keep working. Each\n  picker falls back to a clear \"save the connection first\" / \"store the ACS JWT\"\n  message when the connection isn't ready. Role- and user-reference fields\n  (which need the Support-gated management REST port) and wildcard-capable fields\n  intentionally remain free-text.",
+      "releasedAt": "2026-07-21T00:00:00.000Z"
     },
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.17.0",
+      "version": "1.18.0",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -332,10 +332,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.17.0/splunk-enterprise.zip",
-      "sha256": "59ce11cbdf1c1d786fbda13db7918f70f03b6bf3773e04117d4537a702772260",
-      "sizeBytes": 426132,
-      "publishedAt": "2026-07-20T15:42:16.966Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.18.0/splunk-enterprise.zip",
+      "sha256": "017eea8388ea8ec59dc1e039fa963cde365e3e46d77658a484fe88fba15a75e7",
+      "sizeBytes": 433099,
+      "publishedAt": "2026-07-22T03:53:50.361Z",
+      "releaseNotes": "## 1.18.0 — 2026-07-21\n\n### Added\n- **Live index pickers for HEC tokens.** The HEC Token config type's **Default\n  Index** and **Allowed Indexes** fields are now searchable pickers backed by the\n  connected instance's live indexes (via `GET /services/data/indexes`,\n  `datatype=all`) instead of free-text. Default Index is a single-select\n  (`remote-select`); Allowed Indexes is a multi-select (`remote-multiselect`).\n  The stored value shape is unchanged — Default Index still stores one index\n  name, Allowed Indexes still stores a list of names — so the existing\n  validate/deploy/drift handlers keep working. Falls back to a clear \"save the\n  connection first\" message when no deploy target is registered yet.",
+      "releasedAt": "2026-07-21T00:00:00.000Z"
     },
     {
       "appId": "splunk-soar",
