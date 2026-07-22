@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildCloudflareClient } from '../../lib/cloudflare'
+import { attachDriftActor, veltrixActorLogins } from '../lib/cloudflareAudit'
 import { getEntrypoint } from './deploy'
 import { extractRedirectRuleSpecs, type LiveRule } from './validate'
 
@@ -21,19 +22,27 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const specs = extractRedirectRuleSpecs(ctx.deployedConfig).filter((s) => s.name && s.expression && s.redirectJson.trim())
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
 
+  // Connection identity our own deploys appear under — excluded so attribution
+  // reflects the MANUAL change, not a Veltrix deploy.
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
+
   try {
     const entry = await getEntrypoint(client)
     const byRef = new Map<string, LiveRule>(entry.rules.filter((r) => r.ref).map((r) => [r.ref as string, r]))
 
     for (const spec of specs) {
+      const before = diffs.length
       const found = byRef.get(spec.ref)
       if (!found) {
         diffs.push({ field: spec.name, expected: 'exists', actual: 'missing', severity: 'critical' })
+        await attachDriftActor(client, diffs.slice(before), { targetName: spec.name, excludeActorLogins })
         continue
       }
       if ((found.enabled ?? true) !== spec.enabled) {
         diffs.push({ field: `${spec.name}.enabled`, expected: String(spec.enabled), actual: String(found.enabled ?? true), severity: 'info' })
       }
+      // Attribute every diff this rule produced to the last human change (once).
+      await attachDriftActor(client, diffs.slice(before), { targetId: found.id, targetName: spec.name, excludeActorLogins })
     }
   } catch (error) {
     diffs.push({

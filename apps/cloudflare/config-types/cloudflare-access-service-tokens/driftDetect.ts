@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildCloudflareClient } from '../../lib/cloudflare'
+import { attachDriftActor, veltrixActorLogins } from '../lib/cloudflareAudit'
 import { listServiceTokens } from './deploy'
 import { extractServiceTokenSpecs, serviceTokenKey } from './validate'
 
@@ -29,13 +30,20 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const specs = extractServiceTokenSpecs(ctx.deployedConfig).filter((s) => s.name)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
 
+  // Connection identity our own deploys appear under — excluded so attribution
+  // reflects the MANUAL change, not a Veltrix deploy.
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
+
   try {
     const live = await listServiceTokens(client)
     const keys = new Set(live.filter((t) => t.name).map((t) => serviceTokenKey(t.name as string)))
 
     for (const spec of specs) {
+      const before = diffs.length
       if (!keys.has(serviceTokenKey(spec.name))) {
         diffs.push({ field: spec.name, expected: 'exists', actual: 'missing', severity: 'critical' })
+        // Deleted/absent — no live id; attribute the deletion by name (best-effort).
+        await attachDriftActor(client, diffs.slice(before), { targetName: spec.name, excludeActorLogins })
       }
     }
   } catch (error) {

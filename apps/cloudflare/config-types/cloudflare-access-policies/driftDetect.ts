@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildCloudflareClient } from '../../lib/cloudflare'
+import { attachDriftActor, veltrixActorLogins } from '../lib/cloudflareAudit'
 import { listAccessPolicies } from './deploy'
 import { extractAccessPolicySpecs, type LiveAccessPolicy } from './validate'
 
@@ -26,15 +27,21 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const specs = extractAccessPolicySpecs(ctx.deployedConfig).filter((s) => s.name)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
 
+  // Connection identity our own deploys appear under — excluded so attribution
+  // reflects the MANUAL change, not a Veltrix deploy.
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
+
   try {
     const live = await listAccessPolicies(client)
     const byName = new Map<string, LiveAccessPolicy>(live.filter((p) => p.name).map((p) => [p.name as string, p]))
 
     for (const spec of specs) {
+      const before = diffs.length
       const label = spec.name
       const found = byName.get(spec.name)
       if (!found) {
         diffs.push({ field: label, expected: 'exists', actual: 'missing', severity: 'critical' })
+        await attachDriftActor(client, diffs.slice(before), { targetName: spec.name, excludeActorLogins })
         continue
       }
       if ((found.decision ?? '') !== spec.decision) {
@@ -45,6 +52,8 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           severity: 'warning',
         })
       }
+      // Attribute every diff this policy produced to the last human change (once).
+      await attachDriftActor(client, diffs.slice(before), { targetId: found.id, targetName: spec.name, excludeActorLogins })
     }
   } catch (error) {
     diffs.push({

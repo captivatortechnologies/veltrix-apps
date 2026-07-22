@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildCloudflareClient, cloudflareErrorMessage, cloudflareResult } from '../../lib/cloudflare'
+import { attachDriftActor, veltrixActorLogins } from '../lib/cloudflareAudit'
 import { extractZoneSettingSpecs, normalizeSettingValue, settingKey, type LiveSetting } from './validate'
 
 /**
@@ -20,11 +21,17 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const specs = extractZoneSettingSpecs(ctx.deployedConfig).filter((s) => s.settingId && s.value)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
 
+  // Connection identity our own deploys appear under — excluded so attribution
+  // reflects the MANUAL change, not a Veltrix deploy.
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
+
   try {
     for (const spec of specs) {
+      const before = diffs.length
       const id = settingKey(spec.settingId)
       const res = await client.zone('GET', `/settings/${id}`)
       if (!res.ok) {
+        // A transient read error, not a human change — do not attribute.
         diffs.push({
           field: spec.settingId,
           expected: spec.value,
@@ -42,6 +49,8 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           severity: 'warning',
         })
       }
+      // Attribute a changed setting value to the last human change (once).
+      await attachDriftActor(client, diffs.slice(before), { targetId: id, targetName: spec.settingId, excludeActorLogins })
     }
   } catch (error) {
     diffs.push({

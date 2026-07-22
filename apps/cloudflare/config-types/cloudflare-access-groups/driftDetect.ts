@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildCloudflareClient } from '../../lib/cloudflare'
+import { attachDriftActor, veltrixActorLogins } from '../lib/cloudflareAudit'
 import { listAccessGroups } from './deploy'
 import { extractAccessGroupSpecs, type LiveAccessGroup } from './validate'
 
@@ -32,14 +33,21 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const specs = extractAccessGroupSpecs(ctx.deployedConfig).filter((s) => s.name && s.includeJson.trim())
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
 
+  // Connection identity our own deploys appear under — excluded so attribution
+  // reflects the MANUAL change, not a Veltrix deploy.
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
+
   try {
     const live = await listAccessGroups(client)
     const byName = new Map<string, LiveAccessGroup>(live.filter((g) => g.name).map((g) => [g.name as string, g]))
 
     for (const spec of specs) {
+      const before = diffs.length
       const found = byName.get(spec.name)
       if (!found) {
         diffs.push({ field: spec.name, expected: 'exists', actual: 'missing', severity: 'critical' })
+        // Deleted/absent — no live id; attribute the deletion by name (best-effort).
+        await attachDriftActor(client, diffs.slice(before), { targetName: spec.name, excludeActorLogins })
       }
       // Presence only — see the module comment on why the rule arrays are not diffed.
     }
