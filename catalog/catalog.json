@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-22T01:27:49.307Z",
+  "generatedAt": "2026-07-22T02:53:04.546Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -172,7 +172,7 @@
     {
       "appId": "okta-identity",
       "name": "Okta",
-      "version": "1.8.6",
+      "version": "1.8.7",
       "vendor": "Veltrix",
       "description": "Manage Okta configuration as code through the Okta Management API. Covers policies and their rules, group rules, groups, network zones, trusted origins, behavior rules, authenticators, identity providers, event / inline hooks, authorization servers (scopes / claims / policies), applications and group assignments, plus security and IAM governance — ThreatInsight, log streams, device assurance policies, user types, custom admin roles with resource sets and their role bindings, custom profile-schema attributes and profile mappings, self-service feature toggles, CAPTCHA, user linked-object definitions, org rate-limit settings, brands and their themes, custom email domains and SMS templates — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
@@ -182,11 +182,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/okta-identity",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/okta-identity-v1.8.6/okta-identity.zip",
-      "sha256": "b18236da46ae3f73086c15c69a3223d22b19b61e9f71e5b2765fc64491ee7703",
-      "sizeBytes": 831006,
-      "publishedAt": "2026-07-22T01:27:49.290Z",
-      "releaseNotes": "## 1.8.6 — 2026-07-21\n\n### Changed\n- **Live pickers for the three polymorphic/sentinel reference fields.** These\n  needed custom sources rather than a plain object list:\n  - auth-server-policies **Included Clients** (`clientInclude`) — a multi-select\n    that offers the `ALL_CLIENTS` sentinel (the field default) plus the org's apps.\n  - profile-mappings **Source** / **Target** — a single-select over the merged\n    UserType + app-instance id spaces (labelled by kind, since either is valid).\n  - resource-set-bindings **Role** — a single-select over the org's custom admin\n    roles (`cr0…`) plus the standard admin role types (fixed enums).\n  Adds `oauthClients`, `mappingEndpoints`, and `roles` sources to the shared\n  options provider and the options handler to the Profile Mappings type. Value\n  shapes unchanged, so existing configs keep working.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/okta-identity-v1.8.7/okta-identity.zip",
+      "sha256": "23ce65fa7cf9fd293a44882a123dad689aa31528d6b72673f8f34b2b5e651555",
+      "sizeBytes": 832582,
+      "publishedAt": "2026-07-22T02:53:04.524Z",
+      "releaseNotes": "## 1.8.7 — 2026-07-21\n\n### Added\n- **Validate-time warning for a group-rule expression that isn't a Boolean.** A\n  rule condition must resolve to true/false; an expression that only builds a\n  string (concatenation / `toUpperCase`/`substring…` with no comparison or logical\n  operator) now raises a warning at Validate — e.g. *\"looks like it builds a string\n  rather than a true/false condition\"* — instead of only failing later at deploy\n  when Okta type-checks it. Conservative: any comparison, `AND`/`OR`, or\n  boolean-returning function (`stringContains`, `isMemberOfGroupName`, …) suppresses\n  it, so valid conditions never trip the warning.",
       "releasedAt": "2026-07-21T00:00:00.000Z"
     },
     {
