@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-22T15:12:48.895Z",
+  "generatedAt": "2026-07-22T16:02:01.564Z",
   "apps": [
     {
       "appId": "cloudflare",
       "name": "Cloudflare",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "vendor": "Veltrix",
       "description": "Manage Cloudflare configuration as code through the Cloudflare API (v4). Covers DNS, the WAF/firewall Rulesets engine (custom rules, rate limiting, redirects, transforms and managed-ruleset overrides), zone settings, account Lists, and Zero Trust (Access applications/policies/groups/service-tokens and Gateway rules/lists) — with validation, drift detection and rollback handled by the Security-as-Code pipeline. The component hostname is the zone domain; the app resolves zone and account ids automatically.",
       "category": "NETWORK",
@@ -16,12 +16,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cloudflare",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cloudflare-v1.1.0/cloudflare.zip",
-      "sha256": "a129a4a218b395eaa091ff0510229d8e890a0359587428d17d3935c70484a58a",
-      "sizeBytes": 302307,
-      "publishedAt": "2026-07-20T17:48:45.884Z",
-      "releaseNotes": "## 1.1.0 — 2026-07-20\n\n### Changed\n- Grouped the **Configurations** sidebar into 5 collapsible sections — Zone, WAF\n  & Security, Rules & Lists, Zero Trust · Access, and Zero Trust · Gateway — so\n  all 14 configuration types stay navigable. Sections collapse by default,\n  remember whether you left them open, and always expand the one you're\n  currently working in.",
-      "releasedAt": "2026-07-20T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cloudflare-v1.2.0/cloudflare.zip",
+      "sha256": "3f897df4b8d4d37222a4f98d267826f81f17cbb955db55623879c76c05660164",
+      "sizeBytes": 314735,
+      "publishedAt": "2026-07-22T16:02:01.518Z",
+      "releaseNotes": "## 1.2.0 — 2026-07-22\n\n### Added\n- **Drift attribution — \"who changed it + when\".** When drift is detected on a\n  managed Cloudflare object (DNS records, WAF custom / rate-limiting / redirect /\n  transform rules, managed-ruleset deployments, zone settings, Lists, and Zero\n  Trust Access applications/groups/policies/service-tokens and Gateway\n  policies/lists), each reported difference is now annotated with the person who\n  made the last manual change and when, resolved from the Cloudflare **Audit\n  Logs**. The platform stores the `actor` on each diff and the drift view renders\n  it, so a drift alert answers *who* and *when*, not just *what*.\n  - Attribution queries the account audit logs once per drifted object\n    (`GET /accounts/{account_id}/audit_logs?since=<~7d>&per_page=50&direction=desc`)\n    and correlates entries CLIENT-SIDE to the drifted object by `resource.id`\n    (the live object id, or the setting key for zone settings).\n  - It picks the most recent **human** actor (`actor.type === \"user\"` with an\n    email), preferring change-type actions (`create`, `update`, `delete`, `add`,\n    `disable`, …) and falling back to the most recent human event otherwise.\n    `name`/`email` come from `actor.email`, the timestamp from `when`, and the\n    event type from `action.type`.\n  - Veltrix's own deploys run through the connection's API token, so a change WE\n    made is excluded via the connection login — the attribution reflects the\n    *manual* change rather than our deploy. A non-user API-token actor is already\n    filtered out by the human check.\n  - **Strictly best-effort:** attribution never throws and never fails a drift\n    check — on any error, a non-OK response (for example when the API token lacks\n    **Audit Logs Read** scope), an empty log, or no usable human event, the diff\n    is reported without an actor and the drift view shows \"—\". It never\n    fabricates. Only objects that actually drifted are attributed (one audit\n    query per drifted object).",
+      "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
       "appId": "cortex-xsoar",
@@ -270,7 +270,7 @@
     {
       "appId": "sentinelone",
       "name": "SentinelOne",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "vendor": "Veltrix",
       "description": "Manage SentinelOne endpoint security configuration as code through the SentinelOne Management API (v2.1). Covers exclusions, blocklist and allowlist hashes, STAR custom detection rules, the per-scope agent policy, and agent groups — with validation, drift detection and rollback handled by the Security-as-Code pipeline. Objects are scoped across the Account/Site/Group hierarchy via the Scope + Scope ID settings.",
       "category": "EDR",
@@ -280,10 +280,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/sentinelone",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/sentinelone-v1.0.0/sentinelone.zip",
-      "sha256": "47903d9b084ea61b9e5c93d06a9e66beea89a9ce5bb5c7030d572b813f1e15fb",
-      "sizeBytes": 150511,
-      "publishedAt": "2026-07-17T02:01:18.020Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/sentinelone-v1.1.0/sentinelone.zip",
+      "sha256": "12717c1c334508fbecee94b9d2e71bc7ee5ca97556a0f02e24a411dde77fbfae",
+      "sizeBytes": 161980,
+      "publishedAt": "2026-07-22T16:02:01.548Z",
+      "releaseNotes": "## 1.1.0 — 2026-07-22\n\n### Added\n- **Drift attribution — \"who changed it + when\".** When drift is detected on a\n  managed SentinelOne object (exclusions, blocklist hashes, hash allowlist, STAR\n  rules, the per-scope agent policy, and groups), each reported difference is now\n  annotated with the person who made the last manual change and when, resolved\n  from the **SentinelOne Activities API**\n  (`GET /web/api/v2.1/activities`). The platform stores the `actor` on each diff\n  and the drift view renders it, so a drift alert answers *who* and *when*, not\n  just *what*.\n  - Attribution pulls a recent page of activities (createdAt DESCENDING, last\n    ~7 days) and correlates each activity to the drifted object **client-side**:\n    an activity matches when the object's id or name/value appears in the\n    activity's scope ids (`groupId`/`siteId`/`accountId`), its `data` payload, or\n    its descriptions. Uncorrelated activities are dropped, so an unrelated\n    object's change is never mis-attributed. One activities query runs per\n    drifted object.\n  - It picks the most recent **human** actor (an activity carrying an acting\n    `userId` or a user display name in `data`; system/agent activities with no\n    user are excluded), preferring change-type descriptions (created / updated /\n    deleted / …) and falling back to the most recent human activity otherwise.\n    The actor's name is the display name from the activity payload, or the user\n    id when no name is present; the timestamp is the activity's `createdAt`.\n  - Veltrix's own deploys authenticate with the connection's SentinelOne service\n    user (API token), so those activities carry that user as the actor. The\n    connection's username is excluded from attribution, so a reported actor\n    reflects the manual change, not our own deploy.\n  - **Strictly best-effort:** attribution can never throw or fail a drift check.\n    On any API error, an empty log, or no usable human activity, the diff is\n    reported without an actor. If the connection's API token cannot read the\n    Activities API, or activities cannot be correlated to the managed object, the\n    actor is simply left unset.\n\n### Notes\n- No new permissions are required — attribution reuses the existing\n  `credential:read` grant and the SentinelOne console component. The new\n  `lib/s1ActivityLog.ts` module is unit-tested (`pickActorFromEvents` and the\n  best-effort resolve/attach/exclusion helpers).",
+      "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
       "appId": "snyk",
@@ -364,7 +366,7 @@
     {
       "appId": "tenable-vm",
       "name": "Tenable Vulnerability Management",
-      "version": "1.2.0",
+      "version": "1.3.0",
       "vendor": "Veltrix",
       "description": "Manage Tenable Vulnerability Management (tenable.io) configuration as code through the Tenable VM REST API. Covers scheduled scans, asset tags, and scan exclusions (blackout windows), with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "COMPLIANCE",
@@ -374,12 +376,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/tenable-vm",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/tenable-vm-v1.2.0/tenable-vm.zip",
-      "sha256": "cab48a1f77c60b32a0a8410f0b099fc0982dfba84e92936bc69c81a04d244a2f",
-      "sizeBytes": 421718,
-      "publishedAt": "2026-07-20T17:48:45.922Z",
-      "releaseNotes": "## 1.2.0 — 2026-07-20\n\n### Changed\n- Grouped the **Configurations** sidebar into 7 collapsible sections — Scanning,\n  Assets, Credentials & Connectors, Organization, Agents, Findings, and Access\n  Control — so all 18 configuration types stay navigable. Sections collapse by\n  default, remember whether you left them open, and always expand the one you're\n  currently working in.",
-      "releasedAt": "2026-07-20T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/tenable-vm-v1.3.0/tenable-vm.zip",
+      "sha256": "4847bf0114528e6fe6c52e38621fc2fc5dd997f62e0802101bd3d336720a0482",
+      "sizeBytes": 433877,
+      "publishedAt": "2026-07-22T16:02:01.553Z",
+      "releaseNotes": "## 1.3.0 — 2026-07-22\n\n### Added\n- **Drift attribution (\"who changed it + when\").** When a configuration drifts\n  from its deployed state, every drift now carries a best-effort `actor` —\n  resolved from the Tenable **Audit Log** (`GET /audit-log/v1/events`) by\n  correlating recent events to the drifted object by target id/name. The last\n  change (create/update/delete) wins, falling back to the most recent event;\n  the mapped actor records the name/email, when it happened, and the action.\n  Attribution is **strictly best-effort**: it never throws, never blocks a drift\n  check, and yields nothing when the audit log is inaccessible (it needs an\n  admin API key and returns 403 otherwise), empty, or uncorrelated. The Veltrix\n  connection identity is excluded so our own deploys are never mis-attributed as\n  a manual change. Wired into all 18 configuration types' drift detection.\n\n### Changed\n- Grouped the **Configurations** sidebar into 7 collapsible sections — Scanning,\n  Assets, Credentials & Connectors, Organization, Agents, Findings, and Access\n  Control — so all 18 configuration types stay navigable. Sections collapse by\n  default, remember whether you left them open, and always expand the one you're\n  currently working in.",
+      "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
       "appId": "wiz",
@@ -402,7 +404,7 @@
     {
       "appId": "zscaler",
       "name": "Zscaler",
-      "version": "1.2.0",
+      "version": "1.3.0",
       "vendor": "Veltrix",
       "description": "Manage Zscaler Internet Access (ZIA) and Zscaler Private Access (ZPA) configuration as code through the Zscaler OneAPI. Covers URL filtering, cloud firewall, DLP, SSL inspection, locations and admin config on ZIA, and application segments, server/segment groups, connectors and access policy on ZPA - with validation, drift detection and rollback handled by the Security-as-Code pipeline. ZIA changes are staged and activated as a batch; ZPA changes apply immediately.",
       "category": "NETWORK",
@@ -412,12 +414,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/zscaler",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/zscaler-v1.2.0/zscaler.zip",
-      "sha256": "a1d0a4d180cbe833de10f33b73e2d6fd432f924d6a4639e366013c3c55ba5050",
-      "sizeBytes": 698080,
-      "publishedAt": "2026-07-20T17:48:45.925Z",
-      "releaseNotes": "## 1.2.0 — 2026-07-20\n\n### Changed\n- Grouped the **Configurations** sidebar into 7 collapsible sections split by\n  service — ZIA (Policy Rules, Objects & Groups, DLP, Traffic Forwarding,\n  Administration) and ZPA (Infrastructure, Applications & Policy) — so all 32\n  configuration types stay navigable. Sections collapse by default, remember\n  whether you left them open, and always expand the one you're currently\n  working in.",
-      "releasedAt": "2026-07-20T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/zscaler-v1.3.0/zscaler.zip",
+      "sha256": "28ea81c990082acc7bbc8c77cd86e83ffef0a9d503369f949dcde7f463894afe",
+      "sizeBytes": 709621,
+      "publishedAt": "2026-07-22T16:02:01.556Z",
+      "releaseNotes": "## 1.3.0 — 2026-07-22\n\n### Added\n- **Drift attribution (\"who changed it + when\").** When drift is detected on a\n  ZIA or ZPA object, each diff now carries a best-effort `actor` — the person who\n  last changed the resource and the timestamp — read directly from the modifier\n  fields the drift check already fetches (ZIA `lastModifiedBy` / `lastModifiedTime`,\n  ZPA `modifiedBy` / `modifiedTime`), so no extra API call or audit-report flow is\n  needed. Changes made by Veltrix's own deploy identity are excluded so only\n  manual changes are attributed. Attribution is strictly best-effort: a resource\n  with no modifier field (or one changed by us) is reported without an actor, and\n  attribution can never fail a drift check. Wired into all 31 rule/object drift\n  handlers (the presence-only Locations type has no attributable field drift).",
+      "releasedAt": "2026-07-22T00:00:00.000Z"
     }
   ]
 }
