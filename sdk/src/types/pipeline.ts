@@ -52,11 +52,34 @@ export interface HealthCheckResult {
   checks: HealthCheck[]
 }
 
+/**
+ * Best-effort attribution for a drifting change: WHO changed the target outside
+ * Veltrix, and WHEN, resolved from the tool's own audit/system log (e.g. Okta's
+ * System Log). All fields optional — a tool without an audit API, or a change we
+ * can't correlate, simply omits it.
+ */
+export interface DriftActor {
+  /** Provider-native actor id (Okta user id, etc.). */
+  id?: string
+  /** Human-facing name of who made the change. */
+  name?: string
+  /** Actor email / login, when available. */
+  email?: string
+  /** ISO timestamp the change was actually made (not when Veltrix detected it). */
+  at?: string
+  /** Provider event type behind the change, e.g. "group.lifecycle.update". */
+  eventType?: string
+  /** Where the attribution came from, e.g. "okta-system-log". */
+  source?: string
+}
+
 export interface DriftDiff {
   field: string
   expected: unknown
   actual: unknown
   severity: 'info' | 'warning' | 'critical'
+  /** Who made this change + when, when the tool's audit log lets us attribute it. */
+  actor?: DriftActor
 }
 
 export interface DriftResult {
