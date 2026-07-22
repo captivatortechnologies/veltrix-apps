@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-22T16:02:01.564Z",
+  "generatedAt": "2026-07-22T16:17:48.472Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -82,7 +82,7 @@
     {
       "appId": "defender-endpoint",
       "name": "Microsoft Defender for Endpoint",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "vendor": "Veltrix",
       "description": "Manage Microsoft Defender for Endpoint threat intelligence as code. Covers file, network and certificate indicators (IoCs) via the Defender /api/indicators API, plus custom detection rules (PREVIEW) via the Microsoft Graph beta API — with validation, drift detection and rollback handled by the Security-as-Code pipeline. Auth is an Azure AD app registration (OAuth2 client credentials); the component hostname is the Defender API host (api.security.microsoft.com) and the tenant is set via the Tenant ID app setting.",
       "category": "EDR",
@@ -92,10 +92,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/defender-endpoint",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/defender-endpoint-v1.0.0/defender-endpoint.zip",
-      "sha256": "7da29b100cced8060e667e26324531e5f0907f3924334fd3b592063f3a13caab",
-      "sizeBytes": 98092,
-      "publishedAt": "2026-07-17T02:01:17.999Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/defender-endpoint-v1.1.0/defender-endpoint.zip",
+      "sha256": "45897c0abd078a1242b0c38f3d784289805e08ac645562b3fe6b4cc935863020",
+      "sizeBytes": 106792,
+      "publishedAt": "2026-07-22T16:17:48.437Z",
+      "releaseNotes": "## 1.1.0 — 2026-07-22\n\n### Added\n- **Drift attribution — \"who changed it + when\".** When drift is detected on a\n  managed Defender object (file / network / certificate indicators and custom\n  detection rules), each reported difference is now annotated with the person who\n  made the last manual change and when. The platform stores the `actor` on each\n  diff and the drift view renders it, so a drift alert answers *who* and *when*,\n  not just *what*.\n  - Defender exposes **no** config-change audit-log endpoint for these object\n    types (the Intune `deviceManagement/auditEvents` and Entra\n    `auditLogs/directoryAudits` sources do not cover indicators or Defender\n    custom detection rules). Attribution is instead read from each object's own\n    first-party stamps, already returned by the drift check — so it adds **no**\n    extra API call:\n    - Indicators: `createdBy` / `createdBySource` / `sourceType` /\n      `creationTimeDateTimeUtc` and `lastUpdatedBy` / `lastUpdateTime`.\n    - Detection rules: `createdBy` / `createdDateTime` and `lastModifiedBy` /\n      `lastModifiedDateTime`.\n  - It picks the most recent **human** actor, preferring the change (update)\n    stamp and falling back to the create stamp. For indicators, `sourceType`\n    (`User` vs `AadApp`) reliably distinguishes a human from an application; for\n    detection rules (which carry no such flag) a user-principal-name (\"@\")\n    heuristic is used as best effort.\n  - Veltrix's own deploys run app-only (OAuth2 client credentials), so the\n    objects they write are stamped with the app registration identity —\n    indicators as `sourceType: AadApp` (dropped by the human-only filter) and\n    rules as a non-UPN app name (dropped by the same filter). The connection\n    Client ID (appId) is additionally excluded, so attribution reflects the\n    *manual* change rather than our deploy.\n  - **Strictly best-effort:** attribution never throws and never fails a drift\n    check — on any error or no usable stamp, the diff is reported without an\n    actor. A **deleted** object is unattributable: its stamps are gone with it\n    and there is no audit log to name the deleter.",
+      "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
       "appId": "elastic-security",
@@ -158,7 +160,7 @@
     {
       "appId": "microsoft-sentinel",
       "name": "Microsoft Sentinel",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "vendor": "Veltrix",
       "description": "Manage Microsoft Sentinel detection and response content as code through the Azure Resource Manager (ARM) API. v1.0 ships the genuinely CRUD, generally available configuration surface: scheduled (KQL) analytics rules, automation rules, and watchlists — each with validation, drift detection and rollback handled by the Security-as-Code pipeline. Auth is an Azure Entra app registration (OAuth2 client credentials) with the \"Microsoft Sentinel Contributor\" role scoped to the workspace resource group. The workspace is addressed via the Tenant ID, Subscription ID, Resource Group and Workspace Name app settings. NRT/ML/Threat-Intelligence analytics rule kinds, threat-intel indicator upload, and data connectors are preview or portal-heavy and are out of scope.",
       "category": "SIEM",
@@ -168,10 +170,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-sentinel",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-sentinel-v1.0.0/microsoft-sentinel.zip",
-      "sha256": "440fc44fc67daac04c3c07f882d417f612bbcb7e47a8fe1bdb787c6098fd8f85",
-      "sizeBytes": 103902,
-      "publishedAt": "2026-07-17T02:01:18.009Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-sentinel-v1.1.0/microsoft-sentinel.zip",
+      "sha256": "67146c24ddf8462db9694a4d7b344cb85e8b490c9e20b94d745181b9eaa83ec5",
+      "sizeBytes": 114151,
+      "publishedAt": "2026-07-22T16:17:48.447Z",
+      "releaseNotes": "## 1.1.0 — 2026-07-22\n\n### Added\n- **Drift attribution — \"who changed it + when\".** When drift is detected on a\n  managed Sentinel resource (scheduled analytics rules, automation rules, and\n  watchlists), each reported difference is now annotated with the person who made\n  the last manual change and when, resolved from the **Azure Activity Log**\n  (`Microsoft.Insights/eventtypes/management/values`, api-version 2015-04-01).\n  The platform stores the `actor` on each diff and the drift view renders it, so\n  a drift alert answers *who* and *when*, not just *what*.\n  - Sentinel objects are Azure Resource Manager resources, so the audit trail is\n    the subscription's Activity Log rather than Microsoft Graph. Attribution\n    queries the management events per drifted resource, filtered to the object by\n    its ARM resource id (`resourceUri eq '<resourceId>'`) over a ~7-day window,\n    and the returned records are ALSO correlated to the target client-side — so\n    an unrelated resource's change is never mis-attributed.\n  - It picks the most recent **human** actor (a `caller` that looks like a\n    UPN/email; bare appId/GUID service principals are excluded), preferring\n    change-type operations (write / delete / action) and falling back to the most\n    recent human event otherwise.\n  - Veltrix's own deploys authenticate as the Entra app registration (OAuth2\n    client credentials), so they appear under the app's appId (a GUID) and are\n    dropped by the human-only filter; the connection Client ID (appId) is\n    additionally excluded so the attribution reflects the *manual* change rather\n    than our deploy.\n  - **Strictly best-effort:** attribution never throws and never fails a drift\n    check — on any error, an empty log, or no usable event, the diff is reported\n    without an actor and the UI shows \"—\". Only resources that actually drifted\n    are queried (one Activity Log query per drifted resource). Reading the\n    Activity Log requires `Microsoft.Insights/eventtypes/values/read` at the\n    subscription; a service principal scoped only to the workspace resource group\n    may be denied, which simply degrades to \"—\".",
+      "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
       "appId": "okta-identity",
@@ -196,7 +200,7 @@
     {
       "appId": "palo-alto-panorama",
       "name": "Palo Alto Panorama",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "vendor": "Veltrix",
       "description": "Manage Palo Alto Networks Panorama / PAN-OS configuration as code through the PAN-OS REST API. Covers tags, address objects, service objects, address groups, service groups and security pre-rules — with validation, drift detection and rollback handled by the Security-as-Code pipeline. Writes land in the Panorama candidate config and are committed to Panorama (XML API) when auto-commit is on. The component hostname is the Panorama management host; auth is a pre-generated PAN-OS API key sent as the X-PAN-KEY header.",
       "category": "NETWORK",
@@ -206,10 +210,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/palo-alto-panorama",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/palo-alto-panorama-v1.0.0/palo-alto-panorama.zip",
-      "sha256": "886b65206ec69008ae819174e4cb1d3161b66e5fa40a24d46e85bf5f2971da1e",
-      "sizeBytes": 118786,
-      "publishedAt": "2026-07-17T02:01:18.015Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/palo-alto-panorama-v1.1.0/palo-alto-panorama.zip",
+      "sha256": "3219daf841a8af4fd8a6b78ea2190722d3657281f14b12fe888813fa306c25b5",
+      "sizeBytes": 128719,
+      "publishedAt": "2026-07-22T16:17:48.452Z",
+      "releaseNotes": "## 1.1.0 — 2026-07-22\n\n### Added\n- **Drift attribution — \"who changed it + when\".** When drift is detected on a\n  managed Panorama object (tags, address & service objects, address & service\n  groups, security pre-rules), each reported difference is now annotated with the\n  administrator who made the last change and when. The platform stores the\n  `actor` on each diff and the drift view renders it, so a drift alert answers\n  *who* and *when*, not just *what*.\n  - Attribution reads the PAN-OS **config audit log** (`type=log&log-type=config`)\n    — an asynchronous log job that is started, polled briefly for the recent rows\n    of the drifted object, then correlated to that object by matching its name in\n    the row's `path` / `full-path` xpath at a token boundary (so \"web\" is never\n    mistaken for \"web-server\"). The row's `admin`, `cmd` and `time_generated`\n    become the actor's name, event type and timestamp.\n  - Real object edits (`set` / `edit` / `delete` / `rename` / `move` / …) are\n    preferred over activation-only commands (`commit` / `validate`), and only\n    succeeded rows count, so the actor is whoever made the change rather than\n    whoever pushed it.\n  - Veltrix's own deploys are recorded in the config log under the connection\n    admin, so a change WE made is excluded via that admin username — the\n    attribution reflects the *manual* change rather than our deploy.\n  - **Strictly best-effort:** attribution never throws, and never slows down or\n    fails a drift check. The config-log job is tightly bounded and, on any error,\n    an unreachable or timed-out log, or no usable row (for example a deleted\n    object, or a log the admin role cannot read), the diff is reported without an\n    actor and the drift view shows \"—\". Only objects that actually drifted are\n    attributed (one bounded query per drifted object).",
+      "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
       "appId": "proofpoint",
@@ -232,7 +238,7 @@
     {
       "appId": "qualys",
       "name": "Qualys",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "vendor": "Veltrix",
       "description": "Manage Qualys VMDR / Policy Compliance configuration as code through the classic v2 API. Covers asset groups, static search lists (QID sets) and scheduled VM scans — with validation, drift detection and rollback handled by the Security-as-Code pipeline. The component hostname is your Qualys platform API server (Help > About); auth is HTTP Basic with the required X-Requested-With header.",
       "category": "COMPLIANCE",
@@ -242,10 +248,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/qualys",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/qualys-v1.0.0/qualys.zip",
-      "sha256": "cff6b5e9e43e87ddef80717df5fe8370180ae0efa6ff24b38bfb5b92ca005cc7",
-      "sizeBytes": 97895,
-      "publishedAt": "2026-07-17T02:01:18.017Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/qualys-v1.1.0/qualys.zip",
+      "sha256": "92e883c8796e76a10dc8c1f2bfa59ad52ec872537a43cd730a8e86edf4b0f106",
+      "sizeBytes": 107749,
+      "publishedAt": "2026-07-22T16:17:48.454Z",
+      "releaseNotes": "## 1.1.0 — 2026-07-22\n\n### Added\n- **Drift attribution — \"who changed it + when\".** When drift is detected on a\n  managed Qualys object (asset groups, static search lists, scan schedules), each\n  reported difference is now annotated with the person who made the last manual\n  change and when, resolved from the Qualys **User Activity Log**. The platform\n  stores the `actor` on each diff and the drift view renders it, so a drift alert\n  answers *who* and *when*, not just *what*.\n  - Attribution queries the classic v2 User Activity Log once per drifted object\n    (`POST /api/2.0/fo/activity_log/?action=list&output_format=XML`\n    `&since_datetime=<~7d>&truncation_limit=50`) using the same Basic-auth\n    service account and `X-Requested-With` header as every other call, and\n    correlates entries CLIENT-SIDE to the drifted object by matching its\n    name/id inside the entry's `DETAILS`/`ACTION` text (the activity log has no\n    structured resource id).\n  - It picks the most recent event with an acting login (`USER_NAME`), preferring\n    change-type actions (`create`, `update`, `delete`, `add`, `remove`, `edit`,\n    …) and falling back to the most recent human event otherwise. `name` comes\n    from `USER_NAME`, the timestamp from `DATE`, and the event type from\n    `ACTION`.\n  - Veltrix's own deploys run through the connection's Qualys service account, so\n    a change WE made is excluded via the connection login — the attribution\n    reflects the *manual* change rather than our deploy.\n  - **Strictly best-effort:** attribution never throws and never fails a drift\n    check — on any error, a non-OK response (for example when the service\n    account's role lacks Activity Log / API access), an empty log, or no usable\n    event, the diff is reported without an actor and the drift view shows \"—\". It\n    never fabricates. Only objects that actually drifted are attributed (one\n    activity-log query per drifted object).",
+      "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
       "appId": "rapid7",
@@ -290,7 +298,7 @@
     {
       "appId": "snyk",
       "name": "Snyk",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "vendor": "Veltrix",
       "description": "Manage Snyk organization configuration as code across the Snyk REST and v1 APIs. Covers Snyk Code (SAST) enablement, notification preferences, SCM integration pull-request and auto-upgrade settings, automation service accounts and outbound webhooks — with validation, drift detection and rollback handled by the Security-as-Code pipeline. Auth is a Snyk API token (a service-account token is recommended); the component hostname is the Snyk region API host (api.snyk.io, api.eu.snyk.io, …) and most configuration is scoped to the Organization ID app setting.",
       "category": "COMPLIANCE",
@@ -300,10 +308,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/snyk",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/snyk-v1.0.0/snyk.zip",
-      "sha256": "f57f0198fc293a03cdbb33b162eee1c07e2739a4446423995827dab0b76b30af",
-      "sizeBytes": 124070,
-      "publishedAt": "2026-07-17T02:01:18.022Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/snyk-v1.1.0/snyk.zip",
+      "sha256": "67adb93b93d25942ba3edc991120cd6f31689a42ea9732510f50b9e48e0934ac",
+      "sizeBytes": 134889,
+      "publishedAt": "2026-07-22T16:17:48.458Z",
+      "releaseNotes": "## 1.1.0 — 2026-07-22\n\n### Added\n- **Drift attribution — \"who changed it + when\".** When drift is detected on a\n  managed Snyk object (SAST settings, notification settings, SCM/registry\n  integration settings, service accounts and webhooks), each reported difference\n  is now annotated with the person who made the last manual change and when,\n  resolved from the Snyk **Audit Logs** REST API\n  (`GET /rest/orgs/{org_id}/audit_logs/search`). The platform stores the `actor`\n  on each diff and the drift view renders it, so a drift alert answers *who* and\n  *when*, not just *what*.\n  - Attribution queries the org audit log once per drifted object over a ~7-day\n    window (`sort_order=DESC`), then correlates each event to the target\n    **client-side**: per-object types (integrations, service accounts, webhooks)\n    match the object's Snyk id or name/URL inside the event `content`;\n    org-singleton types (SAST, notifications) match by event-name prefix\n    (`org.sast_settings` / `org.settings`, `org.notification_settings` / …) — so\n    an unrelated object's change is never mis-attributed.\n  - It picks the most recent event with a **resolvable acting user**\n    (`userId` / `user_id` / `user_public_id`), preferring change-type events\n    (`.edit`, `.create`, `.add`, `.delete`, `.remove`, …) and falling back to the\n    most recent usable event otherwise. `at` = the event `created`,\n    `eventType` = the event name.\n  - Veltrix's own deploys authenticate with the connection's service-account\n    token, so their audit events are excluded via the connection identity\n    (`veltrixActorLogins`), leaving the attribution on the *manual* change rather\n    than our deploy.\n  - **Strictly best-effort:** attribution never throws and never fails a drift\n    check — on any error, an unreachable/forbidden audit scope, an empty log, or\n    no usable event, the diff is reported without an actor. Only objects that\n    actually drifted are queried (one audit query per drifted object).",
+      "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
       "appId": "splunk-cloud",
@@ -386,7 +396,7 @@
     {
       "appId": "wiz",
       "name": "Wiz",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "vendor": "Veltrix",
       "description": "Manage Wiz (CNAPP / cloud security) configuration as code through the Wiz GraphQL API. Covers service accounts (createServiceAccount — the generated client secret is a write-only output and is never captured) and custom cloud configuration (CSPM) rules — with validation, drift detection and rollback handled by the Security-as-Code pipeline. Authenticates as a Wiz service account via OAuth2 client credentials against the tenant's regional API host.",
       "category": "CLOUD",
@@ -396,10 +406,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/wiz",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/wiz-v1.0.0/wiz.zip",
-      "sha256": "227a4b9305334e02092233b868b1a71d28f0efd1f1fe6d0ababc3838a845cefb",
-      "sizeBytes": 83991,
-      "publishedAt": "2026-07-17T02:01:18.033Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/wiz-v1.1.0/wiz.zip",
+      "sha256": "93fa8495a1f731e481c2672ae7c0d15f989c0dbcede3dd4a1d8ff6e4cdd26f09",
+      "sizeBytes": 93435,
+      "publishedAt": "2026-07-22T16:17:48.463Z",
+      "releaseNotes": "## 1.1.0 — 2026-07-22\n\n### Added\n- **Drift attribution — \"who changed it + when\".** When drift is detected on a\n  managed Wiz object (service accounts, custom cloud configuration rules), each\n  reported difference is now annotated with the person who made the last manual\n  change and when, resolved from the Wiz **audit log** (`auditLogEntries`). The\n  platform stores the `actor` on each diff and the drift view renders it, so a\n  drift alert answers *who* and *when*, not just *what*.\n  - Attribution queries the audit log per drifted object over a ~7-day window\n    (`filterBy: { timestamp: { after: … } }`) and correlates entries to the\n    drifted object by matching its id (preferred) or name against the entry's\n    `actionParameters` — Wiz's audit log has no per-object subject field, so\n    correlation is done client-side.\n  - It picks the most recent **human** entry (one bearing a `user`, not a\n    service account), preferring change-type actions (`Create*`, `Update*`,\n    `Delete*`, `Rotate*`, …) and falling back to the most recent human entry\n    otherwise. The actor carries the user's id, name and email plus the action\n    and timestamp.\n  - Veltrix's own deploys authenticate as a Wiz **service account** (recorded\n    with no `user`) and are therefore never treated as a human actor; the\n    connection's Client ID is additionally excluded so the attribution reflects\n    the *manual* change rather than our deploy.\n  - **Strictly best-effort:** attribution never throws and never fails a drift\n    check — on any error, a timeout, an empty or unavailable audit log, or no\n    usable human entry, the diff is reported without an actor and the drift view\n    shows \"—\". Only objects that actually drifted are queried (one audit query\n    per drifted object).",
+      "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
       "appId": "zscaler",
