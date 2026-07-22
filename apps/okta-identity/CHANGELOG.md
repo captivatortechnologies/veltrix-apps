@@ -3,6 +3,22 @@
 All notable changes to the Okta app are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## 1.9.0 — 2026-07-22
+
+### Added
+- **Users config type (safe-by-design).** Manage a CONTROLLED set of Okta users
+  as code — break-glass admins, service/bot accounts, sandbox seed users — via
+  the Users API. Deliberately NOT for general workforce management (that belongs
+  to HR/SCIM provisioning). Guarantees:
+  - Only users declared in the canvas are managed (matched by stored id, then by
+    login); a user NOT in the canvas is never read or written.
+  - Users are **never deleted** — the strongest action is deactivate
+    (DEPROVISIONED), and only when an item's Status is set to Deactivated.
+  - Per user: create (STAGED), update profile, and reconcile lifecycle toward the
+    desired status (activate / unsuspend / suspend / deactivate). Login is the
+    identity (rename-safe). Full validate/deploy/rollback/health/drift handlers;
+    rollback deactivates created users rather than deleting them.
+
 ## 1.8.7 — 2026-07-21
 
 ### Added

@@ -1,6 +1,6 @@
 id: okta-identity
 name: Okta
-version: "1.8.7"
+version: "1.9.0"
 vendor: Veltrix
 description: >
   Manage Okta configuration as code through the Okta Management API. Covers
@@ -44,6 +44,9 @@ permissions:
     - resource: groups
       actions: [read, write, delete]
       description: Manage Okta groups (OKTA_GROUP) and their memberships
+    - resource: users
+      actions: [read, write]
+      description: Manage a controlled set of Okta users (safe-by-design — no delete; never touches undeclared users)
     - resource: network-zones
       actions: [read, write, delete]
       description: Manage Okta network zones (IP and dynamic)
@@ -186,6 +189,24 @@ pipeline:
         driftDetect: config-types/groups/driftDetect
         getStatus: config-types/groups/getStatus
         options: config-types/groups/options
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: users
+      group: "Directory"
+      name: Users
+      description: A CONTROLLED set of users (break-glass admins, service accounts, seed users) — safe-by-design; never deletes, never touches undeclared users
+      canvasTemplate: config-types/users/canvas.yaml
+      defaultConfig: config-types/users/defaults.yaml
+      handlers:
+        validate: config-types/users/validate
+        deploy: config-types/users/deploy
+        rollback: config-types/users/rollback
+        healthCheck: config-types/users/healthCheck
+        driftDetect: config-types/users/driftDetect
+        getStatus: config-types/users/getStatus
       targets:
         componentTypes: [okta-org]
         requiresCredential: true

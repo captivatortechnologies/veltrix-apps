@@ -1,0 +1,6 @@
+# Defaults for a new user item. Flat map keyed by the canvas field keys.
+#
+# status defaults to STAGED — the safest state: a new user is CREATED but never
+# activated until the author explicitly sets Active. sendActivationEmail defaults
+# to false (declared on the field) so activating a service account stays quiet.
+status: "STAGED"

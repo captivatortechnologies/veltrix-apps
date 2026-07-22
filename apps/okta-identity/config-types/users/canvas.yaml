@@ -1,0 +1,109 @@
+# =============================================================================
+# Canvas Template — Okta Users (SAFE-BY-DESIGN)
+#
+# Declares ONE user — the item. Intended for a CONTROLLED set: break-glass
+# admins, service / bot accounts, or sandbox seed users — NOT general workforce
+# management (that belongs to your HR / directory / SCIM provisioning).
+#
+# Guarantees enforced by config-types/users/deploy.ts:
+#   - only users declared here are managed; a user NOT in this canvas is never
+#     read or written.
+#   - users are NEVER deleted. The strongest action is deactivate (DEPROVISIONED),
+#     and only when an item's Status is set to "Deactivated".
+#
+# Identity is the login (usually the email); a login change still updates the
+# SAME user (rename-safe). Field keys must match config-types/users/validate.ts.
+# =============================================================================
+
+id: "okta-identity-users"
+name: "User Configuration"
+toolType: "okta-identity"
+entityType: "users"
+description: "Manage a CONTROLLED set of Okta users as code (break-glass admins, service accounts, sandbox seed users) through the Users API. Safe-by-design: only declared users are managed, users are never deleted, and users not listed here are never touched. General population management belongs to your HR/SCIM provisioning."
+
+item:
+  label: "User"
+  identityField: "login"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Identity"
+      icon: "user"
+      description: "Who this user is (login is the logical identity)"
+      fields:
+        - key: "login"
+          label: "Login"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: "The user's Okta login — usually their email. This is the logical identity used to find and update the SAME user on each deploy (a login change still updates that user, not a new one). Must be unique within this canvas."
+
+        - key: "email"
+          label: "Primary Email"
+          fieldType: "text"
+          required: true
+          helpText: "The user's primary email address (profile.email)."
+
+        - key: "firstName"
+          label: "First Name"
+          fieldType: "text"
+          required: true
+
+        - key: "lastName"
+          label: "Last Name"
+          fieldType: "text"
+          required: true
+
+    - name: "Profile"
+      icon: "id-card"
+      description: "Optional profile attributes"
+      fields:
+        - key: "displayName"
+          label: "Display Name"
+          fieldType: "text"
+          helpText: "Optional. Leave blank to clear it on deploy."
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+        - key: "department"
+          label: "Department"
+          fieldType: "text"
+        - key: "mobilePhone"
+          label: "Mobile Phone"
+          fieldType: "text"
+        - key: "secondEmail"
+          label: "Secondary Email"
+          fieldType: "text"
+          helpText: "Optional recovery/secondary email."
+
+    - name: "Lifecycle"
+      icon: "activity"
+      description: "Desired lifecycle state (deactivate is opt-in per user)"
+      fields:
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          defaultValue: "STAGED"
+          options:
+            - label: "Staged (created, not activated)"
+              value: "STAGED"
+            - label: "Active"
+              value: "ACTIVE"
+            - label: "Suspended"
+              value: "SUSPENDED"
+            - label: "Deactivated (deprovisioned)"
+              value: "DEACTIVATED"
+          helpText: >
+            Desired lifecycle state for THIS user. STAGED just creates the account
+            (never activated); ACTIVE activates it; SUSPENDED suspends an active
+            user; DEACTIVATED deprovisions it (the strongest action — opt-in per
+            user). Users are never deleted. STAGED is only the initial create
+            state and cannot be re-applied to a user that is already live.
+
+        - key: "sendActivationEmail"
+          label: "Send Activation Email"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When activating this user (Status = Active), whether Okta emails them an activation link. Off by default — useful to keep service accounts quiet."
