@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-22T16:17:48.472Z",
+  "generatedAt": "2026-07-22T16:33:08.349Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -26,7 +26,7 @@
     {
       "appId": "cortex-xsoar",
       "name": "Cortex XSOAR",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "vendor": "Veltrix",
       "description": "Manage Palo Alto Networks Cortex XSOAR content configuration as code through the XSOAR server REST API. Covers lists, incident types and scheduled jobs — each reconciled by name with validation, drift detection and rollback handled by the Security-as-Code pipeline. Works with Cortex XSOAR 6.x (API-key header) and Cortex XSOAR 8 / the Cortex platform (API key + x-xdr-auth-id via the API gateway).",
       "category": "SOAR",
@@ -36,10 +36,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cortex-xsoar",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cortex-xsoar-v1.0.0/cortex-xsoar.zip",
-      "sha256": "5dfe07dbf10fc13093c9502ed87fe75b65c504c7c90c5731985df1992a18406f",
-      "sizeBytes": 94552,
-      "publishedAt": "2026-07-17T02:01:17.990Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cortex-xsoar-v1.1.0/cortex-xsoar.zip",
+      "sha256": "c0613ff5e8fc0427de058c2d9f22ac3c27f416f8d8ac195b146a0a50cf9028d9",
+      "sizeBytes": 105743,
+      "publishedAt": "2026-07-22T16:33:08.315Z",
+      "releaseNotes": "## 1.1.0 — 2026-07-22\n\n### Added\n- **Drift attribution — \"who changed it + when\".** When drift is detected on a\n  managed Cortex XSOAR object (a **list**, **incident type** or scheduled\n  **job**), each reported difference is now annotated with the person who made\n  the last manual change and when. The platform stores the `actor` on each diff\n  and the drift view renders it, so a drift alert answers *who* and *when*, not\n  just *what*.\n  - Attribution resolves once per drifted object from two best-effort sources, in\n    order: (1) the drifted object's own **modifier field** (`modifiedBy`\n    alongside a `modified` timestamp) when the live object records a non-Veltrix,\n    non-system writer — no extra request; then (2) the server **audit trail**\n    (`POST /settings/audits` with `{ page, size, fromDate: <~7d> }`), whose\n    entries are correlated CLIENT-SIDE to the drifted object by its **name** (the\n    XSOAR identity) or id.\n  - It picks the most recent **human** actor (a named user that is not XSOAR's\n    \"DBot\" automation user), preferring change-type actions (`create`, `update`,\n    `delete`, `save`, `enable`, `disable`, …) and falling back to the most recent\n    human event otherwise. `id`/`name` come from the entry's `user`/`userName`,\n    the timestamp from `created` (then `modified`), and the event type from\n    `action`.\n  - Veltrix's own deploys run through the connection's API key, so a change WE\n    made is excluded via the connection login — the attribution reflects the\n    *manual* change rather than our deploy.\n  - **Strictly best-effort:** attribution never throws and never fails a drift\n    check — on any error, a non-OK response (for example when the API key lacks\n    permission to read the audit trail), an empty log, or no usable human event,\n    the diff is reported without an actor and the drift view shows \"—\". It never\n    fabricates. Only objects that actually drifted are attributed.",
+      "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
       "appId": "crowdstrike-edr",
@@ -64,7 +66,7 @@
     {
       "appId": "cyberark",
       "name": "CyberArk Privileged Access Manager",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "vendor": "Veltrix",
       "description": "Manage CyberArk Privileged Access Manager (PVWA) configuration as code through the Privileged Access Security Web Services REST API. Covers safes, safe members (authorizations) and privileged accounts — with validation, drift detection and rollback handled by the Security-as-Code pipeline. The component hostname is the PVWA web server; auth is the PVWA logon flow (a manager username + password, method CyberArk / LDAP / RADIUS) that returns a session token.",
       "category": "IAM",
@@ -74,10 +76,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cyberark",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cyberark-v1.0.0/cyberark.zip",
-      "sha256": "d8161064bb88ded22f6d7ab583857b42b9bca776f4e169ad8d6a9d45a7835ebd",
-      "sizeBytes": 103068,
-      "publishedAt": "2026-07-17T02:01:17.995Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cyberark-v1.1.0/cyberark.zip",
+      "sha256": "6358b771de5d6b7dea8c27ac5be585405f1fc43e8b5d0604ff2111107772b3b5",
+      "sizeBytes": 113737,
+      "publishedAt": "2026-07-22T16:33:08.319Z",
+      "releaseNotes": "## 1.1.0 — 2026-07-22\n\n### Added\n- **Drift attribution — \"who changed it + when\".** When drift is detected on a\n  managed CyberArk object, each reported difference is now annotated with the\n  person who made the last change and when. The platform stores the `actor` on\n  each diff and the drift view renders it, so a drift alert answers *who* and\n  *when*, not just *what*.\n  - **Accounts** are attributed from the per-account Activities log\n    (`GET /Accounts/{id}/Activities`), which records every action with its\n    `User`, `Date` and `Action`. Attribution picks the most recent human,\n    non-Veltrix activity, preferring change-type actions (modify / update / add /\n    rename / change / enable / disable / …) and excluding the CPM component's\n    automated rotations, so it reflects a *manual* change.\n  - **Safes** are attributed from the `creator` principal and `creationTime` /\n    `lastModificationTime` the PVWA already returns on the safe object, so no\n    extra API call is made. CyberArk records only the creator identity on a safe\n    (not a distinct last-modifier), so a safe is attributed to its creator — the\n    closest attribution the Gen2 API affords — with the timestamp reflecting its\n    last modification.\n  - **Safe members** carry no creator/modifier metadata in the Gen2 API and have\n    no per-member activity endpoint, so member diffs cannot be attributed with\n    the app's credentials and are reported without an actor (the drift view shows\n    \"—\").\n  - Veltrix's own deploys are recorded under the connection's manager account, so\n    a change WE made is excluded via that username — the attribution reflects the\n    *manual* change rather than our deploy.\n  - **Strictly best-effort:** attribution never throws and never fails a drift\n    check — on any error, an empty log, a missing source, or no usable human\n    event, the diff is reported without an actor. Only objects that actually\n    drifted are resolved (one resolution per drifted object).",
+      "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
       "appId": "defender-endpoint",
@@ -102,7 +106,7 @@
     {
       "appId": "elastic-security",
       "name": "Elastic Security",
-      "version": "1.1.2",
+      "version": "1.2.0",
       "vendor": "Veltrix",
       "description": "Manage Elastic Security configuration as code through the Kibana and Elasticsearch APIs. Covers detection rules, exception lists, index lifecycle (ILM) policies, role mappings and Kibana spaces, with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "SIEM",
@@ -112,10 +116,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/elastic-security",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/elastic-security-v1.1.2/elastic-security.zip",
-      "sha256": "ea8d850adcc1a2e6fedc3de4856b81df9be64186447d1a482c391587c4504855",
-      "sizeBytes": 158344,
-      "publishedAt": "2026-07-17T02:01:18.002Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/elastic-security-v1.2.0/elastic-security.zip",
+      "sha256": "6d1f312eadb1fa806e06fde23e3fa76a7f93ffdc62581825975ba0a3d4a2bde9",
+      "sizeBytes": 166837,
+      "publishedAt": "2026-07-22T16:33:08.324Z",
+      "releaseNotes": "## 1.2.0 — 2026-07-22\n\n### Added\n- **Drift attribution — \"who changed it + when\".** When drift is detected on a\n  managed Elastic object, each reported difference is now annotated with the\n  person who made the last change and when. The platform stores the `actor` on\n  each diff and the drift view renders it, so a drift alert answers *who* and\n  *when*, not just *what*.\n  - Attribution reads the modifier Kibana records DIRECTLY on the drifted object\n    — `updated_by` / `updated_at` (the last writer, preferred), with\n    `created_by` / `created_at` as a fallback — which the drift check already\n    fetches. This is the most reliable actor source (the object's own record of\n    its last writer) and needs no extra API call, scope or audit-log query.\n  - Applies to the config types whose objects carry a modifier: **detection\n    rules** (per rule) and **exception lists** (the list container and each item\n    are attributed independently to their own last writer).\n  - An email-shaped principal (SSO) is surfaced as the actor's email; a bare\n    username is surfaced as the actor id. The raw value is always kept as the\n    display name.\n  - Veltrix's own deploys are recorded under the connection's login, so a change\n    WE made is excluded via that login — the attribution reflects the *manual*\n    change rather than our deploy.\n  - **Strictly best-effort:** attribution never throws and never fails a drift\n    check — on any error, or when an object carries no usable modifier (a deleted\n    object, or an object with none recorded), the diff is reported without an\n    actor and the drift view shows \"—\". Only objects that actually drifted are\n    attributed (one resolution per drifted object).\n  - **Unattributed by design:** Elasticsearch ILM policies, Elasticsearch role\n    mappings and Kibana spaces expose no per-object modifier (and no per-object\n    audit trail through this app's API), so their drift is reported without an\n    actor. The attribution is still wired uniformly, so it will surface a modifier\n    automatically if Elastic ever records one — it is never fabricated.",
+      "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
       "appId": "hashicorp-vault",
