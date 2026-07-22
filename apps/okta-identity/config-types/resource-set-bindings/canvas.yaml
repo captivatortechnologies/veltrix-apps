@@ -52,7 +52,8 @@ item:
 
         - key: "role"
           label: "Role"
-          fieldType: "text"
+          fieldType: "remote-select"
+          optionsSource: "roles"
           required: true
           helpText: >
             The role to grant: the id of a CUSTOM admin role (e.g. 'cr0Yq6...') or

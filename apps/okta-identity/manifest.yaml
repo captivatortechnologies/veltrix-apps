@@ -1,6 +1,6 @@
 id: okta-identity
 name: Okta
-version: "1.8.5"
+version: "1.8.6"
 vendor: Veltrix
 description: >
   Manage Okta configuration as code through the Okta Management API. Covers
@@ -592,6 +592,7 @@ pipeline:
         healthCheck: config-types/profile-mappings/healthCheck
         driftDetect: config-types/profile-mappings/driftDetect
         getStatus: config-types/profile-mappings/getStatus
+        options: config-types/profile-mappings/options
       targets:
         componentTypes: [okta-org]
         requiresCredential: true

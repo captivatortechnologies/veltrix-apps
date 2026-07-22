@@ -93,7 +93,9 @@ item:
 
         - key: "clientInclude"
           label: "Included Clients"
-          fieldType: "tags"
+          fieldType: "remote-multiselect"
+          optionsSource: "oauthClients"
+          optionsMulti: true
           defaultValue:
             - "ALL_CLIENTS"
           helpText: >

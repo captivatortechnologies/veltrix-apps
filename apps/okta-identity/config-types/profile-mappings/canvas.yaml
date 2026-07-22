@@ -35,8 +35,9 @@ item:
       description: "Which (source -> target) mapping's property expressions to manage"
       fields:
         - key: "sourceId"
-          label: "Source ID"
-          fieldType: "text"
+          label: "Source"
+          fieldType: "remote-select"
+          optionsSource: "mappingEndpoints"
           required: true
           helpText: >
             The SOURCE profile id — a UserType id (e.g. 'oty1a2b3c4') or an app
@@ -46,8 +47,9 @@ item:
             expressions on an existing mapping.
 
         - key: "targetId"
-          label: "Target ID"
-          fieldType: "text"
+          label: "Target"
+          fieldType: "remote-select"
+          optionsSource: "mappingEndpoints"
           required: true
           helpText: >
             The TARGET profile id — a UserType id (e.g. 'oty1a2b3c4') or an app

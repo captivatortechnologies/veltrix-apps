@@ -3,6 +3,21 @@
 All notable changes to the Okta app are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## 1.8.6 — 2026-07-21
+
+### Changed
+- **Live pickers for the three polymorphic/sentinel reference fields.** These
+  needed custom sources rather than a plain object list:
+  - auth-server-policies **Included Clients** (`clientInclude`) — a multi-select
+    that offers the `ALL_CLIENTS` sentinel (the field default) plus the org's apps.
+  - profile-mappings **Source** / **Target** — a single-select over the merged
+    UserType + app-instance id spaces (labelled by kind, since either is valid).
+  - resource-set-bindings **Role** — a single-select over the org's custom admin
+    roles (`cr0…`) plus the standard admin role types (fixed enums).
+  Adds `oauthClients`, `mappingEndpoints`, and `roles` sources to the shared
+  options provider and the options handler to the Profile Mappings type. Value
+  shapes unchanged, so existing configs keep working.
+
 ## 1.8.5 — 2026-07-21
 
 ### Changed

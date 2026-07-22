@@ -87,8 +87,44 @@ const SIMPLE_SOURCES: Record<string, SimpleSource> = {
   },
 }
 
-/** Sources this provider knows how to resolve (custom + declarative). */
-const SUPPORTED_SOURCES = new Set(['groups', 'users', 'zones', ...Object.keys(SIMPLE_SOURCES)])
+/**
+ * Standard Okta admin role TYPES (fixed enums) that a resource-set binding may
+ * grant alongside custom roles. Not a list endpoint — Okta has no API to
+ * enumerate these, so they're offered statically next to the org's custom roles.
+ */
+const STANDARD_ADMIN_ROLE_TYPES: Array<[string, string]> = [
+  ['SUPER_ADMIN', 'Super Administrator'],
+  ['ORG_ADMIN', 'Organization Administrator'],
+  ['APP_ADMIN', 'Application Administrator'],
+  ['USER_ADMIN', 'Group / User Administrator'],
+  ['GROUP_MEMBERSHIP_ADMIN', 'Group Membership Administrator'],
+  ['HELP_DESK_ADMIN', 'Help Desk Administrator'],
+  ['READ_ONLY_ADMIN', 'Read-Only Administrator'],
+  ['API_ACCESS_MANAGEMENT_ADMIN', 'API Access Management Administrator'],
+  ['REPORT_ADMIN', 'Report Administrator'],
+  ['MOBILE_ADMIN', 'Mobile Administrator'],
+]
+
+/** The sentinel that scopes an auth-server policy to every OAuth client. */
+const ALL_CLIENTS_OPTION: OptionItem = {
+  value: 'ALL_CLIENTS',
+  label: 'All OAuth clients (ALL_CLIENTS)',
+  description: 'Applies to every client',
+}
+
+/**
+ * Sources this provider knows how to resolve: custom (groups/users/zones and the
+ * three polymorphic/sentinel ones), plus the declarative single-object sources.
+ */
+const SUPPORTED_SOURCES = new Set([
+  'groups',
+  'users',
+  'zones',
+  'oauthClients',
+  'mappingEndpoints',
+  'roles',
+  ...Object.keys(SIMPLE_SOURCES),
+])
 
 /**
  * Live options provider for the okta-identity config canvas. Powers
@@ -121,6 +157,9 @@ const oktaOptions: OptionsProvider = async (ctx): Promise<OptionItem[]> => {
   if (ctx.source === 'users') return listUsers(client, query)
   if (ctx.source === 'zones') return listZones(client, query)
   if (ctx.source === 'groups') return listGroups(client, query)
+  if (ctx.source === 'oauthClients') return listOAuthClients(client, query)
+  if (ctx.source === 'mappingEndpoints') return listMappingEndpoints(client, query)
+  if (ctx.source === 'roles') return listRoles(client, query)
   return listSimple(client, SIMPLE_SOURCES[ctx.source], query)
 }
 
@@ -196,6 +235,55 @@ async function listSimple(
   return spec.supportsQ || !needle
     ? items
     : items.filter((o) => o.label.toLowerCase().includes(needle))
+}
+
+/** Narrow a fixed option list by a query on its label. */
+function filterByLabel(items: OptionItem[], query: string): OptionItem[] {
+  const needle = query.toLowerCase()
+  return needle ? items.filter((o) => o.label.toLowerCase().includes(needle)) : items
+}
+
+/**
+ * OAuth-client picker for an auth-server policy's `clientInclude`: the ALL_CLIENTS
+ * sentinel (the field's default — scopes to every client) followed by the org's
+ * apps. Multi-value; the stored value is the app/client id OR "ALL_CLIENTS".
+ */
+async function listOAuthClients(client: OktaClient, query: string): Promise<OptionItem[]> {
+  const apps = await listSimple(client, SIMPLE_SOURCES.apps, query)
+  const sentinel = filterByLabel([ALL_CLIENTS_OPTION], query)
+  return [...sentinel, ...apps]
+}
+
+/**
+ * Endpoints for a profile mapping's source/target: a UserType (oty…) OR an
+ * app instance (0oa…). Merges both, labelled by kind so the two id spaces are
+ * distinguishable in one picker. Single-value.
+ */
+async function listMappingEndpoints(client: OktaClient, query: string): Promise<OptionItem[]> {
+  const [userTypes, apps] = await Promise.all([
+    listSimple(client, SIMPLE_SOURCES.userTypes, ''),
+    listSimple(client, SIMPLE_SOURCES.apps, ''),
+  ])
+  const merged = [
+    ...userTypes.map((o) => ({ ...o, label: `User Type: ${o.label}` })),
+    ...apps.map((o) => ({ ...o, label: `App: ${o.label}` })),
+  ]
+  return filterByLabel(merged, query)
+}
+
+/**
+ * Roles a resource-set binding may grant: the org's CUSTOM admin roles (cr0…,
+ * from /iam/roles) plus the standard admin role TYPES (fixed enums). Single-value;
+ * stores the custom role id or the standard role-type string.
+ */
+async function listRoles(client: OktaClient, query: string): Promise<OptionItem[]> {
+  const custom = await listSimple(client, { path: '/iam/roles', wrapperKey: 'roles', toOption: (r) => opt(r.id, r.label, r.id) }, '')
+  const standard = STANDARD_ADMIN_ROLE_TYPES.map(([value, label]) => ({
+    value,
+    label: `${label} (standard)`,
+    description: value,
+  }))
+  return filterByLabel([...custom, ...standard], query)
 }
 
 export default oktaOptions
