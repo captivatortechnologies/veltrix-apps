@@ -1,6 +1,6 @@
 id: okta-identity
 name: Okta
-version: "1.8.4"
+version: "1.8.5"
 vendor: Veltrix
 description: >
   Manage Okta configuration as code through the Okta Management API. Covers
@@ -349,6 +349,7 @@ pipeline:
         healthCheck: config-types/auth-server-scopes/healthCheck
         driftDetect: config-types/auth-server-scopes/driftDetect
         getStatus: config-types/auth-server-scopes/getStatus
+        options: config-types/auth-server-scopes/options
       targets:
         componentTypes: [okta-org]
         requiresCredential: true
@@ -367,6 +368,7 @@ pipeline:
         healthCheck: config-types/auth-server-claims/healthCheck
         driftDetect: config-types/auth-server-claims/driftDetect
         getStatus: config-types/auth-server-claims/getStatus
+        options: config-types/auth-server-claims/options
       targets:
         componentTypes: [okta-org]
         requiresCredential: true
@@ -385,6 +387,7 @@ pipeline:
         healthCheck: config-types/auth-server-policies/healthCheck
         driftDetect: config-types/auth-server-policies/driftDetect
         getStatus: config-types/auth-server-policies/getStatus
+        options: config-types/auth-server-policies/options
       targets:
         componentTypes: [okta-org]
         requiresCredential: true
@@ -404,6 +407,7 @@ pipeline:
         healthCheck: config-types/apps/healthCheck
         driftDetect: config-types/apps/driftDetect
         getStatus: config-types/apps/getStatus
+        options: config-types/apps/options
       targets:
         componentTypes: [okta-org]
         requiresCredential: true
@@ -422,6 +426,7 @@ pipeline:
         healthCheck: config-types/app-group-assignments/healthCheck
         driftDetect: config-types/app-group-assignments/driftDetect
         getStatus: config-types/app-group-assignments/getStatus
+        options: config-types/app-group-assignments/options
       targets:
         componentTypes: [okta-org]
         requiresCredential: true
@@ -549,6 +554,7 @@ pipeline:
         healthCheck: config-types/resource-set-bindings/healthCheck
         driftDetect: config-types/resource-set-bindings/driftDetect
         getStatus: config-types/resource-set-bindings/getStatus
+        options: config-types/resource-set-bindings/options
       targets:
         componentTypes: [okta-org]
         requiresCredential: true
@@ -567,6 +573,7 @@ pipeline:
         healthCheck: config-types/profile-schemas/healthCheck
         driftDetect: config-types/profile-schemas/driftDetect
         getStatus: config-types/profile-schemas/getStatus
+        options: config-types/profile-schemas/options
       targets:
         componentTypes: [okta-org]
         requiresCredential: true
@@ -657,6 +664,7 @@ pipeline:
         healthCheck: config-types/brands/healthCheck
         driftDetect: config-types/brands/driftDetect
         getStatus: config-types/brands/getStatus
+        options: config-types/brands/options
       targets:
         componentTypes: [okta-org]
         requiresCredential: true
@@ -675,6 +683,7 @@ pipeline:
         healthCheck: config-types/email-domains/healthCheck
         driftDetect: config-types/email-domains/driftDetect
         getStatus: config-types/email-domains/getStatus
+        options: config-types/email-domains/options
       targets:
         componentTypes: [okta-org]
         requiresCredential: true

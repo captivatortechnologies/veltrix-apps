@@ -3,6 +3,17 @@
 All notable changes to the Okta app are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## 1.8.5 — 2026-07-21
+
+### Changed
+- **Live pickers for single-value object references.** Ten id fields that were
+  free-text are now searchable `remote-select` pickers over the connected org's
+  live objects (name shown, id stored): app-group-assignments Application & Group;
+  Authorization Server on auth-server claims/policies/scopes; Email Domains' Brand;
+  Brands' Email Domain; Apps' Access Policy; Profile Schemas' User Type; Resource
+  Set Bindings' Resource Set. Value shape unchanged (a single id string), so
+  existing configs keep working.
+
 ## 1.8.4 — 2026-07-21
 
 ### Changed

@@ -71,8 +71,9 @@ item:
             left blank.
 
         - key: "emailDomainId"
-          label: "Email Domain ID"
-          fieldType: "text"
+          label: "Email Domain"
+          fieldType: "remote-select"
+          optionsSource: "emailDomains"
           helpText: >
             Optional id of a custom email domain associated with this brand.
 

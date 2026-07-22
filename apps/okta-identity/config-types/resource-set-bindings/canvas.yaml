@@ -40,7 +40,8 @@ item:
       fields:
         - key: "resourceSet"
           label: "Resource Set"
-          fieldType: "text"
+          fieldType: "remote-select"
+          optionsSource: "resourceSets"
           required: true
           helpText: >
             The id or label of the Okta resource set this grant is scoped to (e.g.

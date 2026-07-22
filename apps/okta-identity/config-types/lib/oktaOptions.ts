@@ -8,9 +8,6 @@ const OKTA_GROUP_TYPE = 'OKTA_GROUP'
 const OPTIONS_LIMIT = 200
 const SEARCH_LIMIT = 50
 
-/** Sources this provider knows how to resolve. */
-const SUPPORTED_SOURCES = new Set(['groups', 'users', 'zones'])
-
 interface LiveUser {
   id?: string
   status?: string
@@ -33,16 +30,77 @@ function userLabel(u: LiveUser): string {
 }
 
 /**
+ * Declarative spec for a "simple list" source: fetch a page from `path`, pull the
+ * array out (top-level, or unwrapped from `wrapperKey`), and map each record to an
+ * option. `query` filters server-side when `supportsQ`, otherwise in memory on the
+ * label. Keeps the many single-object pickers (apps, auth servers, brands, …) to
+ * one line of config each.
+ */
+interface SimpleSource {
+  path: string
+  extraQuery?: Record<string, string>
+  supportsQ?: boolean
+  wrapperKey?: string
+  toOption: (raw: Record<string, unknown>) => OptionItem | null
+}
+
+const str = (v: unknown): string | undefined => (typeof v === 'string' && v ? v : undefined)
+
+const opt = (id: unknown, label: unknown, description?: unknown): OptionItem | null => {
+  const value = str(id)
+  if (!value) return null
+  return { value, label: str(label) || value, description: str(description) || value }
+}
+
+const SIMPLE_SOURCES: Record<string, SimpleSource> = {
+  apps: {
+    path: '/apps',
+    supportsQ: true,
+    toOption: (a) => opt(a.id, a.label ?? a.name, a.status),
+  },
+  authServers: {
+    path: '/authorizationServers',
+    supportsQ: true,
+    toOption: (s) => opt(s.id, s.name, s.audiences ? undefined : s.id),
+  },
+  brands: {
+    path: '/brands',
+    toOption: (b) => opt(b.id, b.name, b.id),
+  },
+  emailDomains: {
+    path: '/email-domains',
+    toOption: (d) => opt(d.id, d.domain, d.validationStatus),
+  },
+  accessPolicies: {
+    path: '/policies',
+    extraQuery: { type: 'ACCESS_POLICY' },
+    toOption: (p) => opt(p.id, p.name, p.id),
+  },
+  resourceSets: {
+    path: '/iam/resource-sets',
+    wrapperKey: 'resource-sets',
+    toOption: (r) => opt(r.id, r.label, r.description),
+  },
+  userTypes: {
+    path: '/meta/types/user',
+    toOption: (t) => opt(t.id, t.displayName ?? t.name, t.name),
+  },
+}
+
+/** Sources this provider knows how to resolve (custom + declarative). */
+const SUPPORTED_SOURCES = new Set(['groups', 'users', 'zones', ...Object.keys(SIMPLE_SOURCES)])
+
+/**
  * Live options provider for the okta-identity config canvas. Powers
- * `remote-multiselect` fields via GET /api/apps/okta-identity/config-options.
- * The platform resolves the connection and runs this in-process, so it can call
- * the Okta org directly with the decrypted credential.
+ * `remote-multiselect` and `remote-select` fields via
+ * GET /api/apps/okta-identity/config-options. The platform resolves the
+ * connection and runs this in-process, so it can call the Okta org directly with
+ * the decrypted credential.
  *
- * Sources:
- *   - "groups": OKTA_GROUP groups → { value: id, label: name }.
- *   - "users":  org users → { value: id, label: "First Last (email)" }.
- * A `query` narrows the result via Okta's `q` (startsWith across name/email);
- * without one, the first page is returned.
+ * Sources: groups, users, zones (custom); apps, authServers, brands, emailDomains,
+ * accessPolicies, resourceSets, userTypes (declarative — see SIMPLE_SOURCES). Each
+ * returns { value: id, label: name }. A `query` narrows the result server-side
+ * where the endpoint supports Okta's `q`, otherwise in memory on the label.
  */
 const oktaOptions: OptionsProvider = async (ctx): Promise<OptionItem[]> => {
   if (!SUPPORTED_SOURCES.has(ctx.source)) return []
@@ -62,7 +120,8 @@ const oktaOptions: OptionsProvider = async (ctx): Promise<OptionItem[]> => {
 
   if (ctx.source === 'users') return listUsers(client, query)
   if (ctx.source === 'zones') return listZones(client, query)
-  return listGroups(client, query)
+  if (ctx.source === 'groups') return listGroups(client, query)
+  return listSimple(client, SIMPLE_SOURCES[ctx.source], query)
 }
 
 async function listGroups(client: OktaClient, query: string): Promise<OptionItem[]> {
@@ -108,6 +167,35 @@ async function listZones(client: OktaClient, query: string): Promise<OptionItem[
   return zones
     .filter((z) => z.id && z.name && (!q || z.name.toLowerCase().includes(q)))
     .map((z) => ({ value: z.id as string, label: z.name as string, description: z.type ?? z.id }))
+}
+
+async function listSimple(
+  client: OktaClient,
+  spec: SimpleSource,
+  query: string,
+): Promise<OptionItem[]> {
+  const q: Record<string, string> = { limit: String(spec.supportsQ && query ? SEARCH_LIMIT : OPTIONS_LIMIT) }
+  if (spec.extraQuery) Object.assign(q, spec.extraQuery)
+  if (spec.supportsQ && query) q.q = query
+
+  const res = await client.request('GET', spec.path, { query: q })
+  if (!res.ok) {
+    throw new Error(`Failed to list Okta options (${spec.path}): ${oktaErrorMessage(res)}`)
+  }
+
+  const parsed = parseJson<unknown>(res.body)
+  const rows: Array<Record<string, unknown>> = Array.isArray(parsed)
+    ? (parsed as Array<Record<string, unknown>>)
+    : spec.wrapperKey && parsed && typeof parsed === 'object'
+      ? (((parsed as Record<string, unknown>)[spec.wrapperKey] as Array<Record<string, unknown>>) ?? [])
+      : []
+
+  const needle = query.toLowerCase()
+  const items = rows.map(spec.toOption).filter((o): o is OptionItem => o !== null)
+  // Endpoints without server-side `q` are filtered on the label in memory.
+  return spec.supportsQ || !needle
+    ? items
+    : items.filter((o) => o.label.toLowerCase().includes(needle))
 }
 
 export default oktaOptions

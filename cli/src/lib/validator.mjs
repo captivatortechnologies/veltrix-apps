@@ -44,6 +44,7 @@ const CANVAS_FIELD_TYPES = new Set([
   'files',
   'keyvalue',
   'remote-multiselect',
+  'remote-select',
 ])
 const SETTING_TYPES = new Set(['string', 'number', 'boolean', 'select'])
 // Apps run in-process inside the platform server — modules that spawn

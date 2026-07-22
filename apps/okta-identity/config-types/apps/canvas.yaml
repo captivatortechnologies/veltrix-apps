@@ -117,8 +117,9 @@ item:
             deleting it.
 
         - key: "accessPolicyId"
-          label: "Access Policy ID"
-          fieldType: "text"
+          label: "Access Policy"
+          fieldType: "remote-select"
+          optionsSource: "accessPolicies"
           helpText: >
             Optional id of an ACCESS_POLICY (owned by the Policies config type) to
             associate with this app after create/update, via

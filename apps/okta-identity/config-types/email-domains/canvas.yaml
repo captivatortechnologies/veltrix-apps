@@ -42,8 +42,9 @@ item:
             domain and recreate it. Must be unique within this canvas.
 
         - key: "brandId"
-          label: "Brand ID"
-          fieldType: "text"
+          label: "Brand"
+          fieldType: "remote-select"
+          optionsSource: "brands"
           required: true
           helpText: >
             The id of the Okta brand this email domain is associated with. IMMUTABLE

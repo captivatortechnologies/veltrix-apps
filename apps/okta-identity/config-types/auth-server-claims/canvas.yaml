@@ -32,8 +32,9 @@ item:
       description: "The claim, its parent authorization server, and how its value is produced"
       fields:
         - key: "authServerId"
-          label: "Authorization Server ID"
-          fieldType: "text"
+          label: "Authorization Server"
+          fieldType: "remote-select"
+          optionsSource: "authServers"
           required: true
           defaultValue: "default"
           helpText: >

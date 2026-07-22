@@ -51,8 +51,9 @@ item:
             group schema. Half of the (schemaType, userTypeId) identity.
 
         - key: "userTypeId"
-          label: "User Type ID"
-          fieldType: "text"
+          label: "User Type"
+          fieldType: "remote-select"
+          optionsSource: "userTypes"
           helpText: >
             For a USER schema, the user-type id (e.g. 'oty1a2b3c4') or "default"
             for the org's default user type. Leave blank to target "default".

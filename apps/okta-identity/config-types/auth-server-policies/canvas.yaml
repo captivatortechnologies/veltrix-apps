@@ -39,8 +39,9 @@ item:
       description: "Parent authorization server, identity, priority, status and client scoping"
       fields:
         - key: "authServerId"
-          label: "Authorization Server ID"
-          fieldType: "text"
+          label: "Authorization Server"
+          fieldType: "remote-select"
+          optionsSource: "authServers"
           required: true
           helpText: >
             The id of the parent custom authorization server this policy belongs

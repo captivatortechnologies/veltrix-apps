@@ -42,8 +42,9 @@ item:
         (and its rules), not here.
       fields:
         - key: "appId"
-          label: "Application ID"
-          fieldType: "text"
+          label: "Application"
+          fieldType: "remote-select"
+          optionsSource: "apps"
           required: true
           helpText: >
             The id of the Okta application the group is assigned to (e.g.
@@ -52,8 +53,9 @@ item:
             /apps/{appId}/groups/{groupId}. This is the app id, not its label.
 
         - key: "groupId"
-          label: "Group ID"
-          fieldType: "text"
+          label: "Group"
+          fieldType: "remote-select"
+          optionsSource: "groups"
           required: true
           helpText: >
             The id of the Okta group being assigned to the app (e.g.
