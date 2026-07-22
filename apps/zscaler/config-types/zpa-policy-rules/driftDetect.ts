@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildZscalerClient } from '../../lib/zscaler'
+import { attachDriftActor, veltrixActorLogins } from '../lib/zscalerAudit'
 import { listPolicyRules } from './deploy'
 import { extractPolicyRuleSpecs, type LivePolicyRule } from './validate'
 
@@ -21,6 +22,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     return { hasDrift: false, diffs: [] }
   }
   const { client } = built
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
   if (!client.hasCustomerId) return { hasDrift: false, diffs: [] }
 
   const specs = extractPolicyRuleSpecs(ctx.deployedConfig).filter((s) => s.name && s.policyType)
@@ -41,6 +43,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         diffs.push({ field: label, expected: 'exists', actual: 'missing', severity: 'critical' })
         continue
       }
+      const before = diffs.length
       const liveAction = typeof found.action === 'string' ? found.action : ''
       const specAction = spec.action ?? ''
       if (specAction !== liveAction) {
@@ -52,6 +55,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         })
       }
       // conditions are server-normalized (see the file header) — not diffed.
+      attachDriftActor(diffs.slice(before), found, { excludeActorLogins })
     }
   } catch (error) {
     diffs.push({

@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildZscalerClient } from '../../lib/zscaler'
+import { attachDriftActor, veltrixActorLogins } from '../lib/zscalerAudit'
 import { listSegmentGroups } from './deploy'
 import { extractSegmentGroupSpecs } from './validate'
 
@@ -16,6 +17,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     return { hasDrift: false, diffs: [] }
   }
   const { client } = built
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
   if (!client.hasCustomerId) return { hasDrift: false, diffs: [] }
 
   const specs = extractSegmentGroupSpecs(ctx.deployedConfig).filter((s) => s.name)
@@ -31,6 +33,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         diffs.push({ field: spec.name, expected: 'exists', actual: 'missing', severity: 'critical' })
         continue
       }
+      const before = diffs.length
       const liveDescription = (typeof found.description === 'string' ? found.description : '').trim()
       if ((spec.description ?? '') !== liveDescription) {
         diffs.push({
@@ -49,6 +52,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           severity: 'warning',
         })
       }
+      attachDriftActor(diffs.slice(before), found, { excludeActorLogins })
     }
   } catch (error) {
     diffs.push({

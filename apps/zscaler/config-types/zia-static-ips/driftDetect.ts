@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildZscalerClient } from '../../lib/zscaler'
+import { attachDriftActor, veltrixActorLogins } from '../lib/zscalerAudit'
 import { listStaticIps } from './deploy'
 import { extractStaticIpSpecs } from './validate'
 
@@ -18,6 +19,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     return { hasDrift: false, diffs: [] }
   }
   const { client } = built
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
 
   const specs = extractStaticIpSpecs(ctx.deployedConfig).filter((s) => s.ipAddress)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
@@ -32,6 +34,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         diffs.push({ field: spec.ipAddress, expected: 'exists', actual: 'missing', severity: 'critical' })
         continue
       }
+      const before = diffs.length
 
       const liveComment = (typeof found.comment === 'string' ? found.comment : '').trim()
       if ((spec.comment ?? '') !== liveComment) {
@@ -52,6 +55,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           severity: 'info',
         })
       }
+      attachDriftActor(diffs.slice(before), found, { excludeActorLogins })
     }
   } catch (error) {
     diffs.push({

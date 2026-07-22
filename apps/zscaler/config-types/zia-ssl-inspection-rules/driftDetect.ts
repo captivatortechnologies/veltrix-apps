@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildZscalerClient } from '../../lib/zscaler'
+import { attachDriftActor, veltrixActorLogins } from '../lib/zscalerAudit'
 import { listSslRules } from './deploy'
 import { extractSslRuleSpecs } from './validate'
 
@@ -24,6 +25,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     return { hasDrift: false, diffs: [] }
   }
   const { client } = built
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
 
   const specs = extractSslRuleSpecs(ctx.deployedConfig).filter((s) => s.name)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
@@ -38,6 +40,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         diffs.push({ field: spec.name, expected: 'exists', actual: 'missing', severity: 'critical' })
         continue
       }
+      const before = diffs.length
 
       // order — the deployed value defaults to 1 the same way deploy does.
       const expectedOrder =
@@ -61,6 +64,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           severity: 'warning',
         })
       }
+      attachDriftActor(diffs.slice(before), found, { excludeActorLogins })
     }
   } catch (error) {
     diffs.push({

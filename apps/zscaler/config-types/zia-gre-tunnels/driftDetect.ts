@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildZscalerClient } from '../../lib/zscaler'
+import { attachDriftActor, veltrixActorLogins } from '../lib/zscalerAudit'
 import { listGreTunnels } from './deploy'
 import { extractGreTunnelSpecs } from './validate'
 
@@ -20,6 +21,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     return { hasDrift: false, diffs: [] }
   }
   const { client } = built
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
 
   const specs = extractGreTunnelSpecs(ctx.deployedConfig).filter((s) => s.sourceIp)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
@@ -34,6 +36,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         diffs.push({ field: spec.sourceIp, expected: 'exists', actual: 'missing', severity: 'critical' })
         continue
       }
+      const before = diffs.length
       const liveComment = (typeof found.comment === 'string' ? found.comment : '').trim()
       if ((spec.comment ?? '') !== liveComment) {
         diffs.push({
@@ -43,6 +46,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           severity: 'info',
         })
       }
+      attachDriftActor(diffs.slice(before), found, { excludeActorLogins })
     }
   } catch (error) {
     diffs.push({

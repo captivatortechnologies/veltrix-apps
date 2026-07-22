@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildZscalerClient } from '../../lib/zscaler'
+import { attachDriftActor, veltrixActorLogins } from '../lib/zscalerAudit'
 import { listProvisioningKeys } from './deploy'
 import { DEFAULT_MAX_USAGE, extractProvisioningKeySpecs, type LiveProvisioningKey } from './validate'
 
@@ -21,6 +22,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     return { hasDrift: false, diffs: [] }
   }
   const { client } = built
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
   if (!client.hasCustomerId) return { hasDrift: false, diffs: [] }
 
   const specs = extractProvisioningKeySpecs(ctx.deployedConfig).filter((s) => s.name && s.associationType)
@@ -48,6 +50,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         })
         continue
       }
+      const before = diffs.length
 
       // maxUsage only — ZPA returns it as a string, compare stringified.
       const expectedMaxUsage = String(spec.maxUsage ?? DEFAULT_MAX_USAGE)
@@ -71,6 +74,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           severity: 'warning',
         })
       }
+      attachDriftActor(diffs.slice(before), found, { excludeActorLogins })
     }
   } catch (error) {
     diffs.push({

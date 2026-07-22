@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildZscalerClient } from '../../lib/zscaler'
+import { attachDriftActor, veltrixActorLogins } from '../lib/zscalerAudit'
 import { listVpnCredentials } from './deploy'
 import { credentialIdentity, extractVpnCredentialSpecs, liveCredentialIdentity } from './validate'
 
@@ -23,6 +24,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     return { hasDrift: false, diffs: [] }
   }
   const { client } = built
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
 
   const specs = extractVpnCredentialSpecs(ctx.deployedConfig).filter((s) => s.type && credentialIdentity(s))
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
@@ -42,6 +44,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         diffs.push({ field: identity, expected: 'exists', actual: 'missing', severity: 'critical' })
         continue
       }
+      const before = diffs.length
 
       // Only `comments` is diffable. The PSK is write-only (never returned) and
       // is intentionally excluded (see the file header).
@@ -54,6 +57,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           severity: 'info',
         })
       }
+      attachDriftActor(diffs.slice(before), found, { excludeActorLogins })
     }
   } catch (error) {
     diffs.push({
