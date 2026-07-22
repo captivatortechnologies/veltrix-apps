@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-22T16:33:08.349Z",
+  "generatedAt": "2026-07-22T20:12:36.931Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -324,7 +324,7 @@
     {
       "appId": "splunk-cloud",
       "name": "Splunk Cloud Platform",
-      "version": "1.10.0",
+      "version": "1.10.1",
       "vendor": "Veltrix",
       "description": "Manage Splunk Cloud Platform configurations as code through the Admin Config Service (ACS) API. Includes index management, HTTP Event Collector (HEC) tokens, IP allow lists, and private apps/add-ons (built to a .spl, vetted by AppInspect, installed through ACS). Roles are managed through the Splunk Cloud Platform REST API on the stack's management port 8089 — ACS cannot manage identity.",
       "category": "SIEM",
@@ -334,17 +334,17 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-cloud",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-cloud-v1.10.0/splunk-cloud.zip",
-      "sha256": "dcba4f0b27b8707a5acb38f2d51bccd18a20e88b747e0f620f095df6f89b6a82",
-      "sizeBytes": 487735,
-      "publishedAt": "2026-07-22T03:53:50.357Z",
-      "releaseNotes": "## 1.10.0 — 2026-07-21\n\n### Added\n- **Live ACS-backed pickers for object-reference fields.** Config fields that\n  name another live Splunk Cloud object are now searchable pickers instead of\n  free-text, backed by the stack's Admin Config Service (ACS) with the JWT the\n  app already uses:\n  - HEC Tokens **Default Index** (`remote-select`) and **Allowed Indexes**\n    (`remote-multiselect`) — search the stack's live indexes (ACS `/indexes`).\n  - App Permissions **App** (`remote-select`) — search the stack's installed\n    apps, built-in premium apps included (ACS `/permissions/apps`).\n\n  Stored value shapes are unchanged (single index / list of index names / single\n  app id), so the existing validate/deploy/drift handlers keep working. Each\n  picker falls back to a clear \"save the connection first\" / \"store the ACS JWT\"\n  message when the connection isn't ready. Role- and user-reference fields\n  (which need the Support-gated management REST port) and wildcard-capable fields\n  intentionally remain free-text.",
-      "releasedAt": "2026-07-21T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-cloud-v1.10.1/splunk-cloud.zip",
+      "sha256": "1c8f99294913553db614adb0abea85ff59a1bf5901de63fb16b607e7af9b324c",
+      "sizeBytes": 488234,
+      "publishedAt": "2026-07-22T20:12:36.917Z",
+      "releaseNotes": "## 1.10.1 — 2026-07-22\n\n### Fixed\n- Access Servers: the Add/Edit dialog now refetches connections, ZTNA providers,\n  and environments each time it opens, so a connection created on the Connections\n  page appears in the \"Connection\" dropdown immediately instead of requiring a\n  page refresh (the list was previously loaded only once on page mount).",
+      "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.19.0",
+      "version": "1.19.1",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -354,11 +354,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.0/splunk-enterprise.zip",
-      "sha256": "654891573ccaa81c20d7d344a4fb8094ce9cca9334c468f8e34b83be6b2851c4",
-      "sizeBytes": 441882,
-      "publishedAt": "2026-07-22T15:12:48.887Z",
-      "releaseNotes": "## 1.19.0 — 2026-07-22\n\n### Added\n- **Drift attribution — \"who changed it + when\".** When drift is detected on a\n  Splunk **App** or **HEC Token**, the app now resolves WHO last manually changed\n  the object and WHEN, and attaches it to each drift diff (rendered by the\n  platform; `—` when unknown). Attribution reads Splunk's internal `_audit`\n  index via a single BLOCKING search export — `POST\n  /services/search/v2/jobs/export` (falling back to\n  `/services/search/jobs/export` on older splunkd) — running `search\n  index=_audit action=* object=\"<name>\" | head 20 | table _time user action\n  object` over the last 7 days, keyed on the drifted object's NAME (Splunk audit\n  keys on object name, not an id). Each result row maps to `user` (actor),\n  `_time` (when), and `action` (event type).\n- The resolver prefers a change-type action (`edit`/`create`/`delete`/…) and\n  otherwise falls back to the most recent human event. Veltrix's own deploys are\n  excluded by the connection's service-account username, and Splunk internal\n  principals (e.g. `splunk-system-user`) are never attributed. Attribution is\n  STRICTLY best-effort with a short timeout: any error, empty result, or\n  no usable human event leaves the diff unattributed and never fails a drift\n  check. Only objects that actually drifted are queried, once each.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.1/splunk-enterprise.zip",
+      "sha256": "5008d25fc0781394113cc03d679855cf477a604b3375901703f0308e316cd720",
+      "sizeBytes": 442389,
+      "publishedAt": "2026-07-22T20:12:36.920Z",
+      "releaseNotes": "## 1.19.1 — 2026-07-22\n\n### Fixed\n- Access Servers: the Add/Edit dialog now refetches connections, ZTNA providers,\n  and environments each time it opens, so a connection created on the Connections\n  page appears in the \"Connection\" dropdown immediately instead of requiring a\n  page refresh (the list was previously loaded only once on page mount).",
       "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
