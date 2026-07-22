@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildS1Client } from '../../lib/s1'
+import { attachDriftActor, veltrixActorLogins } from '../../lib/s1ActivityLog'
 import { listStarRules } from './deploy'
 import { extractStarRuleSpecs, isRuleActive, ruleKey, type LiveStarRule } from './validate'
 
@@ -28,26 +29,43 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
       live.filter((r) => r.name).map((r) => [ruleKey(r.name as string), r]),
     )
 
+    const veltrixLogins = veltrixActorLogins(ctx.credential)
+    const attributions: Array<Promise<void>> = []
+
     for (const spec of specs) {
       const label = spec.name
+      const before = diffs.length
       const found = byName.get(ruleKey(spec.name))
       if (!found) {
         diffs.push({ field: label, expected: 'exists', actual: 'missing', severity: 'critical' })
-        continue
+      } else {
+        if ((found.severity ?? '') !== spec.severity) {
+          diffs.push({ field: `${label}.severity`, expected: spec.severity, actual: found.severity ?? 'not set', severity: 'warning' })
+        }
+        const liveActive = isRuleActive(found.status)
+        if (liveActive !== spec.activate) {
+          diffs.push({
+            field: `${label}.status`,
+            expected: spec.activate ? 'Active' : 'Draft',
+            actual: found.status ?? (liveActive ? 'Active' : 'Draft'),
+            severity: 'warning',
+          })
+        }
       }
-      if ((found.severity ?? '') !== spec.severity) {
-        diffs.push({ field: `${label}.severity`, expected: spec.severity, actual: found.severity ?? 'not set', severity: 'warning' })
-      }
-      const liveActive = isRuleActive(found.status)
-      if (liveActive !== spec.activate) {
-        diffs.push({
-          field: `${label}.status`,
-          expected: spec.activate ? 'Active' : 'Draft',
-          actual: found.status ?? (liveActive ? 'Active' : 'Draft'),
-          severity: 'warning',
-        })
+
+      // Best-effort "who changed it + when" for this rule's drift only.
+      const objectDiffs = diffs.slice(before)
+      if (objectDiffs.length > 0) {
+        attributions.push(
+          attachDriftActor(client, objectDiffs, {
+            targetId: found?.id,
+            targetName: spec.name,
+            excludeActorLogins: veltrixLogins,
+          }),
+        )
       }
     }
+    await Promise.all(attributions)
   } catch (error) {
     diffs.push({
       field: 'sentinelone',

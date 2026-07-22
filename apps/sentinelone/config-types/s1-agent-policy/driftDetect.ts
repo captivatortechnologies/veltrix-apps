@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
-import { buildS1Client } from '../../lib/s1'
+import { buildS1Client, readS1Settings } from '../../lib/s1'
+import { attachDriftActor, veltrixActorLogins } from '../../lib/s1ActivityLog'
 import { getPolicy } from './deploy'
 import { coerceValue, extractPolicySettingSpecs, getNestedPath } from './validate'
 
@@ -35,6 +36,18 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           expected: String(expected),
           actual: actual === undefined ? 'not set' : String(actual),
           severity: 'warning',
+        })
+      }
+    }
+
+    // Best-effort "who changed it + when": the policy is one object per scope, so
+    // all its drift shares one attribution query, correlated by the scope id.
+    if (diffs.length > 0) {
+      const scopeId = readS1Settings(ctx.settings).scopeId
+      if (scopeId) {
+        await attachDriftActor(client, diffs, {
+          targetId: scopeId,
+          excludeActorLogins: veltrixActorLogins(ctx.credential),
         })
       }
     }

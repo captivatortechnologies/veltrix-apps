@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildS1Client } from '../../lib/s1'
+import { attachDriftActor, veltrixActorLogins } from '../../lib/s1ActivityLog'
 import { listExclusions } from './deploy'
 import { exclusionKey, extractExclusionSpecs, type LiveExclusion } from './validate'
 
@@ -30,21 +31,38 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         .map((e) => [exclusionKey({ type: e.type as string, value: e.value as string, osType: e.osType as string }), e]),
     )
 
+    const veltrixLogins = veltrixActorLogins(ctx.credential)
+    const attributions: Array<Promise<void>> = []
+
     for (const spec of specs) {
       const label = `${spec.type} ${spec.value}`
+      const before = diffs.length
       const found = byKey.get(exclusionKey(spec))
       if (!found) {
         diffs.push({ field: label, expected: 'exists', actual: 'missing', severity: 'critical' })
-        continue
+      } else {
+        const liveDescription = (typeof found.description === 'string' ? found.description : '').trim()
+        if ((spec.description ?? '') !== liveDescription) {
+          diffs.push({ field: `${label}.description`, expected: spec.description ?? 'not set', actual: liveDescription || 'not set', severity: 'info' })
+        }
+        if (spec.type === 'path' && (found.mode ?? '') !== spec.mode) {
+          diffs.push({ field: `${label}.mode`, expected: spec.mode, actual: found.mode ?? 'not set', severity: 'warning' })
+        }
       }
-      const liveDescription = (typeof found.description === 'string' ? found.description : '').trim()
-      if ((spec.description ?? '') !== liveDescription) {
-        diffs.push({ field: `${label}.description`, expected: spec.description ?? 'not set', actual: liveDescription || 'not set', severity: 'info' })
-      }
-      if (spec.type === 'path' && (found.mode ?? '') !== spec.mode) {
-        diffs.push({ field: `${label}.mode`, expected: spec.mode, actual: found.mode ?? 'not set', severity: 'warning' })
+
+      // Best-effort "who changed it + when" for this exclusion's drift only.
+      const objectDiffs = diffs.slice(before)
+      if (objectDiffs.length > 0) {
+        attributions.push(
+          attachDriftActor(client, objectDiffs, {
+            targetId: found?.id,
+            targetName: spec.value,
+            excludeActorLogins: veltrixLogins,
+          }),
+        )
       }
     }
+    await Promise.all(attributions)
   } catch (error) {
     diffs.push({
       field: 'sentinelone',

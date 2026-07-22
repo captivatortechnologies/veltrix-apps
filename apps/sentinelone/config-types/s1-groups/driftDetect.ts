@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildS1Client } from '../../lib/s1'
+import { attachDriftActor, veltrixActorLogins } from '../../lib/s1ActivityLog'
 import { listGroups } from './deploy'
 import { extractGroupSpecs, type LiveGroup } from './validate'
 
@@ -26,31 +27,48 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     const live = await listGroups(client)
     const byName = new Map<string, LiveGroup>(live.filter((g) => g.name).map((g) => [g.name as string, g]))
 
+    const veltrixLogins = veltrixActorLogins(ctx.credential)
+    const attributions: Array<Promise<void>> = []
+
     for (const spec of specs) {
+      const before = diffs.length
       const found = byName.get(spec.name)
       if (!found) {
         diffs.push({ field: spec.name, expected: 'exists', actual: 'missing', severity: 'critical' })
-        continue
+      } else {
+        const liveDescription = (typeof found.description === 'string' ? found.description : '').trim()
+        if ((spec.description ?? '') !== liveDescription) {
+          diffs.push({
+            field: `${spec.name}.description`,
+            expected: spec.description ?? 'not set',
+            actual: liveDescription || 'not set',
+            severity: 'info',
+          })
+        }
+        const liveInherits = found.inherits ?? true
+        if (liveInherits !== spec.inherits) {
+          diffs.push({
+            field: `${spec.name}.inherits`,
+            expected: String(spec.inherits),
+            actual: String(liveInherits),
+            severity: 'info',
+          })
+        }
       }
-      const liveDescription = (typeof found.description === 'string' ? found.description : '').trim()
-      if ((spec.description ?? '') !== liveDescription) {
-        diffs.push({
-          field: `${spec.name}.description`,
-          expected: spec.description ?? 'not set',
-          actual: liveDescription || 'not set',
-          severity: 'info',
-        })
-      }
-      const liveInherits = found.inherits ?? true
-      if (liveInherits !== spec.inherits) {
-        diffs.push({
-          field: `${spec.name}.inherits`,
-          expected: String(spec.inherits),
-          actual: String(liveInherits),
-          severity: 'info',
-        })
+
+      // Best-effort "who changed it + when" for this group's drift only.
+      const objectDiffs = diffs.slice(before)
+      if (objectDiffs.length > 0) {
+        attributions.push(
+          attachDriftActor(client, objectDiffs, {
+            targetId: found?.id,
+            targetName: spec.name,
+            excludeActorLogins: veltrixLogins,
+          }),
+        )
       }
     }
+    await Promise.all(attributions)
   } catch (error) {
     diffs.push({
       field: 'sentinelone',

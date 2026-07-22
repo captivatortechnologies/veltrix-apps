@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildS1Client } from '../../lib/s1'
+import { attachDriftActor, veltrixActorLogins } from '../../lib/s1ActivityLog'
 import { listRestrictions } from './deploy'
 import { extractHashSpecs, hashKey } from './validate'
 
@@ -30,12 +31,24 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         .map((e) => hashKey({ sha1: e.value as string, osType: e.osType as string })),
     )
 
+    const veltrixLogins = veltrixActorLogins(ctx.credential)
+    const attributions: Array<Promise<void>> = []
+
     for (const spec of specs) {
       const label = `${spec.sha1} (${spec.osType})`
       if (!keys.has(hashKey(spec))) {
+        const before = diffs.length
         diffs.push({ field: label, expected: 'allowlisted', actual: 'missing', severity: 'critical' })
+        // Best-effort "who removed it + when", correlated by the hash value.
+        attributions.push(
+          attachDriftActor(client, diffs.slice(before), {
+            targetName: spec.sha1,
+            excludeActorLogins: veltrixLogins,
+          }),
+        )
       }
     }
+    await Promise.all(attributions)
   } catch (error) {
     diffs.push({
       field: 'sentinelone',
