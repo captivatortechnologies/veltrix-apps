@@ -137,7 +137,12 @@ describe('resolveTool', () => {
       jsonBody: { data: [{ id: 'tool-1', name: 'Splunk Enterprise', vendor: 'Veltrix' }], pagination: {} },
     })
     const tool = await resolveTool('Splunk Enterprise')
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/tools')
+    // MUST filter server-side by name (not fetch a bare first page): the URL carries
+    // the encoded search + a large limit so a tool on a later page is never missed.
+    const url = String(fetchMock.mock.calls[0][0])
+    expect(url).toContain('/api/tools?')
+    expect(url).toContain('search=Splunk%20Enterprise')
+    expect(url).toContain('limit=100')
     expect(tool).toEqual({ id: 'tool-1', name: 'Splunk Enterprise', vendor: 'Veltrix' })
   })
 

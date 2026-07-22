@@ -84,11 +84,16 @@ export interface Tool {
  * when creating an inventory item, so call this once and pass the id as
  * `toolId` to {@link addInventoryItem}. Returns null when no tool matches.
  *
- * GET /api/tools (the endpoint is paginated — `{ data, pagination }` — or a
- * bare array; both are handled).
+ * GET /api/tools (paginated — `{ data, pagination }` — or a bare array; both are
+ * handled). We MUST filter server-side by name: the list is paginated (default 20,
+ * ordered by createdAt) so once a tenant has enough apps installed, a bare
+ * client-side find over just the first page silently misses a real tool whose row
+ * fell to a later page — surfacing a false "no <app> tool found, install the app
+ * first" error for an app that is in fact installed. `search` is a case-insensitive
+ * contains match, so we still exact-match `tool.name === name` on the result.
  */
 export async function resolveTool(name: string): Promise<Tool | null> {
-  const res = await authFetch('/api/tools')
+  const res = await authFetch(`/api/tools?search=${encodeURIComponent(name)}&limit=100`)
   if (!res.ok) throw await inventoryError(res)
   const body = (await res.json()) as unknown
   const tools: Tool[] = Array.isArray(body)
