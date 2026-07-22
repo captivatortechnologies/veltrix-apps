@@ -46,6 +46,9 @@ export interface LivePreventionPolicy {
     name?: string
     settings?: Array<{ id?: string; name?: string; type?: string; value?: Record<string, unknown> }>
   }>
+  /** Last modifier recorded by Falcon — used for drift attribution. */
+  modified_by?: string
+  modified_timestamp?: string
 }
 
 /** Each canvas section describes one Falcon prevention policy. */

@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildFalconClient, sameSet } from '../../lib/falcon'
+import { attachDriftActor, veltrixActorLogins } from '../lib/crowdstrikeAudit'
 import { currentGroupIds, findPreventionPolicy } from './deploy'
 import {
   extractPolicySpecs,
@@ -23,9 +24,14 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   }
   const { client } = built
 
+  // Connection identity our own deploys are recorded under — excluded so
+  // attribution reflects the MANUAL change, not a Veltrix deploy.
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
+
   const specs = extractPolicySpecs(ctx.deployedConfig).filter((s) => s.name)
 
   for (const spec of specs) {
+    const before = diffs.length
     try {
       const live = await findPreventionPolicy(client, spec.name, spec.platform)
 
@@ -91,6 +97,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           severity: 'info',
         })
       }
+
+      // Attribute every diff this policy produced to Falcon's recorded last
+      // modifier (once) — no-op when nothing drifted or the change was ours.
+      attachDriftActor(diffs.slice(before), live, { excludeActorLogins })
     } catch (error) {
       diffs.push({
         field: spec.name,

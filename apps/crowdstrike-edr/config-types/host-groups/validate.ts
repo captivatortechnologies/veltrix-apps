@@ -25,6 +25,9 @@ export interface LiveHostGroup {
   description?: string
   group_type?: string
   assignment_rule?: string
+  /** Last modifier recorded by Falcon — used for drift attribution. */
+  modified_by?: string
+  modified_timestamp?: string
 }
 
 /** Each canvas section describes one Falcon host group. */

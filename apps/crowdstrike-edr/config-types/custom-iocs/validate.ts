@@ -52,6 +52,9 @@ export interface LiveIndicator {
   expiration?: string
   description?: string
   tags?: string[]
+  /** Last modifier recorded by Falcon — used for drift attribution. */
+  modified_by?: string
+  modified_on?: string
 }
 
 /** Each canvas section describes one custom IOC. */
