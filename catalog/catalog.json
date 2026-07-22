@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-22T14:41:54.915Z",
+  "generatedAt": "2026-07-22T15:12:48.895Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -44,7 +44,7 @@
     {
       "appId": "crowdstrike-edr",
       "name": "CrowdStrike Falcon",
-      "version": "1.6.1",
+      "version": "1.7.0",
       "vendor": "Veltrix",
       "description": "Manage CrowdStrike Falcon configurations as code through the Falcon APIs. Includes host groups, prevention policies, and custom IOCs (indicators of compromise), with validation, drift detection, and rollback handled by the Security-as-Code pipeline.",
       "category": "EDR",
@@ -54,10 +54,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/crowdstrike-edr",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/crowdstrike-edr-v1.6.1/crowdstrike-edr.zip",
-      "sha256": "e6f0c9e106dde5748e5b10fa53c2e56e9522840a8f494e4c58f8ff35aa5bbcb4",
-      "sizeBytes": 128820,
-      "publishedAt": "2026-07-17T02:01:17.992Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/crowdstrike-edr-v1.7.0/crowdstrike-edr.zip",
+      "sha256": "424c2f7a0f604f5964ada11184cb0ac490ba31089016d939eaa1d1f778e715a5",
+      "sizeBytes": 135942,
+      "publishedAt": "2026-07-22T15:12:48.864Z",
+      "releaseNotes": "## 1.7.0 — 2026-07-22\n\n### Added\n- **Drift attribution — \"who changed it + when\".** When drift is detected on a\n  managed Falcon object (host groups, prevention policies, custom IOCs), each\n  reported difference is now annotated with the person who made the last change\n  and when. The platform stores the `actor` on each diff and the drift view\n  renders it, so a drift alert answers *who* and *when*, not just *what*.\n  - Attribution reads the modifier Falcon records DIRECTLY on the drifted\n    resource — `modified_by` + `modified_timestamp` on prevention policies and\n    host groups, `modified_by` + `modified_on` on custom IOCs — which the drift\n    check already fetches. This is the most reliable actor source (the\n    resource's own record of its last writer) and needs no extra API call or\n    scope, so no separate audit-log query is made.\n  - An email-shaped modifier (policies, host groups) is surfaced as the actor's\n    email; an opaque user/API-client id (IOCs) is surfaced as the actor id. The\n    raw value is always kept as the display name.\n  - Veltrix's own deploys are recorded under the connection's Falcon API client\n    id, so a change WE made is excluded via that client id — the attribution\n    reflects the *manual* change rather than our deploy.\n  - **Strictly best-effort:** attribution never throws and never fails a drift\n    check — on any error, or when the resource carries no usable modifier (for\n    example a deleted object that no longer exists to read), the diff is reported\n    without an actor and the drift view shows \"—\". Only objects that actually\n    drifted are attributed (one resolution per drifted object).",
+      "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
       "appId": "cyberark",
@@ -136,7 +138,7 @@
     {
       "appId": "microsoft-intune",
       "name": "Microsoft Intune",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "vendor": "Veltrix",
       "description": "Manage Microsoft Intune endpoint-security policies as code through the Microsoft Graph API. v1.0 ships Attack Surface Reduction (ASR) rules — the finite, well-defined Defender hardening rule set — with validation, drift detection and rollback handled by the Security-as-Code pipeline. These policies configure Microsoft Defender for Endpoint and can be delivered via Intune MDM or Defender security settings management. Auth is an Azure AD app registration (OAuth2 client credentials) with the Graph DeviceManagementConfiguration permission; the tenant is set via the Tenant ID app setting.",
       "category": "EDR",
@@ -146,10 +148,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-intune",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-intune-v1.1.0/microsoft-intune.zip",
-      "sha256": "d83e979de115159dfaf78e1e899e27098a1b7cb19261cafb2b71cd8b6624401f",
-      "sizeBytes": 86584,
-      "publishedAt": "2026-07-17T02:01:18.007Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-intune-v1.2.0/microsoft-intune.zip",
+      "sha256": "9e5a531111cfe0a33c936b46e60bc4b286dca229ec230e6f8e901dafc55871c1",
+      "sizeBytes": 96455,
+      "publishedAt": "2026-07-22T15:12:48.875Z",
+      "releaseNotes": "## 1.2.0 — 2026-07-22\n\n### Added\n- **Drift attribution — \"who changed it + when\".** When drift is detected on a\n  managed Intune policy (ASR rule policies and imported endpoint-security\n  policies), each reported difference is now annotated with the person who made\n  the last manual change and when, resolved from the **Intune audit events**\n  (Microsoft Graph `deviceManagement/auditEvents`). The platform stores the\n  `actor` on each diff and the drift view renders it, so a drift alert answers\n  *who* and *when*, not just *what*.\n  - Attribution queries the audit events per drifted policy, correlated to the\n    object by its Graph resource id\n    (`resources/any(r:r/resourceId eq '<id>')`), or by name\n    (`resources/any(r:r/displayName eq '<name>')`) as a best-effort fallback for\n    a deleted policy with no live id. Results are also correlated to the target\n    client-side, and a broad time-window query is used as a fallback if a tenant\n    rejects the resource filter — so an unrelated object's change is never\n    mis-attributed.\n  - It picks the most recent **human** actor (one carrying a\n    `userPrincipalName`; application/service actors are excluded), preferring\n    change-type events (Create / Patch / Update / Delete / …) and falling back to\n    the most recent human event otherwise.\n  - Veltrix's own deploys run app-only (OAuth2 client credentials) under the app\n    registration identity, so they carry an application actor with no\n    `userPrincipalName` and are dropped by the human-only filter; the connection\n    Client ID (appId) is additionally excluded so the attribution reflects the\n    *manual* change rather than our deploy.\n  - **Strictly best-effort:** attribution never throws and never fails a drift\n    check — on any error, an empty log, or no usable event, the diff is reported\n    without an actor. Only policies that actually drifted are queried (one audit\n    query per drifted policy). Reading audit events uses the app's existing\n    `DeviceManagementConfiguration` Graph permission.",
+      "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
       "appId": "microsoft-sentinel",
@@ -322,7 +326,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.18.0",
+      "version": "1.19.0",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -332,12 +336,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.18.0/splunk-enterprise.zip",
-      "sha256": "017eea8388ea8ec59dc1e039fa963cde365e3e46d77658a484fe88fba15a75e7",
-      "sizeBytes": 433099,
-      "publishedAt": "2026-07-22T03:53:50.361Z",
-      "releaseNotes": "## 1.18.0 — 2026-07-21\n\n### Added\n- **Live index pickers for HEC tokens.** The HEC Token config type's **Default\n  Index** and **Allowed Indexes** fields are now searchable pickers backed by the\n  connected instance's live indexes (via `GET /services/data/indexes`,\n  `datatype=all`) instead of free-text. Default Index is a single-select\n  (`remote-select`); Allowed Indexes is a multi-select (`remote-multiselect`).\n  The stored value shape is unchanged — Default Index still stores one index\n  name, Allowed Indexes still stores a list of names — so the existing\n  validate/deploy/drift handlers keep working. Falls back to a clear \"save the\n  connection first\" message when no deploy target is registered yet.",
-      "releasedAt": "2026-07-21T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.0/splunk-enterprise.zip",
+      "sha256": "654891573ccaa81c20d7d344a4fb8094ce9cca9334c468f8e34b83be6b2851c4",
+      "sizeBytes": 441882,
+      "publishedAt": "2026-07-22T15:12:48.887Z",
+      "releaseNotes": "## 1.19.0 — 2026-07-22\n\n### Added\n- **Drift attribution — \"who changed it + when\".** When drift is detected on a\n  Splunk **App** or **HEC Token**, the app now resolves WHO last manually changed\n  the object and WHEN, and attaches it to each drift diff (rendered by the\n  platform; `—` when unknown). Attribution reads Splunk's internal `_audit`\n  index via a single BLOCKING search export — `POST\n  /services/search/v2/jobs/export` (falling back to\n  `/services/search/jobs/export` on older splunkd) — running `search\n  index=_audit action=* object=\"<name>\" | head 20 | table _time user action\n  object` over the last 7 days, keyed on the drifted object's NAME (Splunk audit\n  keys on object name, not an id). Each result row maps to `user` (actor),\n  `_time` (when), and `action` (event type).\n- The resolver prefers a change-type action (`edit`/`create`/`delete`/…) and\n  otherwise falls back to the most recent human event. Veltrix's own deploys are\n  excluded by the connection's service-account username, and Splunk internal\n  principals (e.g. `splunk-system-user`) are never attributed. Attribution is\n  STRICTLY best-effort with a short timeout: any error, empty result, or\n  no usable human event leaves the diff unattributed and never fails a drift\n  check. Only objects that actually drifted are queried, once each.",
+      "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
       "appId": "splunk-soar",
