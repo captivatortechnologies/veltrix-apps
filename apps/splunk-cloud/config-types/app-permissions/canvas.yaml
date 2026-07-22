@@ -27,14 +27,15 @@ item:
       description: "Installed app and the roles granted access to it"
       fields:
         - key: "appName"
-          label: "App Name"
-          fieldType: "text"
+          label: "App"
+          fieldType: "remote-select"
+          optionsSource: "apps"
           required: true
           validation:
             pattern: "^[A-Za-z][A-Za-z0-9._-]*$"
             maxLength: 100
             message: "App id: must start with a letter and contain only letters, digits, '.', '_' and '-'."
-          helpText: "Id of an installed app whose permissions to manage, e.g. splunk_secure_gateway. Manage the app itself with the 'Splunk Apps' configuration type."
+          helpText: "The installed app whose permissions to manage, e.g. splunk_secure_gateway. Search the stack's live apps and pick one (the app id is stored). Manage the app itself with the 'Splunk Apps' configuration type."
 
         - key: "readRoles"
           label: "Read Roles"

@@ -1,6 +1,6 @@
 id: splunk-enterprise
 name: Splunk Enterprise
-version: "1.17.0"
+version: "1.18.0"
 vendor: Veltrix
 description: >
   Manage Splunk Enterprise configurations as code.
@@ -73,6 +73,7 @@ pipeline:
         healthCheck: config-types/hec-tokens/healthCheck
         driftDetect: config-types/hec-tokens/driftDetect
         getStatus: config-types/hec-tokens/getStatus
+        options: config-types/hec-tokens/options
       targets:
         componentTypes: [indexer, heavy-forwarder]
         requiresCredential: true

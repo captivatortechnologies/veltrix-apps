@@ -58,15 +58,18 @@ item:
       fields:
         - key: "defaultIndex"
           label: "Default Index"
-          fieldType: "text"
+          fieldType: "remote-select"
+          optionsSource: "indexes"
           validation:
             pattern: "^[a-z0-9][a-z0-9_-]*$"
-          helpText: "Index used when events do not specify one. Must be in the allowed indexes list when that list is set."
+          helpText: "Index used when events do not specify one. Search the connected instance's live indexes and pick one (the index name is stored). Must be in the allowed indexes list when that list is set."
 
         - key: "allowedIndexes"
           label: "Allowed Indexes"
-          fieldType: "tags"
-          helpText: "Indexes this token may write to (maps to 'indexes'). Leaving it empty allows any index the HEC user can access and triggers a review warning."
+          fieldType: "remote-multiselect"
+          optionsSource: "indexes"
+          optionsMulti: true
+          helpText: "Indexes this token may write to (maps to 'indexes'). Search the connected instance's live indexes and select one or more (the index names are stored). Leaving it empty allows any index the HEC user can access and triggers a review warning."
 
         - key: "defaultSourcetype"
           label: "Default Sourcetype"

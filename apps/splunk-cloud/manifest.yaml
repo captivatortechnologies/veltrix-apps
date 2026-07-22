@@ -1,6 +1,6 @@
 id: splunk-cloud
 name: Splunk Cloud Platform
-version: "1.9.0"
+version: "1.10.0"
 vendor: Veltrix
 description: >
   Manage Splunk Cloud Platform configurations as code through the
@@ -88,6 +88,7 @@ pipeline:
         healthCheck: config-types/hec-tokens/healthCheck
         driftDetect: config-types/hec-tokens/driftDetect
         getStatus: config-types/hec-tokens/getStatus
+        options: config-types/hec-tokens/options
       targets:
         componentTypes: [splunk-cloud-stack]
         requiresCredential: true
@@ -205,6 +206,7 @@ pipeline:
         healthCheck: config-types/app-permissions/healthCheck
         driftDetect: config-types/app-permissions/driftDetect
         getStatus: config-types/app-permissions/getStatus
+        options: config-types/app-permissions/options
       targets:
         componentTypes: [splunk-cloud-stack]
         requiresCredential: true

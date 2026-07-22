@@ -36,15 +36,18 @@ item:
 
         - key: "defaultIndex"
           label: "Default Index"
-          fieldType: "text"
+          fieldType: "remote-select"
+          optionsSource: "indexes"
           validation:
             pattern: "^[a-z0-9][a-z0-9_-]*$"
-          helpText: "Index that receives events when the sender does not specify one. If omitted, ACS routes to \"default\" — ensure that index exists or events will be lost."
+          helpText: "Index that receives events when the sender does not specify one. Search the stack's live indexes and pick one (the index name is stored). If omitted, ACS routes to \"default\" — ensure that index exists or events will be lost."
 
         - key: "allowedIndexes"
           label: "Allowed Indexes"
-          fieldType: "tags"
-          helpText: "Optional list of indexes this token may write to. Must include the default index when set."
+          fieldType: "remote-multiselect"
+          optionsSource: "indexes"
+          optionsMulti: true
+          helpText: "Optional list of indexes this token may write to. Search the stack's live indexes and select one or more (the index names are stored). Must include the default index when set."
 
         - key: "defaultSource"
           label: "Default Source"
