@@ -49,9 +49,12 @@ item:
 
         - key: "excludeZones"
           label: "Exempt Network Zones"
-          fieldType: "tags"
+          fieldType: "remote-multiselect"
+          optionsSource: "zones"
+          optionsMulti: true
           helpText: >
-            Optional list of Network Zone IDs (IP-type zones, e.g. nzoabc123...)
-            whose traffic is exempt from ThreatInsight evaluation. Requests from
-            IPs in these zones are neither logged nor blocked. Leave empty for no
-            exemptions. Full replace — omitting a zone here removes the exemption.
+            Optional Network Zones whose traffic is exempt from ThreatInsight
+            evaluation. Search the org's live zones by name and select one or more
+            (the zone id is stored). Requests from IPs in these zones are neither
+            logged nor blocked. Leave empty for no exemptions. Full replace —
+            omitting a zone here removes the exemption.

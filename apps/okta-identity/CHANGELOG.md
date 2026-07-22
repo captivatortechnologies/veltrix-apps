@@ -3,6 +3,21 @@
 All notable changes to the Okta app are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## 1.8.4 — 2026-07-21
+
+### Changed
+- **Live Members picker for a Group.** A group's *Members* field (`memberUserIds`)
+  is now a searchable multi-select over the connected org's users (name + email
+  shown, user id stored) instead of a free-text id box. Adds a `users` source to
+  the shared options provider and the `options` handler to the Groups config type.
+- **Live Zones picker for ThreatInsight exemptions.** *Exempt Network Zones*
+  (`excludeZones`) is now a searchable multi-select over the org's Network Zones
+  (name shown, id stored). Adds a `zones` source + the `options` handler to the
+  ThreatInsight config type.
+
+Both store the same value shape as before (an array of ids), so existing configs
+keep working.
+
 ## 1.8.3 — 2026-07-21
 
 ### Changed

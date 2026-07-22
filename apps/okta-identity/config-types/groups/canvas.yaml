@@ -69,10 +69,13 @@ item:
             keep reporting drift.
 
         - key: "memberUserIds"
-          label: "Member User IDs"
-          fieldType: "tags"
+          label: "Members"
+          fieldType: "remote-multiselect"
+          optionsSource: "users"
+          optionsMulti: true
           helpText: >
-            Okta user IDs that should be the group's exact static membership.
-            Only used when Manage Membership is on; ignored otherwise. Leaving
-            this empty with Manage Membership on removes ALL current static
-            members.
+            The org users who should be the group's exact static membership.
+            Search by name or email and select one or more (the user id is
+            stored). Only used when Manage Membership is on; ignored otherwise.
+            Leaving this empty with Manage Membership on removes ALL current
+            static members.

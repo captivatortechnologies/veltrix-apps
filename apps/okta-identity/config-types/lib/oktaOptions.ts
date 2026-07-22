@@ -1,5 +1,5 @@
 import type { OptionsProvider, OptionItem } from '@veltrixsecops/app-sdk'
-import { buildOktaClient, oktaErrorMessage, parseJson } from '../../lib/okta'
+import { buildOktaClient, oktaErrorMessage, parseJson, type OktaClient } from '../../lib/okta'
 import type { LiveGroup } from '../groups/validate'
 
 /** OKTA_GROUP is the only group type worth offering as a scoping target. */
@@ -8,6 +8,30 @@ const OKTA_GROUP_TYPE = 'OKTA_GROUP'
 const OPTIONS_LIMIT = 200
 const SEARCH_LIMIT = 50
 
+/** Sources this provider knows how to resolve. */
+const SUPPORTED_SOURCES = new Set(['groups', 'users', 'zones'])
+
+interface LiveUser {
+  id?: string
+  status?: string
+  profile?: { firstName?: string; lastName?: string; email?: string; login?: string }
+}
+
+interface LiveZone {
+  id?: string
+  name?: string
+  type?: string
+  status?: string
+}
+
+/** A readable label for a user option: "First Last (email)", falling back sensibly. */
+function userLabel(u: LiveUser): string {
+  const name = [u.profile?.firstName, u.profile?.lastName].filter(Boolean).join(' ').trim()
+  const email = u.profile?.email || u.profile?.login
+  if (name && email) return `${name} (${email})`
+  return name || email || (u.id as string)
+}
+
 /**
  * Live options provider for the okta-identity config canvas. Powers
  * `remote-multiselect` fields via GET /api/apps/okta-identity/config-options.
@@ -15,12 +39,13 @@ const SEARCH_LIMIT = 50
  * the Okta org directly with the decrypted credential.
  *
  * Sources:
- *   - "groups": OKTA_GROUP groups → { value: id, label: name }. When the field
- *     passes a `query`, Okta's `q` (name startsWith) narrows it; otherwise the
- *     first page of OKTA_GROUP groups is returned.
+ *   - "groups": OKTA_GROUP groups → { value: id, label: name }.
+ *   - "users":  org users → { value: id, label: "First Last (email)" }.
+ * A `query` narrows the result via Okta's `q` (startsWith across name/email);
+ * without one, the first page is returned.
  */
 const oktaOptions: OptionsProvider = async (ctx): Promise<OptionItem[]> => {
-  if (ctx.source !== 'groups') return []
+  if (!SUPPORTED_SOURCES.has(ctx.source)) return []
 
   if (!ctx.component?.hostname) {
     throw new Error(
@@ -33,8 +58,14 @@ const oktaOptions: OptionsProvider = async (ctx): Promise<OptionItem[]> => {
     throw new Error(built.error)
   }
   const { client } = built
-
   const query = (ctx.query ?? '').trim()
+
+  if (ctx.source === 'users') return listUsers(client, query)
+  if (ctx.source === 'zones') return listZones(client, query)
+  return listGroups(client, query)
+}
+
+async function listGroups(client: OktaClient, query: string): Promise<OptionItem[]> {
   // `q` searches names across ALL group types, so filter to OKTA_GROUP after.
   // Without a query, list the first page filtered to OKTA_GROUP directly.
   const res = query
@@ -42,15 +73,41 @@ const oktaOptions: OptionsProvider = async (ctx): Promise<OptionItem[]> => {
     : await client.request('GET', '/groups', {
         query: { filter: `type eq "${OKTA_GROUP_TYPE}"`, limit: OPTIONS_LIMIT },
       })
-
   if (!res.ok) {
     throw new Error(`Failed to list Okta groups: ${oktaErrorMessage(res)}`)
   }
-
   const groups = parseJson<LiveGroup[]>(res.body) ?? []
   return groups
     .filter((g) => g.type === OKTA_GROUP_TYPE && g.id && g.profile?.name)
     .map((g) => ({ value: g.id as string, label: g.profile?.name as string, description: g.id }))
+}
+
+async function listUsers(client: OktaClient, query: string): Promise<OptionItem[]> {
+  // `q` startsWith-matches firstName / lastName / email — the same field Okta's
+  // People search uses. Without a query, return the first page of org users.
+  const res = query
+    ? await client.request('GET', '/users', { query: { q: query, limit: SEARCH_LIMIT } })
+    : await client.request('GET', '/users', { query: { limit: OPTIONS_LIMIT } })
+  if (!res.ok) {
+    throw new Error(`Failed to list Okta users: ${oktaErrorMessage(res)}`)
+  }
+  const users = parseJson<LiveUser[]>(res.body) ?? []
+  return users
+    .filter((u) => u.id)
+    .map((u) => ({ value: u.id as string, label: userLabel(u), description: u.id }))
+}
+
+async function listZones(client: OktaClient, query: string): Promise<OptionItem[]> {
+  // The Zones API has no `q`; list the first page and narrow by name in memory.
+  const res = await client.request('GET', '/zones', { query: { limit: OPTIONS_LIMIT } })
+  if (!res.ok) {
+    throw new Error(`Failed to list Okta network zones: ${oktaErrorMessage(res)}`)
+  }
+  const q = query.toLowerCase()
+  const zones = parseJson<LiveZone[]>(res.body) ?? []
+  return zones
+    .filter((z) => z.id && z.name && (!q || z.name.toLowerCase().includes(q)))
+    .map((z) => ({ value: z.id as string, label: z.name as string, description: z.type ?? z.id }))
 }
 
 export default oktaOptions
