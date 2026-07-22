@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildElasticClient } from '../../lib/elastic'
+import { attachDriftActor, veltrixActorLogins } from '../lib/elasticAudit'
 import { getIlmPolicy } from './deploy'
 import { extractIlmPolicySpecs, parsePolicyObject } from './validate'
 
@@ -24,6 +25,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   }
   const { client } = built
 
+  // Connection identity our own deploys are recorded under — excluded so
+  // attribution reflects the MANUAL change, not a Veltrix deploy.
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
+
   const specs = extractIlmPolicySpecs(ctx.deployedConfig).filter((s) => s.name && s.policyJson)
 
   for (const spec of specs) {
@@ -38,6 +43,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
       const authored = spec.policyJson ? parsePolicyObject(spec.policyJson) : null
       if (!authored) continue // malformed authored JSON is a validate concern, not drift
 
+      const before = diffs.length
       const livePolicy = live.policy ?? {}
       if (!isDeepSubset(authored, livePolicy)) {
         diffs.push({
@@ -47,6 +53,12 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           severity: 'warning',
         })
       }
+
+      // An Elasticsearch ILM policy exposes only `modified_date` (a WHEN, no WHO)
+      // and no per-object audit trail via this API, so this resolves to no actor
+      // ("—"). Wired uniformly so it attributes automatically if ES ever records
+      // a modifier — best-effort, never fabricated.
+      attachDriftActor(diffs.slice(before), live, { excludeActorLogins })
     } catch (error) {
       diffs.push({
         field: spec.name,

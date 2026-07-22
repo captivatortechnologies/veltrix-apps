@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildXsoarClient } from '../../lib/xsoar'
+import { attachDriftActor, veltrixActorLogins } from '../lib/xsoarAudit'
 import { listIncidentTypes } from './deploy'
 import { extractIncidentTypeSpecs, type LiveIncidentType } from './validate'
 
@@ -20,14 +21,21 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const specs = extractIncidentTypeSpecs(ctx.deployedConfig).filter((s) => s.name)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
 
+  // Connection identity our own deploys appear under — excluded so attribution
+  // reflects the MANUAL change, not a Veltrix deploy.
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
+
   try {
     const live = await listIncidentTypes(client)
     const byName = new Map<string, LiveIncidentType>(live.filter((t) => t.name).map((t) => [t.name as string, t]))
 
     for (const spec of specs) {
+      const before = diffs.length
       const found = byName.get(spec.name)
       if (!found) {
         diffs.push({ field: spec.name, expected: 'exists', actual: 'missing', severity: 'critical' })
+        // Deleted/absent — no live object; attribute the deletion by name (best-effort).
+        await attachDriftActor(client, diffs.slice(before), { targetName: spec.name, excludeActorLogins })
         continue
       }
       const livePlaybook = typeof found.playbookId === 'string' ? found.playbookId : ''
@@ -47,6 +55,13 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
       if (liveAutorun !== spec.autorun) {
         diffs.push({ field: `${spec.name}.autorun`, expected: String(spec.autorun), actual: String(liveAutorun), severity: 'info' })
       }
+      // Attribute every diff this incident type produced to the last human change (once).
+      await attachDriftActor(client, diffs.slice(before), {
+        targetId: found.id,
+        targetName: spec.name,
+        resource: found,
+        excludeActorLogins,
+      })
     }
   } catch (error) {
     diffs.push({

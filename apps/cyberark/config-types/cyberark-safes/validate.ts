@@ -37,6 +37,11 @@ export interface LiveSafe {
   numberOfVersionsRetention?: number
   olacEnabled?: boolean
   autoPurgeEnabled?: boolean
+  // Read-only attribution fields the Gen2 list returns per safe — used by drift
+  // attribution to name the safe's creator and when it was created / modified.
+  creator?: { id?: string | number; name?: string; source?: string }
+  creationTime?: number
+  lastModificationTime?: number
 }
 
 /** A safe's natural key — its name, normalised to lower-case for reconciliation. */

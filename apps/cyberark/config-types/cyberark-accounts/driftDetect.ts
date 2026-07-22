@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildCyberArkClient } from '../../lib/cyberark'
+import { attachDriftActor, veltrixActorLogins } from '../lib/cyberarkAudit'
 import { findAccount } from './deploy'
 import { extractAccountSpecs } from './validate'
 
@@ -24,8 +25,13 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const specs = extractAccountSpecs(ctx.deployedConfig).filter((s) => s.name && s.safeName)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
 
+  // Connection identity our own deploys are recorded under — excluded so
+  // attribution reflects the MANUAL change, not a Veltrix deploy.
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
+
   try {
     for (const spec of specs) {
+      const before = diffs.length
       const tag = `${spec.name}@${spec.safeName}`
       const found = await findAccount(client, spec)
       if (!found) {
@@ -41,6 +47,13 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
       const liveAuto = found.secretManagement?.automaticManagementEnabled ?? true
       if (liveAuto !== spec.automaticManagementEnabled) {
         diffs.push({ field: `${tag}.automaticManagement`, expected: spec.automaticManagementEnabled, actual: liveAuto, severity: 'info' })
+      }
+
+      // Attribute every diff this account produced to the last human change in
+      // its Activities log (once) — no-op when nothing drifted or the change
+      // was ours. A missing (deleted) account has no id, so it is left "—".
+      if (found.id) {
+        await attachDriftActor(client, diffs.slice(before), { accountId: found.id, excludeActorLogins })
       }
     }
   } catch (error) {

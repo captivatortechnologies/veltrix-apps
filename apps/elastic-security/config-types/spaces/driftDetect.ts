@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildElasticClient } from '../../lib/elastic'
+import { attachDriftActor, veltrixActorLogins } from '../lib/elasticAudit'
 import { getSpace } from './deploy'
 import { extractSpaceSpecs, type LiveSpace } from './validate'
 
@@ -18,6 +19,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   }
   const { client } = built
 
+  // Connection identity our own deploys are recorded under — excluded so
+  // attribution reflects the MANUAL change, not a Veltrix deploy.
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
+
   const specs = extractSpaceSpecs(ctx.deployedConfig).filter((s) => s.id && s.name)
 
   for (const spec of specs) {
@@ -28,6 +33,8 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         diffs.push({ field: spec.id, expected: 'exists', actual: 'missing', severity: 'critical' })
         continue
       }
+
+      const before = diffs.length
 
       // name
       const liveName = typeof live.name === 'string' ? live.name : ''
@@ -101,6 +108,12 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           })
         }
       }
+
+      // The Kibana Spaces API response carries no modifier field and no
+      // per-object audit trail via this API, so this resolves to no actor ("—").
+      // Wired uniformly so it attributes automatically if Kibana ever records a
+      // modifier — best-effort, never fabricated.
+      attachDriftActor(diffs.slice(before), live, { excludeActorLogins })
     } catch (error) {
       diffs.push({
         field: spec.id,

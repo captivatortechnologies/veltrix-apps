@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildCyberArkClient } from '../../lib/cyberark'
+import { attachDriftActor, veltrixActorLogins } from '../lib/cyberarkAudit'
 import { listMembers, resolveSafeUrlId } from './deploy'
 import { enabledPermissions, extractSafeMemberSpecs, type LiveSafeMember } from './validate'
 
@@ -20,11 +21,16 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const specs = extractSafeMemberSpecs(ctx.deployedConfig).filter((s) => s.safeName && s.memberName)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
 
+  // Connection identity our own deploys are recorded under — excluded so
+  // attribution reflects the MANUAL change, not a Veltrix deploy.
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
+
   try {
     const safeUrlIds = new Map<string, string>()
     const membersBySafe = new Map<string, Map<string, LiveSafeMember>>()
 
     for (const spec of specs) {
+      const before = diffs.length
       const safeUrlId = await resolveSafeUrlId(client, spec.safeName, safeUrlIds)
       if (!membersBySafe.has(safeUrlId)) {
         const members = await listMembers(client, safeUrlId)
@@ -56,6 +62,12 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           severity: 'info',
         })
       }
+
+      // Attribution is wired uniformly across the app, but a Gen2 safe-member
+      // object carries no creator/modifier metadata and there is no per-member
+      // activity endpoint — so neither an accountId nor a resource is available
+      // and member diffs resolve no actor (best-effort "—"), with no extra call.
+      await attachDriftActor(client, diffs.slice(before), { excludeActorLogins })
     }
   } catch (error) {
     diffs.push({

@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildElasticClient } from '../../lib/elastic'
+import { attachDriftActor, veltrixActorLogins } from '../lib/elasticAudit'
 import { getRuleByRuleId } from './deploy'
 import { extractRuleSpecs, parseRuleObject, stripServerFields } from './validate'
 
@@ -27,6 +28,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   }
   const { client } = built
 
+  // Connection identity our own deploys are recorded under — excluded so
+  // attribution reflects the MANUAL change, not a Veltrix deploy.
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
+
   const specs = extractRuleSpecs(ctx.deployedConfig).filter((s) => s.ruleId && s.name)
 
   for (const spec of specs) {
@@ -38,6 +43,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         diffs.push({ field: label, expected: 'exists', actual: 'missing', severity: 'critical' })
         continue
       }
+
+      // Attribute this rule's diffs once, from Kibana's recorded modifier
+      // (updated_by / updated_at) on the raw live rule below.
+      const before = diffs.length
 
       // Strip server-managed fields so they never read as drift.
       const liveClean = stripServerFields(live)
@@ -83,6 +92,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           }
         }
       }
+
+      // Who last changed this rule + when — no-op when nothing drifted or the
+      // last write was our own deploy.
+      attachDriftActor(diffs.slice(before), live, { excludeActorLogins })
     } catch (error) {
       diffs.push({
         field: label,

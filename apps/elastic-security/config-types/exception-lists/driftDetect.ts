@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildElasticClient } from '../../lib/elastic'
+import { attachDriftActor, veltrixActorLogins } from '../lib/elasticAudit'
 import { findItems, findList } from './deploy'
 import { extractListSpecs, itemIdOf, parseItemsArray } from './validate'
 
@@ -23,6 +24,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   }
   const { client } = built
 
+  // Connection identity our own deploys are recorded under — excluded so
+  // attribution reflects the MANUAL change, not a Veltrix deploy.
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
+
   const specs = extractListSpecs(ctx.deployedConfig).filter((s) => s.listId && s.name)
 
   for (const spec of specs) {
@@ -33,6 +38,9 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         diffs.push({ field: label, expected: 'exists', actual: 'missing', severity: 'critical' })
         continue
       }
+
+      // Attribute the LIST container's diffs to whoever last changed the list.
+      const listBefore = diffs.length
 
       // List container fields.
       const liveName = typeof live.name === 'string' ? live.name : ''
@@ -48,6 +56,9 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           severity: 'info',
         })
       }
+
+      // Who last changed the list container (name / description) + when.
+      attachDriftActor(diffs.slice(listBefore), live, { excludeActorLogins })
 
       // Items — compare each declared item's entries by item_id.
       const desired = spec.itemsJson ? parseItemsArray(spec.itemsJson) ?? [] : []
@@ -68,6 +79,9 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
             })
             continue
           }
+          // Each item is its own object — attribute its diffs to whoever last
+          // changed THAT item (updated_by / updated_at on the live item).
+          const itemBefore = diffs.length
           const expectedEntries = stableStringify(Array.isArray(raw.entries) ? raw.entries : [])
           const actualEntries = stableStringify(Array.isArray(liveItem.entries) ? liveItem.entries : [])
           if (expectedEntries !== actualEntries) {
@@ -78,6 +92,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
               severity: 'warning',
             })
           }
+          attachDriftActor(diffs.slice(itemBefore), liveItem, { excludeActorLogins })
         }
       }
     } catch (error) {

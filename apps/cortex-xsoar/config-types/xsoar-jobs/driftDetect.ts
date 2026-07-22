@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildXsoarClient } from '../../lib/xsoar'
+import { attachDriftActor, veltrixActorLogins } from '../lib/xsoarAudit'
 import { searchAllJobs } from './deploy'
 import { extractJobSpecs, type LiveJob } from './validate'
 
@@ -20,14 +21,21 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const specs = extractJobSpecs(ctx.deployedConfig).filter((s) => s.name)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
 
+  // Connection identity our own deploys appear under — excluded so attribution
+  // reflects the MANUAL change, not a Veltrix deploy.
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
+
   try {
     const live = await searchAllJobs(client)
     const byName = new Map<string, LiveJob>(live.filter((j) => j.name).map((j) => [j.name as string, j]))
 
     for (const spec of specs) {
+      const before = diffs.length
       const found = byName.get(spec.name)
       if (!found) {
         diffs.push({ field: spec.name, expected: 'exists', actual: 'missing', severity: 'critical' })
+        // Deleted/absent — no live object; attribute the deletion by name (best-effort).
+        await attachDriftActor(client, diffs.slice(before), { targetName: spec.name, excludeActorLogins })
         continue
       }
       const liveCron = typeof found.cron === 'string' ? found.cron : ''
@@ -47,6 +55,13 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
       if (liveDisabled !== spec.disabled) {
         diffs.push({ field: `${spec.name}.disabled`, expected: String(spec.disabled), actual: String(liveDisabled), severity: 'info' })
       }
+      // Attribute every diff this job produced to the last human change (once).
+      await attachDriftActor(client, diffs.slice(before), {
+        targetId: found.id,
+        targetName: spec.name,
+        resource: found,
+        excludeActorLogins,
+      })
     }
   } catch (error) {
     diffs.push({

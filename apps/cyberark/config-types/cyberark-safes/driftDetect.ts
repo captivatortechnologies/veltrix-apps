@@ -1,5 +1,6 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildCyberArkClient } from '../../lib/cyberark'
+import { attachDriftActor, veltrixActorLogins } from '../lib/cyberarkAudit'
 import { listSafes } from './deploy'
 import { extractSafeSpecs, safeKey, type LiveSafe } from './validate'
 
@@ -20,6 +21,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const specs = extractSafeSpecs(ctx.deployedConfig).filter((s) => s.safeName)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
 
+  // Connection identity our own deploys are recorded under — excluded so
+  // attribution reflects the MANUAL change, not a Veltrix deploy.
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
+
   try {
     const live = await listSafes(client)
     const byKey = new Map<string, LiveSafe>(
@@ -27,6 +32,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     )
 
     for (const spec of specs) {
+      const before = diffs.length
       const found = byKey.get(safeKey(spec))
       if (!found) {
         diffs.push({ field: spec.safeName, expected: 'exists', actual: 'missing', severity: 'critical' })
@@ -48,6 +54,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
       if ((found.autoPurgeEnabled ?? false) !== spec.autoPurgeEnabled) {
         diffs.push({ field: `${spec.safeName}.auto_purge`, expected: spec.autoPurgeEnabled, actual: found.autoPurgeEnabled ?? false, severity: 'info' })
       }
+
+      // Attribute every diff this safe produced to its creator (once), read from
+      // the live safe already fetched — no-op when nothing drifted or it was ours.
+      await attachDriftActor(client, diffs.slice(before), { resource: found, excludeActorLogins })
     }
   } catch (error) {
     diffs.push({
