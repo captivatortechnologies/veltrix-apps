@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-22T00:50:57.242Z",
+  "generatedAt": "2026-07-22T01:14:39.802Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -172,7 +172,7 @@
     {
       "appId": "okta-identity",
       "name": "Okta",
-      "version": "1.8.4",
+      "version": "1.8.5",
       "vendor": "Veltrix",
       "description": "Manage Okta configuration as code through the Okta Management API. Covers policies and their rules, group rules, groups, network zones, trusted origins, behavior rules, authenticators, identity providers, event / inline hooks, authorization servers (scopes / claims / policies), applications and group assignments, plus security and IAM governance — ThreatInsight, log streams, device assurance policies, user types, custom admin roles with resource sets and their role bindings, custom profile-schema attributes and profile mappings, self-service feature toggles, CAPTCHA, user linked-object definitions, org rate-limit settings, brands and their themes, custom email domains and SMS templates — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
@@ -182,11 +182,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/okta-identity",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/okta-identity-v1.8.4/okta-identity.zip",
-      "sha256": "38ded373e5a7c1db63ecdacf4c01c414035008aa12727062920377bf43fbeb4f",
-      "sizeBytes": 814225,
-      "publishedAt": "2026-07-22T00:50:57.220Z",
-      "releaseNotes": "## 1.8.4 — 2026-07-21\n\n### Changed\n- **Live Members picker for a Group.** A group's *Members* field (`memberUserIds`)\n  is now a searchable multi-select over the connected org's users (name + email\n  shown, user id stored) instead of a free-text id box. Adds a `users` source to\n  the shared options provider and the `options` handler to the Groups config type.\n- **Live Zones picker for ThreatInsight exemptions.** *Exempt Network Zones*\n  (`excludeZones`) is now a searchable multi-select over the org's Network Zones\n  (name shown, id stored). Adds a `zones` source + the `options` handler to the\n  ThreatInsight config type.\n\nBoth store the same value shape as before (an array of ids), so existing configs\nkeep working.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/okta-identity-v1.8.5/okta-identity.zip",
+      "sha256": "9e6d41a97060bdb7342560236a3ca17dfdc67662af74dbea050e98e72fb50039",
+      "sizeBytes": 827598,
+      "publishedAt": "2026-07-22T01:14:39.780Z",
+      "releaseNotes": "## 1.8.5 — 2026-07-21\n\n### Changed\n- **Live pickers for single-value object references.** Ten id fields that were\n  free-text are now searchable `remote-select` pickers over the connected org's\n  live objects (name shown, id stored): app-group-assignments Application & Group;\n  Authorization Server on auth-server claims/policies/scopes; Email Domains' Brand;\n  Brands' Email Domain; Apps' Access Policy; Profile Schemas' User Type; Resource\n  Set Bindings' Resource Set. Value shape unchanged (a single id string), so\n  existing configs keep working.",
       "releasedAt": "2026-07-21T00:00:00.000Z"
     },
     {
