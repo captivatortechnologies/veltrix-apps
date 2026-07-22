@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-22T02:53:04.546Z",
+  "generatedAt": "2026-07-22T03:22:58.931Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -172,7 +172,7 @@
     {
       "appId": "okta-identity",
       "name": "Okta",
-      "version": "1.8.7",
+      "version": "1.9.0",
       "vendor": "Veltrix",
       "description": "Manage Okta configuration as code through the Okta Management API. Covers policies and their rules, group rules, groups, network zones, trusted origins, behavior rules, authenticators, identity providers, event / inline hooks, authorization servers (scopes / claims / policies), applications and group assignments, plus security and IAM governance — ThreatInsight, log streams, device assurance policies, user types, custom admin roles with resource sets and their role bindings, custom profile-schema attributes and profile mappings, self-service feature toggles, CAPTCHA, user linked-object definitions, org rate-limit settings, brands and their themes, custom email domains and SMS templates — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
@@ -182,12 +182,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/okta-identity",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/okta-identity-v1.8.7/okta-identity.zip",
-      "sha256": "23ce65fa7cf9fd293a44882a123dad689aa31528d6b72673f8f34b2b5e651555",
-      "sizeBytes": 832582,
-      "publishedAt": "2026-07-22T02:53:04.524Z",
-      "releaseNotes": "## 1.8.7 — 2026-07-21\n\n### Added\n- **Validate-time warning for a group-rule expression that isn't a Boolean.** A\n  rule condition must resolve to true/false; an expression that only builds a\n  string (concatenation / `toUpperCase`/`substring…` with no comparison or logical\n  operator) now raises a warning at Validate — e.g. *\"looks like it builds a string\n  rather than a true/false condition\"* — instead of only failing later at deploy\n  when Okta type-checks it. Conservative: any comparison, `AND`/`OR`, or\n  boolean-returning function (`stringContains`, `isMemberOfGroupName`, …) suppresses\n  it, so valid conditions never trip the warning.",
-      "releasedAt": "2026-07-21T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/okta-identity-v1.9.0/okta-identity.zip",
+      "sha256": "1e8353cd1647b9302508b8c9e589965028c94ea489dfa99e8ce4adf837ee62e1",
+      "sizeBytes": 855746,
+      "publishedAt": "2026-07-22T03:22:58.918Z",
+      "releaseNotes": "## 1.9.0 — 2026-07-22\n\n### Added\n- **Users config type (safe-by-design).** Manage a CONTROLLED set of Okta users\n  as code — break-glass admins, service/bot accounts, sandbox seed users — via\n  the Users API. Deliberately NOT for general workforce management (that belongs\n  to HR/SCIM provisioning). Guarantees:\n  - Only users declared in the canvas are managed (matched by stored id, then by\n    login); a user NOT in the canvas is never read or written.\n  - Users are **never deleted** — the strongest action is deactivate\n    (DEPROVISIONED), and only when an item's Status is set to Deactivated.\n  - Per user: create (STAGED), update profile, and reconcile lifecycle toward the\n    desired status (activate / unsuspend / suspend / deactivate). Login is the\n    identity (rename-safe). Full validate/deploy/rollback/health/drift handlers;\n    rollback deactivates created users rather than deleting them.",
+      "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
       "appId": "palo-alto-panorama",
