@@ -3,6 +3,17 @@
 All notable changes to the Okta app are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## 1.8.3 — 2026-07-21
+
+### Changed
+- **Live Groups picker for a Group Rule's target groups.** The rule's *Target
+  Groups* field (`groupIds`) is now a searchable multi-select backed by the
+  connected org's live OKTA_GROUP groups (name shown, id stored) — the same
+  picker used for a policy's Scoped Groups — instead of a free-text "type a group
+  id and press Enter" box. Adds the shared `options` handler to the Group Rules
+  config type; the stored value shape (an array of group ids) is unchanged, so
+  existing rules keep working.
+
 ## 1.8.2 — 2026-07-21
 
 ### Fixed

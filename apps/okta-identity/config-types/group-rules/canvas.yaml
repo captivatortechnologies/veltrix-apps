@@ -53,13 +53,15 @@ item:
             urn:okta:expression:1.0.
 
         - key: "groupIds"
-          label: "Target Group IDs"
-          fieldType: "tags"
+          label: "Target Groups"
+          fieldType: "remote-multiselect"
+          optionsSource: "groups"
+          optionsMulti: true
           required: true
           helpText: >
-            The Okta group ids (e.g. 00g1a2b3c4D5e6F7g8h9) that matching users are
-            assigned to. Find a group's id in the Admin console URL or via the
-            Groups API. IMMUTABLE after creation — changing this set forces the
+            The OKTA_GROUP groups that matching users are assigned to. Search the
+            connected org's live groups by name and select one or more (the group
+            id is stored). IMMUTABLE after creation — changing this set forces the
             rule to be deleted and recreated on the next deploy.
 
         - key: "status"
