@@ -126,6 +126,26 @@ describe('Splunk Apps Validate Handler', () => {
     expect(result.valid).toBe(true)
   })
 
+  it('rejects a local source whose reference is a bare name, not an absolute path', async () => {
+    const result = await validate(makeCtx([{ name: 'sec1', fields: { ...validApp, source: 'local', sourceRef: 'splunk-indexes' } }]))
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.code === 'invalid_format' && e.field.endsWith('.sourceRef'))).toBe(true)
+  })
+
+  it('warns when authored App Contents are present but the source is not inline (they would be ignored)', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'sec1', fields: { ...validApp, source: 'local', sourceRef: '/opt/pkgs/app.spl', appFiles: [{ path: 'default/inputs.conf', content: '[monitor:///var/log/x]\nindex = main' }] } }]),
+    )
+    expect(result.warnings.some((w) => w.code === 'authored_files_ignored' && w.field.endsWith('.source'))).toBe(true)
+  })
+
+  it('does NOT warn about ignored files when the source is inline', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'sec1', fields: { name: 'my_ta', source: 'inline', appFiles: [{ path: 'default/inputs.conf', content: '[monitor:///var/log/x]\nindex = main' }] } }]),
+    )
+    expect(result.warnings.some((w) => w.code === 'authored_files_ignored')).toBe(false)
+  })
+
   it('rejects an invalid source', async () => {
     const result = await validate(makeCtx([{ name: 'sec1', fields: { ...validApp, source: 'ftp' } }]))
     expect(result.valid).toBe(false)

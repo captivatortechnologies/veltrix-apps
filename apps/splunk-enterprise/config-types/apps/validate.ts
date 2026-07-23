@@ -92,6 +92,28 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
       errors.push({ field: `${prefix}.sourceRef`, message: 'Splunkbase source reference must be the numeric app id', code: 'invalid_format' })
     } else if (source === 'url' && !/^https:\/\//i.test(sourceRef.trim())) {
       errors.push({ field: `${prefix}.sourceRef`, message: 'Package URL must be an https link to the .tgz/.spl package', code: 'invalid_format' })
+    } else if (source === 'local' && !sourceRef.trim().startsWith('/')) {
+      // A "local" source is a package file ALREADY on the target; splunkd installs
+      // it by path (name=<path>&filename=1). A bare name is not a path, so splunkd
+      // fails to extract it ("No such file or directory"). Catch it here.
+      errors.push({
+        field: `${prefix}.sourceRef`,
+        message: 'Local source must be an ABSOLUTE file path to a package already on the target server (e.g. /opt/splunk/var/run/pkg.spl). A bare name is not a path — to ship .conf files you author here, set Source to "Author files inline" instead.',
+        code: 'invalid_format',
+      })
+    }
+
+    // Authored App Contents ship ONLY for an inline build. With any package source
+    // (splunkbase / url / local) they are silently ignored — a common footgun that
+    // then surfaces as a cryptic splunkd 500 ("failed to extract app … No such file
+    // or directory") when the deploy asks Splunk to install a nonexistent package.
+    // Flag it at author time so the fix (usually: switch Source to inline) is obvious.
+    if (!isInline && appFiles.length > 0) {
+      warnings.push({
+        field: `${prefix}.source`,
+        message: `Source is "${source ?? 'splunkbase'}" but ${appFiles.length} authored App Content file(s) are declared. Authored files ship ONLY when Source is "Author files inline (build the app/TA)" — with this source they are ignored on deploy. Did you mean to select "Author files inline"?`,
+        code: 'authored_files_ignored',
+      })
     }
 
     // --- Authored files (app/TA folder structure) --------------------------

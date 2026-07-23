@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.27 — 2026-07-23
+
+### Changed
+- **Splunk Apps validation now catches two package-source footguns at author time** instead of a cryptic splunkd `500` on deploy: (1) a **Local** source whose reference is a bare name rather than an absolute file path is now an error (splunkd would fail to extract it — "No such file or directory"), and (2) when a config declares **authored App Contents but the source is not "Author files inline"**, validation warns that those files will be ignored and suggests switching to inline (authored `.conf` files ship only via an inline build).
+
 ## 1.19.26 — 2026-07-23
 
 ### Fixed
