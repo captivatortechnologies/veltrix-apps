@@ -3,6 +3,11 @@
 All notable changes to the Splunk Cloud app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.10.4 — 2026-07-22
+
+### Changed
+- Access Servers → View → **SSH access** now gives the correct command for how the server is reached. For a Veltrix-managed (Tailscale) server it shows `tailscale ssh <user>@<device>` (Tailscale SSH over the tailnet — no separate key needed when Tailscale SSH is enabled) plus an **Open in Tailscale (browser SSH)** link to the device in the Tailscale admin console. For a bring-your-own connection it keeps plain `ssh <user>@<address>`.
+
 ## 1.10.3 — 2026-07-22
 
 ### Changed

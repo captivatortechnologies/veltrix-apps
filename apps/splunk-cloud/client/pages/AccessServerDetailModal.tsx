@@ -254,8 +254,15 @@ export default function AccessServerDetailModal({
   ]
 
   const sshUser = connection?.username?.trim() || '<user>'
-  const sshAddress = device?.online && device.addresses?.[0] ? device.addresses[0] : server.hostname
-  const sshCommand = `ssh ${sshUser}@${sshAddress}`
+  // The SSH command depends on the ZTNA the server is reached through:
+  //  - Veltrix-managed (Tailscale) → `tailscale ssh <user>@<device>` over the
+  //    tailnet (no separate SSH key needed when Tailscale SSH is enabled), plus a
+  //    link to the device in the Tailscale admin console (its browser SSH lives there).
+  //  - otherwise → plain `ssh <user>@<address>` (tailnet IP when online, else hostname).
+  const tailnetHost = device?.name || server.hostname
+  const plainAddress = device?.online && device.addresses?.[0] ? device.addresses[0] : server.hostname
+  const sshCommand = isManaged ? `tailscale ssh ${sshUser}@${tailnetHost}` : `ssh ${sshUser}@${plainAddress}`
+  const tailscaleAdminUrl = `https://login.tailscale.com/admin/machines?q=${encodeURIComponent(server.hostname)}`
 
   return (
     <Modal
@@ -365,12 +372,25 @@ export default function AccessServerDetailModal({
 
         <Section title="SSH access">
           <CopyableBlock value={sshCommand} ariaLabel="Copy SSH command" />
-          <p style={{ margin: 0, fontSize: 12, color: 'var(--vx-text-muted, #6b7280)' }}>
-            The login user depends on the server's own configuration.
-            {isManaged
-              ? ' The server must be connected to the tailnet first — see Connectivity status above.'
-              : null}
-          </p>
+          {isManaged ? (
+            <p style={{ ...MUTED, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <span>
+                Tailscale SSH over the tailnet — no separate SSH key needed when Tailscale SSH is enabled on the
+                server. The login user depends on the server's config; connect it to the tailnet first (see
+                Connectivity status).
+              </span>
+              <a
+                href={tailscaleAdminUrl}
+                target="_blank"
+                rel="noreferrer"
+                style={{ color: 'var(--veltrix-app-primary, #4f46e5)', fontWeight: 600 }}
+              >
+                Open in Tailscale (browser SSH) →
+              </a>
+            </p>
+          ) : (
+            <p style={MUTED}>The login user depends on the server's own configuration.</p>
+          )}
         </Section>
       </div>
     </Modal>
