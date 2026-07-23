@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.11 — 2026-07-23
+
+### Fixed
+- Access Servers → View: the modal's inner content now uses the platform theme tokens (`--color-*`) instead of undefined variables, so it themes correctly in **dark mode** (muted labels, borders, the code-block backgrounds, and the danger text). Previously these fell back to fixed light-mode colors — most visibly the copyable command blocks rendered a bright box on dark backgrounds. The modal frame already themed via the SDK components; this fixes the hand-styled body.
+
 ## 1.19.10 — 2026-07-22
 
 ### Added
