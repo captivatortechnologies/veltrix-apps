@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.10 — 2026-07-22
+
+### Added
+- Access Servers now have an editable **SSH user** field (default `root`). The View modal's SSH command uses it (`tailscale ssh <ssh-user>@<device>`) instead of wrongly reusing the Splunk connection's API username — the OS login account (root/ubuntu/…) is distinct from the Splunk application user.
+
 ## 1.19.9 — 2026-07-22
 
 ### Fixed

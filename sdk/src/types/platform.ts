@@ -32,6 +32,8 @@ export interface InventoryItem {
   port?: string
   /** Optional secondary service port, e.g. a web UI (Splunk Web "8000"). */
   webPort?: string | null
+  /** Optional OS login user for SSH to this target (e.g. "root", "ubuntu"). */
+  sshUser?: string | null
   /** Component type tags (e.g. ["server"]) that classify the target. */
   type?: string[]
   /** DNS names this target is reachable at. */
@@ -58,6 +60,8 @@ export interface InventoryItemInput {
   port?: string
   /** Optional secondary service port, e.g. a web UI (Splunk Web "8000"). */
   webPort?: string | null
+  /** Optional OS login user for SSH to this target (e.g. "root", "ubuntu"). */
+  sshUser?: string | null
   type?: string[]
   domains?: string[]
   ipRanges?: string[]

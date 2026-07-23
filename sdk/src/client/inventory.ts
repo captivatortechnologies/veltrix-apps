@@ -28,6 +28,7 @@ interface RawInventoryItem {
   hostname?: string
   port?: string
   webPort?: string | null
+  sshUser?: string | null
   type?: string[]
   domains?: string[]
   ipRanges?: string[]
@@ -59,6 +60,7 @@ function toInventoryItem(raw: RawInventoryItem): InventoryItem {
     hostname: raw.hostname ?? '',
     port: raw.port ?? undefined,
     webPort: raw.webPort ?? null,
+    sshUser: raw.sshUser ?? null,
     type: Array.isArray(raw.type) ? raw.type : undefined,
     domains: Array.isArray(raw.domains) ? raw.domains : [],
     ipRanges: Array.isArray(raw.ipRanges) ? raw.ipRanges : [],

@@ -74,6 +74,7 @@ interface FormState {
   hostname: string
   port: string
   webPort: string
+  sshUser: string
   type: string
   environmentId: string
   domains: string
@@ -86,6 +87,7 @@ const BLANK_FORM: FormState = {
   hostname: '',
   port: '8089',
   webPort: '8000',
+  sshUser: 'root',
   type: 'indexer',
   environmentId: '',
   domains: '',
@@ -198,6 +200,7 @@ export default function AccessServersPage() {
       hostname: row.hostname ?? '',
       port: row.port ?? '8089',
       webPort: row.webPort ?? '8000',
+      sshUser: row.sshUser ?? 'root',
       type: row.type?.[0] ?? 'indexer',
       environmentId: row.tags?.[0]?.id ?? '',
       domains: (row.domains ?? []).join(', '),
@@ -235,6 +238,7 @@ export default function AccessServersPage() {
       hostname,
       port: form.port.trim() || '8089',
       webPort: form.webPort.trim() || null,
+      sshUser: form.sshUser.trim() || null,
       type: [form.type],
       domains: splitCsv(form.domains),
       ipRanges: splitCsv(form.ipRanges),
@@ -583,6 +587,14 @@ export default function AccessServersPage() {
               fullWidth
             />
           </div>
+          <Input
+            label="SSH user"
+            value={form.sshUser}
+            onChange={(e) => setField('sshUser', e.target.value)}
+            placeholder="root"
+            helperText="OS login user for SSH over the tailnet (e.g. root, ubuntu) — not the Splunk connection user."
+            fullWidth
+          />
           <Select
             label="Environment"
             options={environmentOptions}

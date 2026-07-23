@@ -290,6 +290,7 @@ export default function AccessServerDetailModal({
     ['Hostname', server.hostname],
     ['Management port', server.port ?? '—'],
     ['Web UI port', server.webPort ?? '—'],
+    ['SSH user', server.sshUser ?? '—'],
     ['Type', server.type && server.type.length > 0 ? server.type.join(', ') : '—'],
     ['Environment', server.tags?.[0]?.name ?? '—'],
     ['Domains', commaList(server.domains)],
@@ -298,7 +299,9 @@ export default function AccessServerDetailModal({
     ['ZTNA provider', provider ? provider.name : server.connectivityProviderId ? 'unknown' : 'None'],
   ]
 
-  const sshUser = connection?.username?.trim() || '<user>'
+  // The SSH login user is the server's OS account (root/ubuntu/…), a per-server
+  // field — NOT the Splunk connection's API username, which is an application account.
+  const sshUser = server.sshUser?.trim() || 'root'
   // The SSH command depends on the ZTNA the server is reached through:
   //  - Veltrix-managed (Tailscale) → `tailscale ssh <user>@<device>` over the
   //    tailnet (no separate SSH key needed when Tailscale SSH is enabled), plus a
