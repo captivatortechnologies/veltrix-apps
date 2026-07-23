@@ -79,6 +79,7 @@ interface FormState {
   port: string
   webPort: string
   sshUser: string
+  splunkHome: string
   type: string[]
   environmentId: string
   domains: string
@@ -92,6 +93,7 @@ const BLANK_FORM: FormState = {
   port: '8089',
   webPort: '8000',
   sshUser: 'root',
+  splunkHome: '/opt/splunk',
   type: ['indexer'],
   environmentId: '',
   domains: '',
@@ -237,6 +239,7 @@ export default function AccessServersPage() {
       port: row.port ?? '8089',
       webPort: row.webPort ?? '8000',
       sshUser: row.sshUser ?? 'root',
+      splunkHome: row.splunkHome ?? '/opt/splunk',
       type: row.type && row.type.length > 0 ? row.type : ['indexer'],
       environmentId: row.tags?.[0]?.id ?? '',
       domains: (row.domains ?? []).join(', '),
@@ -279,6 +282,7 @@ export default function AccessServersPage() {
       port: form.port.trim() || '8089',
       webPort: form.webPort.trim() || null,
       sshUser: form.sshUser.trim() || null,
+      splunkHome: form.splunkHome.trim() || null,
       type: form.type,
       domains: splitCsv(form.domains),
       ipRanges: splitCsv(form.ipRanges),
@@ -631,14 +635,24 @@ export default function AccessServersPage() {
               fullWidth
             />
           </div>
-          <Input
-            label="SSH user"
-            value={form.sshUser}
-            onChange={(e) => setField('sshUser', e.target.value)}
-            placeholder="root"
-            helperText="OS login user for SSH over the tailnet (e.g. root, ubuntu) — not the Splunk connection user."
-            fullWidth
-          />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Input
+              label="SSH user"
+              value={form.sshUser}
+              onChange={(e) => setField('sshUser', e.target.value)}
+              placeholder="root"
+              helperText="OS login user for SSH over the tailnet (e.g. root, ubuntu) — not the Splunk connection user."
+              fullWidth
+            />
+            <Input
+              label="Splunk home"
+              value={form.splunkHome}
+              onChange={(e) => setField('splunkHome', e.target.value)}
+              placeholder="/opt/splunk"
+              helperText="$SPLUNK_HOME on this server — /opt/splunk (full Splunk) or /opt/splunkforwarder. Used for staging-dir deploys; auto-detected if left blank."
+              fullWidth
+            />
+          </div>
           <Select
             label="Environment"
             options={environmentOptions}

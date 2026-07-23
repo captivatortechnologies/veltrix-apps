@@ -240,6 +240,7 @@ export default function AccessServerDetailModal({
     ['Management port', server.port ?? '—'],
     ['Web UI port', server.webPort ?? '—'],
     ['SSH user', server.sshUser ?? '—'],
+    ['Splunk home', server.splunkHome ?? '—'],
     ['Type', server.type && server.type.length > 0 ? server.type.join(', ') : '—'],
     ['Environment', server.tags?.[0]?.name ?? '—'],
     ['Domains', commaList(server.domains)],

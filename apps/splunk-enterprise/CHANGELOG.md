@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.19 — 2026-07-23
+
+### Added
+- Access Servers now have a **Splunk home** field (`$SPLUNK_HOME`, e.g. `/opt/splunk` or `/opt/splunkforwarder`), shown in the add/edit form and the View modal. Staging-dir deploys use it to build install paths; when left blank the platform auto-detects it (a non-login SSH shell rarely exports `$SPLUNK_HOME`, so it probes for a full Splunk vs a universal forwarder install).
+
 ## 1.19.18 — 2026-07-23
 
 ### Added

@@ -34,6 +34,8 @@ export interface InventoryItem {
   webPort?: string | null
   /** Optional OS login user for SSH to this target (e.g. "root", "ubuntu"). */
   sshUser?: string | null
+  /** Optional $SPLUNK_HOME on the target (e.g. "/opt/splunk", "/opt/splunkforwarder"). */
+  splunkHome?: string | null
   /** Component type tags (e.g. ["server"]) that classify the target. */
   type?: string[]
   /** DNS names this target is reachable at. */
@@ -62,6 +64,8 @@ export interface InventoryItemInput {
   webPort?: string | null
   /** Optional OS login user for SSH to this target (e.g. "root", "ubuntu"). */
   sshUser?: string | null
+  /** Optional $SPLUNK_HOME on the target. */
+  splunkHome?: string | null
   type?: string[]
   domains?: string[]
   ipRanges?: string[]
