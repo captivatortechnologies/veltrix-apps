@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-23T19:53:09.648Z",
+  "generatedAt": "2026-07-23T20:06:42.730Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -344,7 +344,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.19.22",
+      "version": "1.19.23",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -354,11 +354,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.22/splunk-enterprise.zip",
-      "sha256": "c3f8254cc6d5483fd7f9cd5ec73f3f31833a43d5067d7041b56fb7076e98b493",
-      "sizeBytes": 465251,
-      "publishedAt": "2026-07-23T19:53:09.635Z",
-      "releaseNotes": "## 1.19.22 — 2026-07-23\n\n### Fixed\n- Deploy now **scopes by Target Server Types**: an app deploys ONLY to servers whose role is selected (e.g. Deployment Server → only your deployment servers), instead of every Splunk box the config type can reach. Previously a Deployment-Server-targeted app also tried to install on indexers/search heads and failed.\n- Deploy/rollback now reach **managed-ZTNA servers over the tailnet** (the connectivity provider's device address) instead of the unresolvable `.local` hostname, and no longer hard-require a separate connectivity record. Fixes \"Missing credential or connectivity\" on managed servers.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.23/splunk-enterprise.zip",
+      "sha256": "a5bab3250f6313649f6dcbef88c72a0263dba2f13e01cdc419e25bb2e1652ec7",
+      "sizeBytes": 465883,
+      "publishedAt": "2026-07-23T20:06:42.717Z",
+      "releaseNotes": "## 1.19.23 — 2026-07-23\n\n### Fixed\n- Post-deploy **health check** now scopes by Target Server Types (a server outside the selected roles reports healthy — nothing to check, instead of failing) and reaches managed-ZTNA servers over the tailnet. Fixes a deploy failing with \"Health check failed on <indexer> (score: 0)\" when the config targeted only Deployment Servers.",
       "releasedAt": "2026-07-23T00:00:00.000Z"
     },
     {
