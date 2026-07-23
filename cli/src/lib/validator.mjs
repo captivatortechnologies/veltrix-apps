@@ -922,8 +922,9 @@ function validateCanvasField(field, fLabel, err, warn) {
       }
       const hasEquals = vw.equals !== undefined
       const hasIn = vw.in !== undefined
-      if (hasEquals === hasIn) {
-        err(`canvas: ${fLabel}.visibleWhen must set exactly one of "equals" or "in"`)
+      const hasIncludes = vw.includes !== undefined
+      if ([hasEquals, hasIn, hasIncludes].filter(Boolean).length !== 1) {
+        err(`canvas: ${fLabel}.visibleWhen must set exactly one of "equals", "in", or "includes"`)
       }
       if (hasIn && (!Array.isArray(vw.in) || vw.in.length === 0)) {
         err(`canvas: ${fLabel}.visibleWhen.in must be a non-empty array of values`)

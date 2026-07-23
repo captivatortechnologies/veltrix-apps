@@ -106,6 +106,39 @@ item:
             - { value: "sc4s", label: "SC4S" }
           helpText: "Splunk roles this app belongs on. Informs where the pipeline deploys. Same roles as an Access Server's Type."
 
+        - key: "cmInstallDirs"
+          label: "Cluster Manager — install directory"
+          fieldType: "multiselect"
+          visibleWhen:
+            field: "targetTypes"
+            includes: "cluster-manager"
+          options:
+            - { value: "etc/manager-apps", label: "etc/manager-apps (staged; pushed to indexer peers)" }
+            - { value: "etc/apps", label: "etc/apps (local to the Cluster Manager)" }
+          helpText: "Where the app is placed on the Cluster Manager. etc/manager-apps is staged and distributed to indexer peers via 'apply cluster-bundle'; etc/apps installs it locally on the CM. Select both if needed."
+
+        - key: "dsInstallDirs"
+          label: "Deployment Server — install directory"
+          fieldType: "multiselect"
+          visibleWhen:
+            field: "targetTypes"
+            includes: "deployment-server"
+          options:
+            - { value: "etc/deployment-apps", label: "etc/deployment-apps (distributed to deployment clients)" }
+            - { value: "etc/apps", label: "etc/apps (local to the Deployment Server)" }
+          helpText: "Where the app is placed on the Deployment Server. etc/deployment-apps is distributed to deployment clients via serverclasses; etc/apps installs it locally. Select both if needed."
+
+        - key: "deployerInstallDirs"
+          label: "Deployer — install directory"
+          fieldType: "multiselect"
+          visibleWhen:
+            field: "targetTypes"
+            includes: "deployer"
+          options:
+            - { value: "etc/shcluster/apps", label: "etc/shcluster/apps (pushed to SHC members)" }
+            - { value: "etc/apps", label: "etc/apps (local to the Deployer)" }
+          helpText: "Where the app is placed on the Deployer. etc/shcluster/apps is distributed to search head cluster members via 'apply shcluster-bundle'; etc/apps installs it locally. Select both if needed."
+
         - key: "visibility"
           label: "Visibility"
           fieldType: "select"

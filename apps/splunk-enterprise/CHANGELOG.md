@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.16 — 2026-07-23
+
+### Added
+- Splunk Apps config → Deployment: selecting **Cluster Manager**, **Deployment Server**, or **Deployer** in Target Server Types now reveals an **install-directory** multi-select for that role — Cluster Manager (`etc/manager-apps` or `etc/apps`), Deployment Server (`etc/deployment-apps` or `etc/apps`), Deployer (`etc/shcluster/apps` or `etc/apps`); both can be chosen. Powered by a new platform `visibleWhen: { includes }` condition that shows a field when a multi-select sibling contains a value.
+
 ## 1.19.15 — 2026-07-23
 
 ### Changed
