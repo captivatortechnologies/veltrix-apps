@@ -17,6 +17,23 @@ export async function listEnvironments(profile) {
   return Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : []
 }
 
+/** GET /api/environments/:id/policy — deploy policy for one environment (approval, strategy). */
+export async function getEnvironmentPolicy(profile, id) {
+  return apiRequest(profile, 'GET', `api/environments/${encodeURIComponent(id)}/policy`)
+}
+
+/** GET /api/apps/enabled — the tenant's installed + enabled apps (valid deploy `toolType`s). */
+export async function listApps(profile) {
+  const data = await apiRequest(profile, 'GET', 'api/apps/enabled')
+  return Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : []
+}
+
+/** GET /api/configuration-canvas — the tenant's configuration canvases (configs). */
+export async function listCanvases(profile) {
+  const data = await apiRequest(profile, 'GET', 'api/configuration-canvas')
+  return Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : []
+}
+
 /** GET /api/users — tenant users, for resolving approver emails → ids. */
 export async function listUsers(profile) {
   const data = await apiRequest(profile, 'GET', 'api/users')

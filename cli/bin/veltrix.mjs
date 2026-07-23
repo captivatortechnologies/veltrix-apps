@@ -27,6 +27,7 @@ import {
 } from '../src/commands/sandbox.mjs'
 import { devCommand } from '../src/commands/dev.mjs'
 import { deployCommand, deployStatusCommand } from '../src/commands/deploy.mjs'
+import { appsCommand, envCommand, configListCommand, configGetCommand } from '../src/commands/inspect.mjs'
 
 const require = createRequire(import.meta.url)
 const { version } = require('../package.json')
@@ -145,6 +146,33 @@ deploy
   .argument('<deploymentId>', 'Deployment id (from `veltrix deploy`)')
   .option('--profile <name>', 'Profile name', 'default')
   .action(deployStatusCommand)
+
+program
+  .command('apps')
+  .description('List the tenant’s installed + enabled apps (valid deploy `app` values)')
+  .option('--profile <name>', 'Profile name', 'default')
+  .action(appsCommand)
+
+program
+  .command('env')
+  .description('List environments (valid deploy `environment` names + Tag ids)')
+  .option('--profile <name>', 'Profile name', 'default')
+  .action(envCommand)
+
+const config = program.command('config').description('Inspect configuration canvases')
+
+config
+  .command('list')
+  .description('List configuration canvases and their status')
+  .option('--profile <name>', 'Profile name', 'default')
+  .action(configListCommand)
+
+config
+  .command('get')
+  .description('Show one configuration canvas with its sections/fields')
+  .argument('<id>', 'Canvas id')
+  .option('--profile <name>', 'Profile name', 'default')
+  .action(configGetCommand)
 
 program.parseAsync().catch((err) => {
   console.error(`✖ ${err.message}`)

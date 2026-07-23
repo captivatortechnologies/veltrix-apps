@@ -121,6 +121,24 @@ build/
 !keep.this
 ```
 
+## Inspecting your tenant
+
+Read-only commands to discover what a deploy needs — which apps and config types exist, which environments, and the configs already in your tenant. All use your API key.
+
+```bash
+veltrix apps                 # installed + enabled apps (valid `app` values), with versions
+veltrix env                  # environments (valid `environment` names + Tag ids)
+veltrix config list          # configuration canvases: id, name, app, type, status, version
+veltrix config get <id>      # one canvas with its sections/fields
+```
+
+```
+$ veltrix config list
+ID                                    NAME             APP                TYPE     STATUS    VER
+522bc2c7-…                            API Test Group   okta-identity      groups   DRAFT     1
+41e1cb12-…                            Test Group1      okta-identity      groups   DEPLOYED  31
+```
+
 ## Deploying configuration
 
 `veltrix deploy` creates a Configuration Canvas and pushes it to a tool through the platform pipeline — authenticated with your API key. **Approval is always required:** a new canvas is created as a draft and submitted for approval; the pipeline refuses to deploy anything not yet approved, so the CLI never self-approves. A human approves in the portal (or via their own session), then the deploy proceeds.
