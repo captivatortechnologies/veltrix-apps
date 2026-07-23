@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-23T20:27:47.791Z",
+  "generatedAt": "2026-07-23T21:04:46.901Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -344,7 +344,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.19.24",
+      "version": "1.19.25",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -354,11 +354,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.24/splunk-enterprise.zip",
-      "sha256": "b4feb0f534686aab3d742f7a239e17259b2cb3b1bf4e1e1c6ac4a89a2404196c",
-      "sizeBytes": 467348,
-      "publishedAt": "2026-07-23T20:27:47.772Z",
-      "releaseNotes": "## 1.19.24 — 2026-07-23\n\n### Fixed\n- Splunk's management API (8089) serves a **self-signed certificate** by default, which Node's global `fetch` rejects with an opaque \"fetch failed\" — this broke every deploy/health-check/drift call to a managed-ZTNA server (the connection already rides the WireGuard-encrypted tailnet, so TLS verification here is redundant). All Splunk REST traffic now goes through a single `splunkFetch` helper (node:https, accepts the self-signed cert) instead of global `fetch`. Fixes \"Deploy failed on &lt;server&gt;: … fetch failed\". Covers deploy, both health checks, both drift detectors, the live-license reader, and audit (drift-attribution) searches.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.25/splunk-enterprise.zip",
+      "sha256": "f61e22d81daa4b572af75387f195b3822a749c84798cde4657cfddd7d5dc2ebf",
+      "sizeBytes": 467972,
+      "publishedAt": "2026-07-23T21:04:46.889Z",
+      "releaseNotes": "## 1.19.25 — 2026-07-23\n\n### Fixed\n- App **package (.spl) upload** now sends an explicit `Content-Length`. After the 1.19.24 switch to `node:https`, a body with no `Content-Length` was streamed with `Transfer-Encoding: chunked`, which splunkd's multipart parser rejects with `400 Unparsable URI-encoded request data` — so a deploy reached Splunk (cert fix worked) but failed on the first app install. `splunkFetch` now frames every body (binary or string) with its exact byte length, matching what `fetch` did. Added a transport test that hits a real local HTTP server to pin the framing (Content-Length set, never chunked, bytes preserved).",
       "releasedAt": "2026-07-23T00:00:00.000Z"
     },
     {
