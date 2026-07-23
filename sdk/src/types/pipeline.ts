@@ -338,6 +338,7 @@ export type RemoteIntent =
   | { action: 'reloadDeployServer' }
   | { action: 'applyShclusterBundle'; targetUri?: string }
   | { action: 'splunkHome' }
+  | { action: 'removePath'; path: string }
 
 export interface RemoteResult {
   ok: boolean
@@ -363,6 +364,8 @@ export interface RollbackContext extends PipelineContext {
   credential: CredentialRef | null
   connectivity: ConnectivityRef | null
   connectivityProvider: ConnectivityProviderRef | null
+  /** Platform-provided remote placement — present only for managed-ZTNA targets. */
+  remote?: RemoteExecutor
   rollbackData: unknown
   targetVersion: CanvasSnapshot
 }

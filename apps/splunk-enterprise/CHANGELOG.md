@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.18 — 2026-07-23
+
+### Added
+- Rollback now undoes managed-ZTNA staging-dir installs: it removes each staged app directory over the tailnet and re-applies the affected role's bundle (best-effort — a cluster bundle rollback re-pushes the now-app-less bundle). If the target isn't reachable via managed ZTNA, the rollback reports that staging placements need manual cleanup rather than silently skipping them.
+
 ## 1.19.17 — 2026-07-23
 
 ### Added
