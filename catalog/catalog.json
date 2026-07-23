@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-23T02:23:57.188Z",
+  "generatedAt": "2026-07-23T03:26:54.192Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -324,7 +324,7 @@
     {
       "appId": "splunk-cloud",
       "name": "Splunk Cloud Platform",
-      "version": "1.10.7",
+      "version": "1.10.8",
       "vendor": "Veltrix",
       "description": "Manage Splunk Cloud Platform configurations as code through the Admin Config Service (ACS) API. Includes index management, HTTP Event Collector (HEC) tokens, IP allow lists, and private apps/add-ons (built to a .spl, vetted by AppInspect, installed through ACS). Roles are managed through the Splunk Cloud Platform REST API on the stack's management port 8089 — ACS cannot manage identity.",
       "category": "SIEM",
@@ -334,17 +334,17 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-cloud",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-cloud-v1.10.7/splunk-cloud.zip",
-      "sha256": "a5e3e1212d32a894933b5adf83810e767b9f8f5b4864c6a9f3336baf6e1c81fc",
-      "sizeBytes": 499862,
-      "publishedAt": "2026-07-23T02:23:57.173Z",
-      "releaseNotes": "## 1.10.7 — 2026-07-22\n\n### Changed\n- Access Servers → View → Ports & services: the **Management API** row now has an **Open ↗** button too (it serves a browsable splunkd interface over the tailnet), in addition to the connection test.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-cloud-v1.10.8/splunk-cloud.zip",
+      "sha256": "8c0cf35aecdf52fcfdc10939b56d42b6bd54842a2a8151d0d14b365573219847",
+      "sizeBytes": 500076,
+      "publishedAt": "2026-07-23T03:26:54.178Z",
+      "releaseNotes": "## 1.10.8 — 2026-07-22\n\n### Fixed\n- Access Servers → View → Ports & services: **Open Web UI** now opens Splunk Web over `http://` (its default), instead of `https://` which failed with an SSL error on instances that don't run Web SSL. The Management API link stays `https://` (always TLS). A note points to switching to https when Web SSL is enabled.",
       "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.19.8",
+      "version": "1.19.9",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -354,11 +354,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.8/splunk-enterprise.zip",
-      "sha256": "3fe5b70c4b2e0bda8d3611cfe97487c4a7e391d6f68690f4e572128777c972cd",
-      "sizeBytes": 454114,
-      "publishedAt": "2026-07-23T02:23:57.176Z",
-      "releaseNotes": "## 1.19.8 — 2026-07-22\n\n### Changed\n- Access Servers → View → Ports & services: the **Management API (8089)** row now has an **Open ↗** button too (it serves a browsable splunkd interface over the tailnet), in addition to the connection test.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.9/splunk-enterprise.zip",
+      "sha256": "7dc4d9f60f9e2aae6fecea44c89d0c9abf9cf9d7433ff8a832b7469f91ff10df",
+      "sizeBytes": 454335,
+      "publishedAt": "2026-07-23T03:26:54.181Z",
+      "releaseNotes": "## 1.19.9 — 2026-07-22\n\n### Fixed\n- Access Servers → View → Ports & services: **Open Web UI** now opens Splunk Web over `http://` (its default), instead of `https://` which failed with an SSL error on instances that don't run Web SSL. The Management API link stays `https://` (always TLS). A note points to switching to https when Web SSL is enabled.",
       "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
