@@ -8,23 +8,10 @@ import {
   type TestConnectionResult,
 } from '@veltrixsecops/app-sdk/client'
 import { Modal, Badge, Button, Spinner, Alert, useToast } from '@veltrixsecops/app-sdk/ui'
+import { matchDevice, MANAGED_PROVIDER_TYPE, type ZtnaDeviceSummary } from '../lib/ztnaDevices'
 
 const APP_ID = 'splunk-cloud'
 
-// The one ZTNA provider type the platform operates itself (a managed Tailscale
-// tailnet) — only this type gets the "Connect via Tailscale" enrollment flow;
-// BYO providers are reached however that provider is configured, outside this app.
-const MANAGED_PROVIDER_TYPE = 'veltrix_managed'
-
-interface ZtnaDeviceSummary {
-  id: string
-  name: string
-  hostname: string
-  addresses: string[]
-  online: boolean
-  lastSeen?: string
-  customerTag?: string | null
-}
 
 interface ZtnaEnrollResult {
   enrollmentId: string
@@ -42,44 +29,6 @@ interface AccessServerDetailModalProps {
 
 function commaList(values?: string[]): string {
   return values && values.length > 0 ? values.join(', ') : '—'
-}
-
-// Tailscale derives a device's name from the machine's hostname: it lowercases,
-// strips a trailing `.local`, and turns any other punctuation into hyphens — so a
-// server hostname like `splunk-sh1.babong.local` joins the tailnet as the device
-// `splunk-sh1-babong`. Normalize the same way so a match survives that rewrite.
-function tailscaleName(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/\.local$/, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-}
-
-// The first DNS label of a value (`splunk-sh1-babong.tailnet.ts.net` → `splunk-sh1-babong`).
-function firstLabel(value: string): string {
-  return value.toLowerCase().split('.')[0]
-}
-
-// Resolves an access server to its tailnet device by hostname/name,
-// case-insensitively and tolerant of Tailscale's hostname sanitization. A
-// device's `name` is often a MagicDNS FQDN (`<label>.<tailnet>.ts.net`), so its
-// first label is compared too.
-function matchDevice(hostname: string, devices: ZtnaDeviceSummary[]): ZtnaDeviceSummary | null {
-  const host = hostname.toLowerCase()
-  const wanted = tailscaleName(hostname)
-  return (
-    devices.find((d) => {
-      const dHostname = (d.hostname ?? '').toLowerCase()
-      const dName = (d.name ?? '').toLowerCase()
-      if (dHostname === host || dName === host || dName.startsWith(`${host}.`)) return true
-      return (
-        tailscaleName(dHostname) === wanted ||
-        firstLabel(dName) === wanted ||
-        tailscaleName(dName) === wanted
-      )
-    }) ?? null
-  )
 }
 
 async function responseError(res: Response): Promise<Error> {

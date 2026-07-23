@@ -8,11 +8,14 @@ import {
   listConnectivityProviders,
   listEnvironments,
   resolveTool,
+  authFetch,
   type InventoryItem,
   type CredentialSummary,
   type ConnectivityProviderRef,
   type EnvironmentRef,
 } from '@veltrixsecops/app-sdk/client'
+import { matchDevice, MANAGED_PROVIDER_TYPE, type ZtnaDeviceSummary } from '../lib/ztnaDevices'
+import ConnectivityDot, { type ConnectivityState } from '../components/ConnectivityDot'
 import {
   Card,
   CardHeader,
@@ -117,6 +120,10 @@ export default function AccessServersPage() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
 
+  // Live tailnet device status, for the connectivity dot. Loaded independently of
+  // the main list so the table renders immediately and the dots fill in / refresh.
+  const [devices, setDevices] = useState<ZtnaDeviceSummary[] | null>(null)
+
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<InventoryItem | null>(null)
   const [form, setForm] = useState<FormState>(BLANK_FORM)
@@ -150,6 +157,25 @@ export default function AccessServersPage() {
     void load()
   }, [load])
 
+  // Poll live tailnet device status for the connectivity dots. Best-effort — a
+  // failure just leaves the dots in "checking" and is retried on the next tick.
+  const loadDevices = useCallback(async () => {
+    try {
+      const res = await authFetch('/api/ztna/devices')
+      if (!res.ok) return
+      const data = (await res.json()) as ZtnaDeviceSummary[]
+      setDevices(Array.isArray(data) ? data : [])
+    } catch {
+      /* transient — keep the last known devices (or null) and retry next tick */
+    }
+  }, [])
+
+  useEffect(() => {
+    void loadDevices()
+    const id = window.setInterval(() => void loadDevices(), 30000)
+    return () => window.clearInterval(id)
+  }, [loadDevices])
+
   // Refetch the dialog's lookups (connections + ZTNA providers + environments)
   // without flipping the page's loading state. The connection you pick for a
   // server may have been created on the Connections page after this page mounted,
@@ -173,6 +199,15 @@ export default function AccessServersPage() {
 
   const connectionName = (id?: string | null) => connections.find((c) => c.id === id)?.name
   const providerName = (id?: string | null) => providers.find((p) => p.id === id)?.name
+
+  // Live connectivity for the dot — only Veltrix-managed (Tailscale) servers have
+  // tailnet device status; BYO providers get no dot. `null` devices = still loading.
+  const connectivityStateFor = (row: InventoryItem): ConnectivityState | null => {
+    const provider = providers.find((p) => p.id === row.connectivityProviderId)
+    if (!provider || provider.providerType !== MANAGED_PROVIDER_TYPE) return null
+    if (!devices) return 'checking'
+    return matchDevice(row.hostname, devices)?.online ? 'online' : 'offline'
+  }
 
   const openCreate = () => {
     setEditing(null)
@@ -351,14 +386,18 @@ export default function AccessServersPage() {
     {
       key: 'ztna',
       header: 'Connectivity (ZTNA)',
-      render: (row) =>
-        row.connectivityProviderId ? (
-          <Badge variant="secondary" size="sm">
-            {providerName(row.connectivityProviderId) ?? 'unknown'}
-          </Badge>
-        ) : (
-          '—'
-        ),
+      render: (row) => {
+        if (!row.connectivityProviderId) return '—'
+        const state = connectivityStateFor(row)
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            {state && <ConnectivityDot state={state} />}
+            <Badge variant="secondary" size="sm">
+              {providerName(row.connectivityProviderId) ?? 'unknown'}
+            </Badge>
+          </span>
+        )
+      },
     },
     {
       key: 'actions',

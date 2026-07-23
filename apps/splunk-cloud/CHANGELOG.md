@@ -3,6 +3,11 @@
 All notable changes to the Splunk Cloud app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.10.11 — 2026-07-23
+
+### Added
+- Access Servers table now shows an **animated connectivity dot** in the Connectivity (ZTNA) column for Veltrix-managed servers: a pulsing **green** dot when the server is online on the tailnet, a static **red** dot when offline, and an amber "checking" pulse while status loads. Status polls every 30s. (The hostname-matching logic is now shared with the detail modal.)
+
 ## 1.10.10 — 2026-07-23
 
 ### Fixed
