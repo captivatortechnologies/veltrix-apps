@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-23T14:38:43.030Z",
+  "generatedAt": "2026-07-23T15:25:19.319Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -344,7 +344,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.19.15",
+      "version": "1.19.16",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -354,11 +354,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.15/splunk-enterprise.zip",
-      "sha256": "2cd6c7598f96e7b0ef24a375aff6a090c2057a502fa3463528b92c44d01e0599",
-      "sizeBytes": 459590,
-      "publishedAt": "2026-07-23T14:38:43.017Z",
-      "releaseNotes": "## 1.19.15 — 2026-07-23\n\n### Changed\n- Splunk Apps config → Deployment → **Target Server Types** is now a **multi-select of the known Splunk roles** (indexer, search head, cluster manager, forwarders, deployment server, deployer, license server, SC4S) — the same set as an Access Server's Type — instead of a free-text tag input. Stored value is unchanged (a list of role ids), so existing configs keep working.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.16/splunk-enterprise.zip",
+      "sha256": "bd0e49ce5f9c621ae15ca486f74982c2524f1defa5f7e88f8f2c62c43ba7c82e",
+      "sizeBytes": 460083,
+      "publishedAt": "2026-07-23T15:25:19.307Z",
+      "releaseNotes": "## 1.19.16 — 2026-07-23\n\n### Added\n- Splunk Apps config → Deployment: selecting **Cluster Manager**, **Deployment Server**, or **Deployer** in Target Server Types now reveals an **install-directory** multi-select for that role — Cluster Manager (`etc/manager-apps` or `etc/apps`), Deployment Server (`etc/deployment-apps` or `etc/apps`), Deployer (`etc/shcluster/apps` or `etc/apps`); both can be chosen. Powered by a new platform `visibleWhen: { includes }` condition that shows a field when a multi-select sibling contains a value.",
       "releasedAt": "2026-07-23T00:00:00.000Z"
     },
     {
