@@ -102,7 +102,7 @@ async function errorText(res: Response): Promise<string> {
   }
 }
 
-const MUTED: React.CSSProperties = { fontSize: 13, color: 'var(--vx-text-muted, #6b7280)' }
+const MUTED: React.CSSProperties = { fontSize: 13, color: 'rgb(var(--color-content-secondary))' }
 
 /**
  * Splunk Enterprise — License. Records a Splunk license XML (paste or upload),
@@ -352,7 +352,7 @@ export default function LicensePage() {
             </Button>
           </div>
           {formError ? (
-            <p role="alert" style={{ color: 'var(--vx-danger, #dc2626)', fontSize: 13, marginBottom: 0 }}>
+            <p role="alert" style={{ color: 'rgb(var(--color-danger))', fontSize: 13, marginBottom: 0 }}>
               {formError}
             </p>
           ) : null}
@@ -482,7 +482,7 @@ function LiveStackRow({ stack }: { stack: LiveStack }) {
         style={{
           height: 8,
           borderRadius: 4,
-          background: 'var(--vx-surface-muted, #e5e7eb)',
+          background: 'rgb(var(--color-surface-sunken))',
           overflow: 'hidden',
           marginTop: 6,
         }}
@@ -491,7 +491,7 @@ function LiveStackRow({ stack }: { stack: LiveStack }) {
           style={{
             width: `${pct ?? 0}%`,
             height: '100%',
-            background: over ? 'var(--vx-danger, #dc2626)' : 'var(--veltrix-app-primary, #FF6600)',
+            background: over ? 'rgb(var(--color-danger))' : 'var(--veltrix-app-primary, #FF6600)',
             transition: 'width 200ms ease',
           }}
         />

@@ -118,7 +118,7 @@ export default function ActivatePage() {
 
           {(phase === 'form' || phase === 'submitting') && info && (
             <form onSubmit={submit}>
-              <p style={{ marginTop: 0, fontSize: 14, color: 'var(--vx-text-muted, #667)' }}>
+              <p style={{ marginTop: 0, fontSize: 14, color: 'rgb(var(--color-content-secondary))' }}>
                 Set the administrator (<code>{info.adminUser}</code>) password for{' '}
                 <strong>{info.environmentName ?? 'your environment'}</strong>. This is the only time it
                 is set here — it is sent directly to Splunk and never stored by Veltrix.

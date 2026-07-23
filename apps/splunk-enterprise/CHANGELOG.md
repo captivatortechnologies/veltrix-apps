@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.12 — 2026-07-23
+
+### Fixed
+- Dark-mode theming across the rest of the app: **License**, **Activate**, and **Upgrades** pages used the same undefined `--vx-*` variables as the Access Server modal, falling back to fixed light-mode colors (muted text, the over-limit danger text, and the license usage-bar track). Switched them to the real platform tokens (`rgb(var(--color-*))`); the license usage-bar fill keeps the real `--veltrix-app-primary` brand color.
+
 ## 1.19.11 — 2026-07-23
 
 ### Fixed

@@ -254,7 +254,7 @@ function UpgradesPanel() {
       align: 'right',
       render: (row) => {
         const terminal = ['COMPLETED', 'FAILED', 'CANCELED'].includes(row.status)
-        if (terminal) return <span style={{ color: 'var(--vx-text-muted, #888)' }}>—</span>
+        if (terminal) return <span style={{ color: 'rgb(var(--color-content-secondary))' }}>—</span>
         return (
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <Button variant="ghost" size="sm" onClick={() => void transition(row, 'COMPLETED')}>
