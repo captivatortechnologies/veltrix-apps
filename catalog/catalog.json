@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-23T13:17:26.036Z",
+  "generatedAt": "2026-07-23T13:23:20.442Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -344,7 +344,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.19.11",
+      "version": "1.19.12",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -354,11 +354,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.11/splunk-enterprise.zip",
-      "sha256": "b50e0a39b73ec78c3e5ff2e8faaaea23186dc9839909d42e60d2ad5882e79a2a",
-      "sizeBytes": 454947,
-      "publishedAt": "2026-07-23T13:17:26.025Z",
-      "releaseNotes": "## 1.19.11 — 2026-07-23\n\n### Fixed\n- Access Servers → View: the modal's inner content now uses the platform theme tokens (`--color-*`) instead of undefined variables, so it themes correctly in **dark mode** (muted labels, borders, the code-block backgrounds, and the danger text). Previously these fell back to fixed light-mode colors — most visibly the copyable command blocks rendered a bright box on dark backgrounds. The modal frame already themed via the SDK components; this fixes the hand-styled body.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.12/splunk-enterprise.zip",
+      "sha256": "4e2a6df6833091d8678ba64f97bf7cf4d804931715b06b50dc932244d9da76a9",
+      "sizeBytes": 455067,
+      "publishedAt": "2026-07-23T13:23:20.429Z",
+      "releaseNotes": "## 1.19.12 — 2026-07-23\n\n### Fixed\n- Dark-mode theming across the rest of the app: **License**, **Activate**, and **Upgrades** pages used the same undefined `--vx-*` variables as the Access Server modal, falling back to fixed light-mode colors (muted text, the over-limit danger text, and the license usage-bar track). Switched them to the real platform tokens (`rgb(var(--color-*))`); the license usage-bar fill keeps the real `--veltrix-app-primary` brand color.",
       "releasedAt": "2026-07-23T00:00:00.000Z"
     },
     {
