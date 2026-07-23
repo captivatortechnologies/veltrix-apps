@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-23T20:06:42.730Z",
+  "generatedAt": "2026-07-23T20:27:47.791Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -344,7 +344,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.19.23",
+      "version": "1.19.24",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -354,11 +354,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.23/splunk-enterprise.zip",
-      "sha256": "a5bab3250f6313649f6dcbef88c72a0263dba2f13e01cdc419e25bb2e1652ec7",
-      "sizeBytes": 465883,
-      "publishedAt": "2026-07-23T20:06:42.717Z",
-      "releaseNotes": "## 1.19.23 — 2026-07-23\n\n### Fixed\n- Post-deploy **health check** now scopes by Target Server Types (a server outside the selected roles reports healthy — nothing to check, instead of failing) and reaches managed-ZTNA servers over the tailnet. Fixes a deploy failing with \"Health check failed on <indexer> (score: 0)\" when the config targeted only Deployment Servers.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.24/splunk-enterprise.zip",
+      "sha256": "b4feb0f534686aab3d742f7a239e17259b2cb3b1bf4e1e1c6ac4a89a2404196c",
+      "sizeBytes": 467348,
+      "publishedAt": "2026-07-23T20:27:47.772Z",
+      "releaseNotes": "## 1.19.24 — 2026-07-23\n\n### Fixed\n- Splunk's management API (8089) serves a **self-signed certificate** by default, which Node's global `fetch` rejects with an opaque \"fetch failed\" — this broke every deploy/health-check/drift call to a managed-ZTNA server (the connection already rides the WireGuard-encrypted tailnet, so TLS verification here is redundant). All Splunk REST traffic now goes through a single `splunkFetch` helper (node:https, accepts the self-signed cert) instead of global `fetch`. Fixes \"Deploy failed on &lt;server&gt;: … fetch failed\". Covers deploy, both health checks, both drift detectors, the live-license reader, and audit (drift-attribution) searches.",
       "releasedAt": "2026-07-23T00:00:00.000Z"
     },
     {
