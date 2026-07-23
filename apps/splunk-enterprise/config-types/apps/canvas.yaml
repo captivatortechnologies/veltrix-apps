@@ -139,6 +139,17 @@ item:
             - { value: "etc/apps", label: "etc/apps (local to the Deployer)" }
           helpText: "Where the app is placed on the Deployer. etc/shcluster/apps is distributed to search head cluster members via 'apply shcluster-bundle'; etc/apps installs it locally. Select both if needed."
 
+        - key: "indexerInstallDirs"
+          label: "Indexer — install directory"
+          fieldType: "multiselect"
+          visibleWhen:
+            field: "targetTypes"
+            includes: "indexer"
+          options:
+            - { value: "etc/peer-apps", label: "etc/peer-apps (cluster peer bundle location)" }
+            - { value: "etc/apps", label: "etc/apps (local to the Indexer)" }
+          helpText: "Where the app is placed on the Indexer. etc/peer-apps is the location a clustered peer receives its bundle in (normally managed by the Cluster Manager); etc/apps installs it locally. Select both if needed."
+
         - key: "visibility"
           label: "Visibility"
           fieldType: "select"

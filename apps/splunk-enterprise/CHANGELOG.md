@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.20 — 2026-07-23
+
+### Added
+- Splunk Apps config → Deployment: selecting **Indexer** in Target Server Types now reveals an install-directory picker too — `etc/peer-apps` (cluster peer bundle location) or `etc/apps` (local). Placement only, with no bundle push (etc/peer-apps is normally managed by the Cluster Manager). This joins the Cluster Manager / Deployment Server / Deployer pickers — every role with a real directory choice now has one.
+
 ## 1.19.19 — 2026-07-23
 
 ### Added

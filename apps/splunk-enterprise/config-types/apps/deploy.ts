@@ -38,11 +38,20 @@ export const APP_INSTALL_PATH = '/services/apps/appinstall'
 /** App settings snapshotted for rollback. */
 const ROLLBACK_KEYS = ['label', 'version', 'description', 'disabled'] as const
 
-/** Splunk roles that distribute apps from a staging dir, and how to push each. */
-const ROLE_STAGING: Record<string, { field: string; bundle: 'applyClusterBundle' | 'reloadDeployServer' | 'applyShclusterBundle'; label: string }> = {
+/** A bundle push for a staging role, or null when the role only receives a placement. */
+type StagingBundle = 'applyClusterBundle' | 'reloadDeployServer' | 'applyShclusterBundle' | null
+
+/**
+ * Splunk roles that place an app into a non-etc/apps dir, and how to activate it.
+ * The push-roles run a bundle command after placement; the Indexer only receives a
+ * bundle location (etc/peer-apps is normally managed by the Cluster Manager), so it
+ * gets a placement with no push.
+ */
+const ROLE_STAGING: Record<string, { field: string; bundle: StagingBundle; label: string }> = {
   'cluster-manager': { field: 'cmInstallDirs', bundle: 'applyClusterBundle', label: 'Cluster Manager' },
   'deployment-server': { field: 'dsInstallDirs', bundle: 'reloadDeployServer', label: 'Deployment Server' },
   deployer: { field: 'deployerInstallDirs', bundle: 'applyShclusterBundle', label: 'Deployer' },
+  indexer: { field: 'indexerInstallDirs', bundle: null, label: 'Indexer' },
 }
 
 function toStringArray(v: unknown): string[] {
@@ -56,8 +65,8 @@ export function plannedStagingPlacements(
   componentRoles: string[],
   targetTypes: string[],
   fields: Record<string, unknown>,
-): Array<{ role: string; label: string; bundle: 'applyClusterBundle' | 'reloadDeployServer' | 'applyShclusterBundle'; dirs: string[] }> {
-  const out: Array<{ role: string; label: string; bundle: 'applyClusterBundle' | 'reloadDeployServer' | 'applyShclusterBundle'; dirs: string[] }> = []
+): Array<{ role: string; label: string; bundle: StagingBundle; dirs: string[] }> {
+  const out: Array<{ role: string; label: string; bundle: StagingBundle; dirs: string[] }> = []
   for (const [role, cfg] of Object.entries(ROLE_STAGING)) {
     if (!componentRoles.includes(role)) continue
     if (targetTypes.length > 0 && !targetTypes.includes(role)) continue
@@ -155,11 +164,15 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
             await ctx.remote.extractArchive(pkg.bytes, `${ctx.remote.homeDir}/${dir}`)
             stagingPlaced.push({ appId, role: p.role, dir })
           }
-          const push = await ctx.remote.run({ action: p.bundle })
-          if (!push.ok) {
-            throw new Error(`${p.label} bundle push (${p.bundle}) failed: ${push.stderr.slice(0, 200) || `exit ${push.code}`}`)
+          if (p.bundle) {
+            const push = await ctx.remote.run({ action: p.bundle })
+            if (!push.ok) {
+              throw new Error(`${p.label} bundle push (${p.bundle}) failed: ${push.stderr.slice(0, 200) || `exit ${push.code}`}`)
+            }
+            stagingNotes.push(`${p.label}: placed ${appId} in ${p.dirs.join(', ')} and ran ${p.bundle}`)
+          } else {
+            stagingNotes.push(`${p.label}: placed ${appId} in ${p.dirs.join(', ')} (no bundle push for this role)`)
           }
-          stagingNotes.push(`${p.label}: placed ${appId} in ${p.dirs.join(', ')} and ran ${p.bundle}`)
         }
       } else {
         // Install / upgrade from the declared source. Manual policy only installs

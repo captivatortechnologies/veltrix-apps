@@ -38,3 +38,8 @@ test('maps each role to its bundle intent', () => {
   assert.equal(ds[0].bundle, 'reloadDeployServer')
   assert.equal(dp[0].bundle, 'applyShclusterBundle')
 })
+
+test('indexer places into etc/peer-apps with no bundle push', () => {
+  const ix = plannedStagingPlacements(['indexer'], ['indexer'], { indexerInstallDirs: ['etc/peer-apps', 'etc/apps'] })
+  assert.deepEqual(ix, [{ role: 'indexer', label: 'Indexer', bundle: null, dirs: ['etc/peer-apps'] }])
+})
