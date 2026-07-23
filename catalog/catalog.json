@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-23T02:14:07.116Z",
+  "generatedAt": "2026-07-23T02:23:57.188Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -324,7 +324,7 @@
     {
       "appId": "splunk-cloud",
       "name": "Splunk Cloud Platform",
-      "version": "1.10.6",
+      "version": "1.10.7",
       "vendor": "Veltrix",
       "description": "Manage Splunk Cloud Platform configurations as code through the Admin Config Service (ACS) API. Includes index management, HTTP Event Collector (HEC) tokens, IP allow lists, and private apps/add-ons (built to a .spl, vetted by AppInspect, installed through ACS). Roles are managed through the Splunk Cloud Platform REST API on the stack's management port 8089 — ACS cannot manage identity.",
       "category": "SIEM",
@@ -334,17 +334,17 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-cloud",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-cloud-v1.10.6/splunk-cloud.zip",
-      "sha256": "25378bea07a302545c287ec8caf55ec092d095fe51a7ef1212532ab434ad3246",
-      "sizeBytes": 499730,
-      "publishedAt": "2026-07-23T02:14:07.102Z",
-      "releaseNotes": "## 1.10.6 — 2026-07-22\n\n### Added\n- Access Servers now carry a separate **Web UI port** (default 8000) alongside the management port, editable in the add/edit form.\n- Access Servers → View → **Ports & services**: reach both Splunk services over the tailnet. **Splunk Web (UI)** shows an **Open Web UI ↗** button (`https://<tailnet-host>:<web-port>`), and **Management API** keeps the connection test. Endpoints resolve to the server's live tailnet IP once it's online.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-cloud-v1.10.7/splunk-cloud.zip",
+      "sha256": "a5e3e1212d32a894933b5adf83810e767b9f8f5b4864c6a9f3336baf6e1c81fc",
+      "sizeBytes": 499862,
+      "publishedAt": "2026-07-23T02:23:57.173Z",
+      "releaseNotes": "## 1.10.7 — 2026-07-22\n\n### Changed\n- Access Servers → View → Ports & services: the **Management API** row now has an **Open ↗** button too (it serves a browsable splunkd interface over the tailnet), in addition to the connection test.",
       "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.19.7",
+      "version": "1.19.8",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -354,11 +354,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.7/splunk-enterprise.zip",
-      "sha256": "6fdb477592bedcbe205240a8a0935d657b43f40bd08a2d2a8f1799f669390770",
-      "sizeBytes": 453980,
-      "publishedAt": "2026-07-23T02:14:07.105Z",
-      "releaseNotes": "## 1.19.7 — 2026-07-22\n\n### Added\n- Access Servers now carry a separate **Web UI port** (default 8000) alongside the management port (8089), editable in the add/edit form.\n- Access Servers → View → **Ports & services**: reach both Splunk services over the tailnet. **Splunk Web (UI)** shows an **Open Web UI ↗** button (`https://<tailnet-host>:<web-port>`), and **Management API** keeps the connection test. Endpoints resolve to the server's live tailnet IP once it's online.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.8/splunk-enterprise.zip",
+      "sha256": "3fe5b70c4b2e0bda8d3611cfe97487c4a7e391d6f68690f4e572128777c972cd",
+      "sizeBytes": 454114,
+      "publishedAt": "2026-07-23T02:23:57.176Z",
+      "releaseNotes": "## 1.19.8 — 2026-07-22\n\n### Changed\n- Access Servers → View → Ports & services: the **Management API (8089)** row now has an **Open ↗** button too (it serves a browsable splunkd interface over the tailnet), in addition to the connection test.",
       "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
