@@ -121,6 +121,57 @@ build/
 !keep.this
 ```
 
+## Deploying configuration
+
+`veltrix deploy` creates a Configuration Canvas and pushes it to a tool through the platform pipeline — authenticated with your API key. **Approval is always required:** a new canvas is created as a draft and submitted for approval; the pipeline refuses to deploy anything not yet approved, so the CLI never self-approves. A human approves in the portal (or via their own session), then the deploy proceeds.
+
+> Requires an API key whose role holds `configuration-canvas:write` (Settings → Keys & Tokens), and the target tool set up in your tenant (installed app + a Connection + a registered server/component).
+
+### `veltrix deploy <spec.yaml> [--wait]`
+
+The spec (YAML or JSON) describes what to deploy:
+
+```yaml
+name: "Okta API Test Group"
+app: okta-identity          # the app slug (canvas toolType)
+configType: groups          # the config type id (entityType)
+environment: LocalBabong    # environment name OR its Tag id
+approvers:                  # who must approve — emails or user ids
+  - lead@example.com
+sections:                   # the canvas content for this config type
+  - name: Group
+    fields:
+      - { key: name, label: Name, fieldType: text, value: "Veltrix API Test Group" }
+      - { key: description, label: Description, fieldType: text, value: "Created via veltrix deploy" }
+```
+
+```bash
+veltrix deploy okta-groups.deploy.yaml
+# ✔ Canvas created — <id>
+# ✔ Validated
+# ✔ Submitted for approval (1 approver)
+# ⏳ Awaiting approval. Once approved, deploy with:
+#    veltrix deploy --canvas <id> --env LocalBabong
+```
+
+Add `--wait` to poll until a human approves, then deploy and stream the deployment to completion in one shot:
+
+```bash
+veltrix deploy okta-groups.deploy.yaml --wait
+```
+
+Deploy an already-approved canvas (the second half of the two-step flow):
+
+```bash
+veltrix deploy --canvas <id> --env LocalBabong
+```
+
+Flags: `--wait` (poll for approval, then deploy + follow), `--strategy <DIRECT|CANARY|BLUE_GREEN|ROLLING>`, `--timeout <seconds>` (default 600), `--yes` (skip the pre-deploy confirmation), `--profile <name>`. Environment and approvers may be given as names/emails (resolved for you) or as ids directly.
+
+### `veltrix deploy status <deploymentId>`
+
+Print a deployment's current status and recent logs.
+
 ## License
 
 Apache-2.0

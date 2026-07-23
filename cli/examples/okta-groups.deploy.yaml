@@ -1,0 +1,13 @@
+# Example spec for `veltrix deploy` — creates one Okta group via the Okta app.
+# Usage: veltrix deploy examples/okta-groups.deploy.yaml --wait
+name: "Okta API Test Group"
+app: okta-identity          # app slug (canvas toolType)
+configType: groups          # config type id (entityType)
+environment: LocalBabong    # environment name OR its Tag id
+approvers:                  # who must approve — emails or user ids
+  - REPLACE_WITH_APPROVER@example.com
+sections:
+  - name: Group
+    fields:
+      - { key: name, label: Name, fieldType: text, value: "Veltrix API Test Group" }
+      - { key: description, label: Description, fieldType: text, value: "Created via veltrix deploy" }

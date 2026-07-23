@@ -26,6 +26,7 @@ import {
   sandboxRunCommand,
 } from '../src/commands/sandbox.mjs'
 import { devCommand } from '../src/commands/dev.mjs'
+import { deployCommand, deployStatusCommand } from '../src/commands/deploy.mjs'
 
 const require = createRequire(import.meta.url)
 const { version } = require('../package.json')
@@ -124,6 +125,26 @@ program
   .option('--force-pull', 'On conflict, overwrite local files with the sandbox version')
   .option('--profile <name>', 'Profile name', 'default')
   .action(devCommand)
+
+const deploy = program
+  .command('deploy')
+  .description('Create + deploy a Configuration Canvas to a tool via the pipeline (approval always required)')
+  .argument('[spec]', 'Deploy spec file (YAML/JSON): name, app, configType, environment, approvers, sections')
+  .option('--canvas <id>', 'Deploy an already-created, APPROVED canvas (skips create/validate/submit)')
+  .option('--env <name|id>', 'Environment (name or Tag id) — required with --canvas; overrides the spec otherwise')
+  .option('--wait', 'Wait for approval, then deploy and poll the deployment to completion')
+  .option('--strategy <strategy>', 'Deploy strategy: DIRECT | CANARY | BLUE_GREEN | ROLLING')
+  .option('--timeout <seconds>', 'Poll timeout for --wait (default 600)', '600')
+  .option('--yes', 'Skip the pre-deploy confirmation prompt')
+  .option('--profile <name>', 'Profile name', 'default')
+  .action(deployCommand)
+
+deploy
+  .command('status')
+  .description('Show a deployment’s current status and recent logs')
+  .argument('<deploymentId>', 'Deployment id (from `veltrix deploy`)')
+  .option('--profile <name>', 'Profile name', 'default')
+  .action(deployStatusCommand)
 
 program.parseAsync().catch((err) => {
   console.error(`✖ ${err.message}`)
