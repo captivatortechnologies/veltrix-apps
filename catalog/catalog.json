@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-23T01:15:08.700Z",
+  "generatedAt": "2026-07-23T01:32:42.610Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -324,7 +324,7 @@
     {
       "appId": "splunk-cloud",
       "name": "Splunk Cloud Platform",
-      "version": "1.10.3",
+      "version": "1.10.4",
       "vendor": "Veltrix",
       "description": "Manage Splunk Cloud Platform configurations as code through the Admin Config Service (ACS) API. Includes index management, HTTP Event Collector (HEC) tokens, IP allow lists, and private apps/add-ons (built to a .spl, vetted by AppInspect, installed through ACS). Roles are managed through the Splunk Cloud Platform REST API on the stack's management port 8089 — ACS cannot manage identity.",
       "category": "SIEM",
@@ -334,17 +334,17 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-cloud",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-cloud-v1.10.3/splunk-cloud.zip",
-      "sha256": "f3755e99f037a2cf51e3fa05919a610737262c36a436cceb2a7c8df33997da96",
-      "sizeBytes": 496650,
-      "publishedAt": "2026-07-23T01:15:08.686Z",
-      "releaseNotes": "## 1.10.3 — 2026-07-22\n\n### Changed\n- Access Servers: the **hostname is now clickable** and opens the server's View detail modal (same as the row's View action) — click an item to see its connectivity status, run a connection test, get the Tailscale connect script, and the SSH command.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-cloud-v1.10.4/splunk-cloud.zip",
+      "sha256": "5a26004d694016a84cfbf4bfb3128b7b9458b60eb0ef79d03c45abdc8ca2ca19",
+      "sizeBytes": 497427,
+      "publishedAt": "2026-07-23T01:32:42.593Z",
+      "releaseNotes": "## 1.10.4 — 2026-07-22\n\n### Changed\n- Access Servers → View → **SSH access** now gives the correct command for how the server is reached. For a Veltrix-managed (Tailscale) server it shows `tailscale ssh <user>@<device>` (Tailscale SSH over the tailnet — no separate key needed when Tailscale SSH is enabled) plus an **Open in Tailscale (browser SSH)** link to the device in the Tailscale admin console. For a bring-your-own connection it keeps plain `ssh <user>@<address>`.",
       "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.19.4",
+      "version": "1.19.5",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -354,11 +354,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.4/splunk-enterprise.zip",
-      "sha256": "05aedf8f6c5e4fd66759880ca5679289c20f61c89d3f0bfb9c7ea7de564cc607",
-      "sizeBytes": 450909,
-      "publishedAt": "2026-07-23T01:15:08.689Z",
-      "releaseNotes": "## 1.19.4 — 2026-07-22\n\n### Changed\n- Access Servers: the **hostname is now clickable** and opens the server's View detail modal (same as the row's View action) — click an item to see its connectivity status, run a connection test, get the Tailscale connect script, and the SSH command.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.5/splunk-enterprise.zip",
+      "sha256": "4d50af724ed6da76193d7ac846f12d1efe6579e2aa76c999720946ad3dd3a764",
+      "sizeBytes": 451690,
+      "publishedAt": "2026-07-23T01:32:42.597Z",
+      "releaseNotes": "## 1.19.5 — 2026-07-22\n\n### Changed\n- Access Servers → View → **SSH access** now gives the correct command for how the server is reached. For a Veltrix-managed (Tailscale) server it shows `tailscale ssh <user>@<device>` (Tailscale SSH over the tailnet — no separate key needed when Tailscale SSH is enabled) plus an **Open in Tailscale (browser SSH)** link to the device in the Tailscale admin console. For a bring-your-own connection it keeps plain `ssh <user>@<address>`.",
       "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
