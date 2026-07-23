@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-22T23:04:51.839Z",
+  "generatedAt": "2026-07-23T01:03:42.357Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -324,7 +324,7 @@
     {
       "appId": "splunk-cloud",
       "name": "Splunk Cloud Platform",
-      "version": "1.10.1",
+      "version": "1.10.2",
       "vendor": "Veltrix",
       "description": "Manage Splunk Cloud Platform configurations as code through the Admin Config Service (ACS) API. Includes index management, HTTP Event Collector (HEC) tokens, IP allow lists, and private apps/add-ons (built to a .spl, vetted by AppInspect, installed through ACS). Roles are managed through the Splunk Cloud Platform REST API on the stack's management port 8089 — ACS cannot manage identity.",
       "category": "SIEM",
@@ -334,17 +334,17 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-cloud",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-cloud-v1.10.1/splunk-cloud.zip",
-      "sha256": "1c8f99294913553db614adb0abea85ff59a1bf5901de63fb16b607e7af9b324c",
-      "sizeBytes": 488234,
-      "publishedAt": "2026-07-22T20:12:36.917Z",
-      "releaseNotes": "## 1.10.1 — 2026-07-22\n\n### Fixed\n- Access Servers: the Add/Edit dialog now refetches connections, ZTNA providers,\n  and environments each time it opens, so a connection created on the Connections\n  page appears in the \"Connection\" dropdown immediately instead of requiring a\n  page refresh (the list was previously loaded only once on page mount).",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-cloud-v1.10.2/splunk-cloud.zip",
+      "sha256": "606ef10505781fc3c142cde0d602a8e9a5a496f65ff9046af9cfe8be729e3373",
+      "sizeBytes": 496117,
+      "publishedAt": "2026-07-23T01:03:42.343Z",
+      "releaseNotes": "## 1.10.2 — 2026-07-22\n\n### Added\n- **Access Servers — per-server \"View\" detail modal.** Each row now has a View\n  action alongside Edit/Remove that opens a read-only detail view with four\n  sections: (1) **Server summary** — hostname, management port, type,\n  environment, domains, IP ranges, the assigned Connection name, and the ZTNA\n  provider name; (2) **Connectivity status** — the server's ZTNA provider and\n  its live tailnet device status (Online/Offline, tailnet IP, last seen), or\n  \"Not connected to the Veltrix network yet\" when no device matches; (3)\n  **Connection test** — a Test button that runs this app's connectivity test\n  handler against the server's assigned Connection and shows the ok/fail\n  result; (4) **Connect via Tailscale** — shown only when the server's ZTNA\n  provider is the Veltrix-managed one — a \"Generate connect script\" /\n  \"Regenerate\" button that mints a fresh enrollment and displays the\n  copyable install command to run on the server, plus a copyable **SSH\n  access** command (using the tailnet IP when the device is online, else the\n  hostname, with the assigned Connection's username when available).",
       "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.19.2",
+      "version": "1.19.3",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -354,11 +354,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.2/splunk-enterprise.zip",
-      "sha256": "0b3a4f1c8e9fbc24089956870ef2437ce1720620dedd6f0c292eae08a9ddb06b",
-      "sizeBytes": 442534,
-      "publishedAt": "2026-07-22T23:04:51.829Z",
-      "releaseNotes": "## 1.19.2 — 2026-07-22\n\n### Changed\n- Sidebar layout: moved **BYOL Infrastructure** and **Upgrades** into the\n  Configurations group (alongside HEC Tokens / Splunk Apps) and **License** into\n  the Settings group (with Access Servers / Connections), so the top Pages group\n  stays to Overview / Setup Guide / Pipeline.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.3/splunk-enterprise.zip",
+      "sha256": "46b356e636558b89829367495119df830d96d0c8fc28374b75f269bf664ca8c1",
+      "sizeBytes": 450392,
+      "publishedAt": "2026-07-23T01:03:42.346Z",
+      "releaseNotes": "## 1.19.3 — 2026-07-22\n\n### Added\n- **Access Servers — per-server \"View\" detail modal.** Each row now has a View\n  action alongside Edit/Remove that opens a read-only detail view with four\n  sections: (1) **Server summary** — hostname, management port, type,\n  environment, domains, IP ranges, the assigned Connection name, and the ZTNA\n  provider name; (2) **Connectivity status** — the server's ZTNA provider and\n  its live tailnet device status (Online/Offline, tailnet IP, last seen), or\n  \"Not connected to the Veltrix network yet\" when no device matches; (3)\n  **Connection test** — a Test button that runs this app's connectivity test\n  handler against the server's assigned Connection and shows the ok/fail\n  result; (4) **Connect via Tailscale** — shown only when the server's ZTNA\n  provider is the Veltrix-managed one — a \"Generate connect script\" /\n  \"Regenerate\" button that mints a fresh enrollment and displays the\n  copyable install command to run on the server, plus a copyable **SSH\n  access** command (using the tailnet IP when the device is online, else the\n  hostname, with the assigned Connection's username when available).",
       "releasedAt": "2026-07-22T00:00:00.000Z"
     },
     {
