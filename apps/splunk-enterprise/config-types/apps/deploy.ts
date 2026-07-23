@@ -77,13 +77,16 @@ export function plannedStagingPlacements(
 }
 
 export default async function deploy(ctx: DeployContext): Promise<DeployResult> {
-  const { component, credential, connectivity, canvas } = ctx
+  const { component, credential, connectivity, connectivityProvider, canvas } = ctx
 
-  if (!credential || !connectivity) {
-    return { success: false, message: 'Missing credential or connectivity for Splunk app deployment' }
+  if (!credential) {
+    return { success: false, message: 'Missing credential for Splunk app deployment' }
   }
 
-  const baseUrl = buildSplunkUrl(component, connectivity)
+  // Reach the server over managed ZTNA (the tailnet device address) when there is
+  // no explicit connectivity URL — the raw .local hostname is not resolvable.
+  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)
+  const componentRoles = component.type ?? []
   const auth = buildAuthHeader(credential)
   const rollbackSnapshot: Record<string, unknown>[] = []
   const installedApps: string[] = []
@@ -101,6 +104,14 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       // inventing an app id as well.
       const appId = resolveAppId(fields, canvas.name)
       if (!appId) continue
+
+      // Scope by Target Server Types: only deploy this app to a server whose role
+      // is among the selected types (e.g. targetTypes=[deployment-server] deploys
+      // ONLY to deployment servers, not every Splunk box the config type can reach).
+      const sectionTargets = toStringArray(fields.targetTypes)
+      if (sectionTargets.length > 0 && !sectionTargets.some((t) => componentRoles.includes(t))) {
+        continue
+      }
 
       const appPath = `${APP_BASE_PATH}/${encodeURIComponent(appId)}`
 

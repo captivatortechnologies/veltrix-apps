@@ -24,10 +24,10 @@ const RESTORE_KEYS = ['label', 'version', 'description'] as const
  *  - removes apps that did not exist before this deploy (existed === false)
  */
 export default async function rollback(ctx: RollbackContext): Promise<RollbackResult> {
-  const { component, credential, connectivity, rollbackData } = ctx
+  const { component, credential, connectivity, connectivityProvider, rollbackData } = ctx
 
-  if (!credential || !connectivity) {
-    return { success: false, message: 'Missing credential or connectivity for rollback' }
+  if (!credential) {
+    return { success: false, message: 'Missing credential for rollback' }
   }
 
   const data = (rollbackData as AppRollbackData) || {}
@@ -37,7 +37,7 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
     return { success: false, message: 'No previous state available for Splunk app rollback' }
   }
 
-  const baseUrl = buildSplunkUrl(component, connectivity)
+  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)
   const auth = buildAuthHeader(credential)
 
   const restored: string[] = []

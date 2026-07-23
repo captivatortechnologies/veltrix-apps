@@ -11,13 +11,26 @@ import type { ComponentRef, ConnectivityRef, CredentialRef } from '@veltrixsecop
 const DEFAULT_MANAGEMENT_PORT = '8089'
 const REQUEST_TIMEOUT_MS = 30_000
 
-/** Resolve the base URL for the Splunk management API on a component. */
-export function buildSplunkUrl(component: ComponentRef, connectivity: ConnectivityRef): string {
-  if (connectivity.httpsUrl) return connectivity.httpsUrl
-  if (connectivity.tailscaleDeviceIP) {
-    return `https://${connectivity.tailscaleDeviceIP}:${component.port || DEFAULT_MANAGEMENT_PORT}`
-  }
-  return `https://${component.hostname}:${component.port || DEFAULT_MANAGEMENT_PORT}`
+/**
+ * Resolve the base URL for the Splunk management API on a component. Prefers an
+ * explicit connectivity URL/device IP, then the managed-ZTNA tailnet address
+ * (the platform is on the tailnet, so it can reach a `100.x` device the raw
+ * `.local` hostname would never resolve to), then the hostname as a last resort.
+ */
+export function buildSplunkUrl(
+  component: ComponentRef,
+  connectivity: ConnectivityRef | null,
+  // Structural: the pipeline ConnectivityProviderRef carries the (decrypted) config
+  // with `deviceAddress` for managed ZTNA; typed minimally to avoid the SDK's two
+  // ConnectivityProviderRef exports (the AppContext one has no config).
+  connectivityProvider?: { config?: Record<string, unknown> | null } | null,
+): string {
+  const port = component.port || DEFAULT_MANAGEMENT_PORT
+  if (connectivity?.httpsUrl) return connectivity.httpsUrl
+  if (connectivity?.tailscaleDeviceIP) return `https://${connectivity.tailscaleDeviceIP}:${port}`
+  const deviceAddress = (connectivityProvider?.config as Record<string, unknown> | undefined)?.deviceAddress
+  if (typeof deviceAddress === 'string' && deviceAddress) return `https://${deviceAddress}:${port}`
+  return `https://${component.hostname}:${port}`
 }
 
 /** Bearer token when an API token is configured, otherwise HTTP Basic. */

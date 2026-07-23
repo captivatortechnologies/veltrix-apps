@@ -3,6 +3,12 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.22 — 2026-07-23
+
+### Fixed
+- Deploy now **scopes by Target Server Types**: an app deploys ONLY to servers whose role is selected (e.g. Deployment Server → only your deployment servers), instead of every Splunk box the config type can reach. Previously a Deployment-Server-targeted app also tried to install on indexers/search heads and failed.
+- Deploy/rollback now reach **managed-ZTNA servers over the tailnet** (the connectivity provider's device address) instead of the unresolvable `.local` hostname, and no longer hard-require a separate connectivity record. Fixes "Missing credential or connectivity" on managed servers.
+
 ## 1.19.21 — 2026-07-23
 
 ### Changed
