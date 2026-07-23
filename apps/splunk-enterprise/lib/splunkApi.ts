@@ -93,6 +93,23 @@ function nodeHttpsTransport(url: string, init: SplunkFetchInit): Promise<SplunkF
       reject(err as Error)
       return
     }
+    // Normalize the body to a Buffer up front so we can send an explicit
+    // Content-Length. Without it, node:http streams the body with
+    // `Transfer-Encoding: chunked`, which splunkd's multipart parser rejects
+    // ("Unparsable URI-encoded request data") on a .spl package upload — undici's
+    // fetch always framed these with Content-Length.
+    const bodyBuf =
+      init.body == null
+        ? null
+        : Buffer.isBuffer(init.body)
+          ? init.body
+          : typeof init.body === 'string'
+            ? Buffer.from(init.body, 'utf8')
+            : Buffer.from(init.body)
+    const headers: Record<string, string> = { ...(init.headers ?? {}) }
+    if (bodyBuf && headers['Content-Length'] == null && headers['content-length'] == null) {
+      headers['Content-Length'] = String(bodyBuf.length)
+    }
     const doRequest = u.protocol === 'http:' ? httpRequest : httpsRequest
     const req = doRequest(
       {
@@ -100,7 +117,7 @@ function nodeHttpsTransport(url: string, init: SplunkFetchInit): Promise<SplunkF
         port: u.port || (u.protocol === 'http:' ? '80' : '443'),
         path: `${u.pathname}${u.search}`,
         method: init.method ?? 'GET',
-        headers: init.headers,
+        headers,
         rejectUnauthorized: false,
       },
       (res) => {
@@ -116,7 +133,7 @@ function nodeHttpsTransport(url: string, init: SplunkFetchInit): Promise<SplunkF
     const timeoutMs = init.timeoutMs ?? REQUEST_TIMEOUT_MS
     req.setTimeout(timeoutMs, () => req.destroy(new Error(`Splunk request timed out after ${timeoutMs}ms`)))
     req.on('error', reject)
-    if (init.body != null) req.write(typeof init.body === 'string' ? init.body : Buffer.from(init.body))
+    if (bodyBuf) req.write(bodyBuf)
     req.end()
   })
 }

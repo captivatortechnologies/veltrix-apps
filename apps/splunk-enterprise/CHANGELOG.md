@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.25 — 2026-07-23
+
+### Fixed
+- App **package (.spl) upload** now sends an explicit `Content-Length`. After the 1.19.24 switch to `node:https`, a body with no `Content-Length` was streamed with `Transfer-Encoding: chunked`, which splunkd's multipart parser rejects with `400 Unparsable URI-encoded request data` — so a deploy reached Splunk (cert fix worked) but failed on the first app install. `splunkFetch` now frames every body (binary or string) with its exact byte length, matching what `fetch` did. Added a transport test that hits a real local HTTP server to pin the framing (Content-Length set, never chunked, bytes preserved).
+
 ## 1.19.24 — 2026-07-23
 
 ### Fixed
