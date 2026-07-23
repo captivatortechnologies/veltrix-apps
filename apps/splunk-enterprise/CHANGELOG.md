@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.15 — 2026-07-23
+
+### Changed
+- Splunk Apps config → Deployment → **Target Server Types** is now a **multi-select of the known Splunk roles** (indexer, search head, cluster manager, forwarders, deployment server, deployer, license server, SC4S) — the same set as an Access Server's Type — instead of a free-text tag input. Stored value is unchanged (a list of role ids), so existing configs keep working.
+
 ## 1.19.14 — 2026-07-23
 
 ### Changed

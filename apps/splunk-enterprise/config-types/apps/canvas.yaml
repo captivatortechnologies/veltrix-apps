@@ -93,8 +93,18 @@ item:
       fields:
         - key: "targetTypes"
           label: "Target Server Types"
-          fieldType: "tags"
-          helpText: "Splunk roles this app belongs on (search-head, indexer, deployment-server). Informs where the pipeline deploys."
+          fieldType: "multiselect"
+          options:
+            - { value: "indexer", label: "Indexer" }
+            - { value: "search-head", label: "Search Head" }
+            - { value: "cluster-manager", label: "Cluster Manager" }
+            - { value: "heavy-forwarder", label: "Heavy Forwarder" }
+            - { value: "universal-forwarder", label: "Universal Forwarder" }
+            - { value: "deployment-server", label: "Deployment Server" }
+            - { value: "deployer", label: "Deployer" }
+            - { value: "license-server", label: "License Server" }
+            - { value: "sc4s", label: "SC4S" }
+          helpText: "Splunk roles this app belongs on. Informs where the pipeline deploys. Same roles as an Access Server's Type."
 
         - key: "visibility"
           label: "Visibility"
