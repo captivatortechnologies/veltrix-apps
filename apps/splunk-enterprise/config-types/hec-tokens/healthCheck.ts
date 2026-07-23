@@ -1,5 +1,5 @@
 import type { HealthCheckContext, HealthCheckResult } from '@veltrixsecops/app-sdk'
-import { buildSplunkUrl, buildAuthHeader } from '../../lib/splunkApi'
+import { buildSplunkUrl, buildAuthHeader, splunkFetch } from '../../lib/splunkApi'
 import { HEC_BASE_PATH } from './deploy'
 
 /**
@@ -20,14 +20,14 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
 
   // Check 1: Server reachable
   checks.push(await timedCheck('server_reachable', async () => {
-    const res = await fetch(`${baseUrl}/services/server/info?output_mode=json`, { method: 'GET', headers: auth, signal: AbortSignal.timeout(10_000) })
+    const res = await splunkFetch(`${baseUrl}/services/server/info?output_mode=json`, { method: 'GET', headers: auth, timeoutMs: 10_000 })
     if (!res.ok) throw new Error(`Server returned ${res.status}`)
     return 'Splunk instance is reachable'
   }))
 
   // Check 2: Global HEC input is enabled ("http" is the global HEC stanza)
   checks.push(await timedCheck('hec_enabled', async () => {
-    const res = await fetch(`${baseUrl}${HEC_BASE_PATH}/http?output_mode=json`, { method: 'GET', headers: auth, signal: AbortSignal.timeout(10_000) })
+    const res = await splunkFetch(`${baseUrl}${HEC_BASE_PATH}/http?output_mode=json`, { method: 'GET', headers: auth, timeoutMs: 10_000 })
     if (!res.ok) throw new Error(`HEC global settings endpoint returned ${res.status}`)
     const data = JSON.parse(await res.text())
     const content = data?.entry?.[0]?.content
@@ -47,8 +47,8 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
     const missing: string[] = []
     const disabled: string[] = []
     for (const name of expected) {
-      const res = await fetch(`${baseUrl}${HEC_BASE_PATH}/${encodeURIComponent(name)}?output_mode=json`, {
-        method: 'GET', headers: auth, signal: AbortSignal.timeout(10_000),
+      const res = await splunkFetch(`${baseUrl}${HEC_BASE_PATH}/${encodeURIComponent(name)}?output_mode=json`, {
+        method: 'GET', headers: auth, timeoutMs: 10_000,
       })
       if (!res.ok) {
         missing.push(name)

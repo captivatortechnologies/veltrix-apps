@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.24 — 2026-07-23
+
+### Fixed
+- Splunk's management API (8089) serves a **self-signed certificate** by default, which Node's global `fetch` rejects with an opaque "fetch failed" — this broke every deploy/health-check/drift call to a managed-ZTNA server (the connection already rides the WireGuard-encrypted tailnet, so TLS verification here is redundant). All Splunk REST traffic now goes through a single `splunkFetch` helper (node:https, accepts the self-signed cert) instead of global `fetch`. Fixes "Deploy failed on &lt;server&gt;: … fetch failed". Covers deploy, both health checks, both drift detectors, the live-license reader, and audit (drift-attribution) searches.
+
 ## 1.19.23 — 2026-07-23
 
 ### Fixed

@@ -1,5 +1,6 @@
 import type { AppRouteContext } from '@veltrixsecops/app-sdk'
 import { getLiveLicenseStatus, mapLiveLicenses } from '../liveLicense'
+import { __setSplunkTransport } from '../splunkApi'
 
 const DAY = 24 * 60 * 60 * 1000
 const now = new Date('2026-07-20T00:00:00Z')
@@ -100,11 +101,9 @@ interface StubRoute {
   throws?: boolean
 }
 
-/** Swap global fetch for a URL-routed stub; returns a restore fn. */
+/** Swap the Splunk HTTP transport for a URL-routed stub; returns a restore fn. */
 function installFetch(routeFor: (url: string) => StubRoute): () => void {
-  const original = globalThis.fetch
-  globalThis.fetch = (async (input: unknown) => {
-    const url = String(input)
+  __setSplunkTransport(async (url: string) => {
     const route = routeFor(url)
     if (route.throws) throw new Error('ECONNREFUSED splunk.internal:8089')
     const status = route.status ?? 200
@@ -113,9 +112,9 @@ function installFetch(routeFor: (url: string) => StubRoute): () => void {
       status,
       text: async () => (typeof route.body === 'string' ? route.body : JSON.stringify(route.body ?? {})),
     }
-  }) as unknown as typeof fetch
+  })
   return () => {
-    globalThis.fetch = original
+    __setSplunkTransport(null)
   }
 }
 

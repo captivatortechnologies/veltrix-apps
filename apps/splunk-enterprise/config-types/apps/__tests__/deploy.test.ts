@@ -1,4 +1,5 @@
 import deploy from '../deploy'
+import { __setSplunkTransport } from '../../../lib/splunkApi'
 import type { CanvasItemSnapshot, DeployContext } from '@veltrixsecops/app-sdk'
 
 // =============================================================================
@@ -27,21 +28,18 @@ let calls: RecordedCall[] = []
  */
 function stubSplunk(): void {
   calls = []
-  ;(globalThis as unknown as { fetch: unknown }).fetch = async (
-    input: unknown,
-    init: Record<string, unknown> = {},
-  ) => {
-    const method = String(init.method ?? 'GET')
-    const headers = (init.headers ?? {}) as Record<string, string>
+  __setSplunkTransport(async (url, init) => {
+    const method = init.method ?? 'GET'
+    const headers = init.headers ?? {}
     calls.push({
-      url: String(input),
+      url,
       method,
       contentType: headers['Content-Type'] ?? '',
       body: typeof init.body === 'string' ? init.body : '',
     })
     if (method === 'GET') return { ok: false, status: 404, text: async () => 'not found' }
     return { ok: true, status: 200, text: async () => '{}' }
-  }
+  })
 }
 
 function makeCtx(item: CanvasItemSnapshot, overrides: Partial<DeployContext> = {}): DeployContext {

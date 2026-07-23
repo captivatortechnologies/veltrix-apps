@@ -1,5 +1,5 @@
 import type { DriftContext, DriftResult, DriftDiff } from '@veltrixsecops/app-sdk'
-import { buildSplunkUrl, buildAuthHeader } from '../../lib/splunkApi'
+import { buildSplunkUrl, buildAuthHeader, splunkFetch } from '../../lib/splunkApi'
 import { auditClientFromBase, attachDriftActor, veltrixActorLogins } from '../lib/splunkAudit'
 import { APP_BASE_PATH } from './deploy'
 
@@ -35,8 +35,8 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
 
     const objectDiffs: DriftDiff[] = []
     try {
-      const res = await fetch(`${baseUrl}${APP_BASE_PATH}/${encodeURIComponent(appId)}?output_mode=json`, {
-        method: 'GET', headers: auth, signal: AbortSignal.timeout(15_000),
+      const res = await splunkFetch(`${baseUrl}${APP_BASE_PATH}/${encodeURIComponent(appId)}?output_mode=json`, {
+        method: 'GET', headers: auth, timeoutMs: 15_000,
       })
 
       if (!res.ok) {

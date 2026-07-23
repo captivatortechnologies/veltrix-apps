@@ -1,3 +1,5 @@
+import { request as httpsRequest } from 'node:https'
+import { request as httpRequest } from 'node:http'
 import type { ComponentRef, ConnectivityRef, CredentialRef } from '@veltrixsecops/app-sdk'
 
 // ========================================================================
@@ -50,28 +52,88 @@ export interface SplunkRequestOptions {
   timeoutMs?: number
 }
 
+export interface SplunkFetchResponse {
+  ok: boolean
+  status: number
+  text: () => Promise<string>
+}
+
+/**
+ * fetch() against the Splunk management API. splunkd listens on 8089 with a
+ * SELF-SIGNED certificate by default, which the global `fetch` (undici) rejects
+ * with an opaque "fetch failed". The connection already rides the managed tailnet
+ * (WireGuard-encrypted end to end), so TLS verification here is redundant — we
+ * accept the cert via node:https (no undici dispatcher needed).
+ */
+export interface SplunkFetchInit {
+  method?: string
+  headers?: Record<string, string>
+  body?: string | Uint8Array
+  timeoutMs?: number
+}
+
+type SplunkTransport = (url: string, init: SplunkFetchInit) => Promise<SplunkFetchResponse>
+
+/** Test-only seam: swap the HTTP transport (default: node:https, accepts self-signed). */
+let activeTransport: SplunkTransport = nodeHttpsTransport
+export function __setSplunkTransport(transport: SplunkTransport | null): void {
+  activeTransport = transport ?? nodeHttpsTransport
+}
+
+export function splunkFetch(url: string, init: SplunkFetchInit = {}): Promise<SplunkFetchResponse> {
+  return activeTransport(url, init)
+}
+
+function nodeHttpsTransport(url: string, init: SplunkFetchInit): Promise<SplunkFetchResponse> {
+  return new Promise((resolve, reject) => {
+    let u: URL
+    try {
+      u = new URL(url)
+    } catch (err) {
+      reject(err as Error)
+      return
+    }
+    const doRequest = u.protocol === 'http:' ? httpRequest : httpsRequest
+    const req = doRequest(
+      {
+        hostname: u.hostname,
+        port: u.port || (u.protocol === 'http:' ? '80' : '443'),
+        path: `${u.pathname}${u.search}`,
+        method: init.method ?? 'GET',
+        headers: init.headers,
+        rejectUnauthorized: false,
+      },
+      (res) => {
+        const chunks: Buffer[] = []
+        res.on('data', (c: Buffer) => chunks.push(c))
+        res.on('end', () => {
+          const bodyText = Buffer.concat(chunks).toString('utf8')
+          const status = res.statusCode ?? 0
+          resolve({ ok: status >= 200 && status < 300, status, text: async () => bodyText })
+        })
+      },
+    )
+    const timeoutMs = init.timeoutMs ?? REQUEST_TIMEOUT_MS
+    req.setTimeout(timeoutMs, () => req.destroy(new Error(`Splunk request timed out after ${timeoutMs}ms`)))
+    req.on('error', reject)
+    if (init.body != null) req.write(typeof init.body === 'string' ? init.body : Buffer.from(init.body))
+    req.end()
+  })
+}
+
 /** Perform a request against splunkd, throwing on non-2xx responses. */
 export async function splunkRequest(url: string, options: SplunkRequestOptions): Promise<string> {
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? REQUEST_TIMEOUT_MS)
-
-  try {
-    const res = await fetch(url, {
-      method: options.method,
-      headers: options.headers,
-      body: options.body as BodyInit | undefined,
-      signal: controller.signal,
-    })
-
-    if (!res.ok) {
-      const text = await res.text()
-      throw new Error(`Splunk API ${res.status}: ${text}`)
-    }
-
-    return await res.text()
-  } finally {
-    clearTimeout(timeout)
+  const res = await splunkFetch(url, {
+    method: options.method,
+    headers: options.headers,
+    body: options.body,
+    timeoutMs: options.timeoutMs,
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`Splunk API ${res.status}: ${text}`)
   }
+  return res.text()
 }
 
 /**

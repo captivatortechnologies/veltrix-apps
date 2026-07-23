@@ -21,7 +21,7 @@
 // and those events are skipped, alongside Splunk's internal principals.
 // =============================================================================
 
-import { buildAuthHeader, buildSplunkUrl } from '../../lib/splunkApi'
+import { buildAuthHeader, buildSplunkUrl, splunkFetch } from '../../lib/splunkApi'
 import type { ComponentRef, ConnectivityRef, CredentialRef } from '@veltrixsecops/app-sdk'
 
 /** Attribution attached to a drifted diff — mirrors the SDK's optional DriftActor. */
@@ -194,11 +194,11 @@ export function auditClientFromBase(
       const form = new URLSearchParams({ search, ...params })
       for (const path of AUDIT_EXPORT_PATHS) {
         try {
-          const res = await fetch(`${baseUrl}${path}`, {
+          const res = await splunkFetch(`${baseUrl}${path}`, {
             method: 'POST',
             headers: { ...auth, 'Content-Type': 'application/x-www-form-urlencoded' },
             body: form.toString(),
-            signal: AbortSignal.timeout(AUDIT_TIMEOUT_MS),
+            timeoutMs: AUDIT_TIMEOUT_MS,
           })
           if (res.ok) return { ok: true, body: await res.text() }
           // Only an older splunkd (no v2 export) warrants trying the next path.

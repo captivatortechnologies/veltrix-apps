@@ -1,5 +1,5 @@
 import type { HealthCheckContext, HealthCheckResult } from '@veltrixsecops/app-sdk'
-import { buildSplunkUrl, buildAuthHeader } from '../../lib/splunkApi'
+import { buildSplunkUrl, buildAuthHeader, splunkFetch } from '../../lib/splunkApi'
 import { APP_BASE_PATH } from './deploy'
 
 /**
@@ -34,7 +34,7 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
 
   // Check 1: Server reachable
   checks.push(await timedCheck('server_reachable', async () => {
-    const res = await fetch(`${baseUrl}/services/server/info?output_mode=json`, { method: 'GET', headers: auth, signal: AbortSignal.timeout(10_000) })
+    const res = await splunkFetch(`${baseUrl}/services/server/info?output_mode=json`, { method: 'GET', headers: auth, timeoutMs: 10_000 })
     if (!res.ok) throw new Error(`Server returned ${res.status}`)
     return 'Splunk instance is reachable'
   }))
@@ -49,8 +49,8 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
     const missing: string[] = []
     const wrongState: string[] = []
     for (const app of expected) {
-      const res = await fetch(`${baseUrl}${APP_BASE_PATH}/${encodeURIComponent(app.name)}?output_mode=json`, {
-        method: 'GET', headers: auth, signal: AbortSignal.timeout(10_000),
+      const res = await splunkFetch(`${baseUrl}${APP_BASE_PATH}/${encodeURIComponent(app.name)}?output_mode=json`, {
+        method: 'GET', headers: auth, timeoutMs: 10_000,
       })
       if (!res.ok) {
         missing.push(app.name)
