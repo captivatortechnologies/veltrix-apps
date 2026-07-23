@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-23T13:23:20.442Z",
+  "generatedAt": "2026-07-23T14:11:04.866Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -324,7 +324,7 @@
     {
       "appId": "splunk-cloud",
       "name": "Splunk Cloud Platform",
-      "version": "1.10.10",
+      "version": "1.10.11",
       "vendor": "Veltrix",
       "description": "Manage Splunk Cloud Platform configurations as code through the Admin Config Service (ACS) API. Includes index management, HTTP Event Collector (HEC) tokens, IP allow lists, and private apps/add-ons (built to a .spl, vetted by AppInspect, installed through ACS). Roles are managed through the Splunk Cloud Platform REST API on the stack's management port 8089 — ACS cannot manage identity.",
       "category": "SIEM",
@@ -334,17 +334,17 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-cloud",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-cloud-v1.10.10/splunk-cloud.zip",
-      "sha256": "224a70a2c9f2d640bd2fa140d334f990930c18c54708e6b6605441be7e25d861",
-      "sizeBytes": 500663,
-      "publishedAt": "2026-07-23T13:17:26.021Z",
-      "releaseNotes": "## 1.10.10 — 2026-07-23\n\n### Fixed\n- Access Servers → View: the modal's inner content now uses the platform theme tokens (`--color-*`) instead of undefined variables, so it themes correctly in **dark mode** (muted labels, borders, the code-block backgrounds, and the danger text). Previously these fell back to fixed light-mode colors. The modal frame already themed via the SDK components; this fixes the hand-styled body.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-cloud-v1.10.11/splunk-cloud.zip",
+      "sha256": "c5665ac235e7366c85d0a1fe9cb37637517dba8d92ec97717836ef73a3f27119",
+      "sizeBytes": 504643,
+      "publishedAt": "2026-07-23T14:11:04.852Z",
+      "releaseNotes": "## 1.10.11 — 2026-07-23\n\n### Added\n- Access Servers table now shows an **animated connectivity dot** in the Connectivity (ZTNA) column for Veltrix-managed servers: a pulsing **green** dot when the server is online on the tailnet, a static **red** dot when offline, and an amber \"checking\" pulse while status loads. Status polls every 30s. (The hostname-matching logic is now shared with the detail modal.)",
       "releasedAt": "2026-07-23T00:00:00.000Z"
     },
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.19.12",
+      "version": "1.19.13",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -354,11 +354,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.12/splunk-enterprise.zip",
-      "sha256": "4e2a6df6833091d8678ba64f97bf7cf4d804931715b06b50dc932244d9da76a9",
-      "sizeBytes": 455067,
-      "publishedAt": "2026-07-23T13:23:20.429Z",
-      "releaseNotes": "## 1.19.12 — 2026-07-23\n\n### Fixed\n- Dark-mode theming across the rest of the app: **License**, **Activate**, and **Upgrades** pages used the same undefined `--vx-*` variables as the Access Server modal, falling back to fixed light-mode colors (muted text, the over-limit danger text, and the license usage-bar track). Switched them to the real platform tokens (`rgb(var(--color-*))`); the license usage-bar fill keeps the real `--veltrix-app-primary` brand color.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.13/splunk-enterprise.zip",
+      "sha256": "ab0f0dc9c2ab6c7728feb65c1ec35f821e47559287f69c33a1dc01f72c4c81a1",
+      "sizeBytes": 459059,
+      "publishedAt": "2026-07-23T14:11:04.855Z",
+      "releaseNotes": "## 1.19.13 — 2026-07-23\n\n### Added\n- Access Servers table now shows an **animated connectivity dot** in the Connectivity (ZTNA) column for Veltrix-managed servers: a pulsing **green** dot when the server is online on the tailnet, a static **red** dot when offline, and an amber \"checking\" pulse while status loads. Status polls every 30s. (The hostname-matching logic is now shared with the detail modal.)",
       "releasedAt": "2026-07-23T00:00:00.000Z"
     },
     {
