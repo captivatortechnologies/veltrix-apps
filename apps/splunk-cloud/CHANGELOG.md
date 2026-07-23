@@ -3,6 +3,15 @@
 All notable changes to the Splunk Cloud app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.10.5 — 2026-07-22
+
+### Fixed
+- Access Servers → View → **Connectivity status** now recognizes a server that has joined the tailnet even when Tailscale rewrote its hostname (it strips a trailing `.local` and turns dots into hyphens, so `splunk-sh1.babong.local` becomes the device `splunk-sh1-babong`). Previously it stayed on "Not connected to the Veltrix network yet" despite the device being online.
+- Access Servers → View → **Test connection** now tests the access server's own reachable address (its tailnet IP + management port) instead of the shared connection's endpoint, so it no longer fails with "No endpoint is configured for this connection." when the connection has no standalone host.
+
+### Changed
+- The generated **Connect via Tailscale** script now enables Tailscale SSH at join time (`--ssh`), so `tailscale ssh <user>@<device>` works from any tailnet device without a separate setup step.
+
 ## 1.10.4 — 2026-07-22
 
 ### Changed

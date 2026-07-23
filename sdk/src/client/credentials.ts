@@ -183,11 +183,21 @@ export type { TestConnectionResult }
  *
  * @param appId        the app that owns the connection, e.g. `splunk-cloud`
  * @param credentialId the connection (credential) id
+ * @param opts.endpoint optional endpoint to test against instead of the one stored
+ *                      on the credential — e.g. an Access Server's reachable address
+ *                      (`<host>:<port>`). The host is scoped to the caller's tenant.
  */
-export async function testConnection(appId: string, credentialId: string): Promise<TestConnectionResult> {
+export async function testConnection(
+  appId: string,
+  credentialId: string,
+  opts: { endpoint?: string } = {},
+): Promise<TestConnectionResult> {
+  const endpoint = typeof opts.endpoint === 'string' ? opts.endpoint.trim() : ''
   const res = await authFetch(
     `/api/apps/${encodeURIComponent(appId)}/connections/${encodeURIComponent(credentialId)}/test`,
-    { method: 'POST' },
+    endpoint
+      ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint }) }
+      : { method: 'POST' },
   )
   if (!res.ok) {
     const err = await credentialError(res)
