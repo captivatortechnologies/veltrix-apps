@@ -8,14 +8,28 @@ import { APP_BASE_PATH } from './deploy'
  * is installed and in its expected enabled/disabled state.
  */
 export default async function healthCheck(ctx: HealthCheckContext): Promise<HealthCheckResult> {
-  const { component, credential, connectivity, canvas } = ctx
+  const { component, credential, connectivity, connectivityProvider, canvas } = ctx
   const checks: HealthCheckResult['checks'] = []
 
-  if (!credential || !connectivity) {
-    return { healthy: false, score: 0, checks: [{ name: 'connectivity', passed: false, message: 'Missing credential or connectivity' }] }
+  // Scope by Target Server Types: this config only deploys to servers whose role is
+  // selected, so a server outside that set has nothing to check — report healthy
+  // rather than failing (e.g. an indexer for a Deployment-Server-only config).
+  const componentRoles = component.type ?? []
+  const targetTypes = new Set(
+    canvas.sections.flatMap((s) => {
+      const v = s.fields?.targetTypes
+      return Array.isArray(v) ? v.map(String) : typeof v === 'string' && v ? v.split(',').map((x) => x.trim()) : []
+    }),
+  )
+  if (targetTypes.size > 0 && !componentRoles.some((r) => targetTypes.has(r))) {
+    return { healthy: true, score: 100, checks: [{ name: 'scope', passed: true, message: 'Not a target role for this configuration — nothing to check' }] }
   }
 
-  const baseUrl = buildSplunkUrl(component, connectivity)
+  if (!credential) {
+    return { healthy: false, score: 0, checks: [{ name: 'credential', passed: false, message: 'Missing credential' }] }
+  }
+
+  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)
   const auth = buildAuthHeader(credential)
 
   // Check 1: Server reachable

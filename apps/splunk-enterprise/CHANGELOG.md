@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.23 — 2026-07-23
+
+### Fixed
+- Post-deploy **health check** now scopes by Target Server Types (a server outside the selected roles reports healthy — nothing to check, instead of failing) and reaches managed-ZTNA servers over the tailnet. Fixes a deploy failing with "Health check failed on <indexer> (score: 0)" when the config targeted only Deployment Servers.
+
 ## 1.19.22 — 2026-07-23
 
 ### Fixed
