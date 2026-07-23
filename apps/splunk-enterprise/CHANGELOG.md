@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.8 — 2026-07-22
+
+### Changed
+- Access Servers → View → Ports & services: the **Management API (8089)** row now has an **Open ↗** button too (it serves a browsable splunkd interface over the tailnet), in addition to the connection test.
+
 ## 1.19.7 — 2026-07-22
 
 ### Added

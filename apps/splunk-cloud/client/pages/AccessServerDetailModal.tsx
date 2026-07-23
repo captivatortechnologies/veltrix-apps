@@ -401,13 +401,22 @@ export default function AccessServerDetailModal({
                 <div style={{ fontSize: 13, fontWeight: 600 }}>Management API</div>
                 <div style={{ ...MUTED, ...MONO }}>{mgmtUrl}</div>
               </div>
-              {server.credentialId ? (
-                <Button variant="secondary" size="sm" onClick={() => void handleTest()} isLoading={testing}>
-                  Test connection
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => window.open(mgmtUrl, '_blank', 'noopener,noreferrer')}
+                >
+                  Open ↗
                 </Button>
-              ) : (
-                <span style={MUTED}>Assign a Connection to test</span>
-              )}
+                {server.credentialId ? (
+                  <Button variant="secondary" size="sm" onClick={() => void handleTest()} isLoading={testing}>
+                    Test connection
+                  </Button>
+                ) : (
+                  <span style={MUTED}>Assign a Connection to test</span>
+                )}
+              </div>
             </div>
           </div>
           {testResult && (
