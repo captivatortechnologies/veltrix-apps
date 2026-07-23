@@ -24,6 +24,7 @@ import {
   Badge,
   Input,
   Select,
+  MultiSelect,
   FormDialog,
   DataTable,
   FilterBar,
@@ -73,7 +74,7 @@ interface FormState {
   port: string
   webPort: string
   sshUser: string
-  type: string
+  type: string[]
   environmentId: string
   domains: string
   ipRanges: string
@@ -86,7 +87,7 @@ const BLANK_FORM: FormState = {
   port: '443',
   webPort: '8000',
   sshUser: 'root',
-  type: 'search-head',
+  type: ['search-head'],
   environmentId: '',
   domains: '',
   ipRanges: '',
@@ -230,7 +231,7 @@ export default function AccessServersPage() {
       port: row.port ?? '443',
       webPort: row.webPort ?? '8000',
       sshUser: row.sshUser ?? 'root',
-      type: row.type?.[0] ?? 'search-head',
+      type: row.type && row.type.length > 0 ? row.type : ['search-head'],
       environmentId: row.tags?.[0]?.id ?? '',
       domains: (row.domains ?? []).join(', '),
       ipRanges: (row.ipRanges ?? []).join(', '),
@@ -260,6 +261,10 @@ export default function AccessServersPage() {
       setFormError('Environment is required')
       return
     }
+    if (form.type.length === 0) {
+      setFormError('Select at least one server type')
+      return
+    }
     setSubmitting(true)
     setFormError(null)
 
@@ -268,7 +273,7 @@ export default function AccessServersPage() {
       port: form.port.trim() || '443',
       webPort: form.webPort.trim() || null,
       sshUser: form.sshUser.trim() || null,
-      type: [form.type],
+      type: form.type,
       domains: splitCsv(form.domains),
       ipRanges: splitCsv(form.ipRanges),
       tagIds: [form.environmentId],
@@ -629,11 +634,13 @@ export default function AccessServersPage() {
             helperText="The deployment scope this server belongs to — configs deploy here per environment. Manage under Environments."
             fullWidth
           />
-          <Select
+          <MultiSelect
             label="Type"
             options={SERVER_TYPES}
             value={form.type}
-            onChange={(value) => setField('type', value)}
+            onChange={(values) => setField('type', values)}
+            placeholder="Select one or more roles"
+            helperText="A server can serve multiple roles (e.g. indexer + search head)."
             fullWidth
           />
           <Input

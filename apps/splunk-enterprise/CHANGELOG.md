@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.14 — 2026-07-23
+
+### Changed
+- Add/Edit Access Server: **Type is now multi-select** — a server can be assigned more than one role (e.g. indexer + search head), matching the platform's multi-type component model. At least one type is required.
+
 ## 1.19.13 — 2026-07-23
 
 ### Added
