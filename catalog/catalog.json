@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-23T19:40:17.952Z",
+  "generatedAt": "2026-07-23T19:43:36.933Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -344,7 +344,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.19.20",
+      "version": "1.19.21",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -354,11 +354,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.20/splunk-enterprise.zip",
-      "sha256": "9b1a1e5345670c7b575ddf2e5b0f63bb85d8583ab7624c6be0f179b97eb58f9b",
-      "sizeBytes": 464124,
-      "publishedAt": "2026-07-23T19:40:17.939Z",
-      "releaseNotes": "## 1.19.20 — 2026-07-23\n\n### Added\n- Splunk Apps config → Deployment: selecting **Indexer** in Target Server Types now reveals an install-directory picker too — `etc/peer-apps` (cluster peer bundle location) or `etc/apps` (local). Placement only, with no bundle push (etc/peer-apps is normally managed by the Cluster Manager). This joins the Cluster Manager / Deployment Server / Deployer pickers — every role with a real directory choice now has one.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.21/splunk-enterprise.zip",
+      "sha256": "a2897feada7cf2086879d606665d6a3d539133c43c8ce470288dcbcf83dc8d28",
+      "sizeBytes": 464435,
+      "publishedAt": "2026-07-23T19:43:36.921Z",
+      "releaseNotes": "## 1.19.21 — 2026-07-23\n\n### Changed\n- Splunk Apps config → Deployment: **every** selected Target Server Type now shows an install-directory picker. Search Head, Heavy Forwarder, Universal Forwarder, and License Server offer `etc/apps` (their only install location, pre-selected), so the form uniformly shows where each selected role installs — alongside the multi-option pickers for Cluster Manager, Indexer, Deployment Server, and Deployer.",
       "releasedAt": "2026-07-23T00:00:00.000Z"
     },
     {
