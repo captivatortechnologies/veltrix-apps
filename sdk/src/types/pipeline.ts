@@ -328,6 +328,13 @@ export interface RemoteExecutor {
   readonly homeDir: string
   /** Extract a gzipped-tar archive (e.g. a .spl) into an allow-listed remote directory. */
   extractArchive(archive: Uint8Array, remoteDir: string): Promise<void>
+  /**
+   * Write raw bytes (e.g. a .spl package) to an allow-listed staging path on the
+   * target — for a REST `apps/local` install by server-local path (splunkd only
+   * parses the form-encoded `name=<path>&filename=true` install, not a multipart
+   * upload). `remotePath` must be under `<homeDir>/var/run/veltrix`.
+   */
+  putFile(bytes: Uint8Array, remotePath: string): Promise<void>
   /** Run one allow-listed intent (bundle apply / deploy-server reload / probe). */
   run(intent: RemoteIntent): Promise<RemoteResult>
 }

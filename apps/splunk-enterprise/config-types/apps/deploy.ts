@@ -35,6 +35,15 @@ import { extractAppSpec, buildAppPackage, buildInstallUpload, resolveAppId } fro
 export const APP_BASE_PATH = '/services/apps/local'
 export const APP_INSTALL_PATH = '/services/apps/appinstall'
 
+/**
+ * Staging dir (relative to $SPLUNK_HOME) where the built `.spl` is dropped on a
+ * managed-ZTNA target before an install-by-path. Must match the platform's
+ * remote-exec staging root (`SPLUNK_STAGING_DIR`) — splunkd's `apps/local` only
+ * parses the form-encoded `name=<server-local-path>&filename=1` install, not a
+ * multipart upload, so over managed ZTNA we place the package then install by path.
+ */
+const REMOTE_STAGING_DIR = 'var/run/veltrix'
+
 /** App settings snapshotted for rollback. */
 const ROLLBACK_KEYS = ['label', 'version', 'description', 'disabled'] as const
 
@@ -140,13 +149,29 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         // shadows default/ and survives every upgrade).
         const { spec } = extractAppSpec(fields, { build: canvas.version, configName: canvas.name })
         const pkg = buildAppPackage(spec)
-        const upload = buildInstallUpload(pkg, { update: Boolean(existing) })
 
-        await splunkRequest(`${baseUrl}${APP_BASE_PATH}`, {
-          method: 'POST',
-          headers: { ...auth, 'Content-Type': upload.contentType },
-          body: upload.body,
-        })
+        if (ctx.remote) {
+          // Managed ZTNA: splunkd's apps/local rejects a multipart upload (it
+          // URL-decodes the body regardless of Content-Type — even canonical
+          // `curl -F` fails). Stage the .spl on the box over the tailnet, then
+          // install by server-local path with the form-encoded shape splunkd parses.
+          const stagedPath = `${ctx.remote.homeDir}/${REMOTE_STAGING_DIR}/${appId}.spl`
+          await ctx.remote.putFile(pkg.bytes, stagedPath)
+          await postForm(baseUrl, auth, APP_BASE_PATH, {
+            name: stagedPath,
+            filename: '1',
+            update: existing ? '1' : '0',
+            explicit_appname: appId,
+          })
+        } else {
+          // Direct (non-managed) target: multipart upload of the package bytes.
+          const upload = buildInstallUpload(pkg, { update: Boolean(existing) })
+          await splunkRequest(`${baseUrl}${APP_BASE_PATH}`, {
+            method: 'POST',
+            headers: { ...auth, 'Content-Type': upload.contentType },
+            body: upload.body,
+          })
+        }
 
         installedApps.push(appId)
         installedPackages.push({

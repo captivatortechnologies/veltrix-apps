@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.26 — 2026-07-23
+
+### Fixed
+- **Inline app install over managed ZTNA now uses the install-by-path method splunkd accepts.** splunkd's `POST apps/local` does not parse a **multipart** `.spl` upload — it URL-decodes the body regardless of the multipart `Content-Type`, so a binary package intermittently fails with `400 Unparsable URI-encoded request data` (even canonical `curl -F` fails the same way). For a managed-ZTNA target the deploy now **stages the built `.spl` on the Splunk box over the tailnet** (`$SPLUNK_HOME/var/run/veltrix/<app>.spl`, via the platform's new `ctx.remote.putFile`) and installs it with the documented **form-encoded** `name=<server-local-path>&filename=1&explicit_appname=<app>` call. Direct (non-managed) targets keep the multipart upload. Requires the platform's remote-exec capability (gated).
+
 ## 1.19.25 — 2026-07-23
 
 ### Fixed

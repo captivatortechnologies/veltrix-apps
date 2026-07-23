@@ -132,6 +132,20 @@ function packagedFiles(result: { artifacts?: Record<string, unknown> }): string[
   return packages.flatMap((p) => p.files ?? [])
 }
 
+/** A RemoteExecutor stub that records putFile/extract/run for the managed-ZTNA path. */
+function makeRemoteStub() {
+  const putFileCalls: Array<{ bytes: Uint8Array; remotePath: string }> = []
+  const extractCalls: Array<{ remoteDir: string }> = []
+  const runCalls: Array<{ action: string }> = []
+  const remote = {
+    homeDir: '/opt/splunk',
+    extractArchive: async (_bytes: Uint8Array, remoteDir: string) => { extractCalls.push({ remoteDir }) },
+    putFile: async (bytes: Uint8Array, remotePath: string) => { putFileCalls.push({ bytes, remotePath }) },
+    run: async (intent: { action: string }) => { runCalls.push({ action: intent.action }); return { ok: true, code: 0, stdout: '', stderr: '' } },
+  }
+  return { remote: remote as unknown as DeployContext['remote'], putFileCalls, extractCalls, runCalls }
+}
+
 describe('Splunk Apps deploy — inline (.conf authored in the app)', () => {
   it('builds a .spl and uploads it to /services/apps/local', async () => {
     stubSplunk()
@@ -180,6 +194,29 @@ describe('Splunk Apps deploy — inline (.conf authored in the app)', () => {
     expect(acl?.body).toContain('sharing=app')
     expect(acl?.body).toContain('owner=nobody')
     expect(calls.some((c) => c.url.endsWith('/services/apps/local/my_ta/enable'))).toBe(true)
+  })
+})
+
+describe('Splunk Apps deploy — managed ZTNA (install by server-local path, not multipart)', () => {
+  it('stages the .spl over the tailnet, then installs it by path (form-encoded)', async () => {
+    stubSplunk()
+    const r = makeRemoteStub()
+    const result = await deploy(makeCtx(inlineApp, { remote: r.remote }))
+
+    expect(result.success).toBe(true)
+    // The built package is placed on the box at the staging path (never multipart).
+    expect(r.putFileCalls).toHaveLength(1)
+    expect(r.putFileCalls[0].remotePath).toBe('/opt/splunk/var/run/veltrix/my_ta.spl')
+    expect(r.putFileCalls[0].bytes.length).toBeGreaterThan(0)
+    // Install is a form-encoded name=<path> POST to apps/local, the shape splunkd parses.
+    const install = calls.find((c) => c.method === 'POST' && c.url === 'https://splunk.test:8089/services/apps/local')
+    expect(install?.contentType).toBe('application/x-www-form-urlencoded')
+    const params = new URLSearchParams(install?.body ?? '')
+    expect(params.get('name')).toBe('/opt/splunk/var/run/veltrix/my_ta.spl')
+    expect(params.get('filename')).toBe('1')
+    expect(params.get('explicit_appname')).toBe('my_ta')
+    // No multipart upload anywhere in the managed path.
+    expect(calls.some((c) => c.contentType.startsWith('multipart/'))).toBe(false)
   })
 })
 
