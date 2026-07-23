@@ -324,9 +324,11 @@ export type OptionsProvider = (ctx: OptionsProviderContext) => Promise<OptionIte
  * Splunk app into `etc/manager-apps` and run `apply cluster-bundle`.
  */
 export interface RemoteExecutor {
-  /** Copy a locally-built directory into an allow-listed remote path (e.g. an app dir). */
-  copyDir(localDir: string, remotePath: string): Promise<void>
-  /** Run one allow-listed intent (bundle apply / deploy-server reload / mkdir / extract). */
+  /** Resolved install base ($SPLUNK_HOME) on the target — build install paths off this. */
+  readonly homeDir: string
+  /** Extract a gzipped-tar archive (e.g. a .spl) into an allow-listed remote directory. */
+  extractArchive(archive: Uint8Array, remoteDir: string): Promise<void>
+  /** Run one allow-listed intent (bundle apply / deploy-server reload / probe). */
   run(intent: RemoteIntent): Promise<RemoteResult>
 }
 

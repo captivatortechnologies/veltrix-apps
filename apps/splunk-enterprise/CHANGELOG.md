@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.17 — 2026-07-23
+
+### Added
+- Deploy now honors the per-role install-directory selections for managed-ZTNA targets: for a Cluster Manager / Deployment Server / Deployer, the built app is placed into the selected staging dir (`etc/manager-apps` / `etc/deployment-apps` / `etc/shcluster/apps`) over the tailnet and the role's bundle push is run (`apply cluster-bundle` / `reload deploy-server` / `apply shcluster-bundle`). `etc/apps` keeps the existing REST install. Requires the platform's remote-exec capability (gated); a non-managed target installs to `etc/apps` only with a note.
+
 ## 1.19.16 — 2026-07-23
 
 ### Added

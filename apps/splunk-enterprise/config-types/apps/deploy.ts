@@ -38,6 +38,35 @@ export const APP_INSTALL_PATH = '/services/apps/appinstall'
 /** App settings snapshotted for rollback. */
 const ROLLBACK_KEYS = ['label', 'version', 'description', 'disabled'] as const
 
+/** Splunk roles that distribute apps from a staging dir, and how to push each. */
+const ROLE_STAGING: Record<string, { field: string; bundle: 'applyClusterBundle' | 'reloadDeployServer' | 'applyShclusterBundle'; label: string }> = {
+  'cluster-manager': { field: 'cmInstallDirs', bundle: 'applyClusterBundle', label: 'Cluster Manager' },
+  'deployment-server': { field: 'dsInstallDirs', bundle: 'reloadDeployServer', label: 'Deployment Server' },
+  deployer: { field: 'deployerInstallDirs', bundle: 'applyShclusterBundle', label: 'Deployer' },
+}
+
+function toStringArray(v: unknown): string[] {
+  if (Array.isArray(v)) return v.map(String).map((s) => s.trim()).filter(Boolean)
+  if (typeof v === 'string' && v.trim()) return v.split(',').map((s) => s.trim()).filter(Boolean)
+  return []
+}
+
+/** Which staging placements this component's role(s) call for (etc/apps excluded — REST handles it). */
+export function plannedStagingPlacements(
+  componentRoles: string[],
+  targetTypes: string[],
+  fields: Record<string, unknown>,
+): Array<{ role: string; label: string; bundle: 'applyClusterBundle' | 'reloadDeployServer' | 'applyShclusterBundle'; dirs: string[] }> {
+  const out: Array<{ role: string; label: string; bundle: 'applyClusterBundle' | 'reloadDeployServer' | 'applyShclusterBundle'; dirs: string[] }> = []
+  for (const [role, cfg] of Object.entries(ROLE_STAGING)) {
+    if (!componentRoles.includes(role)) continue
+    if (targetTypes.length > 0 && !targetTypes.includes(role)) continue
+    const dirs = toStringArray(fields[cfg.field]).filter((d) => d !== 'etc/apps')
+    if (dirs.length > 0) out.push({ role, label: cfg.label, bundle: cfg.bundle, dirs })
+  }
+  return out
+}
+
 export default async function deploy(ctx: DeployContext): Promise<DeployResult> {
   const { component, credential, connectivity, canvas } = ctx
 
@@ -51,6 +80,9 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const installedApps: string[] = []
   const deployedApps: string[] = []
   const installedPackages: Record<string, unknown>[] = []
+  // Managed-ZTNA staging-dir placements (for the message + rollback).
+  const stagingPlaced: Array<{ appId: string; role: string; dir: string }> = []
+  const stagingNotes: string[] = []
 
   try {
     for (const section of canvas.sections) {
@@ -104,6 +136,31 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
           sizeBytes: pkg.sizeBytes,
           files: pkg.entries.filter((e) => e.type === 'file').map((e) => e.path),
         })
+
+        // Managed-ZTNA staging-dir placement: for a Cluster Manager / Deployment
+        // Server / Deployer target, drop the built .spl into the selected staging
+        // dir over the tailnet and run the role's bundle push. REST already put it
+        // in etc/apps; this is the distribute-to-peers/clients/members half.
+        const placements = plannedStagingPlacements(
+          component.type ?? [],
+          toStringArray(fields.targetTypes),
+          fields,
+        )
+        for (const p of placements) {
+          if (!ctx.remote) {
+            stagingNotes.push(`${p.label}: staging dir(s) ${p.dirs.join(', ')} selected but this server isn't reachable via managed ZTNA — installed to etc/apps only`)
+            continue
+          }
+          for (const dir of p.dirs) {
+            await ctx.remote.extractArchive(pkg.bytes, `${ctx.remote.homeDir}/${dir}`)
+            stagingPlaced.push({ appId, role: p.role, dir })
+          }
+          const push = await ctx.remote.run({ action: p.bundle })
+          if (!push.ok) {
+            throw new Error(`${p.label} bundle push (${p.bundle}) failed: ${push.stderr.slice(0, 200) || `exit ${push.code}`}`)
+          }
+          stagingNotes.push(`${p.label}: placed ${appId} in ${p.dirs.join(', ')} and ran ${p.bundle}`)
+        }
       } else {
         // Install / upgrade from the declared source. Manual policy only installs
         // when the app is absent; auto re-installs the latest package every deploy.
@@ -162,19 +219,20 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       const files = (pkg.files as string[]) ?? []
       message += `. Packaged ${pkg.appId} as ${pkg.fileName} (${files.length} file(s), sha256 ${String(pkg.sha256).slice(0, 12)})`
     }
+    for (const note of stagingNotes) message += `. ${note}`
 
     return {
       success: true,
       message,
-      artifacts: { deployedApps, installedApps, installedPackages },
-      rollbackData: { previousState: rollbackSnapshot, installedApps },
+      artifacts: { deployedApps, installedApps, installedPackages, stagingPlaced },
+      rollbackData: { previousState: rollbackSnapshot, installedApps, stagingPlaced },
     }
   } catch (error) {
     return {
       success: false,
       message: `Splunk app deployment failed after ${deployedApps.length} app(s): ${error instanceof Error ? error.message : 'Unknown error'}`,
-      artifacts: { deployedApps, installedApps, installedPackages, failedAt: canvas.sections[deployedApps.length]?.fields?.name },
-      rollbackData: { previousState: rollbackSnapshot, installedApps },
+      artifacts: { deployedApps, installedApps, installedPackages, stagingPlaced, failedAt: canvas.sections[deployedApps.length]?.fields?.name },
+      rollbackData: { previousState: rollbackSnapshot, installedApps, stagingPlaced },
     }
   }
 }
