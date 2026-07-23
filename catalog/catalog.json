@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-23T18:46:24.540Z",
+  "generatedAt": "2026-07-23T18:50:41.913Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -344,7 +344,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.19.17",
+      "version": "1.19.18",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -354,11 +354,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.17/splunk-enterprise.zip",
-      "sha256": "2070aa224db818bf15981304108d464d881f9046b146c62b0fc1adec16033ae2",
-      "sizeBytes": 462094,
-      "publishedAt": "2026-07-23T18:46:24.530Z",
-      "releaseNotes": "## 1.19.17 — 2026-07-23\n\n### Added\n- Deploy now honors the per-role install-directory selections for managed-ZTNA targets: for a Cluster Manager / Deployment Server / Deployer, the built app is placed into the selected staging dir (`etc/manager-apps` / `etc/deployment-apps` / `etc/shcluster/apps`) over the tailnet and the role's bundle push is run (`apply cluster-bundle` / `reload deploy-server` / `apply shcluster-bundle`). `etc/apps` keeps the existing REST install. Requires the platform's remote-exec capability (gated); a non-managed target installs to `etc/apps` only with a note.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.18/splunk-enterprise.zip",
+      "sha256": "714ca0d2506b5d90b041adde25889eac11d1c6dca9da5b46bb291ed02d9f30c4",
+      "sizeBytes": 463176,
+      "publishedAt": "2026-07-23T18:50:41.898Z",
+      "releaseNotes": "## 1.19.18 — 2026-07-23\n\n### Added\n- Rollback now undoes managed-ZTNA staging-dir installs: it removes each staged app directory over the tailnet and re-applies the affected role's bundle (best-effort — a cluster bundle rollback re-pushes the now-app-less bundle). If the target isn't reachable via managed ZTNA, the rollback reports that staging placements need manual cleanup rather than silently skipping them.",
       "releasedAt": "2026-07-23T00:00:00.000Z"
     },
     {
