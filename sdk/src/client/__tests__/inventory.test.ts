@@ -33,6 +33,7 @@ describe('listInventory', () => {
           id: 'c1',
           hostname: 'host-1',
           port: '8089',
+          webPort: '8000',
           type: ['server'],
           domains: ['corp.example.com'],
           ipRanges: ['10.0.0.0/24'],
@@ -53,6 +54,7 @@ describe('listInventory', () => {
         id: 'c1',
         hostname: 'host-1',
         port: '8089',
+        webPort: '8000',
         type: ['server'],
         domains: ['corp.example.com'],
         ipRanges: ['10.0.0.0/24'],
@@ -69,6 +71,7 @@ describe('listInventory', () => {
     expect(item).toMatchObject({
       id: 'c2',
       hostname: 'host-2',
+      webPort: null,
       domains: [],
       ipRanges: [],
       tags: [],

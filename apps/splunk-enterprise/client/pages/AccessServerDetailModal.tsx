@@ -101,6 +101,16 @@ const MUTED: React.CSSProperties = { fontSize: 13, color: 'var(--vx-text-muted, 
 const DT_STYLE: React.CSSProperties = { ...MUTED, margin: 0 }
 const DD_STYLE: React.CSSProperties = { margin: 0, fontSize: 13 }
 const DL_GRID: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: 16, rowGap: 8, margin: 0 }
+const MONO: React.CSSProperties = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontSize: 12 }
+const SERVICE_ROW: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 12,
+  padding: '8px 12px',
+  border: '1px solid var(--vx-border, #d1d5db)',
+  borderRadius: 6,
+}
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -279,6 +289,7 @@ export default function AccessServerDetailModal({
   const summaryRows: Array<[string, React.ReactNode]> = [
     ['Hostname', server.hostname],
     ['Management port', server.port ?? '—'],
+    ['Web UI port', server.webPort ?? '—'],
     ['Type', server.type && server.type.length > 0 ? server.type.join(', ') : '—'],
     ['Environment', server.tags?.[0]?.name ?? '—'],
     ['Domains', commaList(server.domains)],
@@ -297,6 +308,15 @@ export default function AccessServerDetailModal({
   const plainAddress = device?.online && device.addresses?.[0] ? device.addresses[0] : server.hostname
   const sshCommand = isManaged ? `tailscale ssh ${sshUser}@${tailnetHost}` : `ssh ${sshUser}@${plainAddress}`
   const tailscaleAdminUrl = `https://login.tailscale.com/admin/machines?q=${encodeURIComponent(server.hostname)}`
+
+  // Both Splunk services are reached at the server's own tailnet address: prefer
+  // the live tailnet IP once the device is online, else its MagicDNS name, else the
+  // configured hostname. Management defaults to 8089, Splunk Web to 8000.
+  const reachHost = device?.online && device.addresses?.[0] ? device.addresses[0] : device?.name || server.hostname
+  const mgmtPort = server.port?.trim() || '8089'
+  const webUiPort = server.webPort?.trim() || '8000'
+  const mgmtUrl = `https://${reachHost}:${mgmtPort}`
+  const webUrl = `https://${reachHost}:${webUiPort}`
 
   return (
     <Modal
@@ -361,24 +381,45 @@ export default function AccessServerDetailModal({
           )}
         </Section>
 
-        <Section title="Connection test">
-          {!server.credentialId ? (
-            <p style={MUTED}>Assign a Connection to test.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <Section title="Ports & services">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={SERVICE_ROW}>
               <div>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>Splunk Web (UI)</div>
+                <div style={{ ...MUTED, ...MONO }}>{webUrl}</div>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => window.open(webUrl, '_blank', 'noopener,noreferrer')}
+              >
+                Open Web UI ↗
+              </Button>
+            </div>
+            <div style={SERVICE_ROW}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>Management API</div>
+                <div style={{ ...MUTED, ...MONO }}>{mgmtUrl}</div>
+              </div>
+              {server.credentialId ? (
                 <Button variant="secondary" size="sm" onClick={() => void handleTest()} isLoading={testing}>
                   Test connection
                 </Button>
-              </div>
-              {testResult && (
-                <Alert variant={testResult.ok ? 'success' : 'danger'} title={testResult.ok ? 'Connected' : 'Failed'}>
-                  {testResult.message}
-                  {testResult.latencyMs != null ? ` (${testResult.latencyMs} ms)` : null}
-                </Alert>
+              ) : (
+                <span style={MUTED}>Assign a Connection to test</span>
               )}
             </div>
+          </div>
+          {testResult && (
+            <Alert variant={testResult.ok ? 'success' : 'danger'} title={testResult.ok ? 'Connected' : 'Failed'}>
+              {testResult.message}
+              {testResult.latencyMs != null ? ` (${testResult.latencyMs} ms)` : null}
+            </Alert>
           )}
+          <p style={MUTED}>
+            Reachable over the tailnet — open from a device connected to Tailscale that has access to this server. If
+            Splunk Web isn't serving TLS, use <code style={MONO}>http://</code> instead of https.
+          </p>
         </Section>
 
         {isManaged && (

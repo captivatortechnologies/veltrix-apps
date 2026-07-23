@@ -30,6 +30,8 @@ export interface InventoryItem {
   hostname: string
   /** Management/API port, as a string (e.g. "8089"). */
   port?: string
+  /** Optional secondary service port, e.g. a web UI (Splunk Web "8000"). */
+  webPort?: string | null
   /** Component type tags (e.g. ["server"]) that classify the target. */
   type?: string[]
   /** DNS names this target is reachable at. */
@@ -54,6 +56,8 @@ export interface InventoryItem {
 export interface InventoryItemInput {
   hostname: string
   port?: string
+  /** Optional secondary service port, e.g. a web UI (Splunk Web "8000"). */
+  webPort?: string | null
   type?: string[]
   domains?: string[]
   ipRanges?: string[]

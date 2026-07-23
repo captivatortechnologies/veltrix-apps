@@ -27,6 +27,7 @@ interface RawInventoryItem {
   id: string
   hostname?: string
   port?: string
+  webPort?: string | null
   type?: string[]
   domains?: string[]
   ipRanges?: string[]
@@ -57,6 +58,7 @@ function toInventoryItem(raw: RawInventoryItem): InventoryItem {
     id: String(raw.id),
     hostname: raw.hostname ?? '',
     port: raw.port ?? undefined,
+    webPort: raw.webPort ?? null,
     type: Array.isArray(raw.type) ? raw.type : undefined,
     domains: Array.isArray(raw.domains) ? raw.domains : [],
     ipRanges: Array.isArray(raw.ipRanges) ? raw.ipRanges : [],

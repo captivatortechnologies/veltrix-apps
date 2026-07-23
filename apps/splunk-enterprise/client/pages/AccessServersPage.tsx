@@ -73,6 +73,7 @@ function splitCsv(value: string): string[] {
 interface FormState {
   hostname: string
   port: string
+  webPort: string
   type: string
   environmentId: string
   domains: string
@@ -84,6 +85,7 @@ interface FormState {
 const BLANK_FORM: FormState = {
   hostname: '',
   port: '8089',
+  webPort: '8000',
   type: 'indexer',
   environmentId: '',
   domains: '',
@@ -195,6 +197,7 @@ export default function AccessServersPage() {
     setForm({
       hostname: row.hostname ?? '',
       port: row.port ?? '8089',
+      webPort: row.webPort ?? '8000',
       type: row.type?.[0] ?? 'indexer',
       environmentId: row.tags?.[0]?.id ?? '',
       domains: (row.domains ?? []).join(', '),
@@ -231,6 +234,7 @@ export default function AccessServersPage() {
     const payload = {
       hostname,
       port: form.port.trim() || '8089',
+      webPort: form.webPort.trim() || null,
       type: [form.type],
       domains: splitCsv(form.domains),
       ipRanges: splitCsv(form.ipRanges),
@@ -553,7 +557,7 @@ export default function AccessServersPage() {
         size="md"
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 12 }}>
             <Input
               label="Hostname"
               value={form.hostname}
@@ -569,6 +573,13 @@ export default function AccessServersPage() {
               value={form.port}
               onChange={(e) => setField('port', e.target.value)}
               placeholder="8089"
+              fullWidth
+            />
+            <Input
+              label="Web UI port"
+              value={form.webPort}
+              onChange={(e) => setField('webPort', e.target.value)}
+              placeholder="8000"
               fullWidth
             />
           </div>

@@ -3,6 +3,12 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.7 — 2026-07-22
+
+### Added
+- Access Servers now carry a separate **Web UI port** (default 8000) alongside the management port (8089), editable in the add/edit form.
+- Access Servers → View → **Ports & services**: reach both Splunk services over the tailnet. **Splunk Web (UI)** shows an **Open Web UI ↗** button (`https://<tailnet-host>:<web-port>`), and **Management API** keeps the connection test. Endpoints resolve to the server's live tailnet IP once it's online.
+
 ## 1.19.6 — 2026-07-22
 
 ### Fixed
