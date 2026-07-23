@@ -1,0 +1,378 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  authFetch,
+  testConnection,
+  type CredentialSummary,
+  type ConnectivityProviderRef,
+  type InventoryItem,
+  type TestConnectionResult,
+} from '@veltrixsecops/app-sdk/client'
+import { Modal, Badge, Button, Spinner, Alert, useToast } from '@veltrixsecops/app-sdk/ui'
+
+const APP_ID = 'splunk-cloud'
+
+// The one ZTNA provider type the platform operates itself (a managed Tailscale
+// tailnet) — only this type gets the "Connect via Tailscale" enrollment flow;
+// BYO providers are reached however that provider is configured, outside this app.
+const MANAGED_PROVIDER_TYPE = 'veltrix_managed'
+
+interface ZtnaDeviceSummary {
+  id: string
+  name: string
+  hostname: string
+  addresses: string[]
+  online: boolean
+  lastSeen?: string
+  customerTag?: string | null
+}
+
+interface ZtnaEnrollResult {
+  enrollmentId: string
+  authKey: string
+  installCommands: string
+}
+
+interface AccessServerDetailModalProps {
+  isOpen: boolean
+  onClose: () => void
+  server: InventoryItem | null
+  connections: CredentialSummary[]
+  providers: ConnectivityProviderRef[]
+}
+
+function commaList(values?: string[]): string {
+  return values && values.length > 0 ? values.join(', ') : '—'
+}
+
+// Matches a device by hostname or name (a device's Tailscale `name` is often
+// `<hostname>.<tailnet>`), case-insensitively — the same heuristic used
+// wherever an access server needs to be resolved to its tailnet device.
+function matchDevice(hostname: string, devices: ZtnaDeviceSummary[]): ZtnaDeviceSummary | null {
+  const host = hostname.toLowerCase()
+  return (
+    devices.find((d) => {
+      const dHostname = d.hostname?.toLowerCase()
+      const dName = d.name?.toLowerCase()
+      return dHostname === host || dName === host || dName?.startsWith(`${host}.`)
+    }) ?? null
+  )
+}
+
+async function responseError(res: Response): Promise<Error> {
+  const text = await res.text().catch(() => '')
+  if (text) {
+    try {
+      const body = JSON.parse(text) as { error?: string; message?: string }
+      const message = body?.error ?? body?.message
+      if (message) return new Error(message)
+    } catch {
+      // Not JSON — fall through to the raw text.
+    }
+    return new Error(text)
+  }
+  return new Error(`HTTP ${res.status}`)
+}
+
+const MUTED: React.CSSProperties = { fontSize: 13, color: 'var(--vx-text-muted, #6b7280)' }
+const DT_STYLE: React.CSSProperties = { ...MUTED, margin: 0 }
+const DD_STYLE: React.CSSProperties = { margin: 0, fontSize: 13 }
+const DL_GRID: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: 16, rowGap: 8, margin: 0 }
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <h4
+        style={{
+          margin: 0,
+          fontSize: 12,
+          fontWeight: 600,
+          textTransform: 'uppercase',
+          letterSpacing: 0.4,
+          color: 'var(--vx-text-muted, #6b7280)',
+        }}
+      >
+        {title}
+      </h4>
+      {children}
+    </div>
+  )
+}
+
+function CopyableBlock({ value, ariaLabel }: { value: string; ariaLabel: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Clipboard API unavailable (insecure context / permissions denied) — the
+      // command is still selectable by hand from the code block below.
+    }
+  }, [value])
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+      <pre
+        style={{
+          flex: 1,
+          margin: 0,
+          padding: '10px 12px',
+          borderRadius: 6,
+          border: '1px solid var(--vx-border, #d1d5db)',
+          background: 'var(--vx-surface-muted, #f3f4f6)',
+          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+          fontSize: 12.5,
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-all',
+          overflowX: 'auto',
+        }}
+      >
+        {value}
+      </pre>
+      <Button type="button" variant="secondary" size="sm" onClick={() => void handleCopy()} aria-label={ariaLabel}>
+        {copied ? 'Copied!' : 'Copy'}
+      </Button>
+    </div>
+  )
+}
+
+/**
+ * Read-only detail view for one Access Server: its addressing/environment,
+ * live ZTNA tailnet connectivity, a Connection test, and — for the
+ * Veltrix-managed ZTNA provider only — a one-click Tailscale enrollment
+ * script plus the SSH command to reach it.
+ */
+export default function AccessServerDetailModal({
+  isOpen,
+  onClose,
+  server,
+  connections,
+  providers,
+}: AccessServerDetailModalProps) {
+  const toast = useToast()
+
+  const [devices, setDevices] = useState<ZtnaDeviceSummary[] | null>(null)
+  const [devicesLoading, setDevicesLoading] = useState(false)
+  const [devicesError, setDevicesError] = useState<string | null>(null)
+
+  const [testing, setTesting] = useState(false)
+  const [testResult, setTestResult] = useState<TestConnectionResult | null>(null)
+
+  const [enrolling, setEnrolling] = useState(false)
+  const [enrollResult, setEnrollResult] = useState<ZtnaEnrollResult | null>(null)
+  const [enrollError, setEnrollError] = useState<string | null>(null)
+
+  const serverId = server?.id
+  useEffect(() => {
+    if (!isOpen || !serverId) return
+    setDevices(null)
+    setDevicesError(null)
+    setDevicesLoading(true)
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await authFetch('/api/ztna/devices')
+        if (!res.ok) throw await responseError(res)
+        const data = (await res.json()) as ZtnaDeviceSummary[]
+        if (!cancelled) setDevices(Array.isArray(data) ? data : [])
+      } catch (e) {
+        if (!cancelled) setDevicesError((e as Error).message)
+      } finally {
+        if (!cancelled) setDevicesLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [isOpen, serverId])
+
+  // Reset per-action state whenever a different server is viewed (or reopened).
+  useEffect(() => {
+    setTestResult(null)
+    setEnrollResult(null)
+    setEnrollError(null)
+  }, [isOpen, serverId])
+
+  const provider = providers.find((p) => p.id === server?.connectivityProviderId)
+  const connection = connections.find((c) => c.id === server?.credentialId)
+  const isManaged = provider?.providerType === MANAGED_PROVIDER_TYPE
+
+  const device = useMemo(
+    () => (server && devices ? matchDevice(server.hostname, devices) : null),
+    [server, devices],
+  )
+
+  const handleTest = useCallback(async () => {
+    if (!server?.credentialId) return
+    setTesting(true)
+    try {
+      const result = await testConnection(APP_ID, server.credentialId)
+      setTestResult(result)
+    } catch (e) {
+      setTestResult({ ok: false, message: (e as Error).message })
+    } finally {
+      setTesting(false)
+    }
+  }, [server])
+
+  const handleEnroll = useCallback(async () => {
+    if (!server) return
+    setEnrolling(true)
+    setEnrollError(null)
+    try {
+      const res = await authFetch('/api/ztna/enroll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: server.hostname }),
+      })
+      if (!res.ok) throw await responseError(res)
+      const data = (await res.json()) as ZtnaEnrollResult
+      setEnrollResult(data)
+      toast.success('Connect script generated — copy the install command now.')
+    } catch (e) {
+      const message = (e as Error).message
+      setEnrollError(message)
+      toast.error(`Failed to generate connect script: ${message}`)
+    } finally {
+      setEnrolling(false)
+    }
+  }, [server, toast])
+
+  if (!server) return null
+
+  const summaryRows: Array<[string, React.ReactNode]> = [
+    ['Hostname', server.hostname],
+    ['Management port', server.port ?? '—'],
+    ['Type', server.type && server.type.length > 0 ? server.type.join(', ') : '—'],
+    ['Environment', server.tags?.[0]?.name ?? '—'],
+    ['Domains', commaList(server.domains)],
+    ['IP ranges', commaList(server.ipRanges)],
+    ['Connection', connection ? connection.name : server.credentialId ? 'unknown' : 'None'],
+    ['ZTNA provider', provider ? provider.name : server.connectivityProviderId ? 'unknown' : 'None'],
+  ]
+
+  const sshUser = connection?.username?.trim() || '<user>'
+  const sshAddress = device?.online && device.addresses?.[0] ? device.addresses[0] : server.hostname
+  const sshCommand = `ssh ${sshUser}@${sshAddress}`
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`"${server.hostname}"`}
+      subtitle="Access server details"
+      size="lg"
+      footer={
+        <Button variant="secondary" onClick={onClose}>
+          Close
+        </Button>
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <Section title="Server summary">
+          <dl style={DL_GRID}>
+            {summaryRows.map(([label, value]) => (
+              <React.Fragment key={label}>
+                <dt style={DT_STYLE}>{label}</dt>
+                <dd style={DD_STYLE}>{value}</dd>
+              </React.Fragment>
+            ))}
+          </dl>
+        </Section>
+
+        <Section title="Connectivity status">
+          <p style={{ margin: 0, fontSize: 13 }}>
+            ZTNA provider:{' '}
+            {provider ? (
+              <Badge variant="secondary" size="sm">
+                {provider.name}
+              </Badge>
+            ) : (
+              <Badge variant="warning" size="sm">
+                none
+              </Badge>
+            )}
+          </p>
+          {devicesLoading ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Spinner size="sm" />
+              <span style={{ fontSize: 13 }}>Checking tailnet status…</span>
+            </div>
+          ) : devicesError ? (
+            <Alert variant="warning">Couldn't check connectivity status: {devicesError}</Alert>
+          ) : device ? (
+            <dl style={DL_GRID}>
+              <dt style={DT_STYLE}>Status</dt>
+              <dd style={DD_STYLE}>
+                <Badge variant={device.online ? 'success' : 'default'} size="sm">
+                  {device.online ? 'Online' : 'Offline'}
+                </Badge>
+              </dd>
+              <dt style={DT_STYLE}>Tailnet IP</dt>
+              <dd style={DD_STYLE}>{device.addresses?.[0] ?? '—'}</dd>
+              <dt style={DT_STYLE}>Last seen</dt>
+              <dd style={DD_STYLE}>{device.lastSeen ? new Date(device.lastSeen).toLocaleString() : '—'}</dd>
+            </dl>
+          ) : (
+            <p style={MUTED}>Not connected to the Veltrix network yet.</p>
+          )}
+        </Section>
+
+        <Section title="Connection test">
+          {!server.credentialId ? (
+            <p style={MUTED}>Assign a Connection to test.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div>
+                <Button variant="secondary" size="sm" onClick={() => void handleTest()} isLoading={testing}>
+                  Test connection
+                </Button>
+              </div>
+              {testResult && (
+                <Alert variant={testResult.ok ? 'success' : 'danger'} title={testResult.ok ? 'Connected' : 'Failed'}>
+                  {testResult.message}
+                  {testResult.latencyMs != null ? ` (${testResult.latencyMs} ms)` : null}
+                </Alert>
+              )}
+            </div>
+          )}
+        </Section>
+
+        {isManaged && (
+          <Section title="Connect via Tailscale">
+            <p style={MUTED}>
+              Mint a fresh enrollment key, then run the install command below ON this server to join the
+              Veltrix-managed tailnet.
+            </p>
+            <div>
+              <Button variant="secondary" size="sm" onClick={() => void handleEnroll()} isLoading={enrolling}>
+                {enrollResult ? 'Regenerate' : 'Generate connect script'}
+              </Button>
+            </div>
+            {enrollError && <Alert variant="danger">{enrollError}</Alert>}
+            {enrollResult && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <p style={{ margin: 0, fontSize: 12, color: 'var(--vx-danger, #dc2626)' }}>
+                  The key is shown once — copy it now.
+                </p>
+                <CopyableBlock value={enrollResult.installCommands} ariaLabel="Copy install command" />
+              </div>
+            )}
+          </Section>
+        )}
+
+        <Section title="SSH access">
+          <CopyableBlock value={sshCommand} ariaLabel="Copy SSH command" />
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--vx-text-muted, #6b7280)' }}>
+            The login user depends on the server's own configuration.
+            {isManaged
+              ? ' The server must be connected to the tailnet first — see Connectivity status above.'
+              : null}
+          </p>
+        </Section>
+      </div>
+    </Modal>
+  )
+}

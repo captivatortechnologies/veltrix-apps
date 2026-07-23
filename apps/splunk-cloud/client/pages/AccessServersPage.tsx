@@ -30,6 +30,7 @@ import {
   type FilterDefinition,
   type SortOption,
 } from '@veltrixsecops/app-sdk/ui'
+import AccessServerDetailModal from './AccessServerDetailModal'
 
 // The platform Tool is upserted keyed by the app's manifest name; resolveTool
 // matches on it so new access servers attach to this app's tool.
@@ -117,6 +118,7 @@ export default function AccessServersPage() {
   const [form, setForm] = useState<FormState>(BLANK_FORM)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [viewing, setViewing] = useState<InventoryItem | null>(null)
 
   const load = useCallback(async () => {
     setIsLoading(true)
@@ -173,6 +175,11 @@ export default function AccessServersPage() {
     setForm(BLANK_FORM)
     setFormError(null)
     setDialogOpen(true)
+    void refreshLookups()
+  }
+
+  const openView = (row: InventoryItem) => {
+    setViewing(row)
     void refreshLookups()
   }
 
@@ -323,6 +330,9 @@ export default function AccessServersPage() {
       align: 'right',
       render: (row) => (
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <Button variant="ghost" size="sm" onClick={() => openView(row)}>
+            View
+          </Button>
           <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>
             Edit
           </Button>
@@ -572,6 +582,14 @@ export default function AccessServersPage() {
           />
         </div>
       </FormDialog>
+
+      <AccessServerDetailModal
+        isOpen={!!viewing}
+        onClose={() => setViewing(null)}
+        server={viewing}
+        connections={connections}
+        providers={providers}
+      />
     </Card>
   )
 }

@@ -3,6 +3,25 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.3 — 2026-07-22
+
+### Added
+- **Access Servers — per-server "View" detail modal.** Each row now has a View
+  action alongside Edit/Remove that opens a read-only detail view with four
+  sections: (1) **Server summary** — hostname, management port, type,
+  environment, domains, IP ranges, the assigned Connection name, and the ZTNA
+  provider name; (2) **Connectivity status** — the server's ZTNA provider and
+  its live tailnet device status (Online/Offline, tailnet IP, last seen), or
+  "Not connected to the Veltrix network yet" when no device matches; (3)
+  **Connection test** — a Test button that runs this app's connectivity test
+  handler against the server's assigned Connection and shows the ok/fail
+  result; (4) **Connect via Tailscale** — shown only when the server's ZTNA
+  provider is the Veltrix-managed one — a "Generate connect script" /
+  "Regenerate" button that mints a fresh enrollment and displays the
+  copyable install command to run on the server, plus a copyable **SSH
+  access** command (using the tailnet IP when the device is online, else the
+  hostname, with the assigned Connection's username when available).
+
 ## 1.19.2 — 2026-07-22
 
 ### Changed
