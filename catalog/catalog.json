@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-23T15:25:19.319Z",
+  "generatedAt": "2026-07-23T18:46:24.540Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -344,7 +344,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.19.16",
+      "version": "1.19.17",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -354,11 +354,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.16/splunk-enterprise.zip",
-      "sha256": "bd0e49ce5f9c621ae15ca486f74982c2524f1defa5f7e88f8f2c62c43ba7c82e",
-      "sizeBytes": 460083,
-      "publishedAt": "2026-07-23T15:25:19.307Z",
-      "releaseNotes": "## 1.19.16 — 2026-07-23\n\n### Added\n- Splunk Apps config → Deployment: selecting **Cluster Manager**, **Deployment Server**, or **Deployer** in Target Server Types now reveals an **install-directory** multi-select for that role — Cluster Manager (`etc/manager-apps` or `etc/apps`), Deployment Server (`etc/deployment-apps` or `etc/apps`), Deployer (`etc/shcluster/apps` or `etc/apps`); both can be chosen. Powered by a new platform `visibleWhen: { includes }` condition that shows a field when a multi-select sibling contains a value.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.17/splunk-enterprise.zip",
+      "sha256": "2070aa224db818bf15981304108d464d881f9046b146c62b0fc1adec16033ae2",
+      "sizeBytes": 462094,
+      "publishedAt": "2026-07-23T18:46:24.530Z",
+      "releaseNotes": "## 1.19.17 — 2026-07-23\n\n### Added\n- Deploy now honors the per-role install-directory selections for managed-ZTNA targets: for a Cluster Manager / Deployment Server / Deployer, the built app is placed into the selected staging dir (`etc/manager-apps` / `etc/deployment-apps` / `etc/shcluster/apps`) over the tailnet and the role's bundle push is run (`apply cluster-bundle` / `reload deploy-server` / `apply shcluster-bundle`). `etc/apps` keeps the existing REST install. Requires the platform's remote-exec capability (gated); a non-managed target installs to `etc/apps` only with a note.",
       "releasedAt": "2026-07-23T00:00:00.000Z"
     },
     {
