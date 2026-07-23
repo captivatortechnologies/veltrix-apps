@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-23T21:04:46.901Z",
+  "generatedAt": "2026-07-23T22:32:07.443Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -344,7 +344,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.19.25",
+      "version": "1.19.26",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -354,11 +354,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.25/splunk-enterprise.zip",
-      "sha256": "f61e22d81daa4b572af75387f195b3822a749c84798cde4657cfddd7d5dc2ebf",
-      "sizeBytes": 467972,
-      "publishedAt": "2026-07-23T21:04:46.889Z",
-      "releaseNotes": "## 1.19.25 — 2026-07-23\n\n### Fixed\n- App **package (.spl) upload** now sends an explicit `Content-Length`. After the 1.19.24 switch to `node:https`, a body with no `Content-Length` was streamed with `Transfer-Encoding: chunked`, which splunkd's multipart parser rejects with `400 Unparsable URI-encoded request data` — so a deploy reached Splunk (cert fix worked) but failed on the first app install. `splunkFetch` now frames every body (binary or string) with its exact byte length, matching what `fetch` did. Added a transport test that hits a real local HTTP server to pin the framing (Content-Length set, never chunked, bytes preserved).",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.26/splunk-enterprise.zip",
+      "sha256": "d6c39c7612be507951524f4662712c97867ccaad856ccc4dcef01ee6ac8b3abd",
+      "sizeBytes": 468746,
+      "publishedAt": "2026-07-23T22:32:07.430Z",
+      "releaseNotes": "## 1.19.26 — 2026-07-23\n\n### Fixed\n- **Inline app install over managed ZTNA now uses the install-by-path method splunkd accepts.** splunkd's `POST apps/local` does not parse a **multipart** `.spl` upload — it URL-decodes the body regardless of the multipart `Content-Type`, so a binary package intermittently fails with `400 Unparsable URI-encoded request data` (even canonical `curl -F` fails the same way). For a managed-ZTNA target the deploy now **stages the built `.spl` on the Splunk box over the tailnet** (`$SPLUNK_HOME/var/run/veltrix/<app>.spl`, via the platform's new `ctx.remote.putFile`) and installs it with the documented **form-encoded** `name=<server-local-path>&filename=1&explicit_appname=<app>` call. Direct (non-managed) targets keep the multipart upload. Requires the platform's remote-exec capability (gated).",
       "releasedAt": "2026-07-23T00:00:00.000Z"
     },
     {
