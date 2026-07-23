@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-23T14:11:04.866Z",
+  "generatedAt": "2026-07-23T14:20:08.937Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -324,7 +324,7 @@
     {
       "appId": "splunk-cloud",
       "name": "Splunk Cloud Platform",
-      "version": "1.10.11",
+      "version": "1.10.12",
       "vendor": "Veltrix",
       "description": "Manage Splunk Cloud Platform configurations as code through the Admin Config Service (ACS) API. Includes index management, HTTP Event Collector (HEC) tokens, IP allow lists, and private apps/add-ons (built to a .spl, vetted by AppInspect, installed through ACS). Roles are managed through the Splunk Cloud Platform REST API on the stack's management port 8089 — ACS cannot manage identity.",
       "category": "SIEM",
@@ -334,17 +334,17 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-cloud",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-cloud-v1.10.11/splunk-cloud.zip",
-      "sha256": "c5665ac235e7366c85d0a1fe9cb37637517dba8d92ec97717836ef73a3f27119",
-      "sizeBytes": 504643,
-      "publishedAt": "2026-07-23T14:11:04.852Z",
-      "releaseNotes": "## 1.10.11 — 2026-07-23\n\n### Added\n- Access Servers table now shows an **animated connectivity dot** in the Connectivity (ZTNA) column for Veltrix-managed servers: a pulsing **green** dot when the server is online on the tailnet, a static **red** dot when offline, and an amber \"checking\" pulse while status loads. Status polls every 30s. (The hostname-matching logic is now shared with the detail modal.)",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-cloud-v1.10.12/splunk-cloud.zip",
+      "sha256": "fd13ed214bfdbe799c201f345ed5b9915837c2c1fc0d19e5f0425c99abd776e6",
+      "sizeBytes": 504923,
+      "publishedAt": "2026-07-23T14:20:08.923Z",
+      "releaseNotes": "## 1.10.12 — 2026-07-23\n\n### Changed\n- Add/Edit Access Server: **Type is now multi-select** — a server can be assigned more than one role (e.g. indexer + search head), matching the platform's multi-type component model. At least one type is required.",
       "releasedAt": "2026-07-23T00:00:00.000Z"
     },
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.19.13",
+      "version": "1.19.14",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -354,11 +354,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.13/splunk-enterprise.zip",
-      "sha256": "ab0f0dc9c2ab6c7728feb65c1ec35f821e47559287f69c33a1dc01f72c4c81a1",
-      "sizeBytes": 459059,
-      "publishedAt": "2026-07-23T14:11:04.855Z",
-      "releaseNotes": "## 1.19.13 — 2026-07-23\n\n### Added\n- Access Servers table now shows an **animated connectivity dot** in the Connectivity (ZTNA) column for Veltrix-managed servers: a pulsing **green** dot when the server is online on the tailnet, a static **red** dot when offline, and an amber \"checking\" pulse while status loads. Status polls every 30s. (The hostname-matching logic is now shared with the detail modal.)",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.14/splunk-enterprise.zip",
+      "sha256": "6768d8c8f23206a5024aabf67abe64bc6e7ccb3e8b78ac838a2efd8589c6d6e1",
+      "sizeBytes": 459327,
+      "publishedAt": "2026-07-23T14:20:08.926Z",
+      "releaseNotes": "## 1.19.14 — 2026-07-23\n\n### Changed\n- Add/Edit Access Server: **Type is now multi-select** — a server can be assigned more than one role (e.g. indexer + search head), matching the platform's multi-type component model. At least one type is required.",
       "releasedAt": "2026-07-23T00:00:00.000Z"
     },
     {
