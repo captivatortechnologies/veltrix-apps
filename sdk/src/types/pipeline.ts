@@ -312,11 +312,45 @@ export interface OptionsProviderContext {
 /** An app handler that returns live options for a `remote-multiselect` field. */
 export type OptionsProvider = (ctx: OptionsProviderContext) => Promise<OptionItem[]>
 
+/**
+ * A file/command placement onto the target host, provided by the PLATFORM (never
+ * by the app) and present only when the component is reachable over managed ZTNA
+ * (Tailscale SSH) — otherwise `ctx.remote` is undefined and a handler falls back to
+ * whatever it can do over the tool's own API.
+ *
+ * The app passes TYPED INTENTS, not raw shell: the platform builds an allow-listed
+ * command server-side, constrains every path under the target's install root, runs
+ * it over the tenant's own managed tailnet, and audits it. Used e.g. to place a
+ * Splunk app into `etc/manager-apps` and run `apply cluster-bundle`.
+ */
+export interface RemoteExecutor {
+  /** Copy a locally-built directory into an allow-listed remote path (e.g. an app dir). */
+  copyDir(localDir: string, remotePath: string): Promise<void>
+  /** Run one allow-listed intent (bundle apply / deploy-server reload / mkdir / extract). */
+  run(intent: RemoteIntent): Promise<RemoteResult>
+}
+
+/** Allow-listed remote actions. The platform maps each to a fixed, argument-checked command. */
+export type RemoteIntent =
+  | { action: 'applyClusterBundle' }
+  | { action: 'reloadDeployServer' }
+  | { action: 'applyShclusterBundle'; targetUri?: string }
+  | { action: 'splunkHome' }
+
+export interface RemoteResult {
+  ok: boolean
+  code: number | null
+  stdout: string
+  stderr: string
+}
+
 export interface DeployContext extends PipelineContext {
   component: ComponentRef
   credential: CredentialRef | null
   connectivity: ConnectivityRef | null
   connectivityProvider: ConnectivityProviderRef | null
+  /** Platform-provided remote file/command placement — present only for managed-ZTNA targets. */
+  remote?: RemoteExecutor
   previousConfig: CanvasSnapshot | null
   strategy: DeploymentStrategy
   canaryPercent?: number
