@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-23T14:20:08.937Z",
+  "generatedAt": "2026-07-23T14:38:43.030Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -344,7 +344,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.19.14",
+      "version": "1.19.15",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -354,11 +354,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.14/splunk-enterprise.zip",
-      "sha256": "6768d8c8f23206a5024aabf67abe64bc6e7ccb3e8b78ac838a2efd8589c6d6e1",
-      "sizeBytes": 459327,
-      "publishedAt": "2026-07-23T14:20:08.926Z",
-      "releaseNotes": "## 1.19.14 — 2026-07-23\n\n### Changed\n- Add/Edit Access Server: **Type is now multi-select** — a server can be assigned more than one role (e.g. indexer + search head), matching the platform's multi-type component model. At least one type is required.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.15/splunk-enterprise.zip",
+      "sha256": "2cd6c7598f96e7b0ef24a375aff6a090c2057a502fa3463528b92c44d01e0599",
+      "sizeBytes": 459590,
+      "publishedAt": "2026-07-23T14:38:43.017Z",
+      "releaseNotes": "## 1.19.15 — 2026-07-23\n\n### Changed\n- Splunk Apps config → Deployment → **Target Server Types** is now a **multi-select of the known Splunk roles** (indexer, search head, cluster manager, forwarders, deployment server, deployer, license server, SC4S) — the same set as an Access Server's Type — instead of a free-text tag input. Stored value is unchanged (a list of role ids), so existing configs keep working.",
       "releasedAt": "2026-07-23T00:00:00.000Z"
     },
     {
