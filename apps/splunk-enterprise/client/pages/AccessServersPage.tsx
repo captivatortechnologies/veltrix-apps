@@ -278,7 +278,35 @@ export default function AccessServersPage() {
   }
 
   const columns: DataTableColumn<InventoryItem>[] = [
-    { key: 'hostname', header: 'Hostname', render: (row) => <strong>{row.hostname}</strong> },
+    {
+      key: 'hostname',
+      header: 'Hostname',
+      // Clicking the hostname opens the read-only detail view (connectivity
+      // status, connection test, Tailscale connect script, SSH) — the same as
+      // the row's View action.
+      render: (row) => (
+        <button
+          type="button"
+          onClick={() => openView(row)}
+          title="View server details"
+          style={{
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            margin: 0,
+            font: 'inherit',
+            cursor: 'pointer',
+            textAlign: 'left',
+            color: 'var(--veltrix-app-primary, #4f46e5)',
+            textDecoration: 'underline',
+            textUnderlineOffset: 2,
+            fontWeight: 600,
+          }}
+        >
+          {row.hostname}
+        </button>
+      ),
+    },
     {
       key: 'environment',
       header: 'Environment',

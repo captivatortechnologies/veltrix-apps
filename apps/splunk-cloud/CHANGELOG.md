@@ -3,6 +3,11 @@
 All notable changes to the Splunk Cloud app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.10.3 — 2026-07-22
+
+### Changed
+- Access Servers: the **hostname is now clickable** and opens the server's View detail modal (same as the row's View action) — click an item to see its connectivity status, run a connection test, get the Tailscale connect script, and the SSH command.
+
 ## 1.10.2 — 2026-07-22
 
 ### Added
