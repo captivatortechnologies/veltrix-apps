@@ -150,6 +150,50 @@ item:
             - { value: "etc/apps", label: "etc/apps (local to the Indexer)" }
           helpText: "Where the app is placed on the Indexer. etc/peer-apps is the location a clustered peer receives its bundle in (normally managed by the Cluster Manager); etc/apps installs it locally. Select both if needed."
 
+        - key: "searchHeadInstallDirs"
+          label: "Search Head — install directory"
+          fieldType: "multiselect"
+          defaultValue: ["etc/apps"]
+          visibleWhen:
+            field: "targetTypes"
+            includes: "search-head"
+          options:
+            - { value: "etc/apps", label: "etc/apps" }
+          helpText: "Search heads run apps from etc/apps (a search head cluster member receives them there from the Deployer). No separate staging directory on the search head itself."
+
+        - key: "heavyForwarderInstallDirs"
+          label: "Heavy Forwarder — install directory"
+          fieldType: "multiselect"
+          defaultValue: ["etc/apps"]
+          visibleWhen:
+            field: "targetTypes"
+            includes: "heavy-forwarder"
+          options:
+            - { value: "etc/apps", label: "etc/apps" }
+          helpText: "Heavy forwarders run apps from etc/apps (a deployment client receives them there from the Deployment Server)."
+
+        - key: "universalForwarderInstallDirs"
+          label: "Universal Forwarder — install directory"
+          fieldType: "multiselect"
+          defaultValue: ["etc/apps"]
+          visibleWhen:
+            field: "targetTypes"
+            includes: "universal-forwarder"
+          options:
+            - { value: "etc/apps", label: "etc/apps" }
+          helpText: "Universal forwarders run apps from etc/apps (a deployment client receives them there from the Deployment Server)."
+
+        - key: "licenseServerInstallDirs"
+          label: "License Server — install directory"
+          fieldType: "multiselect"
+          defaultValue: ["etc/apps"]
+          visibleWhen:
+            field: "targetTypes"
+            includes: "license-server"
+          options:
+            - { value: "etc/apps", label: "etc/apps" }
+          helpText: "License servers run apps from etc/apps. No separate staging directory."
+
         - key: "visibility"
           label: "Visibility"
           fieldType: "select"

@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.21 — 2026-07-23
+
+### Changed
+- Splunk Apps config → Deployment: **every** selected Target Server Type now shows an install-directory picker. Search Head, Heavy Forwarder, Universal Forwarder, and License Server offer `etc/apps` (their only install location, pre-selected), so the form uniformly shows where each selected role installs — alongside the multi-option pickers for Cluster Manager, Indexer, Deployment Server, and Deployer.
+
 ## 1.19.20 — 2026-07-23
 
 ### Added
