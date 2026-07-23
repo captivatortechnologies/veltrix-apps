@@ -315,8 +315,10 @@ export default function AccessServerDetailModal({
   const reachHost = device?.online && device.addresses?.[0] ? device.addresses[0] : device?.name || server.hostname
   const mgmtPort = server.port?.trim() || '8089'
   const webUiPort = server.webPort?.trim() || '8000'
+  // Management API is always HTTPS (8089). Splunk Web defaults to HTTP (8000) —
+  // only TLS if Splunk Web SSL is explicitly enabled — so link it as http.
   const mgmtUrl = `https://${reachHost}:${mgmtPort}`
-  const webUrl = `https://${reachHost}:${webUiPort}`
+  const webUrl = `http://${reachHost}:${webUiPort}`
 
   return (
     <Modal
@@ -426,8 +428,9 @@ export default function AccessServerDetailModal({
             </Alert>
           )}
           <p style={MUTED}>
-            Reachable over the tailnet — open from a device connected to Tailscale that has access to this server. If
-            Splunk Web isn't serving TLS, use <code style={MONO}>http://</code> instead of https.
+            Reachable over the tailnet — open from a device connected to Tailscale that has access to this server.
+            Splunk Web opens over <code style={MONO}>http</code> (its default); if this instance has Web SSL enabled,
+            use <code style={MONO}>https://</code> instead.
           </p>
         </Section>
 
