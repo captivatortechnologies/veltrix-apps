@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-23T18:50:41.913Z",
+  "generatedAt": "2026-07-23T18:59:42.958Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -344,7 +344,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.19.18",
+      "version": "1.19.19",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -354,11 +354,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.18/splunk-enterprise.zip",
-      "sha256": "714ca0d2506b5d90b041adde25889eac11d1c6dca9da5b46bb291ed02d9f30c4",
-      "sizeBytes": 463176,
-      "publishedAt": "2026-07-23T18:50:41.898Z",
-      "releaseNotes": "## 1.19.18 — 2026-07-23\n\n### Added\n- Rollback now undoes managed-ZTNA staging-dir installs: it removes each staged app directory over the tailnet and re-applies the affected role's bundle (best-effort — a cluster bundle rollback re-pushes the now-app-less bundle). If the target isn't reachable via managed ZTNA, the rollback reports that staging placements need manual cleanup rather than silently skipping them.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.19/splunk-enterprise.zip",
+      "sha256": "62fc813e2a836cdec513335fa5d5b2974af098e7a3bbbc7fc24400bd6e630fce",
+      "sizeBytes": 463681,
+      "publishedAt": "2026-07-23T18:59:42.946Z",
+      "releaseNotes": "## 1.19.19 — 2026-07-23\n\n### Added\n- Access Servers now have a **Splunk home** field (`$SPLUNK_HOME`, e.g. `/opt/splunk` or `/opt/splunkforwarder`), shown in the add/edit form and the View modal. Staging-dir deploys use it to build install paths; when left blank the platform auto-detects it (a non-login SSH shell rarely exports `$SPLUNK_HOME`, so it probes for a full Splunk vs a universal forwarder install).",
       "releasedAt": "2026-07-23T00:00:00.000Z"
     },
     {
