@@ -2,7 +2,7 @@
 // role(s) call for. Pure (no network); the security/path checks live server-side.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { plannedStagingPlacements } from '../deploy'
+import { plannedStagingPlacements, resolveShclusterTargetUri } from '../deploy'
 
 const FIELDS = {
   targetTypes: ['cluster-manager', 'deployer'],
@@ -42,4 +42,38 @@ test('maps each role to its bundle intent', () => {
 test('indexer places into etc/peer-apps with no bundle push', () => {
   const ix = plannedStagingPlacements(['indexer'], ['indexer'], { indexerInstallDirs: ['etc/peer-apps', 'etc/apps'] })
   assert.deepEqual(ix, [{ role: 'indexer', label: 'Indexer', bundle: null, dirs: ['etc/peer-apps'] }])
+})
+
+// --- resolveShclusterTargetUri: the -target for `apply shcluster-bundle` --------
+const platformWith = (members: Array<{ id: string; hostname: string; port: string }>) => ({
+  listComponents: async () => members,
+})
+
+test('resolveShclusterTargetUri targets a search-head member (not the deployer) at its mgmt uri', async () => {
+  const platform = platformWith([
+    { id: 'deployer-1', hostname: 'splunk-mgr.babong.local', port: '8089' },
+    { id: 'sh1', hostname: 'splunk-sh1.babong.local', port: '8089' },
+  ])
+  assert.equal(await resolveShclusterTargetUri(platform, 'deployer-1'), 'https://splunk-sh1.babong.local:8089')
+})
+
+test('resolveShclusterTargetUri defaults the member port to 8089', async () => {
+  assert.equal(
+    await resolveShclusterTargetUri(platformWith([{ id: 'sh1', hostname: 'sh1.local', port: '' }]), 'deployer-1'),
+    'https://sh1.local:8089',
+  )
+})
+
+test('resolveShclusterTargetUri falls back to the only member even if it is the deployer', async () => {
+  assert.equal(
+    await resolveShclusterTargetUri(platformWith([{ id: 'd1', hostname: 'shdeployer.local', port: '8089' }]), 'd1'),
+    'https://shdeployer.local:8089',
+  )
+})
+
+test('resolveShclusterTargetUri throws a clear error when no search-head is registered', async () => {
+  await assert.rejects(
+    () => resolveShclusterTargetUri(platformWith([]), 'deployer-1'),
+    /search head cluster MEMBER/,
+  )
 })

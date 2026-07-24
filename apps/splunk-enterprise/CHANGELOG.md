@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.30 — 2026-07-23
+
+### Fixed
+- **Deployer bundle push now passes the required `-target`.** `apply shcluster-bundle` MUST be run as `$SPLUNK_HOME/bin/splunk apply shcluster-bundle -target https://<member>:8089` — the Deployer pushes the bundle to one search head cluster member. The deploy (and rollback re-apply) previously ran it with no `-target`, which fails. It now resolves a **search-head member** (a registered server with the `search-head` role, preferring one other than the Deployer itself) and targets its internal `hostname:8089`; a clear error is raised if no search-head server is registered. The Cluster Manager (`apply cluster-bundle`) and Deployment Server (`reload deploy-server`) pushes need no target and were already correct. All three carry the Splunk admin `-auth`. Confirms the per-staging-dir bundle contract: `etc/deployment-apps → reload deploy-server`, `etc/manager-apps → apply cluster-bundle`, `etc/shcluster/apps → apply shcluster-bundle -target …`.
+
 ## 1.19.29 — 2026-07-23
 
 ### Fixed

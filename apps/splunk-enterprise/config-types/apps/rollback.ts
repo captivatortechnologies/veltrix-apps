@@ -1,6 +1,6 @@
 import type { RollbackContext, RollbackResult } from '@veltrixsecops/app-sdk'
 import { buildSplunkUrl, buildAuthHeader, splunkRequest, postForm } from '../../lib/splunkApi'
-import { APP_BASE_PATH } from './deploy'
+import { APP_BASE_PATH, resolveShclusterTargetUri } from './deploy'
 
 interface AppRollbackData {
   previousState?: Array<Record<string, unknown>>
@@ -94,7 +94,13 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
         }
         for (const role of rolesToRepush) {
           const bundle = ROLE_BUNDLE[role]
-          if (bundle) await ctx.remote.run({ action: bundle })
+          if (!bundle) continue
+          // shcluster-bundle needs a member -target; cluster-bundle / deploy-server do not.
+          const intent =
+            bundle === 'applyShclusterBundle'
+              ? { action: 'applyShclusterBundle' as const, targetUri: await resolveShclusterTargetUri(ctx.platform, component.id) }
+              : { action: bundle }
+          await ctx.remote.run(intent)
         }
         stagingActions.push(`removed ${stagingPlaced.length} staged app(s) and re-applied ${rolesToRepush.size} bundle(s)`)
       }

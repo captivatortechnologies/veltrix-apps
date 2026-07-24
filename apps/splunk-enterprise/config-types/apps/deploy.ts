@@ -69,6 +69,27 @@ function toStringArray(v: unknown): string[] {
   return []
 }
 
+/**
+ * `apply shcluster-bundle` REQUIRES `-target https://<member>:8089` — the Deployer
+ * pushes the bundle to ONE search head cluster MEMBER, which then coordinates the
+ * rest. The command runs ON the deployer (in the cluster's own network), so the
+ * target is a search-head component's internal `hostname:port` (not its tailnet
+ * address). Prefer a member other than the deployer itself.
+ */
+export async function resolveShclusterTargetUri(
+  platform: { listComponents: (filter?: { types?: string[] }) => Promise<Array<{ id: string; hostname: string; port: string }>> },
+  deployerComponentId: string,
+): Promise<string> {
+  const members = await platform.listComponents({ types: ['search-head'] })
+  const member = members.find((m) => m.id !== deployerComponentId) ?? members[0]
+  if (!member) {
+    throw new Error(
+      'apply shcluster-bundle requires a search head cluster MEMBER as -target, but no server with the "search-head" role is registered. Add your search head cluster members as Access Servers so the Deployer can push to one.',
+    )
+  }
+  return `https://${member.hostname}:${member.port || '8089'}`
+}
+
 /** Which staging placements this component's role(s) call for (etc/apps excluded — REST handles it). */
 export function plannedStagingPlacements(
   componentRoles: string[],
@@ -201,7 +222,13 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
             stagingPlaced.push({ appId, role: p.role, dir })
           }
           if (p.bundle) {
-            const push = await ctx.remote.run({ action: p.bundle })
+            // The Deployer's shcluster-bundle push needs a member as -target; the
+            // CM/DS pushes don't take a target. Build the right intent per role.
+            const intent =
+              p.bundle === 'applyShclusterBundle'
+                ? { action: 'applyShclusterBundle' as const, targetUri: await resolveShclusterTargetUri(ctx.platform, component.id) }
+                : { action: p.bundle }
+            const push = await ctx.remote.run(intent)
             if (!push.ok) {
               throw new Error(`${p.label} bundle push (${p.bundle}) failed: ${push.stderr.slice(0, 200) || `exit ${push.code}`}`)
             }
