@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-24T02:38:22.022Z",
+  "generatedAt": "2026-07-24T16:44:19.840Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -344,7 +344,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.19.30",
+      "version": "1.19.31",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -354,12 +354,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.30/splunk-enterprise.zip",
-      "sha256": "d8f6b962f45f883cb490df206ae720c2deb23fa942bfc06de912bd907e3a02e6",
-      "sizeBytes": 478955,
-      "publishedAt": "2026-07-24T02:38:22.009Z",
-      "releaseNotes": "## 1.19.30 — 2026-07-23\n\n### Fixed\n- **Deployer bundle push now passes the required `-target`.** `apply shcluster-bundle` MUST be run as `$SPLUNK_HOME/bin/splunk apply shcluster-bundle -target https://<member>:8089` — the Deployer pushes the bundle to one search head cluster member. The deploy (and rollback re-apply) previously ran it with no `-target`, which fails. It now resolves a **search-head member** (a registered server with the `search-head` role, preferring one other than the Deployer itself) and targets its internal `hostname:8089`; a clear error is raised if no search-head server is registered. The Cluster Manager (`apply cluster-bundle`) and Deployment Server (`reload deploy-server`) pushes need no target and were already correct. All three carry the Splunk admin `-auth`. Confirms the per-staging-dir bundle contract: `etc/deployment-apps → reload deploy-server`, `etc/manager-apps → apply cluster-bundle`, `etc/shcluster/apps → apply shcluster-bundle -target …`.",
-      "releasedAt": "2026-07-23T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.31/splunk-enterprise.zip",
+      "sha256": "982fd3127e712daa61b5da33df594bb4b68662f685799260e6746a10b1908735",
+      "sizeBytes": 479108,
+      "publishedAt": "2026-07-24T16:44:19.828Z",
+      "releaseNotes": "## 1.19.31 — 2026-07-24\n\n### Fixed\n- **Live index pickers (HEC Token Default/Allowed Indexes) now reach managed-ZTNA servers.** The options provider built the splunkd URL from the component's raw `.local` hostname, which never resolves from the platform (`Failed to list Splunk options: getaddrinfo EAI_AGAIN splunk-sh1.babong.local`). It now uses the shared `buildSplunkUrl` — the connectivity provider's tailnet device address — so the picker reaches the instance over the managed tailnet (and accepts its self-signed cert via `splunkFetch`). The platform resolves + passes the connectivity provider to the options context, and can scope the query host by **Target Server Types** (role) when the config surface provides them.",
+      "releasedAt": "2026-07-24T00:00:00.000Z"
     },
     {
       "appId": "splunk-soar",
