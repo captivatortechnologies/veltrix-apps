@@ -3,6 +3,18 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.28 — 2026-07-23
+
+### Added
+- **Content drift for inline Splunk apps — hash every shipped file and show the diff.** Drift detection now goes beyond app state (installed / enabled / version / label): for an app authored inline, it compares the SHA-256 of every file the deploy shipped against the live app and reports:
+  - a **modified** file — and over managed ZTNA it **pulls the live content and surfaces both sides so the actual diff is visible**;
+  - a **missing** shipped file;
+  - an **unexpected** file added under the app's `default/` (the folder the app owns). Extra files elsewhere (`local/` overrides, Splunk runtime files) are ignored to avoid noise.
+- Two paths: **managed-ZTNA** targets are hashed over the tailnet (a new read-only `hashTree` + `readFile` remote capability); **non-managed** targets compare the effective merged `.conf` values via REST (`configs/conf-<file>`), flagging only the stanza keys we shipped.
+
+### Fixed
+- Drift now **reaches managed-ZTNA servers**: it no longer hard-requires a separate connectivity record, resolves the tailnet device address, and **scopes by Target Server Types** (matching deploy + health-check). Previously drift on a managed server silently reported "no drift" because it couldn't reach the `.local` hostname.
+
 ## 1.19.27 — 2026-07-23
 
 ### Changed

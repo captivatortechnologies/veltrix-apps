@@ -335,6 +335,19 @@ export interface RemoteExecutor {
    * upload). `remotePath` must be under `<homeDir>/var/run/veltrix`.
    */
   putFile(bytes: Uint8Array, remotePath: string): Promise<void>
+  /**
+   * SHA-256 every file under an allow-listed install directory (e.g.
+   * `<homeDir>/etc/apps/<app>`), returned as `{ path, sha256 }` with paths
+   * relative to that directory. For content drift: compare to the hashes of the
+   * files a deploy shipped. Read-only.
+   */
+  hashTree(remoteDir: string): Promise<Array<{ path: string; sha256: string }>>
+  /**
+   * Read a single file's contents (UTF-8, size-capped) from under an allow-listed
+   * install directory — used to show the actual diff when a file's hash drifted.
+   * Read-only.
+   */
+  readFile(remotePath: string): Promise<string>
   /** Run one allow-listed intent (bundle apply / deploy-server reload / probe). */
   run(intent: RemoteIntent): Promise<RemoteResult>
 }
@@ -390,6 +403,8 @@ export interface DriftContext extends PipelineContext {
   connectivity: ConnectivityRef | null
   connectivityProvider: ConnectivityProviderRef | null
   deployedConfig: CanvasSnapshot
+  /** Platform-provided remote read access — present only for managed-ZTNA targets. */
+  remote?: RemoteExecutor
 }
 
 // --- Handler type aliases ---
