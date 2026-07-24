@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.29 — 2026-07-23
+
+### Fixed
+- **Content drift no longer false-alarms on splunkd's own `app.conf` bookkeeping.** When Splunk installs an app from a package it rewrites `default/app.conf`, adding `[install] install_source_checksum` (and can add other keys) — which changed the file hash and showed up as "drift" with no meaningful difference. `.conf`/`.meta` files are now compared **key-by-key on the stanza keys we shipped** (values must match); extra keys splunkd or an app legitimately add are ignored, and a changed shipped value is reported as a precise per-key diff instead of a whole-file diff. Non-`.conf` files (scripts, lookups) keep the exact-hash comparison. The managed and REST paths now share this comparison.
+
 ## 1.19.28 — 2026-07-23
 
 ### Added

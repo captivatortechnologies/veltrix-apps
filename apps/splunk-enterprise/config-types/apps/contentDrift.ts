@@ -105,7 +105,14 @@ export async function detectManagedContentDrift(
         diffs.push({ field: `${appId}/${ef.rel}`, expected: `sha256 ${ef.sha256.slice(0, 12)}…`, actual: `sha256 ${liveHash.slice(0, 12)}… (differs; content unavailable)`, severity: 'warning' })
         continue
       }
-      diffs.push({ field: `${appId}/${ef.rel}`, expected: cap(ef.content), actual: cap(liveContent), severity: 'warning' })
+      if (isConfLike(ef.rel)) {
+        // Compare only the stanza keys WE shipped; extra keys splunkd adds on
+        // install (e.g. [install] install_source_checksum) are ignored, so its
+        // benign install-time bookkeeping isn't reported as drift.
+        diffs.push(...confKeyDiffs(`${appId}/${ef.rel}`, ef.content, stanzaLookup(liveContent)))
+      } else {
+        diffs.push({ field: `${appId}/${ef.rel}`, expected: cap(ef.content), actual: cap(liveContent), severity: 'warning' })
+      }
     }
   }
 
@@ -141,7 +148,7 @@ export async function detectRestConfigDrift(
     const parsed = parseConf(typeof file.content === 'string' ? file.content : '')
     if (parsed.stanzas.length === 0) continue
 
-    let effective: Record<string, Record<string, unknown>>
+    let effective: Record<string, Map<string, string>>
     try {
       const json = await getJson<{ entry?: Array<{ name?: string; content?: Record<string, unknown> }> }>(
         baseUrl,
@@ -149,31 +156,59 @@ export async function detectRestConfigDrift(
         `/servicesNS/nobody/${encodeURIComponent(appId)}/configs/conf-${encodeURIComponent(confName)}?count=0`,
       )
       effective = {}
-      for (const entry of json.entry ?? []) if (entry.name) effective[entry.name] = entry.content ?? {}
+      for (const entry of json.entry ?? []) {
+        if (entry.name) effective[entry.name] = new Map(Object.entries(entry.content ?? {}).map(([k, v]) => [k, String(v)]))
+      }
     } catch {
       continue // conf not readable via REST — skip rather than false-alarm
     }
 
-    for (const stanza of parsed.stanzas) {
-      const liveStanza = effective[stanza.name]
-      if (!liveStanza) {
-        diffs.push({ field: `${appId}/${confName}.conf/[${stanza.name}]`, expected: 'present', actual: 'missing', severity: 'warning' })
-        continue
-      }
-      for (const { key, value } of stanza.keys) {
-        const liveVal = liveStanza[key]
-        if (liveVal === undefined || String(liveVal) !== value) {
-          diffs.push({
-            field: `${appId}/${confName}.conf/[${stanza.name}]/${key}`,
-            expected: value,
-            actual: liveVal === undefined ? '(absent)' : String(liveVal),
-            severity: 'warning',
-          })
-        }
+    // Same key-level comparison as the managed path: only the keys we shipped
+    // must match; extra effective keys (Splunk's own defaults) are ignored.
+    diffs.push(
+      ...confKeyDiffs(`${appId}/${confName}.conf`, typeof file.content === 'string' ? file.content : '', (name) => effective[name]),
+    )
+  }
+
+  return diffs
+}
+
+/** Files whose extra keys splunkd/apps legitimately add — compared key-by-key, not by raw hash. */
+function isConfLike(rel: string): boolean {
+  return /\.(conf|meta)$/.test(rel)
+}
+
+/** Parse a .conf/.meta body into a `(stanza) => Map<key,value>` lookup. */
+function stanzaLookup(content: string): (name: string) => Map<string, string> | undefined {
+  const map = new Map(parseConf(content).stanzas.map((s) => [s.name, new Map(s.keys.map((k) => [k.key, k.value]))]))
+  return (name) => map.get(name)
+}
+
+/**
+ * Drift for the stanza keys WE shipped: a key whose live value changed or is
+ * absent, or a whole shipped stanza that's gone. Extra live keys/stanzas are
+ * ignored — so a benign addition (e.g. splunkd's install_source_checksum) or
+ * Splunk's own conf defaults never read as drift.
+ */
+function confKeyDiffs(
+  field: string,
+  expectedContent: string,
+  liveStanza: (name: string) => Map<string, string> | undefined,
+): DriftDiff[] {
+  const diffs: DriftDiff[] = []
+  for (const stanza of parseConf(expectedContent).stanzas) {
+    const live = liveStanza(stanza.name)
+    if (!live) {
+      diffs.push({ field: `${field}/[${stanza.name}]`, expected: 'present', actual: 'missing', severity: 'warning' })
+      continue
+    }
+    for (const { key, value } of stanza.keys) {
+      const liveVal = live.get(key)
+      if (liveVal === undefined || liveVal !== value) {
+        diffs.push({ field: `${field}/[${stanza.name}]/${key}`, expected: value, actual: liveVal === undefined ? '(absent)' : liveVal, severity: 'warning' })
       }
     }
   }
-
   return diffs
 }
 

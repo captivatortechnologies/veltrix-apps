@@ -48,7 +48,7 @@ describe('detectManagedContentDrift', () => {
     expect(diffs).toHaveLength(0)
   })
 
-  it('reports a modified file AND pulls the live content so the diff is visible', async () => {
+  it('reports a modified .conf as a precise per-key diff (shipped key changed), pulling the live value', async () => {
     const liveText = '[monitor:///var/log/app.log]\nindex = CHANGED'
     const live = expected.map((e) =>
       e.rel === 'default/inputs.conf' ? { path: e.rel, sha256: 'd'.repeat(64) } : { path: e.rel, sha256: e.sha256 },
@@ -58,11 +58,28 @@ describe('detectManagedContentDrift', () => {
       'my_ta',
       expected,
     )
-    const d = diffs.find((x) => x.field === 'my_ta/default/inputs.conf')
+    const d = diffs.find((x) => x.field === 'my_ta/default/inputs.conf/[monitor:///var/log/app.log]/index')
     expect(d).toBeDefined()
     expect(d?.severity).toBe('warning')
-    expect(String(d?.expected)).toContain('index = main')
-    expect(String(d?.actual)).toContain('index = CHANGED')
+    expect(d?.expected).toBe('main')
+    expect(String(d?.actual)).toBe('CHANGED')
+  })
+
+  it('ignores a benign extra key splunkd adds to a .conf on install (install_source_checksum)', async () => {
+    const appConf = expected.find((e) => e.rel === 'default/app.conf')
+    expect(appConf).toBeDefined()
+    // splunkd rewrites default/app.conf on install, adding [install] install_source_checksum.
+    const liveAppConf = (appConf?.content ?? '').replace('[install]', '[install]\ninstall_source_checksum = 208c90d1921ce0c5b')
+    const live = expected.map((e) =>
+      e.rel === 'default/app.conf' ? { path: e.rel, sha256: 'e'.repeat(64) } : { path: e.rel, sha256: e.sha256 },
+    )
+    const diffs = await detectManagedContentDrift(
+      remoteStub(live, { '/opt/splunk/etc/apps/my_ta/default/app.conf': liveAppConf }),
+      'my_ta',
+      expected,
+    )
+    // The only difference is an extra key we never shipped — not drift.
+    expect(diffs.some((d) => d.field.startsWith('my_ta/default/app.conf'))).toBe(false)
   })
 
   it('reports a shipped file that is missing on the target', async () => {
