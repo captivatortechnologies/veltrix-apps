@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-24T16:44:19.840Z",
+  "generatedAt": "2026-07-24T19:57:30.820Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -344,7 +344,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.19.31",
+      "version": "1.19.33",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -354,11 +354,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.31/splunk-enterprise.zip",
-      "sha256": "982fd3127e712daa61b5da33df594bb4b68662f685799260e6746a10b1908735",
-      "sizeBytes": 479108,
-      "publishedAt": "2026-07-24T16:44:19.828Z",
-      "releaseNotes": "## 1.19.31 — 2026-07-24\n\n### Fixed\n- **Live index pickers (HEC Token Default/Allowed Indexes) now reach managed-ZTNA servers.** The options provider built the splunkd URL from the component's raw `.local` hostname, which never resolves from the platform (`Failed to list Splunk options: getaddrinfo EAI_AGAIN splunk-sh1.babong.local`). It now uses the shared `buildSplunkUrl` — the connectivity provider's tailnet device address — so the picker reaches the instance over the managed tailnet (and accepts its self-signed cert via `splunkFetch`). The platform resolves + passes the connectivity provider to the options context, and can scope the query host by **Target Server Types** (role) when the config surface provides them.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.33/splunk-enterprise.zip",
+      "sha256": "0022c3dd707f5b8f4ed7b6399669b45da0dd0f4bf5b39e0bd729befd2d62e33b",
+      "sizeBytes": 481320,
+      "publishedAt": "2026-07-24T19:57:30.807Z",
+      "releaseNotes": "## 1.19.33 — 2026-07-24\n\n### Added\n- **HEC Token deploy pre-flight index check.** Before creating any token, the deploy now fetches the target server's live index list (`data/indexes`) and verifies every index a token routes to (Default Index + Allowed Indexes) actually exists there. If one doesn't, it fails fast — before writing anything — with a precise, per-host message, e.g. *\"Index 'main' does not exist on splunk-sh1.babong.local (available: _configtracker, _dsappevent). Pick a valid index for this server, or scope Target Server Types to an indexer that has it.\"* This replaces the raw splunkd 400 (`The specified index main is not valid…`) that previously surfaced mid-loop and could leave a partial deploy, and it makes the fix obvious: HEC tokens with a data index belong on indexers/heavy-forwarders, so scope **Target Server Types** to `indexer`. Best-effort: if the index list can't be read (transient/auth), the check is skipped and the real deploy surfaces the underlying error rather than blocking. Covered by new tests.",
       "releasedAt": "2026-07-24T00:00:00.000Z"
     },
     {
