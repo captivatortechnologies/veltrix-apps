@@ -93,6 +93,17 @@ const SIMPLE_SOURCES: Record<string, SimpleSource> = {
 /** Sources this provider knows how to resolve. */
 const SUPPORTED_SOURCES = new Set(Object.keys(SIMPLE_SOURCES))
 
+/**
+ * Which server roles each options source is pulled from (ordered = fallback). The
+ * platform resolves the FIRST role tier that has registered servers and queries
+ * those, DECOUPLED from where the config deploys. Indexes live on indexers, so
+ * the index list is pulled from the environment's indexers, falling back to
+ * search heads then heavy-forwarders when no indexer is registered.
+ */
+export const sourceComponentTypes: Record<string, string[]> = {
+  indexes: ['indexer', 'search-head', 'heavy-forwarder'],
+}
+
 
 const splunkOptions: OptionsProvider = async (ctx): Promise<OptionItem[]> => {
   if (!SUPPORTED_SOURCES.has(ctx.source)) return []

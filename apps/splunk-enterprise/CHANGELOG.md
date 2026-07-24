@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.35 — 2026-07-24
+
+### Changed
+- **Index pickers pull from the environment's indexers (fallback search heads).** Indexes live on indexers, so the Default/Allowed Index lists are now resolved from the environment's **indexer** servers, falling back to search heads then heavy-forwarders when none are registered — decoupled from which server(s) the token deploys to. So an HEC token created on a search head can still route to a real index that lives on the indexers. Declared via a new `sourceComponentTypes` export on the options provider (`{ indexes: [indexer, search-head, heavy-forwarder] }`), which the platform honors generically. Pairs with the platform's new **per-server** target selection (pick exactly which servers to create the HEC on).
+
 ## 1.19.34 — 2026-07-24
 
 ### Changed
