@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.37 — 2026-07-24
+
+### Added
+- **Deployed HEC token value + details surfaced in the View modal (with copy).** After a token is created/updated, the deploy now reads back its splunkd-generated **token value** and routing (name, server, enabled, default/allowed indexes, sourcetype, source, indexer ack) and returns them as deploy `resources`. The platform persists these on the deployment and the config **View modal** renders a "Deployed resources" section — one card per token per server — with a copy button and the token value masked behind a reveal toggle. This is the value operators paste into their event sources. (Reverses the prior "read it from Splunk directly" behavior, which the token value was deliberately excluded from.) Best-effort: a read-back failure just omits the details. Covered by a new test.
+
 ## 1.19.36 — 2026-07-24
 
 ### Fixed

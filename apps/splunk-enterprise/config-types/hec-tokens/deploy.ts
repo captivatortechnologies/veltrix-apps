@@ -26,6 +26,21 @@ export const HEC_BASE_PATH = '/servicesNS/admin/splunk_httpinput/data/inputs/htt
 /** Token settings snapshotted for rollback. */
 const ROLLBACK_KEYS = ['index', 'indexes', 'sourcetype', 'source', 'description', 'useACK', 'disabled'] as const
 
+/** A field the View modal renders (with copy / secret-masking). */
+interface ResourceField {
+  label: string
+  value: string
+  /** Masked with a reveal toggle in the UI (e.g. the token value). */
+  secret?: boolean
+  /** Show a copy button. */
+  copyable?: boolean
+}
+/** One deployed resource surfaced read-only in the config View modal. */
+interface DeployedResource {
+  name: string
+  fields: ResourceField[]
+}
+
 export default async function deploy(ctx: DeployContext): Promise<DeployResult> {
   const { component, credential, connectivity, connectivityProvider, canvas } = ctx
 
@@ -80,6 +95,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const rollbackSnapshot: Record<string, unknown>[] = []
   const createdTokens: string[] = []
   const deployedTokens: string[] = []
+  const resources: DeployedResource[] = []
 
   try {
     for (const section of canvas.sections) {
@@ -114,6 +130,12 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         await splunkRequest(`${baseUrl}${tokenPath}/${action}`, { method: 'POST', headers: auth })
       }
 
+      // Fetch the token's final state to capture the Splunk-generated token VALUE
+      // + routing for the View modal (this is the value operators copy into their
+      // event sources). Best-effort — a read failure just omits the details.
+      const final = await getEntityContent(baseUrl, auth, tokenPath)
+      if (final) resources.push(buildTokenResource(tokenName, component.hostname, final))
+
       deployedTokens.push(tokenName)
     }
 
@@ -123,7 +145,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     return {
       success: true,
       message: `Deployed ${deployedTokens.length} HEC token(s): ${deployedTokens.join(', ')}${hecWarning}`,
-      artifacts: { deployedTokens, createdTokens, hecGloballyEnabled },
+      artifacts: { deployedTokens, createdTokens, hecGloballyEnabled, resources },
       rollbackData: { previousState: rollbackSnapshot, createdTokens },
     }
   } catch (error) {
@@ -133,6 +155,31 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       artifacts: { deployedTokens, createdTokens, failedAt: canvas.sections[deployedTokens.length]?.fields?.name },
       rollbackData: { previousState: rollbackSnapshot, createdTokens },
     }
+  }
+}
+
+/** Build the View-modal resource for a deployed token from its live splunkd content. */
+function buildTokenResource(
+  name: string,
+  hostname: string,
+  content: Record<string, unknown>,
+): DeployedResource {
+  const s = (v: unknown): string | undefined =>
+    v === undefined || v === null || v === '' ? undefined : String(v)
+  const bool = (v: unknown): boolean => v === true || v === '1' || v === 1
+  return {
+    name: `${name} · ${hostname}`,
+    fields: [
+      { label: 'Token', value: s(content.token) ?? '(unavailable)', secret: true, copyable: true },
+      { label: 'Name', value: name, copyable: true },
+      { label: 'Server', value: hostname },
+      { label: 'Enabled', value: bool(content.disabled) ? 'No' : 'Yes' },
+      { label: 'Default Index', value: s(content.index) ?? '—' },
+      { label: 'Allowed Indexes', value: s(content.indexes) ?? 'any' },
+      { label: 'Sourcetype', value: s(content.sourcetype) ?? '—' },
+      { label: 'Source', value: s(content.source) ?? '—' },
+      { label: 'Indexer Acknowledgment', value: bool(content.useACK) ? 'Yes' : 'No' },
+    ],
   }
 }
 
