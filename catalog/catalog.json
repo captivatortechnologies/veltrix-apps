@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-24T21:47:52.647Z",
+  "generatedAt": "2026-07-24T22:06:00.034Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -344,7 +344,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.19.35",
+      "version": "1.19.36",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -354,11 +354,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.35/splunk-enterprise.zip",
-      "sha256": "52f5430991286a2262e0b34b0edcae839b1eaf7c8a9cfc6746d14cd82c88c0d6",
-      "sizeBytes": 482287,
-      "publishedAt": "2026-07-24T21:47:52.635Z",
-      "releaseNotes": "## 1.19.35 — 2026-07-24\n\n### Changed\n- **Index pickers pull from the environment's indexers (fallback search heads).** Indexes live on indexers, so the Default/Allowed Index lists are now resolved from the environment's **indexer** servers, falling back to search heads then heavy-forwarders when none are registered — decoupled from which server(s) the token deploys to. So an HEC token created on a search head can still route to a real index that lives on the indexers. Declared via a new `sourceComponentTypes` export on the options provider (`{ indexes: [indexer, search-head, heavy-forwarder] }`), which the platform honors generically. Pairs with the platform's new **per-server** target selection (pick exactly which servers to create the HEC on).",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.36/splunk-enterprise.zip",
+      "sha256": "333de4162a9cd648ee0dde611b17c959b13ce0c28fcc7caaf95ad8a7eee2df4c",
+      "sizeBytes": 482974,
+      "publishedAt": "2026-07-24T22:06:00.022Z",
+      "releaseNotes": "## 1.19.36 — 2026-07-24\n\n### Fixed\n- **HEC deploy now enables the global HTTP Event Collector input.** A token receives no events while HEC is *globally* disabled — which search heads default to — so a deploy could succeed yet the health check scored 67 (`hec_enabled` failing: 2 of 3 checks). The deploy now enables the global `http` input (idempotent) before creating tokens, so a deployed token actually works and the health check passes. Best-effort: if it can't be enabled (e.g. permissions), the deploy still creates the tokens and the result message carries a clear WARNING that HEC must be enabled on that host. Covered by new tests.",
       "releasedAt": "2026-07-24T00:00:00.000Z"
     },
     {
