@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-24T00:31:27.083Z",
+  "generatedAt": "2026-07-24T01:17:30.715Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -344,7 +344,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.19.28",
+      "version": "1.19.29",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -354,11 +354,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.28/splunk-enterprise.zip",
-      "sha256": "0c9f6ede905bc861cbb9e6b6e389fb3bb42abc919a31c8f1d73cdc54baf2637f",
-      "sizeBytes": 476581,
-      "publishedAt": "2026-07-24T00:31:27.071Z",
-      "releaseNotes": "## 1.19.28 — 2026-07-23\n\n### Added\n- **Content drift for inline Splunk apps — hash every shipped file and show the diff.** Drift detection now goes beyond app state (installed / enabled / version / label): for an app authored inline, it compares the SHA-256 of every file the deploy shipped against the live app and reports:\n  - a **modified** file — and over managed ZTNA it **pulls the live content and surfaces both sides so the actual diff is visible**;\n  - a **missing** shipped file;\n  - an **unexpected** file added under the app's `default/` (the folder the app owns). Extra files elsewhere (`local/` overrides, Splunk runtime files) are ignored to avoid noise.\n- Two paths: **managed-ZTNA** targets are hashed over the tailnet (a new read-only `hashTree` + `readFile` remote capability); **non-managed** targets compare the effective merged `.conf` values via REST (`configs/conf-<file>`), flagging only the stanza keys we shipped.\n\n### Fixed\n- Drift now **reaches managed-ZTNA servers**: it no longer hard-requires a separate connectivity record, resolves the tailnet device address, and **scopes by Target Server Types** (matching deploy + health-check). Previously drift on a managed server silently reported \"no drift\" because it couldn't reach the `.local` hostname.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.29/splunk-enterprise.zip",
+      "sha256": "9f82ec0e2469da918e73a6d8601b3ea457bb69d3cf27c00d9ed64e9ef8ef6c3f",
+      "sizeBytes": 477604,
+      "publishedAt": "2026-07-24T01:17:30.702Z",
+      "releaseNotes": "## 1.19.29 — 2026-07-23\n\n### Fixed\n- **Content drift no longer false-alarms on splunkd's own `app.conf` bookkeeping.** When Splunk installs an app from a package it rewrites `default/app.conf`, adding `[install] install_source_checksum` (and can add other keys) — which changed the file hash and showed up as \"drift\" with no meaningful difference. `.conf`/`.meta` files are now compared **key-by-key on the stanza keys we shipped** (values must match); extra keys splunkd or an app legitimately add are ignored, and a changed shipped value is reported as a precise per-key diff instead of a whole-file diff. Non-`.conf` files (scripts, lookups) keep the exact-hash comparison. The managed and REST paths now share this comparison.",
       "releasedAt": "2026-07-23T00:00:00.000Z"
     },
     {
