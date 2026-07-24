@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-24T22:06:00.034Z",
+  "generatedAt": "2026-07-24T22:48:58.834Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -344,7 +344,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.19.36",
+      "version": "1.19.37",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -354,11 +354,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.36/splunk-enterprise.zip",
-      "sha256": "333de4162a9cd648ee0dde611b17c959b13ce0c28fcc7caaf95ad8a7eee2df4c",
-      "sizeBytes": 482974,
-      "publishedAt": "2026-07-24T22:06:00.022Z",
-      "releaseNotes": "## 1.19.36 — 2026-07-24\n\n### Fixed\n- **HEC deploy now enables the global HTTP Event Collector input.** A token receives no events while HEC is *globally* disabled — which search heads default to — so a deploy could succeed yet the health check scored 67 (`hec_enabled` failing: 2 of 3 checks). The deploy now enables the global `http` input (idempotent) before creating tokens, so a deployed token actually works and the health check passes. Best-effort: if it can't be enabled (e.g. permissions), the deploy still creates the tokens and the result message carries a clear WARNING that HEC must be enabled on that host. Covered by new tests.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.37/splunk-enterprise.zip",
+      "sha256": "037d5ac827a237d7f9059acd992efce462f69533a1a95d547ecde51599b7fedc",
+      "sizeBytes": 484201,
+      "publishedAt": "2026-07-24T22:48:58.821Z",
+      "releaseNotes": "## 1.19.37 — 2026-07-24\n\n### Added\n- **Deployed HEC token value + details surfaced in the View modal (with copy).** After a token is created/updated, the deploy now reads back its splunkd-generated **token value** and routing (name, server, enabled, default/allowed indexes, sourcetype, source, indexer ack) and returns them as deploy `resources`. The platform persists these on the deployment and the config **View modal** renders a \"Deployed resources\" section — one card per token per server — with a copy button and the token value masked behind a reveal toggle. This is the value operators paste into their event sources. (Reverses the prior \"read it from Splunk directly\" behavior, which the token value was deliberately excluded from.) Best-effort: a read-back failure just omits the details. Covered by a new test.",
       "releasedAt": "2026-07-24T00:00:00.000Z"
     },
     {
