@@ -26,7 +26,7 @@ import {
   sandboxRunCommand,
 } from '../src/commands/sandbox.mjs'
 import { devCommand } from '../src/commands/dev.mjs'
-import { deployCommand, deployStatusCommand } from '../src/commands/deploy.mjs'
+import { deployCommand, deployStatusCommand, deployRollbackCommand } from '../src/commands/deploy.mjs'
 import { appsCommand, envCommand, configListCommand, configGetCommand } from '../src/commands/inspect.mjs'
 import {
   configCreateCommand,
@@ -155,6 +155,15 @@ deploy
   .argument('<deploymentId>', 'Deployment id (from `veltrix deploy`)')
   .option('--profile <name>', 'Profile name', 'default')
   .action(deployStatusCommand)
+
+deploy
+  .command('rollback')
+  .description('Roll a deployed configuration back to its previous state (polls to completion)')
+  .argument('<canvasId>', 'Canvas id')
+  .option('--yes', 'Skip the confirmation prompt')
+  .option('--timeout <seconds>', 'Poll timeout', '300')
+  .option('--profile <name>', 'Profile name', 'default')
+  .action(deployRollbackCommand)
 
 program
   .command('apps')

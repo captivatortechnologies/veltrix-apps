@@ -85,9 +85,15 @@ export async function getApprovals(profile, id) {
   return apiRequest(profile, 'GET', `api/configuration-canvas/${encodeURIComponent(id)}/approvals`)
 }
 
+/** GET /api/pipeline/canvas/:id/deployments — recent deployments for a canvas, newest first. */
+export async function getCanvasDeployments(profile, canvasId, limit = 20) {
+  const data = await apiRequest(profile, 'GET', `api/pipeline/canvas/${encodeURIComponent(canvasId)}/deployments?limit=${limit}`)
+  return Array.isArray(data) ? data : (data?.data ?? [])
+}
+
 /** POST /api/pipeline/deployments/:id/rollback — roll a deployment back to its previous config. */
-export async function rollbackDeployment(profile, deploymentId) {
-  return apiRequest(profile, 'POST', `api/pipeline/deployments/${encodeURIComponent(deploymentId)}/rollback`)
+export async function rollbackDeployment(profile, deploymentId, reason) {
+  return apiRequest(profile, 'POST', `api/pipeline/deployments/${encodeURIComponent(deploymentId)}/rollback`, reason ? { reason } : undefined)
 }
 
 /** GET /api/pipeline/configuration-canvas/:id/drift — drift records for one canvas + check state. */

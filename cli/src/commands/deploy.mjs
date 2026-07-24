@@ -27,6 +27,8 @@ import {
   submitForApproval,
   deployCanvas,
   getDeployment,
+  getCanvasDeployments,
+  rollbackDeployment,
   resolveEnvironmentId,
   resolveApproverIds,
   isUuid,
@@ -249,6 +251,50 @@ export async function deployStatusCommand(deploymentId, options) {
       const text = typeof line === 'string' ? line : line?.message ?? JSON.stringify(line)
       console.log(c.dim(`  ${text}`))
     }
+  } catch (error) {
+    fail(error.message)
+  }
+}
+
+/** `veltrix deploy rollback <canvasId>` — roll a config back to its previous deployed state. */
+export async function deployRollbackCommand(canvasId, options) {
+  const profile = requireProfile(options)
+  if (!options.yes && process.stdin.isTTY) {
+    const ok = await confirm(`Roll back configuration ${canvasId} to its previous deployed config? [y/N] `)
+    if (!ok) {
+      console.log('Aborted.')
+      return
+    }
+  }
+  try {
+    const deployments = await getCanvasDeployments(profile, canvasId)
+    const target = deployments.find((d) => d.status === 'SUCCEEDED')
+    if (!target) fail('No successful deployment to roll back for this configuration.')
+    const res = await rollbackDeployment(profile, target.id, 'Rolled back via the Veltrix CLI')
+    const rollbackId = res?.deploymentId ?? res?.data?.deploymentId ?? res?.id
+    console.log(c.dim(`Rolling back deployment ${target.id}…`))
+    if (!rollbackId) {
+      console.log(c.green('✔ Rollback requested.'))
+      return
+    }
+    const timeoutMs = (Number(options.timeout) || 300) * 1000
+    const started = Date.now()
+    process.stdout.write(c.dim('Rolling back'))
+    while (Date.now() - started < timeoutMs) {
+      const dep = await getDeployment(profile, rollbackId)
+      const status = dep?.status
+      if (TERMINAL_DEPLOYMENT_STATUSES.has(status)) {
+        process.stdout.write('\n')
+        const ok = status === 'ROLLED_BACK' || status === 'DEPLOYED'
+        console.log(`${ok ? c.green('✔') : c.red('✖')} Rollback ${String(status).toLowerCase()} (${rollbackId})`)
+        if (!ok) process.exitCode = 1
+        return
+      }
+      process.stdout.write(c.dim('.'))
+      await sleep(5000)
+    }
+    process.stdout.write('\n')
+    console.log(c.dim(`Still rolling back — check: veltrix deploy status ${rollbackId}`))
   } catch (error) {
     fail(error.message)
   }
