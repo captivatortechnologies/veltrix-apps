@@ -1,5 +1,5 @@
 import type { ComponentRef, CredentialRef } from '@veltrixsecops/app-sdk'
-import { buildAuthHeader, getJson } from '../../lib/splunkApi'
+import { buildAuthHeader, buildSplunkUrl, getJson } from '../../lib/splunkApi'
 
 // =============================================================================
 // Live options provider for the splunk-enterprise config canvas. Powers
@@ -30,6 +30,8 @@ export interface OptionsProviderContext {
   query?: string
   component: ComponentRef | null
   credential: CredentialRef | null
+  /** The component's connectivity provider — carries the managed-ZTNA tailnet address. */
+  connectivityProvider?: { config?: Record<string, unknown> | null } | null
   settings: Record<string, unknown>
 }
 
@@ -91,12 +93,6 @@ const SIMPLE_SOURCES: Record<string, SimpleSource> = {
 /** Sources this provider knows how to resolve. */
 const SUPPORTED_SOURCES = new Set(Object.keys(SIMPLE_SOURCES))
 
-/** Build the splunkd management base URL from the component (no tunnel here). */
-function buildOptionsBaseUrl(component: ComponentRef): string {
-  const host = component.hostname.trim().replace(/\/+$/, '')
-  const base = host.startsWith('http') ? host : `https://${host}:${component.port || DEFAULT_MANAGEMENT_PORT}`
-  return base.replace(/\/+$/, '')
-}
 
 const splunkOptions: OptionsProvider = async (ctx): Promise<OptionItem[]> => {
   if (!SUPPORTED_SOURCES.has(ctx.source)) return []
@@ -112,7 +108,9 @@ const splunkOptions: OptionsProvider = async (ctx): Promise<OptionItem[]> => {
     )
   }
 
-  const baseUrl = buildOptionsBaseUrl(ctx.component)
+  // Prefer the managed-ZTNA tailnet address (buildSplunkUrl) — a raw `.local`
+  // hostname never resolves from the platform (getaddrinfo EAI_AGAIN).
+  const baseUrl = buildSplunkUrl(ctx.component, null, ctx.connectivityProvider)
   const auth = buildAuthHeader(ctx.credential)
   const query = (ctx.query ?? '').trim()
 

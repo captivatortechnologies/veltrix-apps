@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.31 — 2026-07-24
+
+### Fixed
+- **Live index pickers (HEC Token Default/Allowed Indexes) now reach managed-ZTNA servers.** The options provider built the splunkd URL from the component's raw `.local` hostname, which never resolves from the platform (`Failed to list Splunk options: getaddrinfo EAI_AGAIN splunk-sh1.babong.local`). It now uses the shared `buildSplunkUrl` — the connectivity provider's tailnet device address — so the picker reaches the instance over the managed tailnet (and accepts its self-signed cert via `splunkFetch`). The platform resolves + passes the connectivity provider to the options context, and can scope the query host by **Target Server Types** (role) when the config surface provides them.
+
 ## 1.19.30 — 2026-07-23
 
 ### Fixed
