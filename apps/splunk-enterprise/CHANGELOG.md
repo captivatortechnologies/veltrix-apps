@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.33 — 2026-07-24
+
+### Added
+- **HEC Token deploy pre-flight index check.** Before creating any token, the deploy now fetches the target server's live index list (`data/indexes`) and verifies every index a token routes to (Default Index + Allowed Indexes) actually exists there. If one doesn't, it fails fast — before writing anything — with a precise, per-host message, e.g. *"Index 'main' does not exist on splunk-sh1.babong.local (available: _configtracker, _dsappevent). Pick a valid index for this server, or scope Target Server Types to an indexer that has it."* This replaces the raw splunkd 400 (`The specified index main is not valid…`) that previously surfaced mid-loop and could leave a partial deploy, and it makes the fix obvious: HEC tokens with a data index belong on indexers/heavy-forwarders, so scope **Target Server Types** to `indexer`. Best-effort: if the index list can't be read (transient/auth), the check is skipped and the real deploy surfaces the underlying error rather than blocking. Covered by new tests.
+
 ## 1.19.32 — 2026-07-24
 
 ### Fixed

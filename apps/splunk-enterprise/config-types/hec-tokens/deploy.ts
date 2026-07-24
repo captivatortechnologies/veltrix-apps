@@ -1,5 +1,5 @@
 import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
-import { buildSplunkUrl, buildAuthHeader, getEntityContent, postForm, splunkRequest } from '../../lib/splunkApi'
+import { buildSplunkUrl, buildAuthHeader, getEntityContent, getJson, postForm, splunkRequest } from '../../lib/splunkApi'
 
 /**
  * Deploy HEC token configuration via the REST API. Tokens live in the
@@ -40,6 +40,31 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
 
   const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)
   const auth = buildAuthHeader(credential)
+
+  // Pre-flight: every index a token routes to must exist on the target, or
+  // splunkd rejects the token with a 400 mid-loop (leaving a partial deploy).
+  // Validate up front and fail with a precise, per-host message. Best-effort:
+  // if the live index list can't be read, skip the check and let the token POST
+  // surface the real error rather than blocking on a transient read failure.
+  const referencedIndexes = collectReferencedIndexes(canvas.sections)
+  if (referencedIndexes.length > 0) {
+    const liveIndexes = await listIndexNames(baseUrl, auth)
+    if (liveIndexes) {
+      const missing = referencedIndexes.filter((idx) => !liveIndexes.has(idx))
+      if (missing.length > 0) {
+        const plural = missing.length > 1
+        const available = [...liveIndexes].sort().join(', ') || '(none)'
+        return {
+          success: false,
+          message:
+            `Index ${missing.map((m) => `'${m}'`).join(', ')} ${plural ? 'do' : 'does'} not exist on ` +
+            `${component.hostname} (available: ${available}). Pick a valid index for this server, ` +
+            `or scope Target Server Types to an indexer that has ${plural ? 'them' : 'it'}.`,
+        }
+      }
+    }
+  }
+
   const rollbackSnapshot: Record<string, unknown>[] = []
   const createdTokens: string[] = []
   const deployedTokens: string[] = []
@@ -109,5 +134,39 @@ function buildTokenPayload(fields: Record<string, unknown>): Record<string, stri
     source: typeof fields.defaultSource === 'string' && fields.defaultSource ? fields.defaultSource : undefined,
     description: typeof fields.description === 'string' && fields.description ? fields.description : undefined,
     useACK: typeof fields.useACK === 'boolean' ? (fields.useACK ? '1' : '0') : undefined,
+  }
+}
+
+/** Every index a token routes to (defaultIndex + allowedIndexes), de-duplicated. */
+function collectReferencedIndexes(sections: Array<{ fields: Record<string, unknown> }>): string[] {
+  const set = new Set<string>()
+  for (const section of sections) {
+    const fields = section.fields
+    if (typeof fields.defaultIndex === 'string' && fields.defaultIndex) set.add(fields.defaultIndex)
+    if (Array.isArray(fields.allowedIndexes)) {
+      for (const v of fields.allowedIndexes) if (typeof v === 'string' && v) set.add(v)
+    }
+  }
+  return [...set]
+}
+
+/**
+ * Live index names on the target (`data/indexes`, all datatypes, unpaginated).
+ * Returns null when the list can't be read so the caller skips validation and
+ * lets the real deploy surface any connectivity/auth error.
+ */
+async function listIndexNames(baseUrl: string, auth: Record<string, string>): Promise<Set<string> | null> {
+  try {
+    const data = await getJson<{ entry?: Array<{ name?: string }> }>(
+      baseUrl,
+      auth,
+      '/services/data/indexes?datatype=all&count=0',
+      15000,
+    )
+    const names = new Set<string>()
+    for (const e of data.entry ?? []) if (typeof e.name === 'string' && e.name) names.add(e.name)
+    return names
+  } catch {
+    return null
   }
 }
