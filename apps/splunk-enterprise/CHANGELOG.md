@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.32 — 2026-07-24
+
+### Fixed
+- **HEC Token deploy/rollback/health/drift now reach managed-ZTNA servers.** Deploying HEC Tokens to a server reachable only over the managed tailnet failed with `Deploy failed on <host>: Missing credential or connectivity for HEC token deployment`. A managed-ZTNA host has no direct connectivity record — it is reached through the connectivity provider's tailnet device address — but the HEC handlers required a direct `connectivity` and built the splunkd URL without the provider. All four network handlers now accept **either** direct connectivity **or** a connectivity provider, and build the URL via the shared `buildSplunkUrl` (tailnet `deviceAddress` + self-signed cert via `splunkFetch`), matching the Splunk Apps / options-picker paths. The guard also distinguishes a missing credential from missing connectivity so the failure message is precise.
+
 ## 1.19.31 — 2026-07-24
 
 ### Fixed

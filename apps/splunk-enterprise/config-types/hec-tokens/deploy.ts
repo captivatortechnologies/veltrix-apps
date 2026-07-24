@@ -27,13 +27,18 @@ export const HEC_BASE_PATH = '/servicesNS/admin/splunk_httpinput/data/inputs/htt
 const ROLLBACK_KEYS = ['index', 'indexes', 'sourcetype', 'source', 'description', 'useACK', 'disabled'] as const
 
 export default async function deploy(ctx: DeployContext): Promise<DeployResult> {
-  const { component, credential, connectivity, canvas } = ctx
+  const { component, credential, connectivity, connectivityProvider, canvas } = ctx
 
-  if (!credential || !connectivity) {
-    return { success: false, message: 'Missing credential or connectivity for HEC token deployment' }
+  // A managed-ZTNA host has no direct `connectivity` record — it is reached over
+  // the tailnet via `connectivityProvider` (deviceAddress). Accept either.
+  if (!credential) {
+    return { success: false, message: 'Missing credential for HEC token deployment' }
+  }
+  if (!connectivity && !connectivityProvider) {
+    return { success: false, message: 'Missing connectivity for HEC token deployment' }
   }
 
-  const baseUrl = buildSplunkUrl(component, connectivity)
+  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)
   const auth = buildAuthHeader(credential)
   const rollbackSnapshot: Record<string, unknown>[] = []
   const createdTokens: string[] = []

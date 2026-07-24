@@ -16,9 +16,9 @@ const RESTORE_KEYS = ['index', 'indexes', 'sourcetype', 'source', 'description',
  *  - deletes tokens the deploy created
  */
 export default async function rollback(ctx: RollbackContext): Promise<RollbackResult> {
-  const { component, credential, connectivity, rollbackData } = ctx
+  const { component, credential, connectivity, connectivityProvider, rollbackData } = ctx
 
-  if (!credential || !connectivity) {
+  if (!credential || (!connectivity && !connectivityProvider)) {
     return { success: false, message: 'Missing credential or connectivity for rollback' }
   }
 
@@ -30,7 +30,7 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
     return { success: false, message: 'No previous state available for HEC token rollback' }
   }
 
-  const baseUrl = buildSplunkUrl(component, connectivity)
+  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)
   const auth = buildAuthHeader(credential)
 
   try {

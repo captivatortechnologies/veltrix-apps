@@ -15,12 +15,12 @@ import { HEC_BASE_PATH } from './deploy'
  *  - useACK / description changes .................. info
  */
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
-  const { component, credential, connectivity, deployedConfig } = ctx
+  const { component, credential, connectivity, connectivityProvider, deployedConfig } = ctx
   const diffs: DriftDiff[] = []
 
-  if (!credential || !connectivity) return { hasDrift: false, diffs: [] }
+  if (!credential || (!connectivity && !connectivityProvider)) return { hasDrift: false, diffs: [] }
 
-  const baseUrl = buildSplunkUrl(component, connectivity)
+  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)
   const auth = buildAuthHeader(credential)
 
   // Who/when attribution: resolved per drifted token from the _audit index,

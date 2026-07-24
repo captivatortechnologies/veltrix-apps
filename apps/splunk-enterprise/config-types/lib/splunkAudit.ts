@@ -172,10 +172,11 @@ export interface SplunkAuditClient {
  */
 export function buildSplunkAuditClient(
   component: ComponentRef,
-  connectivity: ConnectivityRef,
+  connectivity: ConnectivityRef | null,
   credential: CredentialRef,
+  connectivityProvider?: { config?: Record<string, unknown> | null } | null,
 ): SplunkAuditClient {
-  const baseUrl = buildSplunkUrl(component, connectivity)
+  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)
   const auth = buildAuthHeader(credential)
   return auditClientFromBase(baseUrl, auth)
 }

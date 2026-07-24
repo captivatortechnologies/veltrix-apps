@@ -8,14 +8,14 @@ import { HEC_BASE_PATH } from './deploy'
  * and every token declared on the canvas exists and is enabled.
  */
 export default async function healthCheck(ctx: HealthCheckContext): Promise<HealthCheckResult> {
-  const { component, credential, connectivity, canvas } = ctx
+  const { component, credential, connectivity, connectivityProvider, canvas } = ctx
   const checks: HealthCheckResult['checks'] = []
 
-  if (!credential || !connectivity) {
+  if (!credential || (!connectivity && !connectivityProvider)) {
     return { healthy: false, score: 0, checks: [{ name: 'connectivity', passed: false, message: 'Missing credential or connectivity' }] }
   }
 
-  const baseUrl = buildSplunkUrl(component, connectivity)
+  const baseUrl = buildSplunkUrl(component, connectivity, connectivityProvider)
   const auth = buildAuthHeader(credential)
 
   // Check 1: Server reachable
