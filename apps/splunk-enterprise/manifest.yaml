@@ -1,6 +1,6 @@
 id: splunk-enterprise
 name: Splunk Enterprise
-version: "1.19.33"
+version: "1.19.34"
 vendor: Veltrix
 description: >
   Manage Splunk Enterprise configurations as code.
@@ -75,7 +75,10 @@ pipeline:
         getStatus: config-types/hec-tokens/getStatus
         options: config-types/hec-tokens/options
       targets:
-        componentTypes: [indexer, heavy-forwarder]
+        # HEC runs on any full Splunk instance with the http input — most often a
+        # search head, but also indexers / heavy-forwarders. All three are valid;
+        # the operator picks per-config with Target Server Types.
+        componentTypes: [search-head, indexer, heavy-forwarder]
         requiresCredential: true
         requiresConnectivity: true
 

@@ -59,7 +59,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
           message:
             `Index ${missing.map((m) => `'${m}'`).join(', ')} ${plural ? 'do' : 'does'} not exist on ` +
             `${component.hostname} (available: ${available}). Pick a valid index for this server, ` +
-            `or scope Target Server Types to an indexer that has ${plural ? 'them' : 'it'}.`,
+            `or scope Target Server Types to a server that has ${plural ? 'them' : 'it'}.`,
         }
       }
     }

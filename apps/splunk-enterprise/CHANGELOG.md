@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.34 — 2026-07-24
+
+### Changed
+- **HEC Tokens can target search heads, not just indexers/heavy-forwarders.** HEC runs on any full Splunk instance with the http input enabled — most commonly a **search head**. The config type previously restricted its targets to `[indexer, heavy-forwarder]`, which excluded search heads from the default target set and the picker's default host resolution. It now allows `[search-head, indexer, heavy-forwarder]`; the operator chooses per-config with **Target Server Types** (e.g. scope to `search-head`). The pre-flight index message is now role-neutral ("scope Target Server Types to a server that has it") instead of steering toward an indexer. The pre-flight check itself is unchanged — an HEC token's index must still exist on whichever server it targets (splunkd validates the index against that instance's local index list), so on a search head pick an index that server actually has.
+
 ## 1.19.33 — 2026-07-24
 
 ### Added
