@@ -128,4 +128,35 @@ describe('HEC deploy pre-flight index validation', () => {
     expect(result.success).toBe(true)
     expect(calls.some((c) => c.url.includes('/services/data/indexes'))).toBe(false)
   })
+
+  it('enables the global HEC input before creating tokens', async () => {
+    stubSplunk(['main'])
+    const result = await deploy(makeCtx({ name: 'my_token', defaultIndex: 'main', enabled: true }))
+
+    expect(result.success).toBe(true)
+    // The global "http" stanza was enabled (POST .../data/inputs/http/http/enable).
+    const enabled = calls.some((c) => c.method === 'POST' && c.url.includes('/data/inputs/http/http/enable'))
+    expect(enabled).toBe(true)
+  })
+
+  it('still succeeds but warns when the global HEC input cannot be enabled', async () => {
+    calls = []
+    __setSplunkTransport(async (url, init) => {
+      const method = init.method ?? 'GET'
+      calls.push({ url, method })
+      if (url.includes('/data/inputs/http/http/enable')) return { ok: false, status: 403, text: async () => 'denied' }
+      if (url.includes('/services/data/indexes')) {
+        return { ok: true, status: 200, text: async () => JSON.stringify({ entry: [{ name: 'main' }] }) }
+      }
+      if (method === 'GET') return { ok: false, status: 404, text: async () => 'not found' }
+      return { ok: true, status: 200, text: async () => '{}' }
+    })
+
+    const result = await deploy(makeCtx({ name: 'my_token', defaultIndex: 'main', enabled: true }))
+
+    expect(result.success).toBe(true) // token creation is the primary intent
+    expect(result.message).toContain('WARNING')
+    expect(result.message).toContain('HTTP Event Collector')
+    expect(wroteToken()).toBe(true)
+  })
 })

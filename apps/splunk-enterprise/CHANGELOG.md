@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.36 — 2026-07-24
+
+### Fixed
+- **HEC deploy now enables the global HTTP Event Collector input.** A token receives no events while HEC is *globally* disabled — which search heads default to — so a deploy could succeed yet the health check scored 67 (`hec_enabled` failing: 2 of 3 checks). The deploy now enables the global `http` input (idempotent) before creating tokens, so a deployed token actually works and the health check passes. Best-effort: if it can't be enabled (e.g. permissions), the deploy still creates the tokens and the result message carries a clear WARNING that HEC must be enabled on that host. Covered by new tests.
+
 ## 1.19.35 — 2026-07-24
 
 ### Changed

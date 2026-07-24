@@ -65,6 +65,18 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     }
   }
 
+  // Ensure the GLOBAL HEC input ("http") is enabled — a token receives nothing
+  // while HTTP Event Collector is globally disabled, which search heads default
+  // to (this is what the health check's `hec_enabled` check flags). Idempotent +
+  // best-effort: it never fails the deploy, but the outcome is surfaced so the
+  // operator knows if it couldn't be turned on.
+  let hecGloballyEnabled = true
+  try {
+    await splunkRequest(`${baseUrl}${HEC_BASE_PATH}/http/enable`, { method: 'POST', headers: auth })
+  } catch {
+    hecGloballyEnabled = false
+  }
+
   const rollbackSnapshot: Record<string, unknown>[] = []
   const createdTokens: string[] = []
   const deployedTokens: string[] = []
@@ -105,10 +117,13 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       deployedTokens.push(tokenName)
     }
 
+    const hecWarning = hecGloballyEnabled
+      ? ''
+      : ` — WARNING: could not enable the global HTTP Event Collector input on ${component.hostname}; tokens will not receive events until HEC is enabled there`
     return {
       success: true,
-      message: `Deployed ${deployedTokens.length} HEC token(s): ${deployedTokens.join(', ')}`,
-      artifacts: { deployedTokens, createdTokens },
+      message: `Deployed ${deployedTokens.length} HEC token(s): ${deployedTokens.join(', ')}${hecWarning}`,
+      artifacts: { deployedTokens, createdTokens, hecGloballyEnabled },
       rollbackData: { previousState: rollbackSnapshot, createdTokens },
     }
   } catch (error) {
