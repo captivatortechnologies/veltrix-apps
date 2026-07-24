@@ -1,0 +1,51 @@
+{
+  "name": "@veltrixsecops/mcp-server",
+  "version": "0.1.0",
+  "description": "Veltrix MCP server — connect AI assistants to Veltrix through the Model Context Protocol. Propose-only by design: agents draft and validate security-tool configuration; humans approve in the portal.",
+  "license": "MIT",
+  "homepage": "https://www.veltrixsecops.com/documentations/mcp-server.html",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "veltrix",
+    "security-as-code",
+    "ai-governance",
+    "claude"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "dist/index.js",
+  "bin": {
+    "veltrix-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "ts-node src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "jest",
+    "smoke": "node scripts/e2e-smoke.js",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.15.0",
+    "express": "^4.21.2",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.0.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
+  }
+}
