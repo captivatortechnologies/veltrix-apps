@@ -28,6 +28,15 @@ import {
 import { devCommand } from '../src/commands/dev.mjs'
 import { deployCommand, deployStatusCommand } from '../src/commands/deploy.mjs'
 import { appsCommand, envCommand, configListCommand, configGetCommand } from '../src/commands/inspect.mjs'
+import {
+  configCreateCommand,
+  configUpdateCommand,
+  configValidateCommand,
+  configSubmitCommand,
+  configDeleteCommand,
+  configApprovalsCommand,
+} from '../src/commands/config-manage.mjs'
+import { driftListCommand, driftCheckCommand, driftScheduleCommand } from '../src/commands/drift.mjs'
 
 const require = createRequire(import.meta.url)
 const { version } = require('../package.json')
@@ -159,7 +168,7 @@ program
   .option('--profile <name>', 'Profile name', 'default')
   .action(envCommand)
 
-const config = program.command('config').description('Inspect configuration canvases')
+const config = program.command('config').description('Author, inspect, and manage configuration canvases')
 
 config
   .command('list')
@@ -173,6 +182,79 @@ config
   .argument('<id>', 'Canvas id')
   .option('--profile <name>', 'Profile name', 'default')
   .action(configGetCommand)
+
+config
+  .command('create')
+  .description('Draft a configuration from a spec (name, app, configType, sections) — no deploy')
+  .argument('<spec>', 'Spec file (YAML/JSON)')
+  .option('--validate', 'Validate the draft after creating it')
+  .option('--profile <name>', 'Profile name', 'default')
+  .action(configCreateCommand)
+
+config
+  .command('update')
+  .description('Edit a draft configuration (name, description, and/or sections)')
+  .argument('<id>', 'Canvas id')
+  .requiredOption('--spec <file>', 'Spec file (YAML/JSON) with the fields to update')
+  .option('--profile <name>', 'Profile name', 'default')
+  .action(configUpdateCommand)
+
+config
+  .command('validate')
+  .description('Validate a configuration (runs the config type\'s validate handler)')
+  .argument('<id>', 'Canvas id')
+  .option('--profile <name>', 'Profile name', 'default')
+  .action(configValidateCommand)
+
+config
+  .command('submit')
+  .description('Submit a draft for approval (approval is always required before deploy)')
+  .argument('<id>', 'Canvas id')
+  .requiredOption('--approvers <emails>', 'Comma-separated approver emails or user ids')
+  .option('--env <name|id>', 'Environment the approval targets')
+  .option('--comment <text>', 'Optional note for the approvers')
+  .option('--profile <name>', 'Profile name', 'default')
+  .action(configSubmitCommand)
+
+config
+  .command('approvals')
+  .description('Show a configuration\'s approval requests and their status')
+  .argument('<id>', 'Canvas id')
+  .option('--profile <name>', 'Profile name', 'default')
+  .action(configApprovalsCommand)
+
+config
+  .command('delete')
+  .description('Delete a configuration')
+  .argument('<id>', 'Canvas id')
+  .option('--yes', 'Skip the confirmation prompt')
+  .option('--profile <name>', 'Profile name', 'default')
+  .action(configDeleteCommand)
+
+const drift = program.command('drift').description('Inspect and schedule configuration drift')
+
+drift
+  .command('list')
+  .description('List drift records + the async check state for one configuration')
+  .argument('<canvasId>', 'Canvas id')
+  .option('--profile <name>', 'Profile name', 'default')
+  .action(driftListCommand)
+
+drift
+  .command('check')
+  .description('Run an on-demand drift check for one configuration (polls to completion)')
+  .argument('<canvasId>', 'Canvas id')
+  .option('--profile <name>', 'Profile name', 'default')
+  .action(driftCheckCommand)
+
+drift
+  .command('schedule')
+  .description('Show or change the scheduled-check frequency (tenant default + per-app overrides)')
+  .option('--set <frequency>', 'Set the frequency: off | hourly | daily | weekly')
+  .option('--app <appId>', 'Scope to a per-app override (else the tenant default)')
+  .option('--clear', 'Clear a per-app override (requires --app)')
+  .option('--profile <name>', 'Profile name', 'default')
+  .action(driftScheduleCommand)
 
 program.parseAsync().catch((err) => {
   console.error(`✖ ${err.message}`)

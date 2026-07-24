@@ -70,6 +70,51 @@ export async function getDeployment(profile, deploymentId) {
   return apiRequest(profile, 'GET', `api/pipeline/deployments/${encodeURIComponent(deploymentId)}`)
 }
 
+/** PUT /api/configuration-canvas/:id — update a DRAFT canvas ({ name?, description?, sections? }). */
+export async function updateCanvas(profile, id, body) {
+  return apiRequest(profile, 'PUT', `api/configuration-canvas/${encodeURIComponent(id)}`, body)
+}
+
+/** DELETE /api/configuration-canvas/:id — delete a canvas. */
+export async function deleteCanvas(profile, id) {
+  return apiRequest(profile, 'DELETE', `api/configuration-canvas/${encodeURIComponent(id)}`)
+}
+
+/** GET /api/configuration-canvas/:id/approvals — the canvas's approval requests + status. */
+export async function getApprovals(profile, id) {
+  return apiRequest(profile, 'GET', `api/configuration-canvas/${encodeURIComponent(id)}/approvals`)
+}
+
+/** POST /api/pipeline/deployments/:id/rollback — roll a deployment back to its previous config. */
+export async function rollbackDeployment(profile, deploymentId) {
+  return apiRequest(profile, 'POST', `api/pipeline/deployments/${encodeURIComponent(deploymentId)}/rollback`)
+}
+
+/** GET /api/pipeline/configuration-canvas/:id/drift — drift records for one canvas + check state. */
+export async function getCanvasDrift(profile, id) {
+  return apiRequest(profile, 'GET', `api/pipeline/configuration-canvas/${encodeURIComponent(id)}/drift`)
+}
+
+/** POST /api/pipeline/configuration-canvas/:id/drift/check — queue an on-demand drift check (async). */
+export async function checkCanvasDrift(profile, id) {
+  return apiRequest(profile, 'POST', `api/pipeline/configuration-canvas/${encodeURIComponent(id)}/drift/check`)
+}
+
+/** GET /api/pipeline/drift/schedule — tenant default + per-app drift-check frequencies. */
+export async function getDriftSchedule(profile) {
+  return apiRequest(profile, 'GET', 'api/pipeline/drift/schedule')
+}
+
+/** PUT /api/pipeline/drift/schedule — set the tenant default (no appId) or a per-app override. */
+export async function setDriftSchedule(profile, frequency, appId) {
+  return apiRequest(profile, 'PUT', 'api/pipeline/drift/schedule', appId ? { frequency, appId } : { frequency })
+}
+
+/** DELETE /api/pipeline/drift/schedule/:appId — clear a per-app override (inherit the tenant default). */
+export async function clearDriftSchedule(profile, appId) {
+  return apiRequest(profile, 'DELETE', `api/pipeline/drift/schedule/${encodeURIComponent(appId)}`)
+}
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /** True when a value already looks like a UUID (so no name→id lookup is needed). */
