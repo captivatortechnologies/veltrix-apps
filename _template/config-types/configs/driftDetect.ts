@@ -10,6 +10,14 @@
 //
 // Return { hasDrift: false } if everything matches.
 // Return { hasDrift: true, diffs: [...] } with specific differences.
+//
+// CONTENT DRIFT (proven by the Splunk app): to catch a manual edit of a file
+// the deploy shipped, compare the SHA-256 of each shipped file against the live
+// one — over managed ZTNA use `ctx.remote.hashTree()` / `ctx.remote.readFile()`;
+// over an API fetch the effective content. For structured files (`.conf`, JSON),
+// compare KEY BY KEY on the keys you shipped and IGNORE extra keys the tool adds
+// on its own (e.g. an install checksum) — a whole-file hash false-alarms on that
+// bookkeeping. Report a changed shipped value as a precise per-key diff.
 // =============================================================================
 
 import type { DriftContext, DriftResult } from '@veltrixsecops/app-sdk'

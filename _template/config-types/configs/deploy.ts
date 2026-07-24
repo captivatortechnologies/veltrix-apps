@@ -15,6 +15,23 @@
 // Return { success: true } on success.
 // Return { success: false, message: "why" } on failure (triggers rollback).
 // Optionally return rollbackData that will be passed to your rollback handler.
+//
+// TWO PATTERNS worth knowing (both proven by the Splunk + Okta apps):
+//
+//  • Rename-safety (idempotent updates). If your tool assigns its own external
+//    ids, persist an item-id → external-id map in
+//    `rollbackData.resourceIds` and read the LAST successful deploy's map via
+//    `ctx.platform.getLatestDeployment()` at the start of a deploy. Then an edit
+//    that renames an item UPDATES the same external object instead of recreating
+//    it. EVERY deploy strategy must return rollbackData for this to hold.
+//
+//  • Managed ZTNA (file placement over the tailnet). When a server is reached
+//    through a managed provider, `ctx.remote` (a RemoteExecutor) is present:
+//    `ctx.remote.putFile()`, `.run()`, `.extractArchive()`, `.hashTree()`,
+//    `.readFile()` run on the box over the tailnet — use it when the tool needs
+//    files staged on disk rather than a pure API call. Build any HTTP URL from
+//    `connectivityProvider.config.deviceAddress` (the tailnet host), never the
+//    raw `.local` hostname (which won't resolve from the platform).
 // =============================================================================
 
 import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'

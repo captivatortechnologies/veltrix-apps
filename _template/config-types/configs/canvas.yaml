@@ -4,7 +4,15 @@
 # Defines the fields that appear in the Configuration Canvas editor
 # when a user creates this type of configuration.
 #
-# Field types: text, number, select, checkbox, textarea, tags, password, path
+# Field types: text, number, select, checkbox, textarea, tags, password, path,
+#   remote-select      — one value picked live from the tool (stores an id string)
+#   remote-multiselect — many values picked live from the tool (stores string[])
+# Live pickers need `optionsSource: "<name>"` matching a case in options.ts, and
+# resolve their list from the tool at edit time (see config-types/configs/options.ts).
+#
+# Fields can also declare a `group:` (sub-heading within a section) and a
+# `visibleWhen:` condition ({ field, includes } — show only when another field
+# holds a value) to keep long forms readable.
 # =============================================================================
 
 id: "my-app-configs"
@@ -70,6 +78,25 @@ sections:
             value: "https"
           - label: "HTTP"
             value: "http"
+
+  - name: "Targeting"
+    icon: "git-branch"
+    description: "Pick values live from the tool (see options.ts)"
+    fields:
+      # remote-select — resolves options from the tool at edit time; stores ONE id.
+      - key: "primaryGroup"
+        label: "Primary Group"
+        fieldType: "remote-select"
+        optionsSource: "groups"
+        helpText: "Search the tool's live groups and pick one (the id is stored)."
+
+      # remote-multiselect — same, but stores string[] of ids.
+      - key: "allowedGroups"
+        label: "Allowed Groups"
+        fieldType: "remote-multiselect"
+        optionsMulti: true
+        optionsSource: "groups"
+        helpText: "Select one or more groups this configuration applies to."
 
   - name: "Advanced"
     icon: "sliders"

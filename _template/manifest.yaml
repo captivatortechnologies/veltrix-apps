@@ -80,10 +80,16 @@ pipeline:
         healthCheck: config-types/configs/healthCheck
         driftDetect: config-types/configs/driftDetect
         getStatus: config-types/configs/getStatus
+        # Live pickers (remote-select / remote-multiselect fields). Optional —
+        # omit if no field pulls its options from the tool at edit time.
+        options: config-types/configs/options
 
       # What infrastructure this configuration targets
       targets:
-        componentTypes: ["server"]     # Which component types to deploy to
+        # Roles this config type can deploy to. The operator narrows to SPECIFIC
+        # servers per-config with the canvas "Target Servers" picker (there can be
+        # several of each role); empty selection = all servers matching these types.
+        componentTypes: ["server"]
         requiresCredential: true       # Needs tool credentials for auth
         requiresConnectivity: true     # Needs SSH/API access to components
 
@@ -185,7 +191,28 @@ client:
 #
 # You do NOT need to build your own connectivity config — just import the
 # shared view in your app's Settings tab/page.
+#
+# testHandler backs the "Test" button on the Connections page — a standalone
+# probe of a connection's endpoint + credential (see config-types/configs/
+# testConnection.ts). Optional but recommended for any app with connections.
 # =============================================================================
+connectivity:
+  testHandler: config-types/configs/testConnection
+
+# =============================================================================
+# OPERATIONS (optional) — one-off actions that are NOT configuration deploys
+# (restart a service, rotate a token, export state). Each resolves the chosen
+# connection's credential and runs its handler in-process. Surface them from a
+# client page via the platform's operations endpoint.
+# =============================================================================
+operations:
+  - id: "restart-service"
+    name: "Restart Service"
+    description: "Restart the managed service on a selected server"
+    handler: config-types/configs/operations/restartService
+    requiresPermission:
+      resource: "my-app:configs"
+      action: "update"
 
 # =============================================================================
 # LIFECYCLE HOOKS (optional)
