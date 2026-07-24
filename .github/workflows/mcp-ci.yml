@@ -1,0 +1,38 @@
+name: MCP CI
+
+# Build + test the MCP server on every change so main is always buildable — the
+# platform deploy builds the MCP from this repo as a first-class CI step, so a
+# broken MCP must never reach main.
+on:
+  push:
+    branches: [main]
+    paths: ['mcp/**', '.github/workflows/mcp-ci.yml']
+  pull_request:
+    paths: ['mcp/**', '.github/workflows/mcp-ci.yml']
+
+jobs:
+  build-and-test:
+    name: Build + test MCP
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mcp
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mcp/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck + build
+        run: npm run build
+
+      - name: Test
+        run: npm test
