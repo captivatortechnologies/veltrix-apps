@@ -11,6 +11,7 @@ import {
   listInventory,
   addInventoryItem,
   updateInventoryItem,
+  fetchAppOnboarding,
   type CredentialSummary,
   type EnvironmentRef,
   type TestConnectionResult,
@@ -262,6 +263,12 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
   const [onboardSubmitting, setOnboardSubmitting] = useState(false)
   const [onboardError, setOnboardError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  // The OAuth "Connect …" option is offered on every app. The descriptor is the
+  // `onboarding` prop when the page passes it, else self-fetched from
+  // /apps/enabled. When absent, the option renders disabled (this provider is
+  // credential-only — username/password or API token).
+  const [fetchedOnboarding, setFetchedOnboarding] = useState<OnboardingDescriptorSummary | null>(null)
+  const effectiveOnboarding = onboarding ?? fetchedOnboarding
 
   const load = useCallback(async () => {
     setIsLoading(true)
@@ -284,6 +291,24 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
   useEffect(() => {
     void load()
   }, [load])
+
+  // Self-resolve the onboarding descriptor when the page didn't pass one.
+  useEffect(() => {
+    if (onboarding) return
+    let cancelled = false
+    void fetchAppOnboarding(appId).then((d) => {
+      if (cancelled || !d) return
+      setFetchedOnboarding({
+        provider: d.provider,
+        label: d.label,
+        brokered: d.brokered ?? false,
+        requiredSettings: d.requiredSettings ?? [],
+      })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [appId, onboarding])
 
   // Surface the result of a completed onboarding redirect
   // (`…/connections?onboarded=ok|error`) and strip the params from the URL.
@@ -318,7 +343,7 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
   }
 
   const handleStartOnboarding = async () => {
-    if (!onboarding) return
+    if (!effectiveOnboarding) return
     const name = onboardName.trim()
     if (!name) {
       setOnboardError('Name is required')
@@ -328,7 +353,7 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
       setOnboardError('Environment is required')
       return
     }
-    const missing = onboarding.requiredSettings.filter((k) => !onboardSettings[k]?.trim())
+    const missing = effectiveOnboarding.requiredSettings.filter((k) => !onboardSettings[k]?.trim())
     if (missing.length > 0) {
       setOnboardError(`Please provide: ${missing.join(', ')}`)
       return
@@ -642,12 +667,21 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
             <Button variant="secondary" size="sm" onClick={() => void load()} isLoading={isLoading}>
               Refresh
             </Button>
-            {onboarding ? (
+            {effectiveOnboarding ? (
               <Button variant="primary" size="sm" onClick={openOnboard}>
-                {onboarding.label}
+                {effectiveOnboarding.label}
               </Button>
-            ) : null}
-            <Button variant={onboarding ? 'secondary' : 'primary'} size="sm" onClick={openCreate}>
+            ) : (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled
+                title="OAuth integration isn't available for this app — connect with a username/password or API token."
+              >
+                Integrate via OAuth
+              </Button>
+            )}
+            <Button variant={effectiveOnboarding ? 'secondary' : 'primary'} size="sm" onClick={openCreate}>
               Add connection
             </Button>
           </div>
@@ -791,15 +825,15 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
         </div>
       </FormDialog>
 
-      {onboarding ? (
+      {effectiveOnboarding ? (
         <FormDialog
           isOpen={onboardOpen}
           onClose={() => {
             if (!onboardSubmitting) setOnboardOpen(false)
           }}
-          title={onboarding.label}
+          title={effectiveOnboarding.label}
           description={
-            onboarding.brokered
+            effectiveOnboarding.brokered
               ? "You'll approve this on your provider's sign-in page — no secret is entered or stored here."
               : "You'll authorize this on your provider's sign-in page."
           }
@@ -829,7 +863,7 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
               helperText="The deployment scope this connection belongs to."
               fullWidth
             />
-            {onboarding.requiredSettings.map((key) => (
+            {effectiveOnboarding.requiredSettings.map((key) => (
               <Input
                 key={key}
                 label={key}

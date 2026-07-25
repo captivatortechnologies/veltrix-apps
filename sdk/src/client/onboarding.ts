@@ -29,6 +29,35 @@ async function onboardingError(res: Response): Promise<Error> {
   return new Error(`HTTP ${res.status}`)
 }
 
+/** The client-safe onboarding descriptor an app advertises in /apps/enabled. */
+export interface AppOnboardingDescriptor {
+  provider: string
+  label: string
+  brokered?: boolean
+  requiredSettings?: string[]
+}
+
+/**
+ * Fetch an app's connection-onboarding descriptor from GET /api/apps/enabled,
+ * so the Connections UI can offer an "Integrate via OAuth" option without the
+ * app page having to pass it in. Returns null when the app declares no
+ * onboarding (its connections stay credential-only).
+ */
+export async function fetchAppOnboarding(appId: string): Promise<AppOnboardingDescriptor | null> {
+  try {
+    const res = await authFetch('/api/apps/enabled', { method: 'GET' })
+    if (!res.ok) return null
+    const data = (await res.json()) as unknown
+    const list = Array.isArray(data) ? data : ((data as { data?: unknown[] })?.data ?? [])
+    const app = (list as Array<{ appId?: string; id?: string; connection?: { onboarding?: AppOnboardingDescriptor } }>).find(
+      (a) => a.appId === appId || a.id === appId,
+    )
+    return app?.connection?.onboarding ?? null
+  } catch {
+    return null
+  }
+}
+
 export interface StartOnboardingInput {
   /** The deployment scope (environment) the new connection belongs to. */
   environmentId: string
