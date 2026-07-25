@@ -210,11 +210,19 @@ export class CloudflareClient {
   }
 
   /**
-   * Verify the API token itself (GET /user/tokens/verify) — a token-scoped probe
-   * that needs no zone or account. Used by the connection test.
+   * Verify the API token. A Cloudflare token is verified at ONE of two places
+   * depending on how it was created: user-owned tokens (My Profile → API Tokens)
+   * at `/user/tokens/verify`, and account-owned tokens (Account → API Tokens) at
+   * `/accounts/{id}/tokens/verify`. An account-scoped token is REJECTED (401) at
+   * the user endpoint, so try that first and fall back to the account endpoint
+   * when an account id is available (setting or derived from the zone).
    */
   async verifyToken(): Promise<CloudflareResponse> {
-    return this.request('GET', '/user/tokens/verify', {})
+    const userRes = await this.request('GET', '/user/tokens/verify', {})
+    if (userRes.ok || (userRes.status !== 401 && userRes.status !== 403)) return userRes
+    const acct = await this.resolveAccountId()
+    if ('error' in acct) return userRes // no account id → surface the user-endpoint result
+    return this.request('GET', `/accounts/${acct.accountId}/tokens/verify`, {})
   }
 
   // ---- transport -----------------------------------------------------------

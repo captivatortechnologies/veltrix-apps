@@ -70,7 +70,10 @@ export default async function testConnection(ctx: TestConnectionContext): Promis
     if (res.status === 401 || res.status === 403) {
       return {
         ok: false,
-        message: `Cloudflare rejected the API token (HTTP ${res.status}). Check the token value and that it carries the required permissions.`,
+        message:
+          `Cloudflare rejected the API token (HTTP ${res.status}). Check the token value and its permissions. ` +
+          `If this is an account-scoped token (created under Account → API Tokens), set the app's "account_id" ` +
+          `setting so it can be verified at the account endpoint.`,
         details,
         latencyMs,
       }

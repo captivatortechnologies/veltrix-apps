@@ -3,6 +3,11 @@
 All notable changes to the Cloudflare app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.2.1 — 2026-07-25
+
+### Fixed
+- **Connection test now works with account-scoped API tokens.** The token verify probe called only `GET /user/tokens/verify`, which an **account-owned** token (created under Account → API Tokens) is rejected by (HTTP 401) — so a valid account-scoped token showed "Cloudflare rejected the API token (HTTP 401)". `verifyToken` now falls back to `GET /accounts/{id}/tokens/verify` when the user endpoint rejects the token and an account id is available (the `account_id` app setting, or derived from the zone). The 401 message also points to the `account_id` setting for account-scoped tokens.
+
 ## 1.2.0 — 2026-07-22
 
 ### Added
