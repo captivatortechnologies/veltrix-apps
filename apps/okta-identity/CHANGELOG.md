@@ -3,6 +3,11 @@
 All notable changes to the Okta app are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## 1.11.0 — 2026-07-25
+
+### Added
+- **One-click OAuth onboarding (Connect Okta).** The Connections page now offers a "Connect Okta (OAuth)" option that runs the platform's generic OAuth2 authorization-code flow instead of pasting an SSWS token: the admin supplies their Okta org (e.g. `acme.okta.com`), authorizes on Okta's sign-in page, and the resulting token is stored as the connection. Declared via `connection.onboarding` (provider `oauth2-auth-code`) with the org templated into the authorize/token URLs. **Activation requires a platform-registered Okta OAuth app** (a `PlatformConnectorApp` row with client id + secret for `okta-identity` / `oauth2-auth-code`); until then the button surfaces a "connector app not registered" error. The SSWS-token connection path is unchanged.
+
 ## 1.10.0 — 2026-07-22
 
 ### Added

@@ -1,6 +1,6 @@
 id: okta-identity
 name: Okta
-version: "1.10.0"
+version: "1.11.0"
 vendor: Veltrix
 description: >
   Manage Okta configuration as code through the Okta Management API. Covers
@@ -787,6 +787,27 @@ hooks:
 # API token against the Okta Management API (GET /api/v1/org).
 connectivity:
   testHandler: handlers/testConnection
+
+# One-click OAuth onboarding (the platform's generic oauth2-auth-code adapter).
+# The admin supplies their Okta org up front (okta_org, e.g. acme.okta.com); the
+# platform templates the org into the authorize/token URLs and exchanges the code
+# using the platform-registered Okta OAuth app's client id + secret (a
+# PlatformConnectorApp row for app "okta-identity", provider "oauth2-auth-code").
+connection:
+  onboarding:
+    provider: oauth2-auth-code
+    label: "Connect Okta (OAuth)"
+    params:
+      authorizeUrl: "https://{okta_org}/oauth2/v1/authorize"
+      tokenUrl: "https://{okta_org}/oauth2/v1/token"
+      scopes:
+        - okta.groups.manage
+        - okta.users.manage
+        - okta.apps.manage
+        - okta.policies.manage
+        - offline_access
+      requiredSettings:
+        - okta_org
 
 settings:
   - key: request_timeout_seconds
