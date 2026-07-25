@@ -12,7 +12,8 @@ export default function ConnectionsPage() {
       appName="Cloudflare"
       appId="cloudflare"
       tokenLabel="API token"
-      tokenUsernamePlaceholder="not required for a Cloudflare API token"
+      usernameLabel="Account ID"
+      tokenUsernamePlaceholder="e.g. f9fa6ce8b0f2b91f8635eedde085b094 — required for account-scoped tokens"
       endpointPlaceholder="e.g. example.com"
       endpointHelper="Your Cloudflare zone (apex) domain — the zone this token manages."
     />

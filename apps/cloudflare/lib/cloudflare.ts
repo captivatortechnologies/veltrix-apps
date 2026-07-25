@@ -304,11 +304,16 @@ export function buildCloudflareClient(
   }
 
   const resolved = readCloudflareSettings(settings)
+  // Account id, most specific first: the connection's own value (entered in the
+  // Add-connection form and stored in the credential's `username`), then the
+  // app-level `account_id` setting, then derived from the zone. This lets an
+  // account-scoped token carry its account with the connection.
+  const connAccountId = credential?.username?.trim() || null
   return {
     client: new CloudflareClient({
       token,
       domain,
-      accountId: resolved.accountId,
+      accountId: connAccountId || resolved.accountId,
       timeoutMs: resolved.timeoutMs,
     }),
     domain,

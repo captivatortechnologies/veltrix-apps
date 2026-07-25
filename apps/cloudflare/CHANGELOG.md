@@ -3,6 +3,11 @@
 All notable changes to the Cloudflare app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.2.2 — 2026-07-25
+
+### Added
+- **Account ID is now entered on the connection itself.** The Add-connection form's identifier field is relabeled **"Account ID"** for Cloudflare (stored on the connection), so an account-scoped token carries its account with it. The client reads the account id most-specific-first: the connection's Account ID, then the app-level `account_id` setting, then derived from the zone. This makes the connection self-contained (the test and account-scoped config types — Access, Gateway, Lists — work without a separate app setting).
+
 ## 1.2.1 — 2026-07-25
 
 ### Fixed
