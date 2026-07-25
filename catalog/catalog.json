@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-25T19:45:58.800Z",
+  "generatedAt": "2026-07-25T19:59:56.480Z",
   "apps": [
     {
       "appId": "cloudflare",
       "name": "Cloudflare",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "vendor": "Veltrix",
       "description": "Manage Cloudflare configuration as code through the Cloudflare API (v4). Covers DNS, the WAF/firewall Rulesets engine (custom rules, rate limiting, redirects, transforms and managed-ruleset overrides), zone settings, account Lists, and Zero Trust (Access applications/policies/groups/service-tokens and Gateway rules/lists) — with validation, drift detection and rollback handled by the Security-as-Code pipeline. The component hostname is the zone domain; the app resolves zone and account ids automatically.",
       "category": "NETWORK",
@@ -16,11 +16,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cloudflare",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cloudflare-v1.2.1/cloudflare.zip",
-      "sha256": "975e02da21216e6597766164dd0b744e051a210124d748f01af017b46562e30e",
-      "sizeBytes": 315576,
-      "publishedAt": "2026-07-25T19:45:58.756Z",
-      "releaseNotes": "## 1.2.1 — 2026-07-25\n\n### Fixed\n- **Connection test now works with account-scoped API tokens.** The token verify probe called only `GET /user/tokens/verify`, which an **account-owned** token (created under Account → API Tokens) is rejected by (HTTP 401) — so a valid account-scoped token showed \"Cloudflare rejected the API token (HTTP 401)\". `verifyToken` now falls back to `GET /accounts/{id}/tokens/verify` when the user endpoint rejects the token and an account id is available (the `account_id` app setting, or derived from the zone). The 401 message also points to the `account_id` setting for account-scoped tokens.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cloudflare-v1.2.2/cloudflare.zip",
+      "sha256": "1d64c26fdae93f751ee0162ea61537ae7c17319145ef1f87caed82ca1986f970",
+      "sizeBytes": 316029,
+      "publishedAt": "2026-07-25T19:59:56.434Z",
+      "releaseNotes": "## 1.2.2 — 2026-07-25\n\n### Added\n- **Account ID is now entered on the connection itself.** The Add-connection form's identifier field is relabeled **\"Account ID\"** for Cloudflare (stored on the connection), so an account-scoped token carries its account with it. The client reads the account id most-specific-first: the connection's Account ID, then the app-level `account_id` setting, then derived from the zone. This makes the connection self-contained (the test and account-scoped config types — Access, Gateway, Lists — work without a separate app setting).",
       "releasedAt": "2026-07-25T00:00:00.000Z"
     },
     {
