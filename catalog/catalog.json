@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-25T19:59:56.480Z",
+  "generatedAt": "2026-07-25T21:04:11.311Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -186,7 +186,7 @@
     {
       "appId": "okta-identity",
       "name": "Okta",
-      "version": "1.10.0",
+      "version": "1.11.0",
       "vendor": "Veltrix",
       "description": "Manage Okta configuration as code through the Okta Management API. Covers policies and their rules, group rules, groups, network zones, trusted origins, behavior rules, authenticators, identity providers, event / inline hooks, authorization servers (scopes / claims / policies), applications and group assignments, plus security and IAM governance — ThreatInsight, log streams, device assurance policies, user types, custom admin roles with resource sets and their role bindings, custom profile-schema attributes and profile mappings, self-service feature toggles, CAPTCHA, user linked-object definitions, org rate-limit settings, brands and their themes, custom email domains and SMS templates — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
@@ -196,12 +196,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/okta-identity",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/okta-identity-v1.10.0/okta-identity.zip",
-      "sha256": "68f054ddd00217bebe8280c4410a9db67f68f0ed22f80841a8d21ce2b3dbd8b3",
-      "sizeBytes": 863158,
-      "publishedAt": "2026-07-22T14:41:54.897Z",
-      "releaseNotes": "## 1.10.0 — 2026-07-22\n\n### Added\n- **Drift attribution — \"who changed it + when\".** When drift is detected on a\n  managed Okta object (groups, group rules, users, network zones, policies), each\n  reported difference is now annotated with the person who made the last manual\n  change and when, resolved from the Okta **System Log**. The platform stores the\n  `actor` on each diff and the drift view renders it, so a drift alert answers\n  *who* and *when*, not just *what*.\n  - Attribution queries the System Log per drifted object, filtered by the\n    object's Okta id (`target.id eq …`), or by name (free-text `q`) as a\n    best-effort fallback for a deleted object with no live id.\n  - It picks the most recent **human** (`actor.type === \"User\"`), non-Veltrix\n    event, preferring change-type events (`group.lifecycle.*`,\n    `group.user_membership.*`, `user.lifecycle.*`, `user.account.*`, `policy.*`,\n    `zone.*`, …) and falling back to the most recent human event otherwise.\n  - Veltrix's own deploys (which run under the connection's admin identity) are\n    excluded via the connection login, so the attribution reflects the *manual*\n    change rather than our deploy.\n  - **Strictly best-effort:** attribution never throws and never fails a drift\n    check — on any error, an empty log, or no usable event, the diff is reported\n    without an actor. Only objects that actually drifted are queried (one log\n    query per drifted object).",
-      "releasedAt": "2026-07-22T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/okta-identity-v1.11.0/okta-identity.zip",
+      "sha256": "9bd83559f7eeb9af3d680a3ef2f572dbf73d7912d73ccb865d83d227bbd99b25",
+      "sizeBytes": 864221,
+      "publishedAt": "2026-07-25T21:04:11.289Z",
+      "releaseNotes": "## 1.11.0 — 2026-07-25\n\n### Added\n- **One-click OAuth onboarding (Connect Okta).** The Connections page now offers a \"Connect Okta (OAuth)\" option that runs the platform's generic OAuth2 authorization-code flow instead of pasting an SSWS token: the admin supplies their Okta org (e.g. `acme.okta.com`), authorizes on Okta's sign-in page, and the resulting token is stored as the connection. Declared via `connection.onboarding` (provider `oauth2-auth-code`) with the org templated into the authorize/token URLs. **Activation requires a platform-registered Okta OAuth app** (a `PlatformConnectorApp` row with client id + secret for `okta-identity` / `oauth2-auth-code`); until then the button surfaces a \"connector app not registered\" error. The SSWS-token connection path is unchanged.",
+      "releasedAt": "2026-07-25T00:00:00.000Z"
     },
     {
       "appId": "palo-alto-panorama",
