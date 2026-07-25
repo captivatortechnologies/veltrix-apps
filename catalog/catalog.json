@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-25T18:07:59.924Z",
+  "generatedAt": "2026-07-25T19:45:58.800Z",
   "apps": [
     {
       "appId": "cloudflare",
       "name": "Cloudflare",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "vendor": "Veltrix",
       "description": "Manage Cloudflare configuration as code through the Cloudflare API (v4). Covers DNS, the WAF/firewall Rulesets engine (custom rules, rate limiting, redirects, transforms and managed-ruleset overrides), zone settings, account Lists, and Zero Trust (Access applications/policies/groups/service-tokens and Gateway rules/lists) — with validation, drift detection and rollback handled by the Security-as-Code pipeline. The component hostname is the zone domain; the app resolves zone and account ids automatically.",
       "category": "NETWORK",
@@ -16,12 +16,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cloudflare",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cloudflare-v1.2.0/cloudflare.zip",
-      "sha256": "3f897df4b8d4d37222a4f98d267826f81f17cbb955db55623879c76c05660164",
-      "sizeBytes": 314735,
-      "publishedAt": "2026-07-22T16:02:01.518Z",
-      "releaseNotes": "## 1.2.0 — 2026-07-22\n\n### Added\n- **Drift attribution — \"who changed it + when\".** When drift is detected on a\n  managed Cloudflare object (DNS records, WAF custom / rate-limiting / redirect /\n  transform rules, managed-ruleset deployments, zone settings, Lists, and Zero\n  Trust Access applications/groups/policies/service-tokens and Gateway\n  policies/lists), each reported difference is now annotated with the person who\n  made the last manual change and when, resolved from the Cloudflare **Audit\n  Logs**. The platform stores the `actor` on each diff and the drift view renders\n  it, so a drift alert answers *who* and *when*, not just *what*.\n  - Attribution queries the account audit logs once per drifted object\n    (`GET /accounts/{account_id}/audit_logs?since=<~7d>&per_page=50&direction=desc`)\n    and correlates entries CLIENT-SIDE to the drifted object by `resource.id`\n    (the live object id, or the setting key for zone settings).\n  - It picks the most recent **human** actor (`actor.type === \"user\"` with an\n    email), preferring change-type actions (`create`, `update`, `delete`, `add`,\n    `disable`, …) and falling back to the most recent human event otherwise.\n    `name`/`email` come from `actor.email`, the timestamp from `when`, and the\n    event type from `action.type`.\n  - Veltrix's own deploys run through the connection's API token, so a change WE\n    made is excluded via the connection login — the attribution reflects the\n    *manual* change rather than our deploy. A non-user API-token actor is already\n    filtered out by the human check.\n  - **Strictly best-effort:** attribution never throws and never fails a drift\n    check — on any error, a non-OK response (for example when the API token lacks\n    **Audit Logs Read** scope), an empty log, or no usable human event, the diff\n    is reported without an actor and the drift view shows \"—\". It never\n    fabricates. Only objects that actually drifted are attributed (one audit\n    query per drifted object).",
-      "releasedAt": "2026-07-22T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cloudflare-v1.2.1/cloudflare.zip",
+      "sha256": "975e02da21216e6597766164dd0b744e051a210124d748f01af017b46562e30e",
+      "sizeBytes": 315576,
+      "publishedAt": "2026-07-25T19:45:58.756Z",
+      "releaseNotes": "## 1.2.1 — 2026-07-25\n\n### Fixed\n- **Connection test now works with account-scoped API tokens.** The token verify probe called only `GET /user/tokens/verify`, which an **account-owned** token (created under Account → API Tokens) is rejected by (HTTP 401) — so a valid account-scoped token showed \"Cloudflare rejected the API token (HTTP 401)\". `verifyToken` now falls back to `GET /accounts/{id}/tokens/verify` when the user endpoint rejects the token and an account id is available (the `account_id` app setting, or derived from the zone). The 401 message also points to the `account_id` setting for account-scoped tokens.",
+      "releasedAt": "2026-07-25T00:00:00.000Z"
     },
     {
       "appId": "cortex-xsoar",
