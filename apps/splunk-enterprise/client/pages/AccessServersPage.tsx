@@ -606,7 +606,7 @@ export default function AccessServersPage() {
         isSubmitting={submitting}
         submitDisabled={!form.hostname.trim() || !form.environmentId}
         error={formError}
-        size="md"
+        size="lg"
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 12 }}>

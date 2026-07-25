@@ -3,6 +3,11 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.19.38 — 2026-07-25
+
+### Fixed
+- **Wider "Add access server" form.** The top row (Hostname · Management port · Web UI port) was cramped in the medium dialog; the Access Servers add/edit form now uses the large dialog size so every field fits comfortably.
+
 ## 1.19.37 — 2026-07-24
 
 ### Added
