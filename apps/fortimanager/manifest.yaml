@@ -1,12 +1,12 @@
 id: fortimanager
 name: FortiManager
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Fortinet FortiManager configuration as code through the FortiManager
-  JSON-RPC API. v0.1 ships Firewall Address objects — the self-contained,
-  name-keyed address table — with validation, drift detection and rollback handled
-  by the Security-as-Code pipeline.
+  JSON-RPC API — Firewall Address objects and custom Firewall Service objects —
+  with validation, drift detection and rollback handled by the Security-as-Code
+  pipeline.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/fortimanager
@@ -30,9 +30,29 @@ permissions:
     - resource: firewall-addresses
       actions: [read, write, delete]
       description: Manage FortiManager firewall address objects (ipmask / iprange / fqdn / geography) in the ADOM object database
+    - resource: firewall-services
+      actions: [read, write, delete]
+      description: Manage FortiManager custom firewall service objects (TCP/UDP/SCTP, ICMP, IP) in the ADOM object database
 
 pipeline:
   configurationTypes:
+    - id: firewall-services
+      name: Firewall Services
+      description: Custom firewall service objects — TCP/UDP/SCTP port ranges, ICMP, or IP protocol (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/firewall-services/canvas.yaml
+      defaultConfig: config-types/firewall-services/defaults.yaml
+      handlers:
+        validate: config-types/firewall-services/validate
+        deploy: config-types/firewall-services/deploy
+        rollback: config-types/firewall-services/rollback
+        healthCheck: config-types/firewall-services/healthCheck
+        driftDetect: config-types/firewall-services/driftDetect
+        getStatus: config-types/firewall-services/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: firewall-addresses
       name: Firewall Addresses
       description: Firewall address objects — IP subnet, range, FQDN or geography (name-keyed, upserted per ADOM)

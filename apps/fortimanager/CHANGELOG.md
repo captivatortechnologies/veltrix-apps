@@ -8,6 +8,16 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.2.0 — 2026-07-26
+
+### Added
+- **Firewall Services** configuration type — manage FortiManager custom firewall
+  service objects (TCP/UDP/SCTP port ranges, ICMP/ICMP6 type+code, or IP protocol
+  number) as code, with the full pipeline handler set. Services are matched by
+  name and upserted with `set`; port ranges are sent as the `[…]` string arrays
+  FortiManager expects; reconcile only deletes services this app created; deploys
+  run inside the ADOM workspace transaction when enabled.
+
 ## 0.1.0 — 2026-07-26
 
 ### Added

@@ -1,0 +1,6 @@
+# Defaults for a new firewall service item.
+#
+# A FLAT map keyed by the canvas field keys. Only the protocol is seeded
+# (TCP/UDP/SCTP, the most common) so the port-range fields are the relevant ones
+# by default; name and ports are left blank for a deliberate choice.
+protocol: TCP/UDP/SCTP

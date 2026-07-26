@@ -1,0 +1,99 @@
+# =============================================================================
+# Canvas Template — FortiManager Custom Firewall Services
+#
+# Declares ONE custom firewall service — the item. Users add as many as needed.
+# A service's identity is its NAME (the FortiManager mkey); deploy lists the ADOM
+# service table, matches on the name, and uses `set` (create-or-replace) to
+# upsert each declared service. Reconcile deletes services this app created but
+# no longer declares.
+#
+# Fields used per protocol:
+#   TCP/UDP/SCTP -> TCP/UDP/SCTP port ranges
+#   IP           -> protocol number (0-254)
+#   ICMP/ICMP6   -> icmp type + code (optional)
+#
+# Field keys must match config-types/firewall-services/validate.ts.
+# =============================================================================
+
+id: "fortimanager-firewall-services"
+name: "Firewall Service Configuration"
+toolType: "fortimanager"
+entityType: "firewall-services"
+description: "Define FortiManager custom firewall service objects (TCP/UDP/SCTP port ranges, ICMP, or IP protocol) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "Firewall Service"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Service"
+      icon: "settings"
+      description: "Service name, protocol and definition"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: "The service object name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "protocol"
+          label: "Protocol"
+          fieldType: "select"
+          required: true
+          defaultValue: "TCP/UDP/SCTP"
+          options:
+            - label: "TCP / UDP / SCTP"
+              value: "TCP/UDP/SCTP"
+            - label: "ICMP"
+              value: "ICMP"
+            - label: "ICMP6"
+              value: "ICMP6"
+            - label: "IP"
+              value: "IP"
+          helpText: "The service protocol. The fields below are used per protocol."
+
+        - key: "tcpPortrange"
+          label: "TCP Port Range(s)"
+          fieldType: "text"
+          required: false
+          helpText: "TCP/UDP/SCTP only. e.g. 443, 8080-8090, or 443:1024-65535 (dest:source). Space or comma separated for multiple."
+
+        - key: "udpPortrange"
+          label: "UDP Port Range(s)"
+          fieldType: "text"
+          required: false
+          helpText: "TCP/UDP/SCTP only. Same format as TCP."
+
+        - key: "sctpPortrange"
+          label: "SCTP Port Range(s)"
+          fieldType: "text"
+          required: false
+          helpText: "TCP/UDP/SCTP only. Same format as TCP."
+
+        - key: "protocolNumber"
+          label: "IP Protocol Number"
+          fieldType: "number"
+          required: false
+          helpText: "IP protocol only. The IP protocol number (0-254)."
+
+        - key: "icmptype"
+          label: "ICMP Type"
+          fieldType: "number"
+          required: false
+          helpText: "ICMP / ICMP6 only. Optional — omit to match all types."
+
+        - key: "icmpcode"
+          label: "ICMP Code"
+          fieldType: "number"
+          required: false
+          helpText: "ICMP / ICMP6 only. Optional — omit to match all codes."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the service object."
