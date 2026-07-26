@@ -1,0 +1,5 @@
+# Defaults for a new segment item.
+#
+# A FLAT map keyed by the canvas field keys (name, description, active). A new
+# segment starts inactive so it is never enforced until deliberately activated.
+active: false

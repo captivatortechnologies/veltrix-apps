@@ -1,12 +1,12 @@
 id: sailpoint
 name: SailPoint
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage SailPoint Identity Security Cloud (ISC, formerly IdentityNow)
-  configuration as code through the ISC API. v0.1 ships Transforms — the
-  self-contained identity-attribute transform objects — with validation, drift
-  detection and rollback handled by the Security-as-Code pipeline.
+  configuration as code through the ISC API — Transforms and Segments — with
+  validation, drift detection and rollback handled by the Security-as-Code
+  pipeline.
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/sailpoint
@@ -30,9 +30,29 @@ permissions:
     - resource: transforms
       actions: [read, write, delete]
       description: Manage SailPoint ISC transforms (name, operation type, type-specific attributes; internal transforms protected)
+    - resource: segments
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC segments (name, description, active)
 
 pipeline:
   configurationTypes:
+    - id: segments
+      name: Segments
+      description: ISC segments — name, description and active state (name-keyed; id stored for rename-safety)
+      canvasTemplate: config-types/segments/canvas.yaml
+      defaultConfig: config-types/segments/defaults.yaml
+      handlers:
+        validate: config-types/segments/validate
+        deploy: config-types/segments/deploy
+        rollback: config-types/segments/rollback
+        healthCheck: config-types/segments/healthCheck
+        driftDetect: config-types/segments/driftDetect
+        getStatus: config-types/segments/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: transforms
       name: Transforms
       description: ISC transforms — identity-attribute transformation logic (name + operation type + attributes)

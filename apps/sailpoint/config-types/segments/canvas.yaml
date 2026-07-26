@@ -1,0 +1,52 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Segments
+#
+# Declares ONE segment — the item. Users add as many as they need.
+# ISC segments are id-addressed with no lookup-by-name, so the app lists all
+# segments, matches a declared one to a live one by NAME, and stores the id for
+# rename-safety. Updates use JSON-Patch. Reconcile deletes segments this app
+# created but no longer declares.
+#
+# Field keys must match what config-types/segments/validate.ts checks.
+# =============================================================================
+
+id: "sailpoint-segments"
+name: "Segment Configuration"
+toolType: "sailpoint"
+entityType: "segments"
+description: "Define SailPoint Identity Security Cloud segments (name, description, active) as code through the ISC API."
+
+item:
+  label: "Segment"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Segment"
+      icon: "layers"
+      description: "Segment name, description and state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: >
+            The segment name. Must be unique within this canvas — the app matches
+            live segments on it (ISC has no lookup-by-name, so the id is stored
+            after deploy for rename-safety).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the segment."
+
+        - key: "active"
+          label: "Active"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether the segment is active (enforced)."

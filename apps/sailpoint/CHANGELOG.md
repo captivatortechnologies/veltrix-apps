@@ -8,6 +8,15 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.2.0 — 2026-07-26
+
+### Added
+- **Segments** configuration type — manage ISC segments (name, description,
+  active) as code, with the full pipeline handler set. Segments are id-addressed
+  with no lookup-by-name, so the app lists all and matches by name, storing the
+  id for rename-safety; updates use JSON-Patch; reconcile only deletes segments
+  this app created.
+
 ## 0.1.0 — 2026-07-26
 
 ### Added
