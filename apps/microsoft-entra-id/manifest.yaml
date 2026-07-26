@@ -1,6 +1,6 @@
 id: microsoft-entra-id
 name: Microsoft Entra ID
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the
@@ -30,6 +30,9 @@ permissions:
     - resource: named-locations
       actions: [read, write, delete]
       description: Manage Entra Conditional Access named locations (IP CIDR ranges and country/region locations)
+    - resource: groups
+      actions: [read, write, delete]
+      description: Manage Entra assigned security groups (name, description, mail nickname; mail/M365/dynamic groups protected)
 
 pipeline:
   configurationTypes:
@@ -45,6 +48,23 @@ pipeline:
         healthCheck: config-types/named-locations/healthCheck
         driftDetect: config-types/named-locations/driftDetect
         getStatus: config-types/named-locations/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: groups
+      name: Security Groups
+      description: Assigned security groups — name, description and mail nickname (mail / M365 / dynamic groups protected)
+      canvasTemplate: config-types/groups/canvas.yaml
+      defaultConfig: config-types/groups/defaults.yaml
+      handlers:
+        validate: config-types/groups/validate
+        deploy: config-types/groups/deploy
+        rollback: config-types/groups/rollback
+        healthCheck: config-types/groups/healthCheck
+        driftDetect: config-types/groups/driftDetect
+        getStatus: config-types/groups/getStatus
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true

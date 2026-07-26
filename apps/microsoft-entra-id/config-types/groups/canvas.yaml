@@ -1,0 +1,63 @@
+# =============================================================================
+# Canvas Template — Entra ID Security Groups
+#
+# Declares ONE group — the item. Users add as many as they need.
+# ONE item = ONE assigned security group. Its logical identity is displayName;
+# deploy lists groups, matches on the name (or a stored id, rename-safe), and
+# PATCHes (update) or POSTs (create) accordingly.
+#
+# Only plain assigned SECURITY groups are managed. Mail-enabled, Microsoft 365
+# (Unified) and dynamic-membership groups are protected — deploy refuses to
+# modify any live name-match that is not a plain security group. Membership is
+# NOT managed by this configuration type.
+#
+# Field keys must match what config-types/groups/validate.ts checks.
+# =============================================================================
+
+id: "microsoft-entra-id-groups"
+name: "Group Configuration"
+toolType: "microsoft-entra-id"
+entityType: "groups"
+description: "Define Entra ID assigned security groups (name, description, mail nickname) as code through the Microsoft Graph API. Mail, Microsoft 365 and dynamic groups are protected."
+
+item:
+  label: "Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Group"
+      icon: "users"
+      description: "Group name, description and mail nickname"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            The group's display name. Must be unique within this canvas — it is
+            the logical identity deploy matches on. Only plain assigned security
+            groups are managed; a mail, Microsoft 365 or dynamic group with the
+            same name will not be modified.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 1024
+          helpText: "Optional description shown in the Entra admin center."
+
+        - key: "mailNickname"
+          label: "Mail Nickname"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 64
+          helpText: >
+            Mail alias for the group (letters, digits and . _ - only, no spaces).
+            Required by Graph even for security groups; if left blank, one is
+            derived from the name automatically.
