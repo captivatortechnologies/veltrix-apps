@@ -1,8 +1,27 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-26T19:44:48.779Z",
+  "generatedAt": "2026-07-26T19:54:59.745Z",
   "apps": [
+    {
+      "appId": "cisco-duo",
+      "name": "Cisco Duo",
+      "version": "0.1.0",
+      "vendor": "Veltrix",
+      "description": "Manage Cisco Duo configuration as code through the Duo Admin API. v0.1 ships Groups — the self-contained, name-keyed group objects — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
+      "category": "IAM",
+      "icon": "🔐",
+      "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggNDAiIHdpZHRoPSIxMjgiIGhlaWdodD0iNDAiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iQ2lzY28gRHVvIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idmR1byIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM2QkJGNEUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjM0M5QTNDIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8IS0tIE9yaWdpbmFsIGFic3RyYWN0IHNoaWVsZCArIGNoZWNrbWFyayBtYXJrIGZvciB0d28tZmFjdG9yIHRydXN0LiBOb3QgYQogICAgICAgdHJhZGVtYXJrZWQgQ2lzY28vRHVvIGxvZ28uIC0tPgogIDxwYXRoIGQ9Ik0xOCA0IEwzMSA5IFYyMSBDMzEgMjguNSAyNS40IDMzLjYgMTggMzYgQzEwLjYgMzMuNiA1IDI4LjUgNSAyMSBWOSBaIiBmaWxsPSJ1cmwoI3ZkdW8pIi8+CiAgPHBhdGggZD0iTTEyIDIwIEwxNi41IDI0LjUgTDI0LjUgMTUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyLjYiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDx0ZXh0IHg9IjQwIiB5PSIyNiIgZm9udC1mYW1pbHk9IlNlZ29lIFVJLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iY3VycmVudENvbG9yIj5DaXNjbyBEdW88L3RleHQ+Cjwvc3ZnPgo=",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cisco-duo",
+      "available": true,
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cisco-duo-v0.1.0/cisco-duo.zip",
+      "sha256": "cad43ebc656d0489e775caf93bd09ab9ba0713aac76ffaa73b2df0a4119f5627",
+      "sizeBytes": 55365,
+      "publishedAt": "2026-07-26T19:54:59.698Z",
+      "releaseNotes": "## 0.1.0 — 2026-07-26\n\n### Added\n- Initial release. Cisco Duo Admin API client (`lib/duo.ts`) with HMAC-SHA1\n  request signing over form-encoded params, the `{stat, response}` envelope,\n  `metadata.next_offset` pagination and RFC 2822 date handling.\n- **Groups** configuration type — manage Duo groups (name + description) as code,\n  with the full pipeline handler set: validate, deploy, rollback, drift detection,\n  health check and status. Duo groups are id-addressed with no lookup-by-name, so\n  the app matches by name and stores the `group_id` after deploy for\n  rename-safety; reconcile only deletes groups this app created.\n- Client UI — Overview, Setup Guide and Connections pages built on\n  `@veltrixsecops/app-sdk/ui`; Connections uses the shared `<ConnectionsManager>`\n  configured for the integration key + secret key credential and the `cisco-duo`\n  deploy target.\n- Connection test (`handlers/testConnection.ts`) signing a request to Duo's\n  `/admin/v1/check` endpoint.",
+      "releasedAt": "2026-07-26T00:00:00.000Z"
+    },
     {
       "appId": "cloudflare",
       "name": "Cloudflare",
