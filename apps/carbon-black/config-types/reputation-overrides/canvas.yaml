@@ -1,0 +1,106 @@
+# =============================================================================
+# Canvas Template — Carbon Black Cloud Reputation Overrides
+#
+# Declares ONE reputation override — the item. Users add as many as they need.
+# Carbon Black reputation overrides have no update API, so the app matches a
+# declared override to a live one by its NATURAL KEY (type + identifying value:
+# a SHA256 hash, a signing certificate, or an IT-tool path) and applies changes
+# by delete + recreate. Reconcile deletes overrides this app created but no
+# longer declares.
+#
+# The Label is a friendly canvas identity only; it is NOT sent to Carbon Black.
+#
+# Field keys must match what config-types/reputation-overrides/validate.ts checks.
+# =============================================================================
+
+id: "carbon-black-reputation-overrides"
+name: "Reputation Override Configuration"
+toolType: "carbon-black"
+entityType: "reputation-overrides"
+description: "Define Carbon Black Cloud reputation overrides (allow/ban by SHA256 hash, signing certificate, or IT-tool path) as code through the CBC API."
+
+item:
+  label: "Reputation Override"
+  identityField: "label"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Override"
+      icon: "shield"
+      description: "Allow/ban list, type and identifier"
+      fields:
+        - key: "label"
+          label: "Label"
+          fieldType: "text"
+          required: true
+          helpText: "A friendly name for this override (canvas identity only — not sent to Carbon Black). Must be unique within this canvas."
+
+        - key: "overrideList"
+          label: "List"
+          fieldType: "select"
+          required: true
+          defaultValue: "BLACK_LIST"
+          options:
+            - label: "Ban (BLACK_LIST)"
+              value: "BLACK_LIST"
+            - label: "Allow (WHITE_LIST)"
+              value: "WHITE_LIST"
+          helpText: "Whether this override bans or allows the target."
+
+        - key: "overrideType"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "SHA256"
+          options:
+            - label: "SHA256 hash"
+              value: "SHA256"
+            - label: "Signing certificate (CERT)"
+              value: "CERT"
+            - label: "IT tool path (IT_TOOL)"
+              value: "IT_TOOL"
+          helpText: "What the override matches. The fields below are used per type."
+
+        - key: "sha256Hash"
+          label: "SHA256 Hash"
+          fieldType: "text"
+          required: false
+          helpText: "For SHA256: the 64-character hex file hash."
+
+        - key: "filename"
+          label: "Filename"
+          fieldType: "text"
+          required: false
+          helpText: "For SHA256: optional filename shown with the override."
+
+        - key: "signedBy"
+          label: "Signed By"
+          fieldType: "text"
+          required: false
+          helpText: "For CERT: the certificate's signer (subject), e.g. \"VMware Inc.\"."
+
+        - key: "certificateAuthority"
+          label: "Certificate Authority"
+          fieldType: "text"
+          required: false
+          helpText: "For CERT: the issuing certificate authority."
+
+        - key: "path"
+          label: "Path"
+          fieldType: "text"
+          required: false
+          helpText: "For IT_TOOL: the tool path, e.g. C://tools//*.exe."
+
+        - key: "includeChildProcesses"
+          label: "Include Child Processes"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "For IT_TOOL: also trust child processes launched by the tool."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the override."

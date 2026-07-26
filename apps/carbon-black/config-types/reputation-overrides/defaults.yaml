@@ -1,0 +1,8 @@
+# Defaults for a new reputation override item.
+#
+# A FLAT map keyed by the canvas field keys. Seeds the common case (a SHA256 ban)
+# so the hash field is the relevant one by default; the label and identifier are
+# left blank for a deliberate choice.
+overrideList: BLACK_LIST
+overrideType: SHA256
+includeChildProcesses: false
