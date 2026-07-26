@@ -1,0 +1,48 @@
+# =============================================================================
+# Canvas Template — Prisma Cloud Custom Compliance Standards
+#
+# Declares ONE custom compliance standard — the item. Users add as many as they
+# need. Prisma Cloud standards are id-addressed but have no lookup-by-name and a
+# server-enforced unique name, so the app matches a declared standard to a live
+# one by NAME (storing the id for rename-safety). Built-in (system default)
+# standards are protected. Reconcile deletes standards this app created but no
+# longer declares.
+#
+# Field keys must match what config-types/compliance-standards/validate.ts checks.
+# =============================================================================
+
+id: "prisma-cloud-compliance-standards"
+name: "Compliance Standard Configuration"
+toolType: "prisma-cloud"
+entityType: "compliance-standards"
+description: "Define Prisma Cloud custom compliance standards (name + description) as code through the Prisma Cloud CSPM API."
+
+item:
+  label: "Compliance Standard"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Standard"
+      icon: "clipboard"
+      description: "Standard name and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The standard's name. Must be unique within this canvas — Prisma Cloud
+            also enforces name uniqueness, and the app matches live standards on
+            it (a built-in standard with the same name is never modified).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Optional description of the standard."

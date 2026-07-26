@@ -1,0 +1,106 @@
+id: prisma-cloud
+name: Prisma Cloud
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Palo Alto Prisma Cloud (CSPM) configuration as code through the Prisma
+  Cloud REST API. v0.1 ships Custom Compliance Standards — the self-contained,
+  name-keyed standard objects — with validation, drift detection and rollback
+  handled by the Security-as-Code pipeline.
+category: CLOUD
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/prisma-cloud
+icon: "☁️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Palo Alto brand: orange primary.
+branding:
+  primaryColor: "#FA582D"
+  accentColor: "#F04E98"
+  logo: ./assets/logo.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: compliance-standards
+      actions: [read, write, delete]
+      description: Manage Prisma Cloud custom compliance standards (name + description); built-in standards protected
+
+pipeline:
+  configurationTypes:
+    - id: compliance-standards
+      name: Compliance Standards
+      description: Custom compliance standards — name + description (name-keyed; built-in standards protected)
+      canvasTemplate: config-types/compliance-standards/canvas.yaml
+      defaultConfig: config-types/compliance-standards/defaults.yaml
+      handlers:
+        validate: config-types/compliance-standards/validate
+        deploy: config-types/compliance-standards/deploy
+        rollback: config-types/compliance-standards/rollback
+        healthCheck: config-types/compliance-standards/healthCheck
+        driftDetect: config-types/compliance-standards/driftDetect
+        getStatus: config-types/compliance-standards/getStatus
+      targets:
+        componentTypes: [prisma-cloud]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/prisma-cloud
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: logs in and calls GET /compliance.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: api_url
+    type: string
+    label: API URL
+    description: >
+      Your Prisma Cloud tenant API URL (e.g. https://api.prismacloud.io). Regions
+      differ — api2, api.eu, api.anz, api.gov, etc.
+    required: true
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Prisma Cloud API calls.
+    default: 30
+    required: false
