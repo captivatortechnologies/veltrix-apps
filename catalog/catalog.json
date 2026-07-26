@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-25T21:04:11.311Z",
+  "generatedAt": "2026-07-26T00:43:13.976Z",
   "apps": [
     {
       "appId": "cloudflare",
       "name": "Cloudflare",
-      "version": "1.2.2",
+      "version": "1.2.3",
       "vendor": "Veltrix",
       "description": "Manage Cloudflare configuration as code through the Cloudflare API (v4). Covers DNS, the WAF/firewall Rulesets engine (custom rules, rate limiting, redirects, transforms and managed-ruleset overrides), zone settings, account Lists, and Zero Trust (Access applications/policies/groups/service-tokens and Gateway rules/lists) — with validation, drift detection and rollback handled by the Security-as-Code pipeline. The component hostname is the zone domain; the app resolves zone and account ids automatically.",
       "category": "NETWORK",
@@ -16,11 +16,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cloudflare",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cloudflare-v1.2.2/cloudflare.zip",
-      "sha256": "1d64c26fdae93f751ee0162ea61537ae7c17319145ef1f87caed82ca1986f970",
-      "sizeBytes": 316029,
-      "publishedAt": "2026-07-25T19:59:56.434Z",
-      "releaseNotes": "## 1.2.2 — 2026-07-25\n\n### Added\n- **Account ID is now entered on the connection itself.** The Add-connection form's identifier field is relabeled **\"Account ID\"** for Cloudflare (stored on the connection), so an account-scoped token carries its account with it. The client reads the account id most-specific-first: the connection's Account ID, then the app-level `account_id` setting, then derived from the zone. This makes the connection self-contained (the test and account-scoped config types — Access, Gateway, Lists — work without a separate app setting).",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cloudflare-v1.2.3/cloudflare.zip",
+      "sha256": "50bfef455044b25a5e089b785df79e302a8dbe654ae53197d3a289aaa99a468d",
+      "sizeBytes": 316604,
+      "publishedAt": "2026-07-26T00:43:13.933Z",
+      "releaseNotes": "## 1.2.3 — 2026-07-25\n\n### Fixed\n- **Saved connections now register as deploy targets** (\"Register a cloudflare zone connection…\" no longer shows when one exists). The Connections page didn't pass a `componentType`, so a saved connection created only a credential — never a `cloudflare-zone` component — and configs saw no registered connection. It now declares `componentType: cloudflare-zone`, so saving a connection registers a `cloudflare-zone` component tagged with the selected environment, which the config picks up. (Pairs with the platform change to link connections by the config's environment.)",
       "releasedAt": "2026-07-25T00:00:00.000Z"
     },
     {
