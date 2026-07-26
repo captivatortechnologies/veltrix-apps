@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-26T01:00:43.507Z",
+  "generatedAt": "2026-07-26T15:50:30.584Z",
   "apps": [
     {
       "appId": "cloudflare",
       "name": "Cloudflare",
-      "version": "1.2.4",
+      "version": "1.3.0",
       "vendor": "Veltrix",
       "description": "Manage Cloudflare configuration as code through the Cloudflare API (v4). Covers DNS, the WAF/firewall Rulesets engine (custom rules, rate limiting, redirects, transforms and managed-ruleset overrides), zone settings, account Lists, and Zero Trust (Access applications/policies/groups/service-tokens and Gateway rules/lists) — with validation, drift detection and rollback handled by the Security-as-Code pipeline. The component hostname is the zone domain; the app resolves zone and account ids automatically.",
       "category": "NETWORK",
@@ -16,11 +16,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cloudflare",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cloudflare-v1.2.4/cloudflare.zip",
-      "sha256": "efc3dc7984fb0d7a443623d17729d79b346081d9db574e8475ef6b9b3d2bde51",
-      "sizeBytes": 317267,
-      "publishedAt": "2026-07-26T01:00:43.460Z",
-      "releaseNotes": "## 1.2.4 — 2026-07-25\n\n### Changed\n- **Clearer error when a connection endpoint isn't a zone.** Zone-scoped types (DNS, WAF, Rate Limiting, Redirect/Transform, Zone Settings) resolve the zone from the connection endpoint. When the endpoint is Cloudflare's own host (`api.cloudflare.com` / `dash.cloudflare.com`) the zone lookup returns nothing; the error now says so explicitly and tells you to set the endpoint to your zone's apex domain (e.g. `example.com`). The generic \"no zone found\" message likewise now names the fix.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cloudflare-v1.3.0/cloudflare.zip",
+      "sha256": "7c0df7ca622161862a57e4164a0a075e52a90defb275c447936d8bad448e4323",
+      "sizeBytes": 330311,
+      "publishedAt": "2026-07-26T15:50:30.538Z",
+      "releaseNotes": "## 1.3.0 — 2026-07-25\n\n### Added\n- **Pick the target domain inside the form.** Zone-scoped config types (DNS\n  records, WAF custom rules, rate-limiting, redirect, transform, managed\n  rulesets, zone settings) now start with a **Domain** picker populated live from\n  the connected account's zones (Cloudflare `GET /zones`). You choose the\n  domain(s) the config applies to, then fill in the rest — instead of baking one\n  zone into the connection endpoint and needing a separate connection per domain.\n  A config can target **multiple** domains and the deploy fans out across them.\n  - One connection now represents a Cloudflare **account** (API token + Account\n    ID); the zone is chosen per config.\n  - Backward compatible: a config with no domain selected still deploys against\n    the connection's registered zone component (the previous behavior).\n  - New shared `zones` options provider (`config-types/lib/cloudflareOptions.ts`)\n    lists the account's zones; wired into all 7 zone-scoped types. Account-scoped\n    types (Access, Gateway, Lists) are unchanged — they act on the whole account.",
       "releasedAt": "2026-07-25T00:00:00.000Z"
     },
     {
