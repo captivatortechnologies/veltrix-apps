@@ -1,12 +1,12 @@
 id: microsoft-entra-id
 name: Microsoft Entra ID
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the
-  Microsoft Graph API. Covers Conditional Access named locations today, with
-  Conditional Access policies and security groups on the roadmap — validation,
-  drift detection and rollback handled by the Security-as-Code pipeline.
+  Microsoft Graph API. Covers Conditional Access policies and named locations and
+  assigned security groups — with validation, drift detection and rollback handled
+  by the Security-as-Code pipeline.
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-entra-id
@@ -33,9 +33,29 @@ permissions:
     - resource: groups
       actions: [read, write, delete]
       description: Manage Entra assigned security groups (name, description, mail nickname; mail/M365/dynamic groups protected)
+    - resource: conditional-access-policies
+      actions: [read, write, delete]
+      description: Manage Entra Conditional Access policies (user/group + cloud-app targeting, grant controls; report-only by default)
 
 pipeline:
   configurationTypes:
+    - id: conditional-access-policies
+      name: Conditional Access Policies
+      description: Conditional Access policies — user/group + cloud-app targeting and grant controls (report-only by default)
+      canvasTemplate: config-types/conditional-access-policies/canvas.yaml
+      defaultConfig: config-types/conditional-access-policies/defaults.yaml
+      handlers:
+        validate: config-types/conditional-access-policies/validate
+        deploy: config-types/conditional-access-policies/deploy
+        rollback: config-types/conditional-access-policies/rollback
+        healthCheck: config-types/conditional-access-policies/healthCheck
+        driftDetect: config-types/conditional-access-policies/driftDetect
+        getStatus: config-types/conditional-access-policies/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: named-locations
       name: Named Locations
       description: Conditional Access named locations — IP (trusted CIDR ranges) and country/region

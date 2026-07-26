@@ -8,6 +8,17 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.3.0 — 2026-07-26
+
+### Added
+- **Conditional Access Policies** configuration type — the flagship. Manage CA
+  policies as code with the full pipeline handler set: user/group and cloud-app
+  targeting, grant controls (MFA, compliant device, block, …) with an OR/AND
+  operator. Groups are referenced by display name and resolved to ids at deploy
+  time, composing with the Security Groups type. New policies default to
+  **report-only** (never enforced on creation); validate enforces block
+  exclusivity and warns when an enforced policy has no break-glass exclusion.
+
 ## 0.2.0 — 2026-07-26
 
 ### Added

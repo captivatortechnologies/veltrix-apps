@@ -1,0 +1,12 @@
+# Defaults for a new Conditional Access policy item.
+#
+# A FLAT map keyed by the canvas field keys. Only the safety-relevant defaults
+# are seeded — state is report-only (never enforced on creation) and the default
+# grant control is MFA. Targeting is left blank so the author makes a deliberate
+# choice of who/what the policy applies to.
+state: report-only
+includeAllUsers: false
+includeAllApps: false
+grantOperator: OR
+builtInControls:
+  - mfa

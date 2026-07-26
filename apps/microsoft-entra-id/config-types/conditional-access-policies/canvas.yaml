@@ -1,0 +1,149 @@
+# =============================================================================
+# Canvas Template — Entra ID Conditional Access Policies
+#
+# Declares ONE Conditional Access policy — the item. Users add as many as they
+# need. A policy's logical identity is its NAME (displayName); deploy lists
+# policies, matches on the name (or a stored id, rename-safe), and PATCHes
+# (update) or POSTs (create) accordingly.
+#
+# SAFETY: state defaults to "report-only" (Graph
+# enabledForReportingButNotEnforced) — a new policy is never enforced until the
+# author explicitly sets it to Enabled. When enforcing, exclude a break-glass /
+# emergency-access group (validate warns if you don't).
+#
+# Groups are referenced by DISPLAY NAME and resolved to ids at deploy time, so a
+# policy composes naturally with the Security Groups configuration type.
+#
+# Field keys must match what config-types/conditional-access-policies/validate.ts
+# checks.
+# =============================================================================
+
+id: "microsoft-entra-id-conditional-access-policies"
+name: "Conditional Access Policy Configuration"
+toolType: "microsoft-entra-id"
+entityType: "conditional-access-policies"
+description: "Define Entra ID Conditional Access policies as code through the Microsoft Graph API — user/group and cloud-app targeting with grant controls (MFA, compliant device, block). New policies default to report-only."
+
+item:
+  label: "Conditional Access Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Policy name and enforcement state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            Display name of the policy (max 256 chars). Must be unique within
+            this canvas — it is the logical identity deploy matches on.
+
+        - key: "state"
+          label: "State"
+          fieldType: "select"
+          required: true
+          defaultValue: "report-only"
+          options:
+            - label: "Report-only (log, do not enforce)"
+              value: "report-only"
+            - label: "Enabled (enforce)"
+              value: "enabled"
+            - label: "Disabled (off)"
+              value: "disabled"
+          helpText: >
+            Report-only logs what the policy WOULD do without enforcing it — the
+            safe default. Switch to Enabled only after reviewing report-only
+            sign-in impact.
+
+    - name: "Users"
+      icon: "users"
+      description: "Who the policy applies to"
+      fields:
+        - key: "includeAllUsers"
+          label: "All users"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Target every user. When off, target the included groups below instead."
+
+        - key: "includeGroups"
+          label: "Included Groups"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Group display names to target, one per line (or comma-separated).
+            Resolved to group ids at deploy time. Ignored when "All users" is on.
+
+        - key: "excludeGroups"
+          label: "Excluded Groups (break-glass)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Group display names to exclude, one per line. Always applied — use
+            this to exclude an emergency-access group so an enforced policy can't
+            lock every admin out.
+
+    - name: "Cloud apps"
+      icon: "grid"
+      description: "Which cloud apps the policy applies to"
+      fields:
+        - key: "includeAllApps"
+          label: "All cloud apps"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Target all cloud apps. When off, target the app ids / keywords below."
+
+        - key: "includeApps"
+          label: "Included Apps"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            App (client) ids or well-known keywords (e.g. Office365,
+            MicrosoftAdminPortals), one per line. Passed to Graph as-is. Ignored
+            when "All cloud apps" is on.
+
+    - name: "Grant controls"
+      icon: "lock"
+      description: "What is required to grant access"
+      fields:
+        - key: "grantOperator"
+          label: "Operator"
+          fieldType: "select"
+          required: true
+          defaultValue: "OR"
+          options:
+            - label: "OR (require any of the selected controls)"
+              value: "OR"
+            - label: "AND (require all of the selected controls)"
+              value: "AND"
+          helpText: "How multiple controls combine. Ignored when Block access is selected."
+
+        - key: "builtInControls"
+          label: "Controls"
+          fieldType: "multiselect"
+          required: true
+          defaultValue: ["mfa"]
+          options:
+            - label: "Require MFA"
+              value: "mfa"
+            - label: "Require compliant device"
+              value: "compliantDevice"
+            - label: "Require Hybrid Azure AD joined device"
+              value: "domainJoinedDevice"
+            - label: "Require approved client app"
+              value: "approvedApplication"
+            - label: "Require app protection policy"
+              value: "compliantApplication"
+            - label: "Require password change"
+              value: "passwordChange"
+            - label: "Block access"
+              value: "block"
+          helpText: >
+            Grant requirements. "Block access" denies sign-in and cannot be
+            combined with any other control.
