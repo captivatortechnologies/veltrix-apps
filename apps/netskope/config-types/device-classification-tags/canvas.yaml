@@ -1,0 +1,45 @@
+# =============================================================================
+# Canvas Template — Netskope Device Classification Tags
+#
+# Declares ONE device classification tag — the item. Users add as many as needed.
+# Tags are id-addressed with no lookup-by-name, so the app lists all tags,
+# matches a declared one to a live one by NAME, and stores the id for
+# rename-safety. Updates use PUT (no deploy/apply step). Reconcile deletes tags
+# this app created but no longer declares.
+#
+# Field keys must match config-types/device-classification-tags/validate.ts.
+# =============================================================================
+
+id: "netskope-device-classification-tags"
+name: "Device Classification Tag Configuration"
+toolType: "netskope"
+entityType: "device-classification-tags"
+description: "Define Netskope device classification tags (name + description) as code through the Netskope REST API v2."
+
+item:
+  label: "Device Classification Tag"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Tag"
+      icon: "tag"
+      description: "Tag name and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 80
+          helpText: >
+            The tag name (max 80 chars). Must be unique within this canvas — the
+            app matches live tags on it (Netskope has no lookup-by-name, so the id
+            is stored after deploy for rename-safety).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the tag."

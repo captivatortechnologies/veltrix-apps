@@ -8,6 +8,15 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.2.0 — 2026-07-26
+
+### Added
+- **Device Classification Tags** configuration type — manage Netskope device
+  classification tags (name + description) as code, with the full pipeline
+  handler set. Tags are id-addressed with no lookup-by-name, so the app matches
+  by name and stores the id for rename-safety; updates use PUT with no
+  deploy/apply step; reconcile only deletes tags this app created.
+
 ## 0.1.0 — 2026-07-26
 
 ### Added

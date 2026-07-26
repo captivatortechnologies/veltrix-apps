@@ -1,12 +1,11 @@
 id: netskope
 name: Netskope
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
-  Manage Netskope configuration as code through the Netskope REST API v2. v0.1
-  ships URL Lists — the self-contained, name-keyed allow/block lists — with
-  validation, drift detection and rollback handled by the Security-as-Code
-  pipeline.
+  Manage Netskope configuration as code through the Netskope REST API v2 — URL
+  Lists and Device Classification Tags — with validation, drift detection and
+  rollback handled by the Security-as-Code pipeline.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/netskope
@@ -30,9 +29,29 @@ permissions:
     - resource: url-lists
       actions: [read, write, delete]
       description: Manage Netskope URL lists (exact URLs/IPs or regex patterns) via the REST API v2
+    - resource: device-classification-tags
+      actions: [read, write, delete]
+      description: Manage Netskope device classification tags (name + description) via the REST API v2
 
 pipeline:
   configurationTypes:
+    - id: device-classification-tags
+      name: Device Classification Tags
+      description: Device classification tags — name + description (name-keyed; id stored for rename-safety; no deploy step)
+      canvasTemplate: config-types/device-classification-tags/canvas.yaml
+      defaultConfig: config-types/device-classification-tags/defaults.yaml
+      handlers:
+        validate: config-types/device-classification-tags/validate
+        deploy: config-types/device-classification-tags/deploy
+        rollback: config-types/device-classification-tags/rollback
+        healthCheck: config-types/device-classification-tags/healthCheck
+        driftDetect: config-types/device-classification-tags/driftDetect
+        getStatus: config-types/device-classification-tags/getStatus
+      targets:
+        componentTypes: [netskope]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: url-lists
       name: URL Lists
       description: URL lists — exact URLs/IPs or regex patterns (name-keyed; staged then applied with a single deploy)
