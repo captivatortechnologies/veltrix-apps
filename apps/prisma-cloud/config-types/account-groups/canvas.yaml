@@ -1,0 +1,54 @@
+# =============================================================================
+# Canvas Template — Prisma Cloud Account Groups
+#
+# Declares ONE account group — the item. Users add as many as they need.
+# Prisma Cloud account groups are id-addressed with no lookup-by-name, so the app
+# lists all groups, matches a declared one to a live one by NAME, and stores the
+# id for rename-safety. Auto-created groups are protected. Reconcile deletes
+# groups this app created but no longer declares (Prisma blocks deleting a group
+# still referenced by a cloud account or alert rule).
+#
+# Field keys must match config-types/account-groups/validate.ts.
+# =============================================================================
+
+id: "prisma-cloud-account-groups"
+name: "Account Group Configuration"
+toolType: "prisma-cloud"
+entityType: "account-groups"
+description: "Define Prisma Cloud account groups (name, description, and member cloud-account ids) as code through the Prisma Cloud CSPM API."
+
+item:
+  label: "Account Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Account Group"
+      icon: "folder"
+      description: "Group name, description and member accounts"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The account group name. Must be unique within this canvas — the app
+            matches live groups on it (Prisma has no lookup-by-name, so the id is
+            stored after deploy for rename-safety).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the account group."
+
+        - key: "accountIds"
+          label: "Cloud Account IDs (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            The cloud-account ids this group contains, one per line. These are the
+            real Prisma Cloud account ids from Settings > Cloud Accounts.

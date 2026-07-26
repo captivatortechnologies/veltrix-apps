@@ -1,12 +1,12 @@
 id: prisma-cloud
 name: Prisma Cloud
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Palo Alto Prisma Cloud (CSPM) configuration as code through the Prisma
-  Cloud REST API. v0.1 ships Custom Compliance Standards — the self-contained,
-  name-keyed standard objects — with validation, drift detection and rollback
-  handled by the Security-as-Code pipeline.
+  Cloud REST API — Custom Compliance Standards and Account Groups — with
+  validation, drift detection and rollback handled by the Security-as-Code
+  pipeline.
 category: CLOUD
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/prisma-cloud
@@ -30,9 +30,29 @@ permissions:
     - resource: compliance-standards
       actions: [read, write, delete]
       description: Manage Prisma Cloud custom compliance standards (name + description); built-in standards protected
+    - resource: account-groups
+      actions: [read, write, delete]
+      description: Manage Prisma Cloud account groups (name, description, member cloud-account ids); auto-created groups protected
 
 pipeline:
   configurationTypes:
+    - id: account-groups
+      name: Account Groups
+      description: Account groups — name, description and member cloud-account ids (name-keyed; auto-created groups protected)
+      canvasTemplate: config-types/account-groups/canvas.yaml
+      defaultConfig: config-types/account-groups/defaults.yaml
+      handlers:
+        validate: config-types/account-groups/validate
+        deploy: config-types/account-groups/deploy
+        rollback: config-types/account-groups/rollback
+        healthCheck: config-types/account-groups/healthCheck
+        driftDetect: config-types/account-groups/driftDetect
+        getStatus: config-types/account-groups/getStatus
+      targets:
+        componentTypes: [prisma-cloud]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: compliance-standards
       name: Compliance Standards
       description: Custom compliance standards — name + description (name-keyed; built-in standards protected)

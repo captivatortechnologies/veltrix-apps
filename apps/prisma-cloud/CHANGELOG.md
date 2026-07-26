@@ -8,6 +8,16 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.2.0 — 2026-07-26
+
+### Added
+- **Account Groups** configuration type — manage Prisma Cloud account groups
+  (name, description, and member cloud-account ids) as code, with the full
+  pipeline handler set. Groups are matched by name (Prisma has no lookup-by-name)
+  with the id stored for rename-safety; create returns the id; auto-created
+  groups are protected; reconcile only deletes groups this app created (Prisma
+  blocks deleting a group still referenced by a cloud account or alert rule).
+
 ## 0.1.0 — 2026-07-26
 
 ### Added
