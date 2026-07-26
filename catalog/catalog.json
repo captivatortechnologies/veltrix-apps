@@ -1,25 +1,25 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-26T22:05:03.471Z",
+  "generatedAt": "2026-07-26T22:12:27.844Z",
   "apps": [
     {
       "appId": "carbon-black",
       "name": "VMware Carbon Black",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "vendor": "Veltrix",
-      "description": "Manage VMware Carbon Black Cloud configuration as code through the CBC API. v0.1 ships Reputation Overrides — allow/ban entries by SHA256 hash, signing certificate, or IT-tool path — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
+      "description": "Manage VMware Carbon Black Cloud configuration as code through the CBC API — Reputation Overrides and private Threat Feeds — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "EDR",
       "icon": "🖤",
       "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTYgNDAiIHdpZHRoPSIxNTYiIGhlaWdodD0iNDAiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iVk13YXJlIENhcmJvbiBCbGFjayI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InZjYiIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMTE4MjAiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMDBCNUFEIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8IS0tIE9yaWdpbmFsIGFic3RyYWN0IGhleGFnb24tc2hpZWxkIG1hcmsuIE5vdCBhIHRyYWRlbWFya2VkIFZNd2FyZS9DYXJib24KICAgICAgIEJsYWNrIGxvZ28uIC0tPgogIDxwYXRoIGQ9Ik0xOCA1IEwyOSAxMSBWMjMgTDE4IDI5IEw3IDIzIFYxMSBaIiBmaWxsPSJ1cmwoI3ZjYikiLz4KICA8cGF0aCBkPSJNMTggMTIgTDIzIDE1IFYyMSBMMTggMjQgTDEzIDIxIFYxNSBaIiBmaWxsPSIjMDBCNUFEIiBvcGFjaXR5PSIwLjg1Ii8+CiAgPHRleHQgeD0iMzgiIHk9IjI2IiBmb250LWZhbWlseT0iU2Vnb2UgVUksIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSJjdXJyZW50Q29sb3IiPkNhcmJvbiBCbGFjazwvdGV4dD4KPC9zdmc+Cg==",
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/carbon-black",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/carbon-black-v0.1.0/carbon-black.zip",
-      "sha256": "c055c38585837959debc96514ce4c3f8b04539bba5d78c410903d65372bcf767",
-      "sizeBytes": 59102,
-      "publishedAt": "2026-07-26T20:20:06.323Z",
-      "releaseNotes": "## 0.1.0 — 2026-07-26\n\n### Added\n- Initial release. VMware Carbon Black Cloud API client (`lib/carbonblack.ts`)\n  with `X-Auth-Token: secret/id` auth, org-scoped paths, `_search` (start/rows)\n  pagination and 429 Retry-After backoff.\n- **Reputation Overrides** configuration type — manage allow/ban entries by\n  SHA256 hash, signing certificate, or IT-tool path as code, with the full\n  pipeline handler set: validate, deploy, rollback, drift detection, health check\n  and status. Carbon Black has no update API, so overrides are matched by their\n  natural key (type + hash/cert/path) and a change is applied as delete +\n  recreate; the original pre-management state is carried forward so rollback can\n  restore it, and reconcile only deletes overrides this app created.\n- Client UI — Overview, Setup Guide and Connections pages built on\n  `@veltrixsecops/app-sdk/ui`; Connections uses the shared `<ConnectionsManager>`\n  configured for the API ID + secret credential and the `carbon-black` deploy\n  target.\n- Connection test (`handlers/testConnection.ts`) running a minimal\n  reputation-override search.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/carbon-black-v0.2.0/carbon-black.zip",
+      "sha256": "75e75a8f73b21570111ffe714e7ec6ee7ed7962e347221c2825b1528ca3b2ce7",
+      "sizeBytes": 76607,
+      "publishedAt": "2026-07-26T22:12:27.812Z",
+      "releaseNotes": "## 0.2.0 — 2026-07-26\n\n### Added\n- **Threat Feeds** configuration type — manage Carbon Black Cloud private threat\n  feeds (a set of IOCs — file hashes, domains, or IPs) as code, with the full\n  pipeline handler set. Feeds are matched by name; the app manages the feed\n  metadata plus a single managed report whose IOCs are reconciled to exactly the\n  declared set; feed metadata updates via PUT /feedinfo; reconcile only deletes\n  feeds this app created. (A feed is inert until a Watchlist subscribes to it.)\n- `PUT` support in the CBC API client.",
       "releasedAt": "2026-07-26T00:00:00.000Z"
     },
     {
