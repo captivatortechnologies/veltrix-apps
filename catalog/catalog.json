@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-26T19:25:09.900Z",
+  "generatedAt": "2026-07-26T19:44:48.779Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -122,6 +122,25 @@
       "publishedAt": "2026-07-22T16:33:08.324Z",
       "releaseNotes": "## 1.2.0 — 2026-07-22\n\n### Added\n- **Drift attribution — \"who changed it + when\".** When drift is detected on a\n  managed Elastic object, each reported difference is now annotated with the\n  person who made the last change and when. The platform stores the `actor` on\n  each diff and the drift view renders it, so a drift alert answers *who* and\n  *when*, not just *what*.\n  - Attribution reads the modifier Kibana records DIRECTLY on the drifted object\n    — `updated_by` / `updated_at` (the last writer, preferred), with\n    `created_by` / `created_at` as a fallback — which the drift check already\n    fetches. This is the most reliable actor source (the object's own record of\n    its last writer) and needs no extra API call, scope or audit-log query.\n  - Applies to the config types whose objects carry a modifier: **detection\n    rules** (per rule) and **exception lists** (the list container and each item\n    are attributed independently to their own last writer).\n  - An email-shaped principal (SSO) is surfaced as the actor's email; a bare\n    username is surfaced as the actor id. The raw value is always kept as the\n    display name.\n  - Veltrix's own deploys are recorded under the connection's login, so a change\n    WE made is excluded via that login — the attribution reflects the *manual*\n    change rather than our deploy.\n  - **Strictly best-effort:** attribution never throws and never fails a drift\n    check — on any error, or when an object carries no usable modifier (a deleted\n    object, or an object with none recorded), the diff is reported without an\n    actor and the drift view shows \"—\". Only objects that actually drifted are\n    attributed (one resolution per drifted object).\n  - **Unattributed by design:** Elasticsearch ILM policies, Elasticsearch role\n    mappings and Kibana spaces expose no per-object modifier (and no per-object\n    audit trail through this app's API), so their drift is reported without an\n    actor. The attribution is still wired uniformly, so it will surface a modifier\n    automatically if Elastic ever records one — it is never fabricated.",
       "releasedAt": "2026-07-22T00:00:00.000Z"
+    },
+    {
+      "appId": "fortimanager",
+      "name": "FortiManager",
+      "version": "0.1.0",
+      "vendor": "Veltrix",
+      "description": "Manage Fortinet FortiManager configuration as code through the FortiManager JSON-RPC API. v0.1 ships Firewall Address objects — the self-contained, name-keyed address table — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
+      "category": "NETWORK",
+      "icon": "🧱",
+      "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNzYgNDAiIHdpZHRoPSIxNzYiIGhlaWdodD0iNDAiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iRm9ydGlNYW5hZ2VyIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idmZtIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI0RBMjkxQyIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNFRTMxMjQiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDwhLS0gT3JpZ2luYWwgYWJzdHJhY3QgIndhbGwgLyBzaGllbGQiIG1hcmsgb2Ygc3RhY2tlZCBicmlja3MuIE5vdCBhCiAgICAgICB0cmFkZW1hcmtlZCBGb3J0aW5ldCBsb2dvLiAtLT4KICA8cmVjdCB4PSI1IiB5PSI4IiB3aWR0aD0iMjYiIGhlaWdodD0iMjQiIHJ4PSI0IiBmaWxsPSJ1cmwoI3ZmbSkiLz4KICA8cmVjdCB4PSI5IiB5PSIxMiIgd2lkdGg9IjcuNSIgaGVpZ2h0PSI2IiByeD0iMSIgZmlsbD0iI2ZmZiIgb3BhY2l0eT0iMC45Ii8+CiAgPHJlY3QgeD0iMTkuNSIgeT0iMTIiIHdpZHRoPSI3LjUiIGhlaWdodD0iNiIgcng9IjEiIGZpbGw9IiNmZmYiIG9wYWNpdHk9IjAuOSIvPgogIDxyZWN0IHg9IjkiIHk9IjIwIiB3aWR0aD0iMTgiIGhlaWdodD0iNiIgcng9IjEiIGZpbGw9IiNmZmYiIG9wYWNpdHk9IjAuOSIvPgogIDx0ZXh0IHg9IjQwIiB5PSIyNiIgZm9udC1mYW1pbHk9IlNlZ29lIFVJLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iY3VycmVudENvbG9yIj5Gb3J0aU1hbmFnZXI8L3RleHQ+Cjwvc3ZnPgo=",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/fortimanager",
+      "available": true,
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/fortimanager-v0.1.0/fortimanager.zip",
+      "sha256": "da565d1efbd028c57f12f87ce000121b80acebc9087baacb2e19b6344695411d",
+      "sizeBytes": 59980,
+      "publishedAt": "2026-07-26T19:44:48.750Z",
+      "releaseNotes": "## 0.1.0 — 2026-07-26\n\n### Added\n- Initial release. FortiManager JSON-RPC API client (`lib/fortimanager.ts`) with\n  session login/logout, single-endpoint RPC (get / add / set / delete), automatic\n  re-login on session expiry, and optional ADOM workspace lock / commit / unlock.\n- **Firewall Addresses** configuration type — manage FortiManager firewall\n  address objects (ipmask / iprange / fqdn / geography) as code, with the full\n  pipeline handler set: validate, deploy, rollback, drift detection, health check\n  and status. Addresses are matched by their `name` (the FortiManager mkey) and\n  upserted with `set`; reconcile only deletes addresses this app created. When the\n  ADOM is in workspace mode, deploys/rollbacks run inside a lock / commit / unlock\n  transaction.\n- Client UI — Overview, Setup Guide and Connections pages built on\n  `@veltrixsecops/app-sdk/ui`; Connections uses the shared `<ConnectionsManager>`\n  configured for the admin username + password credential and the `fortimanager`\n  deploy target.\n- Connection test (`handlers/testConnection.ts`) verifying the JSON-RPC login +\n  ADOM access.",
+      "releasedAt": "2026-07-26T00:00:00.000Z"
     },
     {
       "appId": "hashicorp-vault",
