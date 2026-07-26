@@ -1,0 +1,6 @@
+# Defaults for a new firewall address item.
+#
+# A FLAT map keyed by the canvas field keys. Only the type is seeded (ipmask, the
+# most common) so the subnet field is the relevant one by default; name and the
+# address value are left blank for a deliberate choice.
+type: ipmask

@@ -1,0 +1,96 @@
+# =============================================================================
+# Canvas Template — FortiManager Firewall Address Objects
+#
+# Declares ONE firewall address — the item. Users add as many as they need.
+# A firewall address's identity is its NAME (the FortiManager mkey); deploy lists
+# the ADOM address table, matches on the name, and uses `set` (create-or-replace)
+# to upsert each declared address. Reconcile deletes addresses this app created
+# but no longer declares.
+#
+# ONE item = ONE address of type ipmask | iprange | fqdn | geography.
+#   ipmask    → subnetCidr (CIDR, converted to the [ip, mask] FortiManager format)
+#   iprange   → startIp + endIp
+#   fqdn      → fqdn
+#   geography → country (ISO 3166 two-letter code)
+#
+# Field keys must match what config-types/firewall-addresses/validate.ts checks.
+# =============================================================================
+
+id: "fortimanager-firewall-addresses"
+name: "Firewall Address Configuration"
+toolType: "fortimanager"
+entityType: "firewall-addresses"
+description: "Define FortiManager firewall address objects (IP subnet, range, FQDN or geography) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "Firewall Address"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Address"
+      icon: "globe"
+      description: "Address name, type and definition"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: >
+            The address object name — its identity (mkey) in FortiManager. Must be
+            unique within this canvas; deploy matches live addresses on it.
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "ipmask"
+          options:
+            - label: "IP / subnet (ipmask)"
+              value: "ipmask"
+            - label: "IP range"
+              value: "iprange"
+            - label: "FQDN"
+              value: "fqdn"
+            - label: "Geography (country)"
+              value: "geography"
+          helpText: "The address kind. The fields below are used per type."
+
+        - key: "subnetCidr"
+          label: "Subnet (CIDR)"
+          fieldType: "text"
+          required: false
+          helpText: "For ipmask: an IPv4 CIDR, e.g. 10.0.100.0/24 (a single host is /32)."
+
+        - key: "startIp"
+          label: "Start IP"
+          fieldType: "text"
+          required: false
+          helpText: "For iprange: the first IPv4 address in the range."
+
+        - key: "endIp"
+          label: "End IP"
+          fieldType: "text"
+          required: false
+          helpText: "For iprange: the last IPv4 address in the range."
+
+        - key: "fqdn"
+          label: "FQDN"
+          fieldType: "text"
+          required: false
+          helpText: "For fqdn: the fully-qualified domain name, e.g. www.example.com."
+
+        - key: "country"
+          label: "Country (ISO code)"
+          fieldType: "text"
+          required: false
+          helpText: "For geography: an ISO 3166 two-letter country code, e.g. US."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the address object."

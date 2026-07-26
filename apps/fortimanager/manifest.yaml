@@ -1,0 +1,120 @@
+id: fortimanager
+name: FortiManager
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Fortinet FortiManager configuration as code through the FortiManager
+  JSON-RPC API. v0.1 ships Firewall Address objects — the self-contained,
+  name-keyed address table — with validation, drift detection and rollback handled
+  by the Security-as-Code pipeline.
+category: NETWORK
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/fortimanager
+icon: "🧱"
+
+platform:
+  minVersion: "1.0.0"
+
+# Fortinet brand: red primary.
+branding:
+  primaryColor: "#DA291C"
+  accentColor: "#EE3124"
+  logo: ./assets/logo.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: firewall-addresses
+      actions: [read, write, delete]
+      description: Manage FortiManager firewall address objects (ipmask / iprange / fqdn / geography) in the ADOM object database
+
+pipeline:
+  configurationTypes:
+    - id: firewall-addresses
+      name: Firewall Addresses
+      description: Firewall address objects — IP subnet, range, FQDN or geography (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/firewall-addresses/canvas.yaml
+      defaultConfig: config-types/firewall-addresses/defaults.yaml
+      handlers:
+        validate: config-types/firewall-addresses/validate
+        deploy: config-types/firewall-addresses/deploy
+        rollback: config-types/firewall-addresses/rollback
+        healthCheck: config-types/firewall-addresses/healthCheck
+        driftDetect: config-types/firewall-addresses/driftDetect
+        getStatus: config-types/firewall-addresses/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/fortimanager
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: verifies the JSON-RPC login + ADOM access.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: host
+    type: string
+    label: Host
+    description: >
+      FortiManager hostname or URL (e.g. fmg.example.com). The JSON-RPC endpoint
+      is https://{host}/jsonrpc. Must present a certificate the platform trusts.
+    required: true
+  - key: adom
+    type: string
+    label: ADOM
+    description: The Administrative Domain (ADOM) whose object database to manage.
+    default: root
+    required: false
+  - key: workspace_mode
+    type: boolean
+    label: Workspace mode
+    description: >
+      Enable if the ADOM uses workspace/workflow mode. Deploys then wrap their
+      changes in a lock / commit / unlock transaction.
+    default: false
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for FortiManager JSON-RPC calls.
+    default: 30
+    required: false
