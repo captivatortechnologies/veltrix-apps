@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-26T00:43:13.976Z",
+  "generatedAt": "2026-07-26T01:00:43.507Z",
   "apps": [
     {
       "appId": "cloudflare",
       "name": "Cloudflare",
-      "version": "1.2.3",
+      "version": "1.2.4",
       "vendor": "Veltrix",
       "description": "Manage Cloudflare configuration as code through the Cloudflare API (v4). Covers DNS, the WAF/firewall Rulesets engine (custom rules, rate limiting, redirects, transforms and managed-ruleset overrides), zone settings, account Lists, and Zero Trust (Access applications/policies/groups/service-tokens and Gateway rules/lists) — with validation, drift detection and rollback handled by the Security-as-Code pipeline. The component hostname is the zone domain; the app resolves zone and account ids automatically.",
       "category": "NETWORK",
@@ -16,11 +16,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cloudflare",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cloudflare-v1.2.3/cloudflare.zip",
-      "sha256": "50bfef455044b25a5e089b785df79e302a8dbe654ae53197d3a289aaa99a468d",
-      "sizeBytes": 316604,
-      "publishedAt": "2026-07-26T00:43:13.933Z",
-      "releaseNotes": "## 1.2.3 — 2026-07-25\n\n### Fixed\n- **Saved connections now register as deploy targets** (\"Register a cloudflare zone connection…\" no longer shows when one exists). The Connections page didn't pass a `componentType`, so a saved connection created only a credential — never a `cloudflare-zone` component — and configs saw no registered connection. It now declares `componentType: cloudflare-zone`, so saving a connection registers a `cloudflare-zone` component tagged with the selected environment, which the config picks up. (Pairs with the platform change to link connections by the config's environment.)",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cloudflare-v1.2.4/cloudflare.zip",
+      "sha256": "efc3dc7984fb0d7a443623d17729d79b346081d9db574e8475ef6b9b3d2bde51",
+      "sizeBytes": 317267,
+      "publishedAt": "2026-07-26T01:00:43.460Z",
+      "releaseNotes": "## 1.2.4 — 2026-07-25\n\n### Changed\n- **Clearer error when a connection endpoint isn't a zone.** Zone-scoped types (DNS, WAF, Rate Limiting, Redirect/Transform, Zone Settings) resolve the zone from the connection endpoint. When the endpoint is Cloudflare's own host (`api.cloudflare.com` / `dash.cloudflare.com`) the zone lookup returns nothing; the error now says so explicitly and tells you to set the endpoint to your zone's apex domain (e.g. `example.com`). The generic \"no zone found\" message likewise now names the fix.",
       "releasedAt": "2026-07-25T00:00:00.000Z"
     },
     {
