@@ -1,0 +1,7 @@
+# Defaults for a new threat feed item.
+#
+# A FLAT map keyed by the canvas field keys. Seeds the category and IOC field
+# (SHA256 hashes, the common case); name, provider URL, summary and values are
+# left blank for a deliberate choice.
+category: external_threat_intel
+iocField: process_hash

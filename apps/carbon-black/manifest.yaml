@@ -1,12 +1,11 @@
 id: carbon-black
 name: VMware Carbon Black
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
-  Manage VMware Carbon Black Cloud configuration as code through the CBC API.
-  v0.1 ships Reputation Overrides — allow/ban entries by SHA256 hash, signing
-  certificate, or IT-tool path — with validation, drift detection and rollback
-  handled by the Security-as-Code pipeline.
+  Manage VMware Carbon Black Cloud configuration as code through the CBC API —
+  Reputation Overrides and private Threat Feeds — with validation, drift
+  detection and rollback handled by the Security-as-Code pipeline.
 category: EDR
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/carbon-black
@@ -30,9 +29,29 @@ permissions:
     - resource: reputation-overrides
       actions: [read, write, delete]
       description: Manage Carbon Black Cloud reputation overrides (allow/ban by SHA256 / certificate / IT-tool path)
+    - resource: threat-feeds
+      actions: [read, write, delete]
+      description: Manage Carbon Black Cloud private threat feeds (a set of IOCs — file hashes, domains, or IPs)
 
 pipeline:
   configurationTypes:
+    - id: threat-feeds
+      name: Threat Feeds
+      description: Private threat feeds — a set of IOCs (hashes / domains / IPs) in a managed report (name-keyed; reconciled)
+      canvasTemplate: config-types/threat-feeds/canvas.yaml
+      defaultConfig: config-types/threat-feeds/defaults.yaml
+      handlers:
+        validate: config-types/threat-feeds/validate
+        deploy: config-types/threat-feeds/deploy
+        rollback: config-types/threat-feeds/rollback
+        healthCheck: config-types/threat-feeds/healthCheck
+        driftDetect: config-types/threat-feeds/driftDetect
+        getStatus: config-types/threat-feeds/getStatus
+      targets:
+        componentTypes: [carbon-black]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: reputation-overrides
       name: Reputation Overrides
       description: Allow/ban entries by SHA256 hash, signing certificate, or IT-tool path (natural-key matched; delete+recreate on change)

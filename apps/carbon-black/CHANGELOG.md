@@ -8,6 +8,17 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.2.0 — 2026-07-26
+
+### Added
+- **Threat Feeds** configuration type — manage Carbon Black Cloud private threat
+  feeds (a set of IOCs — file hashes, domains, or IPs) as code, with the full
+  pipeline handler set. Feeds are matched by name; the app manages the feed
+  metadata plus a single managed report whose IOCs are reconciled to exactly the
+  declared set; feed metadata updates via PUT /feedinfo; reconcile only deletes
+  feeds this app created. (A feed is inert until a Watchlist subscribes to it.)
+- `PUT` support in the CBC API client.
+
 ## 0.1.0 — 2026-07-26
 
 ### Added

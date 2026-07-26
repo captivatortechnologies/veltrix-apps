@@ -77,7 +77,7 @@ export interface CbResponse {
   transportError?: string
 }
 
-export type CbMethod = 'GET' | 'POST' | 'DELETE'
+export type CbMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -133,6 +133,9 @@ export class CbClient {
   }
   post(path: string, body?: unknown): Promise<CbResponse> {
     return this.request('POST', path, body)
+  }
+  put(path: string, body?: unknown): Promise<CbResponse> {
+    return this.request('PUT', path, body)
   }
   delete(path: string): Promise<CbResponse> {
     return this.request('DELETE', path)

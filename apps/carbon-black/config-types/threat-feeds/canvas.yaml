@@ -1,0 +1,81 @@
+# =============================================================================
+# Canvas Template — Carbon Black Cloud Threat Feeds
+#
+# Declares ONE private threat feed — the item. Users add as many as they need.
+# A feed's identity is its NAME (feeds are id-addressed; matched by name). The
+# app manages the feed metadata plus a single "managed" report holding the
+# declared IOC values, which it reconciles to exactly the declared set. Reconcile
+# deletes feeds this app created but no longer declares.
+#
+# NOTE: a feed is inert until a Watchlist subscribes to it — this config type
+# manages the feed + its IOCs, not the watchlist that fires on them.
+#
+# Field keys must match config-types/threat-feeds/validate.ts.
+# =============================================================================
+
+id: "carbon-black-threat-feeds"
+name: "Threat Feed Configuration"
+toolType: "carbon-black"
+entityType: "threat-feeds"
+description: "Define Carbon Black Cloud private threat feeds (a set of IOCs — file hashes, domains, or IPs) as code through the CBC feed-manager API."
+
+item:
+  label: "Threat Feed"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Feed"
+      icon: "rss"
+      description: "Feed metadata"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The feed's name — its identity. Unique within this canvas."
+
+        - key: "providerUrl"
+          label: "Provider URL"
+          fieldType: "text"
+          required: true
+          helpText: "A URL describing the feed's source."
+
+        - key: "summary"
+          label: "Summary"
+          fieldType: "text"
+          required: true
+          helpText: "A short summary of the feed."
+
+        - key: "category"
+          label: "Category"
+          fieldType: "text"
+          required: false
+          helpText: "The feed category (default external_threat_intel)."
+
+    - name: "Indicators"
+      icon: "shield"
+      description: "The IOCs this feed contains"
+      fields:
+        - key: "iocField"
+          label: "IOC Field"
+          fieldType: "select"
+          required: true
+          defaultValue: "process_hash"
+          options:
+            - label: "Process hash (SHA256)"
+              value: "process_hash"
+            - label: "Network domain"
+              value: "netconn_domain"
+            - label: "Network IPv4"
+              value: "netconn_ipv4"
+          helpText: "What the IOC values match on."
+
+        - key: "values"
+          label: "IOC Values (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            One IOC per line — a SHA256 hash, domain, or IPv4 depending on the IOC
+            field. Deploy reconciles the feed's managed report to exactly these.
