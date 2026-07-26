@@ -8,6 +8,18 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.2.0 — 2026-07-26
+
+### Added
+- **Data Tables** configuration type — manage SecOps data tables (named, typed
+  columnar tables of rows) as code, with the full pipeline handler set. Tables
+  are keyed by their immutable data-table id; the column schema is fixed at
+  creation (a same-name table with a different schema is not modified); rows are
+  reconciled to exactly the declared set with a single atomic `bulkReplace`;
+  data tables (unlike reference lists) support delete, so reconcile deletes
+  tables this app created (with `force=true`).
+- `DELETE` support in the SecOps API client.
+
 ## 0.1.0 — 2026-07-26
 
 ### Added

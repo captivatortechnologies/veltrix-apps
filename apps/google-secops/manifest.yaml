@@ -1,12 +1,11 @@
 id: google-secops
 name: Google SecOps
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Google Security Operations (Chronicle) configuration as code through the
-  SecOps REST API. v0.1 ships Reference Lists — named sets of string, regex or
-  CIDR entries — with validation, drift detection and rollback handled by the
-  Security-as-Code pipeline.
+  SecOps REST API — Reference Lists and Data Tables — with validation, drift
+  detection and rollback handled by the Security-as-Code pipeline.
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/google-secops
@@ -30,9 +29,29 @@ permissions:
     - resource: reference-lists
       actions: [read, write, delete]
       description: Manage Google SecOps reference lists (string / regex / CIDR entry sets)
+    - resource: data-tables
+      actions: [read, write, delete]
+      description: Manage Google SecOps data tables (named, typed columnar tables of rows)
 
 pipeline:
   configurationTypes:
+    - id: data-tables
+      name: Data Tables
+      description: Data tables — named, typed columnar tables (id-keyed; immutable schema; rows reconciled via bulkReplace)
+      canvasTemplate: config-types/data-tables/canvas.yaml
+      defaultConfig: config-types/data-tables/defaults.yaml
+      handlers:
+        validate: config-types/data-tables/validate
+        deploy: config-types/data-tables/deploy
+        rollback: config-types/data-tables/rollback
+        healthCheck: config-types/data-tables/healthCheck
+        driftDetect: config-types/data-tables/driftDetect
+        getStatus: config-types/data-tables/getStatus
+      targets:
+        componentTypes: [google-secops]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: reference-lists
       name: Reference Lists
       description: Reference lists — named string / regex / CIDR entry sets (id-keyed; entries reconciled; cannot be deleted, only emptied)

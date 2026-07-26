@@ -144,7 +144,7 @@ export class SecOpsClient {
   }
 
   /** `path` is appended to the API host; use `parent()` for the resource parent. */
-  async request(method: 'GET' | 'POST' | 'PATCH', path: string, body?: unknown): Promise<SecOpsResponse> {
+  async request(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<SecOpsResponse> {
     const auth = await this.ensureToken()
     if (auth.error || !auth.token) return { status: 0, ok: false, body: auth.error ?? 'no token', transportError: auth.error }
     const controller = new AbortController()

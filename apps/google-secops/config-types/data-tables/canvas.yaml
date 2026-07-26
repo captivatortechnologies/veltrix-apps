@@ -1,0 +1,60 @@
+# =============================================================================
+# Canvas Template — Google SecOps Data Tables
+#
+# Declares ONE data table — the item. Users add as many as they need.
+# A data table's identity is its NAME (the dataTableId, immutable). The COLUMN
+# SCHEMA is fixed at creation — a same-name table with different columns is not
+# modified (rename or delete to change columns). ROWS are reconciled to exactly
+# the declared set with a single atomic bulkReplace. Reconcile deletes tables
+# this app created but no longer declares.
+#
+# Field keys must match config-types/data-tables/validate.ts.
+# =============================================================================
+
+id: "google-secops-data-tables"
+name: "Data Table Configuration"
+toolType: "google-secops"
+entityType: "data-tables"
+description: "Define Google Security Operations (Chronicle) data tables (a named, typed columnar table of rows) as code through the SecOps API."
+
+item:
+  label: "Data Table"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Data Table"
+      icon: "table"
+      description: "Table id, schema and rows"
+      fields:
+        - key: "name"
+          label: "Name (data table ID)"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The data table ID — its immutable identity. Must start with a letter
+            and contain only letters, digits and underscores.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: "A description of the data table."
+
+        - key: "columns"
+          label: "Columns"
+          fieldType: "text"
+          required: true
+          helpText: >
+            Comma-separated column definitions, e.g. username, ip_address:CIDR.
+            Each is name or name:TYPE where TYPE is STRING (default), REGEX, CIDR
+            or NUMBER. The schema is fixed once the table is created.
+
+        - key: "rows"
+          label: "Rows (one per line, comma-separated)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            One row per line, values comma-separated in column order, e.g.
+            alice,10.0.0.0/24. Deploy replaces the whole table with these rows.
