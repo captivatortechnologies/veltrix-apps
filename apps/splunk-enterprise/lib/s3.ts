@@ -11,9 +11,18 @@
 // PUT URL and the browser transfers the (large) installer straight to S3. The
 // version record stores the object as `s3://<bucket>/<key>` in download_url;
 // downloads are served by presigning a GET URL on demand (the bucket is private).
+//
+// Uses the AWS SDK v3 (@aws-sdk/client-s3 + @aws-sdk/s3-request-presigner);
+// the v2 `aws-sdk` mega-package is end-of-support.
 // =============================================================================
 
-import { S3 } from 'aws-sdk'
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { packagesBucket } from './s3Keys'
 
 // Re-export the pure key/URI/bucket helpers so existing importers of '../lib/s3'
@@ -24,9 +33,9 @@ const DEFAULT_EXPIRY_SECONDS = 900 // 15 minutes
 
 const region = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'us-east-1'
 
-let cachedClient: S3 | null = null
-function client(): S3 {
-  if (!cachedClient) cachedClient = new S3({ region, signatureVersion: 'v4' })
+let cachedClient: S3Client | null = null
+function client(): S3Client {
+  if (!cachedClient) cachedClient = new S3Client({ region })
   return cachedClient
 }
 
@@ -38,12 +47,8 @@ export function presignUpload(
 ): Promise<string> {
   const bucket = packagesBucket()
   if (!bucket) throw new Error('Package uploads are not configured (SPLUNK_PACKAGES_BUCKET unset)')
-  return client().getSignedUrlPromise('putObject', {
-    Bucket: bucket,
-    Key: key,
-    ContentType: contentType,
-    Expires: expiresSeconds,
-  })
+  const command = new PutObjectCommand({ Bucket: bucket, Key: key, ContentType: contentType })
+  return getSignedUrl(client(), command, { expiresIn: expiresSeconds })
 }
 
 /** Short-lived presigned GET URL for downloading a stored installer package. */
@@ -52,13 +57,14 @@ export function presignDownload(
   key: string,
   expiresSeconds: number = DEFAULT_EXPIRY_SECONDS,
 ): Promise<string> {
-  return client().getSignedUrlPromise('getObject', { Bucket: bucket, Key: key, Expires: expiresSeconds })
+  const command = new GetObjectCommand({ Bucket: bucket, Key: key })
+  return getSignedUrl(client(), command, { expiresIn: expiresSeconds })
 }
 
 /** Best-effort delete of a stored package; never throws. */
 export async function deletePackage(bucket: string, key: string): Promise<void> {
   try {
-    await client().deleteObject({ Bucket: bucket, Key: key }).promise()
+    await client().send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
   } catch (err) {
     console.error('[splunk-enterprise] failed to delete package', key, err)
   }
