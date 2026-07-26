@@ -1,0 +1,66 @@
+# =============================================================================
+# Canvas Template — IBM QRadar Reference Sets
+#
+# Declares ONE reference set — the item. Users add as many as they need.
+# A reference set's identity is its NAME (the classic reference-data API is
+# name-keyed). Deploy reads the live set, reconciles its VALUES to exactly the
+# declared list (adds missing, removes extra), and creates the set if absent.
+# The element type is immutable, so a same-name set of a different type is not
+# modified. Reconcile deletes sets this app created but no longer declares.
+#
+# Field keys must match what config-types/reference-sets/validate.ts checks.
+# =============================================================================
+
+id: "ibm-qradar-reference-sets"
+name: "Reference Set Configuration"
+toolType: "ibm-qradar"
+entityType: "reference-sets"
+description: "Define IBM QRadar reference sets (a named, typed collection of values) as code through the QRadar reference-data API."
+
+item:
+  label: "Reference Set"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Reference Set"
+      icon: "list"
+      description: "Set name, element type and values"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The reference set name — its identity in QRadar. Must be unique within
+            this canvas; deploy matches the live set on it.
+
+        - key: "elementType"
+          label: "Element Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "ALN"
+          options:
+            - label: "Alphanumeric (ALN)"
+              value: "ALN"
+            - label: "Alphanumeric, ignore case (ALNIC)"
+              value: "ALNIC"
+            - label: "IP address (IP)"
+              value: "IP"
+            - label: "Number (NUM)"
+              value: "NUM"
+            - label: "Port (PORT)"
+              value: "PORT"
+            - label: "Date (DATE)"
+              value: "DATE"
+          helpText: "The value type. Immutable after the set is created."
+
+        - key: "values"
+          label: "Values (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            One value per line. Deploy reconciles the live set to exactly this
+            list. For an IP set these must be IPv4 addresses; for NUM/PORT they
+            must be numeric.

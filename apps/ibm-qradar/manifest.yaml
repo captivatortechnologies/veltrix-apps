@@ -1,0 +1,111 @@
+id: ibm-qradar
+name: IBM QRadar
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage IBM QRadar configuration as code through the QRadar REST API. v0.1 ships
+  Reference Sets — named, typed value collections — with validation, drift
+  detection and rollback handled by the Security-as-Code pipeline.
+category: SIEM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/ibm-qradar
+icon: "📊"
+
+platform:
+  minVersion: "1.0.0"
+
+# IBM brand: blue primary.
+branding:
+  primaryColor: "#0F62FE"
+  accentColor: "#4589FF"
+  logo: ./assets/logo.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: reference-sets
+      actions: [read, write, delete]
+      description: Manage IBM QRadar reference sets (named, typed value collections) via the reference-data API
+
+pipeline:
+  configurationTypes:
+    - id: reference-sets
+      name: Reference Sets
+      description: Reference sets — named, typed value collections (name-keyed; values reconciled to the declared list)
+      canvasTemplate: config-types/reference-sets/canvas.yaml
+      defaultConfig: config-types/reference-sets/defaults.yaml
+      handlers:
+        validate: config-types/reference-sets/validate
+        deploy: config-types/reference-sets/deploy
+        rollback: config-types/reference-sets/rollback
+        healthCheck: config-types/reference-sets/healthCheck
+        driftDetect: config-types/reference-sets/driftDetect
+        getStatus: config-types/reference-sets/getStatus
+      targets:
+        componentTypes: [ibm-qradar]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/ibm-qradar
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: lists the reference-data sets.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: console_host
+    type: string
+    label: Console Host
+    description: >
+      Your QRadar console hostname (e.g. qradar.example.com). The REST API base is
+      https://{console}/api. Must present a certificate the platform trusts.
+    required: true
+  - key: api_version
+    type: string
+    label: API Version
+    description: The QRadar API version to pin in the Version header (e.g. 20.0).
+    default: "20.0"
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for QRadar API calls.
+    default: 30
+    required: false
