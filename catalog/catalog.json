@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-26T22:12:27.844Z",
+  "generatedAt": "2026-07-26T22:18:07.835Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -183,20 +183,20 @@
     {
       "appId": "google-secops",
       "name": "Google SecOps",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "vendor": "Veltrix",
-      "description": "Manage Google Security Operations (Chronicle) configuration as code through the SecOps REST API. v0.1 ships Reference Lists — named sets of string, regex or CIDR entries — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
+      "description": "Manage Google Security Operations (Chronicle) configuration as code through the SecOps REST API — Reference Lists and Data Tables — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "SIEM",
       "icon": "🛰️",
       "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTIgNDAiIHdpZHRoPSIxNTIiIGhlaWdodD0iNDAiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iR29vZ2xlIFNlY09wcyI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InZncyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxQTczRTgiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMzRBODUzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8IS0tIE9yaWdpbmFsIGFic3RyYWN0IG9yYml0IC8gc2F0ZWxsaXRlIG1hcmsuIE5vdCBhIHRyYWRlbWFya2VkIEdvb2dsZSBsb2dvLiAtLT4KICA8Y2lyY2xlIGN4PSIxOCIgY3k9IjIwIiByPSI2IiBmaWxsPSJ1cmwoI3ZncykiLz4KICA8ZWxsaXBzZSBjeD0iMTgiIGN5PSIyMCIgcng9IjEzIiByeT0iNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ1cmwoI3ZncykiIHN0cm9rZS13aWR0aD0iMi41IiB0cmFuc2Zvcm09InJvdGF0ZSgtMzAgMTggMjApIi8+CiAgPHRleHQgeD0iMzgiIHk9IjI2IiBmb250LWZhbWlseT0iU2Vnb2UgVUksIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSJjdXJyZW50Q29sb3IiPkdvb2dsZSBTZWNPcHM8L3RleHQ+Cjwvc3ZnPgo=",
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/google-secops",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/google-secops-v0.1.0/google-secops.zip",
-      "sha256": "84e11256c2f8ff2d8f70dc1dfb5b659bfc35d02ac3e315c4cc990518f45d288c",
-      "sizeBytes": 58192,
-      "publishedAt": "2026-07-26T20:54:46.862Z",
-      "releaseNotes": "## 0.1.0 — 2026-07-26\n\n### Added\n- Initial release. Google Security Operations (Chronicle) REST API client\n  (`lib/googlesecops.ts`) with service-account auth — a JWT signed RS256 with the\n  key's private key (via Node's built-in crypto, no extra dependency) is exchanged\n  for a Bearer token that is cached and refreshed; regionalized API host + the\n  projects/locations/instances resource parent.\n- **Reference Lists** configuration type — manage SecOps reference lists (named\n  string / regex / CIDR entry sets) as code, with the full pipeline handler set:\n  validate, deploy, rollback, drift detection, health check and status. Lists are\n  keyed by their immutable reference list id; entries are reconciled to exactly\n  the declared set (a full-replace PATCH); the syntax type is fixed at creation.\n  Reference lists cannot be deleted, so reconcile empties the ones this app\n  created but no longer declares, and rollback restores prior entries (or empties\n  a created list).\n- Client UI — Overview, Setup Guide and Connections pages built on\n  `@veltrixsecops/app-sdk/ui`; Connections uses the shared `<ConnectionsManager>`\n  configured for the service-account-key credential and the `google-secops`\n  deploy target.\n- Connection test (`handlers/testConnection.ts`) minting a token and listing\n  reference lists.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/google-secops-v0.2.0/google-secops.zip",
+      "sha256": "fd31b8193b066f6c49f274ceb10becded3a7683f7b55ea264d21dd2e67a0570e",
+      "sizeBytes": 75682,
+      "publishedAt": "2026-07-26T22:18:07.796Z",
+      "releaseNotes": "## 0.2.0 — 2026-07-26\n\n### Added\n- **Data Tables** configuration type — manage SecOps data tables (named, typed\n  columnar tables of rows) as code, with the full pipeline handler set. Tables\n  are keyed by their immutable data-table id; the column schema is fixed at\n  creation (a same-name table with a different schema is not modified); rows are\n  reconciled to exactly the declared set with a single atomic `bulkReplace`;\n  data tables (unlike reference lists) support delete, so reconcile deletes\n  tables this app created (with `force=true`).\n- `DELETE` support in the SecOps API client.",
       "releasedAt": "2026-07-26T00:00:00.000Z"
     },
     {
