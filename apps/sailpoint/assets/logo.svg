@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 40" width="150" height="40" role="img" aria-label="SailPoint">
+  <defs>
+    <linearGradient id="vsp" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#0A2540"/>
+      <stop offset="1" stop-color="#00B39B"/>
+    </linearGradient>
+  </defs>
+  <!-- Original abstract "sail" mark: a triangular sail rising from a base point.
+       Not the trademarked SailPoint logo. -->
+  <path d="M8 32 L20 4 L20 32 Z" fill="url(#vsp)"/>
+  <path d="M22 32 L22 12 L31 32 Z" fill="#00B39B" opacity="0.85"/>
+  <circle cx="20" cy="34.5" r="2" fill="#0A2540"/>
+  <text x="40" y="26" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="currentColor">SailPoint</text>
+</svg>

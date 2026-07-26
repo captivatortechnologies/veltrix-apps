@@ -1,0 +1,115 @@
+id: sailpoint
+name: SailPoint
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage SailPoint Identity Security Cloud (ISC, formerly IdentityNow)
+  configuration as code through the ISC API. v0.1 ships Transforms — the
+  self-contained identity-attribute transform objects — with validation, drift
+  detection and rollback handled by the Security-as-Code pipeline.
+category: IAM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/sailpoint
+icon: "🪪"
+
+platform:
+  minVersion: "1.0.0"
+
+# SailPoint brand: deep navy primary, teal accent.
+branding:
+  primaryColor: "#0A2540"
+  accentColor: "#00B39B"
+  logo: ./assets/logo.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: transforms
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC transforms (name, operation type, type-specific attributes; internal transforms protected)
+
+pipeline:
+  configurationTypes:
+    - id: transforms
+      name: Transforms
+      description: ISC transforms — identity-attribute transformation logic (name + operation type + attributes)
+      canvasTemplate: config-types/transforms/canvas.yaml
+      defaultConfig: config-types/transforms/defaults.yaml
+      handlers:
+        validate: config-types/transforms/validate
+        deploy: config-types/transforms/deploy
+        rollback: config-types/transforms/rollback
+        healthCheck: config-types/transforms/healthCheck
+        driftDetect: config-types/transforms/driftDetect
+        getStatus: config-types/transforms/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/sailpoint
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: verifies the ISC credential by running the
+# OAuth2 client-credentials exchange and calling GET /transforms/v1.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: tenant
+    type: string
+    label: Tenant (org name)
+    description: >
+      Your ISC org name — the subdomain of your tenant (e.g. "acme" for
+      acme.identitynow.com). The API is reached at
+      https://{org}.api.identitynow.com.
+    required: true
+  - key: api_url
+    type: string
+    label: API URL (override)
+    description: >
+      Optional full API base URL override for non-standard hosts (e.g.
+      https://acme.api.identitynow.com). Takes precedence over Tenant.
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for SailPoint ISC API calls.
+    default: 30
+    required: false

@@ -1,0 +1,6 @@
+# Defaults for a new transform item.
+#
+# Intentionally minimal — a FLAT map keyed by the canvas field keys (name, type,
+# attributes). Only `attributes` is seeded with an empty object so simple types
+# validate without edits; name and type are left blank for a deliberate choice.
+attributes: "{}"

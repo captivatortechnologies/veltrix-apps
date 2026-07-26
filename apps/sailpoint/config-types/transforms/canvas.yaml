@@ -1,0 +1,58 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Transforms
+#
+# Declares ONE transform — the item. Users add as many as they need.
+# A transform's logical identity is its NAME (unique, immutable in ISC); deploy
+# lists transforms, matches on the name, and PUTs (update) or POSTs (create)
+# accordingly. Because name AND type are immutable, changing the type of an
+# existing transform is rejected (rename or delete the old one first), and
+# SailPoint-internal transforms are protected.
+#
+# Field keys must match what config-types/transforms/validate.ts checks.
+# =============================================================================
+
+id: "sailpoint-transforms"
+name: "Transform Configuration"
+toolType: "sailpoint"
+entityType: "transforms"
+description: "Define SailPoint Identity Security Cloud transforms (name, operation type, and type-specific attributes) as code through the ISC API."
+
+item:
+  label: "Transform"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Transform"
+      icon: "wand"
+      description: "Transform name, operation type and attributes"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 50
+          helpText: >
+            Unique transform name (1–50 chars). This is the transform's identity
+            in ISC and is immutable — deploy matches live transforms on it.
+
+        - key: "type"
+          label: "Type"
+          fieldType: "text"
+          required: true
+          helpText: >
+            Operation type, e.g. lower, upper, concat, dateFormat, static,
+            lookup, conditional, reference, substring, firstValid,
+            accountAttribute. Immutable after create — changing it means a
+            rename/recreate.
+
+        - key: "attributes"
+          label: "Attributes (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            The type-specific attributes as a JSON object, e.g.
+            {"inputFormat":"MMM dd yyyy","outputFormat":"yyyy/MM/dd"} for
+            dateFormat. Leave blank ({}) for simple types like lower/upper.
