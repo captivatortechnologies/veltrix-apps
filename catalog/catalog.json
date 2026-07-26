@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-26T21:54:27.547Z",
+  "generatedAt": "2026-07-26T21:59:28.247Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -378,20 +378,20 @@
     {
       "appId": "prisma-cloud",
       "name": "Prisma Cloud",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "vendor": "Veltrix",
-      "description": "Manage Palo Alto Prisma Cloud (CSPM) configuration as code through the Prisma Cloud REST API. v0.1 ships Custom Compliance Standards — the self-contained, name-keyed standard objects — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
+      "description": "Manage Palo Alto Prisma Cloud (CSPM) configuration as code through the Prisma Cloud REST API — Custom Compliance Standards and Account Groups — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "CLOUD",
       "icon": "☁️",
       "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNDggNDAiIHdpZHRoPSIxNDgiIGhlaWdodD0iNDAiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iUHJpc21hIENsb3VkIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idnBjIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI0ZBNTgyRCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNGMDRFOTgiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDwhLS0gT3JpZ2luYWwgYWJzdHJhY3QgcHJpc20vdHJpYW5nbGUgbWFyay4gTm90IGEgdHJhZGVtYXJrZWQgUGFsbyBBbHRvIC8KICAgICAgIFByaXNtYSBDbG91ZCBsb2dvLiAtLT4KICA8cGF0aCBkPSJNMTggNSBMMzEgMzAgSDUgWiIgZmlsbD0idXJsKCN2cGMpIi8+CiAgPHBhdGggZD0iTTE4IDUgTDE4IDMwIEg1IFoiIGZpbGw9IiNGQTU4MkQiIG9wYWNpdHk9IjAuMzUiLz4KICA8dGV4dCB4PSI0MCIgeT0iMjYiIGZvbnQtZmFtaWx5PSJTZWdvZSBVSSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9ImN1cnJlbnRDb2xvciI+UHJpc21hIENsb3VkPC90ZXh0Pgo8L3N2Zz4K",
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/prisma-cloud",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/prisma-cloud-v0.1.0/prisma-cloud.zip",
-      "sha256": "cc9d97b939297098dfe4ec3981a3a5f91864201a68e814ef46f1370fe141238f",
-      "sizeBytes": 54690,
-      "publishedAt": "2026-07-26T20:27:48.884Z",
-      "releaseNotes": "## 0.1.0 — 2026-07-26\n\n### Added\n- Initial release. Prisma Cloud CSPM API client (`lib/prismacloud.ts`) with\n  access-key login (`POST /login` → JWT), the `x-redlock-auth` header, automatic\n  re-login on 401, and `x-redlock-status` error-key parsing.\n- **Compliance Standards** configuration type — manage Prisma Cloud custom\n  compliance standards (name + description) as code, with the full pipeline\n  handler set: validate, deploy, rollback, drift detection, health check and\n  status. Standards are matched by name (Prisma has no lookup-by-name and\n  enforces name uniqueness); built-in (system default) standards are protected;\n  create returns no id so the app re-fetches to resolve it; reconcile only\n  deletes standards this app created.\n- Client UI — Overview, Setup Guide and Connections pages built on\n  `@veltrixsecops/app-sdk/ui`; Connections uses the shared `<ConnectionsManager>`\n  configured for the access-key credential and the `prisma-cloud` deploy target.\n- Connection test (`handlers/testConnection.ts`) logging in and calling\n  `GET /compliance`.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/prisma-cloud-v0.2.0/prisma-cloud.zip",
+      "sha256": "3c6c72904921b6e838fedc1018e77664f425d6443e521ebb97bedc999fdfa525",
+      "sizeBytes": 70199,
+      "publishedAt": "2026-07-26T21:59:28.226Z",
+      "releaseNotes": "## 0.2.0 — 2026-07-26\n\n### Added\n- **Account Groups** configuration type — manage Prisma Cloud account groups\n  (name, description, and member cloud-account ids) as code, with the full\n  pipeline handler set. Groups are matched by name (Prisma has no lookup-by-name)\n  with the id stored for rename-safety; create returns the id; auto-created\n  groups are protected; reconcile only deletes groups this app created (Prisma\n  blocks deleting a group still referenced by a cloud account or alert rule).",
       "releasedAt": "2026-07-26T00:00:00.000Z"
     },
     {
