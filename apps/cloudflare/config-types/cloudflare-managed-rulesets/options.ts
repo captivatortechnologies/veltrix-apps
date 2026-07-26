@@ -1,0 +1,3 @@
+// Options provider for managed rulesets. Zone-scoped, so it powers the canvas-
+// level "Domain" picker (source = "zones") via the shared Cloudflare provider.
+export { default } from '../lib/cloudflareOptions'

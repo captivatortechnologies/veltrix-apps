@@ -3,6 +3,24 @@
 All notable changes to the Cloudflare app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.3.0 — 2026-07-25
+
+### Added
+- **Pick the target domain inside the form.** Zone-scoped config types (DNS
+  records, WAF custom rules, rate-limiting, redirect, transform, managed
+  rulesets, zone settings) now start with a **Domain** picker populated live from
+  the connected account's zones (Cloudflare `GET /zones`). You choose the
+  domain(s) the config applies to, then fill in the rest — instead of baking one
+  zone into the connection endpoint and needing a separate connection per domain.
+  A config can target **multiple** domains and the deploy fans out across them.
+  - One connection now represents a Cloudflare **account** (API token + Account
+    ID); the zone is chosen per config.
+  - Backward compatible: a config with no domain selected still deploys against
+    the connection's registered zone component (the previous behavior).
+  - New shared `zones` options provider (`config-types/lib/cloudflareOptions.ts`)
+    lists the account's zones; wired into all 7 zone-scoped types. Account-scoped
+    types (Access, Gateway, Lists) are unchanged — they act on the whole account.
+
 ## 1.2.4 — 2026-07-25
 
 ### Changed

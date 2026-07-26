@@ -215,6 +215,25 @@ export class CloudflareClient {
   }
 
   /**
+   * List the zones this token can access, scoped to the connection's account id
+   * when one is known. Powers the config form's Domain picker for zone-scoped
+   * types. Unlike {@link zone}, it needs no pre-resolved zone, so it works on an
+   * account client (empty domain).
+   */
+  async listZones(): Promise<{
+    ok: boolean
+    items: Array<{ id: string; name: string; status?: string }>
+    status: number
+    body: string
+  }> {
+    const query: Record<string, string | number | boolean | undefined> = {}
+    if (this.settingAccountId) query['account.id'] = this.settingAccountId
+    return this.paginate<{ id: string; name: string; status?: string }>((page, perPage) =>
+      this.request('GET', '/zones', { query: { ...query, page, per_page: perPage } }),
+    )
+  }
+
+  /**
    * Verify the API token. A Cloudflare token is verified at ONE of two places
    * depending on how it was created: user-owned tokens (My Profile → API Tokens)
    * at `/user/tokens/verify`, and account-owned tokens (Account → API Tokens) at
@@ -322,6 +341,32 @@ export function buildCloudflareClient(
       timeoutMs: resolved.timeoutMs,
     }),
     domain,
+  }
+}
+
+/**
+ * Build a client for account/global operations that do NOT need a specific zone —
+ * listing the account's zones for the Domain picker, and account-scoped types.
+ * The domain is intentionally empty: only `account()` / `listZones()` /
+ * `verifyToken()` are valid here; `zone()` would have no zone to resolve.
+ */
+export function buildCloudflareAccountClient(
+  credential: CredentialRef | null,
+  settings: Record<string, unknown>,
+): { client: CloudflareClient } | { error: string } {
+  const token = resolveCloudflareToken(credential)
+  if (!token) return { error: MISSING_CREDENTIAL_MESSAGE }
+  const resolved = readCloudflareSettings(settings)
+  // Account id, most specific first: the connection's own value (credential
+  // username), then the app-level `account_id` setting.
+  const connAccountId = credential?.username?.trim() || null
+  return {
+    client: new CloudflareClient({
+      token,
+      domain: '',
+      accountId: connAccountId || resolved.accountId,
+      timeoutMs: resolved.timeoutMs,
+    }),
   }
 }
 

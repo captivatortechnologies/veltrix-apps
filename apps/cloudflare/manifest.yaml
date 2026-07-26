@@ -1,6 +1,6 @@
 id: cloudflare
 name: Cloudflare
-version: "1.2.4"
+version: "1.3.0"
 vendor: Veltrix
 description: >
   Manage Cloudflare configuration as code through the Cloudflare API (v4). Covers
@@ -89,10 +89,12 @@ pipeline:
         healthCheck: config-types/cloudflare-dns-records/healthCheck
         driftDetect: config-types/cloudflare-dns-records/driftDetect
         getStatus: config-types/cloudflare-dns-records/getStatus
+        options: config-types/cloudflare-dns-records/options
       targets:
         componentTypes: [cloudflare-zone]
         requiresCredential: true
         requiresConnectivity: false
+        zoneScoped: true
 
     - id: cloudflare-waf-custom-rules
       group: "WAF & Security"
@@ -107,10 +109,12 @@ pipeline:
         healthCheck: config-types/cloudflare-waf-custom-rules/healthCheck
         driftDetect: config-types/cloudflare-waf-custom-rules/driftDetect
         getStatus: config-types/cloudflare-waf-custom-rules/getStatus
+        options: config-types/cloudflare-waf-custom-rules/options
       targets:
         componentTypes: [cloudflare-zone]
         requiresCredential: true
         requiresConnectivity: false
+        zoneScoped: true
 
     - id: cloudflare-rate-limiting-rules
       group: "WAF & Security"
@@ -125,10 +129,12 @@ pipeline:
         healthCheck: config-types/cloudflare-rate-limiting-rules/healthCheck
         driftDetect: config-types/cloudflare-rate-limiting-rules/driftDetect
         getStatus: config-types/cloudflare-rate-limiting-rules/getStatus
+        options: config-types/cloudflare-rate-limiting-rules/options
       targets:
         componentTypes: [cloudflare-zone]
         requiresCredential: true
         requiresConnectivity: false
+        zoneScoped: true
 
     - id: cloudflare-redirect-rules
       group: "Rules & Lists"
@@ -143,10 +149,12 @@ pipeline:
         healthCheck: config-types/cloudflare-redirect-rules/healthCheck
         driftDetect: config-types/cloudflare-redirect-rules/driftDetect
         getStatus: config-types/cloudflare-redirect-rules/getStatus
+        options: config-types/cloudflare-redirect-rules/options
       targets:
         componentTypes: [cloudflare-zone]
         requiresCredential: true
         requiresConnectivity: false
+        zoneScoped: true
 
     - id: cloudflare-transform-rules
       group: "Rules & Lists"
@@ -161,10 +169,12 @@ pipeline:
         healthCheck: config-types/cloudflare-transform-rules/healthCheck
         driftDetect: config-types/cloudflare-transform-rules/driftDetect
         getStatus: config-types/cloudflare-transform-rules/getStatus
+        options: config-types/cloudflare-transform-rules/options
       targets:
         componentTypes: [cloudflare-zone]
         requiresCredential: true
         requiresConnectivity: false
+        zoneScoped: true
 
     - id: cloudflare-managed-rulesets
       group: "WAF & Security"
@@ -179,10 +189,12 @@ pipeline:
         healthCheck: config-types/cloudflare-managed-rulesets/healthCheck
         driftDetect: config-types/cloudflare-managed-rulesets/driftDetect
         getStatus: config-types/cloudflare-managed-rulesets/getStatus
+        options: config-types/cloudflare-managed-rulesets/options
       targets:
         componentTypes: [cloudflare-zone]
         requiresCredential: true
         requiresConnectivity: false
+        zoneScoped: true
 
     - id: cloudflare-zone-settings
       group: "Zone"
@@ -197,10 +209,12 @@ pipeline:
         healthCheck: config-types/cloudflare-zone-settings/healthCheck
         driftDetect: config-types/cloudflare-zone-settings/driftDetect
         getStatus: config-types/cloudflare-zone-settings/getStatus
+        options: config-types/cloudflare-zone-settings/options
       targets:
         componentTypes: [cloudflare-zone]
         requiresCredential: true
         requiresConnectivity: false
+        zoneScoped: true
 
     - id: cloudflare-lists
       group: "Rules & Lists"
