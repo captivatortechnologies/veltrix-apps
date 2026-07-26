@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-26T21:59:28.247Z",
+  "generatedAt": "2026-07-26T22:05:03.471Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -300,20 +300,20 @@
     {
       "appId": "mimecast",
       "name": "Mimecast",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "vendor": "Veltrix",
-      "description": "Manage Mimecast configuration as code through the Mimecast API 2.0. v0.1 ships Managed URLs — permit/block entries by exact URL or domain — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
+      "description": "Manage Mimecast configuration as code through the Mimecast API 2.0 — Managed URLs and Blocked Sender policies — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "COMPLIANCE",
       "icon": "✉️",
       "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNDAgNDAiIHdpZHRoPSIxNDAiIGhlaWdodD0iNDAiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iTWltZWNhc3QiPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ2bWMiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjRDYwMDJBIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI0Y1MzMzRiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPCEtLSBPcmlnaW5hbCBhYnN0cmFjdCBlbnZlbG9wZS1zaGllbGQgbWFyay4gTm90IGEgdHJhZGVtYXJrZWQgTWltZWNhc3QgbG9nby4gLS0+CiAgPHJlY3QgeD0iNSIgeT0iOSIgd2lkdGg9IjI4IiBoZWlnaHQ9IjIyIiByeD0iMyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ1cmwoI3ZtYykiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxwYXRoIGQ9Ik02IDExIEwxOSAyMiBMMzIgMTEiIGZpbGw9Im5vbmUiIHN0cm9rZT0idXJsKCN2bWMpIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDx0ZXh0IHg9IjQwIiB5PSIyNiIgZm9udC1mYW1pbHk9IlNlZ29lIFVJLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iY3VycmVudENvbG9yIj5NaW1lY2FzdDwvdGV4dD4KPC9zdmc+Cg==",
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/mimecast",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/mimecast-v0.1.0/mimecast.zip",
-      "sha256": "a04df60cc790801a34cb3c83b55053b3c844769550cfc853a3f7a7fdc52ea0b0",
-      "sizeBytes": 57689,
-      "publishedAt": "2026-07-26T20:44:57.318Z",
-      "releaseNotes": "## 0.1.0 — 2026-07-26\n\n### Added\n- Initial release. Mimecast API 2.0 client (`lib/mimecast.ts`) with OAuth2\n  client-credentials auth (token cache + refresh), the `{ data: [...] }` request\n  wrapper, `{ meta, data, fail }` response handling (HTTP 200 + non-empty `fail`\n  is treated as a failure), and 429 `X-RateLimit-Reset` backoff.\n- **Managed URLs** configuration type — manage Targeted Threat Protection managed\n  URLs (permit/block by exact URL or domain) as code, with the full pipeline\n  handler set: validate, deploy, rollback, drift detection, health check and\n  status. Managed URLs have no update API, so entries are matched by their URL\n  identity (match type + normalized url/domain) and a change is applied as delete\n  + recreate; the original pre-management entry is carried forward so rollback can\n  restore it, and reconcile only deletes entries this app created.\n- Client UI — Overview, Setup Guide and Connections pages built on\n  `@veltrixsecops/app-sdk/ui`; Connections uses the shared `<ConnectionsManager>`\n  configured for the client-id + secret credential and the `mimecast` deploy\n  target.\n- Connection test (`handlers/testConnection.ts`) acquiring a token and listing\n  managed URLs.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/mimecast-v0.2.0/mimecast.zip",
+      "sha256": "cd706666cae2128191c4721d304f6f8257265e04a7b895b7d012c224abb82c50",
+      "sizeBytes": 74519,
+      "publishedAt": "2026-07-26T22:05:03.446Z",
+      "releaseNotes": "## 0.2.0 — 2026-07-26\n\n### Added\n- **Blocked Senders** configuration type — manage Mimecast blocked sender\n  policies (block a sender email/domain from reaching recipients) as code, with\n  the full pipeline handler set. Policies are matched by description; from/to\n  targeting is kept self-contained (everyone / email domain / email address); a\n  change is applied as delete + recreate; the prior policy is carried forward so\n  rollback can restore it; reconcile only deletes policies this app created.",
       "releasedAt": "2026-07-26T00:00:00.000Z"
     },
     {
