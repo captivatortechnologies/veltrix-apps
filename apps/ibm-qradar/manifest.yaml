@@ -1,11 +1,11 @@
 id: ibm-qradar
 name: IBM QRadar
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
-  Manage IBM QRadar configuration as code through the QRadar REST API. v0.1 ships
-  Reference Sets — named, typed value collections — with validation, drift
-  detection and rollback handled by the Security-as-Code pipeline.
+  Manage IBM QRadar configuration as code through the QRadar REST API — Reference
+  Sets and Reference Maps — with validation, drift detection and rollback handled
+  by the Security-as-Code pipeline.
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/ibm-qradar
@@ -29,9 +29,29 @@ permissions:
     - resource: reference-sets
       actions: [read, write, delete]
       description: Manage IBM QRadar reference sets (named, typed value collections) via the reference-data API
+    - resource: reference-maps
+      actions: [read, write, delete]
+      description: Manage IBM QRadar reference maps (named, typed key=value collections) via the reference-data API
 
 pipeline:
   configurationTypes:
+    - id: reference-maps
+      name: Reference Maps
+      description: Reference maps — named, typed key=value collections (name-keyed; entries reconciled to the declared set)
+      canvasTemplate: config-types/reference-maps/canvas.yaml
+      defaultConfig: config-types/reference-maps/defaults.yaml
+      handlers:
+        validate: config-types/reference-maps/validate
+        deploy: config-types/reference-maps/deploy
+        rollback: config-types/reference-maps/rollback
+        healthCheck: config-types/reference-maps/healthCheck
+        driftDetect: config-types/reference-maps/driftDetect
+        getStatus: config-types/reference-maps/getStatus
+      targets:
+        componentTypes: [ibm-qradar]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: reference-sets
       name: Reference Sets
       description: Reference sets — named, typed value collections (name-keyed; values reconciled to the declared list)

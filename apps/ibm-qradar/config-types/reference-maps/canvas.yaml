@@ -1,0 +1,65 @@
+# =============================================================================
+# Canvas Template — IBM QRadar Reference Maps
+#
+# Declares ONE reference map — the item. Users add as many as they need.
+# A reference map's identity is its NAME (the classic reference-data API is
+# name-keyed). Deploy reads the live map and reconciles its KEY=VALUE entries to
+# exactly the declared set (adds/updates, removes extra), and creates the map if
+# absent. The element type is immutable, so a same-name map of a different type
+# is not modified. Reconcile deletes maps this app created but no longer declares.
+#
+# Field keys must match config-types/reference-maps/validate.ts.
+# =============================================================================
+
+id: "ibm-qradar-reference-maps"
+name: "Reference Map Configuration"
+toolType: "ibm-qradar"
+entityType: "reference-maps"
+description: "Define IBM QRadar reference maps (a named, typed set of key=value entries) as code through the QRadar reference-data API."
+
+item:
+  label: "Reference Map"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Reference Map"
+      icon: "list"
+      description: "Map name, element type and key=value entries"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The reference map name — its identity in QRadar. Must be unique within
+            this canvas; deploy matches the live map on it.
+
+        - key: "elementType"
+          label: "Value Element Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "ALN"
+          options:
+            - label: "Alphanumeric (ALN)"
+              value: "ALN"
+            - label: "Alphanumeric, ignore case (ALNIC)"
+              value: "ALNIC"
+            - label: "IP address (IP)"
+              value: "IP"
+            - label: "Number (NUM)"
+              value: "NUM"
+            - label: "Port (PORT)"
+              value: "PORT"
+            - label: "Date (DATE)"
+              value: "DATE"
+          helpText: "The type of the map VALUES. Immutable after the map is created."
+
+        - key: "entries"
+          label: "Entries (key=value, one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            One key=value pair per line, e.g. 10.0.0.1=web-server. Deploy
+            reconciles the live map to exactly these entries.

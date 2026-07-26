@@ -8,6 +8,15 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.2.0 — 2026-07-26
+
+### Added
+- **Reference Maps** configuration type — manage QRadar reference maps (named,
+  typed `key=value` collections) as code, with the full pipeline handler set.
+  Maps are matched by name; their entries are reconciled to exactly the declared
+  set (add/update, remove extra); the element type is immutable; reconcile only
+  deletes maps this app created.
+
 ## 0.1.0 — 2026-07-26
 
 ### Added
