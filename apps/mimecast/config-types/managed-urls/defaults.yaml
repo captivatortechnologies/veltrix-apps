@@ -1,0 +1,9 @@
+# Defaults for a new managed URL item.
+#
+# A FLAT map keyed by the canvas field keys. Seeds the common case (block an
+# explicit URL); the url itself is left blank for a deliberate choice.
+action: block
+matchType: explicit
+disableRewrite: false
+disableUserAwareness: false
+disableLogClick: false

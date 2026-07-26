@@ -1,0 +1,91 @@
+# =============================================================================
+# Canvas Template — Mimecast Managed URLs
+#
+# Declares ONE managed URL — the item. Users add as many as they need.
+# Mimecast managed URLs are created by value (url + match type + action) but have
+# NO update API, so the app matches a declared entry to a live one by its URL
+# identity (match type + normalized url/domain) and applies changes by delete +
+# recreate. Reconcile deletes entries this app created but no longer declares.
+#
+# Field keys must match what config-types/managed-urls/validate.ts checks.
+# =============================================================================
+
+id: "mimecast-managed-urls"
+name: "Managed URL Configuration"
+toolType: "mimecast"
+entityType: "managed-urls"
+description: "Define Mimecast Targeted Threat Protection managed URLs (permit/block by exact URL or domain) as code through the Mimecast API."
+
+item:
+  label: "Managed URL"
+  identityField: "url"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "URL"
+      icon: "globe"
+      description: "URL, action and match type"
+      fields:
+        - key: "url"
+          label: "URL"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The URL (or domain) to manage, e.g. https://example.com/path or
+            example.com. Must not contain a fragment (#).
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "block"
+          options:
+            - label: "Block"
+              value: "block"
+            - label: "Permit"
+              value: "permit"
+          helpText: "Whether to block or permit the URL."
+
+        - key: "matchType"
+          label: "Match Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "explicit"
+          options:
+            - label: "Explicit (the whole URL)"
+              value: "explicit"
+            - label: "Domain"
+              value: "domain"
+          helpText: "Match the exact URL, or the whole domain."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          helpText: "Optional comment stored on the entry."
+
+    - name: "Permit options"
+      icon: "settings"
+      description: "Only apply when the action is Permit"
+      fields:
+        - key: "disableRewrite"
+          label: "Disable URL rewrite"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Permit only: do not rewrite the URL for click protection."
+
+        - key: "disableUserAwareness"
+          label: "Disable user awareness"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Permit only: skip the user-awareness challenge."
+
+        - key: "disableLogClick"
+          label: "Disable click logging"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Do not log clicks on this URL."

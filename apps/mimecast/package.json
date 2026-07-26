@@ -1,0 +1,16 @@
+{
+  "name": "mimecast",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Veltrix Security-as-Code app for Mimecast via the Mimecast API 2.0",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.0.0",
+    "@veltrixsecops/app-sdk": "^3.1.0",
+    "fastify": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}

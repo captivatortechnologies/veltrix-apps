@@ -1,0 +1,106 @@
+id: mimecast
+name: Mimecast
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Mimecast configuration as code through the Mimecast API 2.0. v0.1 ships
+  Managed URLs — permit/block entries by exact URL or domain — with validation,
+  drift detection and rollback handled by the Security-as-Code pipeline.
+category: COMPLIANCE
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/mimecast
+icon: "✉️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Mimecast brand: red primary.
+branding:
+  primaryColor: "#D6002A"
+  accentColor: "#F5333F"
+  logo: ./assets/logo.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: managed-urls
+      actions: [read, write, delete]
+      description: Manage Mimecast Targeted Threat Protection managed URLs (permit/block by exact URL or domain)
+
+pipeline:
+  configurationTypes:
+    - id: managed-urls
+      name: Managed URLs
+      description: TTP managed URLs — permit/block by exact URL or domain (URL-keyed; delete+recreate on change)
+      canvasTemplate: config-types/managed-urls/canvas.yaml
+      defaultConfig: config-types/managed-urls/defaults.yaml
+      handlers:
+        validate: config-types/managed-urls/validate
+        deploy: config-types/managed-urls/deploy
+        rollback: config-types/managed-urls/rollback
+        healthCheck: config-types/managed-urls/healthCheck
+        driftDetect: config-types/managed-urls/driftDetect
+        getStatus: config-types/managed-urls/getStatus
+      targets:
+        componentTypes: [mimecast]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/mimecast
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: acquires a token and lists managed URLs.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: base_url
+    type: string
+    label: API Base URL
+    description: >
+      The Mimecast API base URL. Defaults to https://api.services.mimecast.com;
+      override only if your tenant uses a different gateway host.
+    default: https://api.services.mimecast.com
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Mimecast API calls.
+    default: 30
+    required: false
