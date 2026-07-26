@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-26T17:41:04.749Z",
+  "generatedAt": "2026-07-26T17:47:07.972Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -146,20 +146,20 @@
     {
       "appId": "microsoft-entra-id",
       "name": "Microsoft Entra ID",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "vendor": "Veltrix",
-      "description": "Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the Microsoft Graph API. Covers Conditional Access named locations today, with Conditional Access policies and security groups on the roadmap — validation, drift detection and rollback handled by the Security-as-Code pipeline.",
+      "description": "Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the Microsoft Graph API. Covers Conditional Access policies and named locations and assigned security groups — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
       "icon": "🔷",
       "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNDAgNDAiIHdpZHRoPSIxNDAiIGhlaWdodD0iNDAiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iTXkgQXBwIj4KICA8IS0tIFBsYWNlaG9sZGVyIGxvZ28g4oCUIHJlcGxhY2Ugd2l0aCB5b3VyIHZlbmRvciBtYXJrIChzdmcgcHJlZmVycmVkLCA8PTEyOCBLQiwgfjI4cHggZGlzcGxheSBoZWlnaHQpIC0tPgogIDxyZWN0IHg9IjQiIHk9IjgiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgcng9IjYiIGZpbGw9IiM0RjZERjUiLz4KICA8cGF0aCBkPSJNMTAgMjAgTDE1IDI1IEwyMiAxNSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIuNSIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHRleHQgeD0iMzYiIHk9IjI2IiBmb250LWZhbWlseT0iU2Vnb2UgVUksIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSJjdXJyZW50Q29sb3IiPk15IEFwcDwvdGV4dD4KPC9zdmc+Cg==",
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-entra-id",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-entra-id-v0.2.0/microsoft-entra-id.zip",
-      "sha256": "53cd7302a50cc86ca679896c276d5fc76a1ee141c79040494a425576bfd23d91",
-      "sizeBytes": 68313,
-      "publishedAt": "2026-07-26T17:41:04.721Z",
-      "releaseNotes": "## 0.2.0 — 2026-07-26\n\n### Added\n- **Security Groups** configuration type — manage Entra assigned security groups\n  (display name, description, mail nickname) as code, with the full pipeline\n  handler set. Mail-enabled, Microsoft 365 (Unified) and dynamic-membership\n  groups are protected: deploy refuses to modify a live name-match that is not a\n  plain assigned security group, and reconcile only deletes groups this app\n  created. Mail nicknames are derived from the display name when left blank.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-entra-id-v0.3.0/microsoft-entra-id.zip",
+      "sha256": "5b4a050fdfe3c22aab068100533a441915183c78e412a3e574badcf88691fa45",
+      "sizeBytes": 89835,
+      "publishedAt": "2026-07-26T17:47:07.945Z",
+      "releaseNotes": "## 0.3.0 — 2026-07-26\n\n### Added\n- **Conditional Access Policies** configuration type — the flagship. Manage CA\n  policies as code with the full pipeline handler set: user/group and cloud-app\n  targeting, grant controls (MFA, compliant device, block, …) with an OR/AND\n  operator. Groups are referenced by display name and resolved to ids at deploy\n  time, composing with the Security Groups type. New policies default to\n  **report-only** (never enforced on creation); validate enforces block\n  exclusivity and warns when an enforced policy has no break-glass exclusion.",
       "releasedAt": "2026-07-26T00:00:00.000Z"
     },
     {
