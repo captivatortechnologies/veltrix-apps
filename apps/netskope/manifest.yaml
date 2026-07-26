@@ -1,0 +1,106 @@
+id: netskope
+name: Netskope
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Netskope configuration as code through the Netskope REST API v2. v0.1
+  ships URL Lists — the self-contained, name-keyed allow/block lists — with
+  validation, drift detection and rollback handled by the Security-as-Code
+  pipeline.
+category: NETWORK
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/netskope
+icon: "🌐"
+
+platform:
+  minVersion: "1.0.0"
+
+# Netskope brand: teal primary.
+branding:
+  primaryColor: "#005B92"
+  accentColor: "#00A6CE"
+  logo: ./assets/logo.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: url-lists
+      actions: [read, write, delete]
+      description: Manage Netskope URL lists (exact URLs/IPs or regex patterns) via the REST API v2
+
+pipeline:
+  configurationTypes:
+    - id: url-lists
+      name: URL Lists
+      description: URL lists — exact URLs/IPs or regex patterns (name-keyed; staged then applied with a single deploy)
+      canvasTemplate: config-types/url-lists/canvas.yaml
+      defaultConfig: config-types/url-lists/defaults.yaml
+      handlers:
+        validate: config-types/url-lists/validate
+        deploy: config-types/url-lists/deploy
+        rollback: config-types/url-lists/rollback
+        healthCheck: config-types/url-lists/healthCheck
+        driftDetect: config-types/url-lists/driftDetect
+        getStatus: config-types/url-lists/getStatus
+      targets:
+        componentTypes: [netskope]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/netskope
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: verifies the token against GET /policy/urllist.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: tenant
+    type: string
+    label: Tenant
+    description: >
+      Your Netskope tenant host (e.g. acme.goskope.com). The API base is
+      https://{tenant}/api/v2.
+    required: true
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Netskope REST API v2 calls.
+    default: 30
+    required: false

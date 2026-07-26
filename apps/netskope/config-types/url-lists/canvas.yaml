@@ -1,0 +1,63 @@
+# =============================================================================
+# Canvas Template — Netskope URL Lists
+#
+# Declares ONE URL list — the item. Users add as many as they need.
+# Netskope url lists are id-addressed (no lookup-by-name), so the app matches a
+# declared list to a live one by NAME and stores the id from the deploy for
+# rename-safety. A PUT replaces the whole list, so the full desired set of URLs
+# is sent every deploy.
+#
+# IMPORTANT: create/update/delete only STAGE a change; the app then issues a
+# single deploy to apply all pending url-list changes on the tenant.
+#
+# Field keys must match what config-types/url-lists/validate.ts checks.
+# =============================================================================
+
+id: "netskope-url-lists"
+name: "URL List Configuration"
+toolType: "netskope"
+entityType: "url-lists"
+description: "Define Netskope URL lists (exact URLs/IPs or regex patterns) as code through the Netskope REST API v2."
+
+item:
+  label: "URL List"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "URL List"
+      icon: "globe"
+      description: "List name, match type and entries"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The URL list name. Must be unique within this canvas — the app matches
+            live lists on it (Netskope has no lookup-by-name, so the id is stored
+            after deploy for rename-safety).
+
+        - key: "type"
+          label: "Match Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "exact"
+          options:
+            - label: "Exact (URLs / IPs)"
+              value: "exact"
+            - label: "Regex (patterns)"
+              value: "regex"
+          helpText: "How each entry is interpreted — exact URLs/IPs or regular expressions."
+
+        - key: "urls"
+          label: "Entries (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            One URL/IP (or regex, for a regex list) per line, e.g.
+            www.example.com. A PUT replaces the whole list, so include every entry
+            the list should contain.
