@@ -19,6 +19,7 @@ const ENVIRONMENTS_API = '/api/environments'
 interface RawEnvironment {
   id: string
   name?: string
+  environmentTypes?: string[]
 }
 
 /** Build an Error from a non-2xx response, preferring the platform's message. */
@@ -52,5 +53,9 @@ export async function listEnvironments(): Promise<EnvironmentRef[]> {
     : Array.isArray((body as { data?: unknown })?.data)
       ? ((body as { data: RawEnvironment[] }).data)
       : []
-  return rows.map((env) => ({ id: String(env.id), name: env.name ?? '' }))
+  return rows.map((env) => ({
+    id: String(env.id),
+    name: env.name ?? '',
+    environmentTypes: Array.isArray(env.environmentTypes) ? env.environmentTypes : [],
+  }))
 }

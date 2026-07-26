@@ -38,6 +38,7 @@ interface RawCredential {
   username?: string
   type?: string | null
   endpoint?: string | null
+  environmentType?: string | null
   toolId?: string
   // The platform redacts secrets from credential responses and surfaces only
   // whether each is set via these flags. Older platforms may still send the
@@ -86,6 +87,7 @@ function toCredentialSummary(raw: RawCredential): CredentialSummary {
     username: raw.username ?? '',
     type: raw.type ?? null,
     endpoint: raw.endpoint ?? null,
+    environmentType: raw.environmentType ?? null,
     toolId: raw.toolId ?? '',
     hasSecret,
     tags: Array.isArray(raw.tags)
@@ -128,6 +130,7 @@ export async function createCredential(input: CredentialInput): Promise<{ id: st
       apiToken: input.apiToken,
       type: input.type,
       endpoint: input.endpoint,
+      environmentType: input.environmentType ?? null,
       toolId: input.toolId,
       tagIds: input.tagIds ?? [],
     }),
@@ -152,6 +155,7 @@ export async function updateCredential(
   if (input.apiToken !== undefined) body.apiToken = input.apiToken
   if (input.type !== undefined) body.type = input.type
   if (input.endpoint !== undefined) body.endpoint = input.endpoint
+  if (input.environmentType !== undefined) body.environmentType = input.environmentType
   if (input.tagIds !== undefined) body.tagIds = input.tagIds
   const res = await authFetch(`${CREDENTIALS_API}/${encodeURIComponent(id)}`, {
     method: 'PUT',

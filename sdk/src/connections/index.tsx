@@ -112,6 +112,7 @@ type TestState = { loading: true } | TestConnectionResult
 interface FormState {
   name: string
   environmentId: string
+  environmentType: string
   authType: string
   username: string
   secret: string
@@ -121,11 +122,28 @@ interface FormState {
 const BLANK_FORM: FormState = {
   name: '',
   environmentId: '',
+  environmentType: '',
   authType: 'password',
   username: '',
   secret: '',
   endpoint: '',
 }
+
+/** Display labels for environment-type values (kept in sync with the platform env-type list). */
+const ENV_TYPE_LABELS: Record<string, string> = {
+  production: 'Production',
+  'pre-production': 'Pre-production',
+  staging: 'Staging',
+  qa: 'QA',
+  uat: 'UAT',
+  development: 'Development',
+  testing: 'Testing',
+  sandbox: 'Sandbox',
+  dr: 'DR (Disaster Recovery)',
+  demo: 'Demo',
+  other: 'Other',
+}
+const envTypeLabel = (t: string): string => ENV_TYPE_LABELS[t] ?? t
 
 // Map the auth choice to/from the platform credential `type`. Token secrets are
 // only encrypted at rest for 'API_KEY'/'TOKEN' — so token auth stores 'TOKEN'.
@@ -387,6 +405,7 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
     setForm({
       name: row.name ?? '',
       environmentId: row.tags?.[0]?.id ?? '',
+      environmentType: row.environmentType ?? '',
       authType: fromCredentialType(row.type),
       username: row.username ?? '',
       secret: '',
@@ -431,6 +450,7 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
           username,
           type: toCredentialType(form.authType),
           endpoint,
+          environmentType: form.environmentType || null,
           tagIds,
         }
         if (secret) {
@@ -454,6 +474,7 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
           apiToken: form.authType === 'token' ? secret : undefined,
           type: toCredentialType(form.authType),
           endpoint,
+          environmentType: form.environmentType || null,
           toolId: tool.id,
           tagIds,
         })
@@ -599,6 +620,15 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
   const environmentOptions = [
     { value: '', label: environments.length ? '— Select environment —' : '— No environments —' },
     ...environments.map((e) => ({ value: e.id, label: e.name })),
+  ]
+
+  // Dependent on the selected environment: the type(s) it's classified as. The
+  // connection's creds can be scoped to one of them ("Any type" = all).
+  const selectedEnv = environments.find((e) => e.id === form.environmentId)
+  const selectedEnvTypes = selectedEnv?.environmentTypes ?? []
+  const environmentTypeOptions = [
+    { value: '', label: 'Any type' },
+    ...selectedEnvTypes.map((t) => ({ value: t, label: envTypeLabel(t) })),
   ]
 
   const environmentFilterOptions = environments.map((e) => ({ value: e.id, label: e.name }))
@@ -782,10 +812,20 @@ export const ConnectionsManager: React.FC<ConnectionsManagerProps> = ({
             label="Environment"
             options={environmentOptions}
             value={form.environmentId}
-            onChange={(value) => setField('environmentId', value)}
+            onChange={(value) => setForm((prev) => ({ ...prev, environmentId: value, environmentType: '' }))}
             helperText="The deployment scope this connection belongs to. Manage environments under Environments."
             fullWidth
           />
+          {selectedEnvTypes.length > 0 && (
+            <Select
+              label="Applies to type (optional)"
+              options={environmentTypeOptions}
+              value={form.environmentType}
+              onChange={(value) => setField('environmentType', value)}
+              helperText="Scope these credentials to a specific type within the environment. 'Any type' applies to all of its types."
+              fullWidth
+            />
+          )}
           <Input
             label="Endpoint (optional)"
             value={form.endpoint}

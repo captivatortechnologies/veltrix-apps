@@ -120,6 +120,8 @@ export interface CredentialSummary {
   type: string | null
   /** API base URL / endpoint this connection authenticates to, or null. */
   endpoint: string | null
+  /** Environment type these creds apply to (from the env's types), or null = any. */
+  environmentType: string | null
   /** The tool this credential belongs to. */
   toolId: string
   /** True when a write-only secret (apiToken or password) is stored. */
@@ -143,6 +145,8 @@ export interface CredentialInput {
   type?: string
   /** API base URL / endpoint this connection authenticates to. Not a secret. */
   endpoint?: string
+  /** Environment type these creds apply to (from the env's environmentTypes); null = any. */
+  environmentType?: string | null
   /** The tool this credential belongs to. Required by the platform on create. */
   toolId?: string
   /** IDs of existing platform tags to attach to the credential. */

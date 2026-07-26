@@ -144,6 +144,8 @@ export type DeploymentStrategy = 'DIRECT' | 'CANARY' | 'BLUE_GREEN' | 'ROLLING'
 export interface EnvironmentRef {
   id: string
   name: string
+  /** The type(s) this environment is classified as (production, staging, qa, …). */
+  environmentTypes?: string[]
 }
 
 export interface UserRef {
