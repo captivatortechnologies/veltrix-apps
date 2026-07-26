@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 40" width="128" height="40" role="img" aria-label="Cisco Duo">
+  <defs>
+    <linearGradient id="vduo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6BBF4E"/>
+      <stop offset="1" stop-color="#3C9A3C"/>
+    </linearGradient>
+  </defs>
+  <!-- Original abstract shield + checkmark mark for two-factor trust. Not a
+       trademarked Cisco/Duo logo. -->
+  <path d="M18 4 L31 9 V21 C31 28.5 25.4 33.6 18 36 C10.6 33.6 5 28.5 5 21 V9 Z" fill="url(#vduo)"/>
+  <path d="M12 20 L16.5 24.5 L24.5 15" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="40" y="26" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="currentColor">Cisco Duo</text>
+</svg>

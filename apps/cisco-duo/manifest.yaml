@@ -1,0 +1,105 @@
+id: cisco-duo
+name: Cisco Duo
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Cisco Duo configuration as code through the Duo Admin API. v0.1 ships
+  Groups — the self-contained, name-keyed group objects — with validation, drift
+  detection and rollback handled by the Security-as-Code pipeline.
+category: IAM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cisco-duo
+icon: "🔐"
+
+platform:
+  minVersion: "1.0.0"
+
+# Cisco Duo brand: green primary.
+branding:
+  primaryColor: "#6BBF4E"
+  accentColor: "#3C9A3C"
+  logo: ./assets/logo.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: groups
+      actions: [read, write, delete]
+      description: Manage Cisco Duo groups (name + description) via the Duo Admin API
+
+pipeline:
+  configurationTypes:
+    - id: groups
+      name: Groups
+      description: Duo groups — name and description (name-keyed, group_id stored for rename-safety)
+      canvasTemplate: config-types/groups/canvas.yaml
+      defaultConfig: config-types/groups/defaults.yaml
+      handlers:
+        validate: config-types/groups/validate
+        deploy: config-types/groups/deploy
+        rollback: config-types/groups/rollback
+        healthCheck: config-types/groups/healthCheck
+        driftDetect: config-types/groups/driftDetect
+        getStatus: config-types/groups/getStatus
+      targets:
+        componentTypes: [cisco-duo]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/cisco-duo
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: signs a request to Duo's /check endpoint.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: api_host
+    type: string
+    label: API Host
+    description: >
+      Your Duo Admin API hostname (api-XXXXXXXX.duosecurity.com), from the Admin
+      API application details in the Duo Admin Panel.
+    required: true
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Duo Admin API calls.
+    default: 30
+    required: false

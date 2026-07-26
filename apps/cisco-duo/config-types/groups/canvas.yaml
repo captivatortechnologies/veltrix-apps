@@ -1,0 +1,47 @@
+# =============================================================================
+# Canvas Template — Cisco Duo Groups
+#
+# Declares ONE Duo group — the item. Users add as many as they need.
+# Duo groups are addressed by an opaque group_id (no lookup-by-name), so the app
+# matches a declared group to a live one by NAME and stores the group_id from the
+# deploy for rename-safety on the next deploy. Reconcile deletes groups this app
+# created but no longer declares.
+#
+# Field keys must match what config-types/groups/validate.ts checks.
+# =============================================================================
+
+id: "cisco-duo-groups"
+name: "Group Configuration"
+toolType: "cisco-duo"
+entityType: "groups"
+description: "Define Cisco Duo groups (name + description) as code through the Duo Admin API."
+
+item:
+  label: "Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Group"
+      icon: "users"
+      description: "Group name and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The group's name. Must be unique within this canvas — the app matches
+            live Duo groups on it (Duo has no lookup-by-name, so the group_id is
+            stored after deploy for rename-safety).
+
+        - key: "desc"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Optional description shown in the Duo Admin Panel."
