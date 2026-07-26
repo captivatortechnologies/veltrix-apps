@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-26T20:35:36.645Z",
+  "generatedAt": "2026-07-26T20:44:57.344Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -276,6 +276,25 @@
       "sizeBytes": 158325,
       "publishedAt": "2026-07-26T18:15:08.378Z",
       "releaseNotes": "## 1.2.0 — 2026-07-26\n\n### Added\n- **Hunting queries & saved searches** (new configuration type\n  `sentinel-hunting-queries`). Manages Log Analytics saved searches via\n  `Microsoft.OperationalInsights/workspaces/savedSearches` (api-version\n  2023-09-01, GA) — Sentinel hunting queries are saved searches with category\n  \"Hunting Queries\", and an optional function alias/parameters exposes a query as\n  a reusable KQL function. Reconciled by name (slugged into the `savedSearchId`);\n  updates PUT with etag `\"*\"` to override. Full validate / deploy / rollback /\n  health / drift / status handlers.\n- **Data connectors** (new configuration type `sentinel-data-connectors`).\n  Enables the Microsoft first-party, tenant-based connectors that the\n  `Microsoft.SecurityInsights/dataConnectors` API can create/update (api-version\n  2024-09-01, GA): Microsoft Entra ID Protection, Defender for Identity, Defender\n  for Endpoint, Defender for Cloud Apps and Microsoft 365 — each written as a\n  `{ tenantId, dataTypes: { …: { state } } }` body. Reconciled by the ARM\n  `dataConnectorId`. CCP/codeless, AWS, threat-intel and portal-only connectors\n  are intentionally out of scope.\n- **NRT (near-real-time) analytics rules** on the existing\n  `sentinel-analytics-rules` type. A rule now carries a **kind** (Scheduled or\n  NRT); NRT rules omit query frequency/period and the trigger operator/threshold\n  (they run continuously). Because `kind:NRT` is **not** part of the stable\n  alertRules contract, NRT rules are read/written against a preview api-version\n  (2024-01-01-preview) while Scheduled rules stay on GA (2024-09-01); rollback\n  and drift are kind-aware.\n- **Run-playbook automation-rule action** on the existing\n  `sentinel-automation-rules` type. An automation rule can now bind a Logic App\n  playbook (`RunPlaybook` action with `logicAppResourceId` and an optional\n  cross-tenant `tenantId`) in addition to, or instead of, the modify-properties\n  action. Validation checks the playbook ARM id shape; drift compares the bound\n  playbook.\n\n### Notes\n- The Sentinel service principal needs, in addition to \"Microsoft Sentinel\n  Contributor\": permission to write Log Analytics saved searches for hunting\n  queries, and the \"Microsoft Sentinel Automation Contributor\" role on a\n  playbook's resource group for run-playbook actions.",
+      "releasedAt": "2026-07-26T00:00:00.000Z"
+    },
+    {
+      "appId": "mimecast",
+      "name": "Mimecast",
+      "version": "0.1.0",
+      "vendor": "Veltrix",
+      "description": "Manage Mimecast configuration as code through the Mimecast API 2.0. v0.1 ships Managed URLs — permit/block entries by exact URL or domain — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
+      "category": "COMPLIANCE",
+      "icon": "✉️",
+      "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNDAgNDAiIHdpZHRoPSIxNDAiIGhlaWdodD0iNDAiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iTWltZWNhc3QiPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ2bWMiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjRDYwMDJBIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI0Y1MzMzRiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPCEtLSBPcmlnaW5hbCBhYnN0cmFjdCBlbnZlbG9wZS1zaGllbGQgbWFyay4gTm90IGEgdHJhZGVtYXJrZWQgTWltZWNhc3QgbG9nby4gLS0+CiAgPHJlY3QgeD0iNSIgeT0iOSIgd2lkdGg9IjI4IiBoZWlnaHQ9IjIyIiByeD0iMyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ1cmwoI3ZtYykiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxwYXRoIGQ9Ik02IDExIEwxOSAyMiBMMzIgMTEiIGZpbGw9Im5vbmUiIHN0cm9rZT0idXJsKCN2bWMpIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDx0ZXh0IHg9IjQwIiB5PSIyNiIgZm9udC1mYW1pbHk9IlNlZ29lIFVJLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iY3VycmVudENvbG9yIj5NaW1lY2FzdDwvdGV4dD4KPC9zdmc+Cg==",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/mimecast",
+      "available": true,
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/mimecast-v0.1.0/mimecast.zip",
+      "sha256": "a04df60cc790801a34cb3c83b55053b3c844769550cfc853a3f7a7fdc52ea0b0",
+      "sizeBytes": 57689,
+      "publishedAt": "2026-07-26T20:44:57.318Z",
+      "releaseNotes": "## 0.1.0 — 2026-07-26\n\n### Added\n- Initial release. Mimecast API 2.0 client (`lib/mimecast.ts`) with OAuth2\n  client-credentials auth (token cache + refresh), the `{ data: [...] }` request\n  wrapper, `{ meta, data, fail }` response handling (HTTP 200 + non-empty `fail`\n  is treated as a failure), and 429 `X-RateLimit-Reset` backoff.\n- **Managed URLs** configuration type — manage Targeted Threat Protection managed\n  URLs (permit/block by exact URL or domain) as code, with the full pipeline\n  handler set: validate, deploy, rollback, drift detection, health check and\n  status. Managed URLs have no update API, so entries are matched by their URL\n  identity (match type + normalized url/domain) and a change is applied as delete\n  + recreate; the original pre-management entry is carried forward so rollback can\n  restore it, and reconcile only deletes entries this app created.\n- Client UI — Overview, Setup Guide and Connections pages built on\n  `@veltrixsecops/app-sdk/ui`; Connections uses the shared `<ConnectionsManager>`\n  configured for the client-id + secret credential and the `mimecast` deploy\n  target.\n- Connection test (`handlers/testConnection.ts`) acquiring a token and listing\n  managed URLs.",
       "releasedAt": "2026-07-26T00:00:00.000Z"
     },
     {
