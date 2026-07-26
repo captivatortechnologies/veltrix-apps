@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-26T19:09:46.341Z",
+  "generatedAt": "2026-07-26T19:25:09.900Z",
   "apps": [
     {
       "appId": "cloudflare",
@@ -300,6 +300,25 @@
       "sizeBytes": 258675,
       "publishedAt": "2026-07-26T18:15:08.388Z",
       "releaseNotes": "## 1.2.0 — 2026-07-26\n\n### Added\n- **InsightIDR (Insight Platform cloud) coverage** — the app now spans Rapid7's\n  cloud SIEM alongside the on-prem console, via the region-scoped Insight\n  Platform Detection Rules API v1 (`https://<region>.api.insight.rapid7.com`,\n  `X-Api-Key` auth). Two new configuration types, targeting a new\n  `insightidr-org` component type:\n  - **InsightIDR Detection Rule Exceptions** — declare rule exceptions\n    (`/idr/v1/rules/{rrn}/rule-exceptions`) as code. Each exception is attached\n    to a parent detection rule referenced by name and tunes its action/priority\n    for matching users, assets or IPs, using either SIMPLE key-value conditions\n    or a LEQL query. Reconciled by (rule name, exception name); created when\n    missing, rolled back by deletion.\n  - **InsightIDR Detection Rule Settings** — set a detection rule's action\n    (off / tracks notable events / creates investigations / creates alerts /\n    assess activity) and optional investigation priority\n    (`/idr/v1/rules/update`). Reconciled by rule name; only changed fields are\n    written, and rollback restores the prior values.\n- **InsightIDR Region** app setting and an extended connection test that probes\n  `GET /validate` with the API key when the connection targets an Insight\n  Platform host (the InsightVM console test is unchanged).",
+      "releasedAt": "2026-07-26T00:00:00.000Z"
+    },
+    {
+      "appId": "sailpoint",
+      "name": "SailPoint",
+      "version": "0.1.0",
+      "vendor": "Veltrix",
+      "description": "Manage SailPoint Identity Security Cloud (ISC, formerly IdentityNow) configuration as code through the ISC API. v0.1 ships Transforms — the self-contained identity-attribute transform objects — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
+      "category": "IAM",
+      "icon": "🪪",
+      "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTAgNDAiIHdpZHRoPSIxNTAiIGhlaWdodD0iNDAiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iU2FpbFBvaW50Ij4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idnNwIiB4MT0iMCIgeTE9IjEiIHgyPSIxIiB5Mj0iMCI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzBBMjU0MCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwMEIzOUIiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDwhLS0gT3JpZ2luYWwgYWJzdHJhY3QgInNhaWwiIG1hcms6IGEgdHJpYW5ndWxhciBzYWlsIHJpc2luZyBmcm9tIGEgYmFzZSBwb2ludC4KICAgICAgIE5vdCB0aGUgdHJhZGVtYXJrZWQgU2FpbFBvaW50IGxvZ28uIC0tPgogIDxwYXRoIGQ9Ik04IDMyIEwyMCA0IEwyMCAzMiBaIiBmaWxsPSJ1cmwoI3ZzcCkiLz4KICA8cGF0aCBkPSJNMjIgMzIgTDIyIDEyIEwzMSAzMiBaIiBmaWxsPSIjMDBCMzlCIiBvcGFjaXR5PSIwLjg1Ii8+CiAgPGNpcmNsZSBjeD0iMjAiIGN5PSIzNC41IiByPSIyIiBmaWxsPSIjMEEyNTQwIi8+CiAgPHRleHQgeD0iNDAiIHk9IjI2IiBmb250LWZhbWlseT0iU2Vnb2UgVUksIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSJjdXJyZW50Q29sb3IiPlNhaWxQb2ludDwvdGV4dD4KPC9zdmc+Cg==",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/sailpoint",
+      "available": true,
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/sailpoint-v0.1.0/sailpoint.zip",
+      "sha256": "0dab291ea7304396c0e40c2455eef6818af821ffa82281c19f1b9740cd5f663f",
+      "sizeBytes": 60724,
+      "publishedAt": "2026-07-26T19:25:09.883Z",
+      "releaseNotes": "## 0.1.0 — 2026-07-26\n\n### Added\n- Initial release. SailPoint Identity Security Cloud (ISC) API client\n  (`lib/isc.ts`) with OAuth2 client-credentials auth, token caching, offset/limit\n  pagination and 429 retry.\n- **Transforms** configuration type — manage ISC transforms (name, operation\n  type, type-specific JSON attributes) as code, with the full pipeline handler\n  set: validate, deploy, rollback, drift detection, health check and status.\n  Transforms are matched by their immutable name; built-in (internal) transforms\n  are protected and a same-name transform of a different type is never silently\n  replaced.\n- Client UI — Overview, Setup Guide and Connections pages built on\n  `@veltrixsecops/app-sdk/ui`; Connections uses the shared `<ConnectionsManager>`\n  configured for the ISC client-credentials credential (Client ID + Client\n  Secret) and the `sailpoint-tenant` deploy target.\n- Connection test (`handlers/testConnection.ts`) verifying the OAuth token\n  exchange + `GET /transforms/v1`.",
       "releasedAt": "2026-07-26T00:00:00.000Z"
     },
     {
