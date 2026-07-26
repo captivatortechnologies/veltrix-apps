@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-26T20:27:48.904Z",
+  "generatedAt": "2026-07-26T20:35:36.645Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -199,6 +199,25 @@
       "publishedAt": "2026-07-20T17:48:45.901Z",
       "releaseNotes": "## 1.3.0 — 2026-07-20\n\n### Changed\n- Grouped the **Configurations** sidebar into 5 collapsible sections — Policies,\n  Authentication, Secrets, Operations, and Identity — so all 11 configuration\n  types stay navigable. Sections collapse by default, remember whether you left\n  them open, and always expand the one you're currently working in.",
       "releasedAt": "2026-07-20T00:00:00.000Z"
+    },
+    {
+      "appId": "ibm-qradar",
+      "name": "IBM QRadar",
+      "version": "0.1.0",
+      "vendor": "Veltrix",
+      "description": "Manage IBM QRadar configuration as code through the QRadar REST API. v0.1 ships Reference Sets — named, typed value collections — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
+      "category": "SIEM",
+      "icon": "📊",
+      "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMzggNDAiIHdpZHRoPSIxMzgiIGhlaWdodD0iNDAiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iSUJNIFFSYWRhciI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InZxciIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMwRjYyRkUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNDU4OUZGIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8IS0tIE9yaWdpbmFsIGFic3RyYWN0IHJhZGFyLXJpbmcgbWFyay4gTm90IGEgdHJhZGVtYXJrZWQgSUJNL1FSYWRhciBsb2dvLiAtLT4KICA8Y2lyY2xlIGN4PSIxOCIgY3k9IjIwIiByPSIxMyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ1cmwoI3ZxcikiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxjaXJjbGUgY3g9IjE4IiBjeT0iMjAiIHI9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0idXJsKCN2cXIpIiBzdHJva2Utd2lkdGg9IjIuNSIvPgogIDxwYXRoIGQ9Ik0xOCAyMCBMMjggMTIiIHN0cm9rZT0iIzBGNjJGRSIgc3Ryb2tlLXdpZHRoPSIyLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDx0ZXh0IHg9IjM4IiB5PSIyNiIgZm9udC1mYW1pbHk9IlNlZ29lIFVJLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iY3VycmVudENvbG9yIj5JQk0gUVJhZGFyPC90ZXh0Pgo8L3N2Zz4K",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/ibm-qradar",
+      "available": true,
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/ibm-qradar-v0.1.0/ibm-qradar.zip",
+      "sha256": "07eda1937350eb4114905855c62a7af4ce84dbb98df0efb0bd332657f04a067d",
+      "sizeBytes": 55953,
+      "publishedAt": "2026-07-26T20:35:36.617Z",
+      "releaseNotes": "## 0.1.0 — 2026-07-26\n\n### Added\n- Initial release. IBM QRadar REST API client (`lib/qradar.ts`) with `SEC`\n  authorized-service-token auth, the required `Version` header, and the classic\n  reference-data set operations (create / get / add value / delete value /\n  delete set).\n- **Reference Sets** configuration type — manage QRadar reference sets (named,\n  typed value collections) as code, with the full pipeline handler set: validate,\n  deploy, rollback, drift detection, health check and status. Sets are matched by\n  name; their values are reconciled to exactly the declared list (add missing,\n  remove extra); the element type is immutable, so a same-name set of a different\n  type is not modified; reconcile only deletes sets this app created.\n- Client UI — Overview, Setup Guide and Connections pages built on\n  `@veltrixsecops/app-sdk/ui`; Connections uses the shared `<ConnectionsManager>`\n  configured for the SEC-token credential and the `ibm-qradar` deploy target.\n- Connection test (`handlers/testConnection.ts`) listing the reference-data sets.",
+      "releasedAt": "2026-07-26T00:00:00.000Z"
     },
     {
       "appId": "microsoft-entra-id",
