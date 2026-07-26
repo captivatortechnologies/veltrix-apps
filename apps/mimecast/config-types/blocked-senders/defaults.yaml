@@ -1,0 +1,8 @@
+# Defaults for a new blocked sender policy item.
+#
+# A FLAT map keyed by the canvas field keys. Seeds the common case (block a
+# sender domain from reaching everyone); the from value is left blank for a
+# deliberate choice.
+option: block_sender
+fromType: email_domain
+toType: everyone

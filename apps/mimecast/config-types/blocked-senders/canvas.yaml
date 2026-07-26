@@ -1,0 +1,97 @@
+# =============================================================================
+# Canvas Template — Mimecast Blocked Sender Policies
+#
+# Declares ONE blocked sender policy — the item. Users add as many as they need.
+# A policy's logical identity is its DESCRIPTION; the app lists policies, matches
+# on the description, and (since there is no safe in-place update) applies changes
+# by delete + recreate. Reconcile deletes policies this app created but no longer
+# declares. Keep from/to to self-contained types (everyone / email domain / email
+# address) — group/attribute targeting is out of scope.
+#
+# Field keys must match config-types/blocked-senders/validate.ts.
+# =============================================================================
+
+id: "mimecast-blocked-senders"
+name: "Blocked Sender Policy Configuration"
+toolType: "mimecast"
+entityType: "blocked-senders"
+description: "Define Mimecast blocked sender policies (block a sender email/domain from reaching recipients) as code through the Mimecast API."
+
+item:
+  label: "Blocked Sender Policy"
+  identityField: "description"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Policy description and action"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The policy description — its identity. Must be unique within this
+            canvas; the app matches live policies on it.
+
+        - key: "option"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "block_sender"
+          options:
+            - label: "Block sender"
+              value: "block_sender"
+            - label: "No action"
+              value: "no_action"
+          helpText: "What the policy does when it matches."
+
+    - name: "From"
+      icon: "user"
+      description: "The sender the policy applies to"
+      fields:
+        - key: "fromType"
+          label: "From Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "email_domain"
+          options:
+            - label: "Email domain"
+              value: "email_domain"
+            - label: "Email address"
+              value: "email_address"
+            - label: "Everyone"
+              value: "everyone"
+          helpText: "Match the sender by domain, exact address, or everyone."
+
+        - key: "fromValue"
+          label: "From Value"
+          fieldType: "text"
+          required: false
+          helpText: "The domain or email address (required unless From Type is Everyone)."
+
+    - name: "To"
+      icon: "users"
+      description: "The recipients the policy applies to"
+      fields:
+        - key: "toType"
+          label: "To Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "everyone"
+          options:
+            - label: "Everyone"
+              value: "everyone"
+            - label: "Email domain"
+              value: "email_domain"
+            - label: "Email address"
+              value: "email_address"
+          helpText: "Match the recipient by everyone, domain, or exact address."
+
+        - key: "toValue"
+          label: "To Value"
+          fieldType: "text"
+          required: false
+          helpText: "The domain or email address (required unless To Type is Everyone)."

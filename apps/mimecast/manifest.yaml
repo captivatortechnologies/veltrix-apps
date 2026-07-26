@@ -1,11 +1,11 @@
 id: mimecast
 name: Mimecast
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
-  Manage Mimecast configuration as code through the Mimecast API 2.0. v0.1 ships
-  Managed URLs — permit/block entries by exact URL or domain — with validation,
-  drift detection and rollback handled by the Security-as-Code pipeline.
+  Manage Mimecast configuration as code through the Mimecast API 2.0 — Managed
+  URLs and Blocked Sender policies — with validation, drift detection and rollback
+  handled by the Security-as-Code pipeline.
 category: COMPLIANCE
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/mimecast
@@ -29,9 +29,29 @@ permissions:
     - resource: managed-urls
       actions: [read, write, delete]
       description: Manage Mimecast Targeted Threat Protection managed URLs (permit/block by exact URL or domain)
+    - resource: blocked-senders
+      actions: [read, write, delete]
+      description: Manage Mimecast blocked sender policies (block a sender email/domain from reaching recipients)
 
 pipeline:
   configurationTypes:
+    - id: blocked-senders
+      name: Blocked Senders
+      description: Blocked sender policies — block a sender email/domain from recipients (description-keyed; delete+recreate on change)
+      canvasTemplate: config-types/blocked-senders/canvas.yaml
+      defaultConfig: config-types/blocked-senders/defaults.yaml
+      handlers:
+        validate: config-types/blocked-senders/validate
+        deploy: config-types/blocked-senders/deploy
+        rollback: config-types/blocked-senders/rollback
+        healthCheck: config-types/blocked-senders/healthCheck
+        driftDetect: config-types/blocked-senders/driftDetect
+        getStatus: config-types/blocked-senders/getStatus
+      targets:
+        componentTypes: [mimecast]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: managed-urls
       name: Managed URLs
       description: TTP managed URLs — permit/block by exact URL or domain (URL-keyed; delete+recreate on change)

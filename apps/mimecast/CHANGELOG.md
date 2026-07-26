@@ -8,6 +8,16 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.2.0 — 2026-07-26
+
+### Added
+- **Blocked Senders** configuration type — manage Mimecast blocked sender
+  policies (block a sender email/domain from reaching recipients) as code, with
+  the full pipeline handler set. Policies are matched by description; from/to
+  targeting is kept self-contained (everyone / email domain / email address); a
+  change is applied as delete + recreate; the prior policy is carried forward so
+  rollback can restore it; reconcile only deletes policies this app created.
+
 ## 0.1.0 — 2026-07-26
 
 ### Added
