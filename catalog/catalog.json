@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-26T20:44:57.344Z",
+  "generatedAt": "2026-07-26T20:54:46.900Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -178,6 +178,25 @@
       "sizeBytes": 59980,
       "publishedAt": "2026-07-26T19:44:48.750Z",
       "releaseNotes": "## 0.1.0 — 2026-07-26\n\n### Added\n- Initial release. FortiManager JSON-RPC API client (`lib/fortimanager.ts`) with\n  session login/logout, single-endpoint RPC (get / add / set / delete), automatic\n  re-login on session expiry, and optional ADOM workspace lock / commit / unlock.\n- **Firewall Addresses** configuration type — manage FortiManager firewall\n  address objects (ipmask / iprange / fqdn / geography) as code, with the full\n  pipeline handler set: validate, deploy, rollback, drift detection, health check\n  and status. Addresses are matched by their `name` (the FortiManager mkey) and\n  upserted with `set`; reconcile only deletes addresses this app created. When the\n  ADOM is in workspace mode, deploys/rollbacks run inside a lock / commit / unlock\n  transaction.\n- Client UI — Overview, Setup Guide and Connections pages built on\n  `@veltrixsecops/app-sdk/ui`; Connections uses the shared `<ConnectionsManager>`\n  configured for the admin username + password credential and the `fortimanager`\n  deploy target.\n- Connection test (`handlers/testConnection.ts`) verifying the JSON-RPC login +\n  ADOM access.",
+      "releasedAt": "2026-07-26T00:00:00.000Z"
+    },
+    {
+      "appId": "google-secops",
+      "name": "Google SecOps",
+      "version": "0.1.0",
+      "vendor": "Veltrix",
+      "description": "Manage Google Security Operations (Chronicle) configuration as code through the SecOps REST API. v0.1 ships Reference Lists — named sets of string, regex or CIDR entries — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
+      "category": "SIEM",
+      "icon": "🛰️",
+      "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTIgNDAiIHdpZHRoPSIxNTIiIGhlaWdodD0iNDAiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iR29vZ2xlIFNlY09wcyI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InZncyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxQTczRTgiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMzRBODUzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8IS0tIE9yaWdpbmFsIGFic3RyYWN0IG9yYml0IC8gc2F0ZWxsaXRlIG1hcmsuIE5vdCBhIHRyYWRlbWFya2VkIEdvb2dsZSBsb2dvLiAtLT4KICA8Y2lyY2xlIGN4PSIxOCIgY3k9IjIwIiByPSI2IiBmaWxsPSJ1cmwoI3ZncykiLz4KICA8ZWxsaXBzZSBjeD0iMTgiIGN5PSIyMCIgcng9IjEzIiByeT0iNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ1cmwoI3ZncykiIHN0cm9rZS13aWR0aD0iMi41IiB0cmFuc2Zvcm09InJvdGF0ZSgtMzAgMTggMjApIi8+CiAgPHRleHQgeD0iMzgiIHk9IjI2IiBmb250LWZhbWlseT0iU2Vnb2UgVUksIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSJjdXJyZW50Q29sb3IiPkdvb2dsZSBTZWNPcHM8L3RleHQ+Cjwvc3ZnPgo=",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/google-secops",
+      "available": true,
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/google-secops-v0.1.0/google-secops.zip",
+      "sha256": "84e11256c2f8ff2d8f70dc1dfb5b659bfc35d02ac3e315c4cc990518f45d288c",
+      "sizeBytes": 58192,
+      "publishedAt": "2026-07-26T20:54:46.862Z",
+      "releaseNotes": "## 0.1.0 — 2026-07-26\n\n### Added\n- Initial release. Google Security Operations (Chronicle) REST API client\n  (`lib/googlesecops.ts`) with service-account auth — a JWT signed RS256 with the\n  key's private key (via Node's built-in crypto, no extra dependency) is exchanged\n  for a Bearer token that is cached and refreshed; regionalized API host + the\n  projects/locations/instances resource parent.\n- **Reference Lists** configuration type — manage SecOps reference lists (named\n  string / regex / CIDR entry sets) as code, with the full pipeline handler set:\n  validate, deploy, rollback, drift detection, health check and status. Lists are\n  keyed by their immutable reference list id; entries are reconciled to exactly\n  the declared set (a full-replace PATCH); the syntax type is fixed at creation.\n  Reference lists cannot be deleted, so reconcile empties the ones this app\n  created but no longer declares, and rollback restores prior entries (or empties\n  a created list).\n- Client UI — Overview, Setup Guide and Connections pages built on\n  `@veltrixsecops/app-sdk/ui`; Connections uses the shared `<ConnectionsManager>`\n  configured for the service-account-key credential and the `google-secops`\n  deploy target.\n- Connection test (`handlers/testConnection.ts`) minting a token and listing\n  reference lists.",
       "releasedAt": "2026-07-26T00:00:00.000Z"
     },
     {
