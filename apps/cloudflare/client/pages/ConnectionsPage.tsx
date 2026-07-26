@@ -11,6 +11,7 @@ export default function ConnectionsPage() {
     <ConnectionsManager
       appName="Cloudflare"
       appId="cloudflare"
+      componentType="cloudflare-zone"
       tokenLabel="API token"
       usernameLabel="Account ID"
       tokenUsernamePlaceholder="e.g. f9fa6ce8b0f2b91f8635eedde085b094 — required for account-scoped tokens"

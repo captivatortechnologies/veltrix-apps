@@ -3,6 +3,11 @@
 All notable changes to the Cloudflare app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.2.3 — 2026-07-25
+
+### Fixed
+- **Saved connections now register as deploy targets** ("Register a cloudflare zone connection…" no longer shows when one exists). The Connections page didn't pass a `componentType`, so a saved connection created only a credential — never a `cloudflare-zone` component — and configs saw no registered connection. It now declares `componentType: cloudflare-zone`, so saving a connection registers a `cloudflare-zone` component tagged with the selected environment, which the config picks up. (Pairs with the platform change to link connections by the config's environment.)
+
 ## 1.2.2 — 2026-07-25
 
 ### Added
