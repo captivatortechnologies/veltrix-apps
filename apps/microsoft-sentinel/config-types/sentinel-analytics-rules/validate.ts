@@ -3,6 +3,14 @@ import { isIso8601Duration, slugify } from '../../lib/sentinel'
 
 export const SEVERITIES = ['High', 'Medium', 'Low', 'Informational'] as const
 export const TRIGGER_OPERATORS = ['GreaterThan', 'LessThan', 'Equal', 'NotEqual'] as const
+/**
+ * Supported alertRule kinds. Scheduled is GA (SENTINEL_API_VERSION); NRT
+ * (near-real-time) is written against the preview api-version because kind:NRT is
+ * not part of the stable polymorphic AlertRule contract. Fusion / ML / TI remain
+ * out of scope (portal- or template-driven).
+ */
+export const RULE_KINDS = ['Scheduled', 'NRT'] as const
+export type RuleKind = (typeof RULE_KINDS)[number]
 /** Microsoft.SecurityInsights AttackTactic enum (api-version 2024-09-01). */
 export const ATTACK_TACTICS = [
   'Reconnaissance', 'ResourceDevelopment', 'InitialAccess', 'Execution', 'Persistence',
@@ -14,15 +22,18 @@ export const ATTACK_TACTICS = [
 export type Severity = (typeof SEVERITIES)[number]
 export type TriggerOperator = (typeof TRIGGER_OPERATORS)[number]
 
-/** One scheduled analytics rule authored on the canvas. */
+/** One analytics rule (Scheduled or NRT) authored on the canvas. */
 export interface ScheduledRuleSpec {
   sectionName: string
   ruleName: string
   /** URL-safe ARM ruleId derived from the name (deterministic → idempotent PUT). */
   ruleId: string
+  /** Scheduled | NRT — drives the request body shape and the api-version used. */
+  kind: string
   enabled: boolean
   severity: string
   query: string
+  /** Scheduled-only fields; forced empty/zero for NRT (which has no frequency/period/trigger). */
   queryFrequency: string
   queryPeriod: string
   triggerOperator: string
@@ -30,6 +41,11 @@ export interface ScheduledRuleSpec {
   tactics: string[]
   suppressionDuration: string
   suppressionEnabled: boolean
+}
+
+/** True for the NRT (near-real-time) kind, which omits frequency/period/trigger. */
+export function isNrt(kind: string): boolean {
+  return kind.trim().toLowerCase() === 'nrt'
 }
 
 /** The reconciliation key is the slug of the rule name (also the ARM ruleId). */
@@ -61,23 +77,28 @@ export function readNumber(value: unknown): { value: number | null; error: strin
   return { value: null, error: null }
 }
 
-/** Each canvas item is one scheduled analytics rule. */
+/** Each canvas item is one analytics rule (Scheduled or NRT). */
 export function extractRuleSpecs(canvas: CanvasSnapshot): ScheduledRuleSpec[] {
   return (canvas.sections ?? []).map((section) => {
     const fields = section.fields ?? {}
     const name = typeof fields.rule_name === 'string' ? fields.rule_name.trim() : ''
     const threshold = readNumber(fields.trigger_threshold)
+    const kind = typeof fields.kind === 'string' && fields.kind.trim() ? fields.kind.trim() : 'Scheduled'
+    const nrt = isNrt(kind)
     return {
       sectionName: section.name,
       ruleName: name,
       ruleId: slugify(name),
+      kind,
       enabled: readBool(fields.enabled, true),
       severity: typeof fields.severity === 'string' ? fields.severity.trim() : '',
       query: typeof fields.query === 'string' ? fields.query.trim() : '',
-      queryFrequency: typeof fields.query_frequency === 'string' ? fields.query_frequency.trim() : '',
-      queryPeriod: typeof fields.query_period === 'string' ? fields.query_period.trim() : '',
-      triggerOperator: typeof fields.trigger_operator === 'string' ? fields.trigger_operator.trim() : '',
-      triggerThreshold: threshold.value ?? 0,
+      // NRT rules have no frequency/period/trigger — normalise them away so they
+      // never appear in the request body, validation, or drift comparison.
+      queryFrequency: nrt ? '' : typeof fields.query_frequency === 'string' ? fields.query_frequency.trim() : '',
+      queryPeriod: nrt ? '' : typeof fields.query_period === 'string' ? fields.query_period.trim() : '',
+      triggerOperator: nrt ? '' : typeof fields.trigger_operator === 'string' ? fields.trigger_operator.trim() : '',
+      triggerThreshold: nrt ? 0 : threshold.value ?? 0,
       tactics: readList(fields.tactics),
       suppressionDuration: typeof fields.suppression_duration === 'string' ? fields.suppression_duration.trim() : '',
       suppressionEnabled: readBool(fields.suppression_enabled, false),
@@ -119,28 +140,56 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
       seen.add(key)
     }
 
+    if (!RULE_KINDS.includes(spec.kind as RuleKind)) {
+      errors.push({
+        field: `${prefix}.kind`,
+        message: `Rule kind must be one of ${RULE_KINDS.join(', ')}`,
+        code: 'invalid_kind',
+      })
+    }
+
     if (!spec.query) {
       errors.push({ field: `${prefix}.query`, message: 'KQL query is required', code: 'required' })
     }
 
-    if (!spec.queryFrequency) {
-      errors.push({ field: `${prefix}.query_frequency`, message: 'Query frequency is required', code: 'required' })
-    } else if (!isIso8601Duration(spec.queryFrequency)) {
-      errors.push({
-        field: `${prefix}.query_frequency`,
-        message: `Query frequency "${spec.queryFrequency}" must be an ISO-8601 duration (e.g. PT1H, PT5M)`,
-        code: 'invalid_duration',
-      })
-    }
+    // Frequency / period / trigger apply to Scheduled rules only — NRT runs
+    // continuously and has none of these.
+    if (!isNrt(spec.kind)) {
+      if (!spec.queryFrequency) {
+        errors.push({ field: `${prefix}.query_frequency`, message: 'Query frequency is required for Scheduled rules', code: 'required' })
+      } else if (!isIso8601Duration(spec.queryFrequency)) {
+        errors.push({
+          field: `${prefix}.query_frequency`,
+          message: `Query frequency "${spec.queryFrequency}" must be an ISO-8601 duration (e.g. PT1H, PT5M)`,
+          code: 'invalid_duration',
+        })
+      }
 
-    if (!spec.queryPeriod) {
-      errors.push({ field: `${prefix}.query_period`, message: 'Query period is required', code: 'required' })
-    } else if (!isIso8601Duration(spec.queryPeriod)) {
-      errors.push({
-        field: `${prefix}.query_period`,
-        message: `Query period "${spec.queryPeriod}" must be an ISO-8601 duration (e.g. PT1H, P1D)`,
-        code: 'invalid_duration',
-      })
+      if (!spec.queryPeriod) {
+        errors.push({ field: `${prefix}.query_period`, message: 'Query period is required for Scheduled rules', code: 'required' })
+      } else if (!isIso8601Duration(spec.queryPeriod)) {
+        errors.push({
+          field: `${prefix}.query_period`,
+          message: `Query period "${spec.queryPeriod}" must be an ISO-8601 duration (e.g. PT1H, P1D)`,
+          code: 'invalid_duration',
+        })
+      }
+
+      if (!TRIGGER_OPERATORS.includes(spec.triggerOperator as TriggerOperator)) {
+        errors.push({
+          field: `${prefix}.trigger_operator`,
+          message: `Trigger operator must be one of ${TRIGGER_OPERATORS.join(', ')}`,
+          code: 'invalid_operator',
+        })
+      }
+
+      if (!Number.isInteger(spec.triggerThreshold) || spec.triggerThreshold < 0) {
+        errors.push({
+          field: `${prefix}.trigger_threshold`,
+          message: 'Trigger threshold must be a non-negative integer',
+          code: 'invalid_threshold',
+        })
+      }
     }
 
     if (!SEVERITIES.includes(spec.severity as Severity)) {
@@ -148,22 +197,6 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
         field: `${prefix}.severity`,
         message: `Severity must be one of ${SEVERITIES.join(', ')}`,
         code: 'invalid_severity',
-      })
-    }
-
-    if (!TRIGGER_OPERATORS.includes(spec.triggerOperator as TriggerOperator)) {
-      errors.push({
-        field: `${prefix}.trigger_operator`,
-        message: `Trigger operator must be one of ${TRIGGER_OPERATORS.join(', ')}`,
-        code: 'invalid_operator',
-      })
-    }
-
-    if (!Number.isInteger(spec.triggerThreshold) || spec.triggerThreshold < 0) {
-      errors.push({
-        field: `${prefix}.trigger_threshold`,
-        message: 'Trigger threshold must be a non-negative integer',
-        code: 'invalid_threshold',
       })
     }
 

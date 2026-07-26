@@ -1,0 +1,141 @@
+# =============================================================================
+# Canvas Template — Wiz Automation Rules
+#
+# Declares ONE Wiz automation rule — the item. Users add as many as they need.
+# Rules are created / updated through the GraphQL createAutomationRule /
+# updateAutomationRule mutations and identified for reconciliation by their
+# `name`.
+#
+# An automation rule reacts to a Wiz trigger (an Issue/Cloud-event/Control/
+# Configuration-finding lifecycle event) and delivers a notification/remediation
+# action to an existing Wiz integration (Slack, webhook, ServiceNow, Jira, SNS…).
+#
+# Field keys must match config-types/wiz-automation-rules/validate.ts.
+# =============================================================================
+
+id: "wiz-automation-rules"
+name: "Wiz Automation Rule"
+toolType: "wiz"
+entityType: "wiz-automation-rules"
+description: "Define Wiz automation rules as code through the GraphQL API. Reconciled by rule name; each rule fires on a Wiz trigger (Issues, Cloud events, Controls, Configuration findings) and delivers a notification/remediation action to an existing Wiz integration."
+
+item:
+  label: "Automation Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Rule"
+      icon: "zap"
+      description: "Name and state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The automation rule name — its logical identity in the tenant."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Wiz console."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the rule is active and evaluated."
+
+    - name: "Trigger"
+      icon: "radar"
+      description: "What fires the rule"
+      fields:
+        - key: "trigger_source"
+          label: "Trigger Source"
+          fieldType: "select"
+          required: true
+          defaultValue: "ISSUES"
+          options:
+            - { label: "Issues", value: "ISSUES" }
+            - { label: "Cloud Events", value: "CLOUD_EVENTS" }
+            - { label: "Control", value: "CONTROL" }
+            - { label: "Configuration Finding", value: "CONFIGURATION_FINDING" }
+          helpText: "The Wiz surface whose lifecycle events trigger the rule."
+
+        - key: "trigger_types"
+          label: "Trigger Types"
+          fieldType: "multiselect"
+          required: true
+          options:
+            - { label: "Created", value: "CREATED" }
+            - { label: "Updated", value: "UPDATED" }
+            - { label: "Resolved", value: "RESOLVED" }
+            - { label: "Reopened", value: "REOPENED" }
+          helpText: "Which lifecycle transitions fire the rule. At least one is required."
+
+        - key: "filters"
+          label: "Filters (JSON)"
+          fieldType: "textarea"
+          helpText: "Optional Wiz filter object (JSON) scoping which events match, e.g. by severity or project. Leave empty to match all events of the selected trigger."
+
+        - key: "project_id"
+          label: "Project ID"
+          fieldType: "text"
+          helpText: "Optional Wiz project id to scope the rule to (set only at creation). Leave empty for all projects."
+
+    - name: "Action"
+      icon: "send"
+      description: "Where the rule delivers"
+      fields:
+        - key: "integration_id"
+          label: "Integration ID"
+          fieldType: "text"
+          required: true
+          helpText: "The id of an existing Wiz integration the action delivers to (create integrations in Wiz under Settings > Integrations)."
+
+        - key: "action_template_type"
+          label: "Action Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "WEBHOOK"
+          options:
+            - { label: "Webhook", value: "WEBHOOK" }
+            - { label: "Email", value: "EMAIL" }
+            - { label: "Slack", value: "SLACK" }
+            - { label: "Slack Bot", value: "SLACK_BOT" }
+            - { label: "Microsoft Teams", value: "MICROSOFT_TEAMS" }
+            - { label: "Google Chat", value: "GOOGLE_CHAT" }
+            - { label: "AWS SNS", value: "AWS_SNS" }
+            - { label: "AWS EventBridge", value: "AWS_EVENT_BRIDGE" }
+            - { label: "AWS Security Hub", value: "AWS_SECURITY_HUB" }
+            - { label: "Azure Service Bus", value: "AZURE_SERVICE_BUS" }
+            - { label: "Azure DevOps", value: "AZURE_DEVOPS" }
+            - { label: "Azure Logic Apps", value: "AZURE_LOGIC_APPS" }
+            - { label: "Azure Sentinel", value: "AZURE_SENTINEL" }
+            - { label: "GCP Pub/Sub", value: "GCP_PUB_SUB" }
+            - { label: "PagerDuty — Create Incident", value: "PAGER_DUTY_CREATE_INCIDENT" }
+            - { label: "PagerDuty — Resolve Incident", value: "PAGER_DUTY_RESOLVE_INCIDENT" }
+            - { label: "Opsgenie — Create Alert", value: "OPSGENIE_CREATE_ALERT" }
+            - { label: "Opsgenie — Close Alert", value: "OPSGENIE_CLOSE_ALERT" }
+            - { label: "ServiceNow — Create Ticket", value: "SERVICE_NOW_CREATE_TICKET" }
+            - { label: "ServiceNow — Update Ticket", value: "SERVICE_NOW_UPDATE_TICKET" }
+            - { label: "Jira — Create Ticket", value: "JIRA_CREATE_TICKET" }
+            - { label: "Jira — Add Comment", value: "JIRA_ADD_COMMENT" }
+            - { label: "Jira — Transition Ticket", value: "JIRA_TRANSITION_TICKET" }
+            - { label: "ClickUp — Create Task", value: "CLICK_UP_CREATE_TASK" }
+            - { label: "Cortex XSOAR", value: "CORTEX_XSOAR" }
+            - { label: "Cisco Webex", value: "CISCO_WEBEX" }
+            - { label: "Cyware", value: "CYWARE" }
+            - { label: "Freshservice", value: "FRESHSERVICE" }
+            - { label: "Hunters", value: "HUNTERS" }
+            - { label: "Splunk", value: "SPLUNK" }
+            - { label: "Sumo Logic", value: "SUMO_LOGIC" }
+            - { label: "Tines", value: "TINES" }
+            - { label: "Torq", value: "TORQ" }
+          helpText: "The action template. Must match the type of the integration referenced above."
+
+        - key: "action_template_params"
+          label: "Action Params (JSON)"
+          fieldType: "textarea"
+          helpText: 'Optional action parameters (JSON) matching Wiz ActionTemplateParamsInput, keyed by action, e.g. {"webhook":{"body":"…"}}, {"awsSNS":{"body":"…"}} or {"email":{"to":["a@b.com"]}}. Leave empty to use the integration''s defaults.'

@@ -1,0 +1,88 @@
+# =============================================================================
+# Canvas Template — Snyk Import Targets
+#
+# Declares ONE import target — the item. Users add as many as they need. Each
+# item imports a source-control repository into Snyk through a CONFIGURED
+# integration, creating Snyk projects, via the v1 Import API
+# (/org/{org}/integrations/{integrationId}/import). Identity is the target
+# (owner/name) reached through the integration. The import is asynchronous;
+# deploy skips a target that already exists so re-deploys are idempotent.
+# Field keys must match config-types/snyk-import-targets/validate.ts.
+# =============================================================================
+
+id: "snyk-import-targets"
+name: "Snyk Import Targets"
+toolType: "snyk"
+entityType: "snyk-import-targets"
+description: "Import source-control repositories into Snyk as code through a configured integration via the v1 Import API. Reconciled by target (owner/name); existing targets are skipped."
+
+item:
+  label: "Import Target"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Integration"
+      icon: "git-branch"
+      description: "The configured integration to import through"
+      fields:
+        - key: "integration_id"
+          label: "Integration ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The UUID of the configured Snyk integration to import through
+            (Snyk > Settings > Integrations). The integration must already be
+            connected — importing through GitHub Cloud requires a personal
+            access/API token.
+
+        - key: "scm_type"
+          label: "Source Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "github"
+          options:
+            - { label: "GitHub", value: "github" }
+            - { label: "GitHub Enterprise", value: "github-enterprise" }
+            - { label: "Azure Repos", value: "azure-repos" }
+            - { label: "Bitbucket Cloud", value: "bitbucket-cloud" }
+          helpText: >
+            The kind of source the integration connects to. Determines how the
+            target is addressed; all supported types use an owner/name repository.
+
+    - name: "Target"
+      icon: "folder-git"
+      description: "The repository to import"
+      fields:
+        - key: "owner"
+          label: "Owner"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The repository owner — the GitHub org/user, the Bitbucket Cloud
+            workspace id, or the Azure Repos project that contains the repo.
+
+        - key: "name"
+          label: "Repository Name"
+          fieldType: "text"
+          required: true
+          helpText: "The repository name. Together with the owner this is the target's identity (owner/name)."
+
+        - key: "branch"
+          label: "Branch"
+          fieldType: "text"
+          required: false
+          helpText: >
+            The branch to import. Required for GitHub, GitHub Enterprise and
+            Azure Repos (use the repo's default branch); optional for Bitbucket
+            Cloud. Importing a non-default branch may require Snyk support.
+
+        - key: "exclusion_globs"
+          label: "Exclusion Globs"
+          fieldType: "text"
+          required: false
+          helpText: >
+            Optional comma-separated list of up to 10 folder names to exclude from
+            scanning. Leave blank for Snyk's default (fixtures, tests, __tests__,
+            node_modules); an empty value is not sent.

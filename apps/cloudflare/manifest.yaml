@@ -1,6 +1,6 @@
 id: cloudflare
 name: Cloudflare
-version: "1.3.0"
+version: "1.4.0"
 vendor: Veltrix
 description: >
   Manage Cloudflare configuration as code through the Cloudflare API (v4). Covers
@@ -43,6 +43,9 @@ permissions:
     - resource: cloudflare-redirect-rules
       actions: [read, write, delete]
       description: Manage Cloudflare redirect rules
+    - resource: cloudflare-page-rules
+      actions: [read, write, delete]
+      description: Manage Cloudflare (legacy) Page Rules
     - resource: cloudflare-transform-rules
       actions: [read, write, delete]
       description: Manage Cloudflare transform rules
@@ -233,6 +236,26 @@ pipeline:
         componentTypes: [cloudflare-zone]
         requiresCredential: true
         requiresConnectivity: false
+
+    - id: cloudflare-page-rules
+      group: "Rules & Lists"
+      name: Cloudflare Page Rules (Legacy)
+      description: Classic Page Rules (/pagerules); matched by URL pattern. Deprecated by Cloudflare — prefer the Redirect/Transform (Rulesets) types for new work.
+      canvasTemplate: config-types/cloudflare-page-rules/canvas.yaml
+      defaultConfig: config-types/cloudflare-page-rules/defaults.yaml
+      handlers:
+        validate: config-types/cloudflare-page-rules/validate
+        deploy: config-types/cloudflare-page-rules/deploy
+        rollback: config-types/cloudflare-page-rules/rollback
+        healthCheck: config-types/cloudflare-page-rules/healthCheck
+        driftDetect: config-types/cloudflare-page-rules/driftDetect
+        getStatus: config-types/cloudflare-page-rules/getStatus
+        options: config-types/cloudflare-page-rules/options
+      targets:
+        componentTypes: [cloudflare-zone]
+        requiresCredential: true
+        requiresConnectivity: false
+        zoneScoped: true
 
     - id: cloudflare-access-applications
       group: "Zero Trust · Access"

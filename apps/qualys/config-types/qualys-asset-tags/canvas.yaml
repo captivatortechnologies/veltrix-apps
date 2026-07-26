@@ -1,0 +1,84 @@
+# =============================================================================
+# Canvas Template — Qualys Asset Tags & Tag Rules
+#
+# Declares ONE asset tag — the item. A tag may be static (assigned manually) or
+# dynamic (assets are tagged automatically by a rule of a given ruleType +
+# ruleText). Qualys assigns a numeric id, so identity for reconciliation is the
+# natural key (name). Managed through the Asset Management & Tagging QPS REST API
+# (/qps/rest/2.0/…/am/tag), which speaks JSON rather than the classic v2 XML.
+# Field keys must match config-types/qualys-asset-tags/validate.ts.
+# =============================================================================
+
+id: "qualys-asset-tags"
+name: "Qualys Asset Tag Configuration"
+toolType: "qualys"
+entityType: "qualys-asset-tags"
+description: "Define Qualys asset tags and dynamic tag rules as code through the Asset Management & Tagging QPS API (/qps/rest/2.0/create|update|search|delete/am/tag). Reconciled by name."
+
+item:
+  label: "Asset Tag"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Asset Tag"
+      icon: "tag"
+      description: "Name, rule and metadata"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The tag name (its logical identity for reconciliation). Must be unique."
+
+        - key: "rule_type"
+          label: "Rule Type"
+          fieldType: "select"
+          defaultValue: "STATIC"
+          options:
+            - { label: "Static (assigned manually)", value: "STATIC" }
+            - { label: "Name contains", value: "NAME_CONTAINS" }
+            - { label: "Network range", value: "NETWORK_RANGE" }
+            - { label: "Operating system regex", value: "OS_REGEX" }
+            - { label: "Open ports", value: "OPEN_PORTS" }
+            - { label: "Installed software", value: "INSTALLED_SOFTWARE" }
+            - { label: "Vulnerability exists", value: "VULN_EXIST" }
+            - { label: "Asset search (QQL)", value: "ASSET_SEARCH" }
+            - { label: "Global AssetView (QQL)", value: "GLOBAL_ASSET_VIEW" }
+            - { label: "Cloud asset", value: "CLOUD_ASSET" }
+            - { label: "Business information", value: "BUSINESS_INFORMATION" }
+            - { label: "Groovy script", value: "GROOVY" }
+          helpText: "How assets are matched. Static tags are assigned manually; every other type evaluates the Rule Text automatically."
+
+        - key: "rule_text"
+          label: "Rule Text"
+          fieldType: "textarea"
+          visibleWhen:
+            field: "rule_type"
+            in:
+              - "NAME_CONTAINS"
+              - "NETWORK_RANGE"
+              - "OS_REGEX"
+              - "OPEN_PORTS"
+              - "INSTALLED_SOFTWARE"
+              - "VULN_EXIST"
+              - "ASSET_SEARCH"
+              - "GLOBAL_ASSET_VIEW"
+              - "CLOUD_ASSET"
+              - "BUSINESS_INFORMATION"
+              - "GROOVY"
+          helpText: >
+            The rule expression evaluated for a dynamic tag — e.g. a substring for "Name contains", IP ranges for
+            "Network range", a regex for "Operating system regex", or a QQL query for "Asset search" /
+            "Global AssetView". Required for every rule type except Static.
+
+        - key: "color"
+          label: "Color (hex)"
+          fieldType: "text"
+          helpText: "Optional display color as a 6-digit hex code, e.g. #29B4C6."
+
+        - key: "criticality_score"
+          label: "Criticality Score"
+          fieldType: "number"
+          helpText: "Optional business criticality from 1 (low) to 5 (high)."

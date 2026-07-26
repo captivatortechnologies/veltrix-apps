@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-rapid7",
   "private": true,
-  "version": "1.1.0",
-  "description": "Veltrix app: manage Rapid7 InsightVM (sites, asset groups, scan config, tags) configuration as code",
+  "version": "1.2.0",
+  "description": "Veltrix app: manage Rapid7 InsightVM (sites, asset groups, scan config, tags) and InsightIDR (detection rule exceptions, rule settings) configuration as code",
   "scripts": { "typecheck": "tsc --noEmit" },
   "devDependencies": {
     "@types/jest": "^29.5.14",

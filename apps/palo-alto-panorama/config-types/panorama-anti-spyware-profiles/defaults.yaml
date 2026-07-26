@@ -1,0 +1,6 @@
+# Defaults for a new anti-spyware profile item (flat map keyed by canvas field keys).
+rule_name: "block-critical-high-medium"
+action: "reset-both"
+packet_capture: "disable"
+category: "any"
+threat_name: "any"

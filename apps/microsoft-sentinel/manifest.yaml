@@ -1,19 +1,21 @@
 id: microsoft-sentinel
 name: Microsoft Sentinel
-version: "1.1.0"
+version: "1.2.0"
 vendor: Veltrix
 description: >
   Manage Microsoft Sentinel detection and response content as code through the
-  Azure Resource Manager (ARM) API. v1.0 ships the genuinely CRUD, generally
-  available configuration surface: scheduled (KQL) analytics rules, automation
-  rules, and watchlists — each with validation, drift detection and rollback
-  handled by the Security-as-Code pipeline. Auth is an Azure Entra app
+  Azure Resource Manager (ARM) API: scheduled (KQL) and near-real-time (NRT)
+  analytics rules, automation rules (modify-properties and run-playbook actions),
+  watchlists, hunting queries / saved searches, and the Microsoft first-party
+  (tenant-based) data connectors — each with validation, drift detection and
+  rollback handled by the Security-as-Code pipeline. Auth is an Azure Entra app
   registration (OAuth2 client credentials) with the "Microsoft Sentinel
   Contributor" role scoped to the workspace resource group. The workspace is
   addressed via the Tenant ID, Subscription ID, Resource Group and Workspace Name
-  app settings. NRT/ML/Threat-Intelligence analytics rule kinds, threat-intel
-  indicator upload, and data connectors are preview or portal-heavy and are out
-  of scope.
+  app settings. NRT rules are written against a preview api-version (kind:NRT is
+  not part of the stable contract). ML/Fusion/Threat-Intelligence analytics
+  kinds, threat-intel indicator upload, and CCP/codeless/portal-only data
+  connectors remain out of scope.
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-sentinel
@@ -44,15 +46,24 @@ permissions:
     - resource: sentinel-watchlists
       actions: [read, write, delete]
       description: Manage Microsoft Sentinel watchlists and their items
+    - resource: sentinel-hunting-queries
+      actions: [read, write, delete]
+      description: Manage Microsoft Sentinel hunting queries and Log Analytics saved searches
+    - resource: sentinel-data-connectors
+      actions: [read, write, delete]
+      description: Manage Microsoft Sentinel first-party (tenant-based) data connectors
 
 pipeline:
   configurationTypes:
     - id: sentinel-analytics-rules
-      name: Analytics Rules (Scheduled)
+      name: Analytics Rules (Scheduled / NRT)
       description: >
-        Scheduled (KQL) analytics rules via Microsoft.SecurityInsights/alertRules
-        (api-version 2024-09-01, GA). Reconciled by rule name (slugged into the
-        ARM ruleId for an idempotent PUT).
+        Scheduled (KQL) and near-real-time (NRT) analytics rules via
+        Microsoft.SecurityInsights/alertRules. Scheduled rules use the GA
+        api-version (2024-09-01); NRT rules (kind:NRT) use a preview api-version
+        (2024-01-01-preview) because NRT is not part of the stable alertRules
+        contract. Reconciled by rule name (slugged into the ARM ruleId for an
+        idempotent PUT).
       canvasTemplate: config-types/sentinel-analytics-rules/canvas.yaml
       defaultConfig: config-types/sentinel-analytics-rules/defaults.yaml
       handlers:
@@ -70,8 +81,9 @@ pipeline:
       name: Automation Rules
       description: >
         Automation rules via Microsoft.SecurityInsights/automationRules
-        (api-version 2024-09-01, GA). v1 ships a modify-properties action (set
-        incident severity and/or status); running playbooks is out of scope.
+        (api-version 2024-09-01, GA). Supports a modify-properties action (set
+        incident severity and/or status) and a run-playbook action (bind a Logic
+        App playbook via logicAppResourceId/tenantId).
       canvasTemplate: config-types/sentinel-automation-rules/canvas.yaml
       defaultConfig: config-types/sentinel-automation-rules/defaults.yaml
       handlers:
@@ -100,6 +112,49 @@ pipeline:
         healthCheck: config-types/sentinel-watchlists/healthCheck
         driftDetect: config-types/sentinel-watchlists/driftDetect
         getStatus: config-types/sentinel-watchlists/getStatus
+      targets:
+        componentTypes: [sentinel-workspace]
+        requiresCredential: true
+        requiresConnectivity: false
+    - id: sentinel-hunting-queries
+      name: Hunting Queries & Saved Searches
+      description: >
+        Hunting queries and Log Analytics saved searches via
+        Microsoft.OperationalInsights/workspaces/savedSearches (api-version
+        2023-09-01, GA). Sentinel hunting queries are saved searches with category
+        "Hunting Queries"; a function alias exposes the query as a reusable KQL
+        function. Reconciled by name (slugged into the savedSearchId).
+      canvasTemplate: config-types/sentinel-hunting-queries/canvas.yaml
+      defaultConfig: config-types/sentinel-hunting-queries/defaults.yaml
+      handlers:
+        validate: config-types/sentinel-hunting-queries/validate
+        deploy: config-types/sentinel-hunting-queries/deploy
+        rollback: config-types/sentinel-hunting-queries/rollback
+        healthCheck: config-types/sentinel-hunting-queries/healthCheck
+        driftDetect: config-types/sentinel-hunting-queries/driftDetect
+        getStatus: config-types/sentinel-hunting-queries/getStatus
+      targets:
+        componentTypes: [sentinel-workspace]
+        requiresCredential: true
+        requiresConnectivity: false
+    - id: sentinel-data-connectors
+      name: Data Connectors
+      description: >
+        Microsoft first-party (tenant-based) data connectors via
+        Microsoft.SecurityInsights/dataConnectors (api-version 2024-09-01, GA):
+        Microsoft Entra ID Protection, Defender for Identity, Defender for
+        Endpoint, Defender for Cloud Apps and Microsoft 365 — each a { tenantId,
+        dataTypes state } body. Reconciled by the ARM dataConnectorId.
+        CCP/codeless and portal-only connectors are out of scope.
+      canvasTemplate: config-types/sentinel-data-connectors/canvas.yaml
+      defaultConfig: config-types/sentinel-data-connectors/defaults.yaml
+      handlers:
+        validate: config-types/sentinel-data-connectors/validate
+        deploy: config-types/sentinel-data-connectors/deploy
+        rollback: config-types/sentinel-data-connectors/rollback
+        healthCheck: config-types/sentinel-data-connectors/healthCheck
+        driftDetect: config-types/sentinel-data-connectors/driftDetect
+        getStatus: config-types/sentinel-data-connectors/getStatus
       targets:
         componentTypes: [sentinel-workspace]
         requiresCredential: true

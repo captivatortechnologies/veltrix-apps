@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — Proofpoint Essentials Organization Security Features
+#
+# Declares ONE feature toggle — the item. Users add as many as they need. The
+# organization's security/protection features (URL Defense, Attachment Defense,
+# DLP, Encryption, ...) are a dedicated sub-resource of the organization
+# (/orgs/{org}/features), read via GET and updated via PUT. Each feature is a
+# boolean. Deploy is a read-modify-write UPSERT keyed on the feature name: read
+# the current features, overlay each declared feature's enabled value, and PUT the
+# merged set back (features it did not declare are preserved). Field keys must
+# match config-types/pp-org-features/validate.ts.
+#
+# NOTE: feature availability depends on the org's licensing package — enabling a
+# feature the package does not include is rejected by Proofpoint with HTTP 403.
+# =============================================================================
+
+id: "proofpoint-pp-org-features"
+name: "Proofpoint Essentials Organization Security Features"
+toolType: "proofpoint"
+entityType: "pp-org-features"
+description: "Manage Proofpoint Essentials organization security/protection features as code — URL Defense, Attachment Defense (and sandboxing), DLP, Encryption, Anti-Spoofing and more — via the Essentials Interface API (/orgs/{org}/features). Reconciled by feature name."
+
+item:
+  label: "Feature"
+  identityField: "feature"
+  repeatable: true
+  minItems: 1
+  maxItems: 14
+  groups:
+    - name: "Feature"
+      icon: "shield"
+      description: "The protection feature and whether it is enabled for the organization"
+      fields:
+        - key: "feature"
+          label: "Feature"
+          fieldType: "select"
+          required: true
+          options:
+            - { label: "URL Defense", value: "url_defense" }
+            - { label: "Attachment Defense", value: "attachment_defense" }
+            - { label: "Attachment Defense — Sandboxing", value: "attachment_defense_sandboxing" }
+            - { label: "Anti-Spoofing", value: "anti_spoofing" }
+            - { label: "Data Loss Prevention (DLP)", value: "dlp" }
+            - { label: "Email Encryption", value: "email_encryption" }
+            - { label: "Email Warning Tags", value: "email_warning_tags" }
+            - { label: "Email Archive", value: "email_archive" }
+            - { label: "Disclaimers", value: "disclaimers" }
+            - { label: "Social Media Account Protection", value: "social_media_account_protection" }
+            - { label: "Outbound Relaying", value: "outbound_relaying" }
+            - { label: "SMTP Discovery", value: "smtp_discovery" }
+            - { label: "One-Click Remediation", value: "one_click_remediation" }
+            - { label: "Automatic Remediation", value: "automatic_remediation" }
+          helpText: "The organization protection feature to manage. This is the feature's identity. Availability depends on your Essentials licensing package — enabling a feature the package does not include is rejected with HTTP 403."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the feature is turned on for the organization."

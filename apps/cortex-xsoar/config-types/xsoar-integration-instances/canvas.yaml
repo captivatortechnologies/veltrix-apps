@@ -1,0 +1,74 @@
+# =============================================================================
+# Canvas Template — Cortex XSOAR Integration Instances
+#
+# Declares ONE integration instance — the item. Users add as many as they need.
+# Instances are a server collection (searched via /settings/integration/search,
+# saved via PUT /settings/integration); XSOAR assigns a server id, so identity
+# for reconciliation is the instance NAME. Field keys must match
+# config-types/xsoar-integration-instances/validate.ts.
+# =============================================================================
+
+id: "cortex-xsoar-integration-instances"
+name: "Cortex XSOAR Integration Instance Configuration"
+toolType: "cortex-xsoar"
+entityType: "xsoar-integration-instances"
+description: "Define Cortex XSOAR integration instances (and their parameters) as code through the server REST API (/settings/integration). Reconciled by instance name; upserted via PUT /settings/integration and removed via DELETE /settings/integration/{id} on rollback."
+
+item:
+  label: "Integration Instance"
+  identityField: "instanceName"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Instance"
+      icon: "plug"
+      description: "Name, integration and enabled state"
+      fields:
+        - key: "instanceName"
+          label: "Instance name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: "The integration instance name — its identity in XSOAR (an instance's id is derived server-side; instances are matched by name)."
+
+        - key: "brand"
+          label: "Integration (brand)"
+          fieldType: "text"
+          required: true
+          helpText: "The integration this instance runs, by its brand/name as shown in XSOAR (e.g. \"Demisto REST API\"). The integration must already be installed on the server."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "When enabled, the integration instance is active. Disable to create the instance without running it."
+
+    - name: "Parameters"
+      icon: "sliders"
+      description: "Integration instance parameters (name → value)"
+      fields:
+        - key: "parameters"
+          label: "Parameters"
+          fieldType: "keyvalue"
+          helpText: "Instance parameters as name/value pairs (e.g. url, insecure, proxy). Names must match the integration's configuration parameters. Secret parameters are set on create but not compared for drift."
+
+    - name: "Classification & Mapping"
+      icon: "git-branch"
+      description: "Wire the instance to an existing classifier / mappers"
+      fields:
+        - key: "mappingId"
+          label: "Classifier ID"
+          fieldType: "text"
+          helpText: "ID of an existing classifier to apply to incidents this instance ingests (the instance's mappingId). Leave blank for none."
+
+        - key: "incomingMapperId"
+          label: "Incoming mapper ID"
+          fieldType: "text"
+          helpText: "ID of an existing incoming mapper for this instance. Leave blank for the integration default."
+
+        - key: "outgoingMapperId"
+          label: "Outgoing mapper ID"
+          fieldType: "text"
+          helpText: "ID of an existing outgoing mapper for this instance. Leave blank for the integration default."

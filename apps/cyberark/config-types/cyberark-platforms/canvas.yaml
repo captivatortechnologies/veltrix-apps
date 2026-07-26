@@ -1,0 +1,65 @@
+# =============================================================================
+# Canvas Template — CyberArk Platforms
+#
+# Declares ONE target platform — the item. Users add as many as they need. A
+# target platform is identified by its PlatformID (a stable string such as
+# WinServerLocal or UnixSSH). CyberArk also assigns a numeric ID used for
+# activate / deactivate / delete, so identity for reconciliation is the natural
+# key (PlatformID). This type manages a platform's PRESENCE (imported from a
+# package when missing) and its ACTIVE state (activate / deactivate).
+#
+# ⚠ IMPORT PACKAGE: the `import_package` field is WRITE-ONLY (fieldType:
+# password). It is a BASE 64-encoded platform .zip, sent to CyberArk ONLY when
+# the platform is missing (POST /Platforms/Import). PVWA never returns it on
+# read, and it is never read back, diffed, or stored in rollback data / artifacts
+# / logs. Field keys must match config-types/cyberark-platforms/validate.ts.
+# =============================================================================
+
+id: "cyberark-platforms"
+name: "CyberArk Platform Configuration"
+toolType: "cyberark"
+entityType: "cyberark-platforms"
+description: "Define CyberArk target platforms as code through the PVWA REST API (/Platforms/Targets). Reconciled by PlatformID; a missing platform is imported from a package and its active state is enforced."
+
+item:
+  label: "Platform"
+  identityField: "platform_id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Platform"
+      icon: "layers"
+      description: "The target platform and its active state"
+      fields:
+        - key: "platform_id"
+          label: "Platform ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The platform's unique string ID (e.g. WinServerLocal, UnixSSH) — its
+            logical identity for reconciliation. Max 99 characters.
+          validation:
+            maxLength: 99
+
+        - key: "active"
+          label: "Active"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: >
+            The desired state. When enabled the platform is activated; when disabled
+            it is deactivated so no new accounts can be assigned to it.
+
+    - name: "Import"
+      icon: "upload"
+      description: "Optional platform package, used only to create a missing platform"
+      fields:
+        - key: "import_package"
+          label: "Platform Package (BASE 64 .zip)"
+          fieldType: "password"
+          helpText: >
+            ⚠ WRITE-ONLY. A BASE 64-encoded platform package (.zip, max 20 MB). Sent
+            to CyberArk ONLY when the platform does not yet exist (POST
+            /Platforms/Import). It is never read back, diffed, or stored in rollback
+            data, artifacts or logs. Leave blank to manage a platform that already
+            exists (e.g. one CyberArk ships) — only its active state is reconciled.

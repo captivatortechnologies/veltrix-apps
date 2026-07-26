@@ -2,9 +2,9 @@
 # Canvas Template — Microsoft Sentinel Automation Rule
 #
 # Declares ONE automation rule — the item. Users add as many as they need.
-# Reconciled by the rule name (slugged into the ARM automationRuleId). v1 ships
-# a modify-properties action (set incident severity and/or status); running
-# playbooks is out of scope. Field keys must match
+# Reconciled by the rule name (slugged into the ARM automationRuleId). Supports a
+# modify-properties action (set incident severity and/or status) and/or a
+# run-playbook action (bind a Logic App playbook). Field keys must match
 # config-types/sentinel-automation-rules/validate.ts.
 # =============================================================================
 
@@ -12,7 +12,7 @@ id: "sentinel-automation-rules"
 name: "Automation Rule"
 toolType: "microsoft-sentinel"
 entityType: "sentinel-automation-rules"
-description: "Define Microsoft Sentinel automation rules as code via Azure Resource Manager. Reconciled by rule name."
+description: "Define Microsoft Sentinel automation rules as code via Azure Resource Manager — modify-properties and run-playbook actions. Reconciled by rule name."
 
 item:
   label: "Automation Rule"
@@ -65,13 +65,13 @@ item:
 
     - name: "Action"
       icon: "edit"
-      description: "Modify-properties action — set at least one of severity or status"
+      description: "Configure at least one action — modify properties and/or run a playbook"
       fields:
         - key: "set_severity"
           label: "Set severity"
           fieldType: "select"
           defaultValue: ""
-          helpText: "Optionally set the incident/alert severity."
+          helpText: "Optionally set the incident/alert severity (modify-properties action)."
           options:
             - { label: "(No change)", value: "" }
             - { label: "High", value: "High" }
@@ -83,9 +83,29 @@ item:
           label: "Set status"
           fieldType: "select"
           defaultValue: ""
-          helpText: "Optionally set the incident status."
+          helpText: "Optionally set the incident status (modify-properties action)."
           options:
             - { label: "(No change)", value: "" }
             - { label: "New", value: "New" }
             - { label: "Active", value: "Active" }
             - { label: "Closed", value: "Closed" }
+
+    - name: "Playbook"
+      icon: "play"
+      description: "Run-playbook action — bind a Logic App playbook to run on the trigger"
+      fields:
+        - key: "run_playbook_resource_id"
+          label: "Playbook (Logic App) resource ID"
+          fieldType: "text"
+          defaultValue: ""
+          helpText: >
+            Optional. The full ARM resource id of the Logic App playbook to run, e.g.
+            /subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.Logic/workflows/<name>.
+            The Sentinel service principal needs the Microsoft Sentinel Automation
+            Contributor role on the playbook's resource group.
+
+        - key: "run_playbook_tenant_id"
+          label: "Playbook tenant ID"
+          fieldType: "text"
+          defaultValue: ""
+          helpText: "Optional. Only needed for a cross-tenant playbook; leave blank to use the workspace tenant."

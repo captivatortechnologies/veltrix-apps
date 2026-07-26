@@ -46,6 +46,9 @@ const validRule = {
   set_status: 'Active',
 }
 
+const PLAYBOOK_ID =
+  '/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg-soc/providers/Microsoft.Logic/workflows/Notify-SOC'
+
 describe('Sentinel Automation Rules Validate Handler', () => {
   it('returns invalid for empty sections', async () => {
     const result = await validate(makeCtx([]))
@@ -100,5 +103,47 @@ describe('Sentinel Automation Rules Validate Handler', () => {
     expect(body.properties.actions[0].actionType).toBe('ModifyProperties')
     expect(body.properties.actions[0].actionConfiguration.severity).toBe('High')
     expect(body.properties.actions[0].actionConfiguration.status).toBe('Active')
+  })
+
+  it('accepts a run-playbook action with no modify-properties', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'r', fields: { rule_name: 'Run playbook', order: 1, triggers_on: 'Incidents', triggers_when: 'Created', run_playbook_resource_id: PLAYBOOK_ID } }]),
+    )
+    expect(result.valid).toBe(true)
+    expect(result.errors).toHaveLength(0)
+  })
+
+  it('rejects a malformed playbook resource id', async () => {
+    const result = await validate(makeCtx([{ name: 'r', fields: { ...validRule, run_playbook_resource_id: 'not-a-logic-app' } }]))
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.code === 'invalid_playbook')).toBe(true)
+  })
+
+  it('rejects a playbook tenant id that is not a GUID', async () => {
+    const result = await validate(makeCtx([{ name: 'r', fields: { ...validRule, run_playbook_resource_id: PLAYBOOK_ID, run_playbook_tenant_id: 'nope' } }]))
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.code === 'invalid_tenant')).toBe(true)
+  })
+
+  it('flags no action when neither modify-properties nor playbook is set', async () => {
+    const result = await validate(makeCtx([{ name: 'r', fields: { ...validRule, set_severity: '', set_status: '', run_playbook_resource_id: '' } }]))
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.code === 'no_action')).toBe(true)
+  })
+
+  it('builds a RunPlaybook action alongside ModifyProperties', () => {
+    const specs = extractAutomationSpecs(
+      makeCtx([{ name: 'r', fields: { ...validRule, run_playbook_resource_id: PLAYBOOK_ID } }]).canvas,
+    )
+    const body = buildAutomationRuleBody(specs[0]) as {
+      properties: { actions: Array<{ order: number; actionType: string; actionConfiguration: Record<string, string> }> }
+    }
+    expect(body.properties.actions).toHaveLength(2)
+    expect(body.properties.actions[0].actionType).toBe('ModifyProperties')
+    const playbook = body.properties.actions[1]
+    expect(playbook.actionType).toBe('RunPlaybook')
+    expect(playbook.order).toBe(2)
+    expect(playbook.actionConfiguration.logicAppResourceId).toBe(PLAYBOOK_ID)
+    expect(playbook.actionConfiguration.tenantId).toBeUndefined()
   })
 })

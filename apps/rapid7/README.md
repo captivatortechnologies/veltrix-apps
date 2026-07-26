@@ -1,15 +1,18 @@
-# Rapid7 InsightVM
+# Rapid7 InsightVM & InsightIDR
 
-Manage [Rapid7 InsightVM](https://www.rapid7.com/products/insightvm/) configuration as code through
-the Security Console API (v3). Author configurations in the platform's Configuration Canvas and
-deploy them through the Security-as-Code pipeline — validate, deploy, health check, drift detection
-and rollback are handled per configuration type.
+Manage [Rapid7](https://www.rapid7.com/) configuration as code across two APIs. Author
+configurations in the platform's Configuration Canvas and deploy them through the Security-as-Code
+pipeline — validate, deploy, health check, drift detection and rollback are handled per
+configuration type.
 
-> Scope: this app targets the on-prem **Security Console API v3** (`https://<console>:3780/api/3`),
-> which carries the rich site/scan/credential config surface. The InsightIDR cloud API (detection
-> rules) uses a different host + `X-Api-Key` auth and is out of scope for this app.
+- **InsightVM** — the on-prem **Security Console API v3** (`https://<console>:3780/api/3`), which
+  carries the rich site/scan/credential config surface. HTTP Basic auth.
+- **InsightIDR** — the **Insight Platform Detection Rules API v1**
+  (`https://<region>.api.insight.rapid7.com/idr/v1`), the region-scoped cloud SIEM. `X-Api-Key` auth.
 
 ## Credentials
+
+### InsightVM (Security Console)
 
 The console v3 API uses **HTTP Basic** auth (there is no API-key option). Create a console **service
 account** (Administration → Users) with a role scoped to what this app manages, and store it as a
@@ -25,7 +28,18 @@ run. Register an **`insightvm-console`** component whose hostname is your Securi
 `console.example.com:3780`) — port `3780` is assumed when omitted. The console serves HTTPS with a
 self-signed certificate by default, so the platform host must trust the console's certificate.
 
+### InsightIDR (Insight Platform)
+
+The Insight Platform API uses a single **`X-Api-Key`** header. Create an **Organization** API key in
+the Insight platform (Platform Home → API Keys) and store it in the credential's **API token** field.
+Register an **`insightidr-org`** component whose hostname encodes your data-residency region — either
+the API host (`us.api.insight.rapid7.com`) or the bare region code (`us`, `us2`, `us3`, `eu`, `ca`,
+`au`, `ap`). The region can also be set with the **InsightIDR Region** app setting; the component
+hostname always wins. Region cannot be auto-discovered, so it must be supplied.
+
 ## What it manages
+
+### InsightVM — Security Console API v3
 
 | Configuration type | Object | Endpoint |
 | --- | --- | --- |
@@ -38,6 +52,19 @@ self-signed certificate by default, so the platform host must trust the console'
 | Vulnerability Exceptions | Exceptions with scope/expiration | `/vulnerability_exceptions` |
 | Scan Schedules | Per-site scan schedules | `/sites/{id}/scan_schedules` |
 | Site Credentials | Site-scoped credentials (secret) | `/sites/{id}/site_credentials` |
+
+### InsightIDR — Insight Platform Detection Rules API v1
+
+| Configuration type | Object | Endpoint |
+| --- | --- | --- |
+| Detection Rule Exceptions | Rule exceptions (SIMPLE key-value or LEQL) attached to a rule by name | `/idr/v1/rules/{rrn}/rule-exceptions` |
+| Detection Rule Settings | A rule's action + priority, set by rule name | `/idr/v1/rules/update` |
+
+InsightIDR rules are addressed by their portable **name**; the app resolves the name to the
+environment-specific Rapid7 Resource Name (RRN) via `GET /idr/v1/rules` at deploy time. Rule
+exceptions are **create/skip** (deleted on rollback); rule settings write only changed fields and
+restore the prior values on rollback. Investigations (`/idr/v2/investigations`) are runtime incident
+records rather than declarative configuration and are intentionally not modeled.
 
 ## InsightVM-specific behaviour the app handles
 

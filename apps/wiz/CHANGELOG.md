@@ -3,6 +3,37 @@
 All notable changes to the Wiz app are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## 1.2.0 — 2026-07-26
+
+### Added
+- **Automation rules (`wiz-automation-rules`).** Manage Wiz automation rules —
+  the notification/remediation layer — as code through `createAutomationRule` /
+  `updateAutomationRule` / `deleteAutomationRule`, reconciled by rule name. Each
+  rule declares a trigger source (Issues, Cloud events, Controls, Configuration
+  findings), one or more trigger types (Created/Updated/Resolved/Reopened), an
+  optional JSON filter, and one action that delivers to an existing Wiz
+  integration (Slack, webhook, email, ServiceNow, Jira, SNS, PagerDuty, …) with
+  optional JSON action parameters. Missing rules are created; existing rules are
+  updated to the declared spec. Rollback deletes created rules and restores the
+  scalar state (name/description/trigger/filters/enabled) of modified rules.
+- **Reports (`wiz-reports`).** Manage Wiz graph-query report definitions as code
+  through `createReport` / `updateReport` / `deleteReport` (report type
+  `GRAPH_QUERY`), reconciled by report name. Each report runs a saved Security
+  Graph query, on demand or on an hourly schedule (`runIntervalHours` +
+  `runStartsAt`), optionally scoped to a project. Rollback deletes created
+  reports and restores the prior query/schedule of modified reports.
+- **Security frameworks (`wiz-security-frameworks`).** Manage Wiz custom security
+  frameworks — the compliance/policy grouping (categories → sub-categories) that
+  Controls and Cloud Configuration Rules map to, beyond a rule-level control flag
+  — as code through `createSecurityFramework` / `updateSecurityFramework` /
+  `deleteSecurityFramework`, reconciled by framework name against non-builtin
+  frameworks. Rollback deletes created frameworks and restores the prior
+  categories (ids preserved) of modified frameworks.
+- All three types ship the full handler set (validate, deploy, rollback,
+  healthCheck, driftDetect, getStatus) and reuse the shared Wiz GraphQL client
+  and the audit-log **drift attribution** ("who changed it + when") introduced in
+  1.1.0.
+
 ## 1.1.0 — 2026-07-22
 
 ### Added

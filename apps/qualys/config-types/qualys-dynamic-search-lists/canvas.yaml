@@ -1,0 +1,55 @@
+# =============================================================================
+# Canvas Template — Qualys Dynamic Search Lists
+#
+# Declares ONE dynamic search list — the item. A dynamic search list selects
+# QIDs by CRITERIA (severities, categories, CVSS, dates, …) that Qualys
+# re-evaluates over time, unlike a static list's fixed QID set. Qualys assigns a
+# numeric id, so identity for reconciliation is the natural key (title). The
+# criteria are supplied as a flat JSON object of the classic-API criteria
+# parameters. Field keys must match
+# config-types/qualys-dynamic-search-lists/validate.ts.
+# =============================================================================
+
+id: "qualys-dynamic-search-lists"
+name: "Qualys Dynamic Search List Configuration"
+toolType: "qualys"
+entityType: "qualys-dynamic-search-lists"
+description: "Define Qualys dynamic search lists (QIDs selected by criteria) as code through the classic v2 API (/api/2.0/fo/qid/search_list/dynamic/). Reconciled by title."
+
+item:
+  label: "Dynamic Search List"
+  identityField: "title"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Dynamic Search List"
+      icon: "filter"
+      description: "Title, sharing and selection criteria"
+      fields:
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: true
+          helpText: "The search list title (its logical identity for reconciliation). Must be unique; 256 characters max."
+
+        - key: "global"
+          label: "Global (available to all users)"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, the search list is shared across all users in the subscription."
+
+        - key: "comments"
+          label: "Comments"
+          fieldType: "text"
+          helpText: "Optional free-text comments."
+
+        - key: "criteria_json"
+          label: "Criteria (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            Flat JSON object of Qualys dynamic search list criteria parameters (at least one). Example:
+            {"confirmed_severities":"4,5","categories":"CGI,Web Application","patch_available":1}.
+            Other parameters include potential_severities, ig_severities, cvss_base, cvss_base_operand,
+            cve_ids, discovery_methods, auth_types, published_date_within_last_days and compliance_types.

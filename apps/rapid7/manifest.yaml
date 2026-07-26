@@ -1,13 +1,15 @@
 id: rapid7
 name: Rapid7 InsightVM
-version: "1.1.0"
+version: "1.2.0"
 vendor: Veltrix
 description: >
-  Manage Rapid7 InsightVM configuration as code through the Security Console API
-  (v3). Covers scan sites, asset groups, tags, scan templates, scan engine pools,
-  shared and site credentials, scan schedules and vulnerability exceptions — with
-  validation, drift detection and rollback handled by the Security-as-Code
-  pipeline. The component hostname is the console host:3780; auth is HTTP Basic.
+  Manage Rapid7 configuration as code. On the on-prem Security Console API (v3):
+  scan sites, asset groups, tags, scan templates, scan engine pools, shared and
+  site credentials, scan schedules and vulnerability exceptions (console
+  host:3780, HTTP Basic auth). On the InsightIDR cloud (Insight Platform
+  Detection Rules API v1, region-scoped, X-Api-Key auth): detection rule
+  exceptions and detection rule settings (action/priority). Validation, drift
+  detection and rollback are handled by the Security-as-Code pipeline.
 category: COMPLIANCE
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/rapid7
@@ -221,6 +223,43 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: false
 
+    # --- InsightIDR (Insight Platform cloud, region-scoped, X-Api-Key auth) ---
+    - id: insightidr-detection-rule-exceptions
+      group: "InsightIDR"
+      name: InsightIDR Detection Rule Exceptions
+      description: Detection rule exceptions (/idr/v1/rules/{rrn}/rule-exceptions) — tune a rule's action/priority for matching users, assets or IPs; keyed by rule name + exception name
+      canvasTemplate: config-types/insightidr-detection-rule-exceptions/canvas.yaml
+      defaultConfig: config-types/insightidr-detection-rule-exceptions/defaults.yaml
+      handlers:
+        validate: config-types/insightidr-detection-rule-exceptions/validate
+        deploy: config-types/insightidr-detection-rule-exceptions/deploy
+        rollback: config-types/insightidr-detection-rule-exceptions/rollback
+        healthCheck: config-types/insightidr-detection-rule-exceptions/healthCheck
+        driftDetect: config-types/insightidr-detection-rule-exceptions/driftDetect
+        getStatus: config-types/insightidr-detection-rule-exceptions/getStatus
+      targets:
+        componentTypes: [insightidr-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: insightidr-detection-rule-settings
+      group: "InsightIDR"
+      name: InsightIDR Detection Rule Settings
+      description: Detection rule action and priority (/idr/v1/rules/update) — set how a rule reacts (off / notable events / investigations / alerts); keyed by rule name
+      canvasTemplate: config-types/insightidr-detection-rule-settings/canvas.yaml
+      defaultConfig: config-types/insightidr-detection-rule-settings/defaults.yaml
+      handlers:
+        validate: config-types/insightidr-detection-rule-settings/validate
+        deploy: config-types/insightidr-detection-rule-settings/deploy
+        rollback: config-types/insightidr-detection-rule-settings/rollback
+        healthCheck: config-types/insightidr-detection-rule-settings/healthCheck
+        driftDetect: config-types/insightidr-detection-rule-settings/driftDetect
+        getStatus: config-types/insightidr-detection-rule-settings/getStatus
+      targets:
+        componentTypes: [insightidr-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
   pipelineEvents:
     - canvas:validated
     - canvas:deployed
@@ -259,8 +298,9 @@ hooks:
   onInstall: hooks/onInstall
   onUninstall: hooks/onUninstall
 
-# Connection-level connectivity test: verifies the console host + Basic-auth
-# credential via GET /sites?size=1.
+# Connection-level connectivity test: verifies InsightVM (console host +
+# Basic-auth via GET /sites?size=1) or InsightIDR (region host + X-Api-Key via
+# GET /validate), chosen from the connection's endpoint.
 connectivity:
   testHandler: handlers/testConnection
 
@@ -273,9 +313,27 @@ settings:
       Prefer a dedicated non-2FA service account for automation.
     default: ""
     required: false
+  - key: insightidr_region
+    type: select
+    label: InsightIDR Region
+    description: >
+      Data-residency region for the InsightIDR (Insight Platform) API. Used only
+      by the InsightIDR configuration types, and only when the region is not
+      already encoded in the component hostname (e.g. us.api.insight.rapid7.com),
+      which always takes precedence.
+    default: us
+    required: false
+    options:
+      - { label: "US-1 (us)", value: "us" }
+      - { label: "US-2 (us2)", value: "us2" }
+      - { label: "US-3 (us3)", value: "us3" }
+      - { label: "Europe (eu)", value: "eu" }
+      - { label: "Canada (ca)", value: "ca" }
+      - { label: "Australia (au)", value: "au" }
+      - { label: "Japan (ap)", value: "ap" }
   - key: request_timeout_seconds
     type: number
     label: Request Timeout (seconds)
-    description: Per-request timeout for InsightVM console API calls.
+    description: Per-request timeout for Rapid7 API calls (InsightVM console and InsightIDR).
     default: 30
     required: false

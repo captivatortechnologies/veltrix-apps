@@ -1,12 +1,13 @@
 id: cortex-xsoar
 name: Cortex XSOAR
-version: "1.1.0"
+version: "1.2.0"
 vendor: Veltrix
 description: >
   Manage Palo Alto Networks Cortex XSOAR content configuration as code through the
-  XSOAR server REST API. Covers lists, incident types and scheduled jobs — each
-  reconciled by name with validation, drift detection and rollback handled by the
-  Security-as-Code pipeline. Works with Cortex XSOAR 6.x (API-key header) and
+  XSOAR server REST API. Covers lists, incident types, scheduled jobs and
+  integration instances — each reconciled by name with validation, drift
+  detection and rollback handled by the Security-as-Code pipeline. Works with
+  Cortex XSOAR 6.x (API-key header) and
   Cortex XSOAR 8 / the Cortex platform (API key + x-xdr-auth-id via the API gateway).
 category: SOAR
 license: Apache-2.0
@@ -38,6 +39,9 @@ permissions:
     - resource: xsoar-jobs
       actions: [read, write, delete]
       description: Manage Cortex XSOAR scheduled jobs
+    - resource: xsoar-integration-instances
+      actions: [read, write, delete]
+      description: Manage Cortex XSOAR integration instances
 
 pipeline:
   configurationTypes:
@@ -87,6 +91,23 @@ pipeline:
         healthCheck: config-types/xsoar-jobs/healthCheck
         driftDetect: config-types/xsoar-jobs/driftDetect
         getStatus: config-types/xsoar-jobs/getStatus
+      targets:
+        componentTypes: [xsoar-server]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: xsoar-integration-instances
+      name: Cortex XSOAR Integration Instances
+      description: Integration instances (and their parameters) via /settings/integration; name-keyed upsert searched through /settings/integration/search, removed via DELETE /settings/integration/{id} on rollback
+      canvasTemplate: config-types/xsoar-integration-instances/canvas.yaml
+      defaultConfig: config-types/xsoar-integration-instances/defaults.yaml
+      handlers:
+        validate: config-types/xsoar-integration-instances/validate
+        deploy: config-types/xsoar-integration-instances/deploy
+        rollback: config-types/xsoar-integration-instances/rollback
+        healthCheck: config-types/xsoar-integration-instances/healthCheck
+        driftDetect: config-types/xsoar-integration-instances/driftDetect
+        getStatus: config-types/xsoar-integration-instances/getStatus
       targets:
         componentTypes: [xsoar-server]
         requiresCredential: true

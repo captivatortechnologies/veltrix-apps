@@ -1,0 +1,60 @@
+# =============================================================================
+# Canvas Template — Rapid7 InsightIDR Detection Rule Settings
+#
+# Declares the desired settings for ONE detection rule — the item. A detection
+# rule is referenced by NAME (portable); the app resolves it to its RRN and sets
+# the rule's action (how it reacts — off / notable events / investigations /
+# alerts) and, optionally, its investigation priority via the Detection Rules
+# API (POST /idr/v1/rules/update). Identity for reconciliation is the rule name.
+# Only changed fields are written, so a rule already at the desired settings is
+# left untouched. Field keys must match
+# config-types/insightidr-detection-rule-settings/validate.ts.
+# =============================================================================
+
+id: "rapid7-insightidr-detection-rule-settings"
+name: "InsightIDR Detection Rule Settings Configuration"
+toolType: "rapid7"
+entityType: "insightidr-detection-rule-settings"
+description: "Manage Rapid7 InsightIDR detection rule action and priority as code through the Insight Platform Detection Rules API (/idr/v1/rules/update). Reconciled by rule name; only changed fields are written."
+
+item:
+  label: "Rule Setting"
+  identityField: "rule_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Rule"
+      icon: "sliders"
+      description: "The detection rule and how it should behave"
+      fields:
+        - key: "rule_name"
+          label: "Detection Rule Name"
+          fieldType: "text"
+          required: true
+          helpText: "The exact name of the detection rule to configure (as shown in the Detection Rules library). Resolved to the rule's RRN at deploy time; the logical identity for this item."
+
+        - key: "rule_action"
+          label: "Rule Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "CREATES_INVESTIGATIONS"
+          options:
+            - { label: "Off (disabled)", value: "OFF" }
+            - { label: "Tracks Notable Events", value: "TRACKS_NOTABLE_EVENTS" }
+            - { label: "Creates Investigations", value: "CREATES_INVESTIGATIONS" }
+            - { label: "Creates Alerts", value: "CREATES_ALERTS" }
+            - { label: "Assess Activity", value: "ASSESS_ACTIVITY" }
+          helpText: "How InsightIDR reacts when the rule matches. Creates Investigations/Alerts drive the alerting behaviour; Off disables the rule."
+
+        - key: "priority_level"
+          label: "Priority"
+          fieldType: "select"
+          options:
+            - { label: "Inherited (default)", value: "INHERITED" }
+            - { label: "Info", value: "INFO" }
+            - { label: "Low", value: "LOW" }
+            - { label: "Medium", value: "MEDIUM" }
+            - { label: "High", value: "HIGH" }
+            - { label: "Critical", value: "CRITICAL" }
+          helpText: "Optional priority for investigations this rule creates. Leave blank to leave the rule's priority unchanged."

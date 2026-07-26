@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template — Microsoft Sentinel Hunting Query / Saved Search
+#
+# Declares ONE saved search — the item. Users add as many as they need. Hunting
+# queries in Microsoft Sentinel are Log Analytics saved searches
+# (Microsoft.OperationalInsights/workspaces/savedSearches) with a category (the
+# portal lists category "Hunting Queries" under Hunting). Reconciled by the
+# display name (slugged into the savedSearchId). Field keys must match
+# config-types/sentinel-hunting-queries/validate.ts.
+# =============================================================================
+
+id: "sentinel-hunting-queries"
+name: "Hunting Query / Saved Search"
+toolType: "microsoft-sentinel"
+entityType: "sentinel-hunting-queries"
+description: "Define Microsoft Sentinel hunting queries and Log Analytics saved searches as code via Azure Resource Manager. Reconciled by name."
+
+item:
+  label: "Hunting Query"
+  identityField: "saved_search_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Query"
+      icon: "search"
+      description: "Identity, category and the KQL query"
+      fields:
+        - key: "saved_search_name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "Display name of the saved search. Slugged into the savedSearchId — this is the reconciliation identity."
+
+        - key: "category"
+          label: "Category"
+          fieldType: "text"
+          defaultValue: "Hunting Queries"
+          helpText: "The saved-search category. Use \"Hunting Queries\" for Sentinel hunting; any label is allowed for general saved searches."
+
+        - key: "query"
+          label: "KQL query"
+          fieldType: "textarea"
+          required: true
+          helpText: "The Kusto (KQL) query, e.g. SecurityEvent | where EventID == 4625 | summarize count() by Account"
+
+    - name: "Function (optional)"
+      icon: "code"
+      description: "Expose the query as a reusable KQL function"
+      fields:
+        - key: "function_alias"
+          label: "Function alias"
+          fieldType: "text"
+          defaultValue: ""
+          helpText: "Optional. When set, the saved search is usable as a KQL function by this alias."
+
+        - key: "function_parameters"
+          label: "Function parameters"
+          fieldType: "text"
+          defaultValue: ""
+          helpText: "Optional function parameters, e.g. 'lookback:timespan = 7d'. Only valid together with a function alias."

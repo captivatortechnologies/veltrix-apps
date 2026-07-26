@@ -19,9 +19,22 @@ export interface AutomationRollbackEntry {
 
 /** The Microsoft.SecurityInsights AutomationRule request body for a spec. */
 export function buildAutomationRuleBody(spec: AutomationRuleSpec): unknown {
-  const actionConfiguration: Record<string, string> = {}
-  if (spec.setSeverity) actionConfiguration.severity = spec.setSeverity
-  if (spec.setStatus) actionConfiguration.status = spec.setStatus
+  const actions: Array<Record<string, unknown>> = []
+
+  // ModifyProperties first (order 1) so its presence and ordering are stable for
+  // existing rules; RunPlaybook follows (order 2) when a playbook is bound.
+  if (spec.setSeverity || spec.setStatus) {
+    const actionConfiguration: Record<string, string> = {}
+    if (spec.setSeverity) actionConfiguration.severity = spec.setSeverity
+    if (spec.setStatus) actionConfiguration.status = spec.setStatus
+    actions.push({ order: actions.length + 1, actionType: 'ModifyProperties', actionConfiguration })
+  }
+
+  if (spec.runPlaybookResourceId) {
+    const actionConfiguration: Record<string, string> = { logicAppResourceId: spec.runPlaybookResourceId }
+    if (spec.runPlaybookTenantId) actionConfiguration.tenantId = spec.runPlaybookTenantId
+    actions.push({ order: actions.length + 1, actionType: 'RunPlaybook', actionConfiguration })
+  }
 
   return {
     properties: {
@@ -33,13 +46,7 @@ export function buildAutomationRuleBody(spec: AutomationRuleSpec): unknown {
         triggersWhen: spec.triggersWhen,
         conditions: [],
       },
-      actions: [
-        {
-          order: 1,
-          actionType: 'ModifyProperties',
-          actionConfiguration,
-        },
-      ],
+      actions,
     },
   }
 }

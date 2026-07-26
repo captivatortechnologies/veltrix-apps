@@ -1,14 +1,16 @@
 id: wiz
 name: Wiz
-version: "1.1.0"
+version: "1.2.0"
 vendor: Veltrix
 description: >
   Manage Wiz (CNAPP / cloud security) configuration as code through the Wiz
   GraphQL API. Covers service accounts (createServiceAccount — the generated
-  client secret is a write-only output and is never captured) and custom cloud
-  configuration (CSPM) rules — with validation, drift detection and rollback
-  handled by the Security-as-Code pipeline. Authenticates as a Wiz service
-  account via OAuth2 client credentials against the tenant's regional API host.
+  client secret is a write-only output and is never captured), custom cloud
+  configuration (CSPM) rules, automation rules (notification / remediation),
+  graph-query reports and custom security frameworks (compliance policies) —
+  with validation, drift detection and rollback handled by the Security-as-Code
+  pipeline. Authenticates as a Wiz service account via OAuth2 client credentials
+  against the tenant's regional API host.
 category: CLOUD
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/wiz
@@ -36,6 +38,15 @@ permissions:
     - resource: wiz-cloud-config-rules
       actions: [read, write, delete]
       description: Manage Wiz custom cloud configuration rules
+    - resource: wiz-automation-rules
+      actions: [read, write, delete]
+      description: Manage Wiz automation rules (notification / remediation)
+    - resource: wiz-reports
+      actions: [read, write, delete]
+      description: Manage Wiz graph-query reports
+    - resource: wiz-security-frameworks
+      actions: [read, write, delete]
+      description: Manage Wiz custom security frameworks (compliance policies)
 
 pipeline:
   configurationTypes:
@@ -75,6 +86,69 @@ pipeline:
         healthCheck: config-types/wiz-cloud-config-rules/healthCheck
         driftDetect: config-types/wiz-cloud-config-rules/driftDetect
         getStatus: config-types/wiz-cloud-config-rules/getStatus
+      targets:
+        componentTypes: [wiz-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: wiz-automation-rules
+      name: Wiz Automation Rules
+      description: >
+        Automation rules via createAutomationRule / updateAutomationRule; identity
+        by name. Each rule fires on a Wiz trigger (Issues, Cloud events, Controls
+        or Configuration findings) and delivers a notification / remediation action
+        to an existing Wiz integration.
+      canvasTemplate: config-types/wiz-automation-rules/canvas.yaml
+      defaultConfig: config-types/wiz-automation-rules/defaults.yaml
+      handlers:
+        validate: config-types/wiz-automation-rules/validate
+        deploy: config-types/wiz-automation-rules/deploy
+        rollback: config-types/wiz-automation-rules/rollback
+        healthCheck: config-types/wiz-automation-rules/healthCheck
+        driftDetect: config-types/wiz-automation-rules/driftDetect
+        getStatus: config-types/wiz-automation-rules/getStatus
+      targets:
+        componentTypes: [wiz-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: wiz-reports
+      name: Wiz Reports
+      description: >
+        Graph-query reports via createReport / updateReport (report type
+        GRAPH_QUERY); identity by name. Each report runs a saved Wiz Security Graph
+        query on demand or on an hourly schedule.
+      canvasTemplate: config-types/wiz-reports/canvas.yaml
+      defaultConfig: config-types/wiz-reports/defaults.yaml
+      handlers:
+        validate: config-types/wiz-reports/validate
+        deploy: config-types/wiz-reports/deploy
+        rollback: config-types/wiz-reports/rollback
+        healthCheck: config-types/wiz-reports/healthCheck
+        driftDetect: config-types/wiz-reports/driftDetect
+        getStatus: config-types/wiz-reports/getStatus
+      targets:
+        componentTypes: [wiz-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: wiz-security-frameworks
+      name: Wiz Security Frameworks
+      description: >
+        Custom security frameworks via createSecurityFramework /
+        updateSecurityFramework; identity by name against non-builtin frameworks.
+        A framework is a compliance/policy structure of categories and
+        sub-categories that Controls and Cloud Configuration Rules map to — the
+        dedicated policy grouping beyond a rule-level control flag.
+      canvasTemplate: config-types/wiz-security-frameworks/canvas.yaml
+      defaultConfig: config-types/wiz-security-frameworks/defaults.yaml
+      handlers:
+        validate: config-types/wiz-security-frameworks/validate
+        deploy: config-types/wiz-security-frameworks/deploy
+        rollback: config-types/wiz-security-frameworks/rollback
+        healthCheck: config-types/wiz-security-frameworks/healthCheck
+        driftDetect: config-types/wiz-security-frameworks/driftDetect
+        getStatus: config-types/wiz-security-frameworks/getStatus
       targets:
         componentTypes: [wiz-tenant]
         requiresCredential: true

@@ -1,0 +1,76 @@
+# =============================================================================
+# Canvas Template — Panorama WildFire Analysis Profiles
+# (/Objects/WildFireAnalysisSecurityProfiles)
+#
+# One WildFire analysis profile with a SINGLE analysis rule: which applications
+# and file types, in which direction, are forwarded to which analysis location
+# (public or private cloud). Field keys must match
+# config-types/panorama-wildfire-analysis-profiles/validate.ts.
+#
+# NOTE: this models one rule per profile (the common "forward everything" case);
+# multi-rule WildFire profiles are not represented.
+# =============================================================================
+
+id: "panorama-wildfire-analysis-profiles"
+name: "Panorama WildFire Analysis Profile Configuration"
+toolType: "palo-alto-panorama"
+entityType: "panorama-wildfire-analysis-profiles"
+description: "Define Panorama WildFire analysis profiles as code via the PAN-OS REST API (/Objects/WildFireAnalysisSecurityProfiles). Reconciled by name."
+
+item:
+  label: "WildFire Analysis Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Profile"
+      icon: "shield"
+      description: "Name"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The WildFire analysis profile name — its identity for reconciliation."
+
+        - key: "rule_name"
+          label: "Rule Name"
+          fieldType: "text"
+          defaultValue: "forward-all"
+          helpText: "Name of the single analysis rule inside the profile."
+
+    - name: "Analysis Rule"
+      icon: "filter"
+      description: "What to forward and where"
+      fields:
+        - key: "application"
+          label: "Applications"
+          fieldType: "tags"
+          helpText: "App-IDs to forward for analysis. Defaults to 'any' when blank."
+
+        - key: "file_type"
+          label: "File Types"
+          fieldType: "tags"
+          helpText: "File types to forward for analysis. Defaults to 'any' when blank."
+
+        - key: "direction"
+          label: "Direction"
+          fieldType: "select"
+          required: true
+          defaultValue: "both"
+          options:
+            - { label: "Both", value: "both" }
+            - { label: "Upload", value: "upload" }
+            - { label: "Download", value: "download" }
+          helpText: "Traffic direction to forward for analysis."
+
+        - key: "analysis"
+          label: "Analysis Location"
+          fieldType: "select"
+          required: true
+          defaultValue: "public-cloud"
+          options:
+            - { label: "Public Cloud", value: "public-cloud" }
+            - { label: "Private Cloud (WF-500)", value: "private-cloud" }
+          helpText: "Where files are analyzed — the WildFire public cloud or a private WF-500 appliance."

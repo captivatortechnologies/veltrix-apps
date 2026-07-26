@@ -3,6 +3,34 @@
 All notable changes to the Cloudflare app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.4.0 — 2026-07-26
+
+### Added
+- **Manage classic Page Rules as code** (new "Cloudflare Page Rules (Legacy)"
+  configuration type, in the **Rules & Lists** group). Declares Cloudflare's
+  classic Page Rules through the v4 API (`GET/POST/PUT/DELETE
+  /zones/{zone_id}/pagerules`), reconciled by their **URL match pattern** — the
+  rule's natural identity, since Cloudflare assigns the server id. Each rule is a
+  single `url` target (operator `matches`) plus a JSON array of actions; a
+  re-deploy updates the matching rule in place (`PUT` by id) or creates it, and
+  deploy captures the prior rule bodies so rollback restores updates and deletes
+  creates. Includes validation (unique URL pattern; actions must be a non-empty
+  JSON array of `{id, value}` objects; a `forwarding_url` action can't be combined
+  with setting overrides), health check, drift detection with audit attribution
+  (missing rule, status/priority/action-set changes), and the shared **Domain**
+  picker like the other zone-scoped types.
+  - **Why still ship a deprecated feature?** Cloudflare has deprecated Page Rules
+    in favour of the Rulesets engine, but — unlike the Firewall Rules and Rate
+    Limiting APIs (sunset 2025-06-15) — the Page Rules API is **not** on the
+    "no longer supported" list: existing rules keep working and Cloudflare will
+    auto-migrate them "in late 2025 or beyond" with advance notice. There is no
+    single Rulesets successor (Page Rules split across Configuration, Cache,
+    Origin, Compression Rules and Redirects), and this app implements only the
+    Redirect and Transform successors — so this type lets teams keep the Page
+    Rules a zone still relies on under configuration-as-code (drift, rollback,
+    audit) through the transition. **Prefer the Redirect / Transform types for new
+    work.**
+
 ## 1.3.0 — 2026-07-25
 
 ### Added

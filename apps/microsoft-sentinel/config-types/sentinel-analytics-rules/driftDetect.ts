@@ -2,13 +2,19 @@ import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sd
 import { buildSentinelClient } from '../../lib/sentinel'
 import { attachDriftActor, veltrixActorLogins } from '../../lib/sentinelActivityLog'
 import { listAlertRules } from './healthCheck'
-import { extractRuleSpecs } from './validate'
+import { extractRuleSpecs, isNrt } from './validate'
 
-/** Key rule fields compared for drift (spec value → live properties field). */
-const COMPARED: Array<{ label: string; specKey: keyof ReturnType<typeof extractRuleSpecs>[number]; liveKey: string }> = [
+type RuleField = { label: string; specKey: keyof ReturnType<typeof extractRuleSpecs>[number]; liveKey: string }
+
+/** Fields compared for every rule kind. */
+const COMMON_COMPARED: RuleField[] = [
   { label: 'enabled', specKey: 'enabled', liveKey: 'enabled' },
   { label: 'severity', specKey: 'severity', liveKey: 'severity' },
   { label: 'query', specKey: 'query', liveKey: 'query' },
+]
+
+/** Fields compared only for Scheduled rules — NRT rules have none of these. */
+const SCHEDULED_COMPARED: RuleField[] = [
   { label: 'queryFrequency', specKey: 'queryFrequency', liveKey: 'queryFrequency' },
   { label: 'queryPeriod', specKey: 'queryPeriod', liveKey: 'queryPeriod' },
   { label: 'triggerOperator', specKey: 'triggerOperator', liveKey: 'triggerOperator' },
@@ -47,8 +53,13 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         await attachDriftActor(client, diffs.slice(before), { resourceId, excludeActorLogins })
         continue
       }
+      // A rule whose kind changed out-of-band (Scheduled <-> NRT) is drift.
+      if (String(spec.kind) !== String(liveRule.kind ?? '')) {
+        diffs.push({ field: `${spec.ruleName}.kind`, expected: String(spec.kind), actual: String(liveRule.kind ?? ''), severity: 'warning' })
+      }
       const props = liveRule.properties ?? {}
-      for (const { label, specKey, liveKey } of COMPARED) {
+      const compared = isNrt(spec.kind) ? COMMON_COMPARED : [...COMMON_COMPARED, ...SCHEDULED_COMPARED]
+      for (const { label, specKey, liveKey } of compared) {
         const want = spec[specKey]
         const have = props[liveKey]
         if (String(want ?? '') !== String(have ?? '')) {

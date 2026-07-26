@@ -8,10 +8,10 @@
 # =============================================================================
 
 id: "sentinel-analytics-rules"
-name: "Scheduled Analytics Rule"
+name: "Analytics Rule (Scheduled / NRT)"
 toolType: "microsoft-sentinel"
 entityType: "sentinel-analytics-rules"
-description: "Define Microsoft Sentinel scheduled (KQL) analytics rules as code via Azure Resource Manager. Reconciled by rule name."
+description: "Define Microsoft Sentinel scheduled (KQL) and near-real-time (NRT) analytics rules as code via Azure Resource Manager. Reconciled by rule name."
 
 item:
   label: "Analytics Rule"
@@ -29,6 +29,15 @@ item:
           fieldType: "text"
           required: true
           helpText: "Display name of the rule. Slugged into the ARM ruleId — this is the reconciliation identity."
+
+        - key: "kind"
+          label: "Rule kind"
+          fieldType: "select"
+          defaultValue: "Scheduled"
+          options:
+            - { label: "Scheduled (KQL)", value: "Scheduled" }
+            - { label: "Near Real Time (NRT)", value: "NRT" }
+          helpText: "Scheduled runs the KQL query on a frequency; NRT runs continuously against incoming events and has no frequency/period or trigger threshold. NRT is written against a preview api-version."
 
         - key: "enabled"
           label: "Enabled"
@@ -48,7 +57,7 @@ item:
 
     - name: "Detection query"
       icon: "search"
-      description: "The KQL query and how often it runs"
+      description: "The KQL query and (for Scheduled rules) how often it runs"
       fields:
         - key: "query"
           label: "KQL query"
@@ -60,13 +69,15 @@ item:
           label: "Query frequency (ISO-8601)"
           fieldType: "text"
           defaultValue: "PT1H"
-          helpText: "How often the rule runs, as an ISO-8601 duration (e.g. PT1H = hourly, PT5M = every 5 minutes)."
+          helpText: "How often the rule runs, as an ISO-8601 duration (e.g. PT1H = hourly, PT5M = every 5 minutes). Scheduled rules only."
+          visibleWhen: { field: "kind", equals: "Scheduled" }
 
         - key: "query_period"
           label: "Query period (ISO-8601)"
           fieldType: "text"
           defaultValue: "PT1H"
-          helpText: "The look-back window each run inspects, as an ISO-8601 duration (e.g. PT1H, P1D). Should be >= the frequency."
+          helpText: "The look-back window each run inspects, as an ISO-8601 duration (e.g. PT1H, P1D). Should be >= the frequency. Scheduled rules only."
+          visibleWhen: { field: "kind", equals: "Scheduled" }
 
         - key: "trigger_operator"
           label: "Trigger operator"
@@ -77,12 +88,15 @@ item:
             - { label: "Less than", value: "LessThan" }
             - { label: "Equal", value: "Equal" }
             - { label: "Not equal", value: "NotEqual" }
+          helpText: "How the result count is compared against the threshold. Scheduled rules only."
+          visibleWhen: { field: "kind", equals: "Scheduled" }
 
         - key: "trigger_threshold"
           label: "Trigger threshold"
           fieldType: "number"
           defaultValue: 0
-          helpText: "The result count the operator compares against to raise an alert."
+          helpText: "The result count the operator compares against to raise an alert. Scheduled rules only."
+          visibleWhen: { field: "kind", equals: "Scheduled" }
 
     - name: "Grouping & tactics"
       icon: "layers"

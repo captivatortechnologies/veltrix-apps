@@ -1,0 +1,82 @@
+# =============================================================================
+# Canvas Template — Panorama URL Filtering Profiles (/Objects/URLFilteringSecurityProfiles)
+#
+# One URL filtering profile = a name (identity) + a set of URL categories bucketed
+# by the action applied to them (allow, alert, block, continue, override). A
+# category may appear in only one bucket. Categories left unbucketed keep the
+# firmware default. Field keys must match
+# config-types/panorama-url-filtering-profiles/validate.ts.
+# =============================================================================
+
+id: "panorama-url-filtering-profiles"
+name: "Panorama URL Filtering Profile Configuration"
+toolType: "palo-alto-panorama"
+entityType: "panorama-url-filtering-profiles"
+description: "Define Panorama URL filtering profiles as code via the PAN-OS REST API (/Objects/URLFilteringSecurityProfiles). Reconciled by name."
+
+item:
+  label: "URL Filtering Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Profile"
+      icon: "shield"
+      description: "Name and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The URL filtering profile name — its identity for reconciliation."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description."
+
+    - name: "Category Actions"
+      icon: "filter"
+      description: "URL categories bucketed by action (a category may appear in only one bucket)"
+      fields:
+        - key: "block"
+          label: "Block"
+          fieldType: "tags"
+          helpText: "URL categories to block (deny + log)."
+
+        - key: "alert"
+          label: "Alert"
+          fieldType: "tags"
+          helpText: "URL categories to allow while logging."
+
+        - key: "allow"
+          label: "Allow"
+          fieldType: "tags"
+          helpText: "URL categories to allow without logging."
+
+        - key: "continue"
+          label: "Continue"
+          fieldType: "tags"
+          helpText: "URL categories that show a continue page before access."
+
+        - key: "override"
+          label: "Override"
+          fieldType: "tags"
+          helpText: "URL categories that require a password to access."
+
+    - name: "Options"
+      icon: "settings"
+      description: "Enforcement options"
+      fields:
+        - key: "safe_search_enforcement"
+          label: "Safe Search Enforcement"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Block search results unless the browser's strict safe-search setting is on."
+
+        - key: "log_container_page_only"
+          label: "Log Container Page Only"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Log only the main page that matches the category, not every resource it loads."

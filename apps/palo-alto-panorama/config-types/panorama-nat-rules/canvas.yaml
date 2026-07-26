@@ -1,0 +1,136 @@
+# =============================================================================
+# Canvas Template — Panorama NAT Pre-Rules (/Policies/NATPreRules)
+#
+# One IPv4 NAT rule in the device-group PRE rulebase. Original-packet zones,
+# source and destination default to "any" and service to "any" when left blank.
+# Field keys must match config-types/panorama-nat-rules/validate.ts.
+#
+# Deploy these AFTER the address/service objects and zones they reference.
+# NOTE: only IPv4 NAT is modeled. Fallback source translation, dynamic
+# destination translation (DIPP DNAT), DNS rewrite, and nat64/nptv6 are not
+# represented.
+# =============================================================================
+
+id: "panorama-nat-rules"
+name: "Panorama NAT Rule Configuration"
+toolType: "palo-alto-panorama"
+entityType: "panorama-nat-rules"
+description: "Define Panorama NAT pre-rules as code via the PAN-OS REST API (/Policies/NATPreRules). Reconciled by name."
+
+item:
+  label: "NAT Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Rule"
+      icon: "shuffle"
+      description: "Name and state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The NAT rule name — its identity for reconciliation."
+
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When checked, the rule is deployed disabled."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description."
+
+    - name: "Original Packet"
+      icon: "filter"
+      description: "Match criteria before translation"
+      fields:
+        - key: "from_zones"
+          label: "Source Zones"
+          fieldType: "tags"
+          helpText: "Source security zones. Defaults to 'any' when blank."
+
+        - key: "to_zones"
+          label: "Destination Zones"
+          fieldType: "tags"
+          helpText: "Destination security zones. Defaults to 'any' when blank."
+
+        - key: "source"
+          label: "Source Addresses"
+          fieldType: "tags"
+          helpText: "Source address objects/groups. Defaults to 'any' when blank."
+
+        - key: "destination"
+          label: "Destination Addresses"
+          fieldType: "tags"
+          helpText: "Destination address objects/groups. Defaults to 'any' when blank."
+
+        - key: "service"
+          label: "Service"
+          fieldType: "text"
+          helpText: "A single service object name or 'any'. Defaults to 'any' when blank."
+
+        - key: "to_interface"
+          label: "Destination Interface"
+          fieldType: "text"
+          helpText: "Optional destination (egress) interface to match, e.g. ethernet1/1."
+
+    - name: "Source Translation"
+      icon: "shuffle"
+      description: "Translate the source address"
+      fields:
+        - key: "source_translation_type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "none"
+          options:
+            - { label: "None", value: "none" }
+            - { label: "Dynamic IP and Port (hide NAT)", value: "dynamic-ip-and-port" }
+            - { label: "Dynamic IP", value: "dynamic-ip" }
+            - { label: "Static IP", value: "static-ip" }
+          helpText: "Source NAT strategy."
+
+        - key: "source_translated_addresses"
+          label: "Translated Addresses (dynamic)"
+          fieldType: "tags"
+          helpText: "For Dynamic IP / Dynamic IP and Port: translated address objects or IPs."
+
+        - key: "source_translation_interface"
+          label: "Translation Interface (DIPP)"
+          fieldType: "text"
+          helpText: "For Dynamic IP and Port using the egress interface address, e.g. ethernet1/1."
+
+        - key: "source_translation_interface_ip"
+          label: "Translation Interface IP (DIPP)"
+          fieldType: "text"
+          helpText: "Optional specific IP on the translation interface."
+
+        - key: "source_static_translated_address"
+          label: "Static Translated Address"
+          fieldType: "text"
+          helpText: "For Static IP: the translated source address (object or IP)."
+
+        - key: "bi_directional"
+          label: "Bi-directional (static only)"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "For Static IP: also create the implicit reverse translation."
+
+    - name: "Destination Translation"
+      icon: "shuffle"
+      description: "Translate the destination address (port forwarding)"
+      fields:
+        - key: "destination_translated_address"
+          label: "Translated Address"
+          fieldType: "text"
+          helpText: "Destination NAT translated address (object or IP). Leave blank for no destination NAT."
+
+        - key: "destination_translated_port"
+          label: "Translated Port"
+          fieldType: "text"
+          helpText: "Optional translated destination port (1-65535). Requires a translated address."

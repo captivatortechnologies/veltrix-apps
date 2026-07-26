@@ -1,0 +1,70 @@
+# =============================================================================
+# Canvas Template — Panorama Antivirus Profiles (/Objects/AntivirusSecurityProfiles)
+#
+# One antivirus profile = a name (identity) + the action applied to virus and
+# WildFire signature detections across every protocol decoder (ftp, http, http2,
+# imap, pop3, smb, smtp). Field keys must match
+# config-types/panorama-antivirus-profiles/validate.ts.
+#
+# NOTE: the chosen action + WildFire action are applied UNIFORMLY to all decoders
+# (the common best-practice pattern). Per-decoder overrides, application
+# exceptions, ML-based engine settings and threat exceptions are not represented.
+# =============================================================================
+
+id: "panorama-antivirus-profiles"
+name: "Panorama Antivirus Profile Configuration"
+toolType: "palo-alto-panorama"
+entityType: "panorama-antivirus-profiles"
+description: "Define Panorama antivirus profiles as code via the PAN-OS REST API (/Objects/AntivirusSecurityProfiles). Reconciled by name."
+
+item:
+  label: "Antivirus Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Profile"
+      icon: "shield"
+      description: "Name and actions"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The antivirus profile name — its identity for reconciliation."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description."
+
+        - key: "action"
+          label: "Antivirus Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "reset-both"
+          options:
+            - { label: "Reset Both", value: "reset-both" }
+            - { label: "Reset Client", value: "reset-client" }
+            - { label: "Reset Server", value: "reset-server" }
+            - { label: "Drop", value: "drop" }
+            - { label: "Alert", value: "alert" }
+            - { label: "Allow", value: "allow" }
+            - { label: "Default (signature-recommended)", value: "default" }
+          helpText: "Action on antivirus signature detections, applied to every protocol decoder."
+
+        - key: "wildfire_action"
+          label: "WildFire Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "reset-both"
+          options:
+            - { label: "Reset Both", value: "reset-both" }
+            - { label: "Reset Client", value: "reset-client" }
+            - { label: "Reset Server", value: "reset-server" }
+            - { label: "Drop", value: "drop" }
+            - { label: "Alert", value: "alert" }
+            - { label: "Allow", value: "allow" }
+            - { label: "Default (signature-recommended)", value: "default" }
+          helpText: "Action on WildFire signature detections, applied to every protocol decoder."

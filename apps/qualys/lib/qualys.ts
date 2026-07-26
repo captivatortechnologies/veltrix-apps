@@ -71,6 +71,14 @@ export interface QualysResponse {
   body: string
 }
 
+/** A QPS (Qualys Platform Service, /qps/rest/…) JSON response. */
+export interface QualysJsonResponse {
+  status: number
+  ok: boolean
+  json: unknown
+  body: string
+}
+
 /** Flat map of form parameters; values are coerced to strings when sent. */
 export type QualysParams = Record<string, string | number | boolean | undefined | null>
 
@@ -100,6 +108,28 @@ export class QualysClient {
     return this.send('GET', url, undefined)
   }
 
+  /** GET a classic-API path with query-string params (e.g. option_profile export). */
+  async get(path: string, params: QualysParams): Promise<QualysResponse> {
+    const qs = new URLSearchParams()
+    for (const [key, value] of Object.entries(params)) {
+      if (value === undefined || value === null) continue
+      qs.set(key, String(value))
+    }
+    const query = qs.toString()
+    return this.send('GET', `${this.baseUrl}${path}${query ? `?${query}` : ''}`, undefined)
+  }
+
+  /**
+   * POST a JSON body to a QPS REST path (e.g. /qps/rest/2.0/create/am/tag). QPS
+   * speaks JSON (ServiceRequest/ServiceResponse) rather than the classic form/XML
+   * envelope; `body` is serialized as JSON and the parsed ServiceResponse is
+   * returned on `json` (null when the payload is empty or not JSON). Pass
+   * `undefined` for an empty-body POST (e.g. delete by id in the URL).
+   */
+  async postJson(path: string, body: unknown): Promise<QualysJsonResponse> {
+    return this.sendJson('POST', `${this.baseUrl}${path}`, body)
+  }
+
   private async send(method: 'GET' | 'POST', url: string, params: QualysParams | undefined): Promise<QualysResponse> {
     const headers: Record<string, string> = {
       Authorization: this.authHeader,
@@ -123,6 +153,38 @@ export class QualysClient {
       const res = await fetch(url, { method, headers, body, signal: controller.signal })
       const text = await res.text()
       return { status: res.status, ok: res.status >= 200 && res.status < 300, body: text }
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
+  private async sendJson(method: 'GET' | 'POST', url: string, body: unknown): Promise<QualysJsonResponse> {
+    const headers: Record<string, string> = {
+      Authorization: this.authHeader,
+      // QPS ignores it, but every request from this app identifies itself.
+      'X-Requested-With': X_REQUESTED_WITH,
+      Accept: 'application/json',
+    }
+    let payload: string | undefined
+    if (body !== undefined) {
+      headers['Content-Type'] = 'application/json'
+      payload = JSON.stringify(body)
+    }
+
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs)
+    try {
+      const res = await fetch(url, { method, headers, body: payload, signal: controller.signal })
+      const text = await res.text()
+      let json: unknown = null
+      if (text) {
+        try {
+          json = JSON.parse(text)
+        } catch {
+          json = null
+        }
+      }
+      return { status: res.status, ok: res.status >= 200 && res.status < 300, json, body: text }
     } finally {
       clearTimeout(timer)
     }
@@ -268,4 +330,65 @@ export function qualysErrorMessage(res: QualysResponse): string {
   const trimmed = (res.body || '').trim()
   if (trimmed) return trimmed.slice(0, 200)
   return `HTTP ${res.status}`
+}
+
+// --- QPS (ServiceResponse) helpers --------------------------------------------
+// The Asset Management & Tagging API (/qps/rest/2.0/) wraps every payload in a
+// ServiceResponse whose `responseCode` is "SUCCESS" on success; failures carry a
+// responseErrorDetails.errorMessage. `data` is a list of typed wrappers, e.g.
+// [{ "Tag": { "id": 1, "name": "…" } }]. These helpers never throw.
+
+function serviceResponse(res: QualysJsonResponse): Record<string, unknown> | null {
+  const sr = (res.json as { ServiceResponse?: unknown } | null)?.ServiceResponse
+  return sr && typeof sr === 'object' ? (sr as Record<string, unknown>) : null
+}
+
+/** The ServiceResponse.responseCode, or '' when absent. */
+export function qpsResponseCode(res: QualysJsonResponse): string {
+  const code = serviceResponse(res)?.responseCode
+  return typeof code === 'string' ? code : ''
+}
+
+/** Human-readable message from a QPS ServiceResponse (error detail preferred). */
+export function qpsErrorMessage(res: QualysJsonResponse): string {
+  const sr = serviceResponse(res)
+  const details = sr?.responseErrorDetails as { errorMessage?: unknown } | undefined
+  const message = typeof details?.errorMessage === 'string' ? details.errorMessage : ''
+  const code = typeof sr?.responseCode === 'string' ? sr.responseCode : ''
+  if (message) return code ? `${message} (${code})` : message
+  if (code) return `Qualys responseCode ${code}`
+  const trimmed = (res.body || '').trim()
+  if (trimmed) return trimmed.slice(0, 200)
+  return `HTTP ${res.status}`
+}
+
+/**
+ * Inspect a QPS write response and return an error message when Qualys rejected
+ * it, or null on success. NON-UNION `string | null` (the platform handler loader
+ * cannot narrow discriminated unions). Success is HTTP 2xx AND responseCode
+ * SUCCESS.
+ */
+export function qpsWriteError(res: QualysJsonResponse): string | null {
+  if (!res.ok) return qpsErrorMessage(res)
+  const code = qpsResponseCode(res)
+  if (code && code !== 'SUCCESS') return qpsErrorMessage(res)
+  return null
+}
+
+/** Every entity of `typeKey` (e.g. 'Tag') from a ServiceResponse.data list. */
+export function qpsDataList(res: QualysJsonResponse, typeKey: string): Record<string, unknown>[] {
+  const data = serviceResponse(res)?.data
+  if (!Array.isArray(data)) return []
+  const out: Record<string, unknown>[] = []
+  for (const entry of data) {
+    const value = (entry as Record<string, unknown> | null)?.[typeKey]
+    if (value && typeof value === 'object') out.push(value as Record<string, unknown>)
+  }
+  return out
+}
+
+/** True when ServiceResponse.hasMoreRecords indicates another page. */
+export function qpsHasMoreRecords(res: QualysJsonResponse): boolean {
+  const more = serviceResponse(res)?.hasMoreRecords
+  return more === true || more === 'true'
 }

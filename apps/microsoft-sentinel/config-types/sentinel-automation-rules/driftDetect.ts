@@ -10,6 +10,12 @@ function liveModify(rule: LiveAutomationRule): { severity: string; status: strin
   return { severity: action?.actionConfiguration?.severity ?? '', status: action?.actionConfiguration?.status ?? '' }
 }
 
+/** Pull the RunPlaybook logicAppResourceId from a live rule's actions (first match). */
+function livePlaybook(rule: LiveAutomationRule): string {
+  const action = (rule.properties?.actions ?? []).find((a) => a.actionType === 'RunPlaybook')
+  return action?.actionConfiguration?.logicAppResourceId ?? ''
+}
+
 /**
  * Detect drift between the deployed automation rules and the live workspace. A
  * declared rule that no longer exists is critical drift; a key field that differs
@@ -53,6 +59,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         { label: 'triggersWhen', want: spec.triggersWhen, have: logic.triggersWhen },
         { label: 'setSeverity', want: spec.setSeverity, have: modify.severity },
         { label: 'setStatus', want: spec.setStatus, have: modify.status },
+        { label: 'runPlaybook', want: spec.runPlaybookResourceId, have: livePlaybook(liveRule) },
       ]
       for (const { label, want, have } of comparisons) {
         if (String(want ?? '') !== String(have ?? '')) {

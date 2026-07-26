@@ -1,0 +1,55 @@
+# =============================================================================
+# Canvas Template — Defender for Endpoint Machine Tags
+#
+# Declares ONE device-tags assignment — the item. Users add as many as they need.
+# Identity is (device_type, device_value); tags are applied idempotently via
+# POST /api/machines/{id}/tags (Action: Add) and are non-destructive to tags this
+# config type did not declare. Field keys must match
+# config-types/mde-machine-tags/validate.ts (extractMachineTagSpecs).
+#
+# Device GROUPS and web content filtering policies are intentionally NOT covered:
+# Defender exposes no public API to manage them (both are portal-only).
+# =============================================================================
+
+id: "mde-machine-tags"
+name: "Defender Machine Tags"
+toolType: "defender-endpoint"
+entityType: "mde-machine-tags"
+description: "Manage Microsoft Defender for Endpoint device (machine) tags as code via the /api/machines/{id}/tags API. Needs the Machine.ReadWrite.All application permission."
+
+item:
+  label: "Device Tags"
+  identityField: "device_value"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Device"
+      icon: "monitor"
+      description: "The device to tag and how it is identified"
+      fields:
+        - key: "device_type"
+          label: "Identify device by"
+          fieldType: "select"
+          required: true
+          defaultValue: "id"
+          options:
+            - { label: "Device ID", value: "id" }
+            - { label: "Computer name", value: "name" }
+          helpText: "Device ID is the stable 40-character Defender device id. Computer name (DNS) may match more than one device — the tags apply to every match."
+
+        - key: "device_value"
+          label: "Device"
+          fieldType: "text"
+          required: true
+          helpText: "The 40-character hex Defender device id, or the computer's fully-qualified name (e.g. host1.contoso.com)."
+
+    - name: "Tags"
+      icon: "tag"
+      description: "The tags that should be present on the device"
+      fields:
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          required: true
+          helpText: "One or more tag names to ensure are present. Tags are added, never removed from tags this app did not set. Avoid commas / parentheses — device-list filtering may not work on them."

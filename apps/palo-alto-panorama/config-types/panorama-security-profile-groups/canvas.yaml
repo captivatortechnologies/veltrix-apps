@@ -1,0 +1,71 @@
+# =============================================================================
+# Canvas Template — Panorama Security Profile Groups (/Objects/SecurityProfileGroups)
+#
+# One security-profile group = a name (identity) + a reference to one profile of
+# each type (antivirus, anti-spyware, vulnerability, URL filtering, file
+# blocking, WildFire analysis, data filtering). All profile references are
+# optional; every referenced profile must already exist at the target location.
+# Field keys must match config-types/panorama-security-profile-groups/validate.ts.
+# =============================================================================
+
+id: "panorama-security-profile-groups"
+name: "Panorama Security Profile Group Configuration"
+toolType: "palo-alto-panorama"
+entityType: "panorama-security-profile-groups"
+description: "Define Panorama security profile groups as code via the PAN-OS REST API (/Objects/SecurityProfileGroups). Reconciled by name."
+
+item:
+  label: "Security Profile Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Profile Group"
+      icon: "shield"
+      description: "Name"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The security profile group name — its identity for reconciliation."
+
+    - name: "Profiles"
+      icon: "layers"
+      description: "Referenced profiles (each optional; must already exist)"
+      fields:
+        - key: "virus"
+          label: "Antivirus Profile"
+          fieldType: "text"
+          helpText: "Antivirus profile name to attach."
+
+        - key: "spyware"
+          label: "Anti-Spyware Profile"
+          fieldType: "text"
+          helpText: "Anti-spyware profile name to attach."
+
+        - key: "vulnerability"
+          label: "Vulnerability Protection Profile"
+          fieldType: "text"
+          helpText: "Vulnerability protection profile name to attach."
+
+        - key: "url_filtering"
+          label: "URL Filtering Profile"
+          fieldType: "text"
+          helpText: "URL filtering profile name to attach."
+
+        - key: "file_blocking"
+          label: "File Blocking Profile"
+          fieldType: "text"
+          helpText: "File blocking profile name to attach."
+
+        - key: "wildfire_analysis"
+          label: "WildFire Analysis Profile"
+          fieldType: "text"
+          helpText: "WildFire analysis profile name to attach."
+
+        - key: "data_filtering"
+          label: "Data Filtering Profile"
+          fieldType: "text"
+          helpText: "Data filtering profile name to attach."

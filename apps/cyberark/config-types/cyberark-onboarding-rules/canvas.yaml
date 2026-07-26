@@ -1,0 +1,136 @@
+# =============================================================================
+# Canvas Template — CyberArk Automatic Onboarding Rules
+#
+# Declares ONE onboarding rule — the item. Users add as many as they need. An
+# automatic onboarding rule filters accounts discovered by CyberArk and, when an
+# account matches, onboards it to a target Safe against a target Platform and
+# reconciles its password. CyberArk assigns a numeric RuleId, so identity for
+# reconciliation is the natural key: the (unique) rule name.
+#
+# PREREQUISITES (created outside this type): the target Safe and its reconcile
+# account must already exist, and the reconcile account must be associated with
+# the target platform. Field keys must match
+# config-types/cyberark-onboarding-rules/validate.ts.
+# =============================================================================
+
+id: "cyberark-onboarding-rules"
+name: "CyberArk Onboarding Rule Configuration"
+toolType: "cyberark"
+entityType: "cyberark-onboarding-rules"
+description: "Define CyberArk automatic onboarding rules as code through the PVWA REST API (/AutomaticOnboardingRules). Reconciled by rule name; discovered accounts matching a rule are onboarded to the target Safe and platform."
+
+item:
+  label: "Onboarding Rule"
+  identityField: "rule_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Rule"
+      icon: "filter"
+      description: "The rule identity"
+      fields:
+        - key: "rule_name"
+          label: "Rule Name"
+          fieldType: "text"
+          required: true
+          helpText: "A unique rule name (max 255 characters) — its logical identity for reconciliation."
+          validation:
+            maxLength: 255
+
+        - key: "rule_description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional free-text description of the rule (max 255 characters)."
+
+    - name: "Target"
+      icon: "key"
+      description: "Where matching accounts are onboarded"
+      fields:
+        - key: "target_platform_id"
+          label: "Target Platform ID"
+          fieldType: "text"
+          required: true
+          helpText: "The platform the onboarded account is associated with (e.g. WinServerLocal). Max 99 characters."
+          validation:
+            maxLength: 99
+
+        - key: "target_safe_name"
+          label: "Target Safe Name"
+          fieldType: "text"
+          required: true
+          helpText: "The Safe where onboarded accounts are stored. The Safe must already exist. Max 28 characters."
+          validation:
+            maxLength: 28
+
+        - key: "system_type_filter"
+          label: "System Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "Windows"
+          options:
+            - { label: "Windows", value: "Windows" }
+            - { label: "Unix", value: "Unix" }
+          helpText: "The system type the rule matches. Mandatory."
+
+    - name: "Filters"
+      icon: "settings"
+      description: "Which discovered accounts this rule matches"
+      fields:
+        - key: "machine_type_filter"
+          label: "Machine Type"
+          fieldType: "select"
+          defaultValue: "Any"
+          options:
+            - { label: "Any", value: "Any" }
+            - { label: "Workstation", value: "Workstation" }
+            - { label: "Server", value: "Server" }
+          helpText: "The machine type to filter by."
+
+        - key: "account_category_filter"
+          label: "Account Category"
+          fieldType: "select"
+          defaultValue: "Any"
+          options:
+            - { label: "Any", value: "Any" }
+            - { label: "Privileged", value: "Privileged" }
+            - { label: "Non-privileged", value: "Non-privileged" }
+          helpText: "Filter for privileged or non-privileged accounts."
+
+        - key: "is_admin_id_filter"
+          label: "Admin ID Only"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: >
+            When enabled, only admin accounts are onboarded (Unix UID 0, Windows SID
+            ending in 500). When disabled, all accounts matching the rule are onboarded.
+
+        - key: "user_name_filter"
+          label: "Username Filter"
+          fieldType: "text"
+          helpText: "Optional username to filter by (max 512 characters). Leave blank to match any username."
+
+        - key: "user_name_method"
+          label: "Username Match Method"
+          fieldType: "select"
+          defaultValue: "Equals"
+          options:
+            - { label: "Equals", value: "Equals" }
+            - { label: "Begins with", value: "Begins" }
+            - { label: "Ends with", value: "Ends" }
+          helpText: "How the username filter is applied. Ignored when no username filter is set."
+
+        - key: "address_filter"
+          label: "Address Filter"
+          fieldType: "text"
+          helpText: "Optional IP address or DNS domain name to filter by (max 255 characters). Leave blank to match any address."
+
+        - key: "address_method"
+          label: "Address Match Method"
+          fieldType: "select"
+          defaultValue: "Equals"
+          options:
+            - { label: "Equals", value: "Equals" }
+            - { label: "Begins with", value: "Begins" }
+            - { label: "Ends with", value: "Ends" }
+          helpText: "How the address filter is applied. Ignored when no address filter is set."

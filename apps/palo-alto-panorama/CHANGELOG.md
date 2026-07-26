@@ -3,6 +3,48 @@
 All notable changes to the Palo Alto Panorama app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.2.0 — 2026-07-26
+
+### Added
+Seven new configuration types, closing the audited coverage gaps (issue #12).
+Each reuses the shared `lib/panorama` client and staged-commit pipeline (write to
+the Panorama candidate config via REST, commit via the XML API when `auto_commit`
+is on) and ships the full handler set — validate, deploy (idempotent upsert by
+name with rollback data), rollback, health check, drift detection and status.
+
+- **NAT Rules** (`/Policies/NATPreRules`). IPv4 NAT pre-rules: original-packet
+  match (zones, source, destination, service, destination interface) plus source
+  translation (dynamic-ip-and-port with translated addresses or an egress
+  interface address, dynamic-ip, static-ip with optional bi-directional) and
+  destination translation (translated address + optional port). Drift compares a
+  normalized, order-insensitive translation summary so member re-ordering is not
+  reported as drift.
+- **Application Groups** (`/Objects/ApplicationGroups`). Name + member App-IDs /
+  application filters / nested groups.
+- **Security Profile Groups** (`/Objects/SecurityProfileGroups`). Bundle one
+  profile of each type — antivirus, anti-spyware, vulnerability, URL filtering,
+  file blocking, WildFire analysis and data filtering.
+- **Antivirus Profiles** (`/Objects/AntivirusSecurityProfiles`). Virus and
+  WildFire signature actions applied uniformly across the protocol decoders
+  (ftp, http, http2, imap, pop3, smb, smtp).
+- **Anti-Spyware Profiles** (`/Objects/AntiSpywareSecurityProfiles`). A single
+  rule: matched severities, action (as a PAN-OS choice element), packet capture,
+  category and threat-name filters.
+- **URL Filtering Profiles** (`/Objects/URLFilteringSecurityProfiles`). URL
+  categories bucketed by action (block, alert, allow, continue, override), with
+  safe-search enforcement and container-page-only logging; validation rejects a
+  category placed in more than one bucket.
+- **WildFire Analysis Profiles** (`/Objects/WildFireAnalysisSecurityProfiles`). A
+  single analysis rule — applications, file types, direction and analysis
+  location (public or private cloud).
+
+### Notes
+- The anti-spyware and WildFire analysis types model a single rule per profile
+  (the common case). Antivirus applies one action set uniformly to all decoders.
+  Multi-rule profiles, per-decoder overrides, botnet-domain / DNS-security
+  policies, ML-engine and threat-exception settings, and NAT fallback / dynamic
+  destination translation / DNS rewrite / nat64 / nptv6 are not represented.
+
 ## 1.1.0 — 2026-07-22
 
 ### Added

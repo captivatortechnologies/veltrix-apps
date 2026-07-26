@@ -1,5 +1,5 @@
 import type { HealthCheckContext, HealthCheckResult } from '@veltrixsecops/app-sdk'
-import { buildSentinelClient, SENTINEL_API_VERSION, type SentinelClient } from '../../lib/sentinel'
+import { buildSentinelClient, SENTINEL_NRT_API_VERSION, type SentinelClient } from '../../lib/sentinel'
 import { extractRuleSpecs } from './validate'
 
 interface LiveRule {
@@ -8,9 +8,14 @@ interface LiveRule {
   properties?: Record<string, unknown>
 }
 
-/** List the workspace's alert rules; throws on a non-OK response. */
+/**
+ * List the workspace's alert rules; throws on a non-OK response. Uses the preview
+ * api-version because it is a superset that returns BOTH Scheduled and NRT rules
+ * (the stable contract does not deserialize kind:NRT), so presence and drift
+ * checks see every managed rule.
+ */
 export async function listAlertRules(client: SentinelClient): Promise<LiveRule[]> {
-  const res = await client.getAll<LiveRule>(client.sentinelPath('/alertRules'), SENTINEL_API_VERSION)
+  const res = await client.getAll<LiveRule>(client.sentinelPath('/alertRules'), SENTINEL_NRT_API_VERSION)
   if (!res.ok) {
     throw new Error(res.body ? res.body.slice(0, 300) : `HTTP ${res.status}`)
   }

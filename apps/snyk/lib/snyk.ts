@@ -73,6 +73,9 @@ export interface SnykResponse {
   status: number
   ok: boolean
   body: string
+  /** Lowercased response headers — populated for real requests (e.g. `location`
+   *  on an async import). Optional so synthetic responses need not supply it. */
+  headers?: Record<string, string>
 }
 
 export type SnykMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
@@ -205,7 +208,11 @@ export class SnykClient {
           await sleep(RATE_LIMIT_BACKOFF_MS)
           continue
         }
-        return { status: res.status, ok: res.status >= 200 && res.status < 300, body: text }
+        const headers: Record<string, string> = {}
+        res.headers.forEach((value, key) => {
+          headers[key.toLowerCase()] = value
+        })
+        return { status: res.status, ok: res.status >= 200 && res.status < 300, body: text, headers }
       } finally {
         clearTimeout(timer)
       }

@@ -6,6 +6,11 @@ export const TRIGGERS_WHEN = ['Created', 'Updated'] as const
 export const INCIDENT_SEVERITIES = ['High', 'Medium', 'Low', 'Informational'] as const
 export const INCIDENT_STATUSES = ['New', 'Active', 'Closed'] as const
 
+/** A Logic App playbook resource id: /subscriptions/.../providers/Microsoft.Logic/workflows/<name>. */
+export const LOGIC_APP_RESOURCE_ID_RE = /^\/subscriptions\/[^/]+\/resourceGroups\/[^/]+\/providers\/Microsoft\.Logic\/workflows\/[^/]+$/i
+/** A GUID (tenant id) shape. */
+export const GUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 /** One automation rule authored on the canvas. */
 export interface AutomationRuleSpec {
   sectionName: string
@@ -19,6 +24,10 @@ export interface AutomationRuleSpec {
   /** Empty string means "no change" — omitted from the ModifyProperties action. */
   setSeverity: string
   setStatus: string
+  /** Empty string means "no playbook" — omitted from the actions array. */
+  runPlaybookResourceId: string
+  /** Optional playbook tenant id (cross-tenant playbooks only). */
+  runPlaybookTenantId: string
 }
 
 /** The reconciliation key is the slug of the rule name (also the ARM automationRuleId). */
@@ -59,6 +68,8 @@ export function extractAutomationSpecs(canvas: CanvasSnapshot): AutomationRuleSp
       triggersWhen: typeof fields.triggers_when === 'string' ? fields.triggers_when.trim() : '',
       setSeverity: typeof fields.set_severity === 'string' ? fields.set_severity.trim() : '',
       setStatus: typeof fields.set_status === 'string' ? fields.set_status.trim() : '',
+      runPlaybookResourceId: typeof fields.run_playbook_resource_id === 'string' ? fields.run_playbook_resource_id.trim() : '',
+      runPlaybookTenantId: typeof fields.run_playbook_tenant_id === 'string' ? fields.run_playbook_tenant_id.trim() : '',
     }
   })
 }
@@ -118,6 +129,8 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
 
     const setSeverity = typeof fields.set_severity === 'string' ? fields.set_severity.trim() : ''
     const setStatus = typeof fields.set_status === 'string' ? fields.set_status.trim() : ''
+    const runPlaybookResourceId = typeof fields.run_playbook_resource_id === 'string' ? fields.run_playbook_resource_id.trim() : ''
+    const runPlaybookTenantId = typeof fields.run_playbook_tenant_id === 'string' ? fields.run_playbook_tenant_id.trim() : ''
 
     if (setSeverity && !INCIDENT_SEVERITIES.includes(setSeverity as (typeof INCIDENT_SEVERITIES)[number])) {
       errors.push({ field: `${prefix}.set_severity`, message: `Set severity must be one of ${INCIDENT_SEVERITIES.join(', ')}`, code: 'invalid_severity' })
@@ -125,10 +138,31 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
     if (setStatus && !INCIDENT_STATUSES.includes(setStatus as (typeof INCIDENT_STATUSES)[number])) {
       errors.push({ field: `${prefix}.set_status`, message: `Set status must be one of ${INCIDENT_STATUSES.join(', ')}`, code: 'invalid_status' })
     }
-    if (!setSeverity && !setStatus) {
+
+    if (runPlaybookResourceId && !LOGIC_APP_RESOURCE_ID_RE.test(runPlaybookResourceId)) {
+      errors.push({
+        field: `${prefix}.run_playbook_resource_id`,
+        message:
+          'Playbook resource ID must be a Logic App ARM id ' +
+          '(/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.Logic/workflows/<name>)',
+        code: 'invalid_playbook',
+      })
+    }
+    if (runPlaybookTenantId && !GUID_RE.test(runPlaybookTenantId)) {
+      errors.push({ field: `${prefix}.run_playbook_tenant_id`, message: 'Playbook tenant ID must be a GUID', code: 'invalid_tenant' })
+    }
+    if (runPlaybookTenantId && !runPlaybookResourceId) {
+      errors.push({
+        field: `${prefix}.run_playbook_tenant_id`,
+        message: 'Playbook tenant ID is set but no playbook resource ID is provided',
+        code: 'playbook_tenant_without_playbook',
+      })
+    }
+
+    if (!setSeverity && !setStatus && !runPlaybookResourceId) {
       errors.push({
         field: `${prefix}.set_severity`,
-        message: 'Configure at least one action — set a severity and/or a status for the modify-properties action',
+        message: 'Configure at least one action — set a severity/status (modify-properties) and/or a playbook to run',
         code: 'no_action',
       })
     }

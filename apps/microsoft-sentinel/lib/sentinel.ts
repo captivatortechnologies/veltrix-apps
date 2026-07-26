@@ -32,6 +32,20 @@ const TOKEN_EXPIRY_BUFFER_MS = 60_000
 
 /** Pinned GA api-version for all Microsoft.SecurityInsights resources. */
 export const SENTINEL_API_VERSION = '2024-09-01'
+/**
+ * api-version used ONLY for NRT (Near-Real-Time) analytics rules. The `kind: NRT`
+ * alertRule subtype is not part of the stable 2024-09-01 contract — the stable
+ * polymorphic AlertRule only defines Fusion / MicrosoftSecurityIncidentCreation /
+ * Scheduled — so NRT rules must be written against a preview api-version that
+ * declares NrtAlertRule. Scheduled rules continue to use SENTINEL_API_VERSION.
+ */
+export const SENTINEL_NRT_API_VERSION = '2024-01-01-preview'
+/**
+ * api-version for Log Analytics saved searches (hunting queries live here as
+ * Microsoft.OperationalInsights/workspaces/savedSearches, NOT under
+ * Microsoft.SecurityInsights).
+ */
+export const SAVED_SEARCH_API_VERSION = '2023-09-01'
 /** api-version for the Log Analytics workspace probe (Microsoft.OperationalInsights). */
 export const WORKSPACE_API_VERSION = '2023-09-01'
 
@@ -195,6 +209,15 @@ export class SentinelClient {
   /** Build a Microsoft.SecurityInsights child-resource path, e.g. sentinelPath('/alertRules/foo'). */
   sentinelPath(suffix: string): string {
     return `${this.workspaceScope}/providers/Microsoft.SecurityInsights${suffix}`
+  }
+
+  /**
+   * Build a Log Analytics workspace child path that is NOT under the
+   * Microsoft.SecurityInsights provider, e.g. workspaceChildPath('/savedSearches/foo')
+   * for Microsoft.OperationalInsights/workspaces/{ws}/savedSearches (hunting queries).
+   */
+  workspaceChildPath(suffix: string): string {
+    return `${this.workspaceScope}${suffix}`
   }
 
   /** An ARM request. `apiVersion` is appended as ?api-version=; body is JSON-encoded. PUT is an upsert. */

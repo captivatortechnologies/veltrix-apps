@@ -1,6 +1,6 @@
 import type { RollbackContext, RollbackResult } from '@veltrixsecops/app-sdk'
-import { buildSentinelClient, armErrorMessage, SENTINEL_API_VERSION } from '../../lib/sentinel'
-import type { AnalyticsRollbackEntry } from './deploy'
+import { buildSentinelClient, armErrorMessage } from '../../lib/sentinel'
+import { alertRuleApiVersion, type AnalyticsRollbackEntry } from './deploy'
 
 /**
  * Roll back analytics rules using the state captured during deploy: rules this
@@ -24,13 +24,16 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
     for (const entry of [...previousState].reverse()) {
       const path = client.sentinelPath(`/alertRules/${entry.ruleId}`)
       if (!entry.existed) {
-        const res = await client.request('DELETE', path, { apiVersion: SENTINEL_API_VERSION })
+        // Delete a rule this deploy created, using the api-version its kind needs.
+        const res = await client.request('DELETE', path, { apiVersion: alertRuleApiVersion(entry.deployedKind ?? 'Scheduled') })
         if (res.status !== 404 && !res.ok) {
           throw new Error(`Failed to delete analytics rule "${entry.ruleName}": ${armErrorMessage(res)}`)
         }
       } else if (entry.prior) {
-        const body = { kind: entry.prior.kind ?? 'Scheduled', properties: entry.prior.properties }
-        const res = await client.request('PUT', path, { apiVersion: SENTINEL_API_VERSION, body })
+        // Restore the prior state under the api-version matching its prior kind.
+        const priorKind = entry.prior.kind ?? entry.deployedKind ?? 'Scheduled'
+        const body = { kind: priorKind, properties: entry.prior.properties }
+        const res = await client.request('PUT', path, { apiVersion: alertRuleApiVersion(priorKind), body })
         if (!res.ok) throw new Error(`Failed to restore analytics rule "${entry.ruleName}": ${armErrorMessage(res)}`)
       }
       reverted.push(entry.ruleName)

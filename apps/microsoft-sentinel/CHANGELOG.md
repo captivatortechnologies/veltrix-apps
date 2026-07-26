@@ -3,6 +3,45 @@
 All notable changes to the Microsoft Sentinel app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.2.0 — 2026-07-26
+
+### Added
+- **Hunting queries & saved searches** (new configuration type
+  `sentinel-hunting-queries`). Manages Log Analytics saved searches via
+  `Microsoft.OperationalInsights/workspaces/savedSearches` (api-version
+  2023-09-01, GA) — Sentinel hunting queries are saved searches with category
+  "Hunting Queries", and an optional function alias/parameters exposes a query as
+  a reusable KQL function. Reconciled by name (slugged into the `savedSearchId`);
+  updates PUT with etag `"*"` to override. Full validate / deploy / rollback /
+  health / drift / status handlers.
+- **Data connectors** (new configuration type `sentinel-data-connectors`).
+  Enables the Microsoft first-party, tenant-based connectors that the
+  `Microsoft.SecurityInsights/dataConnectors` API can create/update (api-version
+  2024-09-01, GA): Microsoft Entra ID Protection, Defender for Identity, Defender
+  for Endpoint, Defender for Cloud Apps and Microsoft 365 — each written as a
+  `{ tenantId, dataTypes: { …: { state } } }` body. Reconciled by the ARM
+  `dataConnectorId`. CCP/codeless, AWS, threat-intel and portal-only connectors
+  are intentionally out of scope.
+- **NRT (near-real-time) analytics rules** on the existing
+  `sentinel-analytics-rules` type. A rule now carries a **kind** (Scheduled or
+  NRT); NRT rules omit query frequency/period and the trigger operator/threshold
+  (they run continuously). Because `kind:NRT` is **not** part of the stable
+  alertRules contract, NRT rules are read/written against a preview api-version
+  (2024-01-01-preview) while Scheduled rules stay on GA (2024-09-01); rollback
+  and drift are kind-aware.
+- **Run-playbook automation-rule action** on the existing
+  `sentinel-automation-rules` type. An automation rule can now bind a Logic App
+  playbook (`RunPlaybook` action with `logicAppResourceId` and an optional
+  cross-tenant `tenantId`) in addition to, or instead of, the modify-properties
+  action. Validation checks the playbook ARM id shape; drift compares the bound
+  playbook.
+
+### Notes
+- The Sentinel service principal needs, in addition to "Microsoft Sentinel
+  Contributor": permission to write Log Analytics saved searches for hunting
+  queries, and the "Microsoft Sentinel Automation Contributor" role on a
+  playbook's resource group for run-playbook actions.
+
 ## 1.1.0 — 2026-07-22
 
 ### Added

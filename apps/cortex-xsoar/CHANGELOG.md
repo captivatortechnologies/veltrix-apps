@@ -3,6 +3,35 @@
 All notable changes to the Cortex XSOAR app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.2.0 — 2026-07-26
+
+### Added
+- **Integration instances configuration type (`xsoar-integration-instances`).**
+  Manage Cortex XSOAR integration instances — and their parameters — as code
+  through the server REST API. Each instance is reconciled by its **name**:
+  - **Deploy** searches every instance (`POST /settings/integration/search`,
+    which returns `{ instances, configurations }`) and upserts via
+    `PUT /settings/integration`. A new instance is built from the integration's
+    module **configuration** (its parameter definitions), so declared parameter
+    values land on the correct fields and required defaults are preserved; an
+    existing instance is updated in place with the content-override version. The
+    `enabled` flag is written in XSOAR's string form (`"true"`/`"false"`), and
+    the instance can be wired to an existing classifier / incoming / outgoing
+    mapper (`mappingId`, `incomingMapperId`, `outgoingMapperId`).
+  - **Rollback** deletes instances this deploy created
+    (`DELETE /settings/integration/{id}`) and restores updated instances to their
+    captured prior body.
+  - **Drift** reports a missing instance as critical, and a changed enabled flag,
+    classifier/mapper id, or **non-secret** parameter value as informational,
+    with the same best-effort "who changed it + when" attribution as the other
+    types. Encrypted/secret parameters (XSOAR types 4 and 9) are masked by the
+    API, so they are set on create but never compared.
+  - **Health** verifies API reachability and that every declared instance is
+    present.
+- Shared `readKeyValueMap` canvas-field reader (in `lib/fields.ts`) for
+  name/value parameter maps, tolerating object, pair-array and `k=v` string
+  forms.
+
 ## 1.1.0 — 2026-07-22
 
 ### Added

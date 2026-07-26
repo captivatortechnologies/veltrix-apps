@@ -3,6 +3,39 @@
 All notable changes to the Microsoft Defender for Endpoint app are documented
 here. This project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.2.0 — 2026-07-26
+
+### Added
+- **Machine tags config type (`mde-machine-tags`).** Manage Defender device
+  (machine) tags as code. Each item declares one device — by its stable 40-hex
+  Defender device id, or by computer name — and the set of tags that should be
+  present on it. Tags are reconciled per (device, tag) via
+  `POST /api/machines/{id}/tags` with `Action: Add`, and the reconciliation is
+  **idempotent and non-destructive**: only tags this app added are removed on
+  rollback, and tags set by the portal or other tools are never touched.
+  - A device referenced by **computer name** is resolved with an OData `$filter`
+    on `computerDnsName` and may match more than one device (e.g. after a
+    re-image); the tags apply to every match. A device referenced by **id** is
+    resolved with a single `GET /api/machines/{id}`.
+  - A referenced device that is not found (never onboarded, or aged out of the
+    retention window) is recorded and skipped rather than failing the deploy;
+    drift and health checks flag it.
+  - Drift reports a declared device that no longer resolves as **critical** and a
+    missing declared tag as a **warning**. Unlike indicators and detection rules,
+    the Machine resource carries **no** per-tag audit stamps and Defender exposes
+    no config-change audit log for tags, so tag drift is not attributed to an
+    actor.
+  - Requires the `Machine.ReadWrite.All` application permission (distinct from the
+    `Ti.ReadWrite.All` used by the indicator types).
+
+### Not covered (no public API)
+- **Device / machine groups** are portal-only (Settings > Endpoints >
+  Permissions > Device groups); Defender exposes no public REST API to create,
+  update, or delete them (the Machine resource surfaces `rbacGroupId` /
+  `rbacGroupName` read-only). **Web content filtering policies** are likewise
+  portal-only (Settings > Endpoints > Rules > Web content filtering) with no
+  public Defender or Microsoft Graph API. Neither is stubbed.
+
 ## 1.1.0 — 2026-07-22
 
 ### Added

@@ -1,0 +1,64 @@
+# =============================================================================
+# Canvas Template — Wiz Security Frameworks
+#
+# Declares ONE Wiz custom security framework — the item. Users add as many as
+# they need. Frameworks are created / updated through the GraphQL
+# createSecurityFramework / updateSecurityFramework mutations and identified for
+# reconciliation by their `name` (matched against NON-builtin frameworks only —
+# built-in Wiz frameworks are never modified).
+#
+# A security framework is a compliance/policy structure: named categories, each
+# with sub-categories that Controls and Cloud Configuration Rules map to. It is
+# the dedicated policy grouping "beyond" a rule-level control flag.
+#
+# Field keys must match config-types/wiz-security-frameworks/validate.ts.
+# =============================================================================
+
+id: "wiz-security-frameworks"
+name: "Wiz Security Framework"
+toolType: "wiz"
+entityType: "wiz-security-frameworks"
+description: "Define Wiz custom security frameworks (compliance/policy frameworks with categories and sub-categories) as code through the GraphQL API. Reconciled by framework name against custom (non-builtin) frameworks."
+
+item:
+  label: "Security Framework"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Framework"
+      icon: "shield-check"
+      description: "Name and state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The framework name — its logical identity among custom frameworks."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Wiz console."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the framework is enabled for compliance evaluation."
+
+    - name: "Policy Structure"
+      icon: "list-tree"
+      description: "Categories and sub-categories"
+      fields:
+        - key: "categories"
+          label: "Categories (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >-
+            A JSON array of categories. Each category has a "name" and a
+            "subCategories" array; each sub-category needs a "title" and a
+            "description". Optional per-item "externalId" and per-sub-category
+            "resolutionRecommendation" are supported. Example:
+            [{"name":"Access Control","subCategories":[{"title":"MFA","description":"Enforce MFA everywhere"}]}]

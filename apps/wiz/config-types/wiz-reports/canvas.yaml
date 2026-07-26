@@ -1,0 +1,65 @@
+# =============================================================================
+# Canvas Template — Wiz Reports (Graph Query)
+#
+# Declares ONE Wiz graph-query report — the item. Users add as many as they need.
+# Reports are created / updated through the GraphQL createReport / updateReport
+# mutations (report type GRAPH_QUERY) and identified for reconciliation by their
+# `name`.
+#
+# A graph-query report runs a saved Wiz Security Graph query, on demand or on an
+# hourly schedule, and can be exported/emailed from the Wiz console.
+#
+# Field keys must match config-types/wiz-reports/validate.ts.
+# =============================================================================
+
+id: "wiz-reports"
+name: "Wiz Report"
+toolType: "wiz"
+entityType: "wiz-reports"
+description: "Define Wiz graph-query reports as code through the GraphQL API (createReport, type GRAPH_QUERY). Reconciled by report name; each report runs a saved Security Graph query on demand or on an hourly schedule."
+
+item:
+  label: "Report"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Report"
+      icon: "file-text"
+      description: "Name and scope"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The report name — its logical identity in the tenant."
+
+        - key: "project_id"
+          label: "Project ID"
+          fieldType: "text"
+          helpText: "Optional Wiz project id to scope the report to (set only at creation). Leave empty for all projects."
+
+    - name: "Query"
+      icon: "search"
+      description: "What the report returns"
+      fields:
+        - key: "query"
+          label: "Graph Query (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: "The Wiz Security Graph query (JSON) the report runs. Copy it from the Wiz Explorer 'Query as code' view."
+
+    - name: "Schedule"
+      icon: "clock"
+      description: "Optional recurring run"
+      fields:
+        - key: "run_interval_hours"
+          label: "Run Interval (hours)"
+          fieldType: "number"
+          helpText: "Optional. Run the report every N hours. Leave empty for an on-demand report. Requires a start time below."
+
+        - key: "run_starts_at"
+          label: "Schedule Start (ISO-8601)"
+          fieldType: "text"
+          helpText: "Optional. When the schedule should start, as an ISO-8601 datetime (e.g. 2026-01-01T00:00:00Z). Required when a run interval is set; Wiz rounds it down to the hour."

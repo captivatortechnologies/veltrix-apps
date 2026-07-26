@@ -7,10 +7,18 @@ deploy → health check → drift detect → rollback).
 
 > Scope note: Proofpoint's TAP / SIEM / People / Forensics APIs return **read-only
 > threat data**, not configuration. This app deliberately targets only the
-> Essentials Interface API, which is a real CRUD configuration surface. It focuses
-> on the two cleanest declarative *security-config* surfaces — domains and the
-> organization sender lists. (User provisioning, which requires a password on
+> Essentials Interface API, which is a real CRUD configuration surface. It manages
+> the declarative *security-config* surfaces the Interface API exposes — protected
+> domains, the organization sender lists, and the organization **feature** toggles
+> (`/orgs/{org}/features`). (User provisioning, which requires a password on
 > create and is unsafe to reconcile declaratively, is intentionally out of scope.)
+>
+> API-maturity note: the Essentials Interface API exposes URL Defense and
+> Attachment Defense only as **on/off feature toggles** on the features resource —
+> not their granular policy settings (e.g. URL-rewrite behavior, sandbox actions,
+> spam thresholds), which are UI-only. There is likewise **no filter-policy/rule
+> CRUD endpoint** in the Interface API; the only filter-related API surface is the
+> sender lists. Those granular areas are therefore not managed as code.
 
 ## Configuration types
 
@@ -18,6 +26,7 @@ deploy → health check → drift detect → rollback).
 | --- | --- | --- | --- |
 | **Proofpoint Domains** (`pp-domains`) | Protected domains + inbound mail routing (`is_active`, relay delivery + `destination`, `failovers`) | `/orgs/{org}/domains` (GET/POST/PUT/DELETE) | Upsert keyed on the domain name; domains it didn't declare are never touched |
 | **Proofpoint Sender Lists** (`pp-sender-lists`) | Organization Safe (allow) and Blocked (deny) sender entries | The org object `/orgs/{org}` (GET → modify → PUT) | Additive by sender value; rollback removes exactly what deploy added |
+| **Proofpoint Organization Features** (`pp-org-features`) | Organization security/protection features — URL Defense, Attachment Defense (+ sandboxing), DLP, Encryption, Anti-Spoofing, Email Warning Tags, remediation, etc. | The features resource `/orgs/{org}/features` (GET → modify → PUT) | Upsert keyed on the feature name; read-modify-write preserves undeclared features; rollback restores prior values |
 
 ## Authentication
 

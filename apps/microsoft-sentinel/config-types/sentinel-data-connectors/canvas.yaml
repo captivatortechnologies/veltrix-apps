@@ -1,0 +1,92 @@
+# =============================================================================
+# Canvas Template — Microsoft Sentinel Data Connector
+#
+# Declares ONE data connector — the item. Users add as many as they need. Scoped
+# to the Microsoft first-party, tenant-based connectors that are genuinely
+# API-manageable via Microsoft.SecurityInsights/dataConnectors (kind + tenantId +
+# dataTypes state). Reconciled by the connector id (the ARM dataConnectorId).
+# CCP / codeless / portal-only connectors are out of scope. Field keys must match
+# config-types/sentinel-data-connectors/validate.ts.
+# =============================================================================
+
+id: "sentinel-data-connectors"
+name: "Data Connector"
+toolType: "microsoft-sentinel"
+entityType: "sentinel-data-connectors"
+description: "Enable Microsoft first-party (tenant-based) Sentinel data connectors as code via Azure Resource Manager. Reconciled by connector id."
+
+item:
+  label: "Data Connector"
+  identityField: "connector_id"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Connector"
+      icon: "plug"
+      description: "Identity, connector kind and source tenant"
+      fields:
+        - key: "connector_id"
+          label: "Connector ID"
+          fieldType: "text"
+          required: true
+          helpText: "The ARM dataConnectorId (the reconciliation identity). Letters, numbers, hyphens and underscores only."
+
+        - key: "kind"
+          label: "Connector kind"
+          fieldType: "select"
+          defaultValue: "AzureActiveDirectory"
+          options:
+            - { label: "Microsoft Entra ID Protection", value: "AzureActiveDirectory" }
+            - { label: "Microsoft Defender for Identity", value: "AzureAdvancedThreatProtection" }
+            - { label: "Microsoft Defender for Endpoint", value: "MicrosoftDefenderAdvancedThreatProtection" }
+            - { label: "Microsoft Defender for Cloud Apps", value: "MicrosoftCloudAppSecurity" }
+            - { label: "Microsoft 365 (Office 365)", value: "Office365" }
+          helpText: "Only Microsoft first-party, tenant-based connectors that the dataConnectors API can create/update are listed."
+
+        - key: "tenant_id"
+          label: "Source tenant ID"
+          fieldType: "text"
+          required: true
+          helpText: "The tenant GUID to connect and pull data from — normally the same tenant as the workspace."
+
+    - name: "Data types"
+      icon: "database"
+      description: "Which data streams the connector ingests"
+      fields:
+        - key: "enable_alerts"
+          label: "Ingest security alerts"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Enable the connector's alerts data type."
+          visibleWhen:
+            field: "kind"
+            in: ["AzureActiveDirectory", "AzureAdvancedThreatProtection", "MicrosoftDefenderAdvancedThreatProtection", "MicrosoftCloudAppSecurity"]
+
+        - key: "enable_discovery_logs"
+          label: "Ingest Cloud Discovery logs"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Defender for Cloud Apps only — enable the discoveryLogs data type."
+          visibleWhen: { field: "kind", equals: "MicrosoftCloudAppSecurity" }
+
+        - key: "enable_exchange"
+          label: "Ingest Exchange"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Microsoft 365 only — enable the Exchange data type."
+          visibleWhen: { field: "kind", equals: "Office365" }
+
+        - key: "enable_sharepoint"
+          label: "Ingest SharePoint"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Microsoft 365 only — enable the SharePoint data type."
+          visibleWhen: { field: "kind", equals: "Office365" }
+
+        - key: "enable_teams"
+          label: "Ingest Teams"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Microsoft 365 only — enable the Teams data type."
+          visibleWhen: { field: "kind", equals: "Office365" }

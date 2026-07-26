@@ -226,6 +226,25 @@ export function asArray<T>(body: string, ...keys: string[]): T[] {
   return []
 }
 
+/**
+ * Parse a single-resource GET body into a plain object. A v1 GET returns the
+ * resource directly (the Result wrapper was removed), but some deployments still
+ * wrap it in `{ data: {...} }` or a named envelope (e.g. `{ features: {...} }`);
+ * this unwraps any of those, or returns {} when the shape is unrecognized.
+ */
+export function asObject(body: string, ...keys: string[]): Record<string, unknown> {
+  const parsed = parseJson<unknown>(body)
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+  const obj = parsed as Record<string, unknown>
+  for (const key of ['data', ...keys]) {
+    const value = obj[key]
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return value as Record<string, unknown>
+    }
+  }
+  return obj
+}
+
 /** Extract a human-readable error from an Essentials error body. */
 export function ppErrorMessage(res: PPResponse): string {
   const parsed = parseJson<Record<string, unknown>>(res.body)

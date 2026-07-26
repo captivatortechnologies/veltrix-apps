@@ -1,6 +1,6 @@
 id: defender-endpoint
 name: Microsoft Defender for Endpoint
-version: "1.1.0"
+version: "1.2.0"
 vendor: Veltrix
 description: >
   Manage Microsoft Defender for Endpoint threat intelligence as code. Covers file,
@@ -43,6 +43,9 @@ permissions:
     - resource: mde-detection-rules
       actions: [read, write, delete]
       description: Manage Defender custom detection rules (preview)
+    - resource: mde-machine-tags
+      actions: [read, write, delete]
+      description: Manage Defender device (machine) tags
 
 pipeline:
   configurationTypes:
@@ -109,6 +112,23 @@ pipeline:
         healthCheck: config-types/mde-detection-rules/healthCheck
         driftDetect: config-types/mde-detection-rules/driftDetect
         getStatus: config-types/mde-detection-rules/getStatus
+      targets:
+        componentTypes: [mde-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: mde-machine-tags
+      name: Defender Machine Tags
+      description: Device (machine) tags via POST /api/machines/{id}/tags; reconciled per (device, tag) and non-destructive. Needs the Machine.ReadWrite.All application permission
+      canvasTemplate: config-types/mde-machine-tags/canvas.yaml
+      defaultConfig: config-types/mde-machine-tags/defaults.yaml
+      handlers:
+        validate: config-types/mde-machine-tags/validate
+        deploy: config-types/mde-machine-tags/deploy
+        rollback: config-types/mde-machine-tags/rollback
+        healthCheck: config-types/mde-machine-tags/healthCheck
+        driftDetect: config-types/mde-machine-tags/driftDetect
+        getStatus: config-types/mde-machine-tags/getStatus
       targets:
         componentTypes: [mde-tenant]
         requiresCredential: true

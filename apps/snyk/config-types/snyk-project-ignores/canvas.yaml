@@ -1,0 +1,88 @@
+# =============================================================================
+# Canvas Template — Snyk Project Ignores
+#
+# Declares ONE ignore — the item. Users add as many as they need. Each item
+# ignores a specific issue in a specific project via the v1 API
+# (/org/{org}/project/{project}/ignore/{issueId}). Identity is the (project id,
+# issue id) pair; the deploy REPLACES that issue's ignores with the declared
+# rule, so it is a declarative, idempotent upsert. There is no secret.
+# Field keys must match config-types/snyk-project-ignores/validate.ts.
+# =============================================================================
+
+id: "snyk-project-ignores"
+name: "Snyk Project Ignores"
+toolType: "snyk"
+entityType: "snyk-project-ignores"
+description: "Define Snyk project issue ignores (ignore rules) as code via the v1 API. Reconciled by project id + issue id; the declared rule replaces that issue's ignores."
+
+item:
+  label: "Ignore"
+  identityField: "issue_id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Issue"
+      icon: "eye-off"
+      description: "The project and issue to ignore"
+      fields:
+        - key: "project_id"
+          label: "Project ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The Snyk project UUID the issue belongs to (Snyk > Projects > the
+            project > Settings, or the project's URL). The project must already
+            exist.
+
+        - key: "issue_id"
+          label: "Issue ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The Snyk issue id to ignore — a vulnerability id (e.g.
+            SNYK-JS-QS-10019) or a license issue id. Together with the project id
+            this is the ignore's identity.
+
+    - name: "Ignore Rule"
+      icon: "shield-off"
+      description: "Why and how the issue is ignored"
+      fields:
+        - key: "reason_type"
+          label: "Reason Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "not-vulnerable"
+          options:
+            - { label: "Not vulnerable", value: "not-vulnerable" }
+            - { label: "Won't fix", value: "wont-fix" }
+            - { label: "Temporary ignore", value: "temporary-ignore" }
+          helpText: "The classification of the ignore. A temporary ignore requires an expiry date."
+
+        - key: "reason"
+          label: "Reason"
+          fieldType: "textarea"
+          required: false
+          helpText: "Free-text justification recorded with the ignore."
+
+        - key: "ignore_path"
+          label: "Ignore Path"
+          fieldType: "text"
+          required: false
+          defaultValue: "*"
+          helpText: "The dependency path to ignore. Defaults to \"*\", which ignores the issue on every path."
+
+        - key: "disregard_if_fixable"
+          label: "Only Ignore if No Fix is Available"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, the issue is ignored only while no upgrade or patch is available."
+
+        - key: "expires"
+          label: "Expires (ISO 8601)"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "reason_type", equals: "temporary-ignore" }
+          helpText: >
+            When the ignore stops applying, as an ISO 8601 timestamp
+            (e.g. 2026-12-31T23:59:59.000Z). Required for a temporary ignore.

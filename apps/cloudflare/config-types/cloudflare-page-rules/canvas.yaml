@@ -1,0 +1,62 @@
+# =============================================================================
+# Canvas Template — Cloudflare Page Rules (Legacy)
+#
+# Declares ONE classic Page Rule — the item, in priority order. A Page Rule is
+# zone-scoped (/zones/{zone_id}/pagerules); Cloudflare assigns a server id, so
+# identity for reconciliation is the URL match pattern (the single url target's
+# constraint value) — matched by config-types/cloudflare-page-rules/validate.ts.
+#
+# Page Rules are DEPRECATED in favour of the Rulesets engine (this app already
+# implements the Redirect and Transform successors). The classic API is still
+# functional, and Page Rules bundle behaviours (cache, SSL, security level,
+# forwarding, ...) that today's Rulesets split across several products — so this
+# type manages the classic rules zones still rely on through the transition.
+# =============================================================================
+
+id: "cloudflare-cloudflare-page-rules"
+name: "Cloudflare Page Rules (Legacy) Configuration"
+toolType: "cloudflare"
+entityType: "cloudflare-page-rules"
+description: "Define classic Cloudflare Page Rules as code (/pagerules). Reconciled by URL match pattern. Deprecated by Cloudflare — prefer the Redirect / Transform (Rulesets) types for new work; use this for the Page Rules a zone still relies on."
+
+item:
+  label: "Page Rule"
+  identityField: "url_pattern"
+  repeatable: true
+  minItems: 1
+  maxItems: 125
+  groups:
+    - name: "Page Rule"
+      icon: "shield"
+      description: "URL match pattern, actions, priority and status"
+      fields:
+        - key: "url_pattern"
+          label: "URL match pattern"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The URL pattern to match (the rule's identity), e.g.
+            *example.com/images/* — becomes the single url target's constraint
+            (operator "matches"). Matching is case-insensitive.
+
+        - key: "actions_json"
+          label: "Actions (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            JSON array of Page Rule actions, each {"id":"<setting>","value":...}.
+            E.g. [{"id":"cache_level","value":"cache_everything"}] or a redirect
+            [{"id":"forwarding_url","value":{"url":"https://example.com/new","status_code":301}}].
+            A rule may EITHER forward (forwarding_url) OR override settings — not both.
+
+        - key: "priority"
+          label: "Priority"
+          fieldType: "number"
+          defaultValue: 1
+          helpText: "Resolves precedence when multiple rules match — a higher number is evaluated first."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the rule is active (maps to status active/disabled)."

@@ -1,0 +1,111 @@
+# =============================================================================
+# Canvas Template — Rapid7 InsightIDR Detection Rule Exceptions
+#
+# Declares ONE detection rule exception — the item. An exception tunes how a
+# detection rule reacts (its rule action / priority) when its logic matches, for
+# specific users, assets, IPs, etc. It is attached to a parent detection rule,
+# referenced here by NAME (portable); the app resolves the rule to its RRN and
+# InsightIDR assigns the exception its own RRN, so identity for reconciliation is
+# the natural key (rule name, exception name). This config type is CREATE/skip
+# only — declared exceptions are created when absent and left untouched when
+# already present. Field keys must match
+# config-types/insightidr-detection-rule-exceptions/validate.ts.
+# =============================================================================
+
+id: "rapid7-insightidr-detection-rule-exceptions"
+name: "InsightIDR Detection Rule Exception Configuration"
+toolType: "rapid7"
+entityType: "insightidr-detection-rule-exceptions"
+description: "Define Rapid7 InsightIDR detection rule exceptions as code through the Insight Platform Detection Rules API (/idr/v1/rules/{rrn}/rule-exceptions). Reconciled by rule name + exception name; created when missing, never updated in place."
+
+item:
+  label: "Rule Exception"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Exception"
+      icon: "shield-off"
+      description: "Parent rule, name and how it should react"
+      fields:
+        - key: "rule_name"
+          label: "Detection Rule Name"
+          fieldType: "text"
+          required: true
+          helpText: "The exact name of the detection rule to attach this exception to (as shown in the Detection Rules library). Resolved to the rule's RRN at deploy time; part of the logical identity with the exception name."
+
+        - key: "name"
+          label: "Exception Name"
+          fieldType: "text"
+          required: true
+          helpText: "A name for this exception (part of its logical identity with the rule name)."
+
+        - key: "type"
+          label: "Exception Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "SIMPLE"
+          options:
+            - { label: "Simple (key-value conditions)", value: "SIMPLE" }
+            - { label: "LEQL query", value: "LEQL" }
+          helpText: "How the exception logic is expressed: SIMPLE key-value conditions, or a raw Log Entry Query Language (LEQL) query."
+
+        - key: "rule_action"
+          label: "Rule Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "OFF"
+          options:
+            - { label: "Off (suppress)", value: "OFF" }
+            - { label: "Tracks Notable Events", value: "TRACKS_NOTABLE_EVENTS" }
+            - { label: "Creates Investigations", value: "CREATES_INVESTIGATIONS" }
+            - { label: "Creates Alerts", value: "CREATES_ALERTS" }
+            - { label: "Assess Activity", value: "ASSESS_ACTIVITY" }
+          helpText: "How InsightIDR should react when this exception's logic matches — overrides the parent rule's action for matching events."
+
+        - key: "priority_level"
+          label: "Priority"
+          fieldType: "select"
+          options:
+            - { label: "Inherited from rule", value: "INHERITED" }
+            - { label: "Info", value: "INFO" }
+            - { label: "Low", value: "LOW" }
+            - { label: "Medium", value: "MEDIUM" }
+            - { label: "High", value: "HIGH" }
+            - { label: "Critical", value: "CRITICAL" }
+          helpText: "Optional priority for investigations this exception creates. Leave blank to inherit."
+
+        - key: "service_level"
+          label: "Service Level"
+          fieldType: "select"
+          defaultValue: "Customer"
+          options:
+            - { label: "Customer", value: "Customer" }
+            - { label: "MDR (Managed)", value: "MDR" }
+            - { label: "All", value: "ALL" }
+          helpText: "Which detection outputs the exception applies to. Use Customer unless you run Rapid7 MDR."
+
+    - name: "Logic"
+      icon: "filter"
+      description: "The conditions that trigger the exception"
+      fields:
+        - key: "key_value_json"
+          label: "Key-Value Conditions (JSON)"
+          fieldType: "textarea"
+          visibleWhen: { field: "type", equals: "SIMPLE" }
+          helpText: >
+            A JSON array (1–10) of conditions for a SIMPLE exception, e.g.
+            [{"key":"user","value":"svc-backup","operator":"IS","case_sensitive":false}].
+            operator is one of IS, CONTAINS, STARTSWITH, ENDSWITH, CIDR, REGEX.
+
+        - key: "leql"
+          label: "LEQL Query"
+          fieldType: "textarea"
+          visibleWhen: { field: "type", equals: "LEQL" }
+          helpText: 'The LEQL query defining the exception, e.g. where(source_user_name = "svc-backup").'
+
+        - key: "note"
+          label: "Note"
+          fieldType: "textarea"
+          helpText: "Optional free-text justification stored with the exception."

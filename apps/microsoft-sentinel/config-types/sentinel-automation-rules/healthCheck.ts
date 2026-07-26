@@ -8,7 +8,10 @@ export interface LiveAutomationRule {
     displayName?: string
     order?: number
     triggeringLogic?: { isEnabled?: boolean; triggersOn?: string; triggersWhen?: string }
-    actions?: Array<{ actionType?: string; actionConfiguration?: { severity?: string; status?: string } }>
+    actions?: Array<{
+      actionType?: string
+      actionConfiguration?: { severity?: string; status?: string; logicAppResourceId?: string; tenantId?: string }
+    }>
   }
 }
 

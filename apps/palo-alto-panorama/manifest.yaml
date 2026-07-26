@@ -1,15 +1,17 @@
 id: palo-alto-panorama
 name: Palo Alto Panorama
-version: "1.1.0"
+version: "1.2.0"
 vendor: Veltrix
 description: >
   Manage Palo Alto Networks Panorama / PAN-OS configuration as code through the
   PAN-OS REST API. Covers tags, address objects, service objects, address groups,
-  service groups and security pre-rules — with validation, drift detection and
-  rollback handled by the Security-as-Code pipeline. Writes land in the Panorama
-  candidate config and are committed to Panorama (XML API) when auto-commit is on.
-  The component hostname is the Panorama management host; auth is a pre-generated
-  PAN-OS API key sent as the X-PAN-KEY header.
+  service groups, application groups, security pre-rules, NAT pre-rules, security
+  profiles (antivirus, anti-spyware, URL filtering, WildFire analysis) and
+  security profile groups — with validation, drift detection and rollback handled
+  by the Security-as-Code pipeline. Writes land in the Panorama candidate config
+  and are committed to Panorama (XML API) when auto-commit is on. The component
+  hostname is the Panorama management host; auth is a pre-generated PAN-OS API key
+  sent as the X-PAN-KEY header.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/palo-alto-panorama
@@ -49,6 +51,27 @@ permissions:
     - resource: panorama-security-rules
       actions: [read, write, delete]
       description: Manage Panorama security pre-rules
+    - resource: panorama-nat-rules
+      actions: [read, write, delete]
+      description: Manage Panorama NAT pre-rules
+    - resource: panorama-application-groups
+      actions: [read, write, delete]
+      description: Manage Panorama application groups
+    - resource: panorama-security-profile-groups
+      actions: [read, write, delete]
+      description: Manage Panorama security profile groups
+    - resource: panorama-antivirus-profiles
+      actions: [read, write, delete]
+      description: Manage Panorama antivirus profiles
+    - resource: panorama-anti-spyware-profiles
+      actions: [read, write, delete]
+      description: Manage Panorama anti-spyware profiles
+    - resource: panorama-url-filtering-profiles
+      actions: [read, write, delete]
+      description: Manage Panorama URL filtering profiles
+    - resource: panorama-wildfire-analysis-profiles
+      actions: [read, write, delete]
+      description: Manage Panorama WildFire analysis profiles
 
 pipeline:
   configurationTypes:
@@ -149,6 +172,125 @@ pipeline:
         healthCheck: config-types/panorama-security-rules/healthCheck
         driftDetect: config-types/panorama-security-rules/driftDetect
         getStatus: config-types/panorama-security-rules/getStatus
+      targets:
+        componentTypes: [panorama]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: panorama-nat-rules
+      name: Panorama NAT Rules
+      description: NAT pre-rules (/Policies/NATPreRules) — original packet match plus source/destination translation (IPv4)
+      canvasTemplate: config-types/panorama-nat-rules/canvas.yaml
+      defaultConfig: config-types/panorama-nat-rules/defaults.yaml
+      handlers:
+        validate: config-types/panorama-nat-rules/validate
+        deploy: config-types/panorama-nat-rules/deploy
+        rollback: config-types/panorama-nat-rules/rollback
+        healthCheck: config-types/panorama-nat-rules/healthCheck
+        driftDetect: config-types/panorama-nat-rules/driftDetect
+        getStatus: config-types/panorama-nat-rules/getStatus
+      targets:
+        componentTypes: [panorama]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: panorama-application-groups
+      name: Panorama Application Groups
+      description: Application groups (/Objects/ApplicationGroups) and their member App-IDs
+      canvasTemplate: config-types/panorama-application-groups/canvas.yaml
+      defaultConfig: config-types/panorama-application-groups/defaults.yaml
+      handlers:
+        validate: config-types/panorama-application-groups/validate
+        deploy: config-types/panorama-application-groups/deploy
+        rollback: config-types/panorama-application-groups/rollback
+        healthCheck: config-types/panorama-application-groups/healthCheck
+        driftDetect: config-types/panorama-application-groups/driftDetect
+        getStatus: config-types/panorama-application-groups/getStatus
+      targets:
+        componentTypes: [panorama]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: panorama-security-profile-groups
+      name: Panorama Security Profile Groups
+      description: Security profile groups (/Objects/SecurityProfileGroups) — bundle antivirus, anti-spyware, vulnerability, URL, file, WildFire and data profiles
+      canvasTemplate: config-types/panorama-security-profile-groups/canvas.yaml
+      defaultConfig: config-types/panorama-security-profile-groups/defaults.yaml
+      handlers:
+        validate: config-types/panorama-security-profile-groups/validate
+        deploy: config-types/panorama-security-profile-groups/deploy
+        rollback: config-types/panorama-security-profile-groups/rollback
+        healthCheck: config-types/panorama-security-profile-groups/healthCheck
+        driftDetect: config-types/panorama-security-profile-groups/driftDetect
+        getStatus: config-types/panorama-security-profile-groups/getStatus
+      targets:
+        componentTypes: [panorama]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: panorama-antivirus-profiles
+      name: Panorama Antivirus Profiles
+      description: Antivirus profiles (/Objects/AntivirusSecurityProfiles) — virus & WildFire signature actions across protocol decoders
+      canvasTemplate: config-types/panorama-antivirus-profiles/canvas.yaml
+      defaultConfig: config-types/panorama-antivirus-profiles/defaults.yaml
+      handlers:
+        validate: config-types/panorama-antivirus-profiles/validate
+        deploy: config-types/panorama-antivirus-profiles/deploy
+        rollback: config-types/panorama-antivirus-profiles/rollback
+        healthCheck: config-types/panorama-antivirus-profiles/healthCheck
+        driftDetect: config-types/panorama-antivirus-profiles/driftDetect
+        getStatus: config-types/panorama-antivirus-profiles/getStatus
+      targets:
+        componentTypes: [panorama]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: panorama-anti-spyware-profiles
+      name: Panorama Anti-Spyware Profiles
+      description: Anti-spyware profiles (/Objects/AntiSpywareSecurityProfiles) — single-rule severity/action/packet-capture policy
+      canvasTemplate: config-types/panorama-anti-spyware-profiles/canvas.yaml
+      defaultConfig: config-types/panorama-anti-spyware-profiles/defaults.yaml
+      handlers:
+        validate: config-types/panorama-anti-spyware-profiles/validate
+        deploy: config-types/panorama-anti-spyware-profiles/deploy
+        rollback: config-types/panorama-anti-spyware-profiles/rollback
+        healthCheck: config-types/panorama-anti-spyware-profiles/healthCheck
+        driftDetect: config-types/panorama-anti-spyware-profiles/driftDetect
+        getStatus: config-types/panorama-anti-spyware-profiles/getStatus
+      targets:
+        componentTypes: [panorama]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: panorama-url-filtering-profiles
+      name: Panorama URL Filtering Profiles
+      description: URL filtering profiles (/Objects/URLFilteringSecurityProfiles) — categories bucketed by action
+      canvasTemplate: config-types/panorama-url-filtering-profiles/canvas.yaml
+      defaultConfig: config-types/panorama-url-filtering-profiles/defaults.yaml
+      handlers:
+        validate: config-types/panorama-url-filtering-profiles/validate
+        deploy: config-types/panorama-url-filtering-profiles/deploy
+        rollback: config-types/panorama-url-filtering-profiles/rollback
+        healthCheck: config-types/panorama-url-filtering-profiles/healthCheck
+        driftDetect: config-types/panorama-url-filtering-profiles/driftDetect
+        getStatus: config-types/panorama-url-filtering-profiles/getStatus
+      targets:
+        componentTypes: [panorama]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: panorama-wildfire-analysis-profiles
+      name: Panorama WildFire Analysis Profiles
+      description: WildFire analysis profiles (/Objects/WildFireAnalysisSecurityProfiles) — single-rule forwarding to public/private cloud
+      canvasTemplate: config-types/panorama-wildfire-analysis-profiles/canvas.yaml
+      defaultConfig: config-types/panorama-wildfire-analysis-profiles/defaults.yaml
+      handlers:
+        validate: config-types/panorama-wildfire-analysis-profiles/validate
+        deploy: config-types/panorama-wildfire-analysis-profiles/deploy
+        rollback: config-types/panorama-wildfire-analysis-profiles/rollback
+        healthCheck: config-types/panorama-wildfire-analysis-profiles/healthCheck
+        driftDetect: config-types/panorama-wildfire-analysis-profiles/driftDetect
+        getStatus: config-types/panorama-wildfire-analysis-profiles/getStatus
       targets:
         componentTypes: [panorama]
         requiresCredential: true

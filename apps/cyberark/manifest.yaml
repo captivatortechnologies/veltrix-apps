@@ -1,6 +1,6 @@
 id: cyberark
 name: CyberArk Privileged Access Manager
-version: "1.1.0"
+version: "1.2.0"
 vendor: Veltrix
 description: >
   Manage CyberArk Privileged Access Manager (PVWA) configuration as code through
@@ -39,6 +39,12 @@ permissions:
     - resource: cyberark-accounts
       actions: [read, write, delete]
       description: Manage CyberArk privileged accounts
+    - resource: cyberark-platforms
+      actions: [read, write, delete]
+      description: Manage CyberArk target platforms (import / activate / deactivate)
+    - resource: cyberark-onboarding-rules
+      actions: [read, write, delete]
+      description: Manage CyberArk automatic onboarding rules
 
 pipeline:
   configurationTypes:
@@ -88,6 +94,40 @@ pipeline:
         healthCheck: config-types/cyberark-accounts/healthCheck
         driftDetect: config-types/cyberark-accounts/driftDetect
         getStatus: config-types/cyberark-accounts/getStatus
+      targets:
+        componentTypes: [cyberark-pvwa]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cyberark-platforms
+      name: CyberArk Platforms
+      description: Target platforms (/Platforms/Targets) — reconciled by PlatformID; imported from a package when missing and activated/deactivated to the desired state
+      canvasTemplate: config-types/cyberark-platforms/canvas.yaml
+      defaultConfig: config-types/cyberark-platforms/defaults.yaml
+      handlers:
+        validate: config-types/cyberark-platforms/validate
+        deploy: config-types/cyberark-platforms/deploy
+        rollback: config-types/cyberark-platforms/rollback
+        healthCheck: config-types/cyberark-platforms/healthCheck
+        driftDetect: config-types/cyberark-platforms/driftDetect
+        getStatus: config-types/cyberark-platforms/getStatus
+      targets:
+        componentTypes: [cyberark-pvwa]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cyberark-onboarding-rules
+      name: CyberArk Onboarding Rules
+      description: Automatic onboarding rules (/AutomaticOnboardingRules) — filter discovered accounts and onboard matches to a target Safe/platform; reconciled by rule name
+      canvasTemplate: config-types/cyberark-onboarding-rules/canvas.yaml
+      defaultConfig: config-types/cyberark-onboarding-rules/defaults.yaml
+      handlers:
+        validate: config-types/cyberark-onboarding-rules/validate
+        deploy: config-types/cyberark-onboarding-rules/deploy
+        rollback: config-types/cyberark-onboarding-rules/rollback
+        healthCheck: config-types/cyberark-onboarding-rules/healthCheck
+        driftDetect: config-types/cyberark-onboarding-rules/driftDetect
+        getStatus: config-types/cyberark-onboarding-rules/getStatus
       targets:
         componentTypes: [cyberark-pvwa]
         requiresCredential: true

@@ -1,6 +1,6 @@
 id: snyk
 name: Snyk
-version: "1.1.0"
+version: "1.2.0"
 vendor: Veltrix
 description: >
   Manage Snyk organization configuration as code across the Snyk REST and v1
@@ -47,6 +47,15 @@ permissions:
     - resource: snyk-webhooks
       actions: [read, write, delete]
       description: Manage Snyk outbound webhooks
+    - resource: snyk-project-settings
+      actions: [read, write]
+      description: Manage Snyk project pull-request and auto-upgrade settings
+    - resource: snyk-project-ignores
+      actions: [read, write, delete]
+      description: Manage Snyk project issue ignores (ignore rules)
+    - resource: snyk-import-targets
+      actions: [read, write, delete]
+      description: Import source-control repositories into Snyk as projects
 
 pipeline:
   configurationTypes:
@@ -130,6 +139,57 @@ pipeline:
         healthCheck: config-types/snyk-webhooks/healthCheck
         driftDetect: config-types/snyk-webhooks/driftDetect
         getStatus: config-types/snyk-webhooks/getStatus
+      targets:
+        componentTypes: [snyk-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: snyk-project-settings
+      name: Snyk Project Settings
+      description: Per-project pull-request test and automatic dependency-upgrade settings, reconciled by project id (v1 API); updates an existing project in place
+      canvasTemplate: config-types/snyk-project-settings/canvas.yaml
+      defaultConfig: config-types/snyk-project-settings/defaults.yaml
+      handlers:
+        validate: config-types/snyk-project-settings/validate
+        deploy: config-types/snyk-project-settings/deploy
+        rollback: config-types/snyk-project-settings/rollback
+        healthCheck: config-types/snyk-project-settings/healthCheck
+        driftDetect: config-types/snyk-project-settings/driftDetect
+        getStatus: config-types/snyk-project-settings/getStatus
+      targets:
+        componentTypes: [snyk-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: snyk-project-ignores
+      name: Snyk Project Ignores
+      description: Project issue ignores (ignore rules) reconciled by project id + issue id (v1 API); the declared rule replaces that issue's ignores
+      canvasTemplate: config-types/snyk-project-ignores/canvas.yaml
+      defaultConfig: config-types/snyk-project-ignores/defaults.yaml
+      handlers:
+        validate: config-types/snyk-project-ignores/validate
+        deploy: config-types/snyk-project-ignores/deploy
+        rollback: config-types/snyk-project-ignores/rollback
+        healthCheck: config-types/snyk-project-ignores/healthCheck
+        driftDetect: config-types/snyk-project-ignores/driftDetect
+        getStatus: config-types/snyk-project-ignores/getStatus
+      targets:
+        componentTypes: [snyk-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: snyk-import-targets
+      name: Snyk Import Targets
+      description: Import source-control repositories into Snyk as projects through a configured integration (v1 Import API); reconciled by target owner/name, existing targets are skipped
+      canvasTemplate: config-types/snyk-import-targets/canvas.yaml
+      defaultConfig: config-types/snyk-import-targets/defaults.yaml
+      handlers:
+        validate: config-types/snyk-import-targets/validate
+        deploy: config-types/snyk-import-targets/deploy
+        rollback: config-types/snyk-import-targets/rollback
+        healthCheck: config-types/snyk-import-targets/healthCheck
+        driftDetect: config-types/snyk-import-targets/driftDetect
+        getStatus: config-types/snyk-import-targets/getStatus
       targets:
         componentTypes: [snyk-org]
         requiresCredential: true

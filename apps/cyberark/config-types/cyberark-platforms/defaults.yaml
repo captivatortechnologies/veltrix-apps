@@ -1,0 +1,6 @@
+# Defaults for a new platform item.
+#
+# Intentionally empty: a new item starts blank (canvas field defaultValues still
+# apply in the editor). Any values here would be a flat map keyed by the canvas
+# field keys (platform_id, active, import_package). The write-only import package
+# must never be seeded here.

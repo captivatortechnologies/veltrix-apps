@@ -5,6 +5,13 @@ import {
   resolveInsightVMCredentials,
   MISSING_CREDENTIAL_MESSAGE,
 } from '../lib/insightvm'
+import {
+  buildInsightIDRClient,
+  insightIDRErrorMessage,
+  resolveInsightIDRCredential,
+  INSIGHTIDR_REGIONS,
+  MISSING_CREDENTIAL_MESSAGE as MISSING_IDR_CREDENTIAL_MESSAGE,
+} from '../lib/insightidr'
 
 // Local mirror of the SDK's TestConnection contract (see defineConnectionTester).
 // Declared here rather than imported from the SDK so the handler compiles against
@@ -26,25 +33,25 @@ interface TestConnectionResult {
 }
 
 // =============================================================================
-// Rapid7 InsightVM — connection test.
+// Rapid7 — connection test.
 //
-// Verifies a Connection with a single authenticated GET /sites?size=1 against
-// the Security Console v3 API. It proves the console (host:3780) is reachable
-// and the Basic-auth username/password are valid. Runs in-process with the
-// decrypted credential.
+// The app spans two Rapid7 APIs, so the test is chosen from the connection's
+// endpoint:
+//   - InsightIDR (Insight Platform cloud): a host like us.api.insight.rapid7.com
+//     or a bare region code — verified with GET /validate + X-Api-Key.
+//   - InsightVM (on-prem Security Console): any other host:3780 — verified with
+//     GET /sites?size=1 + Basic auth.
+// Runs in-process with the decrypted credential.
 // =============================================================================
 
-const PROBE_PATH = '/sites'
+const IDR_PROBE_PATH = '/validate'
+const VM_PROBE_PATH = '/sites'
 
-function classifyProbeError(err: unknown, consoleUrl: string): string {
-  const msg = err instanceof Error ? err.message : String(err)
-  if (/abort|timed?\s?out/i.test(msg)) return `Timed out reaching the InsightVM console at ${consoleUrl}. Check the console host:port and network reachability.`
-  if (/ENOTFOUND|getaddrinfo|dns/i.test(msg)) return `Could not resolve ${consoleUrl}. Check the console host.`
-  if (/ECONNREFUSED/i.test(msg)) return `Connection refused by ${consoleUrl}. Check the console is running and the port (3780).`
-  if (/certificate|self[- ]signed|\bTLS\b|\bSSL\b|DEPTH_ZERO|UNABLE_TO_VERIFY/i.test(msg)) {
-    return `TLS/certificate error reaching ${consoleUrl}: ${msg}. The console's self-signed certificate must be trusted by the platform host.`
-  }
-  return `Could not reach the InsightVM console (${consoleUrl}): ${msg}`
+/** True when the endpoint targets the InsightIDR (Insight Platform) cloud. */
+function isInsightIDRHost(host: string): boolean {
+  const h = host.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/:\d+$/, '')
+  if (h.includes('insight.rapid7.com')) return true
+  return (INSIGHTIDR_REGIONS as readonly string[]).includes(h)
 }
 
 export default async function testConnection(ctx: TestConnectionContext): Promise<TestConnectionResult> {
@@ -52,13 +59,54 @@ export default async function testConnection(ctx: TestConnectionContext): Promis
   if (!host) {
     return {
       ok: false,
-      message: 'No endpoint is configured for this connection. Set the Security Console host (e.g. console.example.com:3780) on the connection.',
+      message:
+        'No endpoint is configured for this connection. Set the InsightVM Security Console host ' +
+        '(e.g. console.example.com:3780) or the InsightIDR region host (e.g. us.api.insight.rapid7.com).',
     }
   }
+
+  return isInsightIDRHost(host)
+    ? testInsightIDR(host, ctx)
+    : testInsightVM(host, ctx)
+}
+
+async function testInsightIDR(host: string, ctx: TestConnectionContext): Promise<TestConnectionResult> {
+  if (!resolveInsightIDRCredential(ctx.credential)) {
+    return { ok: false, message: MISSING_IDR_CREDENTIAL_MESSAGE }
+  }
+  const built = buildInsightIDRClient(host, ctx.credential, ctx.settings)
+  if ('error' in built) {
+    return { ok: false, message: built.error }
+  }
+  const { client, baseUrl, region } = built
+  const details = [`InsightIDR: ${baseUrl}`, `Region: ${region}`, 'Auth: X-Api-Key']
+  const started = Date.now()
+
+  try {
+    const res = await client.request('GET', IDR_PROBE_PATH)
+    const latencyMs = Date.now() - started
+    if (res.status === 401 || res.status === 403) {
+      return {
+        ok: false,
+        message: `InsightIDR rejected the API key (HTTP ${res.status}). Check the key and that its region matches ${region}.`,
+        details,
+        latencyMs,
+      }
+    }
+    if (res.ok) {
+      return { ok: true, message: `Connected to Rapid7 InsightIDR (${baseUrl}).`, details, latencyMs }
+    }
+    return { ok: false, message: `InsightIDR API returned HTTP ${res.status}: ${insightIDRErrorMessage(res)}`, details, latencyMs }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return { ok: false, message: `Could not reach InsightIDR (${baseUrl}): ${msg}`, details, latencyMs: Date.now() - started }
+  }
+}
+
+async function testInsightVM(host: string, ctx: TestConnectionContext): Promise<TestConnectionResult> {
   if (!resolveInsightVMCredentials(ctx.credential)) {
     return { ok: false, message: MISSING_CREDENTIAL_MESSAGE }
   }
-
   const built = buildInsightVMClient(host, ctx.credential, ctx.settings)
   if ('error' in built) {
     return { ok: false, message: built.error }
@@ -68,7 +116,7 @@ export default async function testConnection(ctx: TestConnectionContext): Promis
   const started = Date.now()
 
   try {
-    const res = await client.request('GET', PROBE_PATH, { query: { page: 0, size: 1 } })
+    const res = await client.request('GET', VM_PROBE_PATH, { query: { page: 0, size: 1 } })
     const latencyMs = Date.now() - started
 
     if (res.status === 401 || res.status === 403) {
@@ -99,4 +147,15 @@ export default async function testConnection(ctx: TestConnectionContext): Promis
   } catch (err) {
     return { ok: false, message: classifyProbeError(err, consoleUrl), details, latencyMs: Date.now() - started }
   }
+}
+
+function classifyProbeError(err: unknown, consoleUrl: string): string {
+  const msg = err instanceof Error ? err.message : String(err)
+  if (/abort|timed?\s?out/i.test(msg)) return `Timed out reaching the InsightVM console at ${consoleUrl}. Check the console host:port and network reachability.`
+  if (/ENOTFOUND|getaddrinfo|dns/i.test(msg)) return `Could not resolve ${consoleUrl}. Check the console host.`
+  if (/ECONNREFUSED/i.test(msg)) return `Connection refused by ${consoleUrl}. Check the console is running and the port (3780).`
+  if (/certificate|self[- ]signed|\bTLS\b|\bSSL\b|DEPTH_ZERO|UNABLE_TO_VERIFY/i.test(msg)) {
+    return `TLS/certificate error reaching ${consoleUrl}: ${msg}. The console's self-signed certificate must be trusted by the platform host.`
+  }
+  return `Could not reach the InsightVM console (${consoleUrl}): ${msg}`
 }

@@ -1,0 +1,35 @@
+# =============================================================================
+# Canvas Template — Panorama Application Groups (/Objects/ApplicationGroups)
+#
+# One application group = a name (identity) + member application names (App-IDs,
+# application filters or nested application groups). Field keys must match
+# config-types/panorama-application-groups/validate.ts.
+# =============================================================================
+
+id: "panorama-application-groups"
+name: "Panorama Application Group Configuration"
+toolType: "palo-alto-panorama"
+entityType: "panorama-application-groups"
+description: "Define Panorama application groups as code via the PAN-OS REST API (/Objects/ApplicationGroups). Reconciled by name."
+
+item:
+  label: "Application Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Application Group"
+      icon: "layers"
+      description: "Name and members"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The application group name — its identity for reconciliation."
+
+        - key: "members"
+          label: "Members"
+          fieldType: "tags"
+          helpText: "App-IDs, application filters or nested application groups to include (must already exist)."

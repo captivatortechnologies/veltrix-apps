@@ -1,14 +1,15 @@
 id: proofpoint
 name: Proofpoint Essentials
-version: "1.0.0"
+version: "1.1.0"
 vendor: Veltrix
 description: >
   Manage Proofpoint Essentials email security configuration as code through the
   Essentials Interface API (v1). Covers protected domains and their inbound mail
-  routing, plus the organization Safe and Blocked sender lists — with validation,
-  drift detection and rollback handled by the Security-as-Code pipeline. Objects
-  are scoped to the organization named in the Organization (primary domain)
-  setting.
+  routing, the organization Safe and Blocked sender lists, and the organization
+  security features (URL Defense, Attachment Defense, DLP, Encryption, and more) —
+  with validation, drift detection and rollback handled by the Security-as-Code
+  pipeline. Objects are scoped to the organization named in the Organization
+  (primary domain) setting.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/proofpoint
@@ -36,6 +37,9 @@ permissions:
     - resource: pp-sender-lists
       actions: [read, write, delete]
       description: Manage Proofpoint Essentials Safe / Blocked sender lists
+    - resource: pp-org-features
+      actions: [read, write]
+      description: Manage Proofpoint Essentials organization security features (URL Defense, Attachment Defense, DLP, ...)
 
 pipeline:
   configurationTypes:
@@ -68,6 +72,23 @@ pipeline:
         healthCheck: config-types/pp-sender-lists/healthCheck
         driftDetect: config-types/pp-sender-lists/driftDetect
         getStatus: config-types/pp-sender-lists/getStatus
+      targets:
+        componentTypes: [proofpoint]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: pp-org-features
+      name: Proofpoint Organization Features
+      description: Organization security/protection features (URL Defense, Attachment Defense + sandboxing, DLP, Encryption, Anti-Spoofing, ...) via /orgs/{org}/features (GET/PUT); read-modify-write upsert keyed on the feature name
+      canvasTemplate: config-types/pp-org-features/canvas.yaml
+      defaultConfig: config-types/pp-org-features/defaults.yaml
+      handlers:
+        validate: config-types/pp-org-features/validate
+        deploy: config-types/pp-org-features/deploy
+        rollback: config-types/pp-org-features/rollback
+        healthCheck: config-types/pp-org-features/healthCheck
+        driftDetect: config-types/pp-org-features/driftDetect
+        getStatus: config-types/pp-org-features/getStatus
       targets:
         componentTypes: [proofpoint]
         requiresCredential: true

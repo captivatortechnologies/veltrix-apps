@@ -340,3 +340,33 @@ export function parsePositiveInt(raw: unknown): IntResult {
 export function encodeSafeUrlId(safeUrlIdOrName: string): string {
   return encodeURIComponent(safeUrlIdOrName)
 }
+
+/**
+ * Extract the array from a PVWA response that wraps its records under a named key
+ * rather than the Gen2 `value` collection envelope — e.g. Platforms responses use
+ * `{ "Platforms": [...], "Total": n }` and onboarding rules use
+ * `{ "AutomaticOnboardingRules": [...], "Total": n }`. Returns the first matching
+ * array, or [] on a missing key / malformed body (never throws). These endpoints
+ * are not offset/limit paginated, so a single request returns the full set.
+ */
+export function parseCollectionArray<T = unknown>(body: string, keys: string[]): T[] {
+  const parsed = parseJson<Record<string, unknown>>(body)
+  if (!parsed || typeof parsed !== 'object') return []
+  for (const key of keys) {
+    const value = parsed[key]
+    if (Array.isArray(value)) return value as T[]
+  }
+  return []
+}
+
+/**
+ * Loose validity check for a BASE 64 payload (whitespace tolerated). Used to
+ * pre-flight a platform import package before it is sent to PVWA. Returns false
+ * for an empty string. Only checks the ENCODING is well-formed — never decodes,
+ * inspects, logs or stores the content.
+ */
+export function isLikelyBase64(value: string): boolean {
+  const s = (value ?? '').replace(/\s+/g, '')
+  if (!s) return false
+  return s.length % 4 === 0 && /^[A-Za-z0-9+/]+={0,2}$/.test(s)
+}

@@ -3,6 +3,44 @@
 All notable changes to the CyberArk Privileged Access Manager app are documented
 here. This project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.2.0 — 2026-07-26
+
+### Added
+- **Platforms configuration type.** Manage CyberArk target platforms as code
+  through the PVWA REST API. Each item is reconciled by its **PlatformID**
+  (`GET /PasswordVault/API/Platforms/Targets`):
+  - A platform that does not yet exist is **imported** from a supplied BASE 64
+    platform package (`POST /PasswordVault/API/Platforms/Import`). The package
+    field is **write-only** — sent only on import and never read back, diffed, or
+    stored in rollback data, artifacts or logs (mirrors the account-secret rule).
+  - The platform's **active state** is enforced with
+    `POST /PasswordVault/API/Platforms/Targets/{id}/activate` /
+    `…/deactivate`.
+  - Rollback deletes an imported platform
+    (`DELETE /PasswordVault/API/Platforms/Targets/{id}`) and restores a changed
+    platform's prior active state. Drift and health checks report a missing
+    platform and any active-state mismatch.
+- **Automatic onboarding rules configuration type.** Manage CyberArk automatic
+  onboarding rules as code (`/PasswordVault/API/AutomaticOnboardingRules`),
+  reconciled by the unique **rule name**. Discovered accounts that match a rule
+  are onboarded to the rule's target Safe against its target platform.
+  - Create (`POST`), full-replace update (`PUT …/{id}`) and rollback delete
+    (`DELETE …/{id}`) are all supported; the target platform/safe, system &
+    machine type, account category, admin-ID, username and address filters (with
+    match methods) and description are managed declaratively. Drift and health
+    checks report a missing rule and any changed field.
+
+### Notes
+- **Master Policy / per-platform privileged access workflows are read-only over
+  REST.** CyberArk exposes each platform's privileged access workflows (dual
+  control, exclusive check-in/check-out, one-time password access,
+  reason-for-access) on `GET /Platforms/Targets`, but the only writable platform
+  endpoints are import, activate/deactivate and rename — there is no REST API to
+  set these workflow settings or the Master Policy (they are configured via the
+  platform package or the PVWA UI). This app therefore does not offer a
+  deployable "privileged access policy" type; the Platforms type manages the
+  platforms that carry those settings via import/activate.
+
 ## 1.1.0 — 2026-07-22
 
 ### Added

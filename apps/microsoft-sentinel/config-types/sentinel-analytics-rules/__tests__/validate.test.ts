@@ -1,5 +1,6 @@
 import validate, { extractRuleSpecs, ruleKey } from '../validate'
-import { buildScheduledRuleBody } from '../deploy'
+import { buildScheduledRuleBody, buildAlertRuleBody, alertRuleApiVersion } from '../deploy'
+import { SENTINEL_API_VERSION, SENTINEL_NRT_API_VERSION } from '../../../lib/sentinel'
 import type { PipelineContext, PlatformDataApi } from '@veltrixsecops/app-sdk'
 
 const stubPlatform: PlatformDataApi = {
@@ -48,6 +49,17 @@ const validRule = {
   suppression_duration: 'PT1H',
   suppression_enabled: false,
   tactics: ['InitialAccess'],
+}
+
+const validNrtRule = {
+  rule_name: 'NRT privileged role added',
+  kind: 'NRT',
+  enabled: true,
+  severity: 'High',
+  query: 'AuditLogs | where OperationName == "Add member to role"',
+  suppression_duration: 'PT1H',
+  suppression_enabled: false,
+  tactics: ['PrivilegeEscalation'],
 }
 
 describe('Sentinel Analytics Rules Validate Handler', () => {
@@ -116,5 +128,53 @@ describe('Sentinel Analytics Rules Validate Handler', () => {
     expect(body.properties.queryFrequency).toBe('PT1H')
     expect(body.properties.triggerOperator).toBe('GreaterThan')
     expect(body.properties.severity).toBe('High')
+  })
+
+  it('validates a complete NRT rule without frequency/period/trigger', async () => {
+    const result = await validate(makeCtx([{ name: 'r', fields: { ...validNrtRule } }]))
+    expect(result.valid).toBe(true)
+    expect(result.errors).toHaveLength(0)
+  })
+
+  it('does not require frequency/period/trigger for an NRT rule', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'r', fields: { rule_name: 'NRT rule', kind: 'NRT', severity: 'Medium', query: 'Heartbeat', suppression_duration: 'PT1H' } }]),
+    )
+    expect(result.valid).toBe(true)
+  })
+
+  it('still requires frequency/period/trigger for a Scheduled rule', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'r', fields: { ...validRule, kind: 'Scheduled', query_frequency: '', trigger_operator: '' } }]),
+    )
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.field.endsWith('.query_frequency') && e.code === 'required')).toBe(true)
+    expect(result.errors.some((e) => e.code === 'invalid_operator')).toBe(true)
+  })
+
+  it('rejects an unknown rule kind', async () => {
+    const result = await validate(makeCtx([{ name: 'r', fields: { ...validRule, kind: 'Fusion' } }]))
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.code === 'invalid_kind')).toBe(true)
+  })
+
+  it('extract normalises NRT away from Scheduled-only fields', () => {
+    const specs = extractRuleSpecs(
+      makeCtx([{ name: 'r', fields: { ...validNrtRule, query_frequency: 'PT1H', trigger_threshold: 5 } }]).canvas,
+    )
+    expect(specs[0].kind).toBe('NRT')
+    expect(specs[0].queryFrequency).toBe('')
+    expect(specs[0].triggerThreshold).toBe(0)
+  })
+
+  it('builds an NRT rule body without frequency/period/trigger and selects the preview api-version', () => {
+    const specs = extractRuleSpecs(makeCtx([{ name: 'r', fields: { ...validNrtRule } }]).canvas)
+    const body = buildAlertRuleBody(specs[0]) as { kind: string; properties: Record<string, unknown> }
+    expect(body.kind).toBe('NRT')
+    expect(body.properties.query).toBe('AuditLogs | where OperationName == "Add member to role"')
+    expect(body.properties.queryFrequency).toBeUndefined()
+    expect(body.properties.triggerOperator).toBeUndefined()
+    expect(alertRuleApiVersion('NRT')).toBe(SENTINEL_NRT_API_VERSION)
+    expect(alertRuleApiVersion('Scheduled')).toBe(SENTINEL_API_VERSION)
   })
 })

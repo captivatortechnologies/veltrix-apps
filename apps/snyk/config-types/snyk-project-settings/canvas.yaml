@@ -1,0 +1,85 @@
+# =============================================================================
+# Canvas Template — Snyk Project Settings
+#
+# Declares ONE project — the item. Users add as many as they need. Each item
+# targets an EXISTING Snyk project (by its project id) and manages its
+# pull-request test and automatic dependency-upgrade settings via the v1 API
+# (/org/{org}/project/{project}/settings). This config type UPDATES in place; it
+# never creates or deletes a project. Reconciled by project id.
+# Field keys must match config-types/snyk-project-settings/validate.ts.
+# =============================================================================
+
+id: "snyk-project-settings"
+name: "Snyk Project Settings"
+toolType: "snyk"
+entityType: "snyk-project-settings"
+description: "Manage an existing Snyk project's pull-request test and automatic dependency-upgrade settings as code via the v1 API. Reconciled by project id; updates in place only."
+
+item:
+  label: "Project"
+  identityField: "project_id"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Project"
+      icon: "folder"
+      description: "The Snyk project to configure"
+      fields:
+        - key: "project_id"
+          label: "Project ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The Snyk project UUID to configure (Snyk > Projects > the project >
+            Settings, or the project's URL). The project must already exist —
+            this config type only updates settings, it never creates a project.
+            This is the project's identity.
+
+    - name: "Pull Request Testing"
+      icon: "git-pull-request"
+      description: "Snyk tests opened pull requests for new vulnerabilities"
+      fields:
+        - key: "pull_request_test_enabled"
+          label: "Enable Pull Request Testing"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, Snyk Test checks each opened pull request for vulnerabilities."
+
+        - key: "pull_request_fail_on_any_vulns"
+          label: "Fail on Any Vulnerabilities"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Fail the pull request check when the repository has any vulnerability, not only when the PR adds one."
+
+        - key: "pull_request_fail_only_high"
+          label: "Fail Only for High Severity"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Fail the pull request check only for high- and critical-severity vulnerabilities."
+
+    - name: "Automatic Dependency Upgrades"
+      icon: "arrow-up-circle"
+      description: "Snyk opens automatic upgrade pull requests"
+      fields:
+        - key: "auto_dep_upgrade_enabled"
+          label: "Enable Automatic Dependency Upgrades"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, Snyk raises dependency-upgrade pull requests automatically."
+
+        - key: "auto_dep_upgrade_limit"
+          label: "Max Open Upgrade PRs"
+          fieldType: "number"
+          required: false
+          helpText: >
+            Optional cap on the number of open automatic upgrade pull requests.
+            Must be a positive whole number. Leave blank to use Snyk's default.
+
+        - key: "auto_dep_upgrade_min_age"
+          label: "Minimum Dependency Age (days)"
+          fieldType: "number"
+          required: false
+          helpText: >
+            Optional minimum age, in days, a dependency release must reach before
+            Snyk will auto-upgrade to it. Must be zero or a positive whole number.

@@ -1,0 +1,6 @@
+# Defaults for a new detection-rule-exception item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a flat map keyed by the
+# canvas field keys (rule_name, name, type, rule_action, priority_level,
+# service_level, key_value_json, leql, note).
