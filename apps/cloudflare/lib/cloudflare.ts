@@ -186,8 +186,13 @@ export class CloudflareClient {
     const env = parseJson<CloudflareEnvelope<Array<{ id?: string; account?: { id?: string } }>>>(res.body)
     const zone = env?.result?.[0]
     if (!zone?.id) {
+      // A very common mistake: using Cloudflare's own API/dashboard host as the
+      // connection endpoint. Those are not zones — point the operator at the fix.
+      const isCloudflareHost = /(^|\.)(api|dash)\.cloudflare\.com$/i.test(this.domain) || this.domain === 'cloudflare.com'
       return {
-        error: `No Cloudflare zone found for domain "${this.domain}" — check the component hostname and the token's zone scope.`,
+        error: isCloudflareHost
+          ? `"${this.domain}" is the Cloudflare API/dashboard host, not a zone. Set this connection's endpoint to your zone's apex domain (e.g. "example.com") — zone-scoped types (DNS, WAF, Rate Limiting, Redirect/Transform, Zone Settings) resolve the zone from the endpoint.`
+          : `No Cloudflare zone found for domain "${this.domain}" — the connection endpoint must be the zone apex domain (e.g. "example.com"), and the token must have access to that zone.`,
       }
     }
     const resolution: ZoneResolution = { zoneId: zone.id, accountId: zone.account?.id ?? null }

@@ -3,6 +3,11 @@
 All notable changes to the Cloudflare app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.2.4 — 2026-07-25
+
+### Changed
+- **Clearer error when a connection endpoint isn't a zone.** Zone-scoped types (DNS, WAF, Rate Limiting, Redirect/Transform, Zone Settings) resolve the zone from the connection endpoint. When the endpoint is Cloudflare's own host (`api.cloudflare.com` / `dash.cloudflare.com`) the zone lookup returns nothing; the error now says so explicitly and tells you to set the endpoint to your zone's apex domain (e.g. `example.com`). The generic "no zone found" message likewise now names the fix.
+
 ## 1.2.3 — 2026-07-25
 
 ### Fixed
