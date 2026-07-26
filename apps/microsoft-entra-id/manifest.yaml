@@ -1,6 +1,6 @@
 id: microsoft-entra-id
 name: Microsoft Entra ID
-version: "0.3.0"
+version: "0.4.0"
 vendor: Veltrix
 description: >
   Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the
@@ -106,9 +106,14 @@ client:
   navLayout: sidebar
   pages:
     - path: /overview
-      component: Dashboard
+      component: OverviewPage
       label: Overview
       icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
       nav: sidebar
     - path: /connections
       component: ConnectionsPage

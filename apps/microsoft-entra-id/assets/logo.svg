@@ -1,6 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 40" width="140" height="40" role="img" aria-label="My App">
-  <!-- Placeholder logo — replace with your vendor mark (svg preferred, <=128 KB, ~28px display height) -->
-  <rect x="4" y="8" width="24" height="24" rx="6" fill="#4F6DF5"/>
-  <path d="M10 20 L15 25 L22 15" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="36" y="26" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="currentColor">My App</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 168 40" width="168" height="40" role="img" aria-label="Microsoft Entra ID">
+  <defs>
+    <linearGradient id="veidg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0078D4"/>
+      <stop offset="1" stop-color="#50E6FF"/>
+    </linearGradient>
+  </defs>
+  <!-- Original abstract identity mark: a shield formed from two facets, with an
+       inset figure. Not the trademarked Microsoft Entra logo. -->
+  <path d="M18 4 L31 9 V21 C31 28.5 25.4 33.6 18 36 C10.6 33.6 5 28.5 5 21 V9 Z" fill="url(#veidg)"/>
+  <path d="M18 4 L18 36 C10.6 33.6 5 28.5 5 21 V9 Z" fill="#0078D4" opacity="0.25"/>
+  <circle cx="18" cy="16.5" r="3.6" fill="#fff"/>
+  <path d="M11.5 27 C11.5 22.4 14.4 20.2 18 20.2 C21.6 20.2 24.5 22.4 24.5 27 Z" fill="#fff"/>
+  <text x="42" y="26" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="currentColor">Microsoft Entra ID</text>
 </svg>

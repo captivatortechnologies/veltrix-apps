@@ -8,6 +8,22 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.4.0 — 2026-07-26
+
+### Added
+- **Client UI**: real Overview, Setup Guide and Connections pages built on
+  `@veltrixsecops/app-sdk/ui`. Overview lists what the app manages (fetched from
+  a new server `/meta` route); Setup Guide walks through the app registration,
+  Graph application permissions + admin consent, credential mapping and tenant
+  wiring; Connections uses the shared `<ConnectionsManager>` configured for the
+  app-registration credential (Application (client) ID + client secret) and the
+  `entra-tenant` deploy target.
+- Server `/meta` and `/settings` routes.
+
+### Changed
+- Replaced the template placeholder logo with an original Entra-branded mark
+  (blue/cyan). Removed the remaining template placeholder client pages.
+
 ## 0.3.0 — 2026-07-26
 
 ### Added
