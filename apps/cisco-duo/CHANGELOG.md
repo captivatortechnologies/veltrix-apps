@@ -8,6 +8,17 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.2.0 — 2026-07-26
+
+### Added
+- **Integrations** configuration type — manage Duo integrations (name + type) as
+  code, with the full pipeline handler set. Integrations are id-addressed by
+  `integration_key` with no lookup-by-name, so the app matches by name and stores
+  the key for rename-safety; the type is immutable (a same-name integration of a
+  different type is not modified); reconcile only deletes integrations this app
+  created. (Duo generates the integration secret; retrieve it from the Admin
+  Panel.)
+
 ## 0.1.0 — 2026-07-26
 
 ### Added

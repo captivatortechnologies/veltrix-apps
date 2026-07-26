@@ -1,11 +1,11 @@
 id: cisco-duo
 name: Cisco Duo
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
-  Manage Cisco Duo configuration as code through the Duo Admin API. v0.1 ships
-  Groups — the self-contained, name-keyed group objects — with validation, drift
-  detection and rollback handled by the Security-as-Code pipeline.
+  Manage Cisco Duo configuration as code through the Duo Admin API — Groups and
+  Integrations — with validation, drift detection and rollback handled by the
+  Security-as-Code pipeline.
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cisco-duo
@@ -29,9 +29,29 @@ permissions:
     - resource: groups
       actions: [read, write, delete]
       description: Manage Cisco Duo groups (name + description) via the Duo Admin API
+    - resource: integrations
+      actions: [read, write, delete]
+      description: Manage Cisco Duo integrations (name + type) via the Duo Admin API
 
 pipeline:
   configurationTypes:
+    - id: integrations
+      name: Integrations
+      description: Duo integrations — name and type (name-keyed, integration_key stored for rename-safety; type immutable)
+      canvasTemplate: config-types/integrations/canvas.yaml
+      defaultConfig: config-types/integrations/defaults.yaml
+      handlers:
+        validate: config-types/integrations/validate
+        deploy: config-types/integrations/deploy
+        rollback: config-types/integrations/rollback
+        healthCheck: config-types/integrations/healthCheck
+        driftDetect: config-types/integrations/driftDetect
+        getStatus: config-types/integrations/getStatus
+      targets:
+        componentTypes: [cisco-duo]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: groups
       name: Groups
       description: Duo groups — name and description (name-keyed, group_id stored for rename-safety)
