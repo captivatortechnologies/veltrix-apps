@@ -1,267 +1,102 @@
-# =============================================================================
-# Veltrix App Manifest Template
-#
-# This file declares your app's contract with the Veltrix platform.
-# Every app MUST define pipeline handlers - Security-as-Code is mandatory.
-#
-# Copy this _template directory, rename it, and customize.
-# =============================================================================
-
-id: "microsoft-entra-id"               # Unique slug (lowercase, hyphens only)
-name: "Microsoft Entra ID"
+id: microsoft-entra-id
+name: Microsoft Entra ID
 version: "0.1.0"
-vendor: "Veltrix"
+vendor: Veltrix
 description: >
-  Manage Microsoft Entra ID (formerly Azure AD) configuration as code through
-  the Microsoft Graph API — Conditional Access policies, named locations, and
-  security groups — with validation, drift detection and rollback handled by the
-  Security-as-Code pipeline.
-category: "IAM"                        # SIEM, EDR, SOAR, IAM, NETWORK, CLOUD, CUSTOM
-license: "Apache-2.0"
-homepage: "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-entra-id"
-icon: "🔷"                             # Emoji, or a repo-relative file like ./assets/icon.svg
-logo: "./assets/logo.svg"
+  Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the
+  Microsoft Graph API. Covers Conditional Access named locations today, with
+  Conditional Access policies and security groups on the roadmap — validation,
+  drift detection and rollback handled by the Security-as-Code pipeline.
+category: IAM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-entra-id
+icon: "🔷"
 
-# Minimum platform version this app requires
 platform:
   minVersion: "1.0.0"
 
-# =============================================================================
-# Branding (optional) — your vendor identity, applied by the platform in
-# defined slots only: the app's navbar (logo + accent) and scoped CSS
-# variables (--veltrix-app-primary / --veltrix-app-accent) that your pages
-# can use. The platform decides where brand color appears, so use it
-# meaningfully — it never themes the whole product shell.
-#   - Colors: #RGB or #RRGGBB hex
-#   - Logos: .svg (preferred) or .png, max 128 KB, rendered at ~28px height —
-#     use a wide/landscape mark with transparent background; no scripts in SVGs
-# =============================================================================
+# Microsoft brand: Entra blue primary, cyan accent.
 branding:
   primaryColor: "#0078D4"
   accentColor: "#50E6FF"
   logo: ./assets/logo.svg
 
-# =============================================================================
-# SETTINGS — operator-configurable values, read by the app's handlers.
-# =============================================================================
-settings:
-  - key: tenant_id
-    type: string
-    label: Tenant ID
-    description: Entra directory (tenant) ID — a GUID or verified domain. Used with the app-registration credential to authenticate to Microsoft Graph.
-    required: true
-  - key: request_timeout_seconds
-    type: number
-    label: Request Timeout (seconds)
-    description: Per-request timeout for Graph API calls.
-    default: 30
-    required: false
-
-# =============================================================================
-# PERMISSIONS
-# =============================================================================
 permissions:
-  # What this app needs from the platform
   platform:
-    - "components:read"
-    - "credentials:read"
-    - "tags:read"
-    - "canvas:read"
-    - "canvas:create"
-    - "canvas:update"
-
-  # Permissions this app EXPOSES (admins assign these to roles)
+    - configuration-canvas:read
+    - component:read
+    - credential:read
   app:
-    - resource: "my-app:configs"
-      actions: ["read", "create", "update", "delete"]
-      description: "Manage my-app configurations"
+    - resource: named-locations
+      actions: [read, write, delete]
+      description: Manage Entra Conditional Access named locations (IP CIDR ranges and country/region locations)
 
-# =============================================================================
-# PIPELINE INTEGRATION (MANDATORY)
-#
-# This is what makes Security-as-Code work.
-# Every app must define at least one configuration type with handlers.
-# =============================================================================
 pipeline:
   configurationTypes:
-    - id: "configs"                    # Unique within this app
-      name: "App Configuration"
-      description: "Main configuration for this tool"
-      # Canonical layout: everything for one configuration type is colocated
-      # in config-types/<configTypeId>/
-      canvasTemplate: config-types/configs/canvas.yaml
-      defaultConfig: config-types/configs/defaults.yaml
-
-      # Pipeline handlers — config-types/<configTypeId>/<handler>
-      # (extensionless; resolved like require(), .ts in dev / compiled .js in packages)
+    - id: named-locations
+      name: Named Locations
+      description: Conditional Access named locations — IP (trusted CIDR ranges) and country/region
+      canvasTemplate: config-types/named-locations/canvas.yaml
+      defaultConfig: config-types/named-locations/defaults.yaml
       handlers:
-        validate: config-types/configs/validate
-        deploy: config-types/configs/deploy
-        rollback: config-types/configs/rollback
-        healthCheck: config-types/configs/healthCheck
-        driftDetect: config-types/configs/driftDetect
-        getStatus: config-types/configs/getStatus
-        # Live pickers (remote-select / remote-multiselect fields). Optional —
-        # omit if no field pulls its options from the tool at edit time.
-        options: config-types/configs/options
-
-      # What infrastructure this configuration targets
+        validate: config-types/named-locations/validate
+        deploy: config-types/named-locations/deploy
+        rollback: config-types/named-locations/rollback
+        healthCheck: config-types/named-locations/healthCheck
+        driftDetect: config-types/named-locations/driftDetect
+        getStatus: config-types/named-locations/getStatus
       targets:
-        # Roles this config type can deploy to. The operator narrows to SPECIFIC
-        # servers per-config with the canvas "Target Servers" picker (there can be
-        # several of each role); empty selection = all servers matching these types.
-        componentTypes: ["server"]
-        requiresCredential: true       # Needs tool credentials for auth
-        requiresConnectivity: true     # Needs SSH/API access to components
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
 
-  # Events your app emits (other apps can subscribe)
   pipelineEvents:
-    - "my-app:config-deployed"
-    - "my-app:health-changed"
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
 
-# =============================================================================
-# DATABASE (optional - only if your app needs its own tables)
-# =============================================================================
-database:
-  migrations: migrations              # Canonical layout: migrations/*.sql at app root
-  tablePrefix: "app_myapp_"           # All tables MUST be prefixed
-
-# =============================================================================
-# SERVER
-# =============================================================================
 server:
   entry: server/index
   routes:
-    prefix: "/api/apps/my-app"        # All routes namespaced under this prefix
+    prefix: /api/apps/microsoft-entra-id
 
-# =============================================================================
-# CLIENT (optional - for custom UI pages)
-# =============================================================================
-# The platform renders the chrome for every app page — breadcrumb, app header,
-# navigation, permission gating, loading + error states — so apps look and
-# navigate predictably. Your component renders the page body and composes it
-# from @veltrixsecops/ui.
 client:
   entry: client/index
-  # navLayout controls how the platform lays out this app's navigation (your
-  # client pages + one entry per configuration type):
-  #   tabs    (default) — a horizontal tab strip; best for a few items
-  #   sidebar           — an embedded left rail grouped into Pages and
-  #                       Configurations; use this when the app will have many
-  #                       configuration types (a tab strip can't hold them all)
-  navLayout: tabs
+  navLayout: sidebar
   pages:
-    - path: "/"                       # Route beneath the app: /apps/my-app
-      component: "Dashboard"          # Exported from client/index
-      label: "Overview"
-      description: "What this app manages at a glance"
-      icon: "shield"                  # Platform icon set; falls back to the app icon
-      nav: sidebar                    # sidebar | tab | hidden
-      order: 1                        # Deterministic ordering
-      layout: standard                # standard | full-bleed | canvas
-
-    # A tab inside the Overview page, visible only to users holding the
-    # app permission it declares (must exist in permissions.app above).
-    - path: "/configs"
-      component: "ConfigsTab"
-      label: "Configurations"
-      nav: tab
-      parent: "/"
-      order: 1
-      layout: standard
-      requiresPermission:
-        resource: "my-app:configs"
-        action: "read"
-
-    # Access Servers — the built-in Zero-Trust Access (ZTNA) gateway surface
-    # available to every app via '@veltrixsecops/app-sdk/client'. A Settings-group
-    # item, rendered under the app's Settings section.
-    - path: "/access-servers"
-      component: "AccessServersPage"
-      label: "Access Servers"
-      description: "Zero-Trust Access gateways this app manages, each linkable to a ZTNA provider"
-      icon: "shield"
+    - path: /overview
+      component: Dashboard
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
       nav: sidebar
       group: settings
-      order: 1
-      layout: standard
 
-    # Connections — the built-in "server + credential" surface available to every
-    # app via '@veltrixsecops/app-sdk/client'. Pairs a server (component) with the
-    # credential used to reach it. A Settings-group item.
-    - path: "/connections"
-      component: "ConnectionsPage"
-      label: "Connections"
-      description: "Servers this app connects to, each with the credential used to authenticate"
-      icon: "link"
-      nav: sidebar
-      group: settings
-      order: 2
-      layout: standard
-
-# =============================================================================
-# CONNECTIVITY (automatically provided by the platform)
-#
-# Every app that sets requiresConnectivity: true on a pipeline config type
-# automatically gets access to the customer's configured connectivity
-# provider (Tailscale, SSH, WireGuard, Cloudflare Tunnel, etc.) via
-# ctx.connectivityProvider in all pipeline handler contexts.
-#
-# The platform provides a shared Settings UI component that apps can embed:
-#   import { ConnectivityProvidersView } from '@/features/connectivity-providers'
-#
-# You do NOT need to build your own connectivity config — just import the
-# shared view in your app's Settings tab/page.
-#
-# testHandler backs the "Test" button on the Connections page — a standalone
-# probe of a connection's endpoint + credential (see config-types/configs/
-# testConnection.ts). Optional but recommended for any app with connections.
-# =============================================================================
-connectivity:
-  testHandler: config-types/configs/testConnection
-
-# =============================================================================
-# OPERATIONS (optional) — one-off actions that are NOT configuration deploys
-# (restart a service, rotate a token, export state). Each resolves the chosen
-# connection's credential and runs its handler in-process. Surface them from a
-# client page via the platform's operations endpoint.
-# =============================================================================
-operations:
-  - id: "restart-service"
-    name: "Restart Service"
-    description: "Restart the managed service on a selected server"
-    handler: config-types/configs/operations/restartService
-    requiresPermission:
-      resource: "my-app:configs"
-      action: "update"
-
-# =============================================================================
-# LIFECYCLE HOOKS (optional)
-# =============================================================================
-# Canonical layout: hooks/<hookName>.ts (camelCase)
 hooks:
   onInstall: hooks/onInstall
   onUninstall: hooks/onUninstall
 
-# =============================================================================
-# PLATFORM EVENTS this app subscribes to (optional)
-# =============================================================================
-events:
-  - "component:created"
-  - "component:updated"
-  - "credential:created"
+# Connection-level connectivity test: verifies the app-registration credential by
+# running the OAuth2 client-credentials exchange and calling GET /organization.
+connectivity:
+  testHandler: handlers/testConnection
 
-# =============================================================================
-# SETTINGS (admin-configurable per customer)
-# =============================================================================
 settings:
-  - key: "api_endpoint"
-    type: "string"
-    label: "Tool API Endpoint"
-    description: "Base URL for the tool's management API"
+  - key: tenant_id
+    type: string
+    label: Tenant ID
+    description: >
+      Entra directory (tenant) ID — a GUID or verified domain. Used with the
+      app-registration credential to authenticate to Microsoft Graph.
     required: true
-
-  - key: "require_approval"
-    type: "boolean"
-    label: "Require Approval for Changes"
-    default: true
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Microsoft Graph API calls.
+    default: 30
+    required: false

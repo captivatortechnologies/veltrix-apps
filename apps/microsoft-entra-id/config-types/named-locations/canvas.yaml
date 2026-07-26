@@ -1,0 +1,89 @@
+# =============================================================================
+# Canvas Template — Entra ID Named Locations
+#
+# Declares ONE named location — the item. Users add as many as they need.
+# A named location's logical identity is its NAME (displayName); deploy lists
+# locations, matches on the name (or a stored id, rename-safe), and PATCHes
+# (update) or POSTs (create) accordingly.
+#
+# ONE item = ONE named location of type ip | country.
+#   ip      → ipRanges (one CIDR per line) + isTrusted
+#   country → countries (comma-separated ISO 3166 codes) + includeUnknown
+#
+# Field keys must match what config-types/named-locations/validate.ts checks.
+# =============================================================================
+
+id: "microsoft-entra-id-named-locations"
+name: "Named Location Configuration"
+toolType: "microsoft-entra-id"
+entityType: "named-locations"
+description: "Define Entra ID Conditional Access named locations (IP CIDR ranges, or country/region lists) as code through the Microsoft Graph API."
+
+item:
+  label: "Named Location"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Location"
+      icon: "globe"
+      description: "Location kind, name and definition"
+      fields:
+        - key: "type"
+          label: "Location Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "ip"
+          options:
+            - label: "IP ranges (CIDR)"
+              value: "ip"
+            - label: "Countries / regions"
+              value: "country"
+          helpText: >
+            IP locations match on IPv4/IPv6 CIDR ranges. Country locations match
+            on ISO 3166 country/region codes.
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            Display name of the named location (max 256 chars). Must be unique
+            within this canvas — it is the logical identity deploy matches on.
+
+        - key: "ipRanges"
+          label: "IP Ranges (CIDR, one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            One CIDR per line, e.g. 203.0.113.0/24 or 2001:db8::/32. Used only for
+            IP locations.
+
+        - key: "isTrusted"
+          label: "Mark as Trusted"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: >
+            Trusted IP locations are treated as trusted by risk evaluation and
+            Conditional Access. Used only for IP locations.
+
+        - key: "countries"
+          label: "Countries / Regions (ISO codes, comma-separated)"
+          fieldType: "text"
+          required: false
+          helpText: >
+            Comma-separated ISO 3166 two-letter codes, e.g. US, CA, GB. Used only
+            for country locations.
+
+        - key: "includeUnknown"
+          label: "Include Unknown Countries / Regions"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: >
+            When set, IP addresses that don't map to a country/region are included.
+            Used only for country locations.

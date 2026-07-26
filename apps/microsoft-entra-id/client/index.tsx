@@ -12,18 +12,14 @@
 
 import React from 'react'
 
-// Lazy-load pages for code splitting
 const Dashboard = React.lazy(() => import('./pages/Dashboard'))
-const ConfigsTab = React.lazy(() => import('./pages/ConfigsTab'))
-const AccessServersPage = React.lazy(() => import('./pages/AccessServersPage'))
 const ConnectionsPage = React.lazy(() => import('./pages/ConnectionsPage'))
 
 export default {
-  id: 'my-app',
-  pages: {
-    Dashboard,
-    ConfigsTab,
-    AccessServersPage,
-    ConnectionsPage,
-  },
+  id: 'microsoft-entra-id',
+  pages: { Dashboard, ConnectionsPage },
+  sidebarItems: [
+    { path: '/apps/microsoft-entra-id/overview', label: 'Overview', icon: 'shield' },
+    { path: '/apps/microsoft-entra-id/connections', label: 'Connections', icon: 'link' },
+  ],
 }

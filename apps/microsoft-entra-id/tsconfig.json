@@ -8,8 +8,8 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "types": ["node"]
+    "types": ["node", "jest"]
   },
-  "include": ["config-types/**/*.ts", "hooks/**/*.ts", "lib/**/*.ts", "server/**/*.ts"],
+  "include": ["config-types/**/*.ts", "handlers/**/*.ts", "hooks/**/*.ts", "lib/**/*.ts", "server/**/*.ts"],
   "exclude": ["node_modules", "client"]
 }

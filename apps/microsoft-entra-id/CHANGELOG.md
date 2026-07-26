@@ -8,8 +8,15 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
-## 1.4.0 — 2026-07-24
+## 0.1.0 — 2026-07-26
 
 ### Added
-- Initial app scaffold from the Veltrix app template. (Replace this with your
-  app's real first-release notes, and date the heading — YYYY-MM-DD.)
+- Initial release. Microsoft Graph API client (`lib/graph.ts`) with OAuth2
+  client-credentials auth, token caching, `@odata.nextLink` pagination and 429
+  retry.
+- **Named Locations** configuration type — manage Conditional Access named
+  locations (IP CIDR ranges and country/region lists) as code, with the full
+  pipeline handler set: validate, deploy, rollback, drift detection, health
+  check and status.
+- Connection test (`handlers/testConnection.ts`) that verifies the
+  app-registration credential end to end via `GET /organization`.

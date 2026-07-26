@@ -1,0 +1,7 @@
+# Defaults for a new named-location item.
+#
+# A flat map keyed by the canvas field keys (type, name, ipRanges, isTrusted,
+# countries, includeUnknown). A new item starts on the IP type.
+type: ip
+isTrusted: false
+includeUnknown: false
