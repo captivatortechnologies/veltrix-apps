@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-26T20:20:06.376Z",
+  "generatedAt": "2026-07-26T20:27:48.904Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -316,6 +316,25 @@
       "sizeBytes": 218009,
       "publishedAt": "2026-07-26T18:15:08.383Z",
       "releaseNotes": "## 1.2.0 — 2026-07-26\n\n### Added\nSeven new configuration types, closing the audited coverage gaps (issue #12).\nEach reuses the shared `lib/panorama` client and staged-commit pipeline (write to\nthe Panorama candidate config via REST, commit via the XML API when `auto_commit`\nis on) and ships the full handler set — validate, deploy (idempotent upsert by\nname with rollback data), rollback, health check, drift detection and status.\n\n- **NAT Rules** (`/Policies/NATPreRules`). IPv4 NAT pre-rules: original-packet\n  match (zones, source, destination, service, destination interface) plus source\n  translation (dynamic-ip-and-port with translated addresses or an egress\n  interface address, dynamic-ip, static-ip with optional bi-directional) and\n  destination translation (translated address + optional port). Drift compares a\n  normalized, order-insensitive translation summary so member re-ordering is not\n  reported as drift.\n- **Application Groups** (`/Objects/ApplicationGroups`). Name + member App-IDs /\n  application filters / nested groups.\n- **Security Profile Groups** (`/Objects/SecurityProfileGroups`). Bundle one\n  profile of each type — antivirus, anti-spyware, vulnerability, URL filtering,\n  file blocking, WildFire analysis and data filtering.\n- **Antivirus Profiles** (`/Objects/AntivirusSecurityProfiles`). Virus and\n  WildFire signature actions applied uniformly across the protocol decoders\n  (ftp, http, http2, imap, pop3, smb, smtp).\n- **Anti-Spyware Profiles** (`/Objects/AntiSpywareSecurityProfiles`). A single\n  rule: matched severities, action (as a PAN-OS choice element), packet capture,\n  category and threat-name filters.\n- **URL Filtering Profiles** (`/Objects/URLFilteringSecurityProfiles`). URL\n  categories bucketed by action (block, alert, allow, continue, override), with\n  safe-search enforcement and container-page-only logging; validation rejects a\n  category placed in more than one bucket.\n- **WildFire Analysis Profiles** (`/Objects/WildFireAnalysisSecurityProfiles`). A\n  single analysis rule — applications, file types, direction and analysis\n  location (public or private cloud).\n\n### Notes\n- The anti-spyware and WildFire analysis types model a single rule per profile\n  (the common case). Antivirus applies one action set uniformly to all decoders.\n  Multi-rule profiles, per-decoder overrides, botnet-domain / DNS-security\n  policies, ML-engine and threat-exception settings, and NAT fallback / dynamic\n  destination translation / DNS rewrite / nat64 / nptv6 are not represented.",
+      "releasedAt": "2026-07-26T00:00:00.000Z"
+    },
+    {
+      "appId": "prisma-cloud",
+      "name": "Prisma Cloud",
+      "version": "0.1.0",
+      "vendor": "Veltrix",
+      "description": "Manage Palo Alto Prisma Cloud (CSPM) configuration as code through the Prisma Cloud REST API. v0.1 ships Custom Compliance Standards — the self-contained, name-keyed standard objects — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
+      "category": "CLOUD",
+      "icon": "☁️",
+      "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNDggNDAiIHdpZHRoPSIxNDgiIGhlaWdodD0iNDAiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iUHJpc21hIENsb3VkIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idnBjIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI0ZBNTgyRCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNGMDRFOTgiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDwhLS0gT3JpZ2luYWwgYWJzdHJhY3QgcHJpc20vdHJpYW5nbGUgbWFyay4gTm90IGEgdHJhZGVtYXJrZWQgUGFsbyBBbHRvIC8KICAgICAgIFByaXNtYSBDbG91ZCBsb2dvLiAtLT4KICA8cGF0aCBkPSJNMTggNSBMMzEgMzAgSDUgWiIgZmlsbD0idXJsKCN2cGMpIi8+CiAgPHBhdGggZD0iTTE4IDUgTDE4IDMwIEg1IFoiIGZpbGw9IiNGQTU4MkQiIG9wYWNpdHk9IjAuMzUiLz4KICA8dGV4dCB4PSI0MCIgeT0iMjYiIGZvbnQtZmFtaWx5PSJTZWdvZSBVSSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9ImN1cnJlbnRDb2xvciI+UHJpc21hIENsb3VkPC90ZXh0Pgo8L3N2Zz4K",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/prisma-cloud",
+      "available": true,
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/prisma-cloud-v0.1.0/prisma-cloud.zip",
+      "sha256": "cc9d97b939297098dfe4ec3981a3a5f91864201a68e814ef46f1370fe141238f",
+      "sizeBytes": 54690,
+      "publishedAt": "2026-07-26T20:27:48.884Z",
+      "releaseNotes": "## 0.1.0 — 2026-07-26\n\n### Added\n- Initial release. Prisma Cloud CSPM API client (`lib/prismacloud.ts`) with\n  access-key login (`POST /login` → JWT), the `x-redlock-auth` header, automatic\n  re-login on 401, and `x-redlock-status` error-key parsing.\n- **Compliance Standards** configuration type — manage Prisma Cloud custom\n  compliance standards (name + description) as code, with the full pipeline\n  handler set: validate, deploy, rollback, drift detection, health check and\n  status. Standards are matched by name (Prisma has no lookup-by-name and\n  enforces name uniqueness); built-in (system default) standards are protected;\n  create returns no id so the app re-fetches to resolve it; reconcile only\n  deletes standards this app created.\n- Client UI — Overview, Setup Guide and Connections pages built on\n  `@veltrixsecops/app-sdk/ui`; Connections uses the shared `<ConnectionsManager>`\n  configured for the access-key credential and the `prisma-cloud` deploy target.\n- Connection test (`handlers/testConnection.ts`) logging in and calling\n  `GET /compliance`.",
       "releasedAt": "2026-07-26T00:00:00.000Z"
     },
     {
