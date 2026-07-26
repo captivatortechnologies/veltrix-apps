@@ -1,0 +1,115 @@
+id: google-secops
+name: Google SecOps
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Google Security Operations (Chronicle) configuration as code through the
+  SecOps REST API. v0.1 ships Reference Lists — named sets of string, regex or
+  CIDR entries — with validation, drift detection and rollback handled by the
+  Security-as-Code pipeline.
+category: SIEM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/google-secops
+icon: "🛰️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Google brand: blue primary.
+branding:
+  primaryColor: "#1A73E8"
+  accentColor: "#34A853"
+  logo: ./assets/logo.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: reference-lists
+      actions: [read, write, delete]
+      description: Manage Google SecOps reference lists (string / regex / CIDR entry sets)
+
+pipeline:
+  configurationTypes:
+    - id: reference-lists
+      name: Reference Lists
+      description: Reference lists — named string / regex / CIDR entry sets (id-keyed; entries reconciled; cannot be deleted, only emptied)
+      canvasTemplate: config-types/reference-lists/canvas.yaml
+      defaultConfig: config-types/reference-lists/defaults.yaml
+      handlers:
+        validate: config-types/reference-lists/validate
+        deploy: config-types/reference-lists/deploy
+        rollback: config-types/reference-lists/rollback
+        healthCheck: config-types/reference-lists/healthCheck
+        driftDetect: config-types/reference-lists/driftDetect
+        getStatus: config-types/reference-lists/getStatus
+      targets:
+        componentTypes: [google-secops]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/google-secops
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: mints a token and lists reference lists.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: region
+    type: string
+    label: Region
+    description: Your Google SecOps region (e.g. us, europe-west2, asia-southeast1).
+    default: us
+    required: true
+  - key: project_id
+    type: string
+    label: Project ID
+    description: The Google Cloud project id that hosts the SecOps instance.
+    required: true
+  - key: instance_id
+    type: string
+    label: Instance ID
+    description: Your Google SecOps customer / instance GUID.
+    required: true
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Google SecOps API calls.
+    default: 30
+    required: false

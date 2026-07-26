@@ -1,0 +1,65 @@
+# =============================================================================
+# Canvas Template — Google SecOps Reference Lists
+#
+# Declares ONE reference list — the item. Users add as many as they need.
+# A reference list's identity is its NAME (the referenceListId, immutable). Deploy
+# reads the live list and PATCHes its entries + description to exactly the declared
+# values (entries are a full replace), or creates the list if absent. The syntax
+# type is fixed at creation. Reference lists CANNOT be deleted, so reconcile
+# empties the ones this app created but no longer declares.
+#
+# Field keys must match what config-types/reference-lists/validate.ts checks.
+# =============================================================================
+
+id: "google-secops-reference-lists"
+name: "Reference List Configuration"
+toolType: "google-secops"
+entityType: "reference-lists"
+description: "Define Google Security Operations (Chronicle) reference lists (a named set of string, regex, or CIDR entries) as code through the SecOps API."
+
+item:
+  label: "Reference List"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Reference List"
+      icon: "list"
+      description: "List id, syntax and entries"
+      fields:
+        - key: "name"
+          label: "Name (reference list ID)"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The reference list ID — its immutable identity. Must start with a
+            letter and contain only letters, digits and underscores (max 255).
+
+        - key: "syntax"
+          label: "Syntax Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "plain"
+          options:
+            - label: "Plain text string"
+              value: "plain"
+            - label: "Regex (RE2)"
+              value: "regex"
+            - label: "CIDR"
+              value: "cidr"
+          helpText: "How each entry is interpreted. Fixed at creation."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the reference list."
+
+        - key: "entries"
+          label: "Entries (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            One entry per line (max 512 chars each). Deploy replaces the whole
+            list with these. For a CIDR list, entries must be IPv4 CIDR ranges.
