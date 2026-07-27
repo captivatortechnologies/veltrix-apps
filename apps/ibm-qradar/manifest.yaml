@@ -1,11 +1,11 @@
 id: ibm-qradar
 name: IBM QRadar
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage IBM QRadar configuration as code through the QRadar REST API — Reference
-  Sets and Reference Maps — with validation, drift detection and rollback handled
-  by the Security-as-Code pipeline.
+  Sets, Reference Maps and Map of Sets — with validation, drift detection and
+  rollback handled by the Security-as-Code pipeline.
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/ibm-qradar
@@ -32,9 +32,29 @@ permissions:
     - resource: reference-maps
       actions: [read, write, delete]
       description: Manage IBM QRadar reference maps (named, typed key=value collections) via the reference-data API
+    - resource: reference-map-of-sets
+      actions: [read, write, delete]
+      description: Manage IBM QRadar map-of-sets (named collections of key -> set-of-values) via the reference-data API
 
 pipeline:
   configurationTypes:
+    - id: reference-map-of-sets
+      name: Map of Sets
+      description: Map of sets — named collections where each key holds a set of values (name-keyed; key/value pairs reconciled to the declared set)
+      canvasTemplate: config-types/reference-map-of-sets/canvas.yaml
+      defaultConfig: config-types/reference-map-of-sets/defaults.yaml
+      handlers:
+        validate: config-types/reference-map-of-sets/validate
+        deploy: config-types/reference-map-of-sets/deploy
+        rollback: config-types/reference-map-of-sets/rollback
+        healthCheck: config-types/reference-map-of-sets/healthCheck
+        driftDetect: config-types/reference-map-of-sets/driftDetect
+        getStatus: config-types/reference-map-of-sets/getStatus
+      targets:
+        componentTypes: [ibm-qradar]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: reference-maps
       name: Reference Maps
       description: Reference maps — named, typed key=value collections (name-keyed; entries reconciled to the declared set)

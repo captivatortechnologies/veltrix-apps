@@ -1,0 +1,63 @@
+# =============================================================================
+# Canvas Template — IBM QRadar Map of Sets
+#
+# Declares ONE map-of-sets — the item. Users add as many as they need.
+# A map-of-sets is a named collection where each KEY holds a SET of values. Its
+# identity is its NAME (the classic reference-data API is name-keyed). Deploy
+# reads the live collection and reconciles its (key, value) pairs to exactly the
+# declared set, and creates it if absent. The element type is immutable.
+# Reconcile deletes collections this app created but no longer declares.
+#
+# Field keys must match config-types/reference-map-of-sets/validate.ts.
+# =============================================================================
+
+id: "ibm-qradar-reference-map-of-sets"
+name: "Map of Sets Configuration"
+toolType: "ibm-qradar"
+entityType: "reference-map-of-sets"
+description: "Define IBM QRadar map-of-sets (a named collection of key -> set-of-values) as code through the QRadar reference-data API."
+
+item:
+  label: "Map of Sets"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Map of Sets"
+      icon: "list"
+      description: "Name, value element type and key -> values entries"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The map-of-sets name — its identity in QRadar. Unique within this canvas."
+
+        - key: "elementType"
+          label: "Value Element Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "ALN"
+          options:
+            - label: "Alphanumeric (ALN)"
+              value: "ALN"
+            - label: "Alphanumeric, ignore case (ALNIC)"
+              value: "ALNIC"
+            - label: "IP address (IP)"
+              value: "IP"
+            - label: "Number (NUM)"
+              value: "NUM"
+            - label: "Port (PORT)"
+              value: "PORT"
+            - label: "Date (DATE)"
+              value: "DATE"
+          helpText: "The type of the values. Immutable after creation."
+
+        - key: "entries"
+          label: "Entries (key = value, value ...)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            One entry per line as "key = v1, v2, v3" — each key maps to a set of
+            values. Deploy reconciles the collection to exactly these pairs.

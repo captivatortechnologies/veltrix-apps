@@ -8,6 +8,16 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.3.0 — 2026-07-26
+
+### Added
+- **Map of Sets** configuration type — manage QRadar map-of-sets (named
+  collections where each key holds a *set* of values) as code, with the full
+  pipeline handler set. Collections are matched by name; their `(key, value)`
+  pairs are reconciled to exactly the declared set (add missing pairs, remove
+  extra); the value element type is immutable; reconcile only deletes
+  collections this app created.
+
 ## 0.2.0 — 2026-07-26
 
 ### Added
