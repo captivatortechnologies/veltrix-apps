@@ -8,6 +8,17 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.3.0 — 2026-07-26
+
+### Added
+- **Compliance Requirements** configuration type — manage custom compliance
+  requirements under a custom compliance standard as code, with the full pipeline
+  handler set. Each requirement declares its parent standard by name (resolved to
+  a complianceId at deploy — the standard must already exist); requirements are
+  matched by `requirementId` within the standard (the id is stored for rename-
+  safety) and reconciled (name/description/viewOrder). Built-in standards are
+  protected; reconcile only deletes requirements this app created.
+
 ## 0.2.0 — 2026-07-26
 
 ### Added

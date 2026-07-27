@@ -1,12 +1,12 @@
 id: prisma-cloud
 name: Prisma Cloud
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Palo Alto Prisma Cloud (CSPM) configuration as code through the Prisma
-  Cloud REST API — Custom Compliance Standards and Account Groups — with
-  validation, drift detection and rollback handled by the Security-as-Code
-  pipeline.
+  Cloud REST API — Custom Compliance Standards, Compliance Requirements and
+  Account Groups — with validation, drift detection and rollback handled by the
+  Security-as-Code pipeline.
 category: CLOUD
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/prisma-cloud
@@ -30,6 +30,9 @@ permissions:
     - resource: compliance-standards
       actions: [read, write, delete]
       description: Manage Prisma Cloud custom compliance standards (name + description); built-in standards protected
+    - resource: compliance-requirements
+      actions: [read, write, delete]
+      description: Manage Prisma Cloud custom compliance requirements under a custom standard (requirementId + name + description)
     - resource: account-groups
       actions: [read, write, delete]
       description: Manage Prisma Cloud account groups (name, description, member cloud-account ids); auto-created groups protected
@@ -48,6 +51,23 @@ pipeline:
         healthCheck: config-types/account-groups/healthCheck
         driftDetect: config-types/account-groups/driftDetect
         getStatus: config-types/account-groups/getStatus
+      targets:
+        componentTypes: [prisma-cloud]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: compliance-requirements
+      name: Compliance Requirements
+      description: Custom compliance requirements under a custom standard — requirementId, name, description, viewOrder (matched by requirementId within the standard; built-in standards protected)
+      canvasTemplate: config-types/compliance-requirements/canvas.yaml
+      defaultConfig: config-types/compliance-requirements/defaults.yaml
+      handlers:
+        validate: config-types/compliance-requirements/validate
+        deploy: config-types/compliance-requirements/deploy
+        rollback: config-types/compliance-requirements/rollback
+        healthCheck: config-types/compliance-requirements/healthCheck
+        driftDetect: config-types/compliance-requirements/driftDetect
+        getStatus: config-types/compliance-requirements/getStatus
       targets:
         componentTypes: [prisma-cloud]
         requiresCredential: true

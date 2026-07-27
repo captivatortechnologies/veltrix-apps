@@ -1,0 +1,71 @@
+# =============================================================================
+# Canvas Template — Prisma Cloud Custom Compliance Requirements
+#
+# Declares ONE requirement — the item — belonging to a custom compliance
+# standard. Requirements live UNDER a standard: at deploy the app resolves the
+# parent standard by NAME (it must already exist — declare it on the Compliance
+# Standards canvas), then matches a declared requirement to a live one by its
+# requirementId within that standard (storing the requirement id for rename-
+# safety). Built-in (system default) standards cannot take custom requirements.
+# Reconcile deletes requirements this app created but no longer declares.
+#
+# Field keys must match config-types/compliance-requirements/validate.ts.
+# =============================================================================
+
+id: "prisma-cloud-compliance-requirements"
+name: "Compliance Requirement Configuration"
+toolType: "prisma-cloud"
+entityType: "compliance-requirements"
+description: "Define Prisma Cloud custom compliance requirements (under a custom standard) as code through the Prisma Cloud CSPM API."
+
+item:
+  label: "Compliance Requirement"
+  identityField: "requirementId"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Requirement"
+      icon: "clipboard-check"
+      description: "The parent standard and the requirement's code, name and description"
+      fields:
+        - key: "standardName"
+          label: "Parent Standard Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The name of the custom compliance standard this requirement belongs
+            to. It must already exist — declare it on the Compliance Standards
+            canvas first. Built-in standards cannot take custom requirements.
+
+        - key: "requirementId"
+          label: "Requirement ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The requirement's short code (e.g. "1.1"). Its identity within the
+            standard — unique per (standard, requirement) in this canvas.
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The requirement's display name."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Optional description of the requirement."
+
+        - key: "viewOrder"
+          label: "View Order"
+          fieldType: "number"
+          required: false
+          helpText: "Optional display order within the standard (0 or greater)."
