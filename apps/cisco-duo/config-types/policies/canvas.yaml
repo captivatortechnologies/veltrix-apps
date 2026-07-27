@@ -1,0 +1,69 @@
+# =============================================================================
+# Canvas Template — Cisco Duo Policies
+#
+# Declares ONE Duo policy — the item. Users add as many as they need.
+# Duo policies are addressed by an opaque policy_key (no lookup-by-name), so the
+# app matches a declared policy to a live one by NAME and stores the policy_key
+# from the deploy for rename-safety (V5-signed /admin/v2/policies).
+#
+# Create is two-step: POST {name} then a PUT applies the `sections` settings map.
+# The `sections` blob is an opaque, validated JSON object keyed by section name
+# (Authentication Policy, Operating Systems, Browsers, Networks, Device Health
+# App, Remembered Devices, ...) — its inner settings are round-tripped verbatim.
+# Deploy converges a policy to exactly the declared sections (sections the app
+# previously set but no longer declares are cleared); the Global Policy is an
+# update-only singleton that is never created or deleted. Reconcile deletes only
+# custom policies this app created but no longer declares.
+#
+# Field keys must match what config-types/policies/validate.ts checks.
+# =============================================================================
+
+id: "cisco-duo-policies"
+name: "Policy Configuration"
+toolType: "cisco-duo"
+entityType: "policies"
+description: "Define Cisco Duo policies (name + settings sections) as code through the Duo Admin API v2. Requires a Duo Access/Essentials (or higher) edition."
+
+item:
+  label: "Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Policy name, Global Policy flag and its settings sections"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The policy's name — its identity in this canvas. Duo has no
+            lookup-by-name, so the policy_key is stored after deploy for
+            rename-safety. For the Global Policy, use its name (e.g. "Global
+            Policy") and enable the flag below.
+
+        - key: "is_global"
+          label: "Global Policy (update-only)"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: >
+            Mark this item as the tenant's single Global Policy. The Global Policy
+            already exists and cannot be created or deleted — deploy only updates
+            its sections and never renames or removes it.
+
+        - key: "sections"
+          label: "Sections (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            The policy's settings map as a JSON object keyed by section name, e.g.
+            {"browsers": {...}, "operating_systems": {...}}. Each section maps to
+            that section's settings object; the inner values are round-tripped
+            verbatim. Leave blank to manage no sections. On deploy the policy is
+            converged to exactly these sections (custom policies only).

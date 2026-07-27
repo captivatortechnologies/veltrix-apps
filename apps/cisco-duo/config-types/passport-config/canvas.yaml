@@ -1,0 +1,76 @@
+# =============================================================================
+# Canvas Template — Cisco Duo Passport
+#
+# Passport is a per-tenant SINGLETON, so this item is NOT repeatable
+# (minItems/maxItems 1) and has no identity field. Deploy is a GET-then-POST
+# patch of /admin/v2/passport/config (V5-signed); there is no create, delete or
+# lifecycle. Rollback re-POSTs the prior configuration captured at deploy.
+#
+# Field keys must match what config-types/passport-config/validate.ts checks.
+# =============================================================================
+
+id: "cisco-duo-passport-config"
+name: "Passport Configuration"
+toolType: "cisco-duo"
+entityType: "passport-config"
+description: "Configure Cisco Duo Passport (desktop SSO) enablement as code through the Duo Admin API v2. A tenant singleton — status plus optional per-group scoping and custom supported browsers."
+
+item:
+  label: "Passport Configuration"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Passport"
+      icon: "key"
+      description: "Enablement status and optional group scoping"
+      fields:
+        - key: "enabled_status"
+          label: "Enabled Status"
+          fieldType: "select"
+          required: true
+          defaultValue: "disabled"
+          options:
+            - label: "Disabled"
+              value: "disabled"
+            - label: "Enabled (all users)"
+              value: "enabled"
+            - label: "Enabled for groups"
+              value: "enabled-for-groups"
+            - label: "Enabled with exceptions"
+              value: "enabled-with-exceptions"
+          helpText: >
+            Whether Passport is off, on for everyone, on only for specific groups,
+            or on for everyone except specific groups.
+
+        - key: "enabled_groups"
+          label: "Enabled Group IDs"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Duo group ids (one per line or comma-separated) that Passport applies
+            to. Used only when status is "Enabled for groups".
+
+        - key: "disabled_groups"
+          label: "Disabled Group IDs"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Duo group ids (one per line or comma-separated) excepted from Passport.
+            Used only when status is "Enabled with exceptions".
+
+    - name: "Custom Supported Browsers"
+      icon: "globe"
+      description: "Optional additional browsers to support per platform"
+      fields:
+        - key: "custom_browsers_macos"
+          label: "macOS Browsers"
+          fieldType: "textarea"
+          required: false
+          helpText: "Additional supported macOS browsers (one per line or comma-separated). Leave blank for none."
+
+        - key: "custom_browsers_windows"
+          label: "Windows Browsers"
+          fieldType: "textarea"
+          required: false
+          helpText: "Additional supported Windows browsers (one per line or comma-separated). Leave blank for none."

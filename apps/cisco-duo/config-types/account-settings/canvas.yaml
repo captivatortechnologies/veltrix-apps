@@ -1,0 +1,187 @@
+# =============================================================================
+# Canvas Template — Cisco Duo Account (Global) Settings
+#
+# Account settings are a per-tenant SINGLETON, so this item is NOT repeatable
+# (minItems/maxItems 1) and has no identity field. Deploy is a GET-then-POST
+# patch of /admin/v1/settings (v1, HMAC-SHA1 form-encoded). Every field is
+# optional and only MANAGED when set — unset fields are left untouched. Boolean
+# settings use a tri-state select where "Leave unmanaged" omits the field.
+# Rollback re-POSTs the prior values of exactly the fields this deploy changed.
+#
+# Field keys must match what config-types/account-settings/validate.ts checks.
+# =============================================================================
+
+id: "cisco-duo-account-settings"
+name: "Account Settings Configuration"
+toolType: "cisco-duo"
+entityType: "account-settings"
+description: "Configure Cisco Duo account-wide (global) settings as code through the Duo Admin API — admin lockout, password policy, log retention, fraud reporting and helpdesk bypass. A tenant singleton; every field is optional and managed only when set."
+
+item:
+  label: "Account Settings"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Admin Lockout & Sessions"
+      icon: "lock"
+      description: "Admin Panel lockout and user-lifecycle timers"
+      fields:
+        - key: "lockout_threshold"
+          label: "Lockout Threshold (failed attempts)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+          helpText: "Failed admin logins before lockout. Leave blank to leave unmanaged."
+
+        - key: "lockout_expire_duration"
+          label: "Lockout Expiry (minutes)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+          helpText: "Minutes a locked-out admin stays locked (0 = until manually unlocked). Leave blank to leave unmanaged."
+
+        - key: "inactive_user_expiration"
+          label: "Inactive User Expiration (days)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+          helpText: "Days of inactivity before a user is disabled. Leave blank to leave unmanaged."
+
+        - key: "log_retention_days"
+          label: "Log Retention (days)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+          helpText: "Days of log retention. Leave blank to leave unmanaged."
+
+    - name: "Admin Password Policy"
+      icon: "shield"
+      description: "Password requirements for Duo Admin Panel administrators"
+      fields:
+        - key: "minimum_password_length"
+          label: "Minimum Password Length"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+          helpText: "Minimum admin password length. Leave blank to leave unmanaged."
+
+        - key: "password_requires_upper_alpha"
+          label: "Require Uppercase"
+          fieldType: "select"
+          required: false
+          options:
+            - label: "Leave unmanaged"
+              value: ""
+            - label: "Required"
+              value: "true"
+            - label: "Not required"
+              value: "false"
+          helpText: "Whether admin passwords must contain an uppercase letter."
+
+        - key: "password_requires_lower_alpha"
+          label: "Require Lowercase"
+          fieldType: "select"
+          required: false
+          options:
+            - label: "Leave unmanaged"
+              value: ""
+            - label: "Required"
+              value: "true"
+            - label: "Not required"
+              value: "false"
+          helpText: "Whether admin passwords must contain a lowercase letter."
+
+        - key: "password_requires_numeric"
+          label: "Require Number"
+          fieldType: "select"
+          required: false
+          options:
+            - label: "Leave unmanaged"
+              value: ""
+            - label: "Required"
+              value: "true"
+            - label: "Not required"
+              value: "false"
+          helpText: "Whether admin passwords must contain a number."
+
+        - key: "password_requires_special"
+          label: "Require Special Character"
+          fieldType: "select"
+          required: false
+          options:
+            - label: "Leave unmanaged"
+              value: ""
+            - label: "Required"
+              value: "true"
+            - label: "Not required"
+              value: "false"
+          helpText: "Whether admin passwords must contain a special character."
+
+    - name: "Fraud, Timezone & Helpdesk"
+      icon: "bell"
+      description: "Fraud reporting, display timezone and helpdesk bypass policy"
+      fields:
+        - key: "fraud_email_enabled"
+          label: "Fraud Email Enabled"
+          fieldType: "select"
+          required: false
+          options:
+            - label: "Leave unmanaged"
+              value: ""
+            - label: "Enabled"
+              value: "true"
+            - label: "Disabled"
+              value: "false"
+          helpText: "Whether Duo emails an address when a user reports fraud."
+
+        - key: "fraud_email"
+          label: "Fraud Email Address"
+          fieldType: "text"
+          required: false
+          helpText: "Address notified on fraud reports. Leave blank to leave unmanaged."
+
+        - key: "security_checkup_enabled"
+          label: "Security Checkup Enabled"
+          fieldType: "select"
+          required: false
+          options:
+            - label: "Leave unmanaged"
+              value: ""
+            - label: "Enabled"
+              value: "true"
+            - label: "Disabled"
+              value: "false"
+          helpText: "Whether the Admin Panel Security Checkup is shown."
+
+        - key: "timezone"
+          label: "Timezone (IANA)"
+          fieldType: "text"
+          required: false
+          helpText: "IANA timezone for Admin Panel timestamps, e.g. America/New_York. Leave blank to leave unmanaged."
+
+        - key: "helpdesk_bypass"
+          label: "Helpdesk Bypass Policy"
+          fieldType: "select"
+          required: false
+          options:
+            - label: "Leave unmanaged"
+              value: ""
+            - label: "Allow"
+              value: "allow"
+            - label: "Limit"
+              value: "limit"
+            - label: "Deny"
+              value: "deny"
+          helpText: "Whether helpdesk admins may generate bypass codes."
+
+        - key: "helpdesk_message"
+          label: "Helpdesk Message"
+          fieldType: "textarea"
+          required: false
+          helpText: "Message shown to helpdesk admins. Leave blank to leave unmanaged."

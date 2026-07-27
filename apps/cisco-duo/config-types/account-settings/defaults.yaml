@@ -1,0 +1,5 @@
+# Defaults for the singleton account-settings item.
+#
+# Intentionally empty — the item starts blank so every field is "unmanaged" until
+# the operator sets it. Any values here would be a FLAT map keyed by the canvas
+# field keys (lockout_threshold, minimum_password_length, helpdesk_bypass, ...).
