@@ -1,0 +1,9 @@
+# Defaults for a new address alteration policy item.
+#
+# A FLAT map keyed by the canvas field keys. Seeds the common case (apply an
+# alteration set to a sender domain for everyone); the set ID and from value are
+# left blank for a deliberate choice.
+fromPart: envelope_from
+fromType: email_domain
+toType: everyone
+enabled: true

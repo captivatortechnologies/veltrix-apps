@@ -8,6 +8,19 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.4.0 — 2026-07-26
+
+### Added
+- **Address Alteration** configuration type — manage Mimecast address alteration
+  policies (apply an address alteration set to scoped senders/recipients) as code,
+  with the full pipeline handler set. Each policy binds an existing Address
+  Alteration Set (referenced by its secure `addressAlterationSetId`) to a
+  sender/recipient scope; policies are matched by description; from/to targeting is
+  kept self-contained (everyone / email domain / email address); `fromPart`
+  (envelope/header/both) and `enabled` are configurable; a change is applied as
+  delete + recreate; the prior policy is carried forward so rollback can restore
+  it; reconcile only deletes policies this app created.
+
 ## 0.3.0 — 2026-07-26
 
 ### Added

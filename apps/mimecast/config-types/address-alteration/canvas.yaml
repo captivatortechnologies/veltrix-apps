@@ -1,0 +1,118 @@
+# =============================================================================
+# Canvas Template — Mimecast Address Alteration Policies
+#
+# Declares ONE address alteration policy — the item. Users add as many as they
+# need. A policy's logical identity is its DESCRIPTION; the app lists policies,
+# matches on the description, and (since there is no safe in-place update) applies
+# changes by delete + recreate. Reconcile deletes policies this app created but no
+# longer declares. Each policy binds an existing Address Alteration Set (referenced
+# by its secure ID) to a sender/recipient scope; create the set in the Mimecast
+# Administration Console and paste its ID here. Keep from/to to self-contained
+# types (everyone / email domain / email address) — group/attribute targeting is
+# out of scope.
+#
+# Field keys must match config-types/address-alteration/validate.ts.
+# =============================================================================
+
+id: "mimecast-address-alteration"
+name: "Address Alteration Policy Configuration"
+toolType: "mimecast"
+entityType: "address-alteration"
+description: "Define Mimecast address alteration policies (apply an address alteration set to scoped senders/recipients) as code through the Mimecast API."
+
+item:
+  label: "Address Alteration Policy"
+  identityField: "description"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Policy identity, the alteration set it applies, and scope"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The policy description — its identity. Must be unique within this
+            canvas; the app matches live policies on it.
+
+        - key: "addressAlterationSetId"
+          label: "Address Alteration Set ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The secure ID of the Address Alteration Set this policy applies.
+            Create the set in the Mimecast Administration Console (or via the
+            address alteration set endpoints) and paste its ID here.
+
+        - key: "fromPart"
+          label: "Apply To Address"
+          fieldType: "select"
+          required: true
+          defaultValue: "envelope_from"
+          options:
+            - label: "Envelope from"
+              value: "envelope_from"
+            - label: "Header from"
+              value: "header_from"
+            - label: "Both"
+              value: "both"
+          helpText: "Which part of the sender address the policy evaluates."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the policy is applied to messages."
+
+    - name: "From"
+      icon: "user"
+      description: "The sender the policy applies to"
+      fields:
+        - key: "fromType"
+          label: "From Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "email_domain"
+          options:
+            - label: "Email domain"
+              value: "email_domain"
+            - label: "Email address"
+              value: "email_address"
+            - label: "Everyone"
+              value: "everyone"
+          helpText: "Match the sender by domain, exact address, or everyone."
+
+        - key: "fromValue"
+          label: "From Value"
+          fieldType: "text"
+          required: false
+          helpText: "The domain or email address (required unless From Type is Everyone)."
+
+    - name: "To"
+      icon: "users"
+      description: "The recipients the policy applies to"
+      fields:
+        - key: "toType"
+          label: "To Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "everyone"
+          options:
+            - label: "Everyone"
+              value: "everyone"
+            - label: "Email domain"
+              value: "email_domain"
+            - label: "Email address"
+              value: "email_address"
+          helpText: "Match the recipient by everyone, domain, or exact address."
+
+        - key: "toValue"
+          label: "To Value"
+          fieldType: "text"
+          required: false
+          helpText: "The domain or email address (required unless To Type is Everyone)."

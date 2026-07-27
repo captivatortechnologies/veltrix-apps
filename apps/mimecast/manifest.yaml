@@ -1,11 +1,12 @@
 id: mimecast
 name: Mimecast
-version: "0.3.0"
+version: "0.4.0"
 vendor: Veltrix
 description: >
   Manage Mimecast configuration as code through the Mimecast API 2.0 — Managed
-  URLs, Blocked Sender and Anti-Spoofing Bypass policies — with validation, drift
-  detection and rollback handled by the Security-as-Code pipeline.
+  URLs, Blocked Sender, Anti-Spoofing Bypass and Address Alteration policies —
+  with validation, drift detection and rollback handled by the Security-as-Code
+  pipeline.
 category: COMPLIANCE
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/mimecast
@@ -35,6 +36,9 @@ permissions:
     - resource: anti-spoofing-bypass
       actions: [read, write, delete]
       description: Manage Mimecast anti-spoofing bypass policies (bypass anti-spoofing checks for trusted senders)
+    - resource: address-alteration
+      actions: [read, write, delete]
+      description: Manage Mimecast address alteration policies (apply an address alteration set to scoped senders/recipients)
 
 pipeline:
   configurationTypes:
@@ -67,6 +71,23 @@ pipeline:
         healthCheck: config-types/anti-spoofing-bypass/healthCheck
         driftDetect: config-types/anti-spoofing-bypass/driftDetect
         getStatus: config-types/anti-spoofing-bypass/getStatus
+      targets:
+        componentTypes: [mimecast]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: address-alteration
+      name: Address Alteration
+      description: Address alteration policies — apply an address alteration set to scoped senders/recipients (description-keyed; delete+recreate on change)
+      canvasTemplate: config-types/address-alteration/canvas.yaml
+      defaultConfig: config-types/address-alteration/defaults.yaml
+      handlers:
+        validate: config-types/address-alteration/validate
+        deploy: config-types/address-alteration/deploy
+        rollback: config-types/address-alteration/rollback
+        healthCheck: config-types/address-alteration/healthCheck
+        driftDetect: config-types/address-alteration/driftDetect
+        getStatus: config-types/address-alteration/getStatus
       targets:
         componentTypes: [mimecast]
         requiresCredential: true
