@@ -8,6 +8,17 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.3.0 — 2026-07-26
+
+### Added
+- **Anti-Spoofing Bypass** configuration type — manage Mimecast anti-spoofing
+  bypass policies (bypass anti-spoofing checks for trusted senders) as code, with
+  the full pipeline handler set. Policies are matched by description; from/to
+  targeting is kept self-contained (everyone / email domain / email address); the
+  bypass can be scoped to a list of SPF domains (`conditions.spfDomains`); a change
+  is applied as delete + recreate; the prior policy is carried forward so rollback
+  can restore it; reconcile only deletes policies this app created.
+
 ## 0.2.0 — 2026-07-26
 
 ### Added

@@ -1,11 +1,11 @@
 id: mimecast
 name: Mimecast
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Mimecast configuration as code through the Mimecast API 2.0 — Managed
-  URLs and Blocked Sender policies — with validation, drift detection and rollback
-  handled by the Security-as-Code pipeline.
+  URLs, Blocked Sender and Anti-Spoofing Bypass policies — with validation, drift
+  detection and rollback handled by the Security-as-Code pipeline.
 category: COMPLIANCE
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/mimecast
@@ -32,6 +32,9 @@ permissions:
     - resource: blocked-senders
       actions: [read, write, delete]
       description: Manage Mimecast blocked sender policies (block a sender email/domain from reaching recipients)
+    - resource: anti-spoofing-bypass
+      actions: [read, write, delete]
+      description: Manage Mimecast anti-spoofing bypass policies (bypass anti-spoofing checks for trusted senders)
 
 pipeline:
   configurationTypes:
@@ -47,6 +50,23 @@ pipeline:
         healthCheck: config-types/blocked-senders/healthCheck
         driftDetect: config-types/blocked-senders/driftDetect
         getStatus: config-types/blocked-senders/getStatus
+      targets:
+        componentTypes: [mimecast]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: anti-spoofing-bypass
+      name: Anti-Spoofing Bypass
+      description: Anti-spoofing bypass policies — bypass anti-spoofing checks for trusted senders, optionally scoped to SPF domains (description-keyed; delete+recreate on change)
+      canvasTemplate: config-types/anti-spoofing-bypass/canvas.yaml
+      defaultConfig: config-types/anti-spoofing-bypass/defaults.yaml
+      handlers:
+        validate: config-types/anti-spoofing-bypass/validate
+        deploy: config-types/anti-spoofing-bypass/deploy
+        rollback: config-types/anti-spoofing-bypass/rollback
+        healthCheck: config-types/anti-spoofing-bypass/healthCheck
+        driftDetect: config-types/anti-spoofing-bypass/driftDetect
+        getStatus: config-types/anti-spoofing-bypass/getStatus
       targets:
         componentTypes: [mimecast]
         requiresCredential: true

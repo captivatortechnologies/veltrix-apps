@@ -1,0 +1,110 @@
+# =============================================================================
+# Canvas Template — Mimecast Anti-Spoofing Bypass Policies
+#
+# Declares ONE anti-spoofing bypass policy — the item. Users add as many as they
+# need. A policy's logical identity is its DESCRIPTION; the app lists policies,
+# matches on the description, and (since there is no safe in-place update) applies
+# changes by delete + recreate. Reconcile deletes policies this app created but no
+# longer declares. Keep from/to to self-contained types (everyone / email domain /
+# email address) — group/attribute targeting is out of scope. spfDomains scopes
+# the bypass to specific SPF domains.
+#
+# Field keys must match config-types/anti-spoofing-bypass/validate.ts.
+# =============================================================================
+
+id: "mimecast-anti-spoofing-bypass"
+name: "Anti-Spoofing Bypass Policy Configuration"
+toolType: "mimecast"
+entityType: "anti-spoofing-bypass"
+description: "Define Mimecast anti-spoofing bypass policies (bypass anti-spoofing checks for trusted senders) as code through the Mimecast API."
+
+item:
+  label: "Anti-Spoofing Bypass Policy"
+  identityField: "description"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Policy description and action"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The policy description — its identity. Must be unique within this
+            canvas; the app matches live policies on it.
+
+        - key: "option"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "enable_bypass"
+          options:
+            - label: "Enable bypass"
+              value: "enable_bypass"
+            - label: "Disable bypass"
+              value: "disable_bypass"
+          helpText: "Whether the policy enables or disables the anti-spoofing bypass."
+
+    - name: "From"
+      icon: "user"
+      description: "The sender the policy applies to"
+      fields:
+        - key: "fromType"
+          label: "From Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "email_domain"
+          options:
+            - label: "Email domain"
+              value: "email_domain"
+            - label: "Email address"
+              value: "email_address"
+            - label: "Everyone"
+              value: "everyone"
+          helpText: "Match the sender by domain, exact address, or everyone."
+
+        - key: "fromValue"
+          label: "From Value"
+          fieldType: "text"
+          required: false
+          helpText: "The domain or email address (required unless From Type is Everyone)."
+
+    - name: "To"
+      icon: "users"
+      description: "The recipients the policy applies to"
+      fields:
+        - key: "toType"
+          label: "To Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "everyone"
+          options:
+            - label: "Everyone"
+              value: "everyone"
+            - label: "Email domain"
+              value: "email_domain"
+            - label: "Email address"
+              value: "email_address"
+          helpText: "Match the recipient by everyone, domain, or exact address."
+
+        - key: "toValue"
+          label: "To Value"
+          fieldType: "text"
+          required: false
+          helpText: "The domain or email address (required unless To Type is Everyone)."
+
+    - name: "Conditions"
+      icon: "filter"
+      description: "Optionally scope the bypass to specific SPF domains"
+      fields:
+        - key: "spfDomains"
+          label: "SPF Domains"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional SPF domains the bypass applies to, one per line (or comma
+            separated). Leave blank to apply regardless of SPF domain.

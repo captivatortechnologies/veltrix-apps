@@ -1,0 +1,8 @@
+# Defaults for a new anti-spoofing bypass policy item.
+#
+# A FLAT map keyed by the canvas field keys. Seeds the common case (bypass
+# anti-spoofing for a trusted sender domain to everyone); the from value and SPF
+# domains are left blank for a deliberate choice.
+option: enable_bypass
+fromType: email_domain
+toType: everyone
