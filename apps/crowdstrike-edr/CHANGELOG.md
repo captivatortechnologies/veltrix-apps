@@ -3,6 +3,21 @@
 All notable changes to the CrowdStrike Falcon app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.10.0 — 2026-07-27
+
+### Added
+- **Cloud Security** — a new sidebar group with ten configuration types across the
+  Falcon Cloud Security surface:
+  - `/cloud-policies/` family: **Custom Configuration (IOM) Rule** (Rego logic),
+    **Suppression Rule**, **Rule Override**, **Compliance Framework**, **Compliance
+    Control** (+ rule assignments).
+  - **Cloud Group** (asset grouping), **Account Registration** (AWS/Azure/GCP),
+    **Image Assessment Policy**, **Registry Connection**, **Kubernetes Admission
+    (KAC) Policy**.
+- Shared generic `lib/entityAdapter.ts` (query→get→CRUD by configurable identity)
+  powering the `/cloud-policies/` family + Cloud Groups; the bespoke registration /
+  image-assessment / registry / KAC types call the Falcon client directly.
+
 ## 1.9.0 — 2026-07-27
 
 ### Added

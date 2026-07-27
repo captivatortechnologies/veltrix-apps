@@ -1,0 +1,62 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Cloud Security Custom Compliance Controls
+#
+# Declares ONE custom compliance control — the item. Users add as many controls
+# as they need. Field keys must match what
+# config-types/cloud-compliance-controls/validate.ts checks.
+#
+# A control belongs to a framework (by framework UUID) and a section within it.
+# Its identity is the control `name` within that framework+section; uniqueness
+# per canvas is enforced by validate.ts. Rule assignments (the Cloud Security
+# IOM rule IDs graded under the control) are managed via a separate assignment
+# endpoint and converged to exactly the declared set on deploy.
+# =============================================================================
+
+id: "crowdstrike-edr-cloud-compliance-controls"
+name: "Cloud Compliance Control Configuration"
+toolType: "crowdstrike-edr"
+entityType: "cloud-compliance-controls"
+description: "Define Falcon Cloud Security custom compliance controls and their assigned rule IDs as code via the Cloud Security Policies API"
+
+item:
+  label: "Compliance Control"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "General"
+      icon: "list-checks"
+      description: "Control identity, parent framework, section, and assigned rules"
+      fields:
+        - key: "name"
+          label: "Control Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Control name, unique within its framework and section. Must be unique per canvas."
+
+        - key: "frameworkId"
+          label: "Framework UUID"
+          fieldType: "text"
+          required: true
+          helpText: "UUID of the parent custom compliance framework (from the Cloud Compliance Framework config). The framework must already exist."
+
+        - key: "section"
+          label: "Section"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Section name within the framework the control belongs to. Immutable after creation — Falcon does not move a control between sections via update."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "What this control asserts — shown in the Falcon Cloud Security console"
+
+        - key: "ruleIds"
+          label: "Assigned Rule IDs"
+          fieldType: "tags"
+          helpText: "Cloud Security IOM rule IDs assigned to this control. Deployment converges the control's assignments to exactly this list; leave empty to assign no rules."

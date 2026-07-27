@@ -1,6 +1,6 @@
 id: crowdstrike-edr
 name: CrowdStrike Falcon
-version: "1.9.0"
+version: "1.10.0"
 vendor: Veltrix
 description: >
   Manage CrowdStrike Falcon configurations as code through the Falcon
@@ -76,6 +76,36 @@ permissions:
     - resource: filevantage-scheduled-exclusions
       actions: [read, write, delete]
       description: Manage CrowdStrike Falcon FileVantage scheduled exclusions
+    - resource: cloud-iom-custom-rules
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon Cloud Security custom configuration (IOM) rules
+    - resource: cloud-suppression-rules
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon Cloud Security suppression rules
+    - resource: cloud-rule-overrides
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon Cloud Security rule overrides (per-account severity/enable)
+    - resource: cloud-compliance-frameworks
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon Cloud Security custom compliance frameworks
+    - resource: cloud-compliance-controls
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon Cloud Security custom compliance controls (+ rule assignments)
+    - resource: cloud-groups
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon Cloud Security cloud groups (asset grouping)
+    - resource: cloud-account-registrations
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon Cloud Security account registrations (AWS/Azure/GCP)
+    - resource: cloud-image-assessment-policies
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon Cloud Security image assessment policies
+    - resource: cloud-registry-connections
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon Cloud Security registry connections
+    - resource: cloud-kac-policies
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon Cloud Security Kubernetes admission (KAC) policies
 
 pipeline:
   configurationTypes:
@@ -326,6 +356,186 @@ pipeline:
         healthCheck: config-types/filevantage-scheduled-exclusions/healthCheck
         driftDetect: config-types/filevantage-scheduled-exclusions/driftDetect
         getStatus: config-types/filevantage-scheduled-exclusions/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloud-iom-custom-rules
+      group: "Cloud Security"
+      name: Cloud IOM Custom Rule Configuration
+      description: Falcon Cloud Security custom configuration (IOM) rules — Rego logic, cloud provider + resource type, severity, remediation, compliance controls
+      canvasTemplate: config-types/cloud-iom-custom-rules/canvas.yaml
+      defaultConfig: config-types/cloud-iom-custom-rules/defaults.yaml
+      handlers:
+        validate: config-types/cloud-iom-custom-rules/validate
+        deploy: config-types/cloud-iom-custom-rules/deploy
+        rollback: config-types/cloud-iom-custom-rules/rollback
+        healthCheck: config-types/cloud-iom-custom-rules/healthCheck
+        driftDetect: config-types/cloud-iom-custom-rules/driftDetect
+        getStatus: config-types/cloud-iom-custom-rules/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloud-suppression-rules
+      group: "Cloud Security"
+      name: Cloud Suppression Rule Configuration
+      description: Falcon Cloud Security suppression rules — suppress cloud misconfiguration / vulnerability findings by filter
+      canvasTemplate: config-types/cloud-suppression-rules/canvas.yaml
+      defaultConfig: config-types/cloud-suppression-rules/defaults.yaml
+      handlers:
+        validate: config-types/cloud-suppression-rules/validate
+        deploy: config-types/cloud-suppression-rules/deploy
+        rollback: config-types/cloud-suppression-rules/rollback
+        healthCheck: config-types/cloud-suppression-rules/healthCheck
+        driftDetect: config-types/cloud-suppression-rules/driftDetect
+        getStatus: config-types/cloud-suppression-rules/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloud-rule-overrides
+      group: "Cloud Security"
+      name: Cloud Rule Override Configuration
+      description: Falcon Cloud Security rule overrides — per-account severity / enablement overrides of built-in policy rules
+      canvasTemplate: config-types/cloud-rule-overrides/canvas.yaml
+      defaultConfig: config-types/cloud-rule-overrides/defaults.yaml
+      handlers:
+        validate: config-types/cloud-rule-overrides/validate
+        deploy: config-types/cloud-rule-overrides/deploy
+        rollback: config-types/cloud-rule-overrides/rollback
+        healthCheck: config-types/cloud-rule-overrides/healthCheck
+        driftDetect: config-types/cloud-rule-overrides/driftDetect
+        getStatus: config-types/cloud-rule-overrides/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloud-compliance-frameworks
+      group: "Cloud Security"
+      name: Cloud Compliance Framework Configuration
+      description: Falcon Cloud Security custom compliance frameworks (sections + metadata)
+      canvasTemplate: config-types/cloud-compliance-frameworks/canvas.yaml
+      defaultConfig: config-types/cloud-compliance-frameworks/defaults.yaml
+      handlers:
+        validate: config-types/cloud-compliance-frameworks/validate
+        deploy: config-types/cloud-compliance-frameworks/deploy
+        rollback: config-types/cloud-compliance-frameworks/rollback
+        healthCheck: config-types/cloud-compliance-frameworks/healthCheck
+        driftDetect: config-types/cloud-compliance-frameworks/driftDetect
+        getStatus: config-types/cloud-compliance-frameworks/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloud-compliance-controls
+      group: "Cloud Security"
+      name: Cloud Compliance Control Configuration
+      description: Falcon Cloud Security custom compliance controls and their rule assignments
+      canvasTemplate: config-types/cloud-compliance-controls/canvas.yaml
+      defaultConfig: config-types/cloud-compliance-controls/defaults.yaml
+      handlers:
+        validate: config-types/cloud-compliance-controls/validate
+        deploy: config-types/cloud-compliance-controls/deploy
+        rollback: config-types/cloud-compliance-controls/rollback
+        healthCheck: config-types/cloud-compliance-controls/healthCheck
+        driftDetect: config-types/cloud-compliance-controls/driftDetect
+        getStatus: config-types/cloud-compliance-controls/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloud-groups
+      group: "Cloud Security"
+      name: Cloud Group Configuration
+      description: Falcon Cloud Security cloud groups — asset grouping across clouds/images with business impact, environment, owners
+      canvasTemplate: config-types/cloud-groups/canvas.yaml
+      defaultConfig: config-types/cloud-groups/defaults.yaml
+      handlers:
+        validate: config-types/cloud-groups/validate
+        deploy: config-types/cloud-groups/deploy
+        rollback: config-types/cloud-groups/rollback
+        healthCheck: config-types/cloud-groups/healthCheck
+        driftDetect: config-types/cloud-groups/driftDetect
+        getStatus: config-types/cloud-groups/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloud-account-registrations
+      group: "Cloud Security"
+      name: Cloud Account Registration Configuration
+      description: Falcon Cloud Security account registrations (AWS accounts / Azure subscriptions / GCP projects) with CSPM feature flags
+      canvasTemplate: config-types/cloud-account-registrations/canvas.yaml
+      defaultConfig: config-types/cloud-account-registrations/defaults.yaml
+      handlers:
+        validate: config-types/cloud-account-registrations/validate
+        deploy: config-types/cloud-account-registrations/deploy
+        rollback: config-types/cloud-account-registrations/rollback
+        healthCheck: config-types/cloud-account-registrations/healthCheck
+        driftDetect: config-types/cloud-account-registrations/driftDetect
+        getStatus: config-types/cloud-account-registrations/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloud-image-assessment-policies
+      group: "Cloud Security"
+      name: Image Assessment Policy Configuration
+      description: Falcon Cloud Security image assessment policies — CVE/misconfig/secret/malware thresholds and allow/alert/prevent actions
+      canvasTemplate: config-types/cloud-image-assessment-policies/canvas.yaml
+      defaultConfig: config-types/cloud-image-assessment-policies/defaults.yaml
+      handlers:
+        validate: config-types/cloud-image-assessment-policies/validate
+        deploy: config-types/cloud-image-assessment-policies/deploy
+        rollback: config-types/cloud-image-assessment-policies/rollback
+        healthCheck: config-types/cloud-image-assessment-policies/healthCheck
+        driftDetect: config-types/cloud-image-assessment-policies/driftDetect
+        getStatus: config-types/cloud-image-assessment-policies/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloud-registry-connections
+      group: "Cloud Security"
+      name: Registry Connection Configuration
+      description: Falcon Cloud Security registry connections — container registry URL, type, and scan settings (credentials via the connection)
+      canvasTemplate: config-types/cloud-registry-connections/canvas.yaml
+      defaultConfig: config-types/cloud-registry-connections/defaults.yaml
+      handlers:
+        validate: config-types/cloud-registry-connections/validate
+        deploy: config-types/cloud-registry-connections/deploy
+        rollback: config-types/cloud-registry-connections/rollback
+        healthCheck: config-types/cloud-registry-connections/healthCheck
+        driftDetect: config-types/cloud-registry-connections/driftDetect
+        getStatus: config-types/cloud-registry-connections/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloud-kac-policies
+      group: "Cloud Security"
+      name: Kubernetes Admission Policy Configuration
+      description: Falcon Cloud Security Kubernetes admission (KAC) policies — namespace/label-scoped rule groups with alert/prevent actions
+      canvasTemplate: config-types/cloud-kac-policies/canvas.yaml
+      defaultConfig: config-types/cloud-kac-policies/defaults.yaml
+      handlers:
+        validate: config-types/cloud-kac-policies/validate
+        deploy: config-types/cloud-kac-policies/deploy
+        rollback: config-types/cloud-kac-policies/rollback
+        healthCheck: config-types/cloud-kac-policies/healthCheck
+        driftDetect: config-types/cloud-kac-policies/driftDetect
+        getStatus: config-types/cloud-kac-policies/getStatus
       targets:
         componentTypes: [falcon-tenant]
         requiresCredential: true

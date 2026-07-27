@@ -1,0 +1,94 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Cloud Security Cloud Groups
+#
+# Declares ONE cloud group — the item. Users add as many groups as they need.
+# Field keys must match what config-types/cloud-groups/validate.ts checks.
+#
+# A cloud group's identity in Falcon is its `name`; uniqueness per canvas is
+# enforced by validate.ts. A group is an asset grouping across clouds and
+# container images, tagged with business impact / environment / owners.
+# =============================================================================
+
+id: "crowdstrike-edr-cloud-groups"
+name: "Cloud Group Configuration"
+toolType: "crowdstrike-edr"
+entityType: "cloud-groups"
+description: "Define Falcon Cloud Security cloud groups (asset grouping across clouds/images with business impact, environment, and owners) as code via the Cloud Groups API"
+
+item:
+  label: "Cloud Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "cloud"
+      description: "Group identity, classification, ownership, and cloud/image scope"
+      fields:
+        - key: "name"
+          label: "Group Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique cloud group name in the Falcon tenant. Immutable identity — renaming creates a new group."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "What this group represents — shown in the Falcon console"
+
+        - key: "businessImpact"
+          label: "Business Impact"
+          fieldType: "select"
+          required: true
+          defaultValue: "moderate"
+          options:
+            - label: "High"
+              value: "high"
+            - label: "Moderate"
+              value: "moderate"
+            - label: "Low"
+              value: "low"
+          helpText: "How critical the assets in this group are to the business"
+
+        - key: "businessUnit"
+          label: "Business Unit"
+          fieldType: "text"
+          helpText: "The business unit that owns the assets in this group"
+
+        - key: "environment"
+          label: "Environment"
+          fieldType: "select"
+          required: true
+          defaultValue: "prod"
+          options:
+            - label: "Development"
+              value: "dev"
+            - label: "Test"
+              value: "test"
+            - label: "Staging"
+              value: "stage"
+            - label: "Production"
+              value: "prod"
+          helpText: "Deployment stage the assets in this group belong to"
+
+        - key: "owners"
+          label: "Owners"
+          fieldType: "tags"
+          helpText: "Contact information for stakeholders responsible for the group — typically email addresses"
+
+        - key: "scoping"
+          label: "Cloud & Image Scope (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            JSON object selecting the cloud accounts and container images in this
+            group. Per-cloud blocks accept accountIds (AWS account IDs / Azure
+            subscription IDs / GCP project IDs), regions, and tags (tags are NOT
+            supported for GCP). Example:
+            {"aws": {"accountIds": ["111122223333"], "regions": ["us-east-1"], "tags": ["env:prod"]},
+            "azure": {"accountIds": ["sub-guid"], "regions": ["eastus"]},
+            "gcp": {"accountIds": ["my-project"], "regions": ["us-central1"]},
+            "images": [{"registry": "https://index.docker.io", "repositories": ["acme/app"], "tags": ["latest"]}]}
+            Leave empty for a metadata-only group with no scope filters.

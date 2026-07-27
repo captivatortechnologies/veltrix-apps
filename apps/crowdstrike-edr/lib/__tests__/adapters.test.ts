@@ -18,6 +18,12 @@ import {
   deleteFileVantage,
   type FileVantageEndpoints,
 } from '../filevantageAdapter'
+import {
+  findEntityByIdentity,
+  createEntity,
+  deleteEntity,
+  type EntityEndpoints,
+} from '../entityAdapter'
 import type { FalconClient } from '../falcon'
 
 interface Call {
@@ -216,5 +222,47 @@ describe('filevantageAdapter', () => {
     await deleteFileVantage(client, FV, 'p9')
     expect(calls[0].method).toBe('DELETE')
     expect(calls[0].path).toContain('ids=p9')
+  })
+})
+
+const IOM: EntityEndpoints = {
+  entity: '/cloud-policies/entities/rules/v1',
+  queries: '/cloud-policies/queries/rules/v1',
+}
+
+describe('entityAdapter', () => {
+  it('finds by name (default identity) via query->get->exact pin', async () => {
+    const { client, calls } = mockClient((_m, path) => {
+      if (path.startsWith(IOM.queries)) return { body: env(['r1', 'r2']) }
+      return { body: env([{ id: 'r1', name: 'Other' }, { id: 'r2', name: 'S3 public' }]) }
+    })
+    const found = await findEntityByIdentity(client, IOM, 'S3 public')
+    expect(found?.id).toBe('r2')
+    expect(String(calls[0].opts?.query?.filter)).toContain("name:'S3 public'")
+  })
+
+  it('supports a custom identity field', async () => {
+    const ENDP: EntityEndpoints = { ...IOM, identityField: 'display_name' }
+    const { client, calls } = mockClient((_m, path) =>
+      path.startsWith(ENDP.queries) ? { body: env(['r1']) } : { body: env([{ id: 'r1', display_name: 'X' }]) },
+    )
+    const found = await findEntityByIdentity(client, ENDP, 'X')
+    expect(found?.id).toBe('r1')
+    expect(String(calls[0].opts?.query?.filter)).toContain("display_name:'X'")
+  })
+
+  it('creates and returns the new id, and deletes with extra query params', async () => {
+    const create = mockClient(() => ({ status: 201, body: env([{ id: 'new1' }]) }))
+    expect(await createEntity(create.client, IOM, { name: 'r' })).toBe('new1')
+
+    const del = mockClient(() => ({ body: env([{}]) }))
+    await deleteEntity(del.client, IOM, 'r9', { parent: 'p1' })
+    expect(del.calls[0].path).toContain('ids=r9')
+    expect(del.calls[0].path).toContain('parent=p1')
+  })
+
+  it('tolerates a bare id-string create response (resources: ["<id>"])', async () => {
+    const create = mockClient(() => ({ status: 201, body: env(['bareId9']) }))
+    expect(await createEntity(create.client, IOM, { name: 'r' })).toBe('bareId9')
   })
 })

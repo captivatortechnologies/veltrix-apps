@@ -1,0 +1,72 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Cloud Security Kubernetes Admission (KAC)
+#
+# Declares ONE KAC policy — the item. Users add as many policies as they need.
+# Field keys must match what config-types/cloud-kac-policies/validate.ts checks.
+# =============================================================================
+
+id: "crowdstrike-edr-cloud-kac-policies"
+name: "Kubernetes Admission Policy Configuration"
+toolType: "crowdstrike-edr"
+entityType: "cloud-kac-policies"
+description: "Define Falcon Cloud Security Kubernetes Admission Controller (KAC) policies — namespace/label-scoped rule groups with alert/prevent actions — as code via the Admission Control Policy API"
+
+item:
+  label: "KAC Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "shield"
+      description: "Policy identity, assignment, and admission rules"
+      fields:
+        - key: "name"
+          label: "Policy Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique KAC policy name in the Falcon tenant"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "What this policy enforces — shown in the Falcon console"
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether the policy is active. New Falcon KAC policies always start disabled; deployment converges to this value."
+
+        - key: "defaultAction"
+          label: "Default Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "Alert"
+          options:
+            - label: "Disabled"
+              value: "Disabled"
+            - label: "Alert"
+              value: "Alert"
+            - label: "Prevent"
+              value: "Prevent"
+          helpText: "Action the policy's rule groups apply to matching admission requests"
+
+        - key: "hostGroups"
+          label: "Host Group IDs"
+          fieldType: "tags"
+          helpText: "Falcon host (cluster) group IDs this policy is assigned to"
+
+        - key: "ruleGroups"
+          label: "Rule Groups (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON array of rule groups, ordered highest to lowest priority.
+            Each entry is an object with a unique "name" and may carry "namespaces"
+            (e.g. ["prod-*"]), "labels" (selectors with key/value/operator eq|neq),
+            "image_assessment" ({enabled, unassessed_handling}), "default_rules"
+            (per-check Disabled|Alert|Prevent), "custom_rules" ({id, action}), and
+            "deny_on_error". The nested body is passed through verbatim.

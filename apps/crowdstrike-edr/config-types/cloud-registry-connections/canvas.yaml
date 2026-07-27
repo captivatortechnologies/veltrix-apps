@@ -1,0 +1,101 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Cloud Security Registry Connections
+#
+# Declares ONE registry connection — the item. Users add as many as they need.
+# Field keys must match what
+# config-types/cloud-registry-connections/validate.ts checks.
+#
+# A registry's identity is its `name` (user_defined_alias). The credential is
+# WRITE-ONLY (fieldType: password): it is sent to Falcon on create/update and is
+# NEVER read back, diffed, or stored in rollback data / artifacts / logs. Drift
+# compares ONLY non-secret config (url, type, scan settings).
+# =============================================================================
+
+id: "crowdstrike-edr-cloud-registry-connections"
+name: "Registry Connection Configuration"
+toolType: "crowdstrike-edr"
+entityType: "cloud-registry-connections"
+description: "Define Falcon Cloud Security registry connections (URL, type, scan settings) as code via the container registries API. Credentials are write-only and never read back or diffed."
+
+item:
+  label: "Registry Connection"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Registry"
+      icon: "database"
+      description: "Registry identity and endpoint"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "Display name / alias — the logical identity used to reconcile this registry"
+
+        - key: "url"
+          label: "Registry URL"
+          fieldType: "text"
+          required: true
+          helpText: "Registry host, e.g. docker.io, myregistry.azurecr.io, or 1234.dkr.ecr.us-east-1.amazonaws.com"
+
+        - key: "type"
+          label: "Registry Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "dockerhub"
+          options:
+            - { label: "Docker Hub", value: "dockerhub" }
+            - { label: "Amazon ECR", value: "ecr" }
+            - { label: "Azure Container Registry (ACR)", value: "acr" }
+            - { label: "Google Container Registry (GCR)", value: "gcr" }
+            - { label: "Google Artifact Registry (GAR)", value: "gar" }
+            - { label: "Harbor", value: "harbor" }
+            - { label: "JFrog Artifactory", value: "artifactory" }
+            - { label: "Quay", value: "quay" }
+            - { label: "GitHub Container Registry", value: "github" }
+            - { label: "GitLab Container Registry", value: "gitlab" }
+            - { label: "Sonatype Nexus", value: "nexus" }
+            - { label: "Oracle Cloud (OCIR)", value: "oracle" }
+            - { label: "IBM Cloud", value: "ibmcloud" }
+            - { label: "Mirror", value: "mirror" }
+            - { label: "OpenShift", value: "openshift" }
+            - { label: "Sonatype", value: "sonatype" }
+          helpText: "The registry provider. Determines which credential fields Falcon expects."
+
+    - name: "Credentials"
+      icon: "lock"
+      description: "Registry authentication (write-only)"
+      fields:
+        - key: "username"
+          label: "Username"
+          fieldType: "text"
+          helpText: "Registry username or access-key id. Non-secret; stored and shown in the Falcon console."
+
+        - key: "credential"
+          label: "Password / Token"
+          fieldType: "password"
+          helpText: >
+            ⚠ WRITE-ONLY. The registry password, token, or secret access key. It is
+            sent to Falcon on create/update and is NEVER read back, diffed, or stored
+            in rollback data, artifacts or logs. Leave blank on update to keep the
+            existing credential; to rotate, supply the new value.
+
+    - name: "Scanning"
+      icon: "clock"
+      description: "Scan schedule and activation"
+      fields:
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether Falcon actively scans this registry. Deployment converges to this value."
+
+        - key: "scanInterval"
+          label: "Scan Interval (hours)"
+          fieldType: "text"
+          validation:
+            pattern: "^$|^[0-9]+$"
+            message: "Must be a whole number of hours (leave blank for the Falcon default)"
+          helpText: "How often the registry is re-scanned, in hours (1–168). Leave blank for the Falcon default."

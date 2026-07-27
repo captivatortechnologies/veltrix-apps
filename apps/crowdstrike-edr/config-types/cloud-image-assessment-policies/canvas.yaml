@@ -1,0 +1,74 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Cloud Security Image Assessment Policies
+#
+# Declares ONE image assessment policy — the item. Users add as many policies as
+# they need. Field keys must match what
+# config-types/cloud-image-assessment-policies/validate.ts checks.
+#
+# A policy's identity is its `name`. The `action` (allow/alert/prevent) is applied
+# to the conditions declared in `rules` (severity thresholds by CVE, misconfig,
+# secret, malware, and how unassessed images are handled). Policy groups and
+# precedence are managed elsewhere — this type manages the policy itself.
+# =============================================================================
+
+id: "crowdstrike-edr-cloud-image-assessment-policies"
+name: "Image Assessment Policy Configuration"
+toolType: "crowdstrike-edr"
+entityType: "cloud-image-assessment-policies"
+description: "Define Falcon Cloud Security image assessment policies (CVE/misconfig/secret/malware thresholds and allow/alert/prevent actions) as code via the container image-assessment-policies API"
+
+item:
+  label: "Image Assessment Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "shield"
+      description: "Policy identity, action, and rule conditions"
+      fields:
+        - key: "name"
+          label: "Policy Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique policy name in the Falcon tenant. The built-in \"Default\" policy cannot be managed here."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "What this policy enforces — shown in the Falcon console"
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "alert"
+          options:
+            - label: "Allow (record only, never block)"
+              value: "allow"
+            - label: "Alert (raise a detection)"
+              value: "alert"
+            - label: "Prevent (block deploy / fail the assessment)"
+              value: "prevent"
+          helpText: "What happens when the rule conditions match an assessed image"
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the policy is active. Deployment converges the live policy to this value."
+
+        - key: "rules"
+          label: "Rule Conditions (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            JSON array of condition objects describing the severity thresholds that
+            make the policy match, e.g.
+            [{"type": "cve", "value": "high"}, {"type": "misconfiguration", "value": "medium"},
+            {"type": "secret", "value": true}, {"type": "malware", "value": true},
+            {"type": "unassessed", "value": true}].
+            All conditions are combined into a single rule that applies the action
+            above. Leave empty for a policy that matches nothing yet.

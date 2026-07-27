@@ -1,0 +1,93 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Cloud Security IOM Custom Rules
+#
+# Declares ONE custom cloud configuration (IOM) rule — the item. Users add as
+# many rules as they need. Field keys must match what
+# config-types/cloud-iom-custom-rules/validate.ts checks.
+#
+# A rule's identity in Falcon is its `name`; uniqueness per canvas is enforced
+# by validate.ts. `alert_info`/`remediation_info` are auto-numbered by the
+# console and `attack_types` are inherited from a parent rule, so none of the
+# three is authored here.
+# =============================================================================
+
+id: "crowdstrike-edr-cloud-iom-custom-rules"
+name: "Cloud IOM Custom Rule Configuration"
+toolType: "crowdstrike-edr"
+entityType: "cloud-iom-custom-rules"
+description: "Define custom cloud configuration (IOM) rules — Rego logic, provider + resource type, severity, and compliance controls — as code via the Falcon Cloud Security API"
+
+item:
+  label: "IOM Custom Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "General"
+      icon: "cloud"
+      description: "Rule identity, target resource, and detection logic"
+      fields:
+        - key: "name"
+          label: "Rule Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique name for the rule in the tenant. Must be unique per canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: true
+          helpText: "What the rule detects — shown in the Falcon console"
+
+        - key: "cloudProvider"
+          label: "Cloud Provider"
+          fieldType: "select"
+          required: true
+          defaultValue: "aws"
+          options:
+            - label: "Amazon Web Services"
+              value: "aws"
+            - label: "Microsoft Azure"
+              value: "azure"
+            - label: "Google Cloud"
+              value: "gcp"
+          helpText: "The cloud the rule evaluates resources in"
+
+        - key: "resourceType"
+          label: "Resource Type"
+          fieldType: "text"
+          required: true
+          helpText: "Full resource type, e.g. AWS::EC2::Instance, Microsoft.Compute/virtualMachines, container.googleapis.com/Cluster"
+
+        - key: "severity"
+          label: "Severity"
+          fieldType: "select"
+          defaultValue: "medium"
+          options:
+            - label: "Critical"
+              value: "critical"
+            - label: "High"
+              value: "high"
+            - label: "Medium"
+              value: "medium"
+            - label: "Informational"
+              value: "informational"
+          helpText: "Severity of findings raised when the rule matches"
+
+        - key: "logic"
+          label: "Rego Logic"
+          fieldType: "textarea"
+          helpText: "The Rego policy evaluated against each resource. Required for a fully-custom rule; leave empty when inheriting from a parent rule."
+
+        - key: "controls"
+          label: "Compliance Controls"
+          fieldType: "textarea"
+          helpText: "Optional JSON array of compliance pairs, e.g. [{\"authority\": \"CIS\", \"code\": \"1.2\"}]"
+
+        - key: "parentRuleId"
+          label: "Parent Rule ID"
+          fieldType: "text"
+          helpText: "Optional built-in rule UUID to inherit from — logic, alert info, remediation info, and attack types are inherited when set"

@@ -1,0 +1,129 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Cloud Security Suppression Rules
+#
+# Declares ONE suppression rule — the item. Users add as many rules as they need.
+# Field keys must match what config-types/cloud-suppression-rules/validate.ts checks.
+#
+# A suppression rule's identity in Falcon is its `name`. Findings are selected
+# structurally: rule selection (which rules) + asset scope (which accounts /
+# resources) — there is no single free-text FQL "filter" field on this API.
+# =============================================================================
+
+id: "crowdstrike-edr-cloud-suppression-rules"
+name: "Cloud Suppression Rule Configuration"
+toolType: "crowdstrike-edr"
+entityType: "cloud-suppression-rules"
+description: "Suppress Cloud Security misconfiguration / vulnerability findings as code via the Falcon Cloud Security suppression rules API"
+
+item:
+  label: "Suppression Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "General"
+      icon: "eye-off"
+      description: "Rule identity, reason, expiration, and enablement"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 253
+          helpText: "Unique name for the suppression rule. This is its identity in the Falcon tenant."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Why this suppression rule exists — shown in the Falcon console"
+
+        - key: "suppressionReason"
+          label: "Suppression Reason"
+          fieldType: "textarea"
+          helpText: "Business justification recorded on the suppression (e.g. accepted risk, false positive)"
+
+        - key: "expiration"
+          label: "Expiration (UTC)"
+          fieldType: "text"
+          validation:
+            pattern: "^$|^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$"
+            message: "Must be an ISO-8601 UTC timestamp ending in Z, e.g. 2026-12-31T00:00:00Z (leave empty for no expiration)"
+          helpText: "Optional time after which the suppression stops applying, e.g. 2026-12-31T00:00:00Z"
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the suppression rule is active. Write support for this state is best-effort on the Cloud Security API."
+
+    - name: "Rule Selection"
+      icon: "filter"
+      description: "Which Cloud Security findings this rule suppresses"
+      fields:
+        - key: "ruleSelectionType"
+          label: "Rule Selection Type"
+          fieldType: "select"
+          defaultValue: "all"
+          options:
+            - label: "All matching rules"
+              value: "all"
+            - label: "Specific rules"
+              value: "specific"
+          helpText: "Whether to suppress findings from all rules matching the criteria below, or only the specified rules"
+
+        - key: "ruleSeverities"
+          label: "Rule Severities"
+          fieldType: "tags"
+          helpText: "Finding severities to suppress: Critical, High, Medium, Low (case-insensitive)"
+
+        - key: "ruleProviders"
+          label: "Cloud Providers (rule)"
+          fieldType: "tags"
+          helpText: "Rule providers to suppress: aws, azure, gcp, oci"
+
+        - key: "ruleServices"
+          label: "Cloud Services"
+          fieldType: "tags"
+          helpText: "Cloud service names whose findings to suppress, e.g. S3, EC2, Storage"
+
+        - key: "ruleIds"
+          label: "Rule IDs"
+          fieldType: "tags"
+          helpText: "Specific Cloud Security rule IDs to suppress"
+
+    - name: "Asset Scope"
+      icon: "layers"
+      description: "Which cloud accounts / resources the suppression applies to"
+      fields:
+        - key: "scopeType"
+          label: "Scope Type"
+          fieldType: "select"
+          defaultValue: "account"
+          options:
+            - label: "By cloud account"
+              value: "account"
+            - label: "By resource"
+              value: "resource"
+          helpText: "Whether the suppression is scoped to whole cloud accounts or to specific resources"
+
+        - key: "accountIds"
+          label: "Cloud Account IDs"
+          fieldType: "tags"
+          helpText: "Cloud account IDs the suppression applies to (leave empty for all accounts)"
+
+        - key: "cloudProviders"
+          label: "Cloud Providers (scope)"
+          fieldType: "tags"
+          helpText: "Cloud providers in scope: aws, azure, gcp, oci"
+
+        - key: "regions"
+          label: "Regions"
+          fieldType: "tags"
+          helpText: "Cloud regions in scope, e.g. us-east-1, eastus"
+
+        - key: "resourceTypes"
+          label: "Resource Types"
+          fieldType: "tags"
+          helpText: "Resource types in scope, e.g. ec2, s3-bucket, storage-account"

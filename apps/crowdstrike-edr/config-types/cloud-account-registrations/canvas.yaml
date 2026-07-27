@@ -1,0 +1,133 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Cloud Account Registrations
+#
+# Declares ONE cloud account — the item. Users add as many accounts as they
+# need. One item registers an AWS account, an Azure subscription, or a GCP
+# project with Falcon Cloud Security (legacy CSPM Registration collection).
+# Field keys must match config-types/cloud-account-registrations/validate.ts.
+#
+# Canvas fields cannot be conditionally hidden, so every provider's fields are
+# always visible — the helpText on each says which provider it applies to, and
+# validate.ts enforces the correct id(s) per provider. An account's identity in
+# Falcon is its provider id: account_id (AWS), subscription_id + tenant_id
+# (Azure), project_id (GCP).
+#
+# IMPORTANT: registering an account here does NOT finish onboarding. Falcon
+# returns setup scripts / console URLs (CloudFormation / ARM / Terraform) that
+# the customer must run in their own cloud OUT-OF-BAND before assessment goes
+# live. This config type registers the account; the out-of-band step is theirs.
+# =============================================================================
+
+id: "crowdstrike-edr-cloud-account-registrations"
+name: "Cloud Account Registration Configuration"
+toolType: "crowdstrike-edr"
+entityType: "cloud-account-registrations"
+description: "Register AWS accounts / Azure subscriptions / GCP projects with Falcon Cloud Security (CSPM) as code via the CSPM Registration API"
+
+item:
+  label: "Cloud Account"
+  identityField: "cloudProvider"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Account Identity"
+      icon: "cloud"
+      description: "Which cloud and which account/subscription/project to register"
+      fields:
+        - key: "cloudProvider"
+          label: "Cloud Provider"
+          fieldType: "select"
+          required: true
+          defaultValue: "aws"
+          options:
+            - label: "Amazon Web Services"
+              value: "aws"
+            - label: "Microsoft Azure"
+              value: "azure"
+            - label: "Google Cloud Platform"
+              value: "gcp"
+          helpText: "Immutable after registration — delete and re-register to move an account between providers"
+
+        - key: "accountId"
+          label: "AWS Account ID"
+          fieldType: "text"
+          validation:
+            pattern: "^$|^\\d{12}$"
+            message: "AWS account IDs are exactly 12 digits"
+          helpText: "AWS only. The 12-digit AWS account number to register."
+
+        - key: "subscriptionId"
+          label: "Azure Subscription ID"
+          fieldType: "text"
+          helpText: "Azure only. The subscription (GUID) to register — this is the account identity in Falcon."
+
+        - key: "tenantId"
+          label: "Azure Tenant ID"
+          fieldType: "text"
+          helpText: "Azure only. The Entra ID (Azure AD) tenant/directory GUID the subscription belongs to. Required for Azure."
+
+        - key: "projectId"
+          label: "GCP Project ID"
+          fieldType: "text"
+          helpText: "GCP only. The project ID to register (e.g. my-project-123). Registered as a project-level parent in the CSPM API."
+
+        - key: "accountType"
+          label: "Account Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "commercial"
+          options:
+            - label: "Commercial cloud"
+              value: "commercial"
+            - label: "Government cloud"
+              value: "gov"
+          helpText: "Whether this is a commercial or government (GovCloud / Azure Government) account"
+
+    - name: "Access & Scope"
+      icon: "key"
+      description: "Provider-specific access role and scope"
+      fields:
+        - key: "iamRoleArn"
+          label: "IAM Role ARN"
+          fieldType: "text"
+          helpText: "AWS only. ARN of the IAM role Falcon assumes to read the account. Usually created by the setup CloudFormation, so it may be left empty at registration and filled in after."
+
+        - key: "defaultSubscription"
+          label: "Default Subscription"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Azure only. Mark this subscription as the tenant's default for remediation. Only one subscription per tenant should be the default."
+
+        - key: "regions"
+          label: "CloudTrail Region(s)"
+          fieldType: "tags"
+          helpText: "AWS only. CloudTrail region for read-log ingestion — the first value is used as the account's cloudtrail_region. Ignored for Azure and GCP (registered at subscription/project scope)."
+
+    - name: "Falcon Capabilities"
+      icon: "shield"
+      description: "Which Falcon Cloud Security features to enable on this account"
+      fields:
+        - key: "cspmEnabled"
+          label: "CSPM (Misconfiguration) Assessment"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Indicator-of-Misconfiguration scanning. This is the base registration capability — registering the account enables it. Unchecking does NOT deregister; delete the item to remove the account."
+
+        - key: "behaviorAssessmentEnabled"
+          label: "Behavior (IOA) Assessment"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Indicator-of-Attack behavior assessment from cloud activity logs (maps to behavior_assessment_enabled)"
+
+        - key: "sensorManagementEnabled"
+          label: "1-Click Sensor Management"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Allow Falcon to deploy and manage sensors in this account (maps to sensor_management_enabled)"
+
+        - key: "dspmEnabled"
+          label: "Data Security Posture (DSPM)"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Data Security Posture Management scanning for this account (maps to dspm_enabled)"

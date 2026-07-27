@@ -1,0 +1,80 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Cloud Security Rule Overrides
+#
+# Declares ONE rule override — the item. Users add as many overrides as needed.
+# Field keys must match what config-types/cloud-rule-overrides/validate.ts checks.
+#
+# A rule override adjusts a BUILT-IN Cloud Security policy rule for a scope. Its
+# identity is the built-in rule id (`ruleId`), optionally narrowed by a cloud
+# resource name (`crn`) account scope. The "override" is expressed via an
+# override type (e.g. "exception") plus optional details.
+# =============================================================================
+
+id: "crowdstrike-edr-cloud-rule-overrides"
+name: "Cloud Rule Override Configuration"
+toolType: "crowdstrike-edr"
+entityType: "cloud-rule-overrides"
+description: "Override built-in Cloud Security policy rules per account (exception / details) as code via the Falcon Cloud Security rule overrides API"
+
+item:
+  label: "Rule Override"
+  identityField: "ruleId"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "General"
+      icon: "sliders"
+      description: "The built-in rule being overridden and how"
+      fields:
+        - key: "ruleId"
+          label: "Rule ID"
+          fieldType: "text"
+          required: true
+          helpText: "The built-in Cloud Security rule ID to override. This is the override's identity."
+
+        - key: "overrideType"
+          label: "Override Type"
+          fieldType: "select"
+          defaultValue: "exception"
+          options:
+            - label: "Exception (suppress the rule for the scope)"
+              value: "exception"
+          helpText: "Type of override to apply. \"exception\" excepts the rule for the targeted scope."
+
+        - key: "overrideDetails"
+          label: "Override Details"
+          fieldType: "textarea"
+          helpText: "Optional details for the override (interpretation depends on the override type)"
+
+        - key: "reason"
+          label: "Reason"
+          fieldType: "textarea"
+          helpText: "Business justification recorded on the override"
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          helpText: "Short comment stored on the override in the Falcon console"
+
+    - name: "Scope"
+      icon: "layers"
+      description: "Which cloud account / region the override targets"
+      fields:
+        - key: "crn"
+          label: "Cloud Resource Name (CRN)"
+          fieldType: "text"
+          helpText: "Optional cloud account / resource scope (CRN). Leave empty to apply the override tenant-wide for the rule."
+
+        - key: "targetRegion"
+          label: "Target Region"
+          fieldType: "text"
+          helpText: "Optional cloud region the override targets, e.g. us-east-1"
+
+        - key: "expiresAt"
+          label: "Expires At (UTC)"
+          fieldType: "text"
+          validation:
+            pattern: "^$|^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$"
+            message: "Must be an ISO-8601 UTC timestamp ending in Z, e.g. 2026-12-31T00:00:00Z (leave empty for no expiration)"
+          helpText: "Optional time after which the override stops applying, e.g. 2026-12-31T00:00:00Z"

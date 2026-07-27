@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Cloud Security Custom Compliance Frameworks
+#
+# Declares ONE custom compliance framework — the item. Users add as many
+# frameworks as they need. Field keys must match what
+# config-types/cloud-compliance-frameworks/validate.ts checks.
+#
+# A framework's identity in Falcon Cloud Security is its `name`; uniqueness per
+# canvas is enforced by validate.ts. Sections are declared here as metadata —
+# in the Cloud Security API a section only becomes real once a control is
+# created inside it (see the cloud-compliance-controls config type), so this
+# type manages the framework shell (name/description) and the intended section
+# list; version is assigned by Falcon.
+# =============================================================================
+
+id: "crowdstrike-edr-cloud-compliance-frameworks"
+name: "Cloud Compliance Framework Configuration"
+toolType: "crowdstrike-edr"
+entityType: "cloud-compliance-frameworks"
+description: "Define Falcon Cloud Security custom compliance frameworks (name, description, intended sections) as code via the Cloud Security Policies API"
+
+item:
+  label: "Compliance Framework"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "clipboard-check"
+      description: "Framework identity, description, and sections"
+      fields:
+        - key: "name"
+          label: "Framework Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique custom compliance framework name in the Falcon tenant. Must be unique per canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "What this framework covers — shown in the Falcon Cloud Security console"
+
+        - key: "version"
+          label: "Version"
+          fieldType: "text"
+          validation:
+            maxLength: 64
+          helpText: "Optional expected version label. Falcon manages the framework version server-side; when set, drift reports a mismatch against the live version."
+
+        - key: "sections"
+          label: "Sections (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON array of the framework's sections. Each entry is
+            {"name": "Access Control"}. Section names must be unique. In Cloud
+            Security a section is realized when a control is added to it (via the
+            Cloud Compliance Control config type); this list documents the
+            framework's intended sections and drives validation.
