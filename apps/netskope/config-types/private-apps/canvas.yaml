@@ -1,0 +1,93 @@
+# =============================================================================
+# Canvas Template — Netskope NPA Private Apps
+#
+# Declares ONE private app — the item. Users add as many as they need.
+# Private apps are id-addressed with no lookup-by-name, so the app lists all
+# private apps, matches a declared one to a live one by app_name, and stores the
+# id for rename-safety. A PUT sends the full desired spec every deploy (no
+# deploy/apply step). Reconcile deletes private apps this app created but no
+# longer declares. Publisher entries are resolved to ids against the live
+# publisher inventory at deploy time.
+#
+# Field keys must match config-types/private-apps/validate.ts.
+# =============================================================================
+
+id: "netskope-private-apps"
+name: "Private App Configuration"
+toolType: "netskope"
+entityType: "private-apps"
+description: "Define Netskope Private Access (NPA) private apps as code through the Netskope REST API v2."
+
+item:
+  label: "Private App"
+  identityField: "app_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Application"
+      icon: "app-window"
+      description: "App name and host"
+      fields:
+        - key: "app_name"
+          label: "App Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The private app name. Must be unique within this canvas — the app
+            matches live apps on it (Netskope has no lookup-by-name, so the id is
+            stored after deploy for rename-safety).
+
+        - key: "host"
+          label: "Host"
+          fieldType: "text"
+          required: true
+          helpText: "FQDN, wildcard domain (e.g. *.corp.example.com), IP address or IP subnet."
+
+    - name: "Protocols"
+      icon: "network"
+      description: "TCP/UDP ports the app listens on"
+      fields:
+        - key: "tcp_ports"
+          label: "TCP Ports"
+          fieldType: "text"
+          required: false
+          helpText: "Comma-separated TCP ports or ranges, e.g. 443,8080-8090. Leave blank for none."
+
+        - key: "udp_ports"
+          label: "UDP Ports"
+          fieldType: "text"
+          required: false
+          helpText: "Comma-separated UDP ports or ranges, e.g. 53. Leave blank for none."
+
+    - name: "Steering"
+      icon: "route"
+      description: "Publishers and access options"
+      fields:
+        - key: "publishers"
+          label: "Publishers (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Publisher names or ids that steer this app, one per line. Each is
+            resolved to a publisher id against the live inventory at deploy time.
+
+        - key: "clientless_access"
+          label: "Clientless Access"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Enable browser-based (clientless) access to this app."
+
+        - key: "use_publisher_dns"
+          label: "Use Publisher DNS"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Resolve the host using the publisher's DNS rather than the client's."
+
+        - key: "trust_self_signed_certs"
+          label: "Trust Self-Signed Certs"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Trust self-signed certificates presented by this app."

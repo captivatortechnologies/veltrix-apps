@@ -1,11 +1,12 @@
 id: netskope
 name: Netskope
-version: "0.3.0"
+version: "0.4.0"
 vendor: Veltrix
 description: >
   Manage Netskope configuration as code through the Netskope REST API v2 — URL
-  Lists, Device Classification Tags and RBAC Labels — with validation, drift
-  detection and rollback handled by the Security-as-Code pipeline.
+  Lists, Device Classification Tags, RBAC Labels, NPA Publishers and NPA Private
+  Apps — with validation, drift detection and rollback handled by the
+  Security-as-Code pipeline.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/netskope
@@ -35,9 +36,49 @@ permissions:
     - resource: rbac-labels
       actions: [read, write, delete]
       description: Manage Netskope RBAC labels (name + color) via the REST API v2
+    - resource: npa-publishers
+      actions: [read, write, delete]
+      description: Manage Netskope Private Access (NPA) publishers (name + local broker connect) via the REST API v2
+    - resource: private-apps
+      actions: [read, write, delete]
+      description: Manage Netskope Private Access (NPA) private apps (host, protocols, publishers) via the REST API v2
 
 pipeline:
   configurationTypes:
+    - id: npa-publishers
+      name: NPA Publishers
+      description: NPA publishers — name + local broker connect (name-keyed; publisher_id stored for rename-safety; PATCH update, no deploy step)
+      canvasTemplate: config-types/npa-publishers/canvas.yaml
+      defaultConfig: config-types/npa-publishers/defaults.yaml
+      handlers:
+        validate: config-types/npa-publishers/validate
+        deploy: config-types/npa-publishers/deploy
+        rollback: config-types/npa-publishers/rollback
+        healthCheck: config-types/npa-publishers/healthCheck
+        driftDetect: config-types/npa-publishers/driftDetect
+        getStatus: config-types/npa-publishers/getStatus
+      targets:
+        componentTypes: [netskope]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: private-apps
+      name: Private Apps
+      description: NPA private apps — host, TCP/UDP protocols and publishers (name-keyed; id stored for rename-safety; PUT replaces the full spec, no deploy step; publishers resolved to ids)
+      canvasTemplate: config-types/private-apps/canvas.yaml
+      defaultConfig: config-types/private-apps/defaults.yaml
+      handlers:
+        validate: config-types/private-apps/validate
+        deploy: config-types/private-apps/deploy
+        rollback: config-types/private-apps/rollback
+        healthCheck: config-types/private-apps/healthCheck
+        driftDetect: config-types/private-apps/driftDetect
+        getStatus: config-types/private-apps/getStatus
+      targets:
+        componentTypes: [netskope]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: rbac-labels
       name: RBAC Labels
       description: RBAC labels — name + color (name-keyed; id stored for rename-safety; PATCH update, no deploy step)

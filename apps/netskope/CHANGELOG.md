@@ -8,6 +8,25 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.4.0 — 2026-07-26
+
+### Added
+- **NPA Publishers** configuration type — manage Netskope Private Access
+  publishers (name + local broker connect) as code, with the full pipeline
+  handler set. Publishers are id-addressed with no lookup-by-name, so the app
+  matches by name and stores the publisher_id for rename-safety; updates use
+  PATCH with no deploy/apply step; reconcile only deletes publishers this app
+  created. Backed by `/api/v2/infrastructure/publishers`.
+- **Private Apps** configuration type — manage Netskope Private Access private
+  apps (host, TCP/UDP protocols, publishers and access options) as code, with
+  the full pipeline handler set. Apps are id-addressed with no lookup-by-name, so
+  the app matches by app_name and stores the id for rename-safety; a PUT sends
+  the full desired spec each deploy (no deploy/apply step); declared publisher
+  names/ids are resolved against the live publisher inventory; reconcile only
+  deletes apps this app created. Backed by `/api/v2/steering/apps/private`.
+- `getAllNpa`, `extractNpaList` and `extractNpaObject` helpers in the Netskope
+  API client for the NPA `{status, data}` response envelope.
+
 ## 0.3.0 — 2026-07-26
 
 ### Added

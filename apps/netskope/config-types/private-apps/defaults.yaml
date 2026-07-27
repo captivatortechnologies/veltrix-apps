@@ -1,0 +1,7 @@
+# Defaults for a new private app item.
+#
+# A FLAT map keyed by the canvas field keys. Access options default off; name,
+# host, ports and publishers are left blank for a deliberate choice.
+clientless_access: false
+use_publisher_dns: false
+trust_self_signed_certs: false

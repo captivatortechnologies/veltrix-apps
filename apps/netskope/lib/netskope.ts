@@ -151,6 +151,24 @@ export class NetskopeClient {
     }
     return { ok: true, items }
   }
+
+  /** GET an NPA (infrastructure/steering) collection, paging with limit/offset.
+   *  These endpoints wrap the list under data.<listKey> (e.g. data.publishers)
+   *  instead of returning a bare array. */
+  async getAllNpa<T = unknown>(path: string, listKey: string, pageLimit = DEFAULT_PAGE_LIMIT, maxPages = 100): Promise<{ ok: boolean; items: T[]; lastError?: NetskopeResponse }> {
+    const items: T[] = []
+    for (let page = 0; page < maxPages; page++) {
+      const offset = page * pageLimit
+      const sep = path.includes('?') ? '&' : '?'
+      const res = await this.get(`${path}${sep}limit=${pageLimit}&offset=${offset}`)
+      if (!res.ok) return { ok: false, items, lastError: res }
+      const arr = extractNpaList<T>(res.body, listKey)
+      if (arr.length === 0) break
+      items.push(...arr)
+      if (arr.length < pageLimit) break
+    }
+    return { ok: true, items }
+  }
 }
 
 export function buildNetskopeClient(cred: NetskopeCredential, settings: NetskopeSettings): NetskopeClient {
@@ -176,6 +194,32 @@ export function extractArray<T>(body: string): T[] {
     if (Array.isArray(obj.result)) return obj.result as T[]
   }
   return []
+}
+
+/** NPA infrastructure/steering endpoints wrap payloads in a {status, data, ...}
+ *  envelope. Lists live under data.<listKey> (e.g. data.publishers,
+ *  data.private_apps); some responses put a bare array in data. This unwraps
+ *  either shape. */
+export function extractNpaList<T>(body: string, listKey: string): T[] {
+  const parsed = parseJson<{ data?: unknown }>(body)
+  const data = parsed?.data
+  if (Array.isArray(data)) return data as T[]
+  if (data && typeof data === 'object') {
+    const arr = (data as Record<string, unknown>)[listKey]
+    if (Array.isArray(arr)) return arr as T[]
+  }
+  return []
+}
+
+/** Unwrap a single NPA object from a {data:{...}} envelope (create/get). Falls
+ *  back to the raw parsed object when the response is not enveloped. */
+export function extractNpaObject<T>(body: string): T | null {
+  const parsed = parseJson<{ data?: unknown }>(body)
+  if (parsed && typeof parsed === 'object' && 'data' in parsed) {
+    const data = (parsed as { data?: unknown }).data
+    if (data && typeof data === 'object' && !Array.isArray(data)) return data as T
+  }
+  return (parsed as T) ?? null
 }
 
 export function netskopeErrorMessage(res: NetskopeResponse): string {

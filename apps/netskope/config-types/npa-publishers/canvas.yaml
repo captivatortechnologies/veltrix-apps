@@ -1,0 +1,46 @@
+# =============================================================================
+# Canvas Template — Netskope NPA Publishers
+#
+# Declares ONE NPA publisher — the item. Users add as many as they need.
+# Publishers are id-addressed with no lookup-by-name, so the app lists all
+# publishers, matches a declared one to a live one by NAME, and stores the
+# publisher_id for rename-safety. Updates use PATCH (no deploy/apply step).
+# Reconcile deletes publishers this app created but no longer declares.
+#
+# Field keys must match config-types/npa-publishers/validate.ts.
+# =============================================================================
+
+id: "netskope-npa-publishers"
+name: "NPA Publisher Configuration"
+toolType: "netskope"
+entityType: "npa-publishers"
+description: "Define Netskope Private Access (NPA) publishers as code through the Netskope REST API v2."
+
+item:
+  label: "NPA Publisher"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Publisher"
+      icon: "server"
+      description: "Publisher name and connection options"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 64
+          helpText: >
+            The publisher name. Must be unique within this canvas — the app
+            matches live publishers on it (Netskope has no lookup-by-name, so the
+            publisher_id is stored after deploy for rename-safety). Creating a
+            publisher yields a registration token used to enroll the appliance.
+
+        - key: "lbrokerconnect"
+          label: "Local Broker Connect"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Enable local broker connect for this publisher."
