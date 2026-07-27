@@ -1,0 +1,88 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Access Profiles
+#
+# Declares ONE access profile — the item. Users add as many as they need.
+# An access profile bundles entitlements from a single Source and is matched to a
+# live one by NAME; the id is stored after deploy for rename-safety. Updates use
+# JSON-Patch. The Source is immutable in ISC, so a same-name profile on a
+# different source is rejected rather than re-parented. Reconcile deletes profiles
+# this app created but no longer declares.
+#
+# Field keys must match config-types/access-profiles/validate.ts.
+# =============================================================================
+
+id: "sailpoint-access-profiles"
+name: "Access Profile Configuration"
+toolType: "sailpoint"
+entityType: "access-profiles"
+description: "Define SailPoint Identity Security Cloud access profiles (name, owner, source, entitlements, enabled/requestable) as code through the ISC API."
+
+item:
+  label: "Access Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Access Profile"
+      icon: "key"
+      description: "Name, description, owner and source"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: >
+            The access profile name. Must be unique within this canvas — the app
+            matches live profiles on it (the id is stored after deploy for
+            rename-safety).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the access profile."
+
+        - key: "ownerId"
+          label: "Owner Identity ID"
+          fieldType: "text"
+          required: true
+          helpText: "The id of the owning ISC Identity (required)."
+
+        - key: "sourceId"
+          label: "Source ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The id of the ISC Source this profile draws entitlements from
+            (required). Immutable after creation — changing it means recreating
+            the profile.
+
+    - name: "Access"
+      icon: "shield"
+      description: "Entitlements granted and request/enable state"
+      fields:
+        - key: "entitlementIds"
+          label: "Entitlement IDs"
+          fieldType: "tags"
+          required: false
+          helpText: >
+            Ids of entitlements on the selected source to grant. Each entitlement
+            must belong to that source. At least one is required if the profile is
+            enabled.
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether the access profile is enabled (an enabled profile must grant at least one entitlement)."
+
+        - key: "requestable"
+          label: "Requestable"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the access profile can be requested through access request."

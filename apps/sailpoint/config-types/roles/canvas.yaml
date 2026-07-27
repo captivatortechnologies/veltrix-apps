@@ -1,0 +1,78 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Roles
+#
+# Declares ONE role — the item. Users add as many as they need.
+# A role bundles one or more access profiles to grant access; it is matched to a
+# live one by NAME with the id stored after deploy for rename-safety. Updates use
+# JSON-Patch. Role membership (who is auto-assigned the role) is managed
+# separately in ISC and is out of scope for this configuration type. Reconcile
+# deletes roles this app created but no longer declares.
+#
+# Field keys must match config-types/roles/validate.ts.
+# =============================================================================
+
+id: "sailpoint-roles"
+name: "Role Configuration"
+toolType: "sailpoint"
+entityType: "roles"
+description: "Define SailPoint Identity Security Cloud roles (name, owner, bundled access profiles, enabled/requestable) as code through the ISC API."
+
+item:
+  label: "Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Role"
+      icon: "user-check"
+      description: "Name, description and owner"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: >
+            The role name. Must be unique within this canvas — the app matches
+            live roles on it (the id is stored after deploy for rename-safety).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the role."
+
+        - key: "ownerId"
+          label: "Owner Identity ID"
+          fieldType: "text"
+          required: true
+          helpText: "The id of the owning ISC Identity (required)."
+
+    - name: "Access"
+      icon: "shield"
+      description: "Access profiles bundled and request/enable state"
+      fields:
+        - key: "accessProfileIds"
+          label: "Access Profile IDs"
+          fieldType: "tags"
+          required: false
+          helpText: >
+            Ids of the access profiles this role bundles. A role with none grants
+            no access. Membership (who is auto-assigned) is managed separately in
+            ISC and is out of scope here.
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether the role is enabled."
+
+        - key: "requestable"
+          label: "Requestable"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the role can be requested through access request."

@@ -1,0 +1,165 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Password Policies
+#
+# Declares ONE password policy — the item. Users add as many as they need.
+# A policy is matched to a live one by NAME with the id stored after deploy for
+# rename-safety. ISC updates password policies with a full replace (PUT), so the
+# app preserves fields it does not manage (source assignments, default flag) and
+# overrides only the rule fields below. The tenant DEFAULT policy is protected
+# and never modified. Reconcile deletes policies this app created but no longer
+# declares.
+#
+# Field keys must match config-types/password-policies/validate.ts.
+# Numeric rules use 0 to mean "no constraint".
+# =============================================================================
+
+id: "sailpoint-password-policies"
+name: "Password Policy Configuration"
+toolType: "sailpoint"
+entityType: "password-policies"
+description: "Define SailPoint Identity Security Cloud password policies (length, composition, expiration and strength rules) as code through the ISC API."
+
+item:
+  label: "Password Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Policy"
+      icon: "lock"
+      description: "Name and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: >
+            The password policy name. Must be unique within this canvas — the app
+            matches live policies on it (the id is stored after deploy for
+            rename-safety).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the password policy."
+
+    - name: "Length"
+      icon: "ruler"
+      description: "Length limits (0 = no constraint)"
+      fields:
+        - key: "minLength"
+          label: "Minimum Length"
+          fieldType: "number"
+          required: false
+          helpText: "Minimum number of characters (0 = no minimum)."
+        - key: "maxLength"
+          label: "Maximum Length"
+          fieldType: "number"
+          required: false
+          helpText: "Maximum number of characters (0 = no maximum)."
+
+    - name: "Composition"
+      icon: "hash"
+      description: "Required character classes (0 = no constraint)"
+      fields:
+        - key: "minAlpha"
+          label: "Minimum Alphabetic"
+          fieldType: "number"
+          required: false
+          helpText: "Minimum number of letters."
+        - key: "minNumeric"
+          label: "Minimum Numeric"
+          fieldType: "number"
+          required: false
+          helpText: "Minimum number of digits."
+        - key: "minUpper"
+          label: "Minimum Uppercase"
+          fieldType: "number"
+          required: false
+          helpText: "Minimum number of uppercase letters."
+        - key: "minLower"
+          label: "Minimum Lowercase"
+          fieldType: "number"
+          required: false
+          helpText: "Minimum number of lowercase letters."
+        - key: "minSpecial"
+          label: "Minimum Special"
+          fieldType: "number"
+          required: false
+          helpText: "Minimum number of special characters."
+        - key: "minCharacterTypes"
+          label: "Minimum Character Types"
+          fieldType: "number"
+          required: false
+          helpText: "Minimum number of distinct character classes required."
+        - key: "maxRepeatedChars"
+          label: "Max Repeated Characters"
+          fieldType: "number"
+          required: false
+          helpText: "Maximum number of times a character may repeat (0 = no limit)."
+
+    - name: "Expiration"
+      icon: "clock"
+      description: "Password expiration"
+      fields:
+        - key: "enablePasswdExpiration"
+          label: "Enable Expiration"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether passwords expire."
+        - key: "passwordExpiration"
+          label: "Expiration (days)"
+          fieldType: "number"
+          required: false
+          helpText: "Days before a password expires (when expiration is enabled)."
+        - key: "firstExpirationReminder"
+          label: "First Reminder (days before)"
+          fieldType: "number"
+          required: false
+          helpText: "Days before expiration to send the first reminder."
+
+    - name: "Strength Checks"
+      icon: "shield"
+      description: "Additional strength and validation rules"
+      fields:
+        - key: "requireStrongAuthn"
+          label: "Require Strong Authentication"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Require strong authentication to change the password."
+        - key: "useDictionary"
+          label: "Use Dictionary Check"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Reject passwords found in the dictionary."
+        - key: "useIdentityAttributes"
+          label: "Block Identity Attributes"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Reject passwords containing identity attribute values."
+        - key: "useAccountAttributes"
+          label: "Block Account Attributes"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Reject passwords containing account attribute values."
+        - key: "validateAgainstAccountId"
+          label: "Block Account ID"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Reject passwords containing the account id."
+        - key: "validateAgainstAccountName"
+          label: "Block Account Name"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Reject passwords containing the account name."

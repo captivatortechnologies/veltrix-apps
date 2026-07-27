@@ -8,6 +8,28 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.4.0 — 2026-07-26
+
+### Added
+- **Access Profiles** configuration type — manage ISC access profiles (name,
+  owner, source, entitlement ids, enabled/requestable) as code, with the full
+  pipeline handler set. Matched by name with the id stored for rename-safety;
+  updates use JSON-Patch; the source is immutable so a same-name profile on a
+  different source is rejected; an enabled profile must grant at least one
+  entitlement; reconcile only deletes profiles this app created.
+- **Roles** configuration type — manage ISC roles (name, owner, bundled access
+  profile ids, enabled/requestable) as code, with the full pipeline handler set.
+  Matched by name with the id stored for rename-safety; updates use JSON-Patch;
+  role membership (auto-assignment) is managed separately in ISC and is out of
+  scope; reconcile only deletes roles this app created.
+- **Password Policies** configuration type — manage ISC password policies
+  (length, composition, expiration and strength rules) as code, with the full
+  pipeline handler set. Matched by name with the id stored for rename-safety; ISC
+  updates via a full-replace PUT, so unmanaged fields (source assignments, the
+  default flag) are preserved and only the rule fields are overridden; the tenant
+  default policy is protected and never modified; reconcile only deletes policies
+  this app created.
+
 ## 0.3.0 — 2026-07-26
 
 ### Added

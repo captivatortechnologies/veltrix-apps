@@ -1,0 +1,7 @@
+# Defaults for a new password policy item.
+#
+# A FLAT map keyed by the canvas field keys. Sensible starting rules; every
+# numeric field defaults to 0 (no constraint) unless set here.
+minLength: 8
+maxLength: 100
+minCharacterTypes: 0

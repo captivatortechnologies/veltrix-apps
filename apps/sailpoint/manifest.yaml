@@ -1,12 +1,12 @@
 id: sailpoint
 name: SailPoint
-version: "0.3.0"
+version: "0.4.0"
 vendor: Veltrix
 description: >
   Manage SailPoint Identity Security Cloud (ISC, formerly IdentityNow)
-  configuration as code through the ISC API — Transforms, Segments and Governance
-  Groups — with validation, drift detection and rollback handled by the
-  Security-as-Code pipeline.
+  configuration as code through the ISC API — Transforms, Segments, Governance
+  Groups, Access Profiles, Roles and Password Policies — with validation, drift
+  detection and rollback handled by the Security-as-Code pipeline.
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/sailpoint
@@ -36,9 +36,69 @@ permissions:
     - resource: governance-groups
       actions: [read, write, delete]
       description: Manage SailPoint ISC governance groups / workgroups (name, description, owner Identity)
+    - resource: access-profiles
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC access profiles (name, owner, source, entitlements, enabled/requestable)
+    - resource: roles
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC roles (name, owner, bundled access profiles, enabled/requestable)
+    - resource: password-policies
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC password policies (length, composition, expiration and strength rules)
 
 pipeline:
   configurationTypes:
+    - id: access-profiles
+      name: Access Profiles
+      description: ISC access profiles — bundle entitlements from a single source (name-keyed; id stored for rename-safety; JSON-Patch updates)
+      canvasTemplate: config-types/access-profiles/canvas.yaml
+      defaultConfig: config-types/access-profiles/defaults.yaml
+      handlers:
+        validate: config-types/access-profiles/validate
+        deploy: config-types/access-profiles/deploy
+        rollback: config-types/access-profiles/rollback
+        healthCheck: config-types/access-profiles/healthCheck
+        driftDetect: config-types/access-profiles/driftDetect
+        getStatus: config-types/access-profiles/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: roles
+      name: Roles
+      description: ISC roles — bundle access profiles to grant access (name-keyed; id stored for rename-safety; JSON-Patch updates; membership out of scope)
+      canvasTemplate: config-types/roles/canvas.yaml
+      defaultConfig: config-types/roles/defaults.yaml
+      handlers:
+        validate: config-types/roles/validate
+        deploy: config-types/roles/deploy
+        rollback: config-types/roles/rollback
+        healthCheck: config-types/roles/healthCheck
+        driftDetect: config-types/roles/driftDetect
+        getStatus: config-types/roles/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: password-policies
+      name: Password Policies
+      description: ISC password policies — length, composition, expiration and strength rules (name-keyed; id stored for rename-safety; full-replace PUT; default policy protected)
+      canvasTemplate: config-types/password-policies/canvas.yaml
+      defaultConfig: config-types/password-policies/defaults.yaml
+      handlers:
+        validate: config-types/password-policies/validate
+        deploy: config-types/password-policies/deploy
+        rollback: config-types/password-policies/rollback
+        healthCheck: config-types/password-policies/healthCheck
+        driftDetect: config-types/password-policies/driftDetect
+        getStatus: config-types/password-policies/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: governance-groups
       name: Governance Groups
       description: ISC governance groups (workgroups) — name, description and owner Identity (name-keyed; id stored for rename-safety)
