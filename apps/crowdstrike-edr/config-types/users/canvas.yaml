@@ -1,0 +1,58 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Users
+#
+# Declares ONE user — the item. Add as many users as needed.
+# Field keys must match what config-types/users/validate.ts checks.
+#
+# A user's identity in Falcon is its email (uid). Users are created via invite —
+# no password is ever set. Roles cannot be set on create, so role assignment is
+# converged as a separate step after the account exists.
+# =============================================================================
+
+id: "crowdstrike-edr-users"
+name: "User Configuration"
+toolType: "crowdstrike-edr"
+entityType: "users"
+description: "Manage Falcon users (email, name) and converge their role assignments via the User Management API"
+
+item:
+  label: "User"
+  identityField: "email"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Account"
+      icon: "user"
+      description: "User identity and profile"
+      fields:
+        - key: "email"
+          label: "Email"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 320
+          helpText: "The user's login email (uid). Creating a user sends an activation invite — no password is ever set. Must be unique across the canvas."
+
+        - key: "firstName"
+          label: "First Name"
+          fieldType: "text"
+          validation:
+            maxLength: 100
+          helpText: "Optional given name shown in the Falcon console"
+
+        - key: "lastName"
+          label: "Last Name"
+          fieldType: "text"
+          validation:
+            maxLength: 100
+          helpText: "Optional family name shown in the Falcon console"
+
+    - name: "Roles"
+      icon: "shield"
+      description: "Role assignments converged after the account exists"
+      fields:
+        - key: "roleIds"
+          label: "Role IDs"
+          fieldType: "tags"
+          helpText: "Falcon role ids to grant this user (e.g. falconhost_role_admin). Leave empty to leave the user's roles unmanaged; when set, the user's direct roles are converged to exactly this list (missing granted, extra revoked)."

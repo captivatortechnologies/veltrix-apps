@@ -1,6 +1,6 @@
 id: crowdstrike-edr
 name: CrowdStrike Falcon
-version: "1.11.0"
+version: "1.12.0"
 vendor: Veltrix
 description: >
   Manage CrowdStrike Falcon configurations as code through the Falcon
@@ -124,6 +124,39 @@ permissions:
     - resource: ngsiem-data-connections
       actions: [read, write, delete]
       description: Manage CrowdStrike Falcon Next-Gen SIEM data connections (ingest connectors)
+    - resource: firewall-rule-groups
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon firewall rule groups and their rules
+    - resource: firewall-policies
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon firewall policies (rule-group assignment, default actions)
+    - resource: rtr-response-scripts
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon Real Time Response custom scripts
+    - resource: rtr-put-files
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon Real Time Response put-files
+    - resource: it-automation-policies
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon for IT automation policies
+    - resource: it-automation-tasks
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon for IT automation tasks (osquery / scripts)
+    - resource: it-automation-scheduled-tasks
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon for IT automation scheduled tasks
+    - resource: recon-monitoring-rules
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon Intelligence Recon monitoring rules and notification actions
+    - resource: installation-tokens
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon sensor installation tokens
+    - resource: users
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon users and their role assignments
+    - resource: idp-policy-rules
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon Identity Protection policy rules
 
 pipeline:
   configurationTypes:
@@ -662,6 +695,204 @@ pipeline:
         healthCheck: config-types/ngsiem-data-connections/healthCheck
         driftDetect: config-types/ngsiem-data-connections/driftDetect
         getStatus: config-types/ngsiem-data-connections/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewall-rule-groups
+      group: "Firewall"
+      name: Firewall Rule Group Configuration
+      description: Falcon firewall rule groups and their rules (direction, protocol, ports, action) — reusable across firewall policies
+      canvasTemplate: config-types/firewall-rule-groups/canvas.yaml
+      defaultConfig: config-types/firewall-rule-groups/defaults.yaml
+      handlers:
+        validate: config-types/firewall-rule-groups/validate
+        deploy: config-types/firewall-rule-groups/deploy
+        rollback: config-types/firewall-rule-groups/rollback
+        healthCheck: config-types/firewall-rule-groups/healthCheck
+        driftDetect: config-types/firewall-rule-groups/driftDetect
+        getStatus: config-types/firewall-rule-groups/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewall-policies
+      group: "Firewall"
+      name: Firewall Policy Configuration
+      description: Falcon firewall policies — platform, enablement, host-group + ordered rule-group assignment, default in/out actions
+      canvasTemplate: config-types/firewall-policies/canvas.yaml
+      defaultConfig: config-types/firewall-policies/defaults.yaml
+      handlers:
+        validate: config-types/firewall-policies/validate
+        deploy: config-types/firewall-policies/deploy
+        rollback: config-types/firewall-policies/rollback
+        healthCheck: config-types/firewall-policies/healthCheck
+        driftDetect: config-types/firewall-policies/driftDetect
+        getStatus: config-types/firewall-policies/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: rtr-response-scripts
+      group: "Response & RTR"
+      name: RTR Custom Script Configuration
+      description: Falcon Real Time Response custom scripts (platform, permission type, content) — reusable RTR automation
+      canvasTemplate: config-types/rtr-response-scripts/canvas.yaml
+      defaultConfig: config-types/rtr-response-scripts/defaults.yaml
+      handlers:
+        validate: config-types/rtr-response-scripts/validate
+        deploy: config-types/rtr-response-scripts/deploy
+        rollback: config-types/rtr-response-scripts/rollback
+        healthCheck: config-types/rtr-response-scripts/healthCheck
+        driftDetect: config-types/rtr-response-scripts/driftDetect
+        getStatus: config-types/rtr-response-scripts/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: rtr-put-files
+      group: "Response & RTR"
+      name: RTR Put-File Configuration
+      description: Falcon Real Time Response put-files (files stageable to hosts via RTR) — name, description, content
+      canvasTemplate: config-types/rtr-put-files/canvas.yaml
+      defaultConfig: config-types/rtr-put-files/defaults.yaml
+      handlers:
+        validate: config-types/rtr-put-files/validate
+        deploy: config-types/rtr-put-files/deploy
+        rollback: config-types/rtr-put-files/rollback
+        healthCheck: config-types/rtr-put-files/healthCheck
+        driftDetect: config-types/rtr-put-files/driftDetect
+        getStatus: config-types/rtr-put-files/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: it-automation-policies
+      group: "IT Automation"
+      name: IT Automation Policy Configuration
+      description: Falcon for IT automation policies — execution controls (concurrency, throttle, timeouts), allowed schedules, host-group assignment
+      canvasTemplate: config-types/it-automation-policies/canvas.yaml
+      defaultConfig: config-types/it-automation-policies/defaults.yaml
+      handlers:
+        validate: config-types/it-automation-policies/validate
+        deploy: config-types/it-automation-policies/deploy
+        rollback: config-types/it-automation-policies/rollback
+        healthCheck: config-types/it-automation-policies/healthCheck
+        driftDetect: config-types/it-automation-policies/driftDetect
+        getStatus: config-types/it-automation-policies/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: it-automation-tasks
+      group: "IT Automation"
+      name: IT Automation Task Configuration
+      description: Falcon for IT automation tasks — query / remediation content (osquery + scripts), target platforms, parameters
+      canvasTemplate: config-types/it-automation-tasks/canvas.yaml
+      defaultConfig: config-types/it-automation-tasks/defaults.yaml
+      handlers:
+        validate: config-types/it-automation-tasks/validate
+        deploy: config-types/it-automation-tasks/deploy
+        rollback: config-types/it-automation-tasks/rollback
+        healthCheck: config-types/it-automation-tasks/healthCheck
+        driftDetect: config-types/it-automation-tasks/driftDetect
+        getStatus: config-types/it-automation-tasks/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: it-automation-scheduled-tasks
+      group: "IT Automation"
+      name: IT Automation Scheduled Task Configuration
+      description: Falcon for IT automation scheduled tasks — bind a task to host groups + a recurrence schedule (cron/timezone)
+      canvasTemplate: config-types/it-automation-scheduled-tasks/canvas.yaml
+      defaultConfig: config-types/it-automation-scheduled-tasks/defaults.yaml
+      handlers:
+        validate: config-types/it-automation-scheduled-tasks/validate
+        deploy: config-types/it-automation-scheduled-tasks/deploy
+        rollback: config-types/it-automation-scheduled-tasks/rollback
+        healthCheck: config-types/it-automation-scheduled-tasks/healthCheck
+        driftDetect: config-types/it-automation-scheduled-tasks/driftDetect
+        getStatus: config-types/it-automation-scheduled-tasks/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: recon-monitoring-rules
+      group: "Counter Adversary Ops"
+      name: Recon Monitoring Rule Configuration
+      description: Falcon Intelligence Recon monitoring rules (topic, FQL filter, priority) and their notification actions
+      canvasTemplate: config-types/recon-monitoring-rules/canvas.yaml
+      defaultConfig: config-types/recon-monitoring-rules/defaults.yaml
+      handlers:
+        validate: config-types/recon-monitoring-rules/validate
+        deploy: config-types/recon-monitoring-rules/deploy
+        rollback: config-types/recon-monitoring-rules/rollback
+        healthCheck: config-types/recon-monitoring-rules/healthCheck
+        driftDetect: config-types/recon-monitoring-rules/driftDetect
+        getStatus: config-types/recon-monitoring-rules/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: installation-tokens
+      group: "Platform Administration"
+      name: Installation Token Configuration
+      description: Falcon sensor installation tokens — label, expiry, revoke/restore (drift-corrected via revoke, not delete)
+      canvasTemplate: config-types/installation-tokens/canvas.yaml
+      defaultConfig: config-types/installation-tokens/defaults.yaml
+      handlers:
+        validate: config-types/installation-tokens/validate
+        deploy: config-types/installation-tokens/deploy
+        rollback: config-types/installation-tokens/rollback
+        healthCheck: config-types/installation-tokens/healthCheck
+        driftDetect: config-types/installation-tokens/driftDetect
+        getStatus: config-types/installation-tokens/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: users
+      group: "Platform Administration"
+      name: User Configuration
+      description: Falcon users (email, name) and their role assignments (role grant is a separate step after create)
+      canvasTemplate: config-types/users/canvas.yaml
+      defaultConfig: config-types/users/defaults.yaml
+      handlers:
+        validate: config-types/users/validate
+        deploy: config-types/users/deploy
+        rollback: config-types/users/rollback
+        healthCheck: config-types/users/healthCheck
+        driftDetect: config-types/users/driftDetect
+        getStatus: config-types/users/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: idp-policy-rules
+      group: "Identity Protection"
+      name: Identity Protection Policy Rule Configuration
+      description: Falcon Identity Protection policy rules (action, conditions, simulation mode) — no PATCH API, so changes replace-in-place
+      canvasTemplate: config-types/idp-policy-rules/canvas.yaml
+      defaultConfig: config-types/idp-policy-rules/defaults.yaml
+      handlers:
+        validate: config-types/idp-policy-rules/validate
+        deploy: config-types/idp-policy-rules/deploy
+        rollback: config-types/idp-policy-rules/rollback
+        healthCheck: config-types/idp-policy-rules/healthCheck
+        driftDetect: config-types/idp-policy-rules/driftDetect
+        getStatus: config-types/idp-policy-rules/getStatus
       targets:
         componentTypes: [falcon-tenant]
         requiresCredential: true

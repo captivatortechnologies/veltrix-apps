@@ -1,0 +1,87 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Identity Protection Policy Rules
+#
+# Declares ONE Identity Protection policy rule — the item. Users add as many
+# rules as they need. Field keys must match what
+# config-types/idp-policy-rules/validate.ts checks.
+#
+# IMPORTANT — REPLACE-IN-PLACE: the Falcon Identity Protection API has NO
+# update/PATCH endpoint for policy rules (only create/get/query/delete). A rule
+# whose managed fields change is therefore DELETED and RECREATED on deploy, so
+# its underlying rule id is NOT stable across a change. `name` is the rule's
+# identity on the canvas and in tenant lookups.
+# =============================================================================
+
+id: "crowdstrike-edr-idp-policy-rules"
+name: "Identity Protection Policy Rule Configuration"
+toolType: "crowdstrike-edr"
+entityType: "idp-policy-rules"
+description: "Define Falcon Identity Protection policy rules (action, conditions, simulation mode) as code. The API has no update endpoint, so changes replace-in-place (delete + recreate)."
+
+item:
+  label: "Policy Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "shield"
+      description: "Rule identity, action, and enforcement mode"
+      fields:
+        - key: "name"
+          label: "Rule Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique rule name in the Falcon tenant. This is the rule's identity — changing a rule's managed fields deletes and recreates it (the API has no update endpoint), so keep the name stable."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the rule is active. Deployment converges to this value."
+
+        - key: "simulationMode"
+          label: "Simulation Mode"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When on, the rule logs what it WOULD do instead of enforcing the action — use this to trial a rule before it blocks or challenges real traffic."
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "MFA"
+          options:
+            - label: "Enforce identity verification (MFA)"
+              value: "MFA"
+            - label: "Allow"
+              value: "ALLOW"
+            - label: "Deny"
+              value: "DENY"
+          helpText: "What the rule does when its conditions match. MFA challenges the user for identity verification; ALLOW permits; DENY blocks."
+
+        - key: "precedence"
+          label: "Precedence"
+          fieldType: "text"
+          validation:
+            pattern: "^$|^\\d{1,6}$"
+            message: "Precedence must be a whole number (leave empty for none)"
+          helpText: "Optional ordering hint (lower runs first). The REST API exposes no precedence field, so this only orders the deploy sequence — verify final rule order in the Falcon console."
+
+        - key: "conditions"
+          label: "Conditions (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            JSON object describing what the rule matches. Keys are passed through
+            to the Falcon API as-is: "activity" (accessType / accessTypeCustom),
+            "sourceUser", "sourceEndpoint", "destination" (each with
+            entityId / groupMembership include/exclude lists), and "trigger".
+            Example:
+            {"sourceUser": {"groupMembership": {"include": ["Domain Admins"]}},
+            "activity": {"accessType": {"include": ["LDAP"]}}}.
+            Leave empty for a rule with no scoping conditions. The name, enabled,
+            simulationMode, and action fields above are managed here — do not
+            repeat them inside this JSON.

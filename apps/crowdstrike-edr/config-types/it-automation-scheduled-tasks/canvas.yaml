@@ -1,0 +1,76 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon for IT — Automation Scheduled Tasks
+#
+# Declares ONE scheduled task — the item. Users add as many as they need. Field
+# keys must match what config-types/it-automation-scheduled-tasks/validate.ts
+# checks.
+#
+# A scheduled task binds an existing IT automation TASK to a recurrence
+# schedule (and, in the console, to host groups). A scheduled task has no name
+# of its own in Falcon — its API identity is `task_id` — so the canvas `name`
+# is a Veltrix-side label and one scheduled task is managed per task.
+# =============================================================================
+
+id: "crowdstrike-edr-it-automation-scheduled-tasks"
+name: "IT Automation Scheduled Task Configuration"
+toolType: "crowdstrike-edr"
+entityType: "it-automation-scheduled-tasks"
+description: "Bind a Falcon for IT automation task to a recurrence schedule (frequency/interval/time/timezone) and enablement, as code via the IT Automation Scheduled Task API"
+
+item:
+  label: "Scheduled Task"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "clock"
+      description: "Schedule identity, target task, recurrence, and enablement"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "A label for this schedule (Veltrix-side — not stored on the Falcon scheduled task)"
+
+        - key: "taskId"
+          label: "Task ID"
+          fieldType: "text"
+          required: true
+          helpText: "The IT automation task ID this schedule runs. This is the scheduled task's identity in Falcon — one scheduled task per task."
+
+        - key: "hostGroups"
+          label: "Host Group IDs"
+          fieldType: "tags"
+          helpText: >
+            Falcon host group IDs the scheduled task targets. Captured and
+            drift-checked, but not yet written by deploy — the scheduled-task
+            target field shape is not verified for this newer API. Complete
+            targeting in the Falcon console if required.
+
+        - key: "schedule"
+          label: "Schedule (JSON recurrence)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            JSON recurrence object. Keys: frequency (One-Time, Daily, Weekly,
+            Monthly), interval (every N periods), time ("HH:MM"), timezone,
+            start_time / end_time (ISO-8601), days_of_week (["Monday", ...]),
+            day_of_month (1–31). Example:
+            {"frequency": "Weekly", "interval": 1, "time": "02:00",
+            "days_of_week": ["Monday"], "timezone": "UTC"}. The verified API takes
+            a structured recurrence, not a raw cron expression.
+
+        - key: "timezone"
+          label: "Timezone"
+          fieldType: "text"
+          helpText: "IANA timezone (e.g. UTC, America/New_York). Merged into the schedule when the schedule JSON omits a timezone."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether the schedule is active. Deployment converges the live scheduled task's is_active to this value."

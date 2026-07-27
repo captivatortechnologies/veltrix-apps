@@ -1,0 +1,82 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon RTR Custom Scripts
+#
+# Declares ONE Real Time Response custom script — the item. Users add as many
+# scripts as they need. Field keys must match what
+# config-types/rtr-response-scripts/validate.ts checks.
+#
+# A script's identity in Falcon is its `name`. Create/update run through the
+# RTR Admin API's multipart/form-data endpoints (see deploy.ts caveat).
+# =============================================================================
+
+id: "crowdstrike-edr-rtr-response-scripts"
+name: "RTR Custom Script Configuration"
+toolType: "crowdstrike-edr"
+entityType: "rtr-response-scripts"
+description: "Define Falcon Real Time Response custom scripts (platform, permission type, content) as code via the RTR Admin API"
+
+item:
+  label: "RTR Script"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "terminal"
+      description: "Script identity, targeting, and body"
+      fields:
+        - key: "name"
+          label: "Script Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique script name in the Falcon tenant — this is the script's identity"
+
+        - key: "platform"
+          label: "Platform"
+          fieldType: "select"
+          required: true
+          defaultValue: "windows"
+          options:
+            - label: "Windows"
+              value: "windows"
+            - label: "Mac"
+              value: "mac"
+            - label: "Linux"
+              value: "linux"
+          helpText: "Sensor platform this script runs on"
+
+        - key: "permissionType"
+          label: "Permission Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "private"
+          options:
+            - label: "Private (author only)"
+              value: "private"
+            - label: "Group (author's roles)"
+              value: "group"
+            - label: "Public (all RTR users)"
+              value: "public"
+          helpText: "Who may run this script in the Falcon console"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: true
+          helpText: "What this script does — required by the RTR Admin API and shown in the Falcon console"
+
+        - key: "content"
+          label: "Script Content"
+          fieldType: "textarea"
+          required: true
+          helpText: "The script body. PowerShell for Windows; shell for Mac/Linux."
+
+        - key: "commentsForAuditLog"
+          label: "Audit Log Comment"
+          fieldType: "text"
+          validation:
+            maxLength: 4096
+          helpText: "Optional comment recorded in the Falcon audit log when the script is created or updated"

@@ -1,0 +1,117 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Intelligence Recon Monitoring Rules
+#
+# Declares ONE Recon monitoring rule — the item. Users add as many rules as they
+# need. Field keys must match what
+# config-types/recon-monitoring-rules/validate.ts checks.
+#
+# A rule's identity in Falcon is its `name`; uniqueness per canvas is enforced by
+# validate.ts. `topic` is immutable after the rule is created — changing it means
+# deleting and recreating the rule. Notification `actions` are embedded as a JSON
+# array and converged against the rule's live actions on deploy.
+# =============================================================================
+
+id: "crowdstrike-edr-recon-monitoring-rules"
+name: "Recon Monitoring Rule Configuration"
+toolType: "crowdstrike-edr"
+entityType: "recon-monitoring-rules"
+description: "Define Falcon Intelligence Recon monitoring rules — topic, FQL filter, priority, permissions, breach/substring matching — and their notification actions as code via the Recon API"
+
+item:
+  label: "Recon Monitoring Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "General"
+      icon: "radar"
+      description: "Rule identity, topic, and detection filter"
+      fields:
+        - key: "name"
+          label: "Rule Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique name for the monitoring rule in the tenant. Must be unique per canvas."
+
+        - key: "topic"
+          label: "Topic"
+          fieldType: "select"
+          required: true
+          defaultValue: "SA_DOMAIN"
+          options:
+            - label: "Domain"
+              value: "SA_DOMAIN"
+            - label: "IP Address"
+              value: "SA_IP"
+            - label: "Email"
+              value: "SA_EMAIL"
+            - label: "Typosquatting / Alias"
+              value: "SA_ALIAS"
+            - label: "Author"
+              value: "SA_AUTHOR"
+            - label: "Brand & Product"
+              value: "SA_BRAND_PRODUCT"
+            - label: "Vulnerability (CVE)"
+              value: "SA_CVE"
+            - label: "Third Party"
+              value: "SA_THIRD_PARTY"
+            - label: "Custom"
+              value: "SA_CUSTOM"
+          helpText: "The Recon topic the rule searches. Immutable after creation — changing it deletes and recreates the rule."
+
+        - key: "filter"
+          label: "Filter (FQL)"
+          fieldType: "textarea"
+          required: true
+          helpText: "The FQL query the rule matches against, e.g. example.com or a topic-specific expression. Required."
+
+        - key: "priority"
+          label: "Priority"
+          fieldType: "select"
+          defaultValue: "medium"
+          options:
+            - label: "Low"
+              value: "low"
+            - label: "Medium"
+              value: "medium"
+            - label: "High"
+              value: "high"
+          helpText: "Priority assigned to alerts this rule raises"
+
+        - key: "permissions"
+          label: "Permissions"
+          fieldType: "select"
+          defaultValue: "private"
+          options:
+            - label: "Private (creator only)"
+              value: "private"
+            - label: "Public (whole tenant)"
+              value: "public"
+          helpText: "Whether the rule is visible only to its creator (private) or the whole tenant (public)"
+
+        - key: "breachMonitoring"
+          label: "Breach Monitoring"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Also surface matches found in breach/leak data sets"
+
+        - key: "substringMatching"
+          label: "Substring Matching"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Match the filter as a substring rather than requiring an exact token match"
+
+        - key: "actions"
+          label: "Notification Actions (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON array of notification actions attached to this rule. Each
+            entry is {"type": "email", "frequency": "asap", "recipients":
+            ["soc@example.com"], "contentFormat": "standard"}. type is email;
+            frequency is one of asap, daily, weekly; contentFormat is standard or
+            enhanced; recipients is a list of email addresses. Declared actions are
+            converged against the rule's live actions — actions not declared here
+            are removed.

@@ -3,6 +3,21 @@
 All notable changes to the CrowdStrike Falcon app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.12.0 — 2026-07-27
+
+### Added
+- **Phase 5 — eleven config types across five families**, completing the roadmap:
+  - **Firewall** — Rule Group (rules) and Policy (rule-group assignment; reuses the
+    shared policy adapter + fwmgr).
+  - **Response & RTR** — RTR Custom Scripts and Put-Files (reusable RTR assets).
+  - **IT Automation** (Falcon for IT) — Policy, Task (osquery/scripts), Scheduled Task.
+  - **Counter Adversary Ops** — Recon Monitoring Rules (+ notification actions).
+  - **Platform Administration** — Installation Tokens (drift-corrected via revoke,
+    not delete) and Users (with role-grant as a separate step).
+  - **Identity Protection** — IDP Policy Rules (no PATCH API → replace-in-place).
+- MSSP / Flight Control is intentionally deferred (multi-tenant, requires parent-CID
+  credentials).
+
 ## 1.11.0 — 2026-07-27
 
 ### Added

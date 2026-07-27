@@ -1,0 +1,79 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon for IT — Automation Tasks
+#
+# Declares ONE IT automation task — the item. Users add as many tasks as they
+# need. Field keys must match what
+# config-types/it-automation-tasks/validate.ts checks.
+#
+# A task is reusable automation content: a QUERY task reads host state via
+# osquery; a REMEDIATION task changes it via a platform script. The task's
+# identity in Falcon is its `name` (uniqueness per canvas is enforced by
+# validate.ts).
+# =============================================================================
+
+id: "crowdstrike-edr-it-automation-tasks"
+name: "IT Automation Task Configuration"
+toolType: "crowdstrike-edr"
+entityType: "it-automation-tasks"
+description: "Define Falcon for IT automation tasks (osquery query or remediation script content, target platforms, input parameters) as code via the IT Automation Task API"
+
+item:
+  label: "IT Automation Task"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "terminal"
+      description: "Task identity, type, target platforms, content, and parameters"
+      fields:
+        - key: "name"
+          label: "Task Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique task name in the Falcon tenant"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "What this task does — shown in the Falcon console"
+
+        - key: "taskType"
+          label: "Task Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "query"
+          options:
+            - label: "Query (read host state via osquery)"
+              value: "query"
+            - label: "Remediation (change host state via a script)"
+              value: "remediation"
+          helpText: "Query tasks run osquery; remediation tasks run a platform script."
+
+        - key: "platforms"
+          label: "Platforms"
+          fieldType: "tags"
+          required: true
+          helpText: "Sensor platforms the task content targets: windows, mac, linux"
+
+        - key: "content"
+          label: "Content (osquery / script)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            For a query task, the osquery SQL to run (stored on the task's
+            os_query field). For a remediation task, the script body applied to
+            each target platform. Deployment converges the task to this content.
+
+        - key: "parameters"
+          label: "Parameters (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON array of task input parameters. Each entry is an object
+            with a unique "key", e.g.
+            [{"key": "threshold", "label": "Threshold", "input_type": "text",
+            "default_value": "10"}]. Only "key" is validated; other fields are
+            passed through to the API.

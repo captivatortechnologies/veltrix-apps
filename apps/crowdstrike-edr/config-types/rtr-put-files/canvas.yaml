@@ -1,0 +1,55 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon RTR Put-Files
+#
+# Declares ONE Real Time Response put-file — the item. Users add as many
+# put-files as they need. Field keys must match what
+# config-types/rtr-put-files/validate.ts checks.
+#
+# A put-file's identity in Falcon is its `name`. Put-files are IMMUTABLE (no
+# PATCH): a content change is applied by delete-then-recreate, and create runs
+# through the RTR Admin API's multipart/form-data endpoint (see deploy.ts caveat).
+# =============================================================================
+
+id: "crowdstrike-edr-rtr-put-files"
+name: "RTR Put-File Configuration"
+toolType: "crowdstrike-edr"
+entityType: "rtr-put-files"
+description: "Define Falcon Real Time Response put-files (files stageable to hosts via RTR) as code via the RTR Admin API"
+
+item:
+  label: "RTR Put-File"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "file"
+      description: "Put-file identity and content"
+      fields:
+        - key: "name"
+          label: "Put-File Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique put-file name in the Falcon tenant — this is the file's identity. Immutable: change = delete + recreate."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: true
+          helpText: "What this file is for — required by the RTR Admin API and shown in the Falcon console"
+
+        - key: "content"
+          label: "File Content"
+          fieldType: "textarea"
+          required: true
+          helpText: "The file body to stage to hosts via RTR. Uploaded as the file bytes on deploy."
+
+        - key: "commentsForAuditLog"
+          label: "Audit Log Comment"
+          fieldType: "text"
+          validation:
+            maxLength: 4096
+          helpText: "Optional comment recorded in the Falcon audit log when the put-file is created"

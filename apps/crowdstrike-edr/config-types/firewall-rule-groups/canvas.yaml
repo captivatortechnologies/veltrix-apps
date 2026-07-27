@@ -1,0 +1,76 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Firewall Rule Groups
+#
+# Declares ONE firewall rule group — the item. Users add as many groups as they
+# need. A rule group is a reusable, ordered set of firewall rules that firewall
+# policies reference. Field keys must match what
+# config-types/firewall-rule-groups/validate.ts checks.
+# =============================================================================
+
+id: "crowdstrike-edr-firewall-rule-groups"
+name: "Firewall Rule Group Configuration"
+toolType: "crowdstrike-edr"
+entityType: "firewall-rule-groups"
+description: "Define Falcon firewall rule groups and their ordered rules (direction, protocol, ports, action) as code via the Firewall Management (fwmgr) API — reusable across firewall policies"
+
+item:
+  label: "Firewall Rule Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "shield"
+      description: "Rule group identity, platform, and rules"
+      fields:
+        - key: "name"
+          label: "Rule Group Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique rule group name per platform in the Falcon tenant"
+
+        - key: "platform"
+          label: "Platform"
+          fieldType: "select"
+          required: true
+          defaultValue: "windows"
+          options:
+            - label: "Windows"
+              value: "windows"
+            - label: "Mac"
+              value: "mac"
+            - label: "Linux"
+              value: "linux"
+          helpText: "Immutable after creation — the sensor platform this rule group applies to"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "What this rule group covers — shown in the Falcon console"
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether the rule group is active. Deployment converges to this value."
+
+        - key: "rules"
+          label: "Rules (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Ordered JSON array of firewall rules (order is precedence). The declared
+            rules are the COMPLETE rule set — a rule present in the console but not
+            listed here is removed on deploy. Each entry is
+            {"name": "Allow HTTPS out", "action": "ALLOW", "direction": "OUT",
+            "protocol": "TCP", "enabled": true, "remotePorts": [{"start": 443}],
+            "addressFamily": "ANY"}. action is ALLOW or DENY; direction is IN, OUT,
+            or BOTH; protocol is TCP, UDP, ICMP, ICMPV4, ICMPV6, IGMP, GRE, ESP,
+            IP-IN-IP, "IPV6 ENCAPSULATION", or ANY; addressFamily is IP4, IP6, or
+            ANY. Optional: localPorts/remotePorts ([{start, end}]; end 0 or omitted
+            = single port), localAddresses/remoteAddresses ([{address, netmask}]),
+            icmpType/icmpCode (strings, "*" for any) for ICMP protocols,
+            networkLocation (ANY, DOMAIN, PRIVATE, PUBLIC, or a custom id), log, and
+            monitor.

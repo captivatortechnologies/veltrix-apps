@@ -1,0 +1,82 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon for IT — Automation Policies
+#
+# Declares ONE IT automation policy — the item. Users add as many policies as
+# they need. Field keys must match what
+# config-types/it-automation-policies/validate.ts checks.
+#
+# A policy governs how Falcon-for-IT tasks execute on a platform: execution
+# controls (script/python/osquery toggles, timeouts), resource limits (CPU
+# throttle, memory) and concurrency limits, plus host-group assignment.
+# =============================================================================
+
+id: "crowdstrike-edr-it-automation-policies"
+name: "IT Automation Policy Configuration"
+toolType: "crowdstrike-edr"
+entityType: "it-automation-policies"
+description: "Define Falcon for IT automation policies (execution controls, resource/concurrency limits, host-group assignment) as code via the IT Automation Policy API"
+
+item:
+  label: "IT Automation Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "cpu"
+      description: "Policy identity, platform, enablement, execution controls, and assignment"
+      fields:
+        - key: "name"
+          label: "Policy Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: "Unique policy name per platform in the Falcon tenant (1–100 characters)"
+
+        - key: "platform"
+          label: "Platform"
+          fieldType: "select"
+          required: true
+          defaultValue: "Windows"
+          options:
+            - label: "Windows"
+              value: "Windows"
+            - label: "Mac"
+              value: "Mac"
+            - label: "Linux"
+              value: "Linux"
+          helpText: "Immutable after creation — the sensor platform this policy applies to"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          validation:
+            maxLength: 500
+          helpText: "What this policy governs — shown in the Falcon console (up to 500 characters)"
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether the policy is active. Deployment converges the live policy to this value."
+
+        - key: "hostGroups"
+          label: "Host Group IDs"
+          fieldType: "tags"
+          helpText: "Falcon host group IDs this policy is assigned to. Deployment converges assignments to exactly this list."
+
+        - key: "executionConfig"
+          label: "Execution Config (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            JSON object of execution controls. Only the settings you list here are
+            managed; others keep their tenant values. Blocks:
+            execution {"enable_script_execution": true, "enable_python_execution": true,
+            "enable_os_query": true, "execution_timeout": 4, "execution_timeout_unit": "Hours"},
+            resources {"cpu_throttle": 25, "cpu_scheduling": "Normal",
+            "memory_pressure_level": "Normal", "memory_allocation": 512, "memory_allocation_unit": "MB"},
+            concurrency {"concurrent_host_limit": 500, "concurrent_task_limit": 5,
+            "concurrent_host_file_transfer_limit": 10}. Units: execution_timeout_unit is
+            Hours or Minutes; memory_allocation_unit is MB or GB; cpu_throttle is 0–100.

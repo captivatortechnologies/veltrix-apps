@@ -1,0 +1,109 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Firewall Policies
+#
+# Declares ONE firewall policy — the item. Users add as many policies as they
+# need. A firewall policy is split across two Falcon collections: the shell
+# (name/platform/enablement/host groups) on the /policy family and the settings
+# (rule groups + default actions) in the fwmgr container. Field keys must match
+# what config-types/firewall-policies/validate.ts checks.
+# =============================================================================
+
+id: "crowdstrike-edr-firewall-policies"
+name: "Firewall Policy Configuration"
+toolType: "crowdstrike-edr"
+entityType: "firewall-policies"
+description: "Define Falcon firewall policies (platform, enablement, host-group and ordered rule-group assignment, default in/out actions, enforcement) as code"
+
+item:
+  label: "Firewall Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "shield"
+      description: "Policy identity, assignment, and firewall settings"
+      fields:
+        - key: "name"
+          label: "Policy Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique policy name per platform in the Falcon tenant"
+
+        - key: "platform"
+          label: "Platform"
+          fieldType: "select"
+          required: true
+          defaultValue: "Windows"
+          options:
+            - label: "Windows"
+              value: "Windows"
+            - label: "Mac"
+              value: "Mac"
+            - label: "Linux"
+              value: "Linux"
+          helpText: "Immutable after creation. Falcon firewall is Windows-only in practice."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "What this policy enforces — shown in the Falcon console"
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether the policy is active. New Falcon policies always start disabled; deployment converges to this value."
+
+        - key: "hostGroups"
+          label: "Host Group IDs"
+          fieldType: "tags"
+          helpText: "Falcon host group IDs this policy is assigned to. Deployment converges assignments to exactly this list."
+
+        - key: "ruleGroups"
+          label: "Firewall Rule Group IDs (ordered)"
+          fieldType: "tags"
+          helpText: "Firewall rule group IDs to apply, in precedence order (first = highest priority)."
+
+        - key: "defaultInbound"
+          label: "Default Inbound Action"
+          fieldType: "select"
+          defaultValue: "DENY"
+          options:
+            - label: "Deny"
+              value: "DENY"
+            - label: "Allow"
+              value: "ALLOW"
+          helpText: "Action for inbound traffic not matched by any rule"
+
+        - key: "defaultOutbound"
+          label: "Default Outbound Action"
+          fieldType: "select"
+          defaultValue: "ALLOW"
+          options:
+            - label: "Allow"
+              value: "ALLOW"
+            - label: "Deny"
+              value: "DENY"
+          helpText: "Action for outbound traffic not matched by any rule"
+
+        - key: "enforce"
+          label: "Enforce"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Apply this policy's rules and override the host's local firewall settings"
+
+        - key: "testMode"
+          label: "Test (Monitor) Mode"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Log what would be blocked without blocking it. Only takes effect when Enforce is on."
+
+        - key: "localLogging"
+          label: "Local Logging"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Record firewall events locally on assigned hosts"
