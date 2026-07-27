@@ -3,6 +3,18 @@
 All notable changes to the CrowdStrike Falcon app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.11.0 — 2026-07-27
+
+### Added
+- **Next-Gen SIEM** — a new sidebar group with six configuration types:
+  - **Correlation Rule** — CQL detection rules (schedule, severity, MITRE mapping,
+    notifications, publish), on `/correlation-rules/`.
+  - **Parser** — log-normalization parsers, **Saved Query** / scheduled search,
+    **Dashboard**, **Lookup File** (CSV enrichment), and **Data Connection**
+    (ingest connectors; tokens handled as secrets) on `/ngsiem-content/`.
+- Correlation rules reuse `lib/entityAdapter.ts` (+ a publish call); the
+  `/ngsiem-content/` types use the collection's template-split CRUD directly.
+
 ## 1.10.0 — 2026-07-27
 
 ### Added

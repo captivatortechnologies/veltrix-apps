@@ -1,6 +1,6 @@
 id: crowdstrike-edr
 name: CrowdStrike Falcon
-version: "1.10.0"
+version: "1.11.0"
 vendor: Veltrix
 description: >
   Manage CrowdStrike Falcon configurations as code through the Falcon
@@ -106,6 +106,24 @@ permissions:
     - resource: cloud-kac-policies
       actions: [read, write, delete]
       description: Manage CrowdStrike Falcon Cloud Security Kubernetes admission (KAC) policies
+    - resource: ngsiem-correlation-rules
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon Next-Gen SIEM correlation (detection) rules
+    - resource: ngsiem-parsers
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon Next-Gen SIEM parsers (log normalization)
+    - resource: ngsiem-saved-queries
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon Next-Gen SIEM saved queries / scheduled searches
+    - resource: ngsiem-dashboards
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon Next-Gen SIEM dashboards
+    - resource: ngsiem-lookup-files
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon Next-Gen SIEM lookup files (enrichment tables)
+    - resource: ngsiem-data-connections
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon Next-Gen SIEM data connections (ingest connectors)
 
 pipeline:
   configurationTypes:
@@ -536,6 +554,114 @@ pipeline:
         healthCheck: config-types/cloud-kac-policies/healthCheck
         driftDetect: config-types/cloud-kac-policies/driftDetect
         getStatus: config-types/cloud-kac-policies/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ngsiem-correlation-rules
+      group: "Next-Gen SIEM"
+      name: Correlation Rule Configuration
+      description: Falcon Next-Gen SIEM correlation (detection) rules — CQL search, schedule, severity, MITRE mapping, notifications, publish
+      canvasTemplate: config-types/ngsiem-correlation-rules/canvas.yaml
+      defaultConfig: config-types/ngsiem-correlation-rules/defaults.yaml
+      handlers:
+        validate: config-types/ngsiem-correlation-rules/validate
+        deploy: config-types/ngsiem-correlation-rules/deploy
+        rollback: config-types/ngsiem-correlation-rules/rollback
+        healthCheck: config-types/ngsiem-correlation-rules/healthCheck
+        driftDetect: config-types/ngsiem-correlation-rules/driftDetect
+        getStatus: config-types/ngsiem-correlation-rules/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ngsiem-parsers
+      group: "Next-Gen SIEM"
+      name: Parser Configuration
+      description: Falcon Next-Gen SIEM parsers — log normalization to ECS (parser script + datatype/repository)
+      canvasTemplate: config-types/ngsiem-parsers/canvas.yaml
+      defaultConfig: config-types/ngsiem-parsers/defaults.yaml
+      handlers:
+        validate: config-types/ngsiem-parsers/validate
+        deploy: config-types/ngsiem-parsers/deploy
+        rollback: config-types/ngsiem-parsers/rollback
+        healthCheck: config-types/ngsiem-parsers/healthCheck
+        driftDetect: config-types/ngsiem-parsers/driftDetect
+        getStatus: config-types/ngsiem-parsers/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ngsiem-saved-queries
+      group: "Next-Gen SIEM"
+      name: Saved Query Configuration
+      description: Falcon Next-Gen SIEM saved queries / scheduled searches — CQL query, time range, schedule, sharing
+      canvasTemplate: config-types/ngsiem-saved-queries/canvas.yaml
+      defaultConfig: config-types/ngsiem-saved-queries/defaults.yaml
+      handlers:
+        validate: config-types/ngsiem-saved-queries/validate
+        deploy: config-types/ngsiem-saved-queries/deploy
+        rollback: config-types/ngsiem-saved-queries/rollback
+        healthCheck: config-types/ngsiem-saved-queries/healthCheck
+        driftDetect: config-types/ngsiem-saved-queries/driftDetect
+        getStatus: config-types/ngsiem-saved-queries/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ngsiem-dashboards
+      group: "Next-Gen SIEM"
+      name: Dashboard Configuration
+      description: Falcon Next-Gen SIEM dashboards — widget/layout definition with per-widget CQL queries
+      canvasTemplate: config-types/ngsiem-dashboards/canvas.yaml
+      defaultConfig: config-types/ngsiem-dashboards/defaults.yaml
+      handlers:
+        validate: config-types/ngsiem-dashboards/validate
+        deploy: config-types/ngsiem-dashboards/deploy
+        rollback: config-types/ngsiem-dashboards/rollback
+        healthCheck: config-types/ngsiem-dashboards/healthCheck
+        driftDetect: config-types/ngsiem-dashboards/driftDetect
+        getStatus: config-types/ngsiem-dashboards/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ngsiem-lookup-files
+      group: "Next-Gen SIEM"
+      name: Lookup File Configuration
+      description: Falcon Next-Gen SIEM lookup files — CSV enrichment tables (repository, key columns, content)
+      canvasTemplate: config-types/ngsiem-lookup-files/canvas.yaml
+      defaultConfig: config-types/ngsiem-lookup-files/defaults.yaml
+      handlers:
+        validate: config-types/ngsiem-lookup-files/validate
+        deploy: config-types/ngsiem-lookup-files/deploy
+        rollback: config-types/ngsiem-lookup-files/rollback
+        healthCheck: config-types/ngsiem-lookup-files/healthCheck
+        driftDetect: config-types/ngsiem-lookup-files/driftDetect
+        getStatus: config-types/ngsiem-lookup-files/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ngsiem-data-connections
+      group: "Next-Gen SIEM"
+      name: Data Connection Configuration
+      description: Falcon Next-Gen SIEM data connections — ingest connector instances (source config, target repository, parser); tokens handled as secrets
+      canvasTemplate: config-types/ngsiem-data-connections/canvas.yaml
+      defaultConfig: config-types/ngsiem-data-connections/defaults.yaml
+      handlers:
+        validate: config-types/ngsiem-data-connections/validate
+        deploy: config-types/ngsiem-data-connections/deploy
+        rollback: config-types/ngsiem-data-connections/rollback
+        healthCheck: config-types/ngsiem-data-connections/healthCheck
+        driftDetect: config-types/ngsiem-data-connections/driftDetect
+        getStatus: config-types/ngsiem-data-connections/getStatus
       targets:
         componentTypes: [falcon-tenant]
         requiresCredential: true

@@ -1,0 +1,55 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Next-Gen SIEM Lookup Files
+#
+# Declares ONE lookup file — the item. Users add as many files as they need.
+# Field keys must match what config-types/ngsiem-lookup-files/validate.ts checks.
+#
+# A lookup file is a CSV enrichment table joined into queries at search time.
+# Its identity in Falcon is the filename within a repository (search_domain).
+# =============================================================================
+
+id: "crowdstrike-edr-ngsiem-lookup-files"
+name: "Lookup File Configuration"
+toolType: "crowdstrike-edr"
+entityType: "ngsiem-lookup-files"
+description: "Define Falcon Next-Gen SIEM lookup files (CSV enrichment tables) as code — filename, repository, content, and key columns"
+
+item:
+  label: "Lookup File"
+  identityField: "filename"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "table"
+      description: "Lookup file identity, repository, and CSV content"
+      fields:
+        - key: "filename"
+          label: "Filename"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            pattern: "^[A-Za-z0-9][A-Za-z0-9._-]*\\.csv$"
+            message: "Filename must end in .csv and contain only letters, numbers, dot, underscore and hyphen"
+          helpText: "The lookup file name, e.g. asset-owners.csv. Unique per repository."
+
+        - key: "repository"
+          label: "Repository"
+          fieldType: "text"
+          defaultValue: "all"
+          helpText: "The NG-SIEM search domain / repository the file belongs to (maps to the API search_domain)."
+
+        - key: "content"
+          label: "CSV Content"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The enrichment table as CSV. The first row is the header; declared
+            key columns must appear in it. Content is stored verbatim.
+
+        - key: "keyColumns"
+          label: "Key Columns"
+          fieldType: "tags"
+          helpText: "Header columns queries match on. Validated against the CSV header; advisory only (not stored by the API)."

@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Next-Gen SIEM Parsers
+#
+# Declares ONE parser — the item. Users add as many parsers as they need.
+# Field keys must match what config-types/ngsiem-parsers/validate.ts checks.
+#
+# A parser's identity in Falcon is its name (immutable — the API rejects name
+# changes). The parser script follows the CrowdStrike Parsing Standard (ECS);
+# this app validates only that it is present, not the DSL itself.
+# =============================================================================
+
+id: "crowdstrike-edr-ngsiem-parsers"
+name: "Parser Configuration"
+toolType: "crowdstrike-edr"
+entityType: "ngsiem-parsers"
+description: "Define Falcon Next-Gen SIEM parsers (log normalization to ECS) as code — parser script, datatype, and repository"
+
+item:
+  label: "Parser"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "file-code"
+      description: "Parser identity, repository, and script"
+      fields:
+        - key: "name"
+          label: "Parser Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique parser name in the tenant. Immutable after creation — delete and recreate to rename."
+
+        - key: "repository"
+          label: "Repository"
+          fieldType: "text"
+          defaultValue: "parsers-repository"
+          helpText: "The parser repository. CrowdStrike documents \"parsers-repository\" for custom parsers."
+
+        - key: "datatype"
+          label: "Data Type"
+          fieldType: "text"
+          helpText: "The data type this parser produces (informational — shown in the console; not written to the parser endpoint)"
+
+        - key: "script"
+          label: "Parser Script (YAML / LogScale DSL)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The parser document following the CrowdStrike Parsing Standard (ECS).
+            Normalizes raw events into structured fields. Validated for presence
+            only — the DSL body is not parsed by this app.
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Advisory enablement flag for the config record. The parser endpoint does not model an enable/disable state."

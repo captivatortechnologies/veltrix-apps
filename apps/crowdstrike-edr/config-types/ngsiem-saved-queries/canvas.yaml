@@ -1,0 +1,57 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Next-Gen SIEM Saved Queries
+#
+# Declares ONE saved query — the item. Users add as many queries as they need.
+# Field keys must match what config-types/ngsiem-saved-queries/validate.ts checks.
+#
+# A saved query's identity in Falcon is its `name`; uniqueness per canvas is
+# enforced by validate.ts. A saved query is a reusable CQL search that can be
+# scheduled and shared across the tenant.
+# =============================================================================
+
+id: "crowdstrike-edr-ngsiem-saved-queries"
+name: "Saved Query Configuration"
+toolType: "crowdstrike-edr"
+entityType: "ngsiem-saved-queries"
+description: "Define Falcon Next-Gen SIEM saved queries (reusable CQL searches with a time range and sharing) as code via the NG-SIEM content API"
+
+item:
+  label: "Saved Query"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "search"
+      description: "Query identity, CQL, time range, and sharing"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique saved query name in the Falcon tenant. Immutable identity — renaming creates a new query."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "What this query finds — shown in the Falcon console"
+
+        - key: "query"
+          label: "CQL Query"
+          fieldType: "textarea"
+          required: true
+          helpText: "The CrowdStrike Query Language (CQL) search expression, e.g. #event_simpleName=ProcessRollup2 | groupBy(ComputerName)"
+
+        - key: "timeRange"
+          label: "Time Range"
+          fieldType: "text"
+          helpText: "Optional default search window — a relative range (e.g. 24h, 7d) or a start/end expression the NG-SIEM search accepts"
+
+        - key: "shared"
+          label: "Shared"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Share this query with the tenant. Leave unchecked to keep it private."

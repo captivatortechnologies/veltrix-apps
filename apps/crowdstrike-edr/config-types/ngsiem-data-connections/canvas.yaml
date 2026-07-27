@@ -1,0 +1,85 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Next-Gen SIEM Data Connections
+#
+# Declares ONE data connection (ingest connector instance) — the item. Users add
+# as many as they need. Field keys must match what
+# config-types/ngsiem-data-connections/validate.ts checks.
+#
+# A connection's identity is its `name`. The credential is WRITE-ONLY
+# (fieldType: password): it is sent to Falcon on create/update inside the
+# connector `config` and is NEVER read back, diffed, or stored in rollback data /
+# artifacts / logs. Drift compares ONLY non-secret config (connector type,
+# repository, parser, status).
+# =============================================================================
+
+id: "crowdstrike-edr-ngsiem-data-connections"
+name: "Data Connection Configuration"
+toolType: "crowdstrike-edr"
+entityType: "ngsiem-data-connections"
+description: "Define Falcon Next-Gen SIEM data connections (ingest connector instances — source config, target repository, parser, status) as code. Upstream credentials are write-only and never read back or diffed."
+
+item:
+  label: "Data Connection"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Connection"
+      icon: "plug"
+      description: "Connection identity and connector"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "Display name — the logical identity used to reconcile this connection"
+
+        - key: "connectorType"
+          label: "Connector Type"
+          fieldType: "text"
+          required: true
+          helpText: >
+            Connector id from the Next-Gen SIEM connector catalog (e.g. aws-s3,
+            azure-event-hub, gcp-pubsub). Immutable after creation — delete and
+            recreate to change it.
+
+        - key: "parser"
+          label: "Parser"
+          fieldType: "text"
+          helpText: "Parser assigned to normalize the ingested data (leave blank for the connector default)"
+
+    - name: "Source"
+      icon: "cloud-download"
+      description: "Upstream source and authentication (credential is write-only)"
+      fields:
+        - key: "sourceEndpoint"
+          label: "Source Endpoint"
+          fieldType: "text"
+          helpText: "Upstream source endpoint / URL the connector pulls from, when the connector requires one"
+
+        - key: "credential"
+          label: "Credential / Token"
+          fieldType: "password"
+          helpText: >
+            ⚠ WRITE-ONLY. The upstream authentication secret (token, secret access
+            key, or password). It is sent to Falcon on create/update and is NEVER
+            read back, diffed, or stored in rollback data, artifacts or logs. Leave
+            blank on update to keep the existing credential; to rotate, supply the
+            new value.
+
+    - name: "Target"
+      icon: "database"
+      description: "Ingest target and activation"
+      fields:
+        - key: "targetRepository"
+          label: "Target Repository"
+          fieldType: "text"
+          required: true
+          helpText: "Repository the connection ingests into"
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether Falcon actively ingests through this connection. Deployment converges to this value."

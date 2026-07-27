@@ -1,0 +1,134 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Next-Gen SIEM Correlation (Detection) Rules
+#
+# Declares ONE correlation rule — the item. Users add as many rules as they need.
+# Field keys must match what config-types/ngsiem-correlation-rules/validate.ts
+# checks.
+#
+# A rule's identity in Falcon is its `name`; uniqueness per canvas is enforced by
+# validate.ts. A correlation rule is VERSIONED: an edit saves a new version that
+# stays a draft until published — deploy publishes when "Publish" is checked.
+# =============================================================================
+
+id: "crowdstrike-edr-ngsiem-correlation-rules"
+name: "Correlation Rule Configuration"
+toolType: "crowdstrike-edr"
+entityType: "ngsiem-correlation-rules"
+description: "Define Next-Gen SIEM correlation (detection) rules — CQL search, schedule, severity, MITRE mapping — as code via the Falcon Correlation Rules API"
+
+item:
+  label: "Correlation Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Detection"
+      icon: "radar"
+      description: "Rule identity, the CQL search, and how often it runs"
+      fields:
+        - key: "name"
+          label: "Rule Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique name for the rule in the tenant. Must be unique per canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "What the rule detects — shown in the Falcon console"
+
+        - key: "search"
+          label: "Search (CQL)"
+          fieldType: "textarea"
+          required: true
+          helpText: "The CrowdStrike Query Language (CQL/LogScale) query that defines the detection logic"
+
+        - key: "severity"
+          label: "Severity"
+          fieldType: "select"
+          defaultValue: "medium"
+          options:
+            - label: "Informational"
+              value: "informational"
+            - label: "Low"
+              value: "low"
+            - label: "Medium"
+              value: "medium"
+            - label: "High"
+              value: "high"
+            - label: "Critical"
+              value: "critical"
+          helpText: "Severity of detections raised when the rule matches"
+
+        - key: "frequency"
+          label: "Run Frequency"
+          fieldType: "select"
+          required: true
+          defaultValue: "1h"
+          options:
+            - label: "Every 5 minutes"
+              value: "5m"
+            - label: "Every 15 minutes"
+              value: "15m"
+            - label: "Every 30 minutes"
+              value: "30m"
+            - label: "Hourly"
+              value: "1h"
+            - label: "Every 6 hours"
+              value: "6h"
+            - label: "Every 12 hours"
+              value: "12h"
+            - label: "Daily"
+              value: "24h"
+          helpText: "How often the scheduled search runs. The search window (lookback) matches this frequency."
+
+        - key: "triggerMode"
+          label: "Trigger Mode"
+          fieldType: "select"
+          defaultValue: "summary"
+          options:
+            - label: "Summary (one detection per run)"
+              value: "summary"
+            - label: "Verbose (one detection per match)"
+              value: "verbose"
+          helpText: "Whether the rule raises a single summary detection per run or one per matching event"
+
+    - name: "Classification & Rollout"
+      icon: "shield-check"
+      description: "MITRE mapping, activation, case creation, and publishing"
+      fields:
+        - key: "mitreTactic"
+          label: "MITRE Tactic ID"
+          fieldType: "text"
+          helpText: "Optional MITRE ATT&CK tactic id, e.g. TA0004 (Privilege Escalation)"
+
+        - key: "mitreTechnique"
+          label: "MITRE Technique ID"
+          fieldType: "text"
+          helpText: "Optional MITRE ATT&CK technique id, e.g. T1098.003 (Additional Cloud Roles)"
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          defaultValue: "inactive"
+          options:
+            - label: "Active (rule runs on its schedule)"
+              value: "active"
+            - label: "Inactive (rule is saved but does not run)"
+              value: "inactive"
+          helpText: "Whether the rule is enabled to run. Defaults to inactive so a deploy never silently activates a noisy detection."
+
+        - key: "createCase"
+          label: "Create Case"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Also open a case when the rule matches (in addition to raising a detection)"
+
+        - key: "publish"
+          label: "Publish"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Publish the rule version after deploy. A rule is created/updated as an unpublished draft until published."

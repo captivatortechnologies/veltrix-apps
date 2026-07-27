@@ -1,0 +1,56 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Next-Gen SIEM Dashboards
+#
+# Declares ONE dashboard — the item. Users add as many dashboards as they need.
+# Field keys must match what config-types/ngsiem-dashboards/validate.ts checks.
+#
+# A dashboard's identity in Falcon is its `name`; uniqueness per canvas is
+# enforced by validate.ts. A dashboard is a widget/layout definition whose
+# widgets each run a CQL query.
+# =============================================================================
+
+id: "crowdstrike-edr-ngsiem-dashboards"
+name: "Dashboard Configuration"
+toolType: "crowdstrike-edr"
+entityType: "ngsiem-dashboards"
+description: "Define Falcon Next-Gen SIEM dashboards (a widget/layout definition with per-widget CQL queries) as code via the NG-SIEM content API"
+
+item:
+  label: "Dashboard"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "layout-dashboard"
+      description: "Dashboard identity, widget/layout definition, and sharing"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique dashboard name in the Falcon tenant. Immutable identity — renaming creates a new dashboard."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "What this dashboard shows — displayed in the Falcon console"
+
+        - key: "definition"
+          label: "Definition (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The widget/layout definition as a JSON object. Each widget carries its
+            own CQL query. Example:
+            {"widgets": [{"title": "Top Hosts", "query": "#event_simpleName=ProcessRollup2 | groupBy(ComputerName)", "type": "bar"}],
+            "layout": {"columns": 12}}
+
+        - key: "shared"
+          label: "Shared"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Share this dashboard with the tenant. Leave unchecked to keep it private."
