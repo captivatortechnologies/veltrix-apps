@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-27T00:26:08.865Z",
+  "generatedAt": "2026-07-27T00:31:59.633Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -319,20 +319,20 @@
     {
       "appId": "netskope",
       "name": "Netskope",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "vendor": "Veltrix",
-      "description": "Manage Netskope configuration as code through the Netskope REST API v2 — URL Lists and Device Classification Tags — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
+      "description": "Manage Netskope configuration as code through the Netskope REST API v2 — URL Lists, Device Classification Tags and RBAC Labels — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "NETWORK",
       "icon": "🌐",
       "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNDAgNDAiIHdpZHRoPSIxNDAiIGhlaWdodD0iNDAiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iTmV0c2tvcGUiPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ2bnMiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMDA1QjkyIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzAwQTZDRSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPCEtLSBPcmlnaW5hbCBhYnN0cmFjdCBjbG91ZC1yaW5nIG1hcmsuIE5vdCBhIHRyYWRlbWFya2VkIE5ldHNrb3BlIGxvZ28uIC0tPgogIDxjaXJjbGUgY3g9IjE4IiBjeT0iMjAiIHI9IjEzIiBmaWxsPSJub25lIiBzdHJva2U9InVybCgjdm5zKSIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgPGNpcmNsZSBjeD0iMTgiIGN5PSIyMCIgcj0iNC41IiBmaWxsPSIjMDBBNkNFIi8+CiAgPHRleHQgeD0iMzgiIHk9IjI2IiBmb250LWZhbWlseT0iU2Vnb2UgVUksIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSJjdXJyZW50Q29sb3IiPk5ldHNrb3BlPC90ZXh0Pgo8L3N2Zz4K",
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/netskope",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/netskope-v0.2.0/netskope.zip",
-      "sha256": "4b0f1e2dd4b35eb3bbd2a9862bbd1f3b9b688de13ec69ea431df4b9f2c931ec8",
-      "sizeBytes": 71395,
-      "publishedAt": "2026-07-26T21:44:45.864Z",
-      "releaseNotes": "## 0.2.0 — 2026-07-26\n\n### Added\n- **Device Classification Tags** configuration type — manage Netskope device\n  classification tags (name + description) as code, with the full pipeline\n  handler set. Tags are id-addressed with no lookup-by-name, so the app matches\n  by name and stores the id for rename-safety; updates use PUT with no\n  deploy/apply step; reconcile only deletes tags this app created.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/netskope-v0.3.0/netskope.zip",
+      "sha256": "4e2486e66bb084019adbba24e7ee25d7dcf885c528ffeccfbbc11b8eb92c4e13",
+      "sizeBytes": 85918,
+      "publishedAt": "2026-07-27T00:31:59.611Z",
+      "releaseNotes": "## 0.3.0 — 2026-07-26\n\n### Added\n- **RBAC Labels** configuration type — manage Netskope RBAC labels (name +\n  color) as code, with the full pipeline handler set. Labels are id-addressed\n  with no lookup-by-name, so the app matches by name and stores the id for\n  rename-safety; updates use PATCH with no deploy/apply step; reconcile only\n  deletes labels this app created.\n- `PATCH` support in the Netskope API client.",
       "releasedAt": "2026-07-26T00:00:00.000Z"
     },
     {
