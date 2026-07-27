@@ -87,7 +87,7 @@ export class QRadarClient {
     this.timeoutMs = opts.timeoutMs
   }
 
-  async request(method: QRadarMethod, path: string, opts?: { range?: string }): Promise<QRadarResponse> {
+  async request(method: QRadarMethod, path: string, opts?: { range?: string; body?: unknown }): Promise<QRadarResponse> {
     const url = `${this.cred.baseUrl}/api${path.startsWith('/') ? path : `/${path}`}`
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), this.timeoutMs)
@@ -98,7 +98,12 @@ export class QRadarClient {
         Accept: 'application/json',
       }
       if (opts?.range) headers.Range = opts.range
-      const res = await fetch(url, { method, headers, signal: controller.signal })
+      const init: RequestInit = { method, headers, signal: controller.signal }
+      if (opts?.body !== undefined) {
+        headers['Content-Type'] = 'application/json'
+        init.body = JSON.stringify(opts.body)
+      }
+      const res = await fetch(url, init)
       const body = await res.text()
       return { status: res.status, ok: res.ok, body }
     } catch (err) {

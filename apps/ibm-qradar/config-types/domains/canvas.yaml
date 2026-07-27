@@ -1,0 +1,41 @@
+# =============================================================================
+# Canvas Template — IBM QRadar Domain
+#
+# Declares ONE domain — the item. Users add as many as they need. A domain is a
+# named segmentation boundary used for multi-tenancy and data isolation. Its
+# natural identity is its NAME; deploy matches by the stored QRadar id first
+# (rename-safe) and falls back to name. Deploy creates missing domains, updates
+# the description when it drifts, and reconcile-deletes domains this app created
+# but no longer declares.
+#
+# Field keys must match config-types/domains/validate.ts.
+# =============================================================================
+
+id: "ibm-qradar-domains"
+name: "Domain Configuration"
+toolType: "ibm-qradar"
+entityType: "domains"
+description: "Define IBM QRadar domains (named segmentation boundaries with a description) as code through the QRadar domain-management API."
+
+item:
+  label: "Domain"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Domain"
+      icon: "shield"
+      description: "Name and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The domain name — its identity in QRadar. Unique within this canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          helpText: "A human-readable description of what this domain segments."

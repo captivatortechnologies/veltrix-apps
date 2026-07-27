@@ -8,6 +8,21 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.4.0 — 2026-07-26
+
+### Added
+- **Reference Tables** configuration type — manage QRadar reference tables
+  (named collections of `outer key -> column -> value` cells with typed columns)
+  as code, with the full pipeline handler set. Tables are matched by name; their
+  cells are reconciled to exactly the declared set (add/update, remove extra);
+  typed columns (`key_name_types`) are applied at creation; the value element
+  type is immutable; reconcile only deletes tables this app created.
+- **Domains** configuration type — manage QRadar domains (named segmentation
+  boundaries with a description) as code, with the full pipeline handler set.
+  Domains are matched by the stored QRadar id first (rename-safe) and fall back
+  to name; missing domains are created, descriptions updated when they drift, and
+  reconcile only deletes domains this app created.
+
 ## 0.3.0 — 2026-07-26
 
 ### Added

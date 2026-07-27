@@ -1,0 +1,74 @@
+# =============================================================================
+# Canvas Template — IBM QRadar Reference Table
+#
+# Declares ONE reference table — the item. Users add as many as they need.
+# A reference table is a named, two-level collection: each OUTER key holds a row
+# of INNER key (column) -> value cells. Its identity is its NAME (the classic
+# reference-data API is name-keyed). Deploy reads the live table and reconciles
+# its cells to exactly the declared set, and creates it if absent. The value
+# element type is immutable, and typed columns (key_name_types) apply at creation.
+# Reconcile deletes tables this app created but no longer declares.
+#
+# Field keys must match config-types/reference-tables/validate.ts.
+# =============================================================================
+
+id: "ibm-qradar-reference-tables"
+name: "Reference Table Configuration"
+toolType: "ibm-qradar"
+entityType: "reference-tables"
+description: "Define IBM QRadar reference tables (named collections of outer key -> column -> value cells with typed columns) as code through the QRadar reference-data API."
+
+item:
+  label: "Reference Table"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Reference Table"
+      icon: "list"
+      description: "Name, default value element type, typed columns and outer key -> column -> value cells"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The reference table name — its identity in QRadar. Unique within this canvas."
+
+        - key: "elementType"
+          label: "Default Value Element Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "ALN"
+          options:
+            - label: "Alphanumeric (ALN)"
+              value: "ALN"
+            - label: "Alphanumeric, ignore case (ALNIC)"
+              value: "ALNIC"
+            - label: "IP address (IP)"
+              value: "IP"
+            - label: "Number (NUM)"
+              value: "NUM"
+            - label: "Port (PORT)"
+              value: "PORT"
+            - label: "Date (DATE)"
+              value: "DATE"
+          helpText: "The default value type for columns not typed below. Immutable after creation."
+
+        - key: "columns"
+          label: "Typed Columns (name: TYPE)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            One typed column per line as "columnName: TYPE" (TYPE is ALN, ALNIC,
+            IP, NUM, PORT or DATE). Columns define inner-key types (key_name_types)
+            and are applied when the table is first created.
+
+        - key: "cells"
+          label: "Cells (outerKey | innerKey = value)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            One cell per line as "outerKey | innerKey = value" — each row (outer
+            key) maps columns (inner keys) to values. Deploy reconciles the table
+            to exactly these cells.
