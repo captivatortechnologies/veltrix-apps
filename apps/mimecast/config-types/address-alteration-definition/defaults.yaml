@@ -1,0 +1,7 @@
+# Defaults for a new address alteration definition item.
+#
+# A FLAT map keyed by the canvas field keys. Seeds the common case (rewrite a
+# header From address for all mail); the addresses and set are left blank for a
+# deliberate choice.
+routing: all
+addressType: from

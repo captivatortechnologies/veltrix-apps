@@ -1,0 +1,8 @@
+# Defaults for a new web security policy item.
+#
+# A FLAT map keyed by the canvas field keys. Seeds an enabled policy applied to
+# everyone; the URL entries and any scoped from/to values are left blank for a
+# deliberate choice.
+enabled: true
+fromType: everyone
+toType: everyone

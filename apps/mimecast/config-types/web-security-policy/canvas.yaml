@@ -1,0 +1,106 @@
+# =============================================================================
+# Canvas Template — Mimecast Web Security Block/Allow Policies
+#
+# Declares ONE Web Security (Secure Web Gateway) block/allow policy — the item.
+# Users add as many as they need. A policy's logical identity is its DESCRIPTION;
+# the app lists policies via get-policies, matches on the description, and (since
+# create-policy-with-targets has no partial-update contract) applies changes by
+# delete + recreate. Reconcile deletes policies this app created but no longer
+# declares. This is the Web Security / SWG allow-block list (/api/policy/
+# webwhiteurl/*) — distinct from TTP URL Protect managed URLs.
+#
+# Field keys must match config-types/web-security-policy/validate.ts.
+# =============================================================================
+
+id: "mimecast-web-security-policy"
+name: "Web Security Policy Configuration"
+toolType: "mimecast"
+entityType: "web-security-policy"
+description: "Define Mimecast Web Security (Secure Web Gateway) block/allow policies as code through the Mimecast API."
+
+item:
+  label: "Web Security Policy"
+  identityField: "description"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Policy identity and state"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The policy description — its identity. Must be unique within this
+            canvas; the app matches live policies on it.
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the policy is applied."
+
+    - name: "URLs"
+      icon: "globe"
+      description: "The block/allow list entries"
+      fields:
+        - key: "urls"
+          label: "URL Entries"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            One entry per line as "<action> <type> <value>", where action is
+            block or allow, type is domain or url, e.g.
+            "block domain malware.example" or "allow url https://trusted.example/tools".
+
+    - name: "From"
+      icon: "user"
+      description: "The sender the policy applies to"
+      fields:
+        - key: "fromType"
+          label: "From Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "everyone"
+          options:
+            - label: "Everyone"
+              value: "everyone"
+            - label: "Email domain"
+              value: "email_domain"
+            - label: "Individual email address"
+              value: "individual_email_address"
+          helpText: "Match the sender by everyone, domain, or exact address."
+
+        - key: "fromValue"
+          label: "From Value"
+          fieldType: "text"
+          required: false
+          helpText: "The domain or email address (required unless From Type is Everyone)."
+
+    - name: "To"
+      icon: "users"
+      description: "The recipients the policy applies to"
+      fields:
+        - key: "toType"
+          label: "To Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "everyone"
+          options:
+            - label: "Everyone"
+              value: "everyone"
+            - label: "Email domain"
+              value: "email_domain"
+            - label: "Individual email address"
+              value: "individual_email_address"
+          helpText: "Match the recipient by everyone, domain, or exact address."
+
+        - key: "toValue"
+          label: "To Value"
+          fieldType: "text"
+          required: false
+          helpText: "The domain or email address (required unless To Type is Everyone)."

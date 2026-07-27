@@ -1,0 +1,58 @@
+# =============================================================================
+# Canvas Template — Mimecast Directory Profile Groups
+#
+# Declares ONE directory profile group — the item. Users add as many as they
+# need. A group's logical identity is its DESCRIPTION (name), optionally scoped
+# under a parent group. The app matches live groups by name via find-groups and
+# stores the secure ID. Members are email addresses and/or domains; the app adds
+# declared members and removes only the members IT added. LDAP-synced groups are
+# managed read-only and are skipped. Reconcile deletes only groups this app
+# created (emptying their members first).
+#
+# Field keys must match config-types/directory-groups/validate.ts.
+# =============================================================================
+
+id: "mimecast-directory-groups"
+name: "Directory Profile Group Configuration"
+toolType: "mimecast"
+entityType: "directory-groups"
+description: "Define Mimecast directory profile groups (cloud groups of email addresses and domains) as code through the Mimecast API."
+
+item:
+  label: "Directory Group"
+  identityField: "description"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Group"
+      icon: "users"
+      description: "Group identity and optional parent"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The group name — its identity. Must be unique within this canvas
+            (per parent); the app matches live groups on it.
+
+        - key: "parentId"
+          label: "Parent Group ID"
+          fieldType: "text"
+          required: false
+          helpText: >
+            Optional secure ID of a parent group to nest this group under. Leave
+            blank to create it at the root.
+
+    - name: "Members"
+      icon: "mail"
+      description: "Email addresses and/or domains that belong to the group"
+      fields:
+        - key: "members"
+          label: "Members"
+          fieldType: "tags"
+          required: false
+          helpText: >
+            Email addresses (e.g. user@example.com) and/or domains (e.g.
+            example.com). The app adds these and removes only members it added.

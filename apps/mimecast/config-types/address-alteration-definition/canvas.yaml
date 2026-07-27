@@ -1,0 +1,90 @@
+# =============================================================================
+# Canvas Template — Mimecast Address Alteration Definitions
+#
+# Declares ONE address alteration definition — the item. Users add as many as
+# they need. A definition is a single alteration rule (routing + address type +
+# original address -> new address) living inside an Address Alteration Set. It
+# has NO name and NO update API, so its identity is the full rule tuple and the
+# app matches a live definition by that tuple. A change to any field is a new
+# tuple, applied as a new definition; the app deletes only the definitions it
+# created but no longer declares.
+#
+# Field keys must match config-types/address-alteration-definition/validate.ts.
+# =============================================================================
+
+id: "mimecast-address-alteration-definition"
+name: "Address Alteration Definition Configuration"
+toolType: "mimecast"
+entityType: "address-alteration-definition"
+description: "Define Mimecast address alteration definitions (the rewrite rules inside an address alteration set) as code through the Mimecast API."
+
+item:
+  label: "Address Alteration Definition"
+  identityField: "originalAddress"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Scope"
+      icon: "shield"
+      description: "The set the rule lives in and which messages/addresses it applies to"
+      fields:
+        - key: "folderId"
+          label: "Set ID"
+          fieldType: "text"
+          required: false
+          helpText: >
+            Optional secure ID of the Address Alteration Set (folder) this rule
+            belongs to. Leave blank for the root set.
+
+        - key: "routing"
+          label: "Routing"
+          fieldType: "select"
+          required: true
+          defaultValue: "all"
+          options:
+            - label: "All"
+              value: "all"
+            - label: "Inbound"
+              value: "inbound"
+            - label: "Outbound"
+              value: "outbound"
+          helpText: "Which mail direction the rule applies to."
+
+        - key: "addressType"
+          label: "Address Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "from"
+          options:
+            - label: "All"
+              value: "all"
+            - label: "Envelope from"
+              value: "envelope_from"
+            - label: "Envelope to"
+              value: "envelope_to"
+            - label: "From (header)"
+              value: "from"
+            - label: "Reply-to"
+              value: "reply_to"
+            - label: "To / Cc / Bcc"
+              value: "to_cc_bcc"
+            - label: "Sender"
+              value: "sender"
+          helpText: "Which address in the message the rule rewrites."
+
+    - name: "Addresses"
+      icon: "mail"
+      description: "The address to match and what to rewrite it to"
+      fields:
+        - key: "originalAddress"
+          label: "Original Address"
+          fieldType: "text"
+          required: true
+          helpText: "The address to match: local@domain, *@domain or local@*."
+
+        - key: "newAddress"
+          label: "New Address"
+          fieldType: "text"
+          required: true
+          helpText: "The address to rewrite it to: local@domain, *@domain or local@*."

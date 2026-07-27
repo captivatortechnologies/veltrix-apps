@@ -8,6 +8,34 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.5.0 — 2026-07-26
+
+### Added
+- **Address Alteration Sets** configuration type — manage the reusable folders
+  that address alteration policies reference (`/api/policy/address-alteration/
+  create-address-alteration-set` + `get-address-alteration-set`). Sets are keyed
+  by description under an optional parent. Mimecast exposes no delete- or
+  update-set API, so this is an ensure-exists type: it creates a declared set if
+  it is missing and never prunes or renames one (a re-deploy is a no-op).
+- **Address Alteration Definitions** configuration type — manage the rewrite
+  rules inside a set (`create-definition` / `get-definition` / `delete-definition`).
+  A definition has no name and no update API, so its identity is the full rule
+  tuple (folder, routing, address type, original → new address); a change is a new
+  rule and reconcile deletes only the definitions this app created.
+- **Directory Profile Groups** configuration type — manage cloud groups of email
+  addresses and domains with membership (`find-groups` / `create-group` /
+  `delete-group` and `get/add/remove-group-member`). Groups are matched by name
+  under an optional parent; the app adds declared members and removes only members
+  it added; LDAP-synced groups are managed read-only and skipped; reconcile empties
+  and deletes only groups this app created.
+- **Web Security Policies** configuration type — manage Secure Web Gateway
+  block/allow policies (`/api/policy/webwhiteurl/create-policy-with-targets`,
+  `get-policies`, `delete-policy`). Policies are matched by description and carry a
+  URL block/allow list plus a sender/recipient scope; a change is applied as delete
+  + recreate, the prior policy is carried forward so rollback can restore it, and
+  reconcile only deletes policies this app created. Distinct from the TTP URL
+  Protect managed URLs (`/api/ttp/url/`).
+
 ## 0.4.0 — 2026-07-26
 
 ### Added

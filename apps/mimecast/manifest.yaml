@@ -1,12 +1,13 @@
 id: mimecast
 name: Mimecast
-version: "0.4.0"
+version: "0.5.0"
 vendor: Veltrix
 description: >
   Manage Mimecast configuration as code through the Mimecast API 2.0 — Managed
-  URLs, Blocked Sender, Anti-Spoofing Bypass and Address Alteration policies —
-  with validation, drift detection and rollback handled by the Security-as-Code
-  pipeline.
+  URLs, Blocked Sender, Anti-Spoofing Bypass and Address Alteration policies,
+  Address Alteration Sets and Definitions, Directory Profile Groups, and Web
+  Security block/allow policies — with validation, drift detection and rollback
+  handled by the Security-as-Code pipeline.
 category: COMPLIANCE
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/mimecast
@@ -39,6 +40,18 @@ permissions:
     - resource: address-alteration
       actions: [read, write, delete]
       description: Manage Mimecast address alteration policies (apply an address alteration set to scoped senders/recipients)
+    - resource: address-alteration-set
+      actions: [read, write, delete]
+      description: Manage Mimecast address alteration sets (reusable folders that address alteration policies reference)
+    - resource: address-alteration-definition
+      actions: [read, write, delete]
+      description: Manage Mimecast address alteration definitions (the rewrite rules inside an address alteration set)
+    - resource: directory-groups
+      actions: [read, write, delete]
+      description: Manage Mimecast directory profile groups (cloud groups of email addresses and domains, with membership)
+    - resource: web-security-policy
+      actions: [read, write, delete]
+      description: Manage Mimecast Web Security block/allow policies (Secure Web Gateway allow-block list)
 
 pipeline:
   configurationTypes:
@@ -88,6 +101,74 @@ pipeline:
         healthCheck: config-types/address-alteration/healthCheck
         driftDetect: config-types/address-alteration/driftDetect
         getStatus: config-types/address-alteration/getStatus
+      targets:
+        componentTypes: [mimecast]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: address-alteration-set
+      name: Address Alteration Sets
+      description: Address alteration sets — reusable folders that address alteration policies reference (description-keyed under a parent; ensure-exists, never pruned — Mimecast has no delete/update-set API)
+      canvasTemplate: config-types/address-alteration-set/canvas.yaml
+      defaultConfig: config-types/address-alteration-set/defaults.yaml
+      handlers:
+        validate: config-types/address-alteration-set/validate
+        deploy: config-types/address-alteration-set/deploy
+        rollback: config-types/address-alteration-set/rollback
+        healthCheck: config-types/address-alteration-set/healthCheck
+        driftDetect: config-types/address-alteration-set/driftDetect
+        getStatus: config-types/address-alteration-set/getStatus
+      targets:
+        componentTypes: [mimecast]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: address-alteration-definition
+      name: Address Alteration Definitions
+      description: Address alteration definitions — the rewrite rules inside a set (tuple-keyed; no update API, so a change is a new rule and reconcile deletes only app-created definitions)
+      canvasTemplate: config-types/address-alteration-definition/canvas.yaml
+      defaultConfig: config-types/address-alteration-definition/defaults.yaml
+      handlers:
+        validate: config-types/address-alteration-definition/validate
+        deploy: config-types/address-alteration-definition/deploy
+        rollback: config-types/address-alteration-definition/rollback
+        healthCheck: config-types/address-alteration-definition/healthCheck
+        driftDetect: config-types/address-alteration-definition/driftDetect
+        getStatus: config-types/address-alteration-definition/getStatus
+      targets:
+        componentTypes: [mimecast]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: directory-groups
+      name: Directory Profile Groups
+      description: Directory profile groups — cloud groups of email addresses and domains with membership (name-keyed under a parent; adds/removes only members it owns; LDAP-synced groups skipped; reconcile deletes only app-created groups)
+      canvasTemplate: config-types/directory-groups/canvas.yaml
+      defaultConfig: config-types/directory-groups/defaults.yaml
+      handlers:
+        validate: config-types/directory-groups/validate
+        deploy: config-types/directory-groups/deploy
+        rollback: config-types/directory-groups/rollback
+        healthCheck: config-types/directory-groups/healthCheck
+        driftDetect: config-types/directory-groups/driftDetect
+        getStatus: config-types/directory-groups/getStatus
+      targets:
+        componentTypes: [mimecast]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: web-security-policy
+      name: Web Security Policies
+      description: Web Security (Secure Web Gateway) block/allow policies — description-keyed with a URL block/allow list and a sender/recipient scope (delete+recreate on change; reconcile deletes only app-created policies)
+      canvasTemplate: config-types/web-security-policy/canvas.yaml
+      defaultConfig: config-types/web-security-policy/defaults.yaml
+      handlers:
+        validate: config-types/web-security-policy/validate
+        deploy: config-types/web-security-policy/deploy
+        rollback: config-types/web-security-policy/rollback
+        healthCheck: config-types/web-security-policy/healthCheck
+        driftDetect: config-types/web-security-policy/driftDetect
+        getStatus: config-types/web-security-policy/getStatus
       targets:
         componentTypes: [mimecast]
         requiresCredential: true

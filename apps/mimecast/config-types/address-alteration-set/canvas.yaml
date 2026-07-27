@@ -1,0 +1,45 @@
+# =============================================================================
+# Canvas Template — Mimecast Address Alteration Sets
+#
+# Declares ONE address alteration set — the item. Users add as many as they need.
+# A set is a reusable folder that address alteration policies reference by its
+# secure ID; its logical identity is its DESCRIPTION (folder name), optionally
+# scoped under a parent set. Mimecast has NO update or delete API for sets, so
+# this is an ensure-exists type: the app creates a declared set if it is missing
+# and NEVER prunes or renames it (a re-deploy of the same set is a no-op).
+#
+# Field keys must match config-types/address-alteration-set/validate.ts.
+# =============================================================================
+
+id: "mimecast-address-alteration-set"
+name: "Address Alteration Set Configuration"
+toolType: "mimecast"
+entityType: "address-alteration-set"
+description: "Define Mimecast address alteration sets (reusable folders that address alteration policies reference) as code through the Mimecast API."
+
+item:
+  label: "Address Alteration Set"
+  identityField: "description"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Set"
+      icon: "folder"
+      description: "Set identity and optional parent"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The set (folder) name — its identity. Must be unique within this
+            canvas (per parent); the app matches live sets on it.
+
+        - key: "parentId"
+          label: "Parent Set ID"
+          fieldType: "text"
+          required: false
+          helpText: >
+            Optional secure ID of a parent set to nest this set under. Leave
+            blank to create it at the root.
