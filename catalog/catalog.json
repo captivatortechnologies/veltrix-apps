@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-26T22:18:07.835Z",
+  "generatedAt": "2026-07-27T00:26:08.865Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -164,20 +164,20 @@
     {
       "appId": "fortimanager",
       "name": "FortiManager",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "vendor": "Veltrix",
-      "description": "Manage Fortinet FortiManager configuration as code through the FortiManager JSON-RPC API — Firewall Address objects and custom Firewall Service objects — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
+      "description": "Manage Fortinet FortiManager configuration as code through the FortiManager JSON-RPC API — Firewall Address objects, custom Firewall Service objects and Address Groups — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "NETWORK",
       "icon": "🧱",
       "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNzYgNDAiIHdpZHRoPSIxNzYiIGhlaWdodD0iNDAiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iRm9ydGlNYW5hZ2VyIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idmZtIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI0RBMjkxQyIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNFRTMxMjQiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDwhLS0gT3JpZ2luYWwgYWJzdHJhY3QgIndhbGwgLyBzaGllbGQiIG1hcmsgb2Ygc3RhY2tlZCBicmlja3MuIE5vdCBhCiAgICAgICB0cmFkZW1hcmtlZCBGb3J0aW5ldCBsb2dvLiAtLT4KICA8cmVjdCB4PSI1IiB5PSI4IiB3aWR0aD0iMjYiIGhlaWdodD0iMjQiIHJ4PSI0IiBmaWxsPSJ1cmwoI3ZmbSkiLz4KICA8cmVjdCB4PSI5IiB5PSIxMiIgd2lkdGg9IjcuNSIgaGVpZ2h0PSI2IiByeD0iMSIgZmlsbD0iI2ZmZiIgb3BhY2l0eT0iMC45Ii8+CiAgPHJlY3QgeD0iMTkuNSIgeT0iMTIiIHdpZHRoPSI3LjUiIGhlaWdodD0iNiIgcng9IjEiIGZpbGw9IiNmZmYiIG9wYWNpdHk9IjAuOSIvPgogIDxyZWN0IHg9IjkiIHk9IjIwIiB3aWR0aD0iMTgiIGhlaWdodD0iNiIgcng9IjEiIGZpbGw9IiNmZmYiIG9wYWNpdHk9IjAuOSIvPgogIDx0ZXh0IHg9IjQwIiB5PSIyNiIgZm9udC1mYW1pbHk9IlNlZ29lIFVJLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iY3VycmVudENvbG9yIj5Gb3J0aU1hbmFnZXI8L3RleHQ+Cjwvc3ZnPgo=",
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/fortimanager",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/fortimanager-v0.2.0/fortimanager.zip",
-      "sha256": "ee3f1a46d323aff2a3cfc44189c3d8415a88de35b4d1e8263bf63bc74cc1b80b",
-      "sizeBytes": 77962,
-      "publishedAt": "2026-07-26T21:39:54.712Z",
-      "releaseNotes": "## 0.2.0 — 2026-07-26\n\n### Added\n- **Firewall Services** configuration type — manage FortiManager custom firewall\n  service objects (TCP/UDP/SCTP port ranges, ICMP/ICMP6 type+code, or IP protocol\n  number) as code, with the full pipeline handler set. Services are matched by\n  name and upserted with `set`; port ranges are sent as the `[…]` string arrays\n  FortiManager expects; reconcile only deletes services this app created; deploys\n  run inside the ADOM workspace transaction when enabled.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/fortimanager-v0.3.0/fortimanager.zip",
+      "sha256": "8ff7dcfbfb641d32617e9265e1a4c18d3fdbf4ff6826255c52afc0f87dbeffaa",
+      "sizeBytes": 94094,
+      "publishedAt": "2026-07-27T00:26:08.832Z",
+      "releaseNotes": "## 0.3.0 — 2026-07-26\n\n### Added\n- **Firewall Address Groups** configuration type — manage FortiManager address\n  groups (a named set of member address objects) as code, with the full pipeline\n  handler set. Groups are matched by name and upserted with `set`; members\n  reference existing firewall address objects (compose with the Firewall\n  Addresses type); reconcile only deletes groups this app created; deploys run\n  inside the ADOM workspace transaction when enabled.",
       "releasedAt": "2026-07-26T00:00:00.000Z"
     },
     {
