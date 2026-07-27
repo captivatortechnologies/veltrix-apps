@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-27T14:38:24.137Z",
+  "generatedAt": "2026-07-27T15:19:25.360Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -84,7 +84,7 @@
     {
       "appId": "crowdstrike-edr",
       "name": "CrowdStrike Falcon",
-      "version": "1.8.0",
+      "version": "1.9.0",
       "vendor": "Veltrix",
       "description": "Manage CrowdStrike Falcon configurations as code through the Falcon APIs. Covers Endpoint Policies (prevention, sensor update, response, USB device control, content update, custom IOA rule groups), Exclusions (ML, IOA, sensor visibility), host groups, and custom IOCs — with validation, drift detection, and rollback handled by the Security-as-Code pipeline. Configuration types are grouped by Falcon API family in the sidebar.",
       "category": "EDR",
@@ -94,11 +94,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/crowdstrike-edr",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/crowdstrike-edr-v1.8.0/crowdstrike-edr.zip",
-      "sha256": "a032eb7f73ad69892772977d0fd2b93bb457ab263598d89ed6a1aeef847d5c71",
-      "sizeBytes": 322294,
-      "publishedAt": "2026-07-27T14:38:24.096Z",
-      "releaseNotes": "## 1.8.0 — 2026-07-27\n\n### Added\n- **Eight new configuration types**, grouped in the sidebar by Falcon API family\n  (like the Okta app), all reusing the shared `lib/falcon.ts` client:\n  - **Endpoint Policies** — Sensor Update Policy (build pinning n/n-1/n-2,\n    uninstall protection, update scheduling), Response (Real Time Response)\n    Policy (RTR capability tiers), USB Device Control Policy (v2 — per\n    device-class enforcement with vendor/product exceptions), Content Update\n    Policy (rapid-response content ring assignments), and Custom IOA Rule Groups\n    (per-platform indicator-of-attack rules).\n  - **Exclusions** — ML, IOA, and Sensor Visibility exclusions, applied globally\n    or to host groups.\n- **Shared policy/exclusion adapters** (`lib/policyAdapter.ts`,\n  `lib/exclusionAdapter.ts`) that factor the proven Falcon lifecycle mechanics —\n  the `name:~` contains-then-exact paged lookup, create-disabled → enable, the\n  `*-actions` host-group attach/detach, and exclusion query→get→CRUD transport —\n  so the endpoint-policy types share one code path. Unit-tested.\n- Existing types (Host Groups, Prevention Policies, Custom IOCs) are now assigned\n  to sidebar groups (Host & Assets, Endpoint Policies, Indicators).",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/crowdstrike-edr-v1.9.0/crowdstrike-edr.zip",
+      "sha256": "01d9316d3658b7f6117ea322ab0d4019086da1379d3eea7e0e23764984134a4b",
+      "sizeBytes": 403413,
+      "publishedAt": "2026-07-27T15:19:25.302Z",
+      "releaseNotes": "## 1.9.0 — 2026-07-27\n\n### Added\n- **File Integrity Monitoring (FileVantage)** — a new sidebar group with three\n  configuration types on the self-contained `/filevantage/` collection:\n  - **FileVantage Policy** — per-platform FIM policy (enable/disable, host-group\n    and rule-group assignment).\n  - **FileVantage Rule Group** — reusable rule groups with their monitoring rules\n    (path, depth, watched attributes, include/exclude), rules embedded in the group.\n  - **FileVantage Scheduled Exclusion** — time-windowed suppression (recurrence,\n    timezone, processes/users/paths) bound to a policy.\n- Shared `lib/filevantageAdapter.ts` (query→get→CRUD-by-name transport for the\n  FileVantage collection), unit-tested.",
       "releasedAt": "2026-07-27T00:00:00.000Z"
     },
     {
