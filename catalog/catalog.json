@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-27T15:47:47.290Z",
+  "generatedAt": "2026-07-27T16:08:10.462Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -84,7 +84,7 @@
     {
       "appId": "crowdstrike-edr",
       "name": "CrowdStrike Falcon",
-      "version": "1.10.0",
+      "version": "1.11.0",
       "vendor": "Veltrix",
       "description": "Manage CrowdStrike Falcon configurations as code through the Falcon APIs. Covers Endpoint Policies (prevention, sensor update, response, USB device control, content update, custom IOA rule groups), Exclusions (ML, IOA, sensor visibility), host groups, and custom IOCs — with validation, drift detection, and rollback handled by the Security-as-Code pipeline. Configuration types are grouped by Falcon API family in the sidebar.",
       "category": "EDR",
@@ -94,11 +94,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/crowdstrike-edr",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/crowdstrike-edr-v1.10.0/crowdstrike-edr.zip",
-      "sha256": "94caa49deb70eb4f5762b386d387ae9e21f221b4c6c66e330c5bd6c8307d9623",
-      "sizeBytes": 641303,
-      "publishedAt": "2026-07-27T15:47:47.246Z",
-      "releaseNotes": "## 1.10.0 — 2026-07-27\n\n### Added\n- **Cloud Security** — a new sidebar group with ten configuration types across the\n  Falcon Cloud Security surface:\n  - `/cloud-policies/` family: **Custom Configuration (IOM) Rule** (Rego logic),\n    **Suppression Rule**, **Rule Override**, **Compliance Framework**, **Compliance\n    Control** (+ rule assignments).\n  - **Cloud Group** (asset grouping), **Account Registration** (AWS/Azure/GCP),\n    **Image Assessment Policy**, **Registry Connection**, **Kubernetes Admission\n    (KAC) Policy**.\n- Shared generic `lib/entityAdapter.ts` (query→get→CRUD by configurable identity)\n  powering the `/cloud-policies/` family + Cloud Groups; the bespoke registration /\n  image-assessment / registry / KAC types call the Falcon client directly.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/crowdstrike-edr-v1.11.0/crowdstrike-edr.zip",
+      "sha256": "ec2add5a08debe15901d0bd897643916069501e4571b3d2ca4c4cfc4f03e9f09",
+      "sizeBytes": 770280,
+      "publishedAt": "2026-07-27T16:08:10.414Z",
+      "releaseNotes": "## 1.11.0 — 2026-07-27\n\n### Added\n- **Next-Gen SIEM** — a new sidebar group with six configuration types:\n  - **Correlation Rule** — CQL detection rules (schedule, severity, MITRE mapping,\n    notifications, publish), on `/correlation-rules/`.\n  - **Parser** — log-normalization parsers, **Saved Query** / scheduled search,\n    **Dashboard**, **Lookup File** (CSV enrichment), and **Data Connection**\n    (ingest connectors; tokens handled as secrets) on `/ngsiem-content/`.\n- Correlation rules reuse `lib/entityAdapter.ts` (+ a publish call); the\n  `/ngsiem-content/` types use the collection's template-split CRUD directly.",
       "releasedAt": "2026-07-27T00:00:00.000Z"
     },
     {
