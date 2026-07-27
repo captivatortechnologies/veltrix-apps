@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-27T00:36:48.930Z",
+  "generatedAt": "2026-07-27T00:46:16.767Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -222,20 +222,20 @@
     {
       "appId": "ibm-qradar",
       "name": "IBM QRadar",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "vendor": "Veltrix",
-      "description": "Manage IBM QRadar configuration as code through the QRadar REST API — Reference Sets and Reference Maps — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
+      "description": "Manage IBM QRadar configuration as code through the QRadar REST API — Reference Sets, Reference Maps and Map of Sets — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "SIEM",
       "icon": "📊",
       "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMzggNDAiIHdpZHRoPSIxMzgiIGhlaWdodD0iNDAiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iSUJNIFFSYWRhciI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InZxciIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMwRjYyRkUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNDU4OUZGIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8IS0tIE9yaWdpbmFsIGFic3RyYWN0IHJhZGFyLXJpbmcgbWFyay4gTm90IGEgdHJhZGVtYXJrZWQgSUJNL1FSYWRhciBsb2dvLiAtLT4KICA8Y2lyY2xlIGN4PSIxOCIgY3k9IjIwIiByPSIxMyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ1cmwoI3ZxcikiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxjaXJjbGUgY3g9IjE4IiBjeT0iMjAiIHI9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0idXJsKCN2cXIpIiBzdHJva2Utd2lkdGg9IjIuNSIvPgogIDxwYXRoIGQ9Ik0xOCAyMCBMMjggMTIiIHN0cm9rZT0iIzBGNjJGRSIgc3Ryb2tlLXdpZHRoPSIyLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDx0ZXh0IHg9IjM4IiB5PSIyNiIgZm9udC1mYW1pbHk9IlNlZ29lIFVJLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iY3VycmVudENvbG9yIj5JQk0gUVJhZGFyPC90ZXh0Pgo8L3N2Zz4K",
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/ibm-qradar",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/ibm-qradar-v0.2.0/ibm-qradar.zip",
-      "sha256": "0d639c1542b3809ab6837949658120c3401607a9b56fe9fb8a9902b532870879",
-      "sizeBytes": 73014,
-      "publishedAt": "2026-07-26T21:49:33.526Z",
-      "releaseNotes": "## 0.2.0 — 2026-07-26\n\n### Added\n- **Reference Maps** configuration type — manage QRadar reference maps (named,\n  typed `key=value` collections) as code, with the full pipeline handler set.\n  Maps are matched by name; their entries are reconciled to exactly the declared\n  set (add/update, remove extra); the element type is immutable; reconcile only\n  deletes maps this app created.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/ibm-qradar-v0.3.0/ibm-qradar.zip",
+      "sha256": "b0e4ba70da1b4072e506d22a89ab55103884cd196dc226dcb139677e840c3784",
+      "sizeBytes": 91034,
+      "publishedAt": "2026-07-27T00:46:16.737Z",
+      "releaseNotes": "## 0.3.0 — 2026-07-26\n\n### Added\n- **Map of Sets** configuration type — manage QRadar map-of-sets (named\n  collections where each key holds a *set* of values) as code, with the full\n  pipeline handler set. Collections are matched by name; their `(key, value)`\n  pairs are reconciled to exactly the declared set (add missing pairs, remove\n  extra); the value element type is immutable; reconcile only deletes\n  collections this app created.",
       "releasedAt": "2026-07-26T00:00:00.000Z"
     },
     {
