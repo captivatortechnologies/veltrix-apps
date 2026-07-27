@@ -1,0 +1,73 @@
+# =============================================================================
+# Canvas Template — Google SecOps Data Access Scopes
+#
+# Declares ONE data access scope — the item. Users add as many as they need.
+# A data access scope's identity is its NAME (the dataAccessScopeId, immutable).
+# A scope is a boolean expression of data access labels: users attached to the
+# scope can see data with any of the ALLOWED labels (OR) and none of the DENIED
+# labels (AND). "Allow all" grants every label (except denied) and is mutually
+# exclusive with an allowed-label list; it is fixed at creation. Deploy PATCHes
+# the description + allowed/denied label sets (the only updatable fields), or
+# creates the scope if absent. Reconcile deletes scopes this app created but no
+# longer declares.
+#
+# Field keys must match config-types/data-access-scopes/validate.ts.
+# =============================================================================
+
+id: "google-secops-data-access-scopes"
+name: "Data Access Scope Configuration"
+toolType: "google-secops"
+entityType: "data-access-scopes"
+description: "Define Google Security Operations (Chronicle) data access scopes (a boolean expression of data access labels that restricts which data a permission group can see) as code through the SecOps API."
+
+item:
+  label: "Data Access Scope"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Data Access Scope"
+      icon: "shield"
+      description: "Scope id, allowed / denied labels and description"
+      fields:
+        - key: "name"
+          label: "Name (data access scope ID)"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The data access scope ID — its immutable identity. Must start with a
+            letter, contain only letters, digits, underscores and hyphens, and be
+            at most 63 characters.
+
+        - key: "allowAll"
+          label: "Allow all data"
+          fieldType: "checkbox"
+          required: false
+          helpText: >
+            Grant access to all data except the denied labels. Mutually exclusive
+            with an allowed-label list, and fixed once the scope is created.
+
+        - key: "allowedLabels"
+          label: "Allowed labels (one data access label ID per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            One data access label ID per line. Users in the scope can see data
+            with ANY of these labels (OR). Leave blank only when "Allow all" is
+            enabled.
+
+        - key: "deniedLabels"
+          label: "Denied labels (one data access label ID per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            One data access label ID per line. Users in the scope can NOT see data
+            with ANY of these labels (AND). Optional; combinable with either the
+            allowed list or "Allow all".
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the data access scope for a human reader."

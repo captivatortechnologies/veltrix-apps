@@ -1,0 +1,74 @@
+# =============================================================================
+# Canvas Template — Google SecOps Rule Deployments
+#
+# Declares the DEPLOYMENT state of ONE detection rule — the item. Users add as
+# many as they need. Identity is the rule's NAME (its displayName, the same
+# identity the Detection Rules type uses). The rule must already exist (declare
+# its TEXT with the Detection Rules config type first); this type reconciles the
+# rule's deployment sub-resource ({parent}/rules/{ruleId}/deployment):
+#   - enabled: run the rule continuously against incoming data
+#   - alerting: treat this rule's detections as alerts
+#   - runFrequency: how often the rule runs (LIVE / HOURLY / DAILY)
+#
+# A rule deployment is a singleton and is never created or deleted — only
+# reconciled. When a spec is removed the deployment is left at its last-set
+# state; an explicit rollback restores the prior state. Archived rule
+# deployments must be unarchived (outside this app) before they can be managed.
+# Rule TEXT is out of scope — that is the Detection Rules type's job.
+#
+# Field keys must match config-types/rule-deployments/validate.ts.
+# =============================================================================
+
+id: "google-secops-rule-deployments"
+name: "Rule Deployment Configuration"
+toolType: "google-secops"
+entityType: "rule-deployments"
+description: "Manage the deployment state (enabled, alerting and run frequency) of Google Security Operations (Chronicle) detection rules as code through the SecOps API."
+
+item:
+  label: "Rule Deployment"
+  identityField: "ruleName"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Rule Deployment"
+      icon: "toggle-right"
+      description: "Target rule and its deployment state"
+      fields:
+        - key: "ruleName"
+          label: "Rule Name (displayName)"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The displayName of an existing detection rule (the `rule <name>` name
+            from its YARA-L source). The rule must already be deployed via the
+            Detection Rules config type.
+
+        - key: "enabled"
+          label: "Enabled (run continuously)"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Run the rule continuously against incoming data."
+
+        - key: "alerting"
+          label: "Alerting"
+          fieldType: "checkbox"
+          required: false
+          helpText: >
+            Treat detections from this rule as alerts. Has no effect unless the
+            rule is enabled.
+
+        - key: "runFrequency"
+          label: "Run Frequency"
+          fieldType: "select"
+          required: true
+          defaultValue: "LIVE"
+          options:
+            - label: "Live (real time)"
+              value: "LIVE"
+            - label: "Hourly"
+              value: "HOURLY"
+            - label: "Daily"
+              value: "DAILY"
+          helpText: "How often the rule runs. Must be one of the rule's allowed run frequencies."

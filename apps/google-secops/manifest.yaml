@@ -1,12 +1,12 @@
 id: google-secops
 name: Google SecOps
-version: "0.3.0"
+version: "0.4.0"
 vendor: Veltrix
 description: >
   Manage Google Security Operations (Chronicle) configuration as code through the
-  SecOps REST API — Reference Lists, Data Tables and Detection Rules — with
-  validation, drift detection and rollback handled by the Security-as-Code
-  pipeline.
+  SecOps REST API — Reference Lists, Data Tables, Detection Rules, Rule
+  Deployments, Data Access Labels and Data Access Scopes — with validation, drift
+  detection and rollback handled by the Security-as-Code pipeline.
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/google-secops
@@ -36,6 +36,15 @@ permissions:
     - resource: rules
       actions: [read, write, delete]
       description: Manage Google SecOps detection rules (YARA-L 2.0 rule text; deployment state is out of scope)
+    - resource: rule-deployments
+      actions: [read, write, delete]
+      description: Manage the deployment state (enabled / alerting / run frequency) of Google SecOps detection rules
+    - resource: data-access-labels
+      actions: [read, write, delete]
+      description: Manage Google SecOps data access labels (named UDM-query tags used to restrict data visibility)
+    - resource: data-access-scopes
+      actions: [read, write, delete]
+      description: Manage Google SecOps data access scopes (boolean expressions of data access labels)
 
 pipeline:
   configurationTypes:
@@ -85,6 +94,57 @@ pipeline:
         healthCheck: config-types/rules/healthCheck
         driftDetect: config-types/rules/driftDetect
         getStatus: config-types/rules/getStatus
+      targets:
+        componentTypes: [google-secops]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: rule-deployments
+      name: Rule Deployments
+      description: Rule deployments — the enabled / alerting / run-frequency state of a detection rule (identity is the rule name; nested rules/{id}/deployment sub-resource reconciled by PATCH; never created/deleted, rollback restores prior state; rule text is out of scope)
+      canvasTemplate: config-types/rule-deployments/canvas.yaml
+      defaultConfig: config-types/rule-deployments/defaults.yaml
+      handlers:
+        validate: config-types/rule-deployments/validate
+        deploy: config-types/rule-deployments/deploy
+        rollback: config-types/rule-deployments/rollback
+        healthCheck: config-types/rule-deployments/healthCheck
+        driftDetect: config-types/rule-deployments/driftDetect
+        getStatus: config-types/rule-deployments/getStatus
+      targets:
+        componentTypes: [google-secops]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: data-access-labels
+      name: Data Access Labels
+      description: Data access labels — named UDM-query tags used to restrict who can see matching event data (id-keyed; only the UDM query and description are updatable; app-created labels are deleted on reconcile)
+      canvasTemplate: config-types/data-access-labels/canvas.yaml
+      defaultConfig: config-types/data-access-labels/defaults.yaml
+      handlers:
+        validate: config-types/data-access-labels/validate
+        deploy: config-types/data-access-labels/deploy
+        rollback: config-types/data-access-labels/rollback
+        healthCheck: config-types/data-access-labels/healthCheck
+        driftDetect: config-types/data-access-labels/driftDetect
+        getStatus: config-types/data-access-labels/getStatus
+      targets:
+        componentTypes: [google-secops]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: data-access-scopes
+      name: Data Access Scopes
+      description: Data access scopes — boolean expressions of allowed / denied data access labels that restrict a permission group's data visibility (id-keyed; allow-all is fixed at creation; app-created scopes are deleted on reconcile)
+      canvasTemplate: config-types/data-access-scopes/canvas.yaml
+      defaultConfig: config-types/data-access-scopes/defaults.yaml
+      handlers:
+        validate: config-types/data-access-scopes/validate
+        deploy: config-types/data-access-scopes/deploy
+        rollback: config-types/data-access-scopes/rollback
+        healthCheck: config-types/data-access-scopes/healthCheck
+        driftDetect: config-types/data-access-scopes/driftDetect
+        getStatus: config-types/data-access-scopes/getStatus
       targets:
         componentTypes: [google-secops]
         requiresCredential: true

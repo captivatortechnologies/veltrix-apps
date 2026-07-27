@@ -1,0 +1,8 @@
+# Defaults for a new rule deployment item.
+#
+# A FLAT map keyed by the canvas field keys. A new deployment defaults to a live,
+# alerting rule — the common intent when putting a rule into production. Set the
+# rule name to target, and adjust enabled / alerting / run frequency as needed.
+enabled: true
+alerting: true
+runFrequency: "LIVE"

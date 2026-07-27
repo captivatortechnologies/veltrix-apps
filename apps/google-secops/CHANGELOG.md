@@ -8,6 +8,34 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.4.0 — 2026-07-26
+
+### Added
+- **Rule Deployments** configuration type — manage the deployment state of a
+  detection rule as code: `enabled` (runs continuously against incoming data),
+  `alerting` (detections treated as alerts) and `runFrequency` (LIVE / HOURLY /
+  DAILY). Identity is the rule's `displayName` — the same identity the Detection
+  Rules type uses; the rule must already exist. Deploy reuses that type's rule
+  lister, resolves each declared rule (by stored ruleId, rename-safe, or display
+  name), reads the `rules/{ruleId}/deployment` sub-resource and PATCHes it only
+  when it differs. A deployment is a singleton (never created/deleted), so there
+  is no reconcile-delete — a removed spec is left at its last-set state and
+  rollback restores the prior state. Archived deployments are reported and left
+  untouched. Rule TEXT stays the Detection Rules type's job.
+- **Data Access Labels** configuration type — manage data access labels (named
+  UDM-query tags applied to event data to gate visibility) as code. Labels are
+  keyed by their immutable id (which is also the display name); only the UDM
+  query and description are updatable. Deploy creates or PATCHes each label;
+  reconcile deletes labels this app created but no longer declares; rollback
+  deletes created labels or restores the prior definition.
+- **Data Access Scopes** configuration type — manage data access scopes (boolean
+  expressions of allowed/denied data access labels that restrict a permission
+  group's data visibility) as code. Scopes are keyed by their immutable id;
+  `allowAll` is mutually exclusive with an allowed-label list and fixed at
+  creation (a differing live value is reported, not silently changed); only the
+  description and allowed/denied label sets are updatable. Reconcile deletes
+  app-created scopes; rollback deletes created scopes or restores prior state.
+
 ## 0.3.0 — 2026-07-26
 
 ### Added

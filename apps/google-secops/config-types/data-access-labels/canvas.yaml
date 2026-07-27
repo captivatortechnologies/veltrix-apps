@@ -1,0 +1,55 @@
+# =============================================================================
+# Canvas Template — Google SecOps Data Access Labels
+#
+# Declares ONE data access label — the item. Users add as many as they need.
+# A data access label's identity is its NAME (the dataAccessLabelId, immutable;
+# it also becomes the label's display name). The label's definition is a UDM
+# query over event data — data matching the query is tagged with this label,
+# and only users whose data access scope allows the label can see that data.
+# Deploy reads the live label and PATCHes its UDM query + description (the only
+# updatable fields), or creates the label if absent. Reconcile deletes labels
+# this app created but no longer declares.
+#
+# Field keys must match config-types/data-access-labels/validate.ts.
+# =============================================================================
+
+id: "google-secops-data-access-labels"
+name: "Data Access Label Configuration"
+toolType: "google-secops"
+entityType: "data-access-labels"
+description: "Define Google Security Operations (Chronicle) data access labels (a named UDM-query tag used to restrict who can see matching event data) as code through the SecOps API."
+
+item:
+  label: "Data Access Label"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Data Access Label"
+      icon: "tag"
+      description: "Label id, definition and description"
+      fields:
+        - key: "name"
+          label: "Name (data access label ID)"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The data access label ID — its immutable identity, which also becomes
+            the label's display name. Must start with a letter, contain only
+            letters, digits, underscores and hyphens, and be at most 63 characters.
+
+        - key: "udmQuery"
+          label: "UDM Query"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A UDM query over event data. Events matching this query are tagged
+            with the label, e.g. metadata.log_type = "WINDOWS_DHCP". This is the
+            label's definition and is required.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the data access label for a human reader."
