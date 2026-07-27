@@ -1,0 +1,85 @@
+# =============================================================================
+# Canvas Template — Netskope DNS Security Profiles (v2)
+#
+# Declares ONE DNS security profile — the item. Users add as many as they need.
+# Profiles are id-addressed with no lookup-by-name, so the app lists all
+# profiles, matches a declared one to a live one by name, and stores the
+# profile_id for rename-safety. Updates use PATCH and auto-deploy (no separate
+# apply step). The three nested config objects are managed as validated JSON.
+# Reconcile deletes only profiles this app created.
+#
+# Field keys must match config-types/dns-profiles/validate.ts.
+# =============================================================================
+
+id: "netskope-dns-profiles"
+name: "DNS Security Profile Configuration"
+toolType: "netskope"
+entityType: "dns-profiles"
+description: "Define Netskope DNS security profiles as code through the Netskope REST API v2."
+
+item:
+  label: "DNS Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Profile"
+      icon: "shield"
+      description: "Profile name and logging"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The DNS profile name. Must be unique within this canvas — the app
+            matches live profiles on it and stores the profile_id after deploy
+            for rename-safety.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description for the profile."
+
+        - key: "log_traffic"
+          label: "Log Traffic"
+          fieldType: "select"
+          required: true
+          options:
+            - label: "Blocked DNS"
+              value: "Blocked DNS"
+            - label: "All DNS"
+              value: "All DNS"
+          helpText: "Which DNS traffic to log."
+
+    - name: "Advanced"
+      icon: "code"
+      description: "Nested config objects (JSON)"
+      fields:
+        - key: "domain_config"
+          label: "Domain Config (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional JSON object for allow/block lists and security categories,
+            e.g. {"block_all_except_allow_list": false, "security_categories": []}.
+            Do not include business_categories (tenant-gated). Leave blank for none.
+
+        - key: "tunnel_config"
+          label: "Tunnel Config (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional JSON object for DNS tunneling detection, e.g.
+            {"enable": false, "allow_list": []}. Leave blank for none.
+
+        - key: "custom_config"
+          label: "Custom DNS Config (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional JSON object for custom upstream DNS, e.g.
+            {"enable": false, "server_ip": [], "fallback_to_netskope_dns": true}.
+            Leave blank for none.

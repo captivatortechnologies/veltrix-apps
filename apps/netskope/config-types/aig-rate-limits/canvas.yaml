@@ -1,0 +1,63 @@
+# =============================================================================
+# Canvas Template — Netskope AI Gateway Rate-Limit Rules
+#
+# Declares ONE rate-limit rule — the item. Users add as many as they need. Rules
+# are id-addressed with no lookup-by-name, so the app lists all rules, matches a
+# declared one to a live one by name, and stores the id for rename-safety. A PUT
+# sends the full desired spec every deploy. The criteria and limit objects are
+# managed as validated JSON. Reconcile deletes only rules this app created.
+#
+# Field keys must match config-types/aig-rate-limits/validate.ts.
+# =============================================================================
+
+id: "netskope-aig-rate-limits"
+name: "AI Gateway Rate-Limit Configuration"
+toolType: "netskope"
+entityType: "aig-rate-limits"
+description: "Define Netskope AI Gateway rate-limit rules as code through the Netskope REST API v2."
+
+item:
+  label: "Rate-Limit Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Rule"
+      icon: "gauge"
+      description: "Name, criteria and threshold"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 15
+          helpText: >
+            The rate-limit rule name (1-15 characters). Must be unique within this
+            canvas — the app matches live rules on it and stores the id after
+            deploy for rename-safety.
+
+        - key: "criteria"
+          label: "Criteria (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: "A JSON object describing the match criteria for this rule."
+
+        - key: "limit"
+          label: "Limit / Threshold (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: "A JSON object describing the rate-limit threshold (requests per time unit, per appliance)."
+
+        - key: "appliance_ids"
+          label: "Appliance IDs (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Up to 5 appliance ids to apply this rule to, one per line. Empty means all appliances."
+
+        - key: "response"
+          label: "Response Message"
+          fieldType: "text"
+          required: false
+          helpText: "Optional message returned to clients when the rate limit is exceeded."

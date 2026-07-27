@@ -1,12 +1,14 @@
 id: netskope
 name: Netskope
-version: "0.4.0"
+version: "0.5.0"
 vendor: Veltrix
 description: >
   Manage Netskope configuration as code through the Netskope REST API v2 — URL
-  Lists, Device Classification Tags, RBAC Labels, NPA Publishers and NPA Private
-  Apps — with validation, drift detection and rollback handled by the
-  Security-as-Code pipeline.
+  Lists, Device Classification Tags, RBAC Labels, NPA Publishers and Private
+  Apps, NPA Policy Groups and Rules, DNS and Destination Profiles, GRE and IPSec
+  Tunnels, Publisher Upgrade Profiles, NPA Local Brokers, and AI Gateway
+  providers, MCP servers, rate limits and token groups — with validation, drift
+  detection and rollback handled by the Security-as-Code pipeline.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/netskope
@@ -42,6 +44,42 @@ permissions:
     - resource: private-apps
       actions: [read, write, delete]
       description: Manage Netskope Private Access (NPA) private apps (host, protocols, publishers) via the REST API v2
+    - resource: npa-policy-groups
+      actions: [read, write, delete]
+      description: Manage Netskope Private Access (NPA) policy groups (named rule containers) via the REST API v2
+    - resource: npa-rules
+      actions: [read, write, delete]
+      description: Manage Netskope Private Access (NPA) private-app policy rules via the REST API v2
+    - resource: dns-profiles
+      actions: [read, write, delete]
+      description: Manage Netskope DNS security profiles via the REST API v2
+    - resource: destination-profiles
+      actions: [read, write, delete]
+      description: Manage Netskope destination (network-location) profiles via the REST API v2
+    - resource: gre-tunnels
+      actions: [read, write, delete]
+      description: Manage Netskope GRE tunnels (branch connectivity) via the REST API v2
+    - resource: ipsec-tunnels
+      actions: [read, write, delete]
+      description: Manage Netskope IPSec tunnels (branch connectivity) via the REST API v2
+    - resource: publisher-upgrade-profiles
+      actions: [read, write, delete]
+      description: Manage Netskope NPA publisher upgrade profiles via the REST API v2
+    - resource: npa-local-brokers
+      actions: [read, write, delete]
+      description: Manage Netskope Private Access (NPA) local brokers via the REST API v2
+    - resource: aig-ai-providers
+      actions: [read, write, delete]
+      description: Manage Netskope AI Gateway custom AI providers via the REST API v2
+    - resource: aig-mcp-servers
+      actions: [read, write, delete]
+      description: Manage Netskope AI Gateway custom MCP servers via the REST API v2
+    - resource: aig-rate-limits
+      actions: [read, write, delete]
+      description: Manage Netskope AI Gateway rate-limit rules via the REST API v2
+    - resource: aig-token-groups
+      actions: [read, write, delete]
+      description: Manage Netskope AI Gateway API token groups via the REST API v2
 
 pipeline:
   configurationTypes:
@@ -74,6 +112,210 @@ pipeline:
         healthCheck: config-types/private-apps/healthCheck
         driftDetect: config-types/private-apps/driftDetect
         getStatus: config-types/private-apps/getStatus
+      targets:
+        componentTypes: [netskope]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: npa-policy-groups
+      name: NPA Policy Groups
+      description: NPA policy groups — named rule containers (name-keyed; id stored for rename-safety; built-in groups preserved; no deploy step)
+      canvasTemplate: config-types/npa-policy-groups/canvas.yaml
+      defaultConfig: config-types/npa-policy-groups/defaults.yaml
+      handlers:
+        validate: config-types/npa-policy-groups/validate
+        deploy: config-types/npa-policy-groups/deploy
+        rollback: config-types/npa-policy-groups/rollback
+        healthCheck: config-types/npa-policy-groups/healthCheck
+        driftDetect: config-types/npa-policy-groups/driftDetect
+        getStatus: config-types/npa-policy-groups/getStatus
+      targets:
+        componentTypes: [netskope]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: npa-rules
+      name: NPA Policy Rules
+      description: NPA private-app policy rules — action, private apps, users and network scoping (name-keyed; id stored for rename-safety; policy group resolved by name; PUT replaces the full spec; create is eventually-consistent with retry; no deploy step)
+      canvasTemplate: config-types/npa-rules/canvas.yaml
+      defaultConfig: config-types/npa-rules/defaults.yaml
+      handlers:
+        validate: config-types/npa-rules/validate
+        deploy: config-types/npa-rules/deploy
+        rollback: config-types/npa-rules/rollback
+        healthCheck: config-types/npa-rules/healthCheck
+        driftDetect: config-types/npa-rules/driftDetect
+        getStatus: config-types/npa-rules/getStatus
+      targets:
+        componentTypes: [netskope]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: dns-profiles
+      name: DNS Security Profiles
+      description: DNS security profiles — logging plus domain/tunnel/custom config as validated JSON (name-keyed; profile_id stored for rename-safety; PATCH auto-deploys; no deploy step)
+      canvasTemplate: config-types/dns-profiles/canvas.yaml
+      defaultConfig: config-types/dns-profiles/defaults.yaml
+      handlers:
+        validate: config-types/dns-profiles/validate
+        deploy: config-types/dns-profiles/deploy
+        rollback: config-types/dns-profiles/rollback
+        healthCheck: config-types/dns-profiles/healthCheck
+        driftDetect: config-types/dns-profiles/driftDetect
+        getStatus: config-types/dns-profiles/getStatus
+      targets:
+        componentTypes: [netskope]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: destination-profiles
+      name: Destination Profiles
+      description: Destination (network-location) profiles — match type, destination values and RBAC labels (name-keyed; profile_id stored for rename-safety; labels resolved by name; PATCH auto-deploys; no deploy step)
+      canvasTemplate: config-types/destination-profiles/canvas.yaml
+      defaultConfig: config-types/destination-profiles/defaults.yaml
+      handlers:
+        validate: config-types/destination-profiles/validate
+        deploy: config-types/destination-profiles/deploy
+        rollback: config-types/destination-profiles/rollback
+        healthCheck: config-types/destination-profiles/healthCheck
+        driftDetect: config-types/destination-profiles/driftDetect
+        getStatus: config-types/destination-profiles/getStatus
+      targets:
+        componentTypes: [netskope]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: gre-tunnels
+      name: GRE Tunnels
+      description: GRE tunnels — branch connectivity keyed on site, with source IP, POPs and bandwidth (site-keyed; tunnel_id stored for rename-safety; POPs validated; PUT replaces the full spec; no deploy step)
+      canvasTemplate: config-types/gre-tunnels/canvas.yaml
+      defaultConfig: config-types/gre-tunnels/defaults.yaml
+      handlers:
+        validate: config-types/gre-tunnels/validate
+        deploy: config-types/gre-tunnels/deploy
+        rollback: config-types/gre-tunnels/rollback
+        healthCheck: config-types/gre-tunnels/healthCheck
+        driftDetect: config-types/gre-tunnels/driftDetect
+        getStatus: config-types/gre-tunnels/getStatus
+      targets:
+        componentTypes: [netskope]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ipsec-tunnels
+      name: IPSec Tunnels
+      description: IPSec tunnels — branch connectivity keyed on site, with source IP, POPs and a write-only pre-shared key (site-keyed; tunnel_id stored for rename-safety; POPs validated; psk re-sent and not diffed; PUT replaces the full spec; no deploy step)
+      canvasTemplate: config-types/ipsec-tunnels/canvas.yaml
+      defaultConfig: config-types/ipsec-tunnels/defaults.yaml
+      handlers:
+        validate: config-types/ipsec-tunnels/validate
+        deploy: config-types/ipsec-tunnels/deploy
+        rollback: config-types/ipsec-tunnels/rollback
+        healthCheck: config-types/ipsec-tunnels/healthCheck
+        driftDetect: config-types/ipsec-tunnels/driftDetect
+        getStatus: config-types/ipsec-tunnels/getStatus
+      targets:
+        componentTypes: [netskope]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: publisher-upgrade-profiles
+      name: Publisher Upgrade Profiles
+      description: NPA publisher upgrade profiles — release channel, docker tag and a CRON schedule (name-keyed; external_id stored for rename-safety; PUT replaces the full spec; no deploy step)
+      canvasTemplate: config-types/publisher-upgrade-profiles/canvas.yaml
+      defaultConfig: config-types/publisher-upgrade-profiles/defaults.yaml
+      handlers:
+        validate: config-types/publisher-upgrade-profiles/validate
+        deploy: config-types/publisher-upgrade-profiles/deploy
+        rollback: config-types/publisher-upgrade-profiles/rollback
+        healthCheck: config-types/publisher-upgrade-profiles/healthCheck
+        driftDetect: config-types/publisher-upgrade-profiles/driftDetect
+        getStatus: config-types/publisher-upgrade-profiles/getStatus
+      targets:
+        componentTypes: [netskope]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: npa-local-brokers
+      name: NPA Local Brokers
+      description: NPA local brokers — name, public-IP access mode, IP overrides, RBAC labels and geo metadata (name-keyed; id stored for rename-safety; labels resolved by name; runtime registration state ignored; PUT replaces the full spec; no deploy step)
+      canvasTemplate: config-types/npa-local-brokers/canvas.yaml
+      defaultConfig: config-types/npa-local-brokers/defaults.yaml
+      handlers:
+        validate: config-types/npa-local-brokers/validate
+        deploy: config-types/npa-local-brokers/deploy
+        rollback: config-types/npa-local-brokers/rollback
+        healthCheck: config-types/npa-local-brokers/healthCheck
+        driftDetect: config-types/npa-local-brokers/driftDetect
+        getStatus: config-types/npa-local-brokers/getStatus
+      targets:
+        componentTypes: [netskope]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: aig-ai-providers
+      name: AI Gateway Providers
+      description: AI Gateway custom AI providers — endpoint (host/port/protocol) and schema, with a write-only certificate (name-keyed; provider_id stored for rename-safety; certificate re-sent and not diffed; PUT replaces the full spec; no deploy step)
+      canvasTemplate: config-types/aig-ai-providers/canvas.yaml
+      defaultConfig: config-types/aig-ai-providers/defaults.yaml
+      handlers:
+        validate: config-types/aig-ai-providers/validate
+        deploy: config-types/aig-ai-providers/deploy
+        rollback: config-types/aig-ai-providers/rollback
+        healthCheck: config-types/aig-ai-providers/healthCheck
+        driftDetect: config-types/aig-ai-providers/driftDetect
+        getStatus: config-types/aig-ai-providers/getStatus
+      targets:
+        componentTypes: [netskope]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: aig-mcp-servers
+      name: AI Gateway MCP Servers
+      description: AI Gateway custom MCP servers — endpoint (host/port/path/protocol), optional tools/resources/prompts filters and a write-only certificate (name-keyed; server_id stored for rename-safety; certificate re-sent and not diffed; PUT replaces the full spec; no deploy step)
+      canvasTemplate: config-types/aig-mcp-servers/canvas.yaml
+      defaultConfig: config-types/aig-mcp-servers/defaults.yaml
+      handlers:
+        validate: config-types/aig-mcp-servers/validate
+        deploy: config-types/aig-mcp-servers/deploy
+        rollback: config-types/aig-mcp-servers/rollback
+        healthCheck: config-types/aig-mcp-servers/healthCheck
+        driftDetect: config-types/aig-mcp-servers/driftDetect
+        getStatus: config-types/aig-mcp-servers/getStatus
+      targets:
+        componentTypes: [netskope]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: aig-rate-limits
+      name: AI Gateway Rate Limits
+      description: AI Gateway rate-limit rules — name, criteria and threshold as validated JSON, appliance scoping and a custom response (name-keyed; id stored for rename-safety; PUT replaces the full spec; no deploy step)
+      canvasTemplate: config-types/aig-rate-limits/canvas.yaml
+      defaultConfig: config-types/aig-rate-limits/defaults.yaml
+      handlers:
+        validate: config-types/aig-rate-limits/validate
+        deploy: config-types/aig-rate-limits/deploy
+        rollback: config-types/aig-rate-limits/rollback
+        healthCheck: config-types/aig-rate-limits/healthCheck
+        driftDetect: config-types/aig-rate-limits/driftDetect
+        getStatus: config-types/aig-rate-limits/getStatus
+      targets:
+        componentTypes: [netskope]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: aig-token-groups
+      name: AI Gateway Token Groups
+      description: AI Gateway API token groups — name + description container (not the per-token secrets) (name-keyed; id stored for rename-safety; PUT replaces the full spec; no deploy step)
+      canvasTemplate: config-types/aig-token-groups/canvas.yaml
+      defaultConfig: config-types/aig-token-groups/defaults.yaml
+      handlers:
+        validate: config-types/aig-token-groups/validate
+        deploy: config-types/aig-token-groups/deploy
+        rollback: config-types/aig-token-groups/rollback
+        healthCheck: config-types/aig-token-groups/healthCheck
+        driftDetect: config-types/aig-token-groups/driftDetect
+        getStatus: config-types/aig-token-groups/getStatus
       targets:
         componentTypes: [netskope]
         requiresCredential: true

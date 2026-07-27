@@ -1,0 +1,79 @@
+# =============================================================================
+# Canvas Template — Netskope Destination (Network-Location) Profiles
+#
+# Declares ONE destination profile — the item. Users add as many as they need.
+# Profiles are id-addressed with no lookup-by-name, so the app lists all
+# profiles, matches a declared one to a live one by name, and stores the
+# profile_id for rename-safety. Updates use PATCH and auto-deploy. Labels are
+# given by RBAC label name and resolved to label_ids at deploy time. Reconcile
+# deletes only profiles this app created.
+#
+# Field keys must match config-types/destination-profiles/validate.ts.
+# =============================================================================
+
+id: "netskope-destination-profiles"
+name: "Destination Profile Configuration"
+toolType: "netskope"
+entityType: "destination-profiles"
+description: "Define Netskope destination (network-location) profiles as code through the Netskope REST API v2."
+
+item:
+  label: "Destination Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Profile"
+      icon: "map-pin"
+      description: "Name, match type and destinations"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: >
+            The destination profile name. Must be unique within this canvas — the
+            app matches live profiles on it and stores the profile_id after
+            deploy for rename-safety.
+
+        - key: "type"
+          label: "Match Type"
+          fieldType: "select"
+          required: true
+          options:
+            - label: "Case-insensitive"
+              value: "insensitive"
+            - label: "Case-sensitive"
+              value: "sensitive"
+            - label: "Regex"
+              value: "regex"
+          helpText: "How the destination values are matched."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 200
+          helpText: "Optional description (max 200 characters)."
+
+        - key: "values"
+          label: "Destinations (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Destination URLs, domains or IPs, one per line."
+
+    - name: "Labels"
+      icon: "tag"
+      description: "RBAC labels applied to this profile"
+      fields:
+        - key: "labels"
+          label: "RBAC Labels (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            RBAC label names to associate, one per line. Each is resolved to a
+            label id against the live labels at deploy time.

@@ -1,0 +1,114 @@
+# =============================================================================
+# Canvas Template — Netskope NPA Local Brokers (LBR)
+#
+# Declares ONE NPA local broker — the item. Users add as many as they need.
+# Brokers are id-addressed with no lookup-by-name, so the app lists all brokers,
+# matches a declared one to a live one by local_broker_name, and stores the id
+# for rename-safety. A PUT sends the full desired spec every deploy. Labels are
+# given by RBAC label name and resolved to label_ids at deploy time. Registration
+# state is runtime read-only and is not managed. Reconcile deletes only brokers
+# this app created.
+#
+# Field keys must match config-types/npa-local-brokers/validate.ts.
+# =============================================================================
+
+id: "netskope-npa-local-brokers"
+name: "NPA Local Broker Configuration"
+toolType: "netskope"
+entityType: "npa-local-brokers"
+description: "Define Netskope Private Access (NPA) local brokers as code through the Netskope REST API v2."
+
+item:
+  label: "NPA Local Broker"
+  identityField: "local_broker_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Broker"
+      icon: "server"
+      description: "Name and access"
+      fields:
+        - key: "local_broker_name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The local broker name. Must be unique within this canvas — the app
+            matches live brokers on it and stores the id after deploy for
+            rename-safety.
+
+        - key: "access_via_public_ip"
+          label: "Access Via Public IP"
+          fieldType: "select"
+          required: true
+          options:
+            - label: "None"
+              value: "NONE"
+            - label: "Off-premises"
+              value: "OFF_PREM"
+            - label: "On-premises"
+              value: "ON_PREM"
+            - label: "On & Off-premises"
+              value: "ON_OFF_PREM"
+          helpText: "When clients reach this broker via its public IP."
+
+        - key: "custom_private_ip"
+          label: "Custom Private IP"
+          fieldType: "text"
+          required: false
+          helpText: "Optional private IP override for the broker."
+
+        - key: "custom_public_ip"
+          label: "Custom Public IP"
+          fieldType: "text"
+          required: false
+          helpText: "Optional public IP override for the broker."
+
+        - key: "labels"
+          label: "RBAC Labels (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            RBAC label names to associate, one per line. Each is resolved to a
+            label id against the live labels at deploy time.
+
+    - name: "Location"
+      icon: "map-pin"
+      description: "Optional geo metadata"
+      fields:
+        - key: "city_name"
+          label: "City"
+          fieldType: "text"
+          required: false
+          helpText: "Optional city name."
+
+        - key: "region_name"
+          label: "Region"
+          fieldType: "text"
+          required: false
+          helpText: "Optional region/state name."
+
+        - key: "country_name"
+          label: "Country"
+          fieldType: "text"
+          required: false
+          helpText: "Optional country name."
+
+        - key: "country_code"
+          label: "Country Code"
+          fieldType: "text"
+          required: false
+          helpText: "Optional ISO country code, e.g. US."
+
+        - key: "latitude"
+          label: "Latitude"
+          fieldType: "number"
+          required: false
+          helpText: "Optional latitude."
+
+        - key: "longitude"
+          label: "Longitude"
+          fieldType: "number"
+          required: false
+          helpText: "Optional longitude."

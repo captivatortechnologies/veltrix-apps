@@ -1,0 +1,148 @@
+# =============================================================================
+# Canvas Template — Netskope NPA Private-Access Policy Rules
+#
+# Declares ONE NPA private-access policy rule — the item. Users add as many as
+# they need. Rules are id-addressed with no lookup-by-name, so the app lists all
+# rules, matches a declared one to a live one by rule_name, and stores the id for
+# rename-safety. A PUT sends the full desired spec every deploy (no deploy/apply
+# step). The policy group is given by name and resolved to a group_id against the
+# live policy groups. Reconcile deletes only rules this app created.
+#
+# Field keys must match config-types/npa-rules/validate.ts.
+# =============================================================================
+
+id: "netskope-npa-rules"
+name: "NPA Policy Rule Configuration"
+toolType: "netskope"
+entityType: "npa-rules"
+description: "Define Netskope Private Access (NPA) private-app policy rules as code through the Netskope REST API v2."
+
+item:
+  label: "NPA Rule"
+  identityField: "rule_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Rule"
+      icon: "shield"
+      description: "Rule identity, action and policy group"
+      fields:
+        - key: "rule_name"
+          label: "Rule Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The rule name. Must be unique within this canvas — the app matches
+            live rules on it and stores the id after deploy for rename-safety.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description for the rule."
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          options:
+            - label: "Allow"
+              value: "allow"
+            - label: "Block"
+              value: "block"
+          helpText: "The action taken when the rule matches."
+
+        - key: "group"
+          label: "Policy Group"
+          fieldType: "text"
+          required: false
+          helpText: >
+            Optional NPA policy group name; resolved to a group_id against the
+            live policy groups at deploy time. Leave blank for the default group.
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Whether the rule is enabled."
+
+    - name: "Applications"
+      icon: "app-window"
+      description: "Private apps this rule matches"
+      fields:
+        - key: "private_apps"
+          label: "Private Apps (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Private app names this rule applies to, one per line."
+
+        - key: "private_app_tags"
+          label: "Private App Tags (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Private app tag names this rule applies to, one per line."
+
+    - name: "Users & Devices"
+      icon: "users"
+      description: "Who and what the rule matches"
+      fields:
+        - key: "users"
+          label: "Users (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "User principals the rule matches, one per line."
+
+        - key: "user_groups"
+          label: "User Groups (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "User groups the rule matches, one per line."
+
+        - key: "organization_units"
+          label: "Organization Units (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Organization units the rule matches, one per line."
+
+        - key: "access_method"
+          label: "Access Methods (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Access methods the rule matches (e.g. Client, Clientless), one per line."
+
+        - key: "device_classification_id"
+          label: "Device Classification IDs (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Device classification ids the rule matches, one per line."
+
+    - name: "Network"
+      icon: "globe"
+      description: "Network location and source countries"
+      fields:
+        - key: "net_location_obj"
+          label: "Network Locations (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Network location object names the rule matches, one per line."
+
+        - key: "src_countries"
+          label: "Source Countries (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Source country codes the rule matches, one per line."
+
+        - key: "b_negate_net_location"
+          label: "Negate Network Locations"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Match when the source is NOT in the listed network locations."
+
+        - key: "b_negate_src_countries"
+          label: "Negate Source Countries"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Match when the source is NOT in the listed countries."

@@ -222,6 +222,13 @@ export function extractNpaObject<T>(body: string): T | null {
   return (parsed as T) ?? null
 }
 
+/** Profiles-family (/profiles/*) create and GET-by-id responses return the bare
+ *  object with no {status, data} envelope. Parse it directly, tolerating an
+ *  accidental {data:{...}} wrapper for safety. */
+export function extractProfileObject<T>(body: string): T | null {
+  return extractNpaObject<T>(body)
+}
+
 export function netskopeErrorMessage(res: NetskopeResponse): string {
   if (res.transportError) return res.transportError
   const parsed = parseJson<{ message?: string; error?: string; errors?: Array<{ message?: string }> }>(res.body)

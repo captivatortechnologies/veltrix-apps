@@ -1,0 +1,5 @@
+# Defaults for a new DNS security profile item.
+#
+# A FLAT map keyed by the canvas field keys. Logging defaults to Blocked DNS;
+# name and the nested JSON config blobs are left blank for a deliberate choice.
+log_traffic: "Blocked DNS"

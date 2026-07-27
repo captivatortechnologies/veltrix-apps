@@ -1,0 +1,47 @@
+# =============================================================================
+# Canvas Template — Netskope AI Gateway API Token Groups
+#
+# Declares ONE token group — the item. Users add as many as they need. This
+# manages the token GROUP container (name + description), NOT the per-token
+# secrets. Groups are id-addressed with no lookup-by-name, so the app lists all
+# groups, matches a declared one to a live one by name, and stores the id for
+# rename-safety. A PUT sends the full desired spec every deploy. Reconcile
+# deletes only groups this app created.
+#
+# Field keys must match config-types/aig-token-groups/validate.ts.
+# =============================================================================
+
+id: "netskope-aig-token-groups"
+name: "AI Gateway Token Group Configuration"
+toolType: "netskope"
+entityType: "aig-token-groups"
+description: "Define Netskope AI Gateway API token groups as code through the Netskope REST API v2."
+
+item:
+  label: "Token Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Token Group"
+      icon: "key"
+      description: "Name and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: >
+            The token group name (1-100 characters). Must be unique within this
+            canvas — the app matches live groups on it and stores the id after
+            deploy for rename-safety. This manages the group container, not the
+            per-token secrets.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description for the token group."

@@ -1,0 +1,10 @@
+# Defaults for a new IPSec tunnel item.
+#
+# A FLAT map keyed by the canvas field keys. Tunnels default to enabled at
+# 50 Mbps with reauth/rekey/XFF off; site, source IP, POP names and the
+# pre-shared key are left blank for a deliberate choice.
+bandwidth: 50
+enabled: true
+reauth: false
+rekey: false
+xff_enabled: false

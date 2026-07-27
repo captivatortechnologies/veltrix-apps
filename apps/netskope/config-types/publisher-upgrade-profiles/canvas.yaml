@@ -1,0 +1,83 @@
+# =============================================================================
+# Canvas Template — Netskope NPA Publisher Upgrade Profiles
+#
+# Declares ONE publisher upgrade profile — the item. Users add as many as they
+# need. Profiles are id-addressed with no lookup-by-name, so the app lists all
+# profiles, matches a declared one to a live one by name, and stores the
+# external_id for rename-safety. A PUT sends the full desired spec every deploy.
+# The docker tag and release type come from the publishers releases list.
+# Reconcile deletes only profiles this app created.
+#
+# Field keys must match config-types/publisher-upgrade-profiles/validate.ts.
+# =============================================================================
+
+id: "netskope-publisher-upgrade-profiles"
+name: "Publisher Upgrade Profile Configuration"
+toolType: "netskope"
+entityType: "publisher-upgrade-profiles"
+description: "Define Netskope NPA publisher upgrade profiles as code through the Netskope REST API v2."
+
+item:
+  label: "Upgrade Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Profile"
+      icon: "refresh-cw"
+      description: "Name, release and schedule"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The upgrade profile name. Must be unique within this canvas — the app
+            matches live profiles on it and stores the external_id after deploy
+            for rename-safety.
+
+        - key: "docker_tag"
+          label: "Docker Tag"
+          fieldType: "text"
+          required: true
+          helpText: "The publisher image docker tag, from GET /infrastructure/publishers/releases."
+
+        - key: "release_type"
+          label: "Release Type"
+          fieldType: "select"
+          required: true
+          options:
+            - label: "Beta"
+              value: "Beta"
+            - label: "Latest"
+              value: "Latest"
+            - label: "Latest-1"
+              value: "Latest-1"
+            - label: "Latest-2"
+              value: "Latest-2"
+          helpText: "Which release channel the profile tracks."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Whether automatic upgrades are enabled."
+
+        - key: "frequency"
+          label: "Frequency (CRON)"
+          fieldType: "text"
+          required: true
+          helpText: "A 5-field CRON expression for the upgrade window, e.g. 0 0 1 * TUE."
+
+        - key: "timezone"
+          label: "Timezone"
+          fieldType: "text"
+          required: true
+          helpText: "The schedule timezone, e.g. US/Eastern."
+
+        - key: "timezone_id"
+          label: "Timezone ID"
+          fieldType: "number"
+          required: false
+          helpText: "Optional numeric timezone id (leave blank if unknown)."

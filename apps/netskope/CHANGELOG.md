@@ -8,6 +8,56 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.5.0 — 2026-07-26
+
+### Added
+Twelve new configuration types, each with the full pipeline handler set
+(validate, deploy, rollback, drift detection, health check, status). All are
+name/site-keyed with the object id stored for rename-safety, reconcile only
+deletes what the app created, and none needs a separate deploy/apply step.
+
+- **NPA Policy Groups** — named NPA rule-group containers. Built-in groups
+  (`can_be_edited_deleted=false`) are preserved and never modified or deleted.
+  Backed by `/api/v2/policy/npa/policygroups`.
+- **NPA Policy Rules** — private-app policy rules (action, private apps/tags,
+  users, groups, access methods, device classifications and network scoping).
+  The policy group is given by name and resolved to a `group_id`; a PUT sends the
+  full spec; create is eventually-consistent and retried. Backed by
+  `/api/v2/policy/npa/rules`.
+- **DNS Security Profiles** — logging plus `domain_config`, `tunnel_config` and
+  `custom_config` as validated JSON. PATCH auto-deploys; `business_categories`
+  are never sent; the first list call is retried past a "migration in progress"
+  400. Backed by `/api/v2/profiles/dns`.
+- **Destination Profiles** — network-location profiles (match type, destination
+  values and RBAC labels resolved by name to `label_ids`). Backed by
+  `/api/v2/profiles/destinations`.
+- **GRE Tunnels** — branch connectivity keyed on `site`, with source IP, POP
+  names (validated against the live GRE POPs), bandwidth and XFF options. Backed
+  by `/api/v2/steering/gre/tunnels`.
+- **IPSec Tunnels** — branch connectivity keyed on `site`, with a write-only
+  pre-shared key (re-sent every deploy, never compared for drift), encryption,
+  POP names (validated) and IKE options. Backed by
+  `/api/v2/steering/ipsec/tunnels`.
+- **Publisher Upgrade Profiles** — NPA publisher auto-upgrade schedules (release
+  channel, docker tag, 5-field CRON and timezone), keyed on name with the
+  `external_id` stored. Backed by `/api/v2/infrastructure/publisherupgradeprofiles`.
+- **NPA Local Brokers** — local brokers (public-IP access mode, IP overrides,
+  RBAC labels resolved by name and geo metadata); runtime registration state is
+  ignored. Backed by `/api/v2/infrastructure/lbrokers`.
+- **AI Gateway Providers** — custom AI providers (schema, host, port, protocol)
+  with a write-only certificate. Backed by `/api/v2/aig/aiproviders`.
+- **AI Gateway MCP Servers** — custom MCP servers (host, port, path, protocol,
+  optional tools/resources/prompts filters) with a write-only certificate.
+  Backed by `/api/v2/aig/mcpservers`.
+- **AI Gateway Rate Limits** — rate-limit rules with match criteria and threshold
+  managed as validated JSON, appliance scoping and a custom response. Backed by
+  `/api/v2/aig/ratelimits`.
+- **AI Gateway Token Groups** — API token group containers (name + description;
+  not the per-token secrets). Backed by `/api/v2/aig/tokengroups`.
+- `extractProfileObject` helper in the Netskope API client for the profiles
+  family (`/profiles/*`), whose create and GET-by-id responses return the bare
+  object with no `{status, data}` envelope.
+
 ## 0.4.0 — 2026-07-26
 
 ### Added

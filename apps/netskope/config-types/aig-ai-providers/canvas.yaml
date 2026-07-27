@@ -1,0 +1,70 @@
+# =============================================================================
+# Canvas Template — Netskope AI Gateway Custom AI Providers
+#
+# Declares ONE custom AI provider — the item. Users add as many as they need.
+# Providers are id-addressed with no lookup-by-name, so the app lists all
+# providers, matches a declared one to a live one by name, and stores the
+# provider_id for rename-safety. A PUT sends the full desired spec every deploy.
+# The certificate is write-only (never returned) and not compared for drift.
+# Reconcile deletes only providers this app created.
+#
+# Field keys must match config-types/aig-ai-providers/validate.ts.
+# =============================================================================
+
+id: "netskope-aig-ai-providers"
+name: "AI Gateway Provider Configuration"
+toolType: "netskope"
+entityType: "aig-ai-providers"
+description: "Define Netskope AI Gateway custom AI providers as code through the Netskope REST API v2."
+
+item:
+  label: "AI Provider"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Provider"
+      icon: "cpu"
+      description: "Endpoint and schema"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The provider name. Must be unique within this canvas — the app matches
+            live providers on it and stores the provider_id after deploy for
+            rename-safety.
+
+        - key: "schema"
+          label: "Schema"
+          fieldType: "text"
+          required: true
+          helpText: "The provider API schema/type, e.g. openai, azureopenai, anthropic."
+
+        - key: "host"
+          label: "Host"
+          fieldType: "text"
+          required: true
+          helpText: "The provider host (FQDN or IP)."
+
+        - key: "port"
+          label: "Port"
+          fieldType: "number"
+          required: true
+          helpText: "The provider port (1-65535)."
+
+        - key: "protocol"
+          label: "Protocol"
+          fieldType: "text"
+          required: true
+          helpText: "The transport protocol, e.g. https."
+
+        - key: "certificate"
+          label: "Certificate (write-only)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional TLS certificate (PEM). Write-only — the API never returns it,
+            so it is re-sent on every deploy and not compared for drift.

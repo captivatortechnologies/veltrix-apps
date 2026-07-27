@@ -1,0 +1,9 @@
+# Defaults for a new NPA policy rule item.
+#
+# A FLAT map keyed by the canvas field keys. New rules default to an enabled
+# allow rule; name, apps, users and network scoping are left blank for a
+# deliberate choice.
+action: "allow"
+enabled: true
+b_negate_net_location: false
+b_negate_src_countries: false

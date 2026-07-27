@@ -1,0 +1,113 @@
+# =============================================================================
+# Canvas Template — Netskope GRE Tunnels
+#
+# Declares ONE GRE tunnel — the item. Users add as many as they need. Tunnels
+# are id-addressed and keyed on their site (POP names can drop from list
+# responses), so the app lists all tunnels, matches a declared one to a live one
+# by site, and stores the tunnel_id for rename-safety. A PUT sends the full
+# desired spec every deploy. POP names are validated against the live GRE POPs.
+# Reconcile deletes only tunnels this app created.
+#
+# Field keys must match config-types/gre-tunnels/validate.ts.
+# =============================================================================
+
+id: "netskope-gre-tunnels"
+name: "GRE Tunnel Configuration"
+toolType: "netskope"
+entityType: "gre-tunnels"
+description: "Define Netskope GRE tunnels (branch connectivity) as code through the Netskope REST API v2."
+
+item:
+  label: "GRE Tunnel"
+  identityField: "site"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Tunnel"
+      icon: "network"
+      description: "Site, source and POPs"
+      fields:
+        - key: "site"
+          label: "Site"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The tunnel site name — the identity used to match live tunnels. Must
+            be unique within this canvas; the tunnel_id is stored after deploy.
+
+        - key: "source_ip"
+          label: "Source IP"
+          fieldType: "text"
+          required: true
+          helpText: "The public IP of your GRE endpoint."
+
+        - key: "pop_names"
+          label: "POP Names (one per line)"
+          fieldType: "textarea"
+          required: true
+          helpText: "Netskope GRE POP names to connect to, one per line. Validated against the live POPs."
+
+        - key: "bandwidth"
+          label: "Bandwidth (Mbps)"
+          fieldType: "number"
+          required: false
+          defaultValue: 1000
+          helpText: "Tunnel bandwidth in Mbps."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Whether the tunnel is enabled."
+
+    - name: "Advanced"
+      icon: "settings"
+      description: "Source, vendor and XFF options"
+      fields:
+        - key: "source_type"
+          label: "Source Type"
+          fieldType: "select"
+          required: false
+          options:
+            - label: "User"
+              value: "User"
+            - label: "Machine"
+              value: "Machine"
+            - label: "IoT"
+              value: "IoT"
+            - label: "Guest Wifi"
+              value: "Guest Wifi"
+            - label: "Mixed"
+              value: "Mixed"
+          helpText: "The kind of traffic sourced through this tunnel."
+
+        - key: "template"
+          label: "Template"
+          fieldType: "text"
+          required: false
+          helpText: "Optional configuration template name."
+
+        - key: "vendor"
+          label: "Vendor"
+          fieldType: "text"
+          required: false
+          helpText: "Optional device vendor name."
+
+        - key: "notes"
+          label: "Notes"
+          fieldType: "text"
+          required: false
+          helpText: "Optional notes for the tunnel."
+
+        - key: "xff_enabled"
+          label: "Enable X-Forwarded-For"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Insert X-Forwarded-For headers for traffic from this tunnel."
+
+        - key: "xff_ip_list"
+          label: "XFF IP List (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Trusted source IPs/subnets for XFF, one per line."

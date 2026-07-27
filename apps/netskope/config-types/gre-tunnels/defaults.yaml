@@ -1,0 +1,8 @@
+# Defaults for a new GRE tunnel item.
+#
+# A FLAT map keyed by the canvas field keys. Tunnels default to enabled at
+# 1000 Mbps with XFF off; site, source IP and POP names are left blank for a
+# deliberate choice.
+bandwidth: 1000
+enabled: true
+xff_enabled: false

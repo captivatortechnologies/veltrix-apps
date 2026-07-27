@@ -1,0 +1,40 @@
+# =============================================================================
+# Canvas Template — Netskope NPA Policy Groups
+#
+# Declares ONE NPA policy group — the item. Users add as many as they need.
+# Policy groups are id-addressed with no lookup-by-name, so the app lists all
+# groups, matches a declared one to a live one by group_name, and stores the id
+# for rename-safety. Built-in groups (can_be_edited_deleted=false) are preserved
+# and never modified or deleted. Reconcile deletes only groups this app created.
+#
+# Field keys must match config-types/npa-policy-groups/validate.ts.
+# =============================================================================
+
+id: "netskope-npa-policy-groups"
+name: "NPA Policy Group Configuration"
+toolType: "netskope"
+entityType: "npa-policy-groups"
+description: "Define Netskope Private Access (NPA) policy groups as code through the Netskope REST API v2."
+
+item:
+  label: "NPA Policy Group"
+  identityField: "group_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy Group"
+      icon: "layers"
+      description: "Group name"
+      fields:
+        - key: "group_name"
+          label: "Group Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The policy group name — a named container that NPA rules reference by
+            group. Must be unique within this canvas; the app matches live groups
+            on it and stores the id after deploy for rename-safety. Built-in
+            groups are preserved and never modified.

@@ -1,0 +1,98 @@
+# =============================================================================
+# Canvas Template — Netskope AI Gateway Custom MCP Servers
+#
+# Declares ONE custom MCP server — the item. Users add as many as they need.
+# Servers are id-addressed with no lookup-by-name, so the app lists all servers,
+# matches a declared one to a live one by name, and stores the server_id for
+# rename-safety. A PUT sends the full desired spec every deploy. The certificate
+# is write-only (never returned) and not compared for drift. Reconcile deletes
+# only servers this app created.
+#
+# Field keys must match config-types/aig-mcp-servers/validate.ts.
+# =============================================================================
+
+id: "netskope-aig-mcp-servers"
+name: "AI Gateway MCP Server Configuration"
+toolType: "netskope"
+entityType: "aig-mcp-servers"
+description: "Define Netskope AI Gateway custom MCP servers as code through the Netskope REST API v2."
+
+item:
+  label: "MCP Server"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Server"
+      icon: "server"
+      description: "Endpoint"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The MCP server name. Must be unique within this canvas — the app
+            matches live servers on it and stores the server_id after deploy for
+            rename-safety.
+
+        - key: "host"
+          label: "Host"
+          fieldType: "text"
+          required: true
+          helpText: "The MCP server host (FQDN or IP)."
+
+        - key: "port"
+          label: "Port"
+          fieldType: "number"
+          required: true
+          helpText: "The MCP server port (1-65535)."
+
+        - key: "path"
+          label: "Path"
+          fieldType: "text"
+          required: true
+          helpText: "The MCP endpoint path, e.g. /mcp."
+
+        - key: "protocol"
+          label: "Protocol"
+          fieldType: "text"
+          required: true
+          helpText: "The transport protocol, e.g. https."
+
+        - key: "schema"
+          label: "Schema"
+          fieldType: "text"
+          required: false
+          helpText: "Optional MCP schema/type."
+
+        - key: "certificate"
+          label: "Certificate (write-only)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional TLS certificate (PEM). Write-only — the API never returns it,
+            so it is re-sent on every deploy and not compared for drift.
+
+    - name: "Capabilities"
+      icon: "list"
+      description: "Tools, resources and prompts filters"
+      fields:
+        - key: "tools"
+          label: "Tools (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Allowed tool names, one per line. Empty means no filtering."
+
+        - key: "resources"
+          label: "Resources (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Allowed resource names, one per line. Empty means no filtering."
+
+        - key: "prompts"
+          label: "Prompts (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Allowed prompt names, one per line. Empty means no filtering."

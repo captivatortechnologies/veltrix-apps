@@ -1,0 +1,5 @@
+# Defaults for a new NPA local broker item.
+#
+# A FLAT map keyed by the canvas field keys. Public-IP access defaults to None;
+# name, IP overrides, labels and geo metadata are left blank for a deliberate choice.
+access_via_public_ip: "NONE"

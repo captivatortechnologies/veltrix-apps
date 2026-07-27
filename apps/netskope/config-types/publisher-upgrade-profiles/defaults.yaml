@@ -1,0 +1,7 @@
+# Defaults for a new publisher upgrade profile item.
+#
+# A FLAT map keyed by the canvas field keys. Profiles default to the Latest
+# channel, enabled; name, docker tag, frequency and timezone are left blank for
+# a deliberate choice.
+release_type: "Latest"
+enabled: true

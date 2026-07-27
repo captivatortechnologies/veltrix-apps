@@ -1,0 +1,149 @@
+# =============================================================================
+# Canvas Template — Netskope IPSec Tunnels
+#
+# Declares ONE IPSec tunnel — the item. Users add as many as they need. Tunnels
+# are id-addressed and keyed on their site (POP names can drop from list
+# responses), so the app lists all tunnels, matches a declared one to a live one
+# by site, and stores the tunnel_id for rename-safety. A PUT sends the full
+# desired spec every deploy. The pre-shared key is write-only (never returned by
+# the API), so it is re-sent every deploy and not compared for drift. POP names
+# are validated against the live IPSec POPs. Reconcile deletes only tunnels this
+# app created.
+#
+# Field keys must match config-types/ipsec-tunnels/validate.ts.
+# =============================================================================
+
+id: "netskope-ipsec-tunnels"
+name: "IPSec Tunnel Configuration"
+toolType: "netskope"
+entityType: "ipsec-tunnels"
+description: "Define Netskope IPSec tunnels (branch connectivity) as code through the Netskope REST API v2."
+
+item:
+  label: "IPSec Tunnel"
+  identityField: "site"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Tunnel"
+      icon: "lock"
+      description: "Site, source, POPs and pre-shared key"
+      fields:
+        - key: "site"
+          label: "Site"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The tunnel site name — the identity used to match live tunnels. Must
+            be unique within this canvas; the tunnel_id is stored after deploy.
+
+        - key: "source_ip"
+          label: "Source IP"
+          fieldType: "text"
+          required: true
+          helpText: "The public IP of your IPSec endpoint."
+
+        - key: "pop_names"
+          label: "POP Names (one per line)"
+          fieldType: "textarea"
+          required: true
+          helpText: "Netskope IPSec POP names to connect to, one per line. Validated against the live POPs."
+
+        - key: "psk"
+          label: "Pre-Shared Key"
+          fieldType: "password"
+          required: true
+          helpText: >
+            The IPSec pre-shared key. Write-only — the API never returns it, so it
+            is re-sent on every deploy and not compared for drift.
+
+    - name: "Crypto & Bandwidth"
+      icon: "shield"
+      description: "Encryption, bandwidth and enablement"
+      fields:
+        - key: "encryption"
+          label: "Encryption Algorithm"
+          fieldType: "text"
+          required: false
+          helpText: "Optional IKE/IPSec encryption algorithm."
+
+        - key: "bandwidth"
+          label: "Bandwidth (Mbps)"
+          fieldType: "number"
+          required: false
+          defaultValue: 50
+          helpText: "Tunnel bandwidth in Mbps."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Whether the tunnel is enabled."
+
+    - name: "Advanced"
+      icon: "settings"
+      description: "Source identity, vendor and options"
+      fields:
+        - key: "source_identity"
+          label: "Source Identity (FQDN)"
+          fieldType: "text"
+          required: false
+          helpText: "Optional FQDN identity for the tunnel source."
+
+        - key: "source_type"
+          label: "Source Type"
+          fieldType: "select"
+          required: false
+          options:
+            - label: "SD-WAN"
+              value: "sdwan"
+            - label: "Firewall"
+              value: "firewall"
+            - label: "Router"
+              value: "router"
+            - label: "Other"
+              value: "other"
+          helpText: "The kind of device terminating the tunnel."
+
+        - key: "template"
+          label: "Template"
+          fieldType: "text"
+          required: false
+          helpText: "Optional configuration template name."
+
+        - key: "vendor"
+          label: "Vendor"
+          fieldType: "text"
+          required: false
+          helpText: "Optional device vendor name."
+
+        - key: "notes"
+          label: "Notes"
+          fieldType: "text"
+          required: false
+          helpText: "Optional notes for the tunnel."
+
+        - key: "reauth"
+          label: "Reauthenticate"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Re-authenticate on IKE rekey."
+
+        - key: "rekey"
+          label: "Rekey"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Enable IKE rekeying."
+
+        - key: "xff_enabled"
+          label: "Enable X-Forwarded-For"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Insert X-Forwarded-For headers for traffic from this tunnel."
+
+        - key: "xff_ip_list"
+          label: "XFF IP List (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Trusted source IPs/subnets for XFF, one per line."
