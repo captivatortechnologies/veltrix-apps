@@ -1,0 +1,7 @@
+# Defaults for a new device-control block item.
+#
+# A FLAT map keyed by the canvas field keys. Seeds the safe default (approved
+# devices are read-only: write and execute disabled); the policy name is left
+# blank for a deliberate choice.
+allowWrite: false
+allowExecute: false

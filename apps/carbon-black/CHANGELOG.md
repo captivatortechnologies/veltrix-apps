@@ -8,6 +8,53 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.5.0 — 2026-07-26
+
+### Added
+- **Data Forwarders** configuration type — manage Carbon Black Cloud data
+  forwarders (event streams shipped to AWS S3 / Azure Blob / GCS) as code, with
+  the full pipeline handler set. Forwarders are matched by name (stored id
+  preferred so a rename updates in place); the name, enabled flag and destination
+  bucket update via PUT, while `type` and `destination` are immutable and a change
+  to either forces delete+recreate. The core forwarder object is managed; the
+  optional endpoint.event filters sub-resource is out of scope.
+- **Asset Groups** configuration type — manage Carbon Black Cloud asset groups
+  (dynamic, query-based device grouping with optional policy assignment) as code,
+  with the full pipeline handler set. Groups are matched by name, created/updated
+  via POST/PUT and reconcile only deletes groups this app created. Dynamic groups
+  re-evaluate asynchronously, so drift is not reported while a group is UPDATING;
+  static membership is out of scope.
+- **Device Control Approvals** configuration type — manage Carbon Black Cloud USB
+  device-control approvals (allow-list entries) as code, with the full pipeline
+  handler set. Approvals are matched by their device-selector natural key
+  (vendor id + product id + serial number), created in bulk (the CBC create is
+  bulk-only) and listed via a `_search`; reconcile only deletes approvals this
+  app created.
+- **Device Control Blocks** configuration type — manage Carbon Black Cloud
+  per-policy USB enforcement (write/execute toggles for approved devices) as code,
+  with the full pipeline handler set. A block is a singleton per policy; the app
+  resolves the policy by name, upserts one block per policy (bulk create / PUT
+  update) and reconcile only deletes blocks this app created. The policy is never
+  deleted.
+- **Watchlist Reports** configuration type — manage Carbon Black Cloud shared
+  watchlist reports (titled IOC groups referenceable by watchlists) as code, with
+  the full pipeline handler set. The shared reports store has no list-all endpoint
+  and server-assigns each id, so the app reconciles by the report id it stored per
+  canvas item (rename-safe), managing only reports it created. A report must carry
+  at least one IOC; setting a link makes it non-editable in the console (surfaced
+  as a warning).
+- **Policy Rule Configs (Core Prevention)** configuration type — manage the
+  Carbon Black Cloud core-prevention rule-config assignment (BLOCK / REPORT) per
+  named policy as code, with the full pipeline handler set. Rule configs are
+  platform-managed objects nested under a policy: the app resolves the policy by
+  name, PATCHes the chosen mode (and optional exclusions) onto each core-prevention
+  config, and resets the category to its default (DELETE) when a policy is removed
+  from the canvas. Scoped to the `core_prevention` category (the one with a cleanly
+  grounded contract); bypass / data_collection / host_based_firewall are out of
+  scope. The policy is never deleted.
+- Base-path getters and a generic `_search` pager (`searchAllAt`) in the CBC API
+  client, reused across the new config types.
+
 ## 0.4.0 — 2026-07-26
 
 ### Added

@@ -1,0 +1,68 @@
+# =============================================================================
+# Canvas Template — Carbon Black Cloud Asset Groups
+#
+# Declares ONE asset group — the item. Users add as many as they need. A group's
+# identity is its NAME (groups are id-addressed by UUID; matched by name, with the
+# stored id preferred so a rename updates in place). This config type manages
+# DYNAMIC, query-based groups: a Lucene query selects matching devices, and an
+# optional policy is applied to them when this group is the highest-ranked.
+#
+# SCOPE: static (manually assigned) membership via .../groups/{id}/members maps
+# live device ids (runtime state) and is OUT OF SCOPE — use a dynamic query.
+#
+# NOTE: dynamic groups re-evaluate asynchronously (status OK/UPDATING); drift is
+# treated as eventually-consistent and not reported while a group is UPDATING.
+#
+# Field keys must match config-types/asset-groups/validate.ts.
+# =============================================================================
+
+id: "carbon-black-asset-groups"
+name: "Asset Group Configuration"
+toolType: "carbon-black"
+entityType: "asset-groups"
+description: "Define Carbon Black Cloud asset groups (dynamic device grouping with optional policy assignment) as code through the CBC Asset Groups v1 API."
+
+item:
+  label: "Asset Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Group"
+      icon: "layers"
+      description: "Group identity and dynamic membership"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The group's name — its identity. Unique within this canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: "A short description of the group."
+
+        - key: "memberType"
+          label: "Member Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "DEVICE"
+          options:
+            - label: "Device"
+              value: "DEVICE"
+          helpText: "The kind of asset this group contains (devices)."
+
+        - key: "query"
+          label: "Membership Query"
+          fieldType: "text"
+          required: false
+          helpText: "A Lucene dynamic-membership query, e.g. os.equals:WINDOWS. Devices matching are members."
+
+        - key: "policyId"
+          label: "Policy ID"
+          fieldType: "text"
+          required: false
+          helpText: "Optional Policy Service policy id applied to matching devices when this group is highest-ranked."

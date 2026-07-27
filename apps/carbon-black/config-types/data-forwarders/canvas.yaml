@@ -1,0 +1,151 @@
+# =============================================================================
+# Canvas Template — Carbon Black Cloud Data Forwarders
+#
+# Declares ONE data-forwarder configuration — the item. Users add as many as they
+# need. A forwarder's identity is its NAME (forwarders are id-addressed; matched
+# by name, with the stored id preferred so a rename updates in place). Each
+# forwarder ships one event stream (type) to one cloud-storage destination.
+#
+# INVARIANT: `type` and `destination` are immutable after create — a change to
+# either forces the app to delete and recreate the forwarder. The name, enabled
+# flag and destination bucket update in place via PUT.
+#
+# SCOPE: this manages the CORE forwarder object. The optional per-forwarder
+# include/exclude event filters sub-resource (endpoint.event forwarders only,
+# .../configs/{id}/filters) is OUT OF SCOPE and left to the console.
+#
+# NOTE: the destination bucket must already grant Carbon Black Cloud write access
+# out-of-band (IAM) — this app configures the forwarder, not the bucket.
+#
+# Field keys must match config-types/data-forwarders/validate.ts.
+# =============================================================================
+
+id: "carbon-black-data-forwarders"
+name: "Data Forwarder Configuration"
+toolType: "carbon-black"
+entityType: "data-forwarders"
+description: "Define Carbon Black Cloud data forwarders (event streams shipped to S3 / Azure Blob / GCS) as code through the CBC Data Forwarder v2 API."
+
+item:
+  label: "Data Forwarder"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Forwarder"
+      icon: "rss"
+      description: "Stream and destination (both immutable after create)"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The forwarder's name — its identity. Unique within this canvas."
+
+        - key: "type"
+          label: "Event Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "alert"
+          options:
+            - label: "Alerts"
+              value: "alert"
+            - label: "Audit Logs"
+              value: "auditlog"
+            - label: "Auth Events"
+              value: "auth.event"
+            - label: "Endpoint Events"
+              value: "endpoint.event"
+            - label: "Live Query Results"
+              value: "livequery"
+            - label: "Watchlist Hits"
+              value: "watchlist.hit"
+          helpText: "The event stream this forwarder ships. Immutable — changing it recreates the forwarder."
+
+        - key: "destination"
+          label: "Destination"
+          fieldType: "select"
+          required: true
+          defaultValue: "aws_s3"
+          options:
+            - label: "AWS S3"
+              value: "aws_s3"
+            - label: "Azure Blob Storage"
+              value: "azure_blob_storage"
+            - label: "Google Cloud Storage"
+              value: "gcs_bucket"
+          helpText: "The cloud-storage destination. Immutable — changing it recreates the forwarder."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the forwarder is actively shipping data."
+
+        - key: "versionConstraint"
+          label: "Version Constraint"
+          fieldType: "text"
+          required: false
+          helpText: "Optional semver constraint for the data schema (e.g. 2.0.*)."
+
+    - name: "AWS S3"
+      icon: "cloud"
+      description: "Used when Destination is AWS S3"
+      fields:
+        - key: "s3BucketName"
+          label: "S3 Bucket Name"
+          fieldType: "text"
+          required: false
+          helpText: "For AWS S3: the destination bucket name."
+
+        - key: "s3Prefix"
+          label: "S3 Prefix"
+          fieldType: "text"
+          required: false
+          helpText: "For AWS S3: an optional key prefix for written objects."
+
+    - name: "Azure Blob Storage"
+      icon: "cloud"
+      description: "Used when Destination is Azure Blob Storage"
+      fields:
+        - key: "azureStorageAccount"
+          label: "Azure Storage Account"
+          fieldType: "text"
+          required: false
+          helpText: "For Azure: the storage account name."
+
+        - key: "azureContainerName"
+          label: "Azure Container Name"
+          fieldType: "text"
+          required: false
+          helpText: "For Azure: the blob container name."
+
+        - key: "azureTenantId"
+          label: "Azure Tenant ID"
+          fieldType: "text"
+          required: false
+          helpText: "For Azure: the tenant id granting write access."
+
+        - key: "azureClientId"
+          label: "Azure Client ID"
+          fieldType: "text"
+          required: false
+          helpText: "For Azure: the client id granting write access."
+
+    - name: "Google Cloud Storage"
+      icon: "cloud"
+      description: "Used when Destination is Google Cloud Storage"
+      fields:
+        - key: "gcsBucketName"
+          label: "GCS Bucket Name"
+          fieldType: "text"
+          required: false
+          helpText: "For GCS: the destination bucket name."
+
+        - key: "gcsPrefix"
+          label: "GCS Prefix"
+          fieldType: "text"
+          required: false
+          helpText: "For GCS: an optional object prefix."

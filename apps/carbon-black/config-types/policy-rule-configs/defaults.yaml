@@ -1,0 +1,6 @@
+# Defaults for a new policy rule-config item.
+#
+# A FLAT map keyed by the canvas field keys. Seeds the safe default (BLOCK — the
+# TAU-recommended enforcing mode); the policy name and exclusions are left blank
+# for a deliberate choice.
+assignmentMode: BLOCK

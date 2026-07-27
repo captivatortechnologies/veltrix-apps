@@ -1,0 +1,63 @@
+# =============================================================================
+# Canvas Template — Carbon Black Cloud Device Control Approvals
+#
+# Declares ONE USB device-control approval — the item. Users add as many as they
+# need. An approval whitelists a device (or class of devices) from USB blocking,
+# org-wide. The approval is id-addressed but matched by its device-selector
+# NATURAL KEY (vendor id + product id + serial number, any subset); the app
+# stores the returned id. Approvals are created in bulk (the CBC API create is
+# bulk-only) and listed via a _search; reconcile deletes only approvals this app
+# created but no longer declares.
+#
+# The Approval Name is a friendly label (also stored on the approval) and the
+# canvas identity; the device selector is what actually matches a device.
+#
+# Field keys must match config-types/device-control-approvals/validate.ts.
+# =============================================================================
+
+id: "carbon-black-device-control-approvals"
+name: "Device Control Approval Configuration"
+toolType: "carbon-black"
+entityType: "device-control-approvals"
+description: "Define Carbon Black Cloud USB device-control approvals (allow-list entries for external storage devices) as code through the CBC Device Control v3 API."
+
+item:
+  label: "Device Approval"
+  identityField: "approvalName"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Approval"
+      icon: "usb"
+      description: "Approval label and device selector"
+      fields:
+        - key: "approvalName"
+          label: "Approval Name"
+          fieldType: "text"
+          required: true
+          helpText: "A friendly name for this approval (≤150 chars), also its canvas identity. Unique within this canvas."
+
+        - key: "notes"
+          label: "Notes"
+          fieldType: "text"
+          required: false
+          helpText: "Optional notes stored on the approval (≤500 chars)."
+
+        - key: "vendorId"
+          label: "Vendor ID"
+          fieldType: "text"
+          required: false
+          helpText: "The USB vendor id in hex, e.g. 0x0781. At least one selector is required."
+
+        - key: "productId"
+          label: "Product ID"
+          fieldType: "text"
+          required: false
+          helpText: "The USB product id in hex, e.g. 0x5581."
+
+        - key: "serialNumber"
+          label: "Serial Number"
+          fieldType: "text"
+          required: false
+          helpText: "The device serial number. Approve a single physical device by its serial."

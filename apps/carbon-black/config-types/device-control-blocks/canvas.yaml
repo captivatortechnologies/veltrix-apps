@@ -1,0 +1,53 @@
+# =============================================================================
+# Canvas Template — Carbon Black Cloud Device Control Blocks (per-policy)
+#
+# Declares ONE per-policy USB enforcement block — the item. Users add as many as
+# they need (one per policy). A block is the per-policy ENFORCEMENT switch for
+# approved USB devices: read is always allowed, while write and execute are the
+# toggles (the 2023 separation of read/write/execute controls). The block's
+# identity is its POLICY (one block per policy_id); the app resolves the policy
+# by NAME (via the Policy Service summary), stores the returned block id, and
+# reconciles by deleting only blocks it created but no longer declares.
+#
+# INVARIANT: the policy of a block cannot be changed — a policy change is a
+# different block. Windows-only object shape today.
+#
+# Field keys must match config-types/device-control-blocks/validate.ts.
+# =============================================================================
+
+id: "carbon-black-device-control-blocks"
+name: "Device Control Block Configuration"
+toolType: "carbon-black"
+entityType: "device-control-blocks"
+description: "Define Carbon Black Cloud per-policy USB device-control enforcement (write/execute toggles for approved devices) as code through the CBC Device Control v3 API."
+
+item:
+  label: "Device Control Block"
+  identityField: "policyName"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Block"
+      icon: "lock"
+      description: "Target policy and enforcement toggles"
+      fields:
+        - key: "policyName"
+          label: "Policy Name"
+          fieldType: "text"
+          required: true
+          helpText: "The name of the policy this block enforces on (resolved to a policy id). One block per policy."
+
+        - key: "allowWrite"
+          label: "Allow Write"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Allow writing to approved USB devices (read is always allowed)."
+
+        - key: "allowExecute"
+          label: "Allow Execute"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Allow executing from approved USB devices."

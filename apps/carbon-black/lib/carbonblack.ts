@@ -146,13 +146,49 @@ export class CbClient {
     return `/appservices/v6/orgs/${this.cred.orgKey}/reputations/overrides`
   }
 
-  /** Page a reputation-override _search (start/rows) until num_found. */
-  async searchAll<T = unknown>(criteria: Record<string, unknown> = {}, rows = DEFAULT_PAGE_ROWS, maxPages = 40): Promise<{ ok: boolean; items: T[]; lastError?: CbResponse }> {
+  /** The org-scoped data-forwarder configs base path. */
+  dataForwardersPath(): string {
+    return `/data_forwarder/v2/orgs/${this.cred.orgKey}/configs`
+  }
+
+  /** The org-scoped asset-groups base path. */
+  assetGroupsPath(): string {
+    return `/asset_groups/v1/orgs/${this.cred.orgKey}/groups`
+  }
+
+  /** The org-scoped device-control base path for a sub-collection (approvals / blocks). */
+  deviceControlPath(sub: 'approvals' | 'blocks'): string {
+    return `/device_control/v3/orgs/${this.cred.orgKey}/${sub}`
+  }
+
+  /** The org-scoped watchlist-manager shared-reports base path. */
+  watchlistReportsPath(): string {
+    return `/threathunter/watchlistmgr/v3/orgs/${this.cred.orgKey}/reports`
+  }
+
+  /** The org-scoped policy-service base path. */
+  policiesPath(): string {
+    return `/policyservice/v1/orgs/${this.cred.orgKey}/policies`
+  }
+
+  /** Page any CBC `_search` collection (start/rows) at `basePath` until num_found. */
+  async searchAllAt<T = unknown>(
+    basePath: string,
+    criteria: Record<string, unknown> = {},
+    opts: { rows?: number; sortField?: string; sortOrder?: 'asc' | 'desc'; maxPages?: number } = {}
+  ): Promise<{ ok: boolean; items: T[]; lastError?: CbResponse }> {
+    const rows = opts.rows ?? DEFAULT_PAGE_ROWS
+    const maxPages = opts.maxPages ?? 40
     const items: T[] = []
     let start = 0
     let numFound = Infinity
     for (let page = 0; page < maxPages && start < numFound; page++) {
-      const res = await this.post(`${this.overridesPath()}/_search`, { criteria, start, rows, sort_field: 'create_time', sort_order: 'asc' })
+      const body: Record<string, unknown> = { criteria, start, rows }
+      if (opts.sortField) {
+        body.sort_field = opts.sortField
+        body.sort_order = opts.sortOrder ?? 'asc'
+      }
+      const res = await this.post(`${basePath}/_search`, body)
       if (!res.ok) return { ok: false, items, lastError: res }
       const parsed = parseJson<{ num_found?: number; results?: T[] }>(res.body)
       const results = parsed?.results ?? []
@@ -162,6 +198,11 @@ export class CbClient {
       start += rows
     }
     return { ok: true, items }
+  }
+
+  /** Page a reputation-override _search (start/rows) until num_found. */
+  async searchAll<T = unknown>(criteria: Record<string, unknown> = {}, rows = DEFAULT_PAGE_ROWS, maxPages = 40): Promise<{ ok: boolean; items: T[]; lastError?: CbResponse }> {
+    return this.searchAllAt<T>(this.overridesPath(), criteria, { rows, maxPages, sortField: 'create_time', sortOrder: 'asc' })
   }
 }
 

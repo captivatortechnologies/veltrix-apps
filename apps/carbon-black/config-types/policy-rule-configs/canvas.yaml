@@ -1,0 +1,63 @@
+# =============================================================================
+# Canvas Template — Carbon Black Cloud Policy Rule Configs (core prevention)
+#
+# Declares the CORE PREVENTION rule-config setting for ONE named policy — the
+# item. Users add one per policy. Rule configs are platform-managed objects
+# nested under a policy: you cannot create or delete the category, only PATCH its
+# parameters (and reset it to the TAU-recommended default). The app resolves the
+# policy by NAME (via the Policy Service summary), reads the policy's current
+# core-prevention configs, PUTs the chosen assignment mode onto each, and — when
+# a policy is removed from the canvas — DELETEs the category to reset it. The
+# policy itself is NEVER deleted.
+#
+# SCOPE: this manages the `core_prevention` category only. The bypass,
+# data_collection and host_based_firewall categories carry divergent,
+# category-specific body shapes (validated via each config's /parameters/schema)
+# and are OUT OF SCOPE here.
+#
+# Field keys must match config-types/policy-rule-configs/validate.ts.
+# =============================================================================
+
+id: "carbon-black-policy-rule-configs"
+name: "Policy Rule Config (Core Prevention)"
+toolType: "carbon-black"
+entityType: "policy-rule-configs"
+description: "Define Carbon Black Cloud core-prevention rule-config assignment (BLOCK / REPORT) per policy as code through the CBC Policy Service v1 API."
+
+item:
+  label: "Core Prevention Rule Config"
+  identityField: "policyName"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Rule Config"
+      icon: "sliders"
+      description: "Target policy and core-prevention assignment mode"
+      fields:
+        - key: "policyName"
+          label: "Policy Name"
+          fieldType: "text"
+          required: true
+          helpText: "The name of the policy whose core-prevention rules this configures (resolved to a policy id). One per policy."
+
+        - key: "assignmentMode"
+          label: "Assignment Mode"
+          fieldType: "select"
+          required: true
+          defaultValue: "BLOCK"
+          options:
+            - label: "Block"
+              value: "BLOCK"
+            - label: "Report"
+              value: "REPORT"
+          helpText: "How the TAU core-prevention rules act — BLOCK (enforce) or REPORT (alert only)."
+
+        - key: "exclusionsJson"
+          label: "Exclusions (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional exclusions object as JSON (e.g. { "windows": [ { "criteria": [...] } ] }).
+            Applied to each core-prevention config; leave blank to preserve the
+            policy's existing exclusions.

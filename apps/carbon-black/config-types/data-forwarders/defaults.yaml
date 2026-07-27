@@ -1,0 +1,8 @@
+# Defaults for a new data forwarder item.
+#
+# A FLAT map keyed by the canvas field keys. Seeds the common case (an enabled
+# alert forwarder to AWS S3); the name and bucket are left blank for a deliberate
+# choice.
+type: alert
+destination: aws_s3
+enabled: true

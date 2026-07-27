@@ -1,12 +1,14 @@
 id: carbon-black
 name: VMware Carbon Black
-version: "0.4.0"
+version: "0.5.0"
 vendor: Veltrix
 description: >
   Manage VMware Carbon Black Cloud configuration as code through the CBC API —
-  Reputation Overrides, private Threat Feeds, Feed Reports, Watchlists and
-  endpoint Policies — with validation, drift detection and rollback handled by
-  the Security-as-Code pipeline.
+  Reputation Overrides, private Threat Feeds, Feed Reports, Watchlists, endpoint
+  Policies, Policy Rule Configs, Data Forwarders, Asset Groups, USB Device
+  Control (approvals and per-policy blocks) and shared Watchlist Reports — with
+  validation, drift detection and rollback handled by the Security-as-Code
+  pipeline.
 category: EDR
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/carbon-black
@@ -42,6 +44,24 @@ permissions:
     - resource: policies
       actions: [read, write, delete]
       description: Manage Carbon Black Cloud endpoint policies (name, priority level and a validated policy JSON body)
+    - resource: data-forwarders
+      actions: [read, write, delete]
+      description: Manage Carbon Black Cloud data forwarders (event streams shipped to S3 / Azure Blob / GCS storage)
+    - resource: asset-groups
+      actions: [read, write, delete]
+      description: Manage Carbon Black Cloud asset groups (dynamic device grouping with optional policy assignment)
+    - resource: device-control-approvals
+      actions: [read, write, delete]
+      description: Manage Carbon Black Cloud USB device-control approvals (allow-list entries for external storage devices)
+    - resource: device-control-blocks
+      actions: [read, write, delete]
+      description: Manage Carbon Black Cloud per-policy USB device-control blocks (write/execute enforcement toggles)
+    - resource: watchlist-reports
+      actions: [read, write, delete]
+      description: Manage Carbon Black Cloud shared watchlist reports (titled IOC groups referenceable by watchlists)
+    - resource: policy-rule-configs
+      actions: [read, write, delete]
+      description: Manage Carbon Black Cloud policy core-prevention rule configs (BLOCK / REPORT assignment per policy)
 
 pipeline:
   configurationTypes:
@@ -125,6 +145,108 @@ pipeline:
         healthCheck: config-types/reputation-overrides/healthCheck
         driftDetect: config-types/reputation-overrides/driftDetect
         getStatus: config-types/reputation-overrides/getStatus
+      targets:
+        componentTypes: [carbon-black]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: data-forwarders
+      name: Data Forwarders
+      description: Event streams shipped to S3 / Azure Blob / GCS (name-keyed; type & destination immutable → delete+recreate on change)
+      canvasTemplate: config-types/data-forwarders/canvas.yaml
+      defaultConfig: config-types/data-forwarders/defaults.yaml
+      handlers:
+        validate: config-types/data-forwarders/validate
+        deploy: config-types/data-forwarders/deploy
+        rollback: config-types/data-forwarders/rollback
+        healthCheck: config-types/data-forwarders/healthCheck
+        driftDetect: config-types/data-forwarders/driftDetect
+        getStatus: config-types/data-forwarders/getStatus
+      targets:
+        componentTypes: [carbon-black]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: asset-groups
+      name: Asset Groups
+      description: Dynamic (query-based) device groups with optional policy assignment (name-keyed; reconciled)
+      canvasTemplate: config-types/asset-groups/canvas.yaml
+      defaultConfig: config-types/asset-groups/defaults.yaml
+      handlers:
+        validate: config-types/asset-groups/validate
+        deploy: config-types/asset-groups/deploy
+        rollback: config-types/asset-groups/rollback
+        healthCheck: config-types/asset-groups/healthCheck
+        driftDetect: config-types/asset-groups/driftDetect
+        getStatus: config-types/asset-groups/getStatus
+      targets:
+        componentTypes: [carbon-black]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: device-control-approvals
+      name: Device Control Approvals
+      description: USB device-control allow-list entries (natural-key matched by vendor/product/serial; bulk create; reconciled)
+      canvasTemplate: config-types/device-control-approvals/canvas.yaml
+      defaultConfig: config-types/device-control-approvals/defaults.yaml
+      handlers:
+        validate: config-types/device-control-approvals/validate
+        deploy: config-types/device-control-approvals/deploy
+        rollback: config-types/device-control-approvals/rollback
+        healthCheck: config-types/device-control-approvals/healthCheck
+        driftDetect: config-types/device-control-approvals/driftDetect
+        getStatus: config-types/device-control-approvals/getStatus
+      targets:
+        componentTypes: [carbon-black]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: device-control-blocks
+      name: Device Control Blocks
+      description: Per-policy USB enforcement — write/execute toggles for approved devices (one block per policy; policy resolved by name)
+      canvasTemplate: config-types/device-control-blocks/canvas.yaml
+      defaultConfig: config-types/device-control-blocks/defaults.yaml
+      handlers:
+        validate: config-types/device-control-blocks/validate
+        deploy: config-types/device-control-blocks/deploy
+        rollback: config-types/device-control-blocks/rollback
+        healthCheck: config-types/device-control-blocks/healthCheck
+        driftDetect: config-types/device-control-blocks/driftDetect
+        getStatus: config-types/device-control-blocks/getStatus
+      targets:
+        componentTypes: [carbon-black]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: watchlist-reports
+      name: Watchlist Reports
+      description: Shared IOC reports (title-keyed; reconciled by stored report id — the store has no list-all endpoint)
+      canvasTemplate: config-types/watchlist-reports/canvas.yaml
+      defaultConfig: config-types/watchlist-reports/defaults.yaml
+      handlers:
+        validate: config-types/watchlist-reports/validate
+        deploy: config-types/watchlist-reports/deploy
+        rollback: config-types/watchlist-reports/rollback
+        healthCheck: config-types/watchlist-reports/healthCheck
+        driftDetect: config-types/watchlist-reports/driftDetect
+        getStatus: config-types/watchlist-reports/getStatus
+      targets:
+        componentTypes: [carbon-black]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: policy-rule-configs
+      name: Policy Rule Configs (Core Prevention)
+      description: Core-prevention rule-config assignment (BLOCK / REPORT) patched per named policy (nested singleton; reset-to-default on removal)
+      canvasTemplate: config-types/policy-rule-configs/canvas.yaml
+      defaultConfig: config-types/policy-rule-configs/defaults.yaml
+      handlers:
+        validate: config-types/policy-rule-configs/validate
+        deploy: config-types/policy-rule-configs/deploy
+        rollback: config-types/policy-rule-configs/rollback
+        healthCheck: config-types/policy-rule-configs/healthCheck
+        driftDetect: config-types/policy-rule-configs/driftDetect
+        getStatus: config-types/policy-rule-configs/getStatus
       targets:
         componentTypes: [carbon-black]
         requiresCredential: true

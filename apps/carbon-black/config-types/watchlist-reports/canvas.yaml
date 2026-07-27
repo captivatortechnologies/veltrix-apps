@@ -1,0 +1,93 @@
+# =============================================================================
+# Canvas Template — Carbon Black Cloud Watchlist Reports (shared reports store)
+#
+# Declares ONE shared report — the item. Users add as many as they need. This is
+# the org's shared "Reports" store (watchlistmgr/v3/reports), DISTINCT from the
+# feed-nested reports managed by the Feed Reports config type. A report is inert
+# until a Watchlist references its id via report_ids.
+#
+# The shared reports store has NO list-all endpoint and the server assigns each
+# report id, so the app reconciles by the report id it stored per canvas item
+# (rename-safe). It manages only reports it created; reconcile deletes reports
+# this app created but no longer declares.
+#
+# A report must carry at least one IOC (an equality match on the chosen field).
+# NOTE: setting a Link makes the report non-editable in the CBC console (API
+# updates still work) — this is surfaced as a validation warning.
+#
+# Field keys must match config-types/watchlist-reports/validate.ts.
+# =============================================================================
+
+id: "carbon-black-watchlist-reports"
+name: "Watchlist Report Configuration"
+toolType: "carbon-black"
+entityType: "watchlist-reports"
+description: "Define Carbon Black Cloud shared watchlist reports (titled IOC groups referenceable by watchlists) as code through the CBC Watchlist Manager v3 API."
+
+item:
+  label: "Watchlist Report"
+  identityField: "title"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Report"
+      icon: "file-text"
+      description: "Report metadata"
+      fields:
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: true
+          helpText: "The report's title — its canvas identity. Unique within this canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: "A short description of the report."
+
+        - key: "severity"
+          label: "Severity"
+          fieldType: "number"
+          required: true
+          defaultValue: 5
+          helpText: "The report severity, an integer from 1 (low) to 10 (high)."
+
+        - key: "link"
+          label: "Link"
+          fieldType: "text"
+          required: false
+          helpText: "An optional reference URL. NOTE: setting this makes the report non-editable in the CBC console."
+
+        - key: "tags"
+          label: "Tags (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Optional tags stored on the report, one per line."
+
+    - name: "Indicators"
+      icon: "shield"
+      description: "The IOCs this report contains"
+      fields:
+        - key: "iocField"
+          label: "IOC Field"
+          fieldType: "select"
+          required: true
+          defaultValue: "process_hash"
+          options:
+            - label: "Process hash (SHA256)"
+              value: "process_hash"
+            - label: "Network domain"
+              value: "netconn_domain"
+            - label: "Network IPv4"
+              value: "netconn_ipv4"
+          helpText: "What the IOC values match on (equality match)."
+
+        - key: "values"
+          label: "IOC Values (one per line)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            One IOC per line — a SHA256 hash, domain, or IPv4 depending on the IOC
+            field. At least one value is required.
