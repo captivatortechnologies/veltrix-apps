@@ -1,11 +1,12 @@
 id: carbon-black
 name: VMware Carbon Black
-version: "0.3.0"
+version: "0.4.0"
 vendor: Veltrix
 description: >
   Manage VMware Carbon Black Cloud configuration as code through the CBC API —
-  Reputation Overrides, private Threat Feeds and Watchlists — with validation,
-  drift detection and rollback handled by the Security-as-Code pipeline.
+  Reputation Overrides, private Threat Feeds, Feed Reports, Watchlists and
+  endpoint Policies — with validation, drift detection and rollback handled by
+  the Security-as-Code pipeline.
 category: EDR
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/carbon-black
@@ -35,6 +36,12 @@ permissions:
     - resource: watchlists
       actions: [read, write, delete]
       description: Manage Carbon Black Cloud watchlists that subscribe to a threat feed (feed_id classifier)
+    - resource: feed-reports
+      actions: [read, write, delete]
+      description: Manage Carbon Black Cloud feed reports (titled IOC groups nested inside a private threat feed)
+    - resource: policies
+      actions: [read, write, delete]
+      description: Manage Carbon Black Cloud endpoint policies (name, priority level and a validated policy JSON body)
 
 pipeline:
   configurationTypes:
@@ -67,6 +74,40 @@ pipeline:
         healthCheck: config-types/watchlists/healthCheck
         driftDetect: config-types/watchlists/driftDetect
         getStatus: config-types/watchlists/getStatus
+      targets:
+        componentTypes: [carbon-black]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: feed-reports
+      name: Feed Reports
+      description: Titled IOC groups (reports) nested inside a private threat feed (title-keyed per feed; reconciled)
+      canvasTemplate: config-types/feed-reports/canvas.yaml
+      defaultConfig: config-types/feed-reports/defaults.yaml
+      handlers:
+        validate: config-types/feed-reports/validate
+        deploy: config-types/feed-reports/deploy
+        rollback: config-types/feed-reports/rollback
+        healthCheck: config-types/feed-reports/healthCheck
+        driftDetect: config-types/feed-reports/driftDetect
+        getStatus: config-types/feed-reports/getStatus
+      targets:
+        componentTypes: [carbon-black]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: policies
+      name: Policies
+      description: Endpoint policies — name, priority level and a validated policy JSON body (name-keyed; reconciled)
+      canvasTemplate: config-types/policies/canvas.yaml
+      defaultConfig: config-types/policies/defaults.yaml
+      handlers:
+        validate: config-types/policies/validate
+        deploy: config-types/policies/deploy
+        rollback: config-types/policies/rollback
+        healthCheck: config-types/policies/healthCheck
+        driftDetect: config-types/policies/driftDetect
+        getStatus: config-types/policies/getStatus
       targets:
         componentTypes: [carbon-black]
         requiresCredential: true

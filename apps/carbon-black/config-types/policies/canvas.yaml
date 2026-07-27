@@ -1,0 +1,72 @@
+# =============================================================================
+# Canvas Template — Carbon Black Cloud Policies
+#
+# Declares ONE endpoint policy — the item. Users add as many as they need. A
+# policy's identity is its NAME (policies are id-addressed; matched by name, with
+# the stored id preferred so a rename updates in place). The app manages the
+# policy's name, description and priority level as first-class fields and carries
+# the substantive policy body (av_settings, rules, sensor_settings, ...) as a
+# validated JSON textarea. Deploy creates via POST, updates via PUT, and reconcile
+# only deletes non-system policies this app created.
+#
+# Field keys must match config-types/policies/validate.ts.
+# =============================================================================
+
+id: "carbon-black-policies"
+name: "Policy Configuration"
+toolType: "carbon-black"
+entityType: "policies"
+description: "Define Carbon Black Cloud endpoint policies (name, priority level and a validated policy JSON body) as code through the CBC Policy Service v1 API."
+
+item:
+  label: "Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Policy identity and priority"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The policy's name — its identity. Unique within this canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "A short description of the policy."
+
+        - key: "priorityLevel"
+          label: "Priority Level"
+          fieldType: "select"
+          required: true
+          defaultValue: "MEDIUM"
+          options:
+            - label: "Low"
+              value: "LOW"
+            - label: "Medium"
+              value: "MEDIUM"
+            - label: "High"
+              value: "HIGH"
+            - label: "Mission Critical"
+              value: "MISSION_CRITICAL"
+          helpText: "The sensor priority score for devices assigned to this policy."
+
+    - name: "Body"
+      icon: "code"
+      description: "The policy rules and sensor settings"
+      fields:
+        - key: "policyJson"
+          label: "Policy JSON"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The policy body as a JSON object — av_settings, rules[],
+            sensor_settings[], directory_action_rules[] and
+            managed_detection_response_permissions. Name, description and
+            priority level above are merged in and override any set here.

@@ -1,0 +1,7 @@
+# Defaults for a new feed report item.
+#
+# A FLAT map keyed by the canvas field keys. Seeds the severity and IOC field
+# (SHA256 hashes, the common case); feed name, title, description and values are
+# left blank for a deliberate choice.
+severity: 5
+iocField: process_hash

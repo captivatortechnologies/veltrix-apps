@@ -1,0 +1,89 @@
+# =============================================================================
+# Canvas Template — Carbon Black Cloud Feed Reports
+#
+# Declares ONE report inside an existing private threat feed — the item. Users
+# add as many as they need. A report's identity is its TITLE within its parent
+# FEED (feeds are managed by the Threat Feeds config type / the CBC console).
+# The app upserts each declared report into its feed by a stable report id and
+# reconciles by deleting reports THIS app created but no longer declares; reports
+# it did not create are left untouched.
+#
+# A report must carry at least one IOC — the CBC feed manager rejects an empty
+# report. The managed IOC is an equality match on the chosen field.
+#
+# Field keys must match config-types/feed-reports/validate.ts.
+# =============================================================================
+
+id: "carbon-black-feed-reports"
+name: "Feed Report Configuration"
+toolType: "carbon-black"
+entityType: "feed-reports"
+description: "Define Carbon Black Cloud feed reports (titled IOC groups nested inside a private threat feed) as code through the CBC feed-manager API."
+
+item:
+  label: "Feed Report"
+  identityField: "title"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Report"
+      icon: "file-text"
+      description: "Report metadata and its parent feed"
+      fields:
+        - key: "feedName"
+          label: "Feed Name"
+          fieldType: "text"
+          required: true
+          helpText: "The name of the existing private feed this report belongs to (resolved to a feed id)."
+
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: true
+          helpText: "The report's title — its identity within the feed. Unique per feed in this canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: "A short description of the report."
+
+        - key: "severity"
+          label: "Severity"
+          fieldType: "number"
+          required: true
+          defaultValue: 5
+          helpText: "The report severity, an integer from 1 (low) to 10 (high)."
+
+        - key: "link"
+          label: "Link"
+          fieldType: "text"
+          required: false
+          helpText: "An optional reference URL shown with the report."
+
+    - name: "Indicators"
+      icon: "shield"
+      description: "The IOCs this report contains"
+      fields:
+        - key: "iocField"
+          label: "IOC Field"
+          fieldType: "select"
+          required: true
+          defaultValue: "process_hash"
+          options:
+            - label: "Process hash (SHA256)"
+              value: "process_hash"
+            - label: "Network domain"
+              value: "netconn_domain"
+            - label: "Network IPv4"
+              value: "netconn_ipv4"
+          helpText: "What the IOC values match on."
+
+        - key: "values"
+          label: "IOC Values (one per line)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            One IOC per line — a SHA256 hash, domain, or IPv4 depending on the IOC
+            field. At least one value is required.

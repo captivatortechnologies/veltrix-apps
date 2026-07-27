@@ -8,6 +8,28 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.4.0 — 2026-07-26
+
+### Added
+- **Feed Reports** configuration type — manage the titled IOC reports nested
+  inside a private threat feed as code, with the full pipeline handler set. Each
+  report targets a parent feed by name (resolved to a feed id, reusing the Threat
+  Feeds resolution), is matched within that feed by a stable caller-supplied
+  report id (rename-safe) and carries a single equality `iocs_v2` entry. Deploy
+  lists a feed's reports, upserts the declared ones via the replace-reports POST
+  while preserving reports it does not own, and reconcile only deletes reports
+  this app created; per-report `PUT`/`DELETE` back out a rollback. A report must
+  carry at least one IOC (the CBC feed manager rejects an empty report).
+- **Policies** configuration type — manage Carbon Black Cloud endpoint policies
+  as code via the Policy Service v1 API, with the full pipeline handler set.
+  Name, description and priority level (`LOW`/`MEDIUM`/`HIGH`/`MISSION_CRITICAL`)
+  are managed as first-class fields; the substantive policy body (av_settings,
+  rules, sensor_settings, ...) is supplied as a validated JSON textarea. Policies
+  are matched by name with the stored id preferred so a rename updates in place;
+  deploy creates via POST, updates via PUT, and reconcile only deletes non-system
+  policies this app created. Drift is scoped to the managed priority level and
+  description (the policy body is server-normalized).
+
 ## 0.3.0 — 2026-07-26
 
 ### Added
