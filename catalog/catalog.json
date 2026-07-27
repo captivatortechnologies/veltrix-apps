@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-27T00:31:59.633Z",
+  "generatedAt": "2026-07-27T00:36:48.930Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -457,20 +457,20 @@
     {
       "appId": "sailpoint",
       "name": "SailPoint",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "vendor": "Veltrix",
-      "description": "Manage SailPoint Identity Security Cloud (ISC, formerly IdentityNow) configuration as code through the ISC API — Transforms and Segments — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
+      "description": "Manage SailPoint Identity Security Cloud (ISC, formerly IdentityNow) configuration as code through the ISC API — Transforms, Segments and Governance Groups — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
       "icon": "🪪",
       "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTAgNDAiIHdpZHRoPSIxNTAiIGhlaWdodD0iNDAiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iU2FpbFBvaW50Ij4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idnNwIiB4MT0iMCIgeTE9IjEiIHgyPSIxIiB5Mj0iMCI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzBBMjU0MCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwMEIzOUIiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDwhLS0gT3JpZ2luYWwgYWJzdHJhY3QgInNhaWwiIG1hcms6IGEgdHJpYW5ndWxhciBzYWlsIHJpc2luZyBmcm9tIGEgYmFzZSBwb2ludC4KICAgICAgIE5vdCB0aGUgdHJhZGVtYXJrZWQgU2FpbFBvaW50IGxvZ28uIC0tPgogIDxwYXRoIGQ9Ik04IDMyIEwyMCA0IEwyMCAzMiBaIiBmaWxsPSJ1cmwoI3ZzcCkiLz4KICA8cGF0aCBkPSJNMjIgMzIgTDIyIDEyIEwzMSAzMiBaIiBmaWxsPSIjMDBCMzlCIiBvcGFjaXR5PSIwLjg1Ii8+CiAgPGNpcmNsZSBjeD0iMjAiIGN5PSIzNC41IiByPSIyIiBmaWxsPSIjMEEyNTQwIi8+CiAgPHRleHQgeD0iNDAiIHk9IjI2IiBmb250LWZhbWlseT0iU2Vnb2UgVUksIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSJjdXJyZW50Q29sb3IiPlNhaWxQb2ludDwvdGV4dD4KPC9zdmc+Cg==",
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/sailpoint",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/sailpoint-v0.2.0/sailpoint.zip",
-      "sha256": "ad67875e2f0edad0237852001e67e9fab65352a228a18298a59a7c7d8ef914d5",
-      "sizeBytes": 75666,
-      "publishedAt": "2026-07-26T21:33:40.265Z",
-      "releaseNotes": "## 0.2.0 — 2026-07-26\n\n### Added\n- **Segments** configuration type — manage ISC segments (name, description,\n  active) as code, with the full pipeline handler set. Segments are id-addressed\n  with no lookup-by-name, so the app lists all and matches by name, storing the\n  id for rename-safety; updates use JSON-Patch; reconcile only deletes segments\n  this app created.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/sailpoint-v0.3.0/sailpoint.zip",
+      "sha256": "3869d2c670cdffd613d42185bad2ed536f3cc5114c2d6b5060a860a1c5143dcc",
+      "sizeBytes": 91001,
+      "publishedAt": "2026-07-27T00:36:48.915Z",
+      "releaseNotes": "## 0.3.0 — 2026-07-26\n\n### Added\n- **Governance Groups** configuration type — manage ISC governance groups\n  (workgroups: name, description, owner Identity) as code, with the full pipeline\n  handler set. Groups are matched by name with the id stored for rename-safety;\n  updates use JSON-Patch; each group requires an owner Identity id; membership is\n  managed separately in ISC and is out of scope; reconcile only deletes groups\n  this app created.",
       "releasedAt": "2026-07-26T00:00:00.000Z"
     },
     {
