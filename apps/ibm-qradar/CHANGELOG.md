@@ -38,6 +38,18 @@ All notable changes to this app are documented here. This project adheres to
 - **Offense Closing Reasons** — short analyst-selectable close texts. Append-only
   (the API has no update or delete), so reasons are created if missing but never
   removed or renamed.
+- **Bandwidth Manager** — store-and-forward traffic-shaping configurations (KB
+  limit per managed host, or all hosts with host id -1). Matched by name
+  (rename-safe by id); created/updated and reconcile-deleted. Filters are out of
+  scope (they reference a configuration id and carry port-mask/partner semantics).
+- **QID Records** — normalized event definitions (log source type + name + low
+  level category + severity) with nested DSM event mappings; the log source type
+  and category are declared by name and resolved to their ids. Append/update-only:
+  the API has no delete for QID records or event mappings, so they are created and
+  updated but never removed. Deploy matches app-created records by their stored id
+  and uses targeted `filter=` queries (not full listings) to stay efficient
+  against the large built-in QID set. Added a read-only low-level-category lookup
+  to `lib/lookups.ts`.
 - `lib/qradar.ts`: added `PUT` to the method union and a shared
   `deployStagedConfig` helper (POST `/staged_config/deploy_status`, INCREMENTAL,
   async + single-flight 409/1002 tolerant). New `lib/lookups.ts` (read-only

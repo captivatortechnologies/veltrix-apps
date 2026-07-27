@@ -7,8 +7,9 @@ description: >
   Sets, Reference Maps, Map of Sets, Reference Tables, Domains, Log Sources,
   Custom Log Source Types, Event & Flow Custom Properties (regex + calculated),
   Remote Networks, Remote Services, Network Hierarchy, Tenants, Resource
-  Restrictions and Offense Closing Reasons — with validation, drift detection and
-  rollback handled by the Security-as-Code pipeline.
+  Restrictions, Offense Closing Reasons, Bandwidth Manager and QID Records — with
+  validation, drift detection and rollback handled by the Security-as-Code
+  pipeline.
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/ibm-qradar
@@ -77,6 +78,12 @@ permissions:
     - resource: offense-closing-reasons
       actions: [read, write]
       description: Manage IBM QRadar offense closing reasons (append-only short close texts) via the SIEM API
+    - resource: bandwidth-manager
+      actions: [read, write, delete]
+      description: Manage IBM QRadar bandwidth manager configurations (store-and-forward traffic-shaping caps) via the bandwidth-manager API
+    - resource: qid-records
+      actions: [read, write]
+      description: Manage IBM QRadar QID records and DSM event mappings (append/update-only normalized event definitions) via the data-classification API
 
 pipeline:
   configurationTypes:
@@ -262,6 +269,40 @@ pipeline:
         healthCheck: config-types/offense-closing-reasons/healthCheck
         driftDetect: config-types/offense-closing-reasons/driftDetect
         getStatus: config-types/offense-closing-reasons/getStatus
+      targets:
+        componentTypes: [ibm-qradar]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: bandwidth-manager
+      name: Bandwidth Manager
+      description: Bandwidth manager configurations — store-and-forward traffic-shaping caps (KB limit) per managed host (matched by name, rename-safe by id; created/updated and reconcile-deleted). Filters are out of scope.
+      canvasTemplate: config-types/bandwidth-manager/canvas.yaml
+      defaultConfig: config-types/bandwidth-manager/defaults.yaml
+      handlers:
+        validate: config-types/bandwidth-manager/validate
+        deploy: config-types/bandwidth-manager/deploy
+        rollback: config-types/bandwidth-manager/rollback
+        healthCheck: config-types/bandwidth-manager/healthCheck
+        driftDetect: config-types/bandwidth-manager/driftDetect
+        getStatus: config-types/bandwidth-manager/getStatus
+      targets:
+        componentTypes: [ibm-qradar]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: qid-records
+      name: QID Records
+      description: QID records — normalized event definitions (log source type + name + low level category + severity) with nested DSM event mappings (log source type/category by name, resolved to ids). Append/update-only — the API has no delete, so records/mappings are created and updated but never removed.
+      canvasTemplate: config-types/qid-records/canvas.yaml
+      defaultConfig: config-types/qid-records/defaults.yaml
+      handlers:
+        validate: config-types/qid-records/validate
+        deploy: config-types/qid-records/deploy
+        rollback: config-types/qid-records/rollback
+        healthCheck: config-types/qid-records/healthCheck
+        driftDetect: config-types/qid-records/driftDetect
+        getStatus: config-types/qid-records/getStatus
       targets:
         componentTypes: [ibm-qradar]
         requiresCredential: true

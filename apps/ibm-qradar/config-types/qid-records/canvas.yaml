@@ -1,0 +1,75 @@
+# =============================================================================
+# Canvas Template — IBM QRadar QID Record (+ DSM Event Mappings)
+#
+# Declares ONE QID record — the item. Users add as many as they need. A QID
+# record is a normalized event definition (name + low level category + severity)
+# for a log source type; nested DSM event mappings point a device's (event id,
+# category) to that QID. The log source type and low level category are declared
+# by NAME and resolved to their ids at deploy time. A record's identity is
+# (log source type, name); a mapping's is (log source type, event id, category).
+#
+# APPEND/UPDATE-ONLY: the API has no delete for QID records or mappings, so
+# deploy creates missing and updates changed ones, but never removes them.
+#
+# Field keys must match config-types/qid-records/validate.ts.
+# =============================================================================
+
+id: "ibm-qradar-qid-records"
+name: "QID Record Configuration"
+toolType: "ibm-qradar"
+entityType: "qid-records"
+description: "Define IBM QRadar QID records (normalized event definitions) and their DSM event mappings as code through the QRadar data-classification API. Append/update-only: records and mappings cannot be removed via the API."
+
+item:
+  label: "QID Record"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "QID Record"
+      icon: "tag"
+      description: "Normalized event definition"
+      fields:
+        - key: "logSourceType"
+          label: "Log Source Type"
+          fieldType: "text"
+          required: true
+          helpText: "The exact log source type name. Resolved to its id at deploy time."
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The QID record name — its identity (with the log source type). Unique within this canvas."
+
+        - key: "lowLevelCategory"
+          label: "Low Level Category"
+          fieldType: "text"
+          required: true
+          helpText: "The exact low level category name. Resolved to its id at deploy time."
+
+        - key: "severity"
+          label: "Severity (0-10)"
+          fieldType: "number"
+          required: false
+          helpText: "Optional severity 0-10 (defaults to the category's severity)."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          helpText: "A human-readable description of this QID record."
+
+    - name: "Event Mappings"
+      icon: "shuffle"
+      description: "Device event → QID mappings"
+      fields:
+        - key: "eventMappings"
+          label: "Event Mappings (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            A JSON array of device event mappings, e.g.
+            [{"eventId":"4625","eventCategory":"Security"}]. Each maps a device
+            (event id, category) to this QID for the declared log source type.

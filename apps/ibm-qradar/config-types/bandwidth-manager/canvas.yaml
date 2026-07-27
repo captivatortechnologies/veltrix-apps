@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template — IBM QRadar Bandwidth Manager Configuration
+#
+# Declares ONE bandwidth manager configuration — the item. Users add as many as
+# they need. A configuration caps store-and-forward traffic (KB limit) for a
+# managed host (or all hosts, host id -1). Its natural identity is its NAME;
+# deploy matches by the stored QRadar id first (rename-safe) and falls back to
+# name. Deploy creates missing configurations, updates changed fields, and
+# reconcile-deletes configurations this app created but no longer declares.
+# NOTE: bandwidth filters are out of scope for this type.
+#
+# Field keys must match config-types/bandwidth-manager/validate.ts.
+# =============================================================================
+
+id: "ibm-qradar-bandwidth-manager"
+name: "Bandwidth Manager Configuration"
+toolType: "ibm-qradar"
+entityType: "bandwidth-manager"
+description: "Define IBM QRadar bandwidth manager configurations (store-and-forward traffic-shaping caps per host) as code through the QRadar bandwidth-manager API."
+
+item:
+  label: "Bandwidth Configuration"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Configuration"
+      icon: "gauge"
+      description: "Name, host and rate limit"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The configuration name — its identity in QRadar. Unique within this canvas; max 100 characters."
+
+        - key: "hostname"
+          label: "Hostname"
+          fieldType: "text"
+          required: false
+          helpText: "The managed host's hostname (max 100 characters)."
+
+        - key: "hostId"
+          label: "Host ID"
+          fieldType: "number"
+          required: false
+          defaultValue: -1
+          helpText: "The managed-host id this cap applies to, or -1 for all hosts."
+
+        - key: "kbLimit"
+          label: "KB Limit"
+          fieldType: "number"
+          required: false
+          helpText: "The store-and-forward rate cap in KB (positive integer)."
+
+        - key: "deviceName"
+          label: "Device Name"
+          fieldType: "text"
+          required: false
+          helpText: "Optional device name label for this configuration."

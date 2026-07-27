@@ -28,6 +28,12 @@ export interface UserRoleRef {
   name?: string
 }
 
+export interface LowLevelCategoryRef {
+  id?: number
+  name?: string
+  severity?: number
+}
+
 export interface ProtocolParameterDef {
   id?: number
   name?: string
@@ -61,6 +67,10 @@ export function listTenantRefs(client: QRadarClient): Promise<TenantRef[]> {
 
 export function listUserRoles(client: QRadarClient): Promise<UserRoleRef[]> {
   return listJson<UserRoleRef>(client, '/config/access/user_roles')
+}
+
+export function listLowLevelCategories(client: QRadarClient): Promise<LowLevelCategoryRef[]> {
+  return listJson<LowLevelCategoryRef>(client, '/data_classification/low_level_categories')
 }
 
 /** Build a case-insensitive name -> id index from a list of named references. */
