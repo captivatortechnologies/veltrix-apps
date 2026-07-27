@@ -1,11 +1,11 @@
 id: netskope
 name: Netskope
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Netskope configuration as code through the Netskope REST API v2 — URL
-  Lists and Device Classification Tags — with validation, drift detection and
-  rollback handled by the Security-as-Code pipeline.
+  Lists, Device Classification Tags and RBAC Labels — with validation, drift
+  detection and rollback handled by the Security-as-Code pipeline.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/netskope
@@ -32,9 +32,29 @@ permissions:
     - resource: device-classification-tags
       actions: [read, write, delete]
       description: Manage Netskope device classification tags (name + description) via the REST API v2
+    - resource: rbac-labels
+      actions: [read, write, delete]
+      description: Manage Netskope RBAC labels (name + color) via the REST API v2
 
 pipeline:
   configurationTypes:
+    - id: rbac-labels
+      name: RBAC Labels
+      description: RBAC labels — name + color (name-keyed; id stored for rename-safety; PATCH update, no deploy step)
+      canvasTemplate: config-types/rbac-labels/canvas.yaml
+      defaultConfig: config-types/rbac-labels/defaults.yaml
+      handlers:
+        validate: config-types/rbac-labels/validate
+        deploy: config-types/rbac-labels/deploy
+        rollback: config-types/rbac-labels/rollback
+        healthCheck: config-types/rbac-labels/healthCheck
+        driftDetect: config-types/rbac-labels/driftDetect
+        getStatus: config-types/rbac-labels/getStatus
+      targets:
+        componentTypes: [netskope]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: device-classification-tags
       name: Device Classification Tags
       description: Device classification tags — name + description (name-keyed; id stored for rename-safety; no deploy step)

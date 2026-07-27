@@ -1,0 +1,43 @@
+# =============================================================================
+# Canvas Template — Netskope RBAC Labels
+#
+# Declares ONE RBAC label — the item. Users add as many as they need.
+# Labels are id-addressed with no lookup-by-name, so the app lists all labels,
+# matches a declared one to a live one by NAME, and stores the id for
+# rename-safety. Updates use PATCH (no deploy/apply step). Reconcile deletes
+# labels this app created but no longer declares.
+#
+# Field keys must match config-types/rbac-labels/validate.ts.
+# =============================================================================
+
+id: "netskope-rbac-labels"
+name: "RBAC Label Configuration"
+toolType: "netskope"
+entityType: "rbac-labels"
+description: "Define Netskope RBAC labels (name + color) as code through the Netskope REST API v2."
+
+item:
+  label: "RBAC Label"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Label"
+      icon: "tag"
+      description: "Label name and color"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The label name. Must be unique within this canvas — the app matches
+            live labels on it (Netskope has no lookup-by-name, so the id is stored
+            after deploy for rename-safety).
+
+        - key: "color"
+          label: "Color"
+          fieldType: "text"
+          required: false
+          helpText: "Optional hex color for the label, e.g. #4F6DF5."

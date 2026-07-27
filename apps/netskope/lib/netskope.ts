@@ -73,7 +73,7 @@ export interface NetskopeResponse {
   transportError?: string
 }
 
-export type NetskopeMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
+export type NetskopeMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -127,6 +127,9 @@ export class NetskopeClient {
   }
   put(path: string, body: unknown): Promise<NetskopeResponse> {
     return this.request('PUT', path, body)
+  }
+  patch(path: string, body: unknown): Promise<NetskopeResponse> {
+    return this.request('PATCH', path, body)
   }
   delete(path: string): Promise<NetskopeResponse> {
     return this.request('DELETE', path)

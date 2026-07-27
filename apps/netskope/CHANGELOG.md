@@ -8,6 +8,16 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.3.0 — 2026-07-26
+
+### Added
+- **RBAC Labels** configuration type — manage Netskope RBAC labels (name +
+  color) as code, with the full pipeline handler set. Labels are id-addressed
+  with no lookup-by-name, so the app matches by name and stores the id for
+  rename-safety; updates use PATCH with no deploy/apply step; reconcile only
+  deletes labels this app created.
+- `PATCH` support in the Netskope API client.
+
 ## 0.2.0 — 2026-07-26
 
 ### Added
