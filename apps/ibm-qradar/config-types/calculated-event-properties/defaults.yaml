@@ -1,0 +1,8 @@
+# Defaults for a new calculated-property item.
+#
+# A FLAT map keyed by the canvas field keys. Enabled and the ADD operator are
+# seeded; operands are left for the operator to declare.
+enabled: true
+operator: "ADD"
+firstOperandType: "PROPERTY"
+secondOperandType: "PROPERTY"

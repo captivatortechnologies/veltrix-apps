@@ -1,12 +1,14 @@
 id: ibm-qradar
 name: IBM QRadar
-version: "0.4.0"
+version: "0.5.0"
 vendor: Veltrix
 description: >
   Manage IBM QRadar configuration as code through the QRadar REST API — Reference
-  Sets, Reference Maps, Map of Sets, Reference Tables and Domains — with
-  validation, drift detection and rollback handled by the Security-as-Code
-  pipeline.
+  Sets, Reference Maps, Map of Sets, Reference Tables, Domains, Log Sources,
+  Custom Log Source Types, Event & Flow Custom Properties (regex + calculated),
+  Remote Networks, Remote Services, Network Hierarchy, Tenants, Resource
+  Restrictions and Offense Closing Reasons — with validation, drift detection and
+  rollback handled by the Security-as-Code pipeline.
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/ibm-qradar
@@ -42,9 +44,229 @@ permissions:
     - resource: domains
       actions: [read, write, delete]
       description: Manage IBM QRadar domains (named segmentation boundaries) via the domain-management API
+    - resource: log-sources
+      actions: [read, write, delete]
+      description: Manage IBM QRadar log sources (named event feeds with a type, protocol and protocol parameters) via the log-source-management API
+    - resource: remote-networks
+      actions: [read, write, delete]
+      description: Manage IBM QRadar remote networks (named CIDR ranges classifying external traffic) via the staged-config API
+    - resource: remote-services
+      actions: [read, write, delete]
+      description: Manage IBM QRadar remote services (named CIDR ranges classifying known-service traffic) via the staged-config API
+    - resource: tenants
+      actions: [read, write, delete]
+      description: Manage IBM QRadar tenants (named multi-tenancy boundaries with rate limits) via the tenant-management API
+    - resource: calculated-event-properties
+      actions: [read, write, delete]
+      description: Manage IBM QRadar calculated custom event properties (computed from operands) via the custom-properties API
+    - resource: custom-event-properties
+      actions: [read, write, delete]
+      description: Manage IBM QRadar custom event properties (regex property plus per-log-source-type extraction expressions) via the event custom-properties API
+    - resource: flow-custom-properties
+      actions: [read, write, delete]
+      description: Manage IBM QRadar flow custom properties (regex property plus per-log-source-type extraction expressions) via the flow custom-properties API
+    - resource: network-hierarchy
+      actions: [read, write, delete]
+      description: Manage IBM QRadar network hierarchy objects (grouped named CIDR ranges) via the staged network-hierarchy API
+    - resource: resource-restrictions
+      actions: [read, write, delete]
+      description: Manage IBM QRadar resource restrictions (data-window / execution-time / record-limit caps for a tenant or role) via the resource-restrictions API
+    - resource: log-source-types
+      actions: [read, write, delete]
+      description: Manage IBM QRadar custom log source types (named DSMs with an optional default protocol) via the log-source-management API
+    - resource: offense-closing-reasons
+      actions: [read, write]
+      description: Manage IBM QRadar offense closing reasons (append-only short close texts) via the SIEM API
 
 pipeline:
   configurationTypes:
+    - id: log-sources
+      name: Log Sources
+      description: Log sources — named event feeds identified by a log source type and protocol (both by name, resolved to ids) plus protocol parameters (matched by name, rename-safe by id; created/updated and reconcile-deleted)
+      canvasTemplate: config-types/log-sources/canvas.yaml
+      defaultConfig: config-types/log-sources/defaults.yaml
+      handlers:
+        validate: config-types/log-sources/validate
+        deploy: config-types/log-sources/deploy
+        rollback: config-types/log-sources/rollback
+        healthCheck: config-types/log-sources/healthCheck
+        driftDetect: config-types/log-sources/driftDetect
+        getStatus: config-types/log-sources/getStatus
+      targets:
+        componentTypes: [ibm-qradar]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: remote-networks
+      name: Remote Networks
+      description: Remote networks — named CIDR ranges classifying external traffic (staged; applied with an INCREMENTAL deploy; matched by name, rename-safe by id; created/updated and reconcile-deleted)
+      canvasTemplate: config-types/remote-networks/canvas.yaml
+      defaultConfig: config-types/remote-networks/defaults.yaml
+      handlers:
+        validate: config-types/remote-networks/validate
+        deploy: config-types/remote-networks/deploy
+        rollback: config-types/remote-networks/rollback
+        healthCheck: config-types/remote-networks/healthCheck
+        driftDetect: config-types/remote-networks/driftDetect
+        getStatus: config-types/remote-networks/getStatus
+      targets:
+        componentTypes: [ibm-qradar]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: remote-services
+      name: Remote Services
+      description: Remote services — named CIDR ranges classifying known-service traffic (staged; applied with an INCREMENTAL deploy; matched by name, rename-safe by id; created/updated and reconcile-deleted)
+      canvasTemplate: config-types/remote-services/canvas.yaml
+      defaultConfig: config-types/remote-services/defaults.yaml
+      handlers:
+        validate: config-types/remote-services/validate
+        deploy: config-types/remote-services/deploy
+        rollback: config-types/remote-services/rollback
+        healthCheck: config-types/remote-services/healthCheck
+        driftDetect: config-types/remote-services/driftDetect
+        getStatus: config-types/remote-services/getStatus
+      targets:
+        componentTypes: [ibm-qradar]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: tenants
+      name: Tenants
+      description: Tenants — named multi-tenancy boundaries with optional event/flow rate limits (matched by name, rename-safe by id; created/updated and reconcile-deleted)
+      canvasTemplate: config-types/tenants/canvas.yaml
+      defaultConfig: config-types/tenants/defaults.yaml
+      handlers:
+        validate: config-types/tenants/validate
+        deploy: config-types/tenants/deploy
+        rollback: config-types/tenants/rollback
+        healthCheck: config-types/tenants/healthCheck
+        driftDetect: config-types/tenants/driftDetect
+        getStatus: config-types/tenants/getStatus
+      targets:
+        componentTypes: [ibm-qradar]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: calculated-event-properties
+      name: Calculated Event Properties
+      description: Calculated custom event properties — a value computed from two operands and an arithmetic operator (matched by name, rename-safe by id; created/updated and reconcile-deleted)
+      canvasTemplate: config-types/calculated-event-properties/canvas.yaml
+      defaultConfig: config-types/calculated-event-properties/defaults.yaml
+      handlers:
+        validate: config-types/calculated-event-properties/validate
+        deploy: config-types/calculated-event-properties/deploy
+        rollback: config-types/calculated-event-properties/rollback
+        healthCheck: config-types/calculated-event-properties/healthCheck
+        driftDetect: config-types/calculated-event-properties/driftDetect
+        getStatus: config-types/calculated-event-properties/getStatus
+      targets:
+        componentTypes: [ibm-qradar]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: custom-event-properties
+      name: Custom Event Properties
+      description: Custom event properties — a regex property (by unique name) plus per-log-source-type extraction expressions (nested-child reconcile; created/updated and reconcile-deleted)
+      canvasTemplate: config-types/custom-event-properties/canvas.yaml
+      defaultConfig: config-types/custom-event-properties/defaults.yaml
+      handlers:
+        validate: config-types/custom-event-properties/validate
+        deploy: config-types/custom-event-properties/deploy
+        rollback: config-types/custom-event-properties/rollback
+        healthCheck: config-types/custom-event-properties/healthCheck
+        driftDetect: config-types/custom-event-properties/driftDetect
+        getStatus: config-types/custom-event-properties/getStatus
+      targets:
+        componentTypes: [ibm-qradar]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: flow-custom-properties
+      name: Flow Custom Properties
+      description: Flow custom properties — a regex property (by unique name) plus per-log-source-type extraction expressions scoped to flow records (nested-child reconcile; created/updated and reconcile-deleted)
+      canvasTemplate: config-types/flow-custom-properties/canvas.yaml
+      defaultConfig: config-types/flow-custom-properties/defaults.yaml
+      handlers:
+        validate: config-types/flow-custom-properties/validate
+        deploy: config-types/flow-custom-properties/deploy
+        rollback: config-types/flow-custom-properties/rollback
+        healthCheck: config-types/flow-custom-properties/healthCheck
+        driftDetect: config-types/flow-custom-properties/driftDetect
+        getStatus: config-types/flow-custom-properties/getStatus
+      targets:
+        componentTypes: [ibm-qradar]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: network-hierarchy
+      name: Network Hierarchy
+      description: Network hierarchy — grouped named CIDR objects applied as a whole-list staged replace that preserves operator objects, then an INCREMENTAL deploy (identity is group+name; reconcile-deletes only objects this app created)
+      canvasTemplate: config-types/network-hierarchy/canvas.yaml
+      defaultConfig: config-types/network-hierarchy/defaults.yaml
+      handlers:
+        validate: config-types/network-hierarchy/validate
+        deploy: config-types/network-hierarchy/deploy
+        rollback: config-types/network-hierarchy/rollback
+        healthCheck: config-types/network-hierarchy/healthCheck
+        driftDetect: config-types/network-hierarchy/driftDetect
+        getStatus: config-types/network-hierarchy/getStatus
+      targets:
+        componentTypes: [ibm-qradar]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: resource-restrictions
+      name: Resource Restrictions
+      description: Resource restrictions — data-window / execution-time / record-limit caps for a tenant or role (target declared by name, resolved to id; created, updated via PUT, and reconcile-deleted)
+      canvasTemplate: config-types/resource-restrictions/canvas.yaml
+      defaultConfig: config-types/resource-restrictions/defaults.yaml
+      handlers:
+        validate: config-types/resource-restrictions/validate
+        deploy: config-types/resource-restrictions/deploy
+        rollback: config-types/resource-restrictions/rollback
+        healthCheck: config-types/resource-restrictions/healthCheck
+        driftDetect: config-types/resource-restrictions/driftDetect
+        getStatus: config-types/resource-restrictions/getStatus
+      targets:
+        componentTypes: [ibm-qradar]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: log-source-types
+      name: Custom Log Source Types
+      description: Custom log source types (DSMs) — named custom types with an optional default protocol (by name, resolved to id); only custom types are managed, built-ins are protected (matched by name, rename-safe by id; created/updated and reconcile-deleted)
+      canvasTemplate: config-types/log-source-types/canvas.yaml
+      defaultConfig: config-types/log-source-types/defaults.yaml
+      handlers:
+        validate: config-types/log-source-types/validate
+        deploy: config-types/log-source-types/deploy
+        rollback: config-types/log-source-types/rollback
+        healthCheck: config-types/log-source-types/healthCheck
+        driftDetect: config-types/log-source-types/driftDetect
+        getStatus: config-types/log-source-types/getStatus
+      targets:
+        componentTypes: [ibm-qradar]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: offense-closing-reasons
+      name: Offense Closing Reasons
+      description: Offense closing reasons — short analyst-selectable close texts (identity is the text). Append-only, the API has no update or delete, so reasons are created if missing but never removed or renamed
+      canvasTemplate: config-types/offense-closing-reasons/canvas.yaml
+      defaultConfig: config-types/offense-closing-reasons/defaults.yaml
+      handlers:
+        validate: config-types/offense-closing-reasons/validate
+        deploy: config-types/offense-closing-reasons/deploy
+        rollback: config-types/offense-closing-reasons/rollback
+        healthCheck: config-types/offense-closing-reasons/healthCheck
+        driftDetect: config-types/offense-closing-reasons/driftDetect
+        getStatus: config-types/offense-closing-reasons/getStatus
+      targets:
+        componentTypes: [ibm-qradar]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: reference-tables
       name: Reference Tables
       description: Reference tables — named collections of outer key -> column -> value cells with typed columns (name-keyed; cells reconciled to the declared set)

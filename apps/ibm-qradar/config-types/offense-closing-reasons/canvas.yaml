@@ -1,0 +1,34 @@
+# =============================================================================
+# Canvas Template — IBM QRadar Offense Closing Reason
+#
+# Declares ONE offense closing reason — the item. Users add as many as they need.
+# A closing reason is a short text (5-60 chars) an analyst can pick when closing
+# an offense. The API supports CREATE + READ only, so this type is APPEND-ONLY:
+# deploy creates any declared reason that is missing, but reasons this app
+# creates can never be removed or renamed via the API. Identity is the text.
+#
+# Field keys must match config-types/offense-closing-reasons/validate.ts.
+# =============================================================================
+
+id: "ibm-qradar-offense-closing-reasons"
+name: "Offense Closing Reason Configuration"
+toolType: "ibm-qradar"
+entityType: "offense-closing-reasons"
+description: "Define IBM QRadar offense closing reasons (short analyst-selectable close texts) as code through the QRadar SIEM API. Append-only: reasons cannot be removed or renamed via the API."
+
+item:
+  label: "Closing Reason"
+  identityField: "text"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Closing Reason"
+      icon: "check-circle"
+      description: "The reason text"
+      fields:
+        - key: "text"
+          label: "Reason Text"
+          fieldType: "text"
+          required: true
+          helpText: "The closing reason text (5 to 60 characters). Its identity; append-only (cannot be removed via the API)."

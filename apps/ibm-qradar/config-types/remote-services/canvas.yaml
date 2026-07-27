@@ -1,0 +1,56 @@
+# =============================================================================
+# Canvas Template — IBM QRadar Remote Service
+#
+# Declares ONE remote service — the item. Users add as many as they need. A
+# remote service is a named set of CIDR ranges (with an optional group) used to
+# classify traffic associated with a known service or provider. Its natural
+# identity is its NAME; deploy matches by the stored QRadar id first (rename-
+# safe) and falls back to name. Remote services are STAGED — deploy stages
+# create/update/delete then applies them with a single INCREMENTAL deploy.
+# Reconcile-deletes remote services this app created but no longer declares.
+#
+# Field keys must match config-types/remote-services/validate.ts.
+# =============================================================================
+
+id: "ibm-qradar-remote-services"
+name: "Remote Service Configuration"
+toolType: "ibm-qradar"
+entityType: "remote-services"
+description: "Define IBM QRadar remote services (named CIDR ranges classifying known-service traffic) as code through the QRadar staged-config API."
+
+item:
+  label: "Remote Service"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Remote Service"
+      icon: "server"
+      description: "Name, group and CIDR ranges"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The remote service name — its identity in QRadar. Unique within this canvas."
+
+        - key: "group"
+          label: "Group"
+          fieldType: "text"
+          required: false
+          helpText: "Optional grouping/category for this remote service."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          helpText: "A human-readable description of the service this network covers."
+
+        - key: "cidrs"
+          label: "CIDR Ranges (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            One CIDR range per line (e.g. 198.51.100.0/24). Deploy reconciles the
+            remote service to exactly these ranges.

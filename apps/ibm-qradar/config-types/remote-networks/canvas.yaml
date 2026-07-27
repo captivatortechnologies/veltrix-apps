@@ -1,0 +1,56 @@
+# =============================================================================
+# Canvas Template — IBM QRadar Remote Network
+#
+# Declares ONE remote network — the item. Users add as many as they need. A
+# remote network is a named set of CIDR ranges (with an optional group) used to
+# classify traffic to/from networks outside the deployment. Its natural identity
+# is its NAME; deploy matches by the stored QRadar id first (rename-safe) and
+# falls back to name. Remote networks are STAGED — deploy stages create/update/
+# delete then applies them with a single INCREMENTAL deploy. Reconcile-deletes
+# remote networks this app created but no longer declares.
+#
+# Field keys must match config-types/remote-networks/validate.ts.
+# =============================================================================
+
+id: "ibm-qradar-remote-networks"
+name: "Remote Network Configuration"
+toolType: "ibm-qradar"
+entityType: "remote-networks"
+description: "Define IBM QRadar remote networks (named CIDR ranges classifying external traffic) as code through the QRadar staged-config API."
+
+item:
+  label: "Remote Network"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Remote Network"
+      icon: "globe"
+      description: "Name, group and CIDR ranges"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The remote network name — its identity in QRadar. Unique within this canvas."
+
+        - key: "group"
+          label: "Group"
+          fieldType: "text"
+          required: false
+          helpText: "Optional grouping/category for this remote network."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          helpText: "A human-readable description of what this network covers."
+
+        - key: "cidrs"
+          label: "CIDR Ranges (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            One CIDR range per line (e.g. 203.0.113.0/24). Deploy reconciles the
+            remote network to exactly these ranges.

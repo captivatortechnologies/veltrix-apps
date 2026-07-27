@@ -1,0 +1,43 @@
+# =============================================================================
+# Canvas Template — IBM QRadar Custom Log Source Type (DSM)
+#
+# Declares ONE custom log source type — the item. Users add as many as they need.
+# A custom log source type is a named DSM with an optional default protocol
+# (declared by name, resolved to its id at deploy time). Only CUSTOM types are
+# writable; built-in types are protected. Its natural identity is its NAME;
+# deploy matches by the stored QRadar id first (rename-safe) and falls back to
+# name. Deploy creates missing custom types, updates the default protocol when
+# it drifts, and reconcile-deletes custom types this app created but no longer
+# declares.
+#
+# Field keys must match config-types/log-source-types/validate.ts.
+# =============================================================================
+
+id: "ibm-qradar-log-source-types"
+name: "Custom Log Source Type Configuration"
+toolType: "ibm-qradar"
+entityType: "log-source-types"
+description: "Define IBM QRadar custom log source types (named DSMs with an optional default protocol) as code through the QRadar log-source-management API."
+
+item:
+  label: "Custom Log Source Type"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Log Source Type"
+      icon: "puzzle"
+      description: "Name and default protocol"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The custom log source type name — its identity in QRadar. Unique within this canvas; max 241 characters."
+
+        - key: "defaultProtocolName"
+          label: "Default Protocol"
+          fieldType: "text"
+          required: false
+          helpText: "Optional default protocol name (e.g. 'Syslog'). Resolved to its numeric id at deploy time."

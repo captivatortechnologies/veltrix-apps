@@ -1,0 +1,93 @@
+# =============================================================================
+# Canvas Template — IBM QRadar Flow Custom Property
+#
+# Declares ONE flow custom property — the item. Users add as many as they need.
+# A flow custom property is one regex property (identity = unique NAME) plus a
+# set of extraction expressions (one regex per log source type), scoped to FLOW
+# records. Its natural identity is its NAME; deploy matches the parent by name,
+# then reconciles its expressions keyed on log source type. Deploy creates
+# missing properties/expressions, updates changed ones, and reconcile-deletes
+# properties/expressions this app created but no longer declares.
+#
+# Field keys must match config-types/flow-custom-properties/validate.ts
+# (which re-exports the shared custom-properties engine).
+# =============================================================================
+
+id: "ibm-qradar-flow-custom-properties"
+name: "Flow Custom Property Configuration"
+toolType: "ibm-qradar"
+entityType: "flow-custom-properties"
+description: "Define IBM QRadar flow custom properties (a regex property plus per-log-source-type extraction expressions) as code through the QRadar flow custom-properties API."
+
+item:
+  label: "Flow Custom Property"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Property"
+      icon: "regex"
+      description: "Property definition"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The flow custom property name — its identity in QRadar. Unique within this canvas."
+
+        - key: "propertyType"
+          label: "Property Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "string"
+          options:
+            - label: "String"
+              value: "string"
+            - label: "Numeric"
+              value: "numeric"
+            - label: "IP"
+              value: "ip"
+            - label: "Port"
+              value: "port"
+            - label: "Time"
+              value: "time"
+          helpText: "The extracted value's type. Time requires a datetime format and locale."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          helpText: "A human-readable description of what this property extracts."
+
+        - key: "useForRuleEngine"
+          label: "Optimize for rules (parse at flow time)"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Parse and store the property at flow-collection time for use by the rule engine."
+
+        - key: "datetimeFormat"
+          label: "Datetime Format (time only)"
+          fieldType: "text"
+          required: false
+          helpText: "Required when the property type is Time. E.g. yyyy-MM-dd HH:mm:ss."
+
+        - key: "locale"
+          label: "Locale (time only)"
+          fieldType: "text"
+          required: false
+          helpText: "Required when the property type is Time. E.g. en_US."
+
+    - name: "Expressions"
+      icon: "code"
+      description: "Per-log-source-type extraction expressions"
+      fields:
+        - key: "expressions"
+          label: "Expressions (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            A JSON array of extraction expressions, e.g.
+            [{"logSourceType":"Linux OS","regex":"bytes=(\\d+)","captureGroup":1,"enabled":true}].
+            One expression per log source type; the type name is resolved to its id
+            at deploy time.

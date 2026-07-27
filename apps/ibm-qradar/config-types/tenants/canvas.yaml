@@ -1,0 +1,53 @@
+# =============================================================================
+# Canvas Template — IBM QRadar Tenant
+#
+# Declares ONE tenant — the item. Users add as many as they need. A tenant is a
+# named multi-tenancy boundary (MSSP) with optional event/flow rate limits. Its
+# natural identity is its NAME; deploy matches by the stored QRadar id first
+# (rename-safe) and falls back to name. Deploy creates missing tenants, updates
+# changed fields, and reconcile-deletes tenants this app created but no longer
+# declares.
+#
+# Field keys must match config-types/tenants/validate.ts.
+# =============================================================================
+
+id: "ibm-qradar-tenants"
+name: "Tenant Configuration"
+toolType: "ibm-qradar"
+entityType: "tenants"
+description: "Define IBM QRadar tenants (named multi-tenancy boundaries with optional event/flow rate limits) as code through the QRadar tenant-management API."
+
+item:
+  label: "Tenant"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Tenant"
+      icon: "users"
+      description: "Name, description and rate limits"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The tenant name — its identity in QRadar. Unique within this canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          helpText: "A human-readable description of this tenant."
+
+        - key: "eventRateLimit"
+          label: "Event Rate Limit (EPS)"
+          fieldType: "number"
+          required: false
+          helpText: "Optional maximum events per second for this tenant."
+
+        - key: "flowRateLimit"
+          label: "Flow Rate Limit (FPM)"
+          fieldType: "number"
+          required: false
+          helpText: "Optional maximum flows per minute for this tenant."

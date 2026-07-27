@@ -76,7 +76,16 @@ export interface QRadarResponse {
   transportError?: string
 }
 
-export type QRadarMethod = 'GET' | 'POST' | 'DELETE'
+export type QRadarMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
+
+export interface DeployStatusResult {
+  /** true when the deploy was accepted OR one is already running (both are non-fatal). */
+  ok: boolean
+  /** true when QRadar rejected a concurrent deploy (409 / code 1002) — staged changes
+   * will be applied by the in-flight deploy, so callers treat this as success. */
+  alreadyRunning: boolean
+  message?: string
+}
 
 export class QRadarClient {
   private readonly cred: QRadarCredential
@@ -129,6 +138,23 @@ export class QRadarClient {
   }
   deleteSet(name: string): Promise<QRadarResponse> {
     return this.request('DELETE', `/reference_data/sets/${encodeURIComponent(name)}`)
+  }
+
+  // --- Staged-config deploy ---------------------------------------------------
+  // Types under /staged_config/* (and network_hierarchy/staged_networks) only
+  // STAGE their writes; POST /staged_config/deploy_status applies them. The deploy
+  // is asynchronous (returns a status object with percent_complete) and single-
+  // flight — a concurrent deploy is rejected with 409 / error code 1002. A caller
+  // that just staged changes treats "already running" as success: the in-flight
+  // deploy applies everything currently staged.
+  async deployStagedConfig(type: 'INCREMENTAL' | 'FULL' = 'INCREMENTAL'): Promise<DeployStatusResult> {
+    const resp = await this.request('POST', '/staged_config/deploy_status', { body: { type } })
+    if (resp.ok || resp.status === 202) return { ok: true, alreadyRunning: false }
+    const parsed = parseJson<{ code?: number; message?: string; description?: string }>(resp.body)
+    if (resp.status === 409 || parsed?.code === 1002) {
+      return { ok: true, alreadyRunning: true, message: 'A QRadar deploy is already in progress; staged changes will be applied by it.' }
+    }
+    return { ok: false, alreadyRunning: false, message: qradarErrorMessage(resp) }
   }
 }
 

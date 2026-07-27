@@ -1,0 +1,5 @@
+# Defaults for a new resource-restriction item.
+#
+# A FLAT map keyed by the canvas field keys. The target type defaults to tenant;
+# the target name and limits are left for the operator to declare.
+targetType: "tenant"

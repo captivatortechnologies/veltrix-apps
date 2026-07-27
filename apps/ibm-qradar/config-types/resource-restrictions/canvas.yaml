@@ -1,0 +1,70 @@
+# =============================================================================
+# Canvas Template — IBM QRadar Resource Restriction
+#
+# Declares ONE resource restriction — the item. Users add as many as they need.
+# A resource restriction caps the data window / execution time / record limit
+# for exactly one target. Scope is limited to TENANT and ROLE targets (per-end-
+# user targets are excluded). The target is declared by name and resolved to its
+# id at deploy time. Its identity is the (targetType, target); deploy creates
+# missing restrictions, updates changed limits (PUT), and reconcile-deletes
+# restrictions this app created but no longer declares.
+#
+# Field keys must match config-types/resource-restrictions/validate.ts.
+# =============================================================================
+
+id: "ibm-qradar-resource-restrictions"
+name: "Resource Restriction Configuration"
+toolType: "ibm-qradar"
+entityType: "resource-restrictions"
+description: "Define IBM QRadar resource restrictions (data-window / execution-time / record-limit caps for a tenant or role) as code through the QRadar resource-restrictions API."
+
+item:
+  label: "Resource Restriction"
+  identityField: "targetName"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Target"
+      icon: "lock"
+      description: "What the restriction applies to"
+      fields:
+        - key: "targetType"
+          label: "Target Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "tenant"
+          options:
+            - label: "Tenant"
+              value: "tenant"
+            - label: "Role"
+              value: "role"
+          helpText: "Whether the restriction targets a tenant or a user role."
+
+        - key: "targetName"
+          label: "Target Name"
+          fieldType: "text"
+          required: true
+          helpText: "The exact tenant or role name. Resolved to its numeric id at deploy time."
+
+    - name: "Limits"
+      icon: "sliders"
+      description: "Restriction limits"
+      fields:
+        - key: "dataWindow"
+          label: "Data Window"
+          fieldType: "number"
+          required: false
+          helpText: "Optional data window cap."
+
+        - key: "executionTime"
+          label: "Execution Time"
+          fieldType: "number"
+          required: false
+          helpText: "Optional execution time cap."
+
+        - key: "recordLimit"
+          label: "Record Limit"
+          fieldType: "number"
+          required: false
+          helpText: "Optional maximum records cap."

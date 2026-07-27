@@ -1,0 +1,66 @@
+# =============================================================================
+# Canvas Template — IBM QRadar Network Hierarchy
+#
+# Declares ONE network object — the item. Users add as many as they need. The
+# network hierarchy is applied as a WHOLE-LIST replace (PUT): deploy reads the
+# current staged hierarchy, preserves the operator's existing (unowned) objects,
+# replaces the objects this app manages, and PUTs the union — then applies it
+# with an INCREMENTAL deploy. An object's identity is (group, name). Reconcile
+# drops objects this app created but no longer declares; operator objects are
+# never removed.
+#
+# Field keys must match config-types/network-hierarchy/validate.ts.
+# =============================================================================
+
+id: "ibm-qradar-network-hierarchy"
+name: "Network Hierarchy Configuration"
+toolType: "ibm-qradar"
+entityType: "network-hierarchy"
+description: "Define IBM QRadar network hierarchy objects (grouped named CIDR ranges) as code through the QRadar staged network-hierarchy API (whole-list replace preserving operator objects)."
+
+item:
+  label: "Network Object"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Network Object"
+      icon: "sitemap"
+      description: "Group, name and CIDR"
+      fields:
+        - key: "group"
+          label: "Group"
+          fieldType: "text"
+          required: true
+          helpText: "The hierarchy group this object belongs to (e.g. Cloud, DMZ)."
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The network object name. Unique within its group in this canvas."
+
+        - key: "cidr"
+          label: "CIDR"
+          fieldType: "text"
+          required: true
+          helpText: "The CIDR range of this network object (e.g. 10.10.0.0/16)."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          helpText: "A human-readable description of this network object."
+
+        - key: "domainId"
+          label: "Domain ID"
+          fieldType: "number"
+          required: false
+          helpText: "Optional domain id (required only on domain-aware deployments)."
+
+        - key: "countryCode"
+          label: "Country Code"
+          fieldType: "text"
+          required: false
+          helpText: "Optional ISO country code for geographic classification."

@@ -1,0 +1,80 @@
+# =============================================================================
+# Canvas Template — IBM QRadar Log Source
+#
+# Declares ONE log source — the item. Users add as many as they need. A log
+# source is a named event feed identified by its log source TYPE and PROTOCOL
+# (both declared by name; deploy resolves each to its numeric id) plus the
+# protocol's parameters. Its natural identity is its NAME; deploy matches by the
+# stored QRadar id first (rename-safe) and falls back to name. Deploy creates
+# missing log sources, updates changed fields, and reconcile-deletes log sources
+# this app created but no longer declares.
+#
+# Field keys must match config-types/log-sources/validate.ts.
+# =============================================================================
+
+id: "ibm-qradar-log-sources"
+name: "Log Source Configuration"
+toolType: "ibm-qradar"
+entityType: "log-sources"
+description: "Define IBM QRadar log sources (named event feeds with a type, protocol and protocol parameters) as code through the QRadar log-source-management API."
+
+item:
+  label: "Log Source"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Log Source"
+      icon: "database"
+      description: "Identity, type and protocol"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The log source name — its identity in QRadar. Unique within this canvas; max 255 characters."
+
+        - key: "typeName"
+          label: "Log Source Type"
+          fieldType: "text"
+          required: true
+          helpText: "The exact log source type name (e.g. 'Linux OS'). Resolved to its numeric type id at deploy time."
+
+        - key: "protocolName"
+          label: "Protocol"
+          fieldType: "text"
+          required: true
+          helpText: "The exact protocol name (e.g. 'Syslog'). Resolved to its numeric protocol id at deploy time."
+
+        - key: "protocolParameters"
+          label: "Protocol Parameters (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            A JSON array of protocol parameters, e.g.
+            [{"name":"identifier","value":"host.example.com"}]. Each parameter's id
+            is filled from the chosen protocol type at deploy time.
+
+    - name: "Options"
+      icon: "settings"
+      description: "Optional log source options"
+      fields:
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the log source is enabled."
+
+        - key: "credibility"
+          label: "Credibility (0-10)"
+          fieldType: "number"
+          required: false
+          helpText: "Optional credibility weighting from 0 to 10."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          helpText: "A human-readable description of this log source."

@@ -8,6 +8,42 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.5.0 — 2026-07-26
+
+### Added
+- **Log Sources** — manage QRadar log sources (named event feeds). The log
+  source type and protocol are declared by name and resolved to their numeric
+  ids at deploy time, and each protocol parameter's id is filled from the chosen
+  protocol type. Matched by name (rename-safe by id); created/updated and
+  reconcile-deleted.
+- **Custom Log Source Types** — manage custom DSMs (name + optional default
+  protocol by name). Only custom types are managed; built-in types are protected
+  and never modified or deleted.
+- **Custom Event Properties** and **Flow Custom Properties** — a regex property
+  (unique name) plus per-log-source-type extraction expressions, reconciled as a
+  nested child set; the event and flow variants share one engine.
+- **Calculated Event Properties** — a value computed from two operands
+  (STATIC/PROPERTY) and an arithmetic operator.
+- **Remote Networks** and **Remote Services** — named CIDR ranges (with an
+  optional group). Staged writes are applied with a single INCREMENTAL deploy
+  (single-flight tolerant).
+- **Network Hierarchy** — grouped named CIDR objects applied as a whole-list
+  staged replace that preserves the operator's existing objects and only
+  replaces/removes objects this app owns, then an INCREMENTAL deploy.
+- **Tenants** — named multi-tenancy boundaries with optional event/flow rate
+  limits.
+- **Resource Restrictions** — data-window / execution-time / record-limit caps
+  for a tenant or role (target by name → id; updated via PUT). User targets are
+  excluded.
+- **Offense Closing Reasons** — short analyst-selectable close texts. Append-only
+  (the API has no update or delete), so reasons are created if missing but never
+  removed or renamed.
+- `lib/qradar.ts`: added `PUT` to the method union and a shared
+  `deployStagedConfig` helper (POST `/staged_config/deploy_status`, INCREMENTAL,
+  async + single-flight 409/1002 tolerant). New `lib/lookups.ts` (read-only
+  name→id lookups for log source types, protocol types, tenants and user roles)
+  and `lib/customProperties.ts` (shared regex-property + expressions engine).
+
 ## 0.4.0 — 2026-07-26
 
 ### Added

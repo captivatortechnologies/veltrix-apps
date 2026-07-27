@@ -1,0 +1,109 @@
+# =============================================================================
+# Canvas Template — IBM QRadar Calculated Custom Event Property
+#
+# Declares ONE calculated property — the item. Users add as many as they need. A
+# calculated property computes a numeric value from two operands and an
+# arithmetic operator. Each operand is either a STATIC number or a reference to
+# an existing PROPERTY (by name). Its natural identity is its NAME; deploy
+# matches by the stored QRadar id first (rename-safe) and falls back to name.
+# Deploy creates missing properties, updates changed fields, and reconcile-
+# deletes properties this app created but no longer declares.
+#
+# Field keys must match config-types/calculated-event-properties/validate.ts.
+# =============================================================================
+
+id: "ibm-qradar-calculated-event-properties"
+name: "Calculated Event Property Configuration"
+toolType: "ibm-qradar"
+entityType: "calculated-event-properties"
+description: "Define IBM QRadar calculated custom event properties (a value computed from two operands and an arithmetic operator) as code through the QRadar custom-properties API."
+
+item:
+  label: "Calculated Property"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Property"
+      icon: "calculator"
+      description: "Name and computation"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The calculated property name — its identity in QRadar. Unique within this canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          helpText: "A human-readable description of what this property computes."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the property is enabled."
+
+        - key: "operator"
+          label: "Operator"
+          fieldType: "select"
+          required: true
+          defaultValue: "ADD"
+          options:
+            - label: "Add"
+              value: "ADD"
+            - label: "Subtract"
+              value: "SUBTRACT"
+            - label: "Multiply"
+              value: "MULTIPLY"
+            - label: "Divide"
+              value: "DIVIDE"
+          helpText: "The arithmetic operator applied to the two operands."
+
+    - name: "First Operand"
+      icon: "hash"
+      description: "The first operand"
+      fields:
+        - key: "firstOperandType"
+          label: "First Operand Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "PROPERTY"
+          options:
+            - label: "Static number"
+              value: "STATIC"
+            - label: "Property reference"
+              value: "PROPERTY"
+          helpText: "STATIC uses a literal number; PROPERTY references an existing property by name."
+
+        - key: "firstOperandValue"
+          label: "First Operand Value"
+          fieldType: "text"
+          required: true
+          helpText: "A number (for STATIC) or an existing property name (for PROPERTY)."
+
+    - name: "Second Operand"
+      icon: "hash"
+      description: "The second operand"
+      fields:
+        - key: "secondOperandType"
+          label: "Second Operand Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "PROPERTY"
+          options:
+            - label: "Static number"
+              value: "STATIC"
+            - label: "Property reference"
+              value: "PROPERTY"
+          helpText: "STATIC uses a literal number; PROPERTY references an existing property by name."
+
+        - key: "secondOperandValue"
+          label: "Second Operand Value"
+          fieldType: "text"
+          required: true
+          helpText: "A number (for STATIC) or an existing property name (for PROPERTY)."
