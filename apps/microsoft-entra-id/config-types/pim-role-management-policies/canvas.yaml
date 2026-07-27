@@ -1,0 +1,91 @@
+# =============================================================================
+# Canvas Template — Entra ID PIM Role Management Policies (activation rules)
+#
+# Declares ONE role's activation policy — the item. Users add one per role they
+# want to govern. The identity is the roleDefinitionId; deploy resolves the
+# Directory-scope role management policy from that role's assignment, then
+# PATCHes three end-user ACTIVATION rules (no create/delete):
+#   - Enablement (what's required to activate: MFA / justification / ticketing)
+#   - Expiration (max activation duration)
+#   - Approval   (whether approval is required — merged into the live setting so
+#                 existing approval stages are preserved)
+# Other rules (notifications, admin/eligibility rules) are left untouched.
+# Removing a role from the canvas leaves its rules as last set.
+#
+# Field keys must match config-types/pim-role-management-policies/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-pim-role-management-policies"
+name: "PIM Role Policy Configuration"
+toolType: "microsoft-entra-id"
+entityType: "pim-role-management-policies"
+description: "Manage Entra PIM role activation requirements (MFA / justification / ticketing / approval / max duration) for Directory-scope roles as code through the Microsoft Graph API."
+
+item:
+  label: "PIM Role Policy"
+  identityField: "roleDefinitionId"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Role"
+      icon: "shield"
+      description: "The privileged role this policy governs"
+      fields:
+        - key: "roleDefinitionId"
+          label: "Role Definition ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The directory role template id (a GUID), e.g. the Global Administrator
+            role template id. The Directory-scope policy is resolved from it.
+
+    - name: "Activation Requirements"
+      icon: "lock"
+      description: "What end users must satisfy to activate this role"
+      fields:
+        - key: "requireMfaOnActivation"
+          label: "Require MFA on activation"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Adds MultiFactorAuthentication to the enablement rule."
+
+        - key: "requireJustificationOnActivation"
+          label: "Require justification on activation"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Adds Justification to the enablement rule."
+
+        - key: "requireTicketingOnActivation"
+          label: "Require ticket info on activation"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Adds Ticketing to the enablement rule."
+
+        - key: "requireApprovalToActivate"
+          label: "Require approval to activate"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Sets isApprovalRequired on the approval rule (existing approval stages are preserved)."
+
+    - name: "Activation Duration"
+      icon: "clock"
+      description: "How long an activation lasts"
+      fields:
+        - key: "activationExpirationRequired"
+          label: "Require activation to expire"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Sets isExpirationRequired on the expiration rule."
+
+        - key: "activationMaximumDuration"
+          label: "Maximum activation duration"
+          fieldType: "text"
+          required: false
+          defaultValue: "PT8H"
+          helpText: "ISO 8601 duration (e.g. PT8H for 8 hours). Required when activation must expire."

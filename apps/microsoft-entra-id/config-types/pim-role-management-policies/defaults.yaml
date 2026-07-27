@@ -1,0 +1,10 @@
+# Defaults for a new PIM role policy item.
+#
+# Seeds a security-forward default (MFA + justification + expiry) the author can
+# tailor. Values are a FLAT map keyed by the canvas field keys.
+requireMfaOnActivation: true
+requireJustificationOnActivation: true
+requireTicketingOnActivation: false
+requireApprovalToActivate: false
+activationExpirationRequired: true
+activationMaximumDuration: "PT8H"

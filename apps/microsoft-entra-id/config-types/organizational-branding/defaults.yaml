@@ -1,0 +1,16 @@
+# Defaults for the organizational branding singleton.
+#
+# All fields default to blank ("do not manage") so a freshly added item makes no
+# change until the admin fills a field in. Values are a FLAT map keyed by the
+# canvas field keys.
+backgroundColor: ""
+headerBackgroundColor: ""
+signInPageText: ""
+usernameHintText: ""
+customForgotMyPasswordText: ""
+customCannotAccessYourAccountText: ""
+customPrivacyAndCookiesText: ""
+customTermsOfUseText: ""
+customPrivacyAndCookiesUrl: ""
+customTermsOfUseUrl: ""
+customAccountResetCredentialsUrl: ""

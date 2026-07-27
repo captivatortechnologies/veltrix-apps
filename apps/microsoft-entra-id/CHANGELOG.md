@@ -12,8 +12,8 @@ All notable changes to this app are documented here. This project adheres to
 
 ### Added
 
-Twenty new configuration types across policy, directory, external identity and
-identity-governance surfaces of Microsoft Graph v1.0:
+Twenty-two new configuration types across policy, directory, external identity,
+identity-governance, branding and privileged-access surfaces of Microsoft Graph v1.0:
 
 **Tenant policy singletons**
 - **Tenant Authorization Policy** — default user/guest/consent controls
@@ -59,6 +59,18 @@ identity-governance surfaces of Microsoft Graph v1.0:
 - **Access Review Definitions** — recurring membership reviews.
 - **Lifecycle Workflows** — joiner / mover / leaver automation (requires Entra ID
   Governance).
+
+**Branding & privileged access**
+- **Organizational Branding** — the company branding default sign-in page text,
+  colors and footer links, managed as a scalar-bounded singleton (locale "0")
+  via PATCH with `Accept-Language: 0`; logos, background image, favicon and custom
+  CSS are out of scope. Requires Entra ID P1/P2.
+- **PIM Role Policies** — Privileged Identity Management activation requirements
+  (MFA / justification / ticketing / approval / maximum duration) for Directory-scope
+  roles. The policy is resolved from the role's assignment and the three end-user
+  activation rules (enablement, expiration, approval) are patched in place; the
+  approval toggle merges into the live setting so existing approval stages are
+  preserved. Rules are never created or deleted.
 
 ### Changed
 - `lib/graph.ts`: added a `put()` convenience helper and an optional per-call

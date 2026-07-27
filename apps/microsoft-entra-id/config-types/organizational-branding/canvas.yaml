@@ -1,0 +1,123 @@
+# =============================================================================
+# Canvas Template — Entra ID Organizational Branding (default, scalar-bounded)
+#
+# The company branding default is a tenant-wide singleton (locale "0"). Deploy
+# resolves the tenant org id via GET /organization, reads the current default
+# branding, and PATCHes the managed sign-in-page text / color / URL fields with
+# the Accept-Language: 0 header (creating the default via PUT if none exists yet).
+# Blank fields are left untouched. Declare it at most once per canvas.
+#
+# Scope: scalar properties only. Logos, background image, favicon, custom CSS and
+# the layout / visibility sub-objects are NOT managed by this type (they are
+# binary streams / complex objects). Requires Entra ID P1/P2.
+#
+# Field keys must match config-types/organizational-branding/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-organizational-branding"
+name: "Organizational Branding Configuration"
+toolType: "microsoft-entra-id"
+entityType: "organizational-branding"
+description: "Manage the Entra company branding sign-in page text, colors and footer links (default locale) as code through the Microsoft Graph API. Scalar-bounded; images and CSS are not managed."
+
+item:
+  label: "Organizational Branding"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Colors"
+      icon: "palette"
+      description: "Sign-in page colors"
+      fields:
+        - key: "backgroundColor"
+          label: "Background Color"
+          fieldType: "text"
+          required: false
+          helpText: "Hex color (e.g. #FFFFFF) shown in place of the background image on low-bandwidth connections. Leave blank to leave unchanged."
+
+        - key: "headerBackgroundColor"
+          label: "Header Background Color"
+          fieldType: "text"
+          required: false
+          helpText: "Hex color (e.g. #0078D4) applied to the sign-in page header. Leave blank to leave unchanged."
+
+    - name: "Text"
+      icon: "type"
+      description: "Sign-in page text"
+      fields:
+        - key: "signInPageText"
+          label: "Sign-In Page Text"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1024
+          helpText: "Text shown at the bottom of the sign-in box (max 1024 chars)."
+
+        - key: "usernameHintText"
+          label: "Username Hint Text"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 64
+          helpText: "Hint shown in the username textbox (max 64 chars)."
+
+        - key: "customForgotMyPasswordText"
+          label: "Forgot-Password Link Text"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 256
+          helpText: "Overrides the default \"Forgot my password\" link text (max 256 chars)."
+
+        - key: "customCannotAccessYourAccountText"
+          label: "Can't-Access-Account Link Text"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 256
+          helpText: "Overrides the default \"Can't access your account?\" link text (max 256 chars)."
+
+        - key: "customPrivacyAndCookiesText"
+          label: "Privacy & Cookies Link Text"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 256
+          helpText: "Overrides the default \"Privacy and Cookies\" footer link text (max 256 chars)."
+
+        - key: "customTermsOfUseText"
+          label: "Terms-of-Use Link Text"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 256
+          helpText: "Overrides the default \"Terms of Use\" footer link text (max 256 chars)."
+
+    - name: "Links"
+      icon: "link"
+      description: "Sign-in page footer / reset URLs"
+      fields:
+        - key: "customPrivacyAndCookiesUrl"
+          label: "Privacy & Cookies URL"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 128
+          helpText: "Custom URL for the \"Privacy and Cookies\" footer link (max 128 chars)."
+
+        - key: "customTermsOfUseUrl"
+          label: "Terms-of-Use URL"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 128
+          helpText: "Custom URL for the \"Terms of Use\" footer link (max 128 chars)."
+
+        - key: "customAccountResetCredentialsUrl"
+          label: "Account Reset Credentials URL"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 128
+          helpText: "Custom URL for resetting account credentials (max 128 chars)."

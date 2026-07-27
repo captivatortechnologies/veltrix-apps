@@ -12,9 +12,9 @@ description: >
   and feature-rollout policies; group directory settings, custom security attributes,
   external identity providers, delegated permission grants, user-flow attributes and
   self-service sign-up flows; and identity governance (entitlement catalogs, access
-  packages, assignment policies, connected organizations, access reviews and lifecycle
-  workflows) — with validation, drift detection and rollback handled by the
-  Security-as-Code pipeline.
+  packages, assignment policies, connected organizations, access reviews, lifecycle
+  workflows and PIM role activation policies); plus company branding — with
+  validation, drift detection and rollback handled by the Security-as-Code pipeline.
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-entra-id
@@ -137,6 +137,12 @@ permissions:
     - resource: lifecycle-workflows
       actions: [read, write, delete]
       description: Manage Entra lifecycle workflows (joiner / mover / leaver automation; requires Entra ID Governance)
+    - resource: organizational-branding
+      actions: [read, write, delete]
+      description: Manage the Entra company branding default sign-in page text, colors and footer links (scalar-bounded; images/CSS not managed)
+    - resource: pim-role-management-policies
+      actions: [read, write, delete]
+      description: Manage Entra PIM role activation requirements (MFA / justification / ticketing / approval / max duration) for Directory-scope roles
 
 pipeline:
   configurationTypes:
@@ -713,6 +719,40 @@ pipeline:
         healthCheck: config-types/lifecycle-workflows/healthCheck
         driftDetect: config-types/lifecycle-workflows/driftDetect
         getStatus: config-types/lifecycle-workflows/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: organizational-branding
+      name: Organizational Branding
+      description: Company branding default sign-in page text, colors and footer links (scalar-bounded singleton; images/CSS not managed)
+      canvasTemplate: config-types/organizational-branding/canvas.yaml
+      defaultConfig: config-types/organizational-branding/defaults.yaml
+      handlers:
+        validate: config-types/organizational-branding/validate
+        deploy: config-types/organizational-branding/deploy
+        rollback: config-types/organizational-branding/rollback
+        healthCheck: config-types/organizational-branding/healthCheck
+        driftDetect: config-types/organizational-branding/driftDetect
+        getStatus: config-types/organizational-branding/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: pim-role-management-policies
+      name: PIM Role Policies
+      description: PIM role activation requirements (MFA / justification / ticketing / approval / max duration) for Directory-scope roles
+      canvasTemplate: config-types/pim-role-management-policies/canvas.yaml
+      defaultConfig: config-types/pim-role-management-policies/defaults.yaml
+      handlers:
+        validate: config-types/pim-role-management-policies/validate
+        deploy: config-types/pim-role-management-policies/deploy
+        rollback: config-types/pim-role-management-policies/rollback
+        healthCheck: config-types/pim-role-management-policies/healthCheck
+        driftDetect: config-types/pim-role-management-policies/driftDetect
+        getStatus: config-types/pim-role-management-policies/getStatus
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true
