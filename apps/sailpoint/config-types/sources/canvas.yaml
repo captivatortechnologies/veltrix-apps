@@ -1,0 +1,88 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Sources
+#
+# Declares ONE source (connector instance) — the item. Users add as many as they
+# need. A source is matched to a live one by NAME with the id stored after deploy
+# for rename-safety. Scalar fields update via JSON-Patch; connectorAttributes are
+# a connector-specific JSON blob (secrets within are write-only and not
+# drift-tracked). This owns the source DEFINITION only — aggregated accounts and
+# entitlements are managed by ISC. Reconcile deletes sources this app created.
+#
+# Field keys must match config-types/sources/validate.ts.
+# =============================================================================
+
+id: "sailpoint-sources"
+name: "Source Configuration"
+toolType: "sailpoint"
+entityType: "sources"
+description: "Define SailPoint Identity Security Cloud sources (connector instances: name, owner, connector, connector attributes) as code through the ISC API."
+
+item:
+  label: "Source"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Source"
+      icon: "database"
+      description: "Name, description and owner"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: >
+            The source name. Must be unique within this canvas — the app matches
+            live sources on it (the id is stored after deploy for rename-safety).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the source."
+
+        - key: "ownerId"
+          label: "Owner Identity ID"
+          fieldType: "text"
+          required: true
+          helpText: "The id of the owning ISC Identity (required)."
+
+    - name: "Connector"
+      icon: "plug"
+      description: "Connector type and configuration"
+      fields:
+        - key: "connectorName"
+          label: "Connector Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The connector script name, e.g. "active-directory-direct",
+            "azure-active-directory", "web-services". Effectively immutable.
+
+        - key: "clusterId"
+          label: "Managed Cluster ID"
+          fieldType: "text"
+          required: false
+          helpText: >
+            Id of the managed (VA) cluster hosting this connector. Required for
+            on-prem connectors; leave blank for cloud connectors.
+
+        - key: "connectorAttributes"
+          label: "Connector Attributes (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            The connector-specific attributes as a JSON object. Secrets within
+            (passwords, tokens) are write-only in ISC and are not drift-tracked.
+
+        - key: "deleteThreshold"
+          label: "Delete Threshold (%)"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+          helpText: >
+            The maximum percentage of accounts that may be deleted in one
+            aggregation before it halts (0 = ISC default).

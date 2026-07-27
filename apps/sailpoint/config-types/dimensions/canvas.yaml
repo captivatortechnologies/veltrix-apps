@@ -1,0 +1,88 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Role Dimensions
+#
+# Declares ONE dimension — the item. Users add as many as they need. A dimension
+# is a nested child of a role: the parent is resolved by NAME to its id, and the
+# dimension is keyed within that role by its name. Dimensions subdivide a role's
+# access. Updates use JSON-Patch. Reconcile deletes dimensions this app created
+# (within their role) but no longer declares.
+#
+# Field keys must match config-types/dimensions/validate.ts.
+# =============================================================================
+
+id: "sailpoint-dimensions"
+name: "Role Dimension Configuration"
+toolType: "sailpoint"
+entityType: "dimensions"
+description: "Define SailPoint Identity Security Cloud role dimensions (per role: owner, access profiles, entitlements, membership) as code through the ISC API."
+
+item:
+  label: "Dimension"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Dimension"
+      icon: "layers"
+      description: "Parent role, name and owner"
+      fields:
+        - key: "roleName"
+          label: "Role Name"
+          fieldType: "text"
+          required: true
+          helpText: "Name of the parent role (resolved to its id at deploy time)."
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "The dimension name. The app matches live dimensions on it within the role."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the dimension."
+
+        - key: "ownerType"
+          label: "Owner Type"
+          fieldType: "select"
+          required: false
+          defaultValue: "IDENTITY"
+          options:
+            - { label: "Identity", value: "IDENTITY" }
+            - { label: "Governance Group", value: "GOVERNANCE_GROUP" }
+          helpText: "Whether the owner is an Identity or a Governance Group."
+
+        - key: "ownerId"
+          label: "Owner ID"
+          fieldType: "text"
+          required: true
+          helpText: "Id of the owning Identity or Governance Group."
+
+    - name: "Access"
+      icon: "shield"
+      description: "Bundled access and membership"
+      fields:
+        - key: "accessProfileIds"
+          label: "Access Profile IDs"
+          fieldType: "tags"
+          required: false
+          helpText: "Ids of access profiles this dimension bundles."
+
+        - key: "entitlementIds"
+          label: "Entitlement IDs"
+          fieldType: "tags"
+          required: false
+          helpText: "Ids of entitlements this dimension grants directly."
+
+        - key: "membership"
+          label: "Membership (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional membership selector as a JSON object defining who is assigned
+            the dimension within the role.

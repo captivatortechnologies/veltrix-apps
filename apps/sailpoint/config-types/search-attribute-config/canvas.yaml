@@ -1,0 +1,50 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Search Attribute Configuration
+#
+# Declares ONE extended search attribute — the item. Users add as many as they
+# need. Search attributes are NAME-keyed (the name is the path key, no separate
+# id): the app lists all, matches by name, PATCHes an existing one or POSTs a new
+# one. Each maps one or more source attributes into a searchable identity
+# attribute. Reconcile deletes attributes this app created but no longer declares.
+#
+# Field keys must match config-types/search-attribute-config/validate.ts.
+# =============================================================================
+
+id: "sailpoint-search-attribute-config"
+name: "Search Attribute Configuration"
+toolType: "sailpoint"
+entityType: "search-attribute-config"
+description: "Define SailPoint Identity Security Cloud extended search attributes (name, display name, source attribute mappings) as code through the ISC API."
+
+item:
+  label: "Search Attribute"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Attribute"
+      icon: "search"
+      description: "Name, display and source mappings"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The extended search attribute name (the path key). Must be unique
+            within this canvas — the app matches live attributes on it.
+
+        - key: "displayName"
+          label: "Display Name"
+          fieldType: "text"
+          required: false
+          helpText: "The human-readable label for the attribute."
+
+        - key: "applicationAttributes"
+          label: "Application Attributes"
+          fieldType: "keyvalue"
+          required: false
+          helpText: >
+            A map of source id → source attribute name, defining which source
+            attribute populates this searchable attribute per source.

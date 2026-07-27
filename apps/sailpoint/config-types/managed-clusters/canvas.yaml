@@ -1,0 +1,57 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Managed Clusters
+#
+# Declares ONE managed (VA) cluster — the item. Users add as many as they need. A
+# cluster is matched to a live one by NAME with the id stored after deploy for
+# rename-safety. Scalar fields update via JSON-Patch. This owns the cluster
+# RECORD only — the virtual appliance still needs manual bootstrap. Reconcile
+# deletes clusters this app created but no longer declares.
+#
+# Field keys must match config-types/managed-clusters/validate.ts.
+# =============================================================================
+
+id: "sailpoint-managed-clusters"
+name: "Managed Cluster Configuration"
+toolType: "sailpoint"
+entityType: "managed-clusters"
+description: "Define SailPoint Identity Security Cloud managed (VA) clusters (name, type, configuration) as code through the ISC API."
+
+item:
+  label: "Managed Cluster"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Cluster"
+      icon: "server"
+      description: "Name, type and configuration"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: >
+            The cluster name. Must be unique within this canvas — the app matches
+            live clusters on it (the id is stored for rename-safety).
+
+        - key: "type"
+          label: "Type"
+          fieldType: "text"
+          required: false
+          defaultValue: "sailpoint"
+          helpText: 'The cluster type, e.g. "sailpoint".'
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the cluster."
+
+        - key: "configuration"
+          label: "Configuration (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Optional cluster configuration as a JSON object."

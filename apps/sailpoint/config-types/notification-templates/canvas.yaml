@@ -1,0 +1,94 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Notification Templates
+#
+# Declares ONE notification template — the item. Users add as many as they need.
+# Templates are COMPOSITE-keyed by key + medium + locale. ISC has no PATCH/PUT:
+# creating a template replaces the custom override for that triple. Reconcile
+# removes app-created triples via bulk-delete. Deprecated header/footer fields are
+# never sent.
+#
+# Field keys must match config-types/notification-templates/validate.ts.
+# =============================================================================
+
+id: "sailpoint-notification-templates"
+name: "Notification Template Configuration"
+toolType: "sailpoint"
+entityType: "notification-templates"
+description: "Define SailPoint Identity Security Cloud notification templates (key, medium, locale, subject, body) as code through the ISC API."
+
+item:
+  label: "Notification Template"
+  identityField: "key"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Template"
+      icon: "mail"
+      description: "Key, medium and locale"
+      fields:
+        - key: "key"
+          label: "Template Key"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The template key, e.g. cloud_manual_work_item_summary. Combined with
+            medium and locale it uniquely identifies the template.
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: false
+          helpText: "Optional display name for the template."
+
+        - key: "medium"
+          label: "Medium"
+          fieldType: "select"
+          required: false
+          defaultValue: "EMAIL"
+          options:
+            - { label: "Email", value: "EMAIL" }
+            - { label: "Slack", value: "SLACK" }
+            - { label: "Teams", value: "TEAMS" }
+          helpText: "The delivery medium."
+
+        - key: "locale"
+          label: "Locale"
+          fieldType: "text"
+          required: false
+          defaultValue: "en"
+          helpText: "BCP-47 locale, e.g. en."
+
+    - name: "Content"
+      icon: "file-text"
+      description: "Subject, body and addressing"
+      fields:
+        - key: "subject"
+          label: "Subject"
+          fieldType: "text"
+          required: false
+          helpText: "The message subject (supports Velocity $variables)."
+
+        - key: "body"
+          label: "Body"
+          fieldType: "textarea"
+          required: false
+          helpText: "The message body (supports Velocity $variables)."
+
+        - key: "from"
+          label: "From"
+          fieldType: "text"
+          required: false
+          helpText: "Optional from address (email medium)."
+
+        - key: "replyTo"
+          label: "Reply-To"
+          fieldType: "text"
+          required: false
+          helpText: "Optional reply-to address (email medium)."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the template."

@@ -1,0 +1,91 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Event Trigger Subscriptions
+#
+# Declares ONE trigger subscription — the item. Users add as many as they need. A
+# subscription is matched to a live one by NAME with the id stored after deploy
+# for rename-safety. Scalar fields update via JSON-Patch. Scoped to HTTP and
+# EVENTBRIDGE types; the config JSON is placed under httpConfig or
+# eventBridgeConfig per type. HTTP config is secret-bearing (auth tokens): applied
+# on deploy but not drift-tracked. Reconcile deletes subscriptions this app
+# created but no longer declares.
+#
+# Field keys must match config-types/trigger-subscriptions/validate.ts.
+# =============================================================================
+
+id: "sailpoint-trigger-subscriptions"
+name: "Trigger Subscription Configuration"
+toolType: "sailpoint"
+entityType: "trigger-subscriptions"
+description: "Define SailPoint Identity Security Cloud event trigger subscriptions (name, trigger, HTTP/EventBridge delivery config) as code through the ISC API."
+
+item:
+  label: "Trigger Subscription"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Subscription"
+      icon: "zap"
+      description: "Name, trigger and delivery"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: >
+            The subscription name. Must be unique within this canvas — the app
+            matches live subscriptions on it (the id is stored for rename-safety).
+
+        - key: "triggerId"
+          label: "Trigger ID"
+          fieldType: "text"
+          required: true
+          helpText: "The event trigger id, e.g. idn:access-requested."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: false
+          defaultValue: "HTTP"
+          options:
+            - { label: "HTTP", value: "HTTP" }
+            - { label: "AWS EventBridge", value: "EVENTBRIDGE" }
+          helpText: "The delivery type. Determines whether config maps to httpConfig or eventBridgeConfig."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the subscription."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the subscription is active."
+
+        - key: "responseDeadline"
+          label: "Response Deadline"
+          fieldType: "text"
+          required: false
+          defaultValue: "PT1H"
+          helpText: "ISO-8601 duration ISC waits for a response, e.g. PT1H."
+
+        - key: "filter"
+          label: "Filter (JSONPath)"
+          fieldType: "text"
+          required: false
+          helpText: "Optional JSONPath filter limiting which events are delivered."
+
+        - key: "config"
+          label: "Delivery Config (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            For HTTP: {"url":"https://...","httpDispatchMode":"SYNC","httpAuthenticationType":"NO_AUTH"}.
+            For EVENTBRIDGE: {"awsRegion":"us-east-1","awsAccount":"123456789012"}.
+            HTTP auth secrets are applied on deploy but not drift-tracked.

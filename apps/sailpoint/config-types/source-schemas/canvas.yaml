@@ -1,0 +1,90 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Source Schemas
+#
+# Declares ONE source schema — the item. Users add as many as they need. A source
+# schema is a nested child of a source: the parent is resolved by NAME to its id,
+# and the schema is keyed within that source by its name (e.g. account, group).
+# Account/group schemas often auto-exist per connector, so the app upserts them
+# via a full-replace PUT. Reconcile deletes schemas this app created (within their
+# source) but no longer declares.
+#
+# Field keys must match config-types/source-schemas/validate.ts.
+# =============================================================================
+
+id: "sailpoint-source-schemas"
+name: "Source Schema Configuration"
+toolType: "sailpoint"
+entityType: "source-schemas"
+description: "Define SailPoint Identity Security Cloud source schemas (per source: account/group attribute definitions) as code through the ISC API."
+
+item:
+  label: "Source Schema"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Schema"
+      icon: "table"
+      description: "Parent source and schema identity"
+      fields:
+        - key: "sourceName"
+          label: "Source Name"
+          fieldType: "text"
+          required: true
+          helpText: "Name of the parent source (resolved to its id at deploy time)."
+
+        - key: "name"
+          label: "Schema Name"
+          fieldType: "text"
+          required: true
+          helpText: "Schema name, e.g. account or group. The app matches live schemas on it."
+
+        - key: "nativeObjectType"
+          label: "Native Object Type"
+          fieldType: "text"
+          required: false
+          helpText: "The connector-native object type, e.g. User, Group."
+
+        - key: "identityAttribute"
+          label: "Identity Attribute"
+          fieldType: "text"
+          required: false
+          helpText: "The attribute uniquely identifying an object on the source."
+
+        - key: "displayAttribute"
+          label: "Display Attribute"
+          fieldType: "text"
+          required: false
+          helpText: "The attribute used as the display name."
+
+        - key: "hierarchyAttribute"
+          label: "Hierarchy Attribute"
+          fieldType: "text"
+          required: false
+          helpText: "For group schemas, the attribute defining group hierarchy."
+
+        - key: "includePermissions"
+          label: "Include Permissions"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether to aggregate object permissions."
+
+    - name: "Attributes"
+      icon: "list"
+      description: "Attribute definitions and configuration"
+      fields:
+        - key: "attributes"
+          label: "Attributes (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            The schema attribute definitions as a JSON array, e.g.
+            [{"name":"sAMAccountName","type":"STRING","isMulti":false}].
+
+        - key: "configuration"
+          label: "Configuration (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Optional connector-specific schema configuration as a JSON object."

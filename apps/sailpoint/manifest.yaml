@@ -1,12 +1,20 @@
 id: sailpoint
 name: SailPoint
-version: "0.4.0"
+version: "0.5.0"
 vendor: Veltrix
 description: >
   Manage SailPoint Identity Security Cloud (ISC, formerly IdentityNow)
-  configuration as code through the ISC API — Transforms, Segments, Governance
-  Groups, Access Profiles, Roles and Password Policies — with validation, drift
-  detection and rollback handled by the Security-as-Code pipeline.
+  configuration as code through the ISC API — connectivity (Sources, Source
+  Schemas, Provisioning Policies, Correlation Configs, Managed Clusters),
+  identity governance (Identity Profiles, Lifecycle States, Identity Attributes,
+  Search Attributes, Roles, Access Profiles, Role Dimensions, Segments,
+  Governance Groups), policy & compliance (SOD Policies, Password Policies,
+  Password Sync Groups, Campaign Templates, MFA and tenant auth/security
+  singletons), automation & integration (Workflows, Trigger Subscriptions,
+  Connector Rules, Service Desk / SIM Integrations, Notification Templates,
+  Verified From-Addresses), Source Apps, Non-Employee Sources and Transforms —
+  with validation, drift detection and rollback handled by the Security-as-Code
+  pipeline.
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/sailpoint
@@ -45,6 +53,78 @@ permissions:
     - resource: password-policies
       actions: [read, write, delete]
       description: Manage SailPoint ISC password policies (length, composition, expiration and strength rules)
+    - resource: sources
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC sources (connector instances — name, owner, connector, connector attributes, delete threshold)
+    - resource: workflows
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC workflows (name, owner, trigger, definition, enabled)
+    - resource: identity-profiles
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC identity profiles (name, owner, priority, authoritative source, attribute config)
+    - resource: lifecycle-states
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC lifecycle states nested under identity profiles (technical name, access profiles, account actions)
+    - resource: sod-policies
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC separation-of-duties policies (name, owner, state, type, conflict criteria)
+    - resource: service-desk-integrations
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC service desk integrations (name, type, connection attributes — secret-bearing)
+    - resource: source-apps
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC source apps (name, account source, match-all-accounts)
+    - resource: campaign-templates
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC certification campaign templates (name, deadline, embedded campaign definition)
+    - resource: source-schemas
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC source schemas nested under sources (account/group attribute definitions)
+    - resource: provisioning-policies
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC provisioning policies nested under sources (keyed by usage type; attribute field generation)
+    - resource: password-sync-groups
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC password sync groups (name, password policy, synced sources)
+    - resource: connector-rules
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC connector rules (name, type, BeanShell source code)
+    - resource: search-attribute-config
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC extended search attributes (name-keyed; display name, source attribute mappings)
+    - resource: identity-attributes
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC custom identity attributes (name-keyed; display, type, searchable, source mappings; standard/system protected)
+    - resource: notification-templates
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC notification templates (composite key key+medium+locale; subject, body; create replaces, reconcile bulk-deletes)
+    - resource: trigger-subscriptions
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC event trigger subscriptions (HTTP/EventBridge; HTTP config secret-bearing, applied on deploy but not drift-tracked)
+    - resource: sim-integrations
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC SIM integrations (name, type, cluster, connection attributes — secret-bearing)
+    - resource: non-employee-sources
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC non-employee sources (name, owner, management workgroup, approvers, account managers)
+    - resource: dimensions
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC role dimensions nested under roles (owner, access profiles, entitlements, membership)
+    - resource: tenant-config-singletons
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC tenant-wide config singletons (access request, password org, public identities, org, auth-org lockout/session/network/service-provider)
+    - resource: mfa-configs
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC MFA method configs (Duo, Okta Verify; configProperties secret-bearing, applied on deploy but not drift-tracked)
+    - resource: correlation-configs
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC account correlation configs (name, correlation attribute assignments)
+    - resource: managed-clusters
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC managed (VA) clusters (name, type, configuration)
+    - resource: verified-from-addresses
+      actions: [read, write, delete]
+      description: Manage SailPoint ISC verified email from-addresses (create/delete keyed by email; SES verification out-of-band)
 
 pipeline:
   configurationTypes:
@@ -145,6 +225,414 @@ pipeline:
         healthCheck: config-types/transforms/healthCheck
         driftDetect: config-types/transforms/driftDetect
         getStatus: config-types/transforms/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: sources
+      name: Sources
+      description: ISC sources — connector instances (name-keyed; id stored for rename-safety; JSON-Patch scalar updates; connector attributes are a secret-bearing JSON blob not drift-tracked)
+      canvasTemplate: config-types/sources/canvas.yaml
+      defaultConfig: config-types/sources/defaults.yaml
+      handlers:
+        validate: config-types/sources/validate
+        deploy: config-types/sources/deploy
+        rollback: config-types/sources/rollback
+        healthCheck: config-types/sources/healthCheck
+        driftDetect: config-types/sources/driftDetect
+        getStatus: config-types/sources/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: workflows
+      name: Workflows
+      description: ISC workflows — event/scheduled automation (name-keyed; id stored for rename-safety; created disabled then enabled; full-replace PUT; trigger/definition JSON blobs)
+      canvasTemplate: config-types/workflows/canvas.yaml
+      defaultConfig: config-types/workflows/defaults.yaml
+      handlers:
+        validate: config-types/workflows/validate
+        deploy: config-types/workflows/deploy
+        rollback: config-types/workflows/rollback
+        healthCheck: config-types/workflows/healthCheck
+        driftDetect: config-types/workflows/driftDetect
+        getStatus: config-types/workflows/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: identity-profiles
+      name: Identity Profiles
+      description: ISC identity profiles — build identities from an authoritative source (name-keyed; id stored for rename-safety; JSON-Patch updates; authoritative source immutable)
+      canvasTemplate: config-types/identity-profiles/canvas.yaml
+      defaultConfig: config-types/identity-profiles/defaults.yaml
+      handlers:
+        validate: config-types/identity-profiles/validate
+        deploy: config-types/identity-profiles/deploy
+        rollback: config-types/identity-profiles/rollback
+        healthCheck: config-types/identity-profiles/healthCheck
+        driftDetect: config-types/identity-profiles/driftDetect
+        getStatus: config-types/identity-profiles/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: lifecycle-states
+      name: Lifecycle States
+      description: ISC lifecycle states nested under an identity profile (parent resolved by name; keyed by technicalName; JSON-Patch updates; reconcile within parent)
+      canvasTemplate: config-types/lifecycle-states/canvas.yaml
+      defaultConfig: config-types/lifecycle-states/defaults.yaml
+      handlers:
+        validate: config-types/lifecycle-states/validate
+        deploy: config-types/lifecycle-states/deploy
+        rollback: config-types/lifecycle-states/rollback
+        healthCheck: config-types/lifecycle-states/healthCheck
+        driftDetect: config-types/lifecycle-states/driftDetect
+        getStatus: config-types/lifecycle-states/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: sod-policies
+      name: SOD Policies
+      description: ISC separation-of-duties policies (name-keyed; id stored for rename-safety; full-replace PUT; GENERAL query or CONFLICTING_ACCESS_BASED criteria)
+      canvasTemplate: config-types/sod-policies/canvas.yaml
+      defaultConfig: config-types/sod-policies/defaults.yaml
+      handlers:
+        validate: config-types/sod-policies/validate
+        deploy: config-types/sod-policies/deploy
+        rollback: config-types/sod-policies/rollback
+        healthCheck: config-types/sod-policies/healthCheck
+        driftDetect: config-types/sod-policies/driftDetect
+        getStatus: config-types/sod-policies/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: service-desk-integrations
+      name: Service Desk Integrations
+      description: ISC service desk integrations (name-keyed; id stored for rename-safety; connection attributes are secret-bearing, applied on deploy but not drift-tracked)
+      canvasTemplate: config-types/service-desk-integrations/canvas.yaml
+      defaultConfig: config-types/service-desk-integrations/defaults.yaml
+      handlers:
+        validate: config-types/service-desk-integrations/validate
+        deploy: config-types/service-desk-integrations/deploy
+        rollback: config-types/service-desk-integrations/rollback
+        healthCheck: config-types/service-desk-integrations/healthCheck
+        driftDetect: config-types/service-desk-integrations/driftDetect
+        getStatus: config-types/service-desk-integrations/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: source-apps
+      name: Source Apps
+      description: ISC source apps — access-request applications (name-keyed; id stored for rename-safety; JSON-Patch updates; account source immutable)
+      canvasTemplate: config-types/source-apps/canvas.yaml
+      defaultConfig: config-types/source-apps/defaults.yaml
+      handlers:
+        validate: config-types/source-apps/validate
+        deploy: config-types/source-apps/deploy
+        rollback: config-types/source-apps/rollback
+        healthCheck: config-types/source-apps/healthCheck
+        driftDetect: config-types/source-apps/driftDetect
+        getStatus: config-types/source-apps/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: campaign-templates
+      name: Campaign Templates
+      description: ISC certification campaign templates (name-keyed; id stored for rename-safety; JSON-Patch updates; embedded campaign is a normalized JSON blob; schedule out of scope)
+      canvasTemplate: config-types/campaign-templates/canvas.yaml
+      defaultConfig: config-types/campaign-templates/defaults.yaml
+      handlers:
+        validate: config-types/campaign-templates/validate
+        deploy: config-types/campaign-templates/deploy
+        rollback: config-types/campaign-templates/rollback
+        healthCheck: config-types/campaign-templates/healthCheck
+        driftDetect: config-types/campaign-templates/driftDetect
+        getStatus: config-types/campaign-templates/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: source-schemas
+      name: Source Schemas
+      description: ISC source schemas nested under a source (parent resolved by name; keyed by schema name; full-replace PUT; reconcile within parent)
+      canvasTemplate: config-types/source-schemas/canvas.yaml
+      defaultConfig: config-types/source-schemas/defaults.yaml
+      handlers:
+        validate: config-types/source-schemas/validate
+        deploy: config-types/source-schemas/deploy
+        rollback: config-types/source-schemas/rollback
+        healthCheck: config-types/source-schemas/healthCheck
+        driftDetect: config-types/source-schemas/driftDetect
+        getStatus: config-types/source-schemas/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: provisioning-policies
+      name: Provisioning Policies
+      description: ISC provisioning policies nested under a source (parent resolved by name; keyed by usageType enum; full-replace PUT; reconcile within parent)
+      canvasTemplate: config-types/provisioning-policies/canvas.yaml
+      defaultConfig: config-types/provisioning-policies/defaults.yaml
+      handlers:
+        validate: config-types/provisioning-policies/validate
+        deploy: config-types/provisioning-policies/deploy
+        rollback: config-types/provisioning-policies/rollback
+        healthCheck: config-types/provisioning-policies/healthCheck
+        driftDetect: config-types/provisioning-policies/driftDetect
+        getStatus: config-types/provisioning-policies/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: password-sync-groups
+      name: Password Sync Groups
+      description: ISC password sync groups (name-keyed; id stored for rename-safety; full-replace PUT; references a password policy and synced sources)
+      canvasTemplate: config-types/password-sync-groups/canvas.yaml
+      defaultConfig: config-types/password-sync-groups/defaults.yaml
+      handlers:
+        validate: config-types/password-sync-groups/validate
+        deploy: config-types/password-sync-groups/deploy
+        rollback: config-types/password-sync-groups/rollback
+        healthCheck: config-types/password-sync-groups/healthCheck
+        driftDetect: config-types/password-sync-groups/driftDetect
+        getStatus: config-types/password-sync-groups/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: connector-rules
+      name: Connector Rules
+      description: ISC connector rules — BeanShell cloud rules (name-keyed; id stored for rename-safety; full-replace PUT; type immutable)
+      canvasTemplate: config-types/connector-rules/canvas.yaml
+      defaultConfig: config-types/connector-rules/defaults.yaml
+      handlers:
+        validate: config-types/connector-rules/validate
+        deploy: config-types/connector-rules/deploy
+        rollback: config-types/connector-rules/rollback
+        healthCheck: config-types/connector-rules/healthCheck
+        driftDetect: config-types/connector-rules/driftDetect
+        getStatus: config-types/connector-rules/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: search-attribute-config
+      name: Search Attributes
+      description: ISC extended search attributes (name-keyed path; POST create / JSON-Patch update by name; source attribute mappings)
+      canvasTemplate: config-types/search-attribute-config/canvas.yaml
+      defaultConfig: config-types/search-attribute-config/defaults.yaml
+      handlers:
+        validate: config-types/search-attribute-config/validate
+        deploy: config-types/search-attribute-config/deploy
+        rollback: config-types/search-attribute-config/rollback
+        healthCheck: config-types/search-attribute-config/healthCheck
+        driftDetect: config-types/search-attribute-config/driftDetect
+        getStatus: config-types/search-attribute-config/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: identity-attributes
+      name: Identity Attributes
+      description: ISC custom identity attributes (name-keyed path; POST create / full-replace PUT by name; standard/system attributes protected)
+      canvasTemplate: config-types/identity-attributes/canvas.yaml
+      defaultConfig: config-types/identity-attributes/defaults.yaml
+      handlers:
+        validate: config-types/identity-attributes/validate
+        deploy: config-types/identity-attributes/deploy
+        rollback: config-types/identity-attributes/rollback
+        healthCheck: config-types/identity-attributes/healthCheck
+        driftDetect: config-types/identity-attributes/driftDetect
+        getStatus: config-types/identity-attributes/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: notification-templates
+      name: Notification Templates
+      description: ISC notification templates (composite key key+medium+locale; create replaces the override; reconcile bulk-deletes app-created triples)
+      canvasTemplate: config-types/notification-templates/canvas.yaml
+      defaultConfig: config-types/notification-templates/defaults.yaml
+      handlers:
+        validate: config-types/notification-templates/validate
+        deploy: config-types/notification-templates/deploy
+        rollback: config-types/notification-templates/rollback
+        healthCheck: config-types/notification-templates/healthCheck
+        driftDetect: config-types/notification-templates/driftDetect
+        getStatus: config-types/notification-templates/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: trigger-subscriptions
+      name: Trigger Subscriptions
+      description: ISC event trigger subscriptions (name-keyed; id stored for rename-safety; JSON-Patch updates; HTTP/EventBridge; HTTP config secret-bearing, not drift-tracked)
+      canvasTemplate: config-types/trigger-subscriptions/canvas.yaml
+      defaultConfig: config-types/trigger-subscriptions/defaults.yaml
+      handlers:
+        validate: config-types/trigger-subscriptions/validate
+        deploy: config-types/trigger-subscriptions/deploy
+        rollback: config-types/trigger-subscriptions/rollback
+        healthCheck: config-types/trigger-subscriptions/healthCheck
+        driftDetect: config-types/trigger-subscriptions/driftDetect
+        getStatus: config-types/trigger-subscriptions/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: sim-integrations
+      name: SIM Integrations
+      description: ISC SIM integrations (name-keyed; id stored for rename-safety; connection attributes secret-bearing, applied on deploy but not drift-tracked)
+      canvasTemplate: config-types/sim-integrations/canvas.yaml
+      defaultConfig: config-types/sim-integrations/defaults.yaml
+      handlers:
+        validate: config-types/sim-integrations/validate
+        deploy: config-types/sim-integrations/deploy
+        rollback: config-types/sim-integrations/rollback
+        healthCheck: config-types/sim-integrations/healthCheck
+        driftDetect: config-types/sim-integrations/driftDetect
+        getStatus: config-types/sim-integrations/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: non-employee-sources
+      name: Non-Employee Sources
+      description: ISC non-employee sources — container only, records out of scope (name-keyed; id stored for rename-safety; JSON-Patch updates)
+      canvasTemplate: config-types/non-employee-sources/canvas.yaml
+      defaultConfig: config-types/non-employee-sources/defaults.yaml
+      handlers:
+        validate: config-types/non-employee-sources/validate
+        deploy: config-types/non-employee-sources/deploy
+        rollback: config-types/non-employee-sources/rollback
+        healthCheck: config-types/non-employee-sources/healthCheck
+        driftDetect: config-types/non-employee-sources/driftDetect
+        getStatus: config-types/non-employee-sources/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: dimensions
+      name: Role Dimensions
+      description: ISC role dimensions nested under a role (parent resolved by name; keyed by dimension name; JSON-Patch updates; reconcile within parent)
+      canvasTemplate: config-types/dimensions/canvas.yaml
+      defaultConfig: config-types/dimensions/defaults.yaml
+      handlers:
+        validate: config-types/dimensions/validate
+        deploy: config-types/dimensions/deploy
+        rollback: config-types/dimensions/rollback
+        healthCheck: config-types/dimensions/healthCheck
+        driftDetect: config-types/dimensions/driftDetect
+        getStatus: config-types/dimensions/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: tenant-config-singletons
+      name: Tenant Configuration
+      description: ISC tenant-wide config singletons (read+replace with prior snapshot; PUT-merge or JSON-Patch per setting; revert on rollback / undeclare)
+      canvasTemplate: config-types/tenant-config-singletons/canvas.yaml
+      defaultConfig: config-types/tenant-config-singletons/defaults.yaml
+      handlers:
+        validate: config-types/tenant-config-singletons/validate
+        deploy: config-types/tenant-config-singletons/deploy
+        rollback: config-types/tenant-config-singletons/rollback
+        healthCheck: config-types/tenant-config-singletons/healthCheck
+        driftDetect: config-types/tenant-config-singletons/driftDetect
+        getStatus: config-types/tenant-config-singletons/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: mfa-configs
+      name: MFA Configuration
+      description: ISC MFA method configs — Duo, Okta Verify (per-method singleton PUT; configProperties secret-bearing, applied on deploy but not drift-tracked)
+      canvasTemplate: config-types/mfa-configs/canvas.yaml
+      defaultConfig: config-types/mfa-configs/defaults.yaml
+      handlers:
+        validate: config-types/mfa-configs/validate
+        deploy: config-types/mfa-configs/deploy
+        rollback: config-types/mfa-configs/rollback
+        healthCheck: config-types/mfa-configs/healthCheck
+        driftDetect: config-types/mfa-configs/driftDetect
+        getStatus: config-types/mfa-configs/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: correlation-configs
+      name: Correlation Configs
+      description: ISC account correlation configs (name-keyed; id stored for rename-safety; full-replace PUT; correlation attribute assignments)
+      canvasTemplate: config-types/correlation-configs/canvas.yaml
+      defaultConfig: config-types/correlation-configs/defaults.yaml
+      handlers:
+        validate: config-types/correlation-configs/validate
+        deploy: config-types/correlation-configs/deploy
+        rollback: config-types/correlation-configs/rollback
+        healthCheck: config-types/correlation-configs/healthCheck
+        driftDetect: config-types/correlation-configs/driftDetect
+        getStatus: config-types/correlation-configs/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: managed-clusters
+      name: Managed Clusters
+      description: ISC managed (VA) clusters — cluster record only, VA bootstrap manual (name-keyed; id stored for rename-safety; JSON-Patch updates)
+      canvasTemplate: config-types/managed-clusters/canvas.yaml
+      defaultConfig: config-types/managed-clusters/defaults.yaml
+      handlers:
+        validate: config-types/managed-clusters/validate
+        deploy: config-types/managed-clusters/deploy
+        rollback: config-types/managed-clusters/rollback
+        healthCheck: config-types/managed-clusters/healthCheck
+        driftDetect: config-types/managed-clusters/driftDetect
+        getStatus: config-types/managed-clusters/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: verified-from-addresses
+      name: Verified From-Addresses
+      description: ISC verified email from-addresses (email-keyed; create/delete only; SES verification is out-of-band so drift reports pending)
+      canvasTemplate: config-types/verified-from-addresses/canvas.yaml
+      defaultConfig: config-types/verified-from-addresses/defaults.yaml
+      handlers:
+        validate: config-types/verified-from-addresses/validate
+        deploy: config-types/verified-from-addresses/deploy
+        rollback: config-types/verified-from-addresses/rollback
+        healthCheck: config-types/verified-from-addresses/healthCheck
+        driftDetect: config-types/verified-from-addresses/driftDetect
+        getStatus: config-types/verified-from-addresses/getStatus
       targets:
         componentTypes: [sailpoint-tenant]
         requiresCredential: true

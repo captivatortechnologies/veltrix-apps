@@ -1,0 +1,81 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Identity Profiles
+#
+# Declares ONE identity profile — the item. Users add as many as they need. A
+# profile is matched to a live one by NAME with the id stored after deploy for
+# rename-safety. Scalar fields update via JSON-Patch. The authoritative source is
+# effectively immutable (it must resolve to an existing source id first) and is
+# never patched. The attribute config is a complex JSON blob. Lifecycle states
+# are a separate nested configuration type. Reconcile deletes profiles this app
+# created but no longer declares.
+#
+# Field keys must match config-types/identity-profiles/validate.ts.
+# =============================================================================
+
+id: "sailpoint-identity-profiles"
+name: "Identity Profile Configuration"
+toolType: "sailpoint"
+entityType: "identity-profiles"
+description: "Define SailPoint Identity Security Cloud identity profiles (name, owner, priority, authoritative source, attribute config) as code through the ISC API."
+
+item:
+  label: "Identity Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Profile"
+      icon: "user"
+      description: "Name, owner and authoritative source"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: >
+            The identity profile name. Must be unique within this canvas — the app
+            matches live profiles on it (the id is stored after deploy for
+            rename-safety).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the identity profile."
+
+        - key: "ownerId"
+          label: "Owner Identity ID"
+          fieldType: "text"
+          required: false
+          helpText: "The id of the owning ISC Identity (optional)."
+
+        - key: "authoritativeSourceId"
+          label: "Authoritative Source ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            Id of the authoritative source this profile builds identities from.
+            Must resolve to an existing source; immutable after creation.
+
+    - name: "Configuration"
+      icon: "sliders"
+      description: "Priority and attribute mapping"
+      fields:
+        - key: "priority"
+          label: "Priority"
+          fieldType: "number"
+          required: false
+          defaultValue: 10
+          helpText: "Evaluation priority (lower numbers win when identities match multiple profiles)."
+
+        - key: "attributeConfig"
+          label: "Attribute Config (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            The identityAttributeConfig as a JSON object, e.g.
+            {"enabled":true,"attributeTransforms":[...]}. Leave blank to keep the
+            ISC defaults.

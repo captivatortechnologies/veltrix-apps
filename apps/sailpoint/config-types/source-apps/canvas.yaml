@@ -1,0 +1,60 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Source Apps (access-request applications)
+#
+# Declares ONE source app — the item. Users add as many as they need. A source
+# app is matched to a live one by NAME with the id stored after deploy for
+# rename-safety. Scalar fields update via JSON-Patch; the account source is
+# immutable (it must resolve to an existing source id). Access-profile
+# assignments are a separate sub-resource, out of scope here. Reconcile deletes
+# apps this app created but no longer declares.
+#
+# Field keys must match config-types/source-apps/validate.ts.
+# =============================================================================
+
+id: "sailpoint-source-apps"
+name: "Source App Configuration"
+toolType: "sailpoint"
+entityType: "source-apps"
+description: "Define SailPoint Identity Security Cloud source apps (name, account source, match-all-accounts) as code through the ISC API."
+
+item:
+  label: "Source App"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "App"
+      icon: "grid"
+      description: "Name, description and account source"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: >
+            The source app name. Must be unique within this canvas — the app
+            matches live source apps on it (the id is stored for rename-safety).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Description of the source app."
+
+        - key: "accountSourceId"
+          label: "Account Source ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            Id of the source that provides this app's accounts. Must resolve to an
+            existing source; immutable after creation.
+
+        - key: "matchAllAccounts"
+          label: "Match All Accounts"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether the app matches all accounts on its source."

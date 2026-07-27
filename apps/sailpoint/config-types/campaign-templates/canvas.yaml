@@ -1,0 +1,65 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Certification Campaign Templates
+#
+# Declares ONE campaign template — the item. Users add as many as they need. A
+# template is matched to a live one by NAME with the id stored after deploy for
+# rename-safety. Scalar fields update via JSON-Patch; the embedded campaign is a
+# JSON blob normalized by ISC on save (drift tracks the scalar fields only). This
+# manages the reusable TEMPLATE, not campaign runs; the campaign schedule is a
+# separate sub-resource and is out of scope. Reconcile deletes templates this app
+# created but no longer declares.
+#
+# Field keys must match config-types/campaign-templates/validate.ts.
+# =============================================================================
+
+id: "sailpoint-campaign-templates"
+name: "Campaign Template Configuration"
+toolType: "sailpoint"
+entityType: "campaign-templates"
+description: "Define SailPoint Identity Security Cloud certification campaign templates (name, deadline, embedded campaign definition) as code through the ISC API."
+
+item:
+  label: "Campaign Template"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Template"
+      icon: "clipboard-check"
+      description: "Name, description and deadline"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: >
+            The template name. Must be unique within this canvas — the app matches
+            live templates on it (the id is stored for rename-safety).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: "Description of the campaign template."
+
+        - key: "deadlineDuration"
+          label: "Deadline Duration"
+          fieldType: "text"
+          required: false
+          helpText: "ISO-8601 duration for the review deadline, e.g. \"P2W\" (2 weeks)."
+
+    - name: "Campaign"
+      icon: "list-checks"
+      description: "Embedded campaign definition"
+      fields:
+        - key: "campaign"
+          label: "Campaign (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The embedded campaign definition as a JSON object, e.g.
+            {"name":"Manager Cert","description":"...","type":"MANAGER","recommendationsEnabled":true}.
+            Type is one of MANAGER, SOURCE_OWNER, SEARCH or ROLE_COMPOSITION.

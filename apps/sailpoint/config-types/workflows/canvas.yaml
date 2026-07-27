@@ -1,0 +1,82 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Workflows
+#
+# Declares ONE workflow — the item. Users add as many as they need. A workflow is
+# matched to a live one by NAME with the id stored after deploy for rename-safety.
+# ISC forbids creating a workflow in an enabled state, so the app POSTs it
+# disabled and then enables it via a follow-up PATCH; updates use a full-replace
+# PUT. The trigger and definition are complex JSON graphs authored as blobs and
+# normalized by ISC on save, so drift tracks the scalar fields only. Reconcile
+# deletes workflows this app created but no longer declares.
+#
+# Field keys must match config-types/workflows/validate.ts.
+# =============================================================================
+
+id: "sailpoint-workflows"
+name: "Workflow Configuration"
+toolType: "sailpoint"
+entityType: "workflows"
+description: "Define SailPoint Identity Security Cloud workflows (name, owner, trigger, definition, enabled) as code through the ISC API."
+
+item:
+  label: "Workflow"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Workflow"
+      icon: "workflow"
+      description: "Name, owner and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The workflow name. Must be unique within this canvas — the app matches
+            live workflows on it (the id is stored after deploy for rename-safety).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the workflow."
+
+        - key: "ownerId"
+          label: "Owner Identity ID"
+          fieldType: "text"
+          required: true
+          helpText: "The id of the owning ISC Identity (required)."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: >
+            Whether the workflow is enabled. New workflows are always created
+            disabled and enabled by a follow-up call.
+
+    - name: "Logic"
+      icon: "code"
+      description: "Trigger and step definition"
+      fields:
+        - key: "trigger"
+          label: "Trigger (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The trigger as a JSON object, e.g.
+            {"type":"EVENT","attributes":{"id":"idn:access-request-dynamic-approver"}}.
+            Type is one of EVENT, SCHEDULED or EXTERNAL.
+
+        - key: "definition"
+          label: "Definition (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The workflow definition as a JSON object, e.g.
+            {"start":"Compare Numbers","steps":{...}}.

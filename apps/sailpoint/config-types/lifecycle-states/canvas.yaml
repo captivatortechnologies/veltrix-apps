@@ -1,0 +1,87 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Lifecycle States
+#
+# Declares ONE lifecycle state — the item. Users add as many as they need. A
+# lifecycle state is a nested child of an identity profile: the parent is
+# resolved by NAME to its id, and the state is keyed within that profile by its
+# technicalName. Updates use JSON-Patch. Reconcile deletes states this app
+# created (within their parent profile) but no longer declares.
+#
+# Field keys must match config-types/lifecycle-states/validate.ts.
+# =============================================================================
+
+id: "sailpoint-lifecycle-states"
+name: "Lifecycle State Configuration"
+toolType: "sailpoint"
+entityType: "lifecycle-states"
+description: "Define SailPoint Identity Security Cloud lifecycle states (per identity profile: technical name, access profiles, account actions) as code through the ISC API."
+
+item:
+  label: "Lifecycle State"
+  identityField: "technicalName"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "State"
+      icon: "activity"
+      description: "Parent profile and identity"
+      fields:
+        - key: "profileName"
+          label: "Identity Profile Name"
+          fieldType: "text"
+          required: true
+          helpText: "Name of the parent identity profile (resolved to its id at deploy time)."
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "Display name of the lifecycle state (e.g. Active, Inactive)."
+
+        - key: "technicalName"
+          label: "Technical Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: >
+            The stable internal key within the parent profile (e.g. active,
+            inactiveShort). The app matches live states on it.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the lifecycle state."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether identities may enter this lifecycle state."
+
+    - name: "Access"
+      icon: "shield"
+      description: "Access profiles and account actions"
+      fields:
+        - key: "accessProfileIds"
+          label: "Access Profile IDs"
+          fieldType: "tags"
+          required: false
+          helpText: "Ids of access profiles granted while an identity is in this state."
+
+        - key: "identityState"
+          label: "Identity State"
+          fieldType: "text"
+          required: false
+          helpText: "Optional target identity state (e.g. ACTIVE, INACTIVE_SHORT_TERM)."
+
+        - key: "accountActions"
+          label: "Account Actions (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional account actions as a JSON array, e.g.
+            [{"action":"DISABLE","sourceIds":["2c9180..."]}].

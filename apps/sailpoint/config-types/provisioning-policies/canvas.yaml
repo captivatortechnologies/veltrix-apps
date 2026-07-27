@@ -1,0 +1,72 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Provisioning Policies
+#
+# Declares ONE provisioning policy — the item. Users add as many as they need. A
+# provisioning policy is a nested child of a source: the parent is resolved by
+# NAME to its id, and the policy is keyed within that source by its usageType (a
+# fixed enum such as CREATE or UPDATE). Updates use a full-replace PUT keyed by
+# usageType. Reconcile deletes policies this app created (within their source) but
+# no longer declares.
+#
+# Field keys must match config-types/provisioning-policies/validate.ts.
+# =============================================================================
+
+id: "sailpoint-provisioning-policies"
+name: "Provisioning Policy Configuration"
+toolType: "sailpoint"
+entityType: "provisioning-policies"
+description: "Define SailPoint Identity Security Cloud provisioning policies (per source, keyed by usage type: attribute field generation) as code through the ISC API."
+
+item:
+  label: "Provisioning Policy"
+  identityField: "usageType"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "settings"
+      description: "Parent source, usage type and field generation"
+      fields:
+        - key: "sourceName"
+          label: "Source Name"
+          fieldType: "text"
+          required: true
+          helpText: "Name of the parent source (resolved to its id at deploy time)."
+
+        - key: "usageType"
+          label: "Usage Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "CREATE"
+          options:
+            - { label: "Create Account", value: "CREATE" }
+            - { label: "Update Account", value: "UPDATE" }
+            - { label: "Enable Account", value: "ENABLE" }
+            - { label: "Disable Account", value: "DISABLE" }
+            - { label: "Unlock Account", value: "UNLOCK" }
+            - { label: "Register", value: "REGISTER" }
+            - { label: "Create Identity", value: "CREATE_IDENTITY" }
+            - { label: "Edit Identity", value: "EDIT_IDENTITY" }
+            - { label: "Change Password", value: "CHANGE_PASSWORD" }
+          helpText: "The operation this policy generates attribute values for. Keyed within the source."
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "Display name of the provisioning policy."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the provisioning policy."
+
+        - key: "fields"
+          label: "Fields (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            The field generation rules as a JSON array, e.g.
+            [{"name":"email","transform":{...},"isRequired":true,"type":"string"}].

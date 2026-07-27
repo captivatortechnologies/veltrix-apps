@@ -1,0 +1,37 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Verified From-Addresses
+#
+# Declares ONE verified email from-address — the item. Users add as many as they
+# need. Addresses are keyed by EMAIL. ISC supports create + delete only (no
+# update): a declared address that is already present is left as-is, a new one is
+# created (verification then happens out-of-band via AWS SES). Reconcile deletes
+# addresses this app created but no longer declares.
+#
+# Field keys must match config-types/verified-from-addresses/validate.ts.
+# =============================================================================
+
+id: "sailpoint-verified-from-addresses"
+name: "Verified From-Address Configuration"
+toolType: "sailpoint"
+entityType: "verified-from-addresses"
+description: "Define SailPoint Identity Security Cloud verified email from-addresses as code through the ISC API (create/delete; SES verification is out-of-band)."
+
+item:
+  label: "From-Address"
+  identityField: "email"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Address"
+      icon: "at-sign"
+      description: "The email from-address"
+      fields:
+        - key: "email"
+          label: "Email"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The from-address to verify. Must be unique within this canvas. After
+            creation, SES sends a verification email that must be confirmed
+            out-of-band before the address is usable.

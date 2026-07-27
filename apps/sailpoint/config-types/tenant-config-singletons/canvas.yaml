@@ -1,0 +1,54 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Tenant Configuration Singletons
+#
+# Declares ONE tenant singleton setting — the item. Users add one per setting
+# they want to manage. Each setting is a fixed, tenant-wide singleton (no
+# create/delete): the app reads the current value, applies the desired scalars
+# (PUT-merge or JSON-Patch depending on the setting), and stores the prior value.
+# On rollback or when a setting is no longer declared, it reverts to that prior
+# snapshot.
+#
+# Field keys must match config-types/tenant-config-singletons/validate.ts.
+# =============================================================================
+
+id: "sailpoint-tenant-config-singletons"
+name: "Tenant Configuration"
+toolType: "sailpoint"
+entityType: "tenant-config-singletons"
+description: "Manage SailPoint Identity Security Cloud tenant-wide configuration singletons (access request, password org, public identities, org, and auth-org lockout/session/network/service-provider) as code."
+
+item:
+  label: "Tenant Setting"
+  identityField: "setting"
+  repeatable: true
+  minItems: 1
+  maxItems: 8
+  groups:
+    - name: "Setting"
+      icon: "sliders"
+      description: "Which singleton and its desired values"
+      fields:
+        - key: "setting"
+          label: "Setting"
+          fieldType: "select"
+          required: true
+          options:
+            - { label: "Access Request Config", value: "access-request-config" }
+            - { label: "Password Org Config", value: "password-org-config" }
+            - { label: "Public Identities Config", value: "public-identities-config" }
+            - { label: "Org Config", value: "org-config" }
+            - { label: "Auth Org — Lockout", value: "auth-org-lockout" }
+            - { label: "Auth Org — Session", value: "auth-org-session" }
+            - { label: "Auth Org — Network", value: "auth-org-network" }
+            - { label: "Auth Org — Service Provider", value: "auth-org-service-provider" }
+          helpText: "The tenant singleton to configure. Each may be declared once per canvas."
+
+        - key: "config"
+          label: "Config (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The desired top-level values as a JSON object, e.g. for
+            auth-org-lockout: {"maximumAttempts":5,"lockoutDuration":15,"lockoutWindow":10};
+            for password-org-config: {"digitTokenEnabled":true,"digitTokenLength":8}.
+            Only the keys you set are managed; others are left untouched.

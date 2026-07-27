@@ -1,0 +1,72 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Non-Employee Sources
+#
+# Declares ONE non-employee source (container) — the item. Users add as many as
+# they need. A source is matched to a live one by NAME with the id stored after
+# deploy for rename-safety. Scalar fields update via JSON-Patch. Individual
+# non-employee records (people) are per-end-user and out of scope. Reconcile
+# deletes sources this app created but no longer declares.
+#
+# Field keys must match config-types/non-employee-sources/validate.ts.
+# =============================================================================
+
+id: "sailpoint-non-employee-sources"
+name: "Non-Employee Source Configuration"
+toolType: "sailpoint"
+entityType: "non-employee-sources"
+description: "Define SailPoint Identity Security Cloud non-employee sources (name, owner, management workgroup, approvers, account managers) as code through the ISC API."
+
+item:
+  label: "Non-Employee Source"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Source"
+      icon: "users"
+      description: "Name, owner and management"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: >
+            The non-employee source name. Must be unique within this canvas — the
+            app matches live sources on it (the id is stored for rename-safety).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: "Description of the non-employee source."
+
+        - key: "ownerId"
+          label: "Owner ID"
+          fieldType: "text"
+          required: true
+          helpText: "Id of the owning Identity."
+
+        - key: "managementWorkgroup"
+          label: "Management Workgroup ID"
+          fieldType: "text"
+          required: false
+          helpText: "Optional id of the governance group managing this source."
+
+    - name: "Delegation"
+      icon: "user-check"
+      description: "Approvers and account managers"
+      fields:
+        - key: "approvers"
+          label: "Approver IDs"
+          fieldType: "tags"
+          required: false
+          helpText: "Ids of up to 3 approver identities."
+
+        - key: "accountManagers"
+          label: "Account Manager IDs"
+          fieldType: "tags"
+          required: false
+          helpText: "Ids of up to 10 account-manager identities."

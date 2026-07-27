@@ -1,0 +1,84 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Connector Rules
+#
+# Declares ONE connector rule — the item. Users add as many as they need. A rule
+# is matched to a live one by NAME with the id stored after deploy for
+# rename-safety. ISC updates via a full-replace PUT. The rule `type` is a fixed
+# enum and immutable (a same-name rule of a different type is rejected). The
+# source code is BeanShell. Reconcile deletes rules this app created but no longer
+# declares.
+#
+# Field keys must match config-types/connector-rules/validate.ts.
+# =============================================================================
+
+id: "sailpoint-connector-rules"
+name: "Connector Rule Configuration"
+toolType: "sailpoint"
+entityType: "connector-rules"
+description: "Define SailPoint Identity Security Cloud connector rules (name, type, BeanShell source code) as code through the ISC API."
+
+item:
+  label: "Connector Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Rule"
+      icon: "code-2"
+      description: "Name, type and source"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: >
+            The rule name (1–128 chars). Must be unique within this canvas — the
+            app matches live rules on it (the id is stored for rename-safety).
+
+        - key: "type"
+          label: "Type"
+          fieldType: "text"
+          required: true
+          helpText: >
+            Rule type, e.g. BuildMap, ConnectorBeforeCreate, ConnectorAfterModify,
+            WebServiceBeforeOperationRule, ResourceObjectCustomization. Immutable.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the rule."
+
+        - key: "version"
+          label: "Source Version"
+          fieldType: "text"
+          required: false
+          defaultValue: "1.0"
+          helpText: "The source code version label (e.g. 1.0)."
+
+        - key: "script"
+          label: "Source Code (BeanShell)"
+          fieldType: "textarea"
+          required: true
+          helpText: "The BeanShell source code for the rule."
+
+    - name: "Advanced"
+      icon: "sliders"
+      description: "Optional signature and attributes"
+      fields:
+        - key: "signature"
+          label: "Signature (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional input/output signature as a JSON object, e.g.
+            {"input":[{"name":"identity","type":"String"}],"output":{"name":"map","type":"Map"}}.
+
+        - key: "attributes"
+          label: "Attributes (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Optional rule attributes as a JSON object."

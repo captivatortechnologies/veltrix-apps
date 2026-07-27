@@ -1,0 +1,77 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Identity Attributes
+#
+# Declares ONE identity attribute — the item. Users add as many as they need.
+# Identity attributes are NAME-keyed (the technical name is the path key): the app
+# lists all, matches by name, PUTs an existing custom attribute or POSTs a new
+# one. Standard and system attributes cannot be modified and are refused by the
+# deploy. Reconcile deletes custom attributes this app created but no longer
+# declares.
+#
+# Field keys must match config-types/identity-attributes/validate.ts.
+# =============================================================================
+
+id: "sailpoint-identity-attributes"
+name: "Identity Attribute Configuration"
+toolType: "sailpoint"
+entityType: "identity-attributes"
+description: "Define SailPoint Identity Security Cloud custom identity attributes (name, display, type, searchable, source mappings) as code through the ISC API."
+
+item:
+  label: "Identity Attribute"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Attribute"
+      icon: "user-cog"
+      description: "Name, type and behavior"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The technical attribute name (the path key). Must be unique within
+            this canvas — the app matches live attributes on it. Only custom
+            attributes may be managed.
+
+        - key: "displayName"
+          label: "Display Name"
+          fieldType: "text"
+          required: false
+          helpText: "The human-readable label for the attribute."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "text"
+          required: false
+          defaultValue: "string"
+          helpText: "The attribute data type, e.g. string."
+
+        - key: "multi"
+          label: "Multi-Valued"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether the attribute holds multiple values."
+
+        - key: "searchable"
+          label: "Searchable"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether the attribute is indexed for search."
+
+    - name: "Sources"
+      icon: "git-merge"
+      description: "Attribute source mappings"
+      fields:
+        - key: "sources"
+          label: "Sources (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            The attribute source/transform mappings as a JSON array, e.g.
+            [{"type":"rule","properties":{"ruleType":"IdentityAttribute","ruleName":"..."}}].

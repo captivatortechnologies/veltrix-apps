@@ -1,0 +1,77 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Service Desk Integrations (SDIM)
+#
+# Declares ONE service desk integration — the item. Users add as many as they
+# need. Matched to a live one by NAME with the id stored after deploy for
+# rename-safety. The `attributes` object carries provider credentials
+# (secret-bearing): it is applied on every deploy but ISC masks it on read, so
+# drift and rollback round-trip the scalar fields only. Reconcile deletes
+# integrations this app created but no longer declares.
+#
+# Field keys must match config-types/service-desk-integrations/validate.ts.
+# =============================================================================
+
+id: "sailpoint-service-desk-integrations"
+name: "Service Desk Integration Configuration"
+toolType: "sailpoint"
+entityType: "service-desk-integrations"
+description: "Define SailPoint Identity Security Cloud service desk integrations (name, type, connection attributes) as code through the ISC API."
+
+item:
+  label: "Service Desk Integration"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Integration"
+      icon: "life-buoy"
+      description: "Name, type and ownership"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: >
+            The integration name. Must be unique within this canvas — the app
+            matches live integrations on it (the id is stored for rename-safety).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Description of the integration."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The integration type, e.g. "ServiceNowSDIM". Effectively immutable —
+            changing it means a recreate.
+
+        - key: "ownerId"
+          label: "Owner Identity ID"
+          fieldType: "text"
+          required: false
+          helpText: "Optional id of the owning ISC Identity."
+
+        - key: "clusterId"
+          label: "Cluster ID"
+          fieldType: "text"
+          required: false
+          helpText: "Optional id of the managed (VA) cluster proxying the integration."
+
+    - name: "Connection"
+      icon: "key"
+      description: "Provider connection attributes"
+      fields:
+        - key: "attributes"
+          label: "Attributes (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            The provider-specific connection attributes as a JSON object.
+            Secret-bearing — applied on each deploy but not drift-tracked.

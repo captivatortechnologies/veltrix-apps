@@ -1,0 +1,60 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC MFA Method Configuration
+#
+# Declares ONE MFA method config — the item. Users add one per method. Each method
+# (duo-web, okta-verify) is a per-method singleton written via PUT. configProperties
+# are secret-bearing: applied on every deploy but ISC masks them on read, so drift
+# tracks the enabled flag and identity attribute only. On rollback or undeclare, a
+# method this app enabled that was previously disabled is disabled again; a
+# pre-enabled method is left untouched. KBA is out of scope.
+#
+# Field keys must match config-types/mfa-configs/validate.ts.
+# =============================================================================
+
+id: "sailpoint-mfa-configs"
+name: "MFA Configuration"
+toolType: "sailpoint"
+entityType: "mfa-configs"
+description: "Configure SailPoint Identity Security Cloud MFA methods (Duo, Okta Verify) as code through the ISC API."
+
+item:
+  label: "MFA Method"
+  identityField: "method"
+  repeatable: true
+  minItems: 1
+  maxItems: 2
+  groups:
+    - name: "Method"
+      icon: "shield-check"
+      description: "Method, enablement and connection"
+      fields:
+        - key: "method"
+          label: "Method"
+          fieldType: "select"
+          required: true
+          options:
+            - { label: "Duo Web", value: "duo-web" }
+            - { label: "Okta Verify", value: "okta-verify" }
+          helpText: "The MFA method to configure. Each may be declared once per canvas."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether the method is enabled for the tenant."
+
+        - key: "identityAttribute"
+          label: "Identity Attribute"
+          fieldType: "text"
+          required: false
+          helpText: "The identity attribute used to correlate users with the MFA provider (e.g. email)."
+
+        - key: "configProperties"
+          label: "Config Properties (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            The method-specific connection properties as a JSON object (host, API
+            key/secret, etc.). Secret-bearing — applied on deploy but not
+            drift-tracked.

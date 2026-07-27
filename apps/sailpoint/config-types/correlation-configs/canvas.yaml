@@ -1,0 +1,46 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Account Correlation Configs
+#
+# Declares ONE correlation config — the item. Users add as many as they need. A
+# config is matched to a live one by NAME with the id stored after deploy for
+# rename-safety. ISC updates via a full-replace PUT. A correlation config is
+# referenced by a source's accountCorrelationConfig. Reconcile deletes configs
+# this app created but no longer declares.
+#
+# Field keys must match config-types/correlation-configs/validate.ts.
+# =============================================================================
+
+id: "sailpoint-correlation-configs"
+name: "Correlation Config Configuration"
+toolType: "sailpoint"
+entityType: "correlation-configs"
+description: "Define SailPoint Identity Security Cloud account correlation configs (name, correlation attribute assignments) as code through the ISC API."
+
+item:
+  label: "Correlation Config"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Correlation"
+      icon: "git-merge"
+      description: "Name and attribute assignments"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: >
+            The correlation config name. Must be unique within this canvas — the
+            app matches live configs on it (the id is stored for rename-safety).
+
+        - key: "attributes"
+          label: "Attributes (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            The correlation attribute assignments as a JSON array defining how
+            source accounts map to identities.

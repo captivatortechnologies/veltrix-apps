@@ -1,0 +1,118 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Separation-of-Duties (SOD) Policies
+#
+# Declares ONE SOD policy — the item. Users add as many as they need. A policy is
+# matched to a live one by NAME with the id stored after deploy for rename-safety.
+# ISC updates via a full-replace PUT. A GENERAL policy carries a search query; a
+# CONFLICTING_ACCESS_BASED policy carries entitlement conflict criteria (a JSON
+# blob). Reconcile deletes policies this app created but no longer declares.
+#
+# Field keys must match config-types/sod-policies/validate.ts.
+# =============================================================================
+
+id: "sailpoint-sod-policies"
+name: "SOD Policy Configuration"
+toolType: "sailpoint"
+entityType: "sod-policies"
+description: "Define SailPoint Identity Security Cloud separation-of-duties policies (name, owner, state, type, conflict criteria) as code through the ISC API."
+
+item:
+  label: "SOD Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "scale"
+      description: "Name, owner and enforcement"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: >
+            The SOD policy name. Must be unique within this canvas — the app
+            matches live policies on it (the id is stored for rename-safety).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the policy."
+
+        - key: "ownerType"
+          label: "Owner Type"
+          fieldType: "select"
+          required: false
+          defaultValue: "IDENTITY"
+          options:
+            - { label: "Identity", value: "IDENTITY" }
+            - { label: "Governance Group", value: "GOVERNANCE_GROUP" }
+          helpText: "Whether the owner is an Identity or a Governance Group."
+
+        - key: "ownerId"
+          label: "Owner ID"
+          fieldType: "text"
+          required: true
+          helpText: "Id of the owning Identity or Governance Group."
+
+        - key: "state"
+          label: "State"
+          fieldType: "select"
+          required: false
+          defaultValue: "NOT_ENFORCED"
+          options:
+            - { label: "Enforced", value: "ENFORCED" }
+            - { label: "Not Enforced", value: "NOT_ENFORCED" }
+          helpText: "Whether the policy is actively enforced."
+
+    - name: "Rule"
+      icon: "git-branch"
+      description: "Policy type and conflict definition"
+      fields:
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: false
+          defaultValue: "GENERAL"
+          options:
+            - { label: "General (query-based)", value: "GENERAL" }
+            - { label: "Conflicting Access", value: "CONFLICTING_ACCESS_BASED" }
+          helpText: "GENERAL uses a search query; CONFLICTING_ACCESS_BASED uses entitlement criteria."
+
+        - key: "policyQuery"
+          label: "Policy Query"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "type", equals: "GENERAL" }
+          helpText: "Search query defining the violating population (GENERAL policies)."
+
+        - key: "criteria"
+          label: "Conflicting Access Criteria (JSON)"
+          fieldType: "textarea"
+          required: false
+          visibleWhen: { field: "type", equals: "CONFLICTING_ACCESS_BASED" }
+          helpText: >
+            The conflictingAccessCriteria as a JSON object, e.g.
+            {"leftCriteria":{"criteriaList":[{"type":"ENTITLEMENT","id":"..."}]},"rightCriteria":{...}}.
+
+        - key: "compensatingControls"
+          label: "Compensating Controls"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of compensating controls."
+
+        - key: "correctionAdvice"
+          label: "Correction Advice"
+          fieldType: "text"
+          required: false
+          helpText: "Optional advice shown to reviewers on how to correct a violation."
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          required: false
+          helpText: "Optional tags for the policy."

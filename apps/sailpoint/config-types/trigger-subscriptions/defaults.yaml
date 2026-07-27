@@ -1,0 +1,7 @@
+# Defaults for a new trigger subscription item.
+#
+# A FLAT map keyed by the canvas field keys. Type defaults to HTTP, enabled true,
+# and the response deadline to PT1H; name, trigger and config start blank.
+type: "HTTP"
+enabled: true
+responseDeadline: "PT1H"

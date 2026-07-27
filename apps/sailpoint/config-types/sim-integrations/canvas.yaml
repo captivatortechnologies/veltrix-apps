@@ -1,0 +1,75 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC SIM Integrations
+#
+# Declares ONE SIM integration — the item. Users add as many as they need. The
+# older cousin of Service Desk Integrations. Matched to a live one by NAME with
+# the id stored after deploy for rename-safety. The `attributes` object is
+# secret-bearing: applied on every deploy but ISC masks it on read, so drift and
+# rollback round-trip the scalar fields only. Reconcile deletes integrations this
+# app created but no longer declares.
+#
+# Field keys must match config-types/sim-integrations/validate.ts.
+# =============================================================================
+
+id: "sailpoint-sim-integrations"
+name: "SIM Integration Configuration"
+toolType: "sailpoint"
+entityType: "sim-integrations"
+description: "Define SailPoint Identity Security Cloud SIM (Service Integration Module) integrations (name, type, cluster, connection attributes) as code through the ISC API."
+
+item:
+  label: "SIM Integration"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Integration"
+      icon: "server"
+      description: "Name, type and cluster"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: >
+            The integration name. Must be unique within this canvas — the app
+            matches live integrations on it (the id is stored for rename-safety).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Description of the integration."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "text"
+          required: true
+          helpText: 'The integration type, e.g. "ServiceNow Service Desk". Immutable.'
+
+        - key: "cluster"
+          label: "Cluster ID"
+          fieldType: "text"
+          required: true
+          helpText: "Id of the proxy (VA) cluster."
+
+        - key: "sources"
+          label: "Managed Source IDs"
+          fieldType: "tags"
+          required: false
+          helpText: "Ids of the sources this integration manages."
+
+    - name: "Connection"
+      icon: "key"
+      description: "Provider connection attributes"
+      fields:
+        - key: "attributes"
+          label: "Attributes (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            The provider-specific connection attributes as a JSON object.
+            Secret-bearing — applied on each deploy but not drift-tracked.

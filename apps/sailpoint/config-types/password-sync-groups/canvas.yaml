@@ -1,0 +1,50 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Password Sync Groups
+#
+# Declares ONE password sync group — the item. Users add as many as they need. A
+# group is matched to a live one by NAME with the id stored after deploy for
+# rename-safety. ISC updates via a full-replace PUT. The password policy id and
+# source ids must resolve to existing objects. Reconcile deletes groups this app
+# created but no longer declares.
+#
+# Field keys must match config-types/password-sync-groups/validate.ts.
+# =============================================================================
+
+id: "sailpoint-password-sync-groups"
+name: "Password Sync Group Configuration"
+toolType: "sailpoint"
+entityType: "password-sync-groups"
+description: "Define SailPoint Identity Security Cloud password sync groups (name, password policy, synced sources) as code through the ISC API."
+
+item:
+  label: "Password Sync Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Sync Group"
+      icon: "refresh-cw"
+      description: "Name, password policy and synced sources"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: >
+            The sync group name. Must be unique within this canvas — the app
+            matches live groups on it (the id is stored for rename-safety).
+
+        - key: "passwordPolicyId"
+          label: "Password Policy ID"
+          fieldType: "text"
+          required: true
+          helpText: "Id of the password policy governing this group. Must resolve to an existing policy."
+
+        - key: "sourceIds"
+          label: "Source IDs"
+          fieldType: "tags"
+          required: false
+          helpText: "Ids of the sources whose passwords are kept in sync. Must resolve to existing sources."

@@ -1,0 +1,7 @@
+# Defaults for a new SOD policy item.
+#
+# A FLAT map keyed by the canvas field keys. A new policy is a not-enforced
+# GENERAL policy owned by an Identity; name, owner and rule details start blank.
+ownerType: "IDENTITY"
+state: "NOT_ENFORCED"
+type: "GENERAL"
