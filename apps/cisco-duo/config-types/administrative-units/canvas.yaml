@@ -1,0 +1,70 @@
+# =============================================================================
+# Canvas Template — Cisco Duo Administrative Units
+#
+# Declares ONE Duo administrative unit — the item. Users add as many as needed.
+# Admin units are addressed by an opaque admin_unit_id; Duo requires their names
+# to be unique, so the app matches a declared unit to a live one by NAME and
+# stores the admin_unit_id from the deploy for rename-safety. Reconcile deletes
+# units this app created but no longer declares.
+#
+# Scope: this config type manages a unit's scalar fields (name, description and
+# the restrict_by_groups / restrict_by_integrations flags). It does NOT manage the
+# unit's admin/group/integration membership — those are opaque-id lists whose
+# modify endpoint only ADDS members, so they are assigned in the Duo Admin Panel.
+#
+# Field keys must match what config-types/administrative-units/validate.ts checks.
+# =============================================================================
+
+id: "cisco-duo-administrative-units"
+name: "Administrative Unit Configuration"
+toolType: "cisco-duo"
+entityType: "administrative-units"
+description: "Define Cisco Duo administrative units (name + description + restriction flags) as code through the Duo Admin API."
+
+item:
+  label: "Administrative Unit"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Administrative Unit"
+      icon: "shield"
+      description: "Administrative unit name, description and restriction scope"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The administrative unit's name — its identity in this canvas. Duo
+            requires it to be unique across all administrative units (the
+            admin_unit_id is stored after deploy for rename-safety).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: "Description of the administrative unit (required by the Duo Admin API)."
+
+        - key: "restrict_by_groups"
+          label: "Restrict by Groups"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: >
+            Whether this unit restricts its admins to specific user groups. Assign
+            the groups themselves in the Duo Admin Panel — this config type does
+            not manage group membership.
+
+        - key: "restrict_by_integrations"
+          label: "Restrict by Integrations"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: >
+            Whether this unit restricts its admins to specific applications
+            (integrations). Assign the integrations in the Duo Admin Panel — this
+            config type does not manage integration membership.

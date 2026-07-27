@@ -1,11 +1,11 @@
 id: cisco-duo
 name: Cisco Duo
-version: "0.3.0"
+version: "0.4.0"
 vendor: Veltrix
 description: >
   Manage Cisco Duo configuration as code through the Duo Admin API — Groups,
-  Integrations and Administrators — with validation, drift detection and rollback
-  handled by the Security-as-Code pipeline.
+  Integrations, Administrators and Administrative Units — with validation, drift
+  detection and rollback handled by the Security-as-Code pipeline.
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cisco-duo
@@ -35,9 +35,29 @@ permissions:
     - resource: admins
       actions: [read, write, delete]
       description: Manage Cisco Duo administrators (email + name + role) via the Duo Admin API
+    - resource: administrative-units
+      actions: [read, write, delete]
+      description: Manage Cisco Duo administrative units (name + description + restriction flags) via the Duo Admin API
 
 pipeline:
   configurationTypes:
+    - id: administrative-units
+      name: Administrative Units
+      description: Duo administrative units — name, description and the restrict_by_groups / restrict_by_integrations flags (name-keyed and unique, admin_unit_id stored for rename-safety; admin/group/integration membership is managed in the Duo Admin Panel)
+      canvasTemplate: config-types/administrative-units/canvas.yaml
+      defaultConfig: config-types/administrative-units/defaults.yaml
+      handlers:
+        validate: config-types/administrative-units/validate
+        deploy: config-types/administrative-units/deploy
+        rollback: config-types/administrative-units/rollback
+        healthCheck: config-types/administrative-units/healthCheck
+        driftDetect: config-types/administrative-units/driftDetect
+        getStatus: config-types/administrative-units/getStatus
+      targets:
+        componentTypes: [cisco-duo]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: admins
       name: Administrators
       description: Duo administrators — email, name and role (email-keyed, admin_id stored for email-change-safety; creating one sends a Duo activation email)

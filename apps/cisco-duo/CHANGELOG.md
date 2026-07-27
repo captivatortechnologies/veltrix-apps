@@ -8,6 +8,19 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.4.0 — 2026-07-26
+
+### Added
+- **Administrative Units** configuration type — manage Duo administrative units
+  (name, description and the `restrict_by_groups` / `restrict_by_integrations`
+  flags) as code, with the full pipeline handler set. Units are matched by name
+  (Duo requires unique names) and their `admin_unit_id` is stored for
+  rename-safety; the scalar fields are reconciled to the declared values;
+  reconcile only deletes units this app created. The unit's admin/group/
+  integration membership is intentionally not managed here — those are opaque-id
+  lists whose modify endpoint only appends, so they are assigned in the Duo Admin
+  Panel (turning a restriction flag on warns accordingly).
+
 ## 0.3.0 — 2026-07-26
 
 ### Added
