@@ -1,0 +1,65 @@
+# =============================================================================
+# Canvas Template — Entra ID Delegated Permission Grants (oauth2PermissionGrant)
+#
+# Declares ONE delegated permission grant — the item. Users add as many as they
+# need. A grant's identity is the composite (client + resource + consentType
+# [+ principal]); deploy lists grants, matches on that key and PATCHes the scope
+# or POSTs a new grant. Reconcile only deletes grants this app created.
+#
+# Field keys must match config-types/oauth2-permission-grants/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-oauth2-permission-grants"
+name: "Delegated Permission Grant Configuration"
+toolType: "microsoft-entra-id"
+entityType: "oauth2-permission-grants"
+description: "Define Entra delegated permission grants (admin-consented OAuth2 scopes) as code through the Microsoft Graph API."
+
+item:
+  label: "Delegated Permission Grant"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Delegated Permission Grant"
+      icon: "key"
+      description: "Client, resource, consent scope"
+      fields:
+        - key: "clientId"
+          label: "Client (service principal) ID"
+          fieldType: "text"
+          required: true
+          helpText: "The object id of the client service principal receiving the delegated permissions."
+
+        - key: "resourceId"
+          label: "Resource (API service principal) ID"
+          fieldType: "text"
+          required: true
+          helpText: "The object id of the API service principal that exposes the scopes."
+
+        - key: "consentType"
+          label: "Consent Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "AllPrincipals"
+          options:
+            - label: "All principals (tenant-wide)"
+              value: "AllPrincipals"
+            - label: "Single principal (specific user)"
+              value: "Principal"
+          helpText: "AllPrincipals grants for the whole tenant; Principal grants for one user."
+
+        - key: "principalId"
+          label: "Principal (user) ID"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "consentType"
+            equals: "Principal"
+          helpText: "Required only when consent type is Principal — the object id of the user."
+
+        - key: "scope"
+          label: "Scope"
+          fieldType: "text"
+          required: true
+          helpText: "Space-delimited delegated permission scopes, e.g. \"User.Read Mail.Read\"."

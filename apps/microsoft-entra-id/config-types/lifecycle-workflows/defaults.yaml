@@ -1,0 +1,10 @@
+# Defaults for a new lifecycle workflow item.
+#
+# Seeds a disabled joiner workflow with empty JSON scaffolds the author fills in.
+# Values are a FLAT map keyed by the canvas field keys.
+category: "joiner"
+description: ""
+isEnabled: false
+isSchedulingEnabled: false
+executionConditions: "{}"
+tasks: "[]"

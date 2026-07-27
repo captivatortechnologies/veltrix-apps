@@ -1,0 +1,97 @@
+# =============================================================================
+# Canvas Template — Entra ID Custom Security Attribute Definitions
+#
+# Declares ONE attribute definition — the item. Users add as many as they need.
+# The Graph identity is the composite {attributeSet}_{name}. Deploy lists
+# definitions, upserts by that id (PATCH mutable fields or POST create).
+#
+# NOTE: definitions cannot be deleted — "removal" deactivates them (status
+# Deprecated). Most fields (name, type, isCollection, isSearchable) are immutable
+# after creation; only status, usePreDefinedValuesOnly and description are mutable.
+#
+# Field keys must match config-types/custom-security-attribute-definitions/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-custom-security-attribute-definitions"
+name: "Custom Security Attribute Definition Configuration"
+toolType: "microsoft-entra-id"
+entityType: "custom-security-attribute-definitions"
+description: "Define Entra custom security attribute definitions (typed attributes within an attribute set) as code through the Microsoft Graph API. Definitions are deactivated, never deleted."
+
+item:
+  label: "Attribute Definition"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Attribute Definition"
+      icon: "tag"
+      description: "Set, name, type and status"
+      fields:
+        - key: "attributeSet"
+          label: "Attribute Set"
+          fieldType: "text"
+          required: true
+          helpText: "The id of an existing attribute set this definition belongs to."
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 32
+            pattern: "^[A-Za-z0-9_]+$"
+          helpText: "Attribute name (max 32 chars, letters/digits/underscores). Immutable after creation."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "String"
+          options:
+            - label: "String"
+              value: "String"
+            - label: "Integer"
+              value: "Integer"
+            - label: "Boolean"
+              value: "Boolean"
+          helpText: "Data type. Immutable after creation."
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          required: true
+          defaultValue: "Available"
+          options:
+            - label: "Available"
+              value: "Available"
+            - label: "Deprecated"
+              value: "Deprecated"
+          helpText: "Set to Deprecated to deactivate the attribute (it cannot be deleted)."
+
+        - key: "isCollection"
+          label: "Multi-valued (collection)"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether the attribute holds multiple values. Immutable after creation."
+
+        - key: "isSearchable"
+          label: "Searchable"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether values are indexed for search. Immutable after creation."
+
+        - key: "usePreDefinedValuesOnly"
+          label: "Restrict to predefined values"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When on, only predefined allowed values may be assigned. Can only be turned off later, not on."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description."

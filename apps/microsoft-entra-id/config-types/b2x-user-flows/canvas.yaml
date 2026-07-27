@@ -1,0 +1,46 @@
+# =============================================================================
+# Canvas Template — Entra ID Self-Service Sign-Up User Flows (b2xUserFlow)
+#
+# Declares ONE self-service sign-up user flow — the item. Users add as many as
+# they need. A flow's identity is its id (auto-prefixed to B2X_1_<id> by Graph).
+# Flows are CREATE/DELETE only — there is no update, so an existing flow is left
+# as-is. Reconcile only deletes flows this app created.
+#
+# Field keys must match config-types/b2x-user-flows/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-b2x-user-flows"
+name: "Self-Service Sign-Up Flow Configuration"
+toolType: "microsoft-entra-id"
+entityType: "b2x-user-flows"
+description: "Define Entra self-service sign-up user flows (b2xIdentityUserFlow) as code through the Microsoft Graph API. Flows are create/delete only."
+
+item:
+  label: "Sign-Up User Flow"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Sign-Up User Flow"
+      icon: "user-plus"
+      description: "Flow id and version"
+      fields:
+        - key: "id"
+          label: "Flow ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9]+$"
+          helpText: >
+            Base id (letters and digits only). Graph prefixes it to B2X_1_<id>.
+            The flow cannot be updated after creation — changing it recreates the flow.
+
+        - key: "userFlowTypeVersion"
+          label: "User Flow Type Version"
+          fieldType: "number"
+          required: true
+          defaultValue: 1
+          validation:
+            min: 1
+          helpText: "The user flow type version (typically 1). The flow type is always signUpOrSignIn."

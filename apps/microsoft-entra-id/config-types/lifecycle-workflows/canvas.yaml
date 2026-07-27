@@ -1,0 +1,90 @@
+# =============================================================================
+# Canvas Template — Entra ID Lifecycle Workflows (Joiner/Mover/Leaver)
+#
+# Declares ONE lifecycle workflow — the item. Users add as many as they need.
+# The logical identity is its NAME (displayName); deploy lists workflows, matches
+# on the name (or a stored id, rename-safe), and PATCHes (update) or POSTs
+# (create) accordingly. Reconcile only deletes workflows this app created.
+#
+# executionConditions and tasks are supplied as validated JSON. Requires a
+# Microsoft Entra ID Governance license.
+#
+# Field keys must match config-types/lifecycle-workflows/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-lifecycle-workflows"
+name: "Lifecycle Workflow Configuration"
+toolType: "microsoft-entra-id"
+entityType: "lifecycle-workflows"
+description: "Define Entra lifecycle workflows (joiner / mover / leaver automation) as code through the Microsoft Graph API. Requires Entra ID Governance."
+
+item:
+  label: "Lifecycle Workflow"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Lifecycle Workflow"
+      icon: "workflow"
+      description: "Category, enablement and tasks"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            Display name of the workflow (max 256 chars). Must be unique within
+            this canvas — it is the logical identity deploy matches on.
+
+        - key: "category"
+          label: "Category"
+          fieldType: "select"
+          required: true
+          defaultValue: "joiner"
+          options:
+            - label: "Joiner"
+              value: "joiner"
+            - label: "Mover"
+              value: "mover"
+            - label: "Leaver"
+              value: "leaver"
+          helpText: "The lifecycle category. Immutable after creation."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description."
+
+        - key: "isEnabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether the workflow is enabled."
+
+        - key: "isSchedulingEnabled"
+          label: "Scheduling enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether the workflow runs on its schedule."
+
+        - key: "executionConditions"
+          label: "Execution Conditions (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A workflowExecutionConditions JSON object with a trigger and scope, e.g.
+            {"@odata.type":"#microsoft.graph.identityGovernance.triggerAndScopeBasedConditions","scope":{...},"trigger":{...}}.
+
+        - key: "tasks"
+          label: "Tasks (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A non-empty JSON array of task objects, e.g.
+            [{"continueOnError":false,"displayName":"Enable account","taskDefinitionId":"6fc52c9d-398b-4305-9763-15f42c1676fc","arguments":[]}].

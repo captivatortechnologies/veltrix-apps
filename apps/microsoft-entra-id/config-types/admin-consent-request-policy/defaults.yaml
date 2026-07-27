@@ -1,0 +1,10 @@
+# Defaults for the admin consent request policy singleton.
+#
+# Defaults to disabled with an empty reviewers list so a freshly added item makes
+# a safe, inert configuration until the admin opts in. Values are a FLAT map keyed
+# by the canvas field keys.
+isEnabled: false
+notifyReviewers: true
+remindersEnabled: true
+requestDurationInDays: 30
+reviewers: "[]"

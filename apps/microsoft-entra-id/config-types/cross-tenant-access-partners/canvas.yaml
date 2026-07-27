@@ -1,0 +1,48 @@
+# =============================================================================
+# Canvas Template — Entra ID Cross-Tenant Access Partner Configurations
+#
+# Declares ONE B2B partner configuration — the item. Users add as many as they
+# need. A partner's logical identity is its TENANT ID (immutable); deploy lists
+# partners, creates the partner if absent (POST {tenantId}), then PATCHes the
+# declared setting objects. Reconcile only deletes partners this app created.
+#
+# Null / omitted setting objects inherit the tenant's default cross-tenant
+# configuration.
+#
+# Field keys must match config-types/cross-tenant-access-partners/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-cross-tenant-access-partners"
+name: "Cross-Tenant Access Partner Configuration"
+toolType: "microsoft-entra-id"
+entityType: "cross-tenant-access-partners"
+description: "Define Entra cross-tenant access (B2B) partner configurations as code through the Microsoft Graph API. The partner settings body is a JSON object."
+
+item:
+  label: "Cross-Tenant Partner"
+  identityField: "tenantId"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Cross-Tenant Partner"
+      icon: "building"
+      description: "Partner tenant and B2B / trust settings"
+      fields:
+        - key: "tenantId"
+          label: "Partner Tenant ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The partner's directory (tenant) ID — a GUID. This is the immutable
+            identity of the partner configuration.
+
+        - key: "configuration"
+          label: "Partner Settings (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            A JSON object of partner settings, e.g.
+            {"inboundTrust":{"isMfaAccepted":true,"isCompliantDeviceAccepted":true},"automaticUserConsentSettings":{"inboundAllowed":false,"outboundAllowed":false}}.
+            Valid keys: b2bCollaborationInbound/Outbound, b2bDirectConnectInbound/Outbound,
+            inboundTrust, automaticUserConsentSettings. Omitted keys inherit the default.

@@ -1,0 +1,33 @@
+# =============================================================================
+# Canvas Template — Entra ID Authentication Flows Policy (singleton)
+#
+# The authentication flows policy is a tenant-wide singleton whose only managed
+# field is the self-service sign-up toggle. Deploy reads it, PATCHes
+# selfServiceSignUp.isEnabled and stores the prior value for rollback. Declare it
+# at most once per canvas.
+#
+# Field keys must match config-types/authentication-flows-policy/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-authentication-flows-policy"
+name: "Authentication Flows Policy Configuration"
+toolType: "microsoft-entra-id"
+entityType: "authentication-flows-policy"
+description: "Manage the Entra authentication flows policy (self-service sign-up toggle) as code through the Microsoft Graph API. This is a tenant-wide singleton."
+
+item:
+  label: "Authentication Flows Policy"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Self-Service Sign-Up"
+      icon: "user-plus"
+      description: "External self-service sign-up flows"
+      fields:
+        - key: "selfServiceSignUpEnabled"
+          label: "Enable self-service sign-up"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When on, external users can self-service sign up through enabled user flows."

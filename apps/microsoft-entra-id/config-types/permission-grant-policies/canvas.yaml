@@ -1,0 +1,66 @@
+# =============================================================================
+# Canvas Template — Entra ID Permission Grant (App Consent) Policies
+#
+# Declares ONE permission grant policy — the item. Users add as many as they
+# need. A policy's identity is its client-supplied ID (kebab); deploy lists
+# policies, PATCHes (metadata) or POSTs (create) accordingly, then reconciles the
+# includes / excludes condition sets. Reconcile only deletes policies this app
+# created. Built-in "microsoft-*" policies are reserved and never managed.
+#
+# Field keys must match config-types/permission-grant-policies/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-permission-grant-policies"
+name: "Permission Grant Policy Configuration"
+toolType: "microsoft-entra-id"
+entityType: "permission-grant-policies"
+description: "Define Entra app consent (permission grant) policies as code through the Microsoft Graph API, including their include / exclude condition sets."
+
+item:
+  label: "Permission Grant Policy"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Permission Grant Policy"
+      icon: "check-circle"
+      description: "Id, metadata and condition sets"
+      fields:
+        - key: "id"
+          label: "Policy ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-z0-9][a-z0-9-]*$"
+          helpText: >
+            A client-supplied kebab-case id (lowercase letters, digits, hyphens),
+            e.g. "low-risk-delegated". Must not start with "microsoft-" (reserved).
+
+        - key: "displayName"
+          label: "Display Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: "Friendly name for the policy."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of what this policy auto-approves."
+
+        - key: "includes"
+          label: "Include condition sets (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            A JSON array of permissionGrantConditionSet objects that grant auto-consent, e.g.
+            [{"permissionClassification":"low","permissionType":"delegated","resourceApplication":"any","permissions":["all"],"clientApplicationIds":["all"],"clientApplicationsFromVerifiedPublisherOnly":true}].
+
+        - key: "excludes"
+          label: "Exclude condition sets (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: "A JSON array of permissionGrantConditionSet objects that are excluded from this policy. Leave [] for none."

@@ -1,0 +1,7 @@
+# Defaults for a new feature rollout policy item.
+#
+# Seeds a disabled cloud-MFA rollout the author can change. Values are a FLAT map
+# keyed by the canvas field keys.
+feature: "multiFactorAuthentication"
+isEnabled: false
+isAppliedToOrganization: false

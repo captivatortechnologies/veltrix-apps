@@ -1,0 +1,56 @@
+# =============================================================================
+# Canvas Template — Entra ID Custom Security Attribute Sets
+#
+# Declares ONE attribute set — the item. Users add as many as they need. An
+# attribute set's identity is its caller-supplied ID (immutable). Deploy lists
+# /directory/attributeSets, upserts by id (PATCH mutable fields or POST create).
+#
+# NOTE: attribute sets cannot be renamed or deleted, so this type preserves them
+# and never issues a delete — removing a set from the canvas leaves it in place.
+#
+# Field keys must match config-types/custom-security-attribute-sets/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-custom-security-attribute-sets"
+name: "Custom Security Attribute Set Configuration"
+toolType: "microsoft-entra-id"
+entityType: "custom-security-attribute-sets"
+description: "Define Entra custom security attribute sets (containers for attribute definitions) as code through the Microsoft Graph API. Sets cannot be deleted."
+
+item:
+  label: "Attribute Set"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Attribute Set"
+      icon: "folder"
+      description: "Id, description and per-set limit"
+      fields:
+        - key: "id"
+          label: "Set ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 32
+            pattern: "^[A-Za-z0-9_]+$"
+          helpText: >
+            The attribute set id (max 32 chars, letters/digits/underscores).
+            Immutable and cannot be deleted once created.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 128
+          helpText: "Optional description (max 128 chars)."
+
+        - key: "maxAttributesPerSet"
+          label: "Max attributes per set"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+          helpText: "Optional cap on the number of attribute definitions in this set. Leave blank for no limit."

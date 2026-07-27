@@ -1,0 +1,10 @@
+# Defaults for a new custom security attribute definition item.
+#
+# Seeds a single-valued String attribute in the Available state. Values are a
+# FLAT map keyed by the canvas field keys.
+type: "String"
+status: "Available"
+isCollection: false
+isSearchable: false
+usePreDefinedValuesOnly: false
+description: ""

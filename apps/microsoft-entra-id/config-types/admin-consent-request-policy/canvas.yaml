@@ -1,0 +1,65 @@
+# =============================================================================
+# Canvas Template — Entra ID Admin Consent Request Policy (singleton)
+#
+# The admin consent request policy is a tenant-wide singleton updated with a
+# full-replace PUT (not PATCH) — deploy reads it, PUTs the complete managed
+# object and stores the prior values for rollback. Declare it at most once.
+#
+# Field keys must match config-types/admin-consent-request-policy/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-admin-consent-request-policy"
+name: "Admin Consent Request Policy Configuration"
+toolType: "microsoft-entra-id"
+entityType: "admin-consent-request-policy"
+description: "Manage the Entra admin consent request workflow policy (enablement, reviewers, reminders, request duration) as code through the Microsoft Graph API. This is a tenant-wide singleton."
+
+item:
+  label: "Admin Consent Request Policy"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Admin Consent Requests"
+      icon: "inbox"
+      description: "Workflow enablement and reviewer notifications"
+      fields:
+        - key: "isEnabled"
+          label: "Enable admin consent requests"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When on, users can request admin approval for apps they cannot consent to themselves."
+
+        - key: "notifyReviewers"
+          label: "Notify reviewers of new requests"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Controls notifyReviewers."
+
+        - key: "remindersEnabled"
+          label: "Send reviewers reminder emails"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Controls remindersEnabled."
+
+        - key: "requestDurationInDays"
+          label: "Request duration (days)"
+          fieldType: "number"
+          required: true
+          defaultValue: 30
+          validation:
+            min: 1
+          helpText: "How long a request stays active before it expires with no decision."
+
+        - key: "reviewers"
+          label: "Reviewers (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            A JSON array of reviewer scopes, e.g.
+            [{"query":"/users/<id>","queryType":"MicrosoftGraph"},
+            {"query":"/groups/<id>/transitiveMembers","queryType":"MicrosoftGraph"}].
+            Leave as [] to configure no reviewers.

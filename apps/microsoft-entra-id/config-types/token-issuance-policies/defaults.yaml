@@ -1,0 +1,5 @@
+# Defaults for a new token issuance policy item.
+#
+# Seeds a minimal, valid definition (RSA-SHA256, SAML 1.1, token-only signing)
+# the author can adjust. Values are a FLAT map keyed by the canvas field keys.
+definition: '{"TokenIssuancePolicy":{"Version":1,"SigningAlgorithm":"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256","TokenResponseSigningPolicy":"TokenOnly","SamlTokenVersion":"1.1"}}'

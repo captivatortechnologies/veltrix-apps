@@ -1,0 +1,93 @@
+# =============================================================================
+# Canvas Template — Entra ID Access Package Assignment Policies
+#
+# Declares ONE assignment policy — the item. Users add as many as they need. A
+# policy belongs to an access package (referenced by package display name and
+# resolved to an id at deploy time). The logical identity is the policy NAME
+# (displayName); deploy lists policies, matches on the name (or a stored id,
+# rename-safe), and PATCHes (update) or POSTs (create, binding the package)
+# accordingly. Reconcile only deletes policies this app created.
+#
+# The nested settings (expiration, requestor, approval) are managed as JSON.
+#
+# Field keys must match config-types/entitlement-assignment-policies/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-entitlement-assignment-policies"
+name: "Assignment Policy Configuration"
+toolType: "microsoft-entra-id"
+entityType: "entitlement-assignment-policies"
+description: "Define Entra access package assignment policies (who can request, approval and expiration) as code through the Microsoft Graph API."
+
+item:
+  label: "Assignment Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Assignment Policy"
+      icon: "clipboard"
+      description: "Package, targeting and request/approval settings"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            Display name of the policy (max 256 chars). Must be unique within this
+            canvas — it is the logical identity deploy matches on.
+
+        - key: "accessPackageName"
+          label: "Access Package Name"
+          fieldType: "text"
+          required: true
+          helpText: "The display name of the access package this policy governs. Resolved to an id at deploy time."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description."
+
+        - key: "allowedTargetScope"
+          label: "Allowed Target Scope"
+          fieldType: "select"
+          required: true
+          defaultValue: "notSpecified"
+          options:
+            - label: "Not specified"
+              value: "notSpecified"
+            - label: "Specific directory users"
+              value: "specificDirectoryUsers"
+            - label: "Specific connected organization users"
+              value: "specificConnectedOrganizationUsers"
+            - label: "All member users"
+              value: "allMemberUsers"
+            - label: "All directory users"
+              value: "allDirectoryUsers"
+            - label: "All configured connected organization users"
+              value: "allConfiguredConnectedOrganizationUsers"
+            - label: "All external users"
+              value: "allExternalUsers"
+          helpText: "Who is allowed to be assigned the access package through this policy."
+
+        - key: "expiration"
+          label: "Expiration (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: 'An expirationPattern JSON object, e.g. {"type":"afterDuration","duration":"P365D"} or {"type":"noExpiration"}.'
+
+        - key: "requestorSettings"
+          label: "Requestor Settings (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: 'A requestor settings JSON object, e.g. {"enableTargetsToSelfAddAccess":true,"allowCustomAssignmentSchedule":true}.'
+
+        - key: "requestApprovalSettings"
+          label: "Request Approval Settings (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: 'An approval settings JSON object, e.g. {"isApprovalRequiredForAdd":true,"stages":[...]}.'

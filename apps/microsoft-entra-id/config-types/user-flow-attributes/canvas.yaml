@@ -1,0 +1,62 @@
+# =============================================================================
+# Canvas Template — Entra ID Custom User Flow Attributes
+#
+# Declares ONE custom user flow attribute — the item. Users add as many as they
+# need. An attribute's logical identity is its NAME (displayName); deploy lists
+# attributes (custom only), matches on the name (or a stored id, rename-safe),
+# and PATCHes (description) or POSTs (create) accordingly. Reconcile only deletes
+# custom attributes this app created. Built-in attributes are never touched.
+#
+# Field keys must match config-types/user-flow-attributes/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-user-flow-attributes"
+name: "User Flow Attribute Configuration"
+toolType: "microsoft-entra-id"
+entityType: "user-flow-attributes"
+description: "Define Entra custom user flow attributes (self-service sign-up profile fields) as code through the Microsoft Graph API. Only custom attributes are managed."
+
+item:
+  label: "User Flow Attribute"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "User Flow Attribute"
+      icon: "list"
+      description: "Name, data type and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            Display name of the attribute (max 256 chars). Must be unique within
+            this canvas — it is the logical identity deploy matches on.
+
+        - key: "dataType"
+          label: "Data Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "string"
+          options:
+            - label: "String"
+              value: "string"
+            - label: "Boolean"
+              value: "boolean"
+            - label: "Integer (int64)"
+              value: "int64"
+            - label: "String collection"
+              value: "stringCollection"
+            - label: "Date/time"
+              value: "dateTime"
+          helpText: "The attribute's data type. Immutable after creation."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description shown to administrators."

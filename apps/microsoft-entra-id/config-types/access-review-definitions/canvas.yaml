@@ -1,0 +1,69 @@
+# =============================================================================
+# Canvas Template — Entra ID Access Review Schedule Definitions
+#
+# Declares ONE access review definition — the item. Users add as many as they
+# need. The logical identity is its NAME (displayName); deploy lists definitions,
+# matches on the name (or a stored id, rename-safe), and PATCHes (update) or
+# POSTs (create) accordingly. Reconcile only deletes definitions this app created.
+#
+# The scope, reviewers and settings sub-objects are supplied as validated JSON.
+#
+# Field keys must match config-types/access-review-definitions/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-access-review-definitions"
+name: "Access Review Definition Configuration"
+toolType: "microsoft-entra-id"
+entityType: "access-review-definitions"
+description: "Define Entra access review schedule definitions (recurring reviews of group/role/access-package membership) as code through the Microsoft Graph API."
+
+item:
+  label: "Access Review Definition"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Access Review Definition"
+      icon: "check-square"
+      description: "Name, scope, reviewers and settings"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            Display name of the review (max 256 chars). Must be unique within
+            this canvas — it is the logical identity deploy matches on.
+
+        - key: "descriptionForAdmins"
+          label: "Description for admins"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description shown to administrators."
+
+        - key: "scope"
+          label: "Scope (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            An accessReviewScope JSON object, e.g.
+            {"@odata.type":"#microsoft.graph.accessReviewQueryScope","query":"/groups/<id>/transitiveMembers","queryType":"MicrosoftGraph"}.
+
+        - key: "reviewers"
+          label: "Reviewers (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A JSON array of accessReviewReviewerScope objects, e.g.
+            [{"query":"/users/<id>","queryType":"MicrosoftGraph"}].
+
+        - key: "settings"
+          label: "Settings (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            An accessReviewScheduleSettings JSON object, e.g.
+            {"recurrence":{"pattern":{"type":"monthly","interval":1}},"defaultDecision":"None","instanceDurationInDays":7,"autoApplyDecisionsEnabled":false}.

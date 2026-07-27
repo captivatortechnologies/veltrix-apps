@@ -1,0 +1,66 @@
+# =============================================================================
+# Canvas Template — Entra ID Authentication Methods Policy (per-method state)
+#
+# Declares ONE authentication method's enablement — the item. Users add one per
+# method they want to manage. A method configuration is a fixed system singleton
+# (no create/delete), so deploy PATCHes only the method's state (with the
+# required @odata.type discriminator); other per-method settings and targets are
+# left untouched. Removing a method from the canvas leaves its live state as-is.
+#
+# Field keys must match config-types/authentication-methods-policy/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-authentication-methods-policy"
+name: "Authentication Methods Configuration"
+toolType: "microsoft-entra-id"
+entityType: "authentication-methods-policy"
+description: "Manage the enablement (state) of Entra authentication methods (FIDO2, Microsoft Authenticator, SMS, TAP, email, certificate, OATH, voice) as code through the Microsoft Graph API."
+
+item:
+  label: "Authentication Method"
+  identityField: "method"
+  repeatable: true
+  minItems: 1
+  maxItems: 9
+  groups:
+    - name: "Authentication Method"
+      icon: "key"
+      description: "Which method and whether it is enabled"
+      fields:
+        - key: "method"
+          label: "Method"
+          fieldType: "select"
+          required: true
+          defaultValue: "email"
+          options:
+            - label: "FIDO2 security keys"
+              value: "fido2"
+            - label: "Microsoft Authenticator"
+              value: "microsoftAuthenticator"
+            - label: "SMS"
+              value: "sms"
+            - label: "Temporary Access Pass"
+              value: "temporaryAccessPass"
+            - label: "Email OTP"
+              value: "email"
+            - label: "Certificate-based authentication"
+              value: "x509Certificate"
+            - label: "Software OATH tokens"
+              value: "softwareOath"
+            - label: "Voice call"
+              value: "voice"
+            - label: "Hardware OATH tokens"
+              value: "hardwareOath"
+          helpText: "The authentication method to manage. Each method may be declared once per canvas."
+
+        - key: "state"
+          label: "State"
+          fieldType: "select"
+          required: true
+          defaultValue: "disabled"
+          options:
+            - label: "Enabled"
+              value: "enabled"
+            - label: "Disabled"
+              value: "disabled"
+          helpText: "Whether the method is enabled for the tenant."

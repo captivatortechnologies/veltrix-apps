@@ -1,0 +1,63 @@
+# =============================================================================
+# Canvas Template — Entra ID Application Management Policies
+#
+# Declares ONE application management policy — the item. Users add as many as
+# they need. A policy's logical identity is its NAME (displayName); deploy lists
+# policies, matches on the name (or a stored id, rename-safe), and PATCHes
+# (update) or POSTs (create) accordingly. Reconcile only deletes policies this
+# app created.
+#
+# The restrictions body enforces credential (password / key) hygiene on the app
+# registrations the policy is later assigned to.
+#
+# Field keys must match config-types/app-management-policies/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-app-management-policies"
+name: "Application Management Policy Configuration"
+toolType: "microsoft-entra-id"
+entityType: "app-management-policies"
+description: "Define Entra application management (credential restriction) policies as code through the Microsoft Graph API. The restrictions body is a JSON object."
+
+item:
+  label: "App Management Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "App Management Policy"
+      icon: "lock"
+      description: "Name, enablement and credential restrictions"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            Display name of the policy (max 256 chars). Must be unique within
+            this canvas — it is the logical identity deploy matches on.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of what this policy enforces."
+
+        - key: "isEnabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When on, the restrictions are enforced for apps this policy is assigned to."
+
+        - key: "restrictions"
+          label: "Restrictions (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            A JSON appManagementConfiguration object, e.g.
+            {"passwordCredentials":[{"restrictionType":"passwordLifetime","maxLifetime":"P90D","restrictForAppsCreatedAfterDateTime":"2019-10-19T10:37:00Z"}],"keyCredentials":[]}.
+            Leave blank for no restrictions.

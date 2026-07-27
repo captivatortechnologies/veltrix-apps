@@ -1,0 +1,48 @@
+# =============================================================================
+# Canvas Template — Entra ID Token Issuance (SAML) Policies
+#
+# Declares ONE token issuance policy — the item. Users add as many as they need.
+# A policy's logical identity is its NAME (displayName); deploy lists policies,
+# matches on the name (or a stored id, rename-safe), and PATCHes (update) or
+# POSTs (create) accordingly. Reconcile only deletes policies this app created.
+#
+# The policy body is a nested JSON "definition" controlling SAML token issuance
+# (signing algorithm, token version, response signing).
+#
+# Field keys must match config-types/token-issuance-policies/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-token-issuance-policies"
+name: "Token Issuance Policy Configuration"
+toolType: "microsoft-entra-id"
+entityType: "token-issuance-policies"
+description: "Define Entra ID SAML token issuance policies as code through the Microsoft Graph API. The policy body is a JSON definition."
+
+item:
+  label: "Token Issuance Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Token Issuance Policy"
+      icon: "key"
+      description: "Name and JSON definition"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            Display name of the policy (max 256 chars). Must be unique within
+            this canvas — it is the logical identity deploy matches on.
+
+        - key: "definition"
+          label: "Definition (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A JSON object with a "TokenIssuancePolicy" root key, e.g.
+            {"TokenIssuancePolicy":{"Version":1,"SigningAlgorithm":"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256","TokenResponseSigningPolicy":"TokenOnly","SamlTokenVersion":"1.1"}}.

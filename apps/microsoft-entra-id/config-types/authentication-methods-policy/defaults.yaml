@@ -1,0 +1,6 @@
+# Defaults for a new authentication method item.
+#
+# Seeds email OTP in the disabled state the author can change. Values are a FLAT
+# map keyed by the canvas field keys.
+method: "email"
+state: "disabled"

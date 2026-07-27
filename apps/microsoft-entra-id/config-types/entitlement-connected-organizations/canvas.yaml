@@ -1,0 +1,65 @@
+# =============================================================================
+# Canvas Template — Entra ID Entitlement Management Connected Organizations
+#
+# Declares ONE connected organization — the item. Users add as many as they
+# need. A connected org's logical identity is its NAME (displayName); deploy
+# lists organizations, matches on the name (or a stored id, rename-safe), and
+# PATCHes (update) or POSTs (create) accordingly. Reconcile only deletes
+# organizations this app created. Sponsors are not managed by this type.
+#
+# Field keys must match config-types/entitlement-connected-organizations/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-entitlement-connected-organizations"
+name: "Connected Organization Configuration"
+toolType: "microsoft-entra-id"
+entityType: "entitlement-connected-organizations"
+description: "Define Entra entitlement management connected organizations (external partner directories/domains) as code through the Microsoft Graph API."
+
+item:
+  label: "Connected Organization"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Connected Organization"
+      icon: "building"
+      description: "Name, state and identity sources"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            Display name of the connected organization (max 256 chars). Must be
+            unique within this canvas — it is the logical identity deploy matches on.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description."
+
+        - key: "state"
+          label: "State"
+          fieldType: "select"
+          required: true
+          defaultValue: "configured"
+          options:
+            - label: "Configured (active)"
+              value: "configured"
+            - label: "Proposed"
+              value: "proposed"
+          helpText: "Configured organizations are active for use in access packages."
+
+        - key: "identitySources"
+          label: "Identity Sources (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            A JSON array of identity source objects, e.g.
+            [{"@odata.type":"#microsoft.graph.azureActiveDirectoryTenant","tenantId":"<guid>","displayName":"Contoso"}]
+            or domainIdentitySource entries.

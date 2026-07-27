@@ -8,6 +8,63 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.6.0 — 2026-07-26
+
+### Added
+
+Twenty new configuration types across policy, directory, external identity and
+identity-governance surfaces of Microsoft Graph v1.0:
+
+**Tenant policy singletons**
+- **Tenant Authorization Policy** — default user/guest/consent controls
+  (allowInvitesFrom, guest role, default user role permissions) via singleton PATCH.
+- **Security Defaults** — the security defaults enforcement policy toggle.
+- **Authentication Flows Policy** — the self-service sign-up toggle.
+- **Admin Consent Request Policy** — admin consent workflow (reviewers, reminders,
+  request duration) via a full-replace PUT.
+
+**Policy collections (JSON `definition` / restrictions)**
+- **Token Issuance Policies**, **Home Realm Discovery Policies** and
+  **Activity-Based Timeout Policies** — managed via a JSON `definition` (canonicalized
+  for idempotent drift), the latter two with organization-default handling.
+- **App Management Policies** — credential (password / key) hygiene restrictions.
+- **Feature Rollout Policies** — staged rollout of cloud MFA, seamless SSO,
+  certificate-based auth, etc. (group targeting not managed).
+- **Permission Grant Policies** — app-consent policies with their include / exclude
+  condition sets reconciled as owned sets; built-in `microsoft-*` policies protected.
+- **Cross-Tenant Access Partners** — per-partner B2B collaboration / direct connect /
+  trust settings, keyed by tenant id.
+
+**Authentication methods**
+- **Authentication Methods** — per-method enablement (state) for FIDO2, Microsoft
+  Authenticator, SMS, TAP, email, certificate, OATH and voice (fixed-id PATCH).
+
+**Directory & external identity**
+- **Group Settings** — tenant/group directory settings from groupSettingTemplates
+  (guest owners, naming, classifications) via name/value pairs.
+- **Custom Security Attribute Sets** and **Definitions** — attribute governance;
+  sets are never deleted and definitions are deactivated (status Deprecated) rather
+  than deleted.
+- **External Identity Providers** — social IdPs (Google, Facebook, GitHub, …) for
+  B2B guest sign-in; the client secret is write-only.
+- **Delegated Permission Grants** — admin-consented OAuth2 scopes keyed by
+  client + resource + consent type.
+- **User Flow Attributes** — custom self-service sign-up profile fields.
+- **Self-Service Sign-Up Flows** — b2xIdentityUserFlow (create/delete only).
+
+**Identity governance (entitlement management & reviews)**
+- **Access Package Catalogs** (built-in General protected), **Access Packages**
+  (bound to a catalog) and **Assignment Policies** (targeting / approval / expiration).
+- **Connected Organizations** — external partner directories/domains.
+- **Access Review Definitions** — recurring membership reviews.
+- **Lifecycle Workflows** — joiner / mover / leaver automation (requires Entra ID
+  Governance).
+
+### Changed
+- `lib/graph.ts`: added a `put()` convenience helper and an optional per-call
+  header override on `request()` (both used by the new PUT-based / localized types),
+  leaving existing behavior unchanged.
+
 ## 0.5.0 — 2026-07-26
 
 ### Added

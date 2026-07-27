@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — Entra ID External (Social) Identity Providers
+#
+# Declares ONE external identity provider — the item. Users add as many as they
+# need. A provider's logical identity is its NAME (displayName); deploy lists
+# providers, matches on the name (or a stored id, rename-safe), and PATCHes
+# (update) or POSTs (create) accordingly. Reconcile only deletes providers this
+# app created.
+#
+# NOTE: the client secret is write-only — Graph never returns it, so it is always
+# (re)applied on deploy and is NOT compared by drift detection.
+#
+# Field keys must match config-types/external-identity-providers/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-external-identity-providers"
+name: "External Identity Provider Configuration"
+toolType: "microsoft-entra-id"
+entityType: "external-identity-providers"
+description: "Define Entra external (social) identity providers (Google, Facebook, GitHub, ...) for B2B guest sign-in as code through the Microsoft Graph API."
+
+item:
+  label: "Identity Provider"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Identity Provider"
+      icon: "log-in"
+      description: "Provider type and OAuth client credentials"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            Display name of the provider (max 256 chars). Must be unique within
+            this canvas — it is the logical identity deploy matches on.
+
+        - key: "identityProviderType"
+          label: "Provider Type"
+          fieldType: "text"
+          required: true
+          helpText: "The social provider type, e.g. Google, Facebook, GitHub, LinkedIn, Amazon. Immutable after creation."
+
+        - key: "clientId"
+          label: "Client ID"
+          fieldType: "text"
+          required: true
+          helpText: "The OAuth client (app) ID issued by the social provider."
+
+        - key: "clientSecret"
+          label: "Client Secret"
+          fieldType: "password"
+          required: true
+          helpText: "The OAuth client secret. Write-only — stored here and re-applied on each deploy; never read back or compared for drift."

@@ -1,0 +1,10 @@
+# Defaults for a new assignment policy item.
+#
+# Seeds a minimal, no-expiration / no-approval policy the author can tailor.
+# Values are a FLAT map keyed by the canvas field keys.
+accessPackageName: ""
+description: ""
+allowedTargetScope: "notSpecified"
+expiration: '{"type":"noExpiration"}'
+requestorSettings: '{"enableTargetsToSelfAddAccess":false}'
+requestApprovalSettings: '{"isApprovalRequiredForAdd":false}'

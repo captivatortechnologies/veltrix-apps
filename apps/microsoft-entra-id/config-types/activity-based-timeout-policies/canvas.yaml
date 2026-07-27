@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — Entra ID Activity-Based Timeout Policies
+#
+# Declares ONE activity based timeout policy — the item. Users add as many as
+# they need. A policy's logical identity is its NAME (displayName); deploy lists
+# policies, matches on the name (or a stored id, rename-safe), and PATCHes
+# (update) or POSTs (create) accordingly. Reconcile only deletes policies this
+# app created.
+#
+# The policy body is a nested JSON "definition" controlling idle web-session
+# sign-out.
+#
+# Field keys must match config-types/activity-based-timeout-policies/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-activity-based-timeout-policies"
+name: "Activity-Based Timeout Policy Configuration"
+toolType: "microsoft-entra-id"
+entityType: "activity-based-timeout-policies"
+description: "Define Entra ID activity-based (idle) timeout policies as code through the Microsoft Graph API. The policy body is a JSON definition."
+
+item:
+  label: "Activity-Based Timeout Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Activity-Based Timeout Policy"
+      icon: "clock"
+      description: "Name and JSON definition"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            Display name of the policy (max 256 chars). Must be unique within
+            this canvas — it is the logical identity deploy matches on.
+
+        - key: "definition"
+          label: "Definition (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A JSON object with an "ActivityBasedTimeoutPolicy" root key, e.g.
+            {"ActivityBasedTimeoutPolicy":{"Version":1,"ApplicationPolicies":[{"ApplicationId":"default","WebSessionIdleTimeout":"01:00:00"}]}}.
+            WebSessionIdleTimeout ranges from 5 minutes to 1 day.
+
+        - key: "isOrganizationDefault"
+          label: "Organization Default"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: >
+            When set, this policy applies as the organization-wide default. Only
+            one activity based timeout policy can be the organization default.

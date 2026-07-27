@@ -1,0 +1,6 @@
+# Defaults for a new home realm discovery policy item.
+#
+# Seeds a minimal, valid definition the author can adjust. Values are a FLAT map
+# keyed by the canvas field keys (name, definition, isOrganizationDefault).
+definition: '{"HomeRealmDiscoveryPolicy":{"AccelerateToFederatedDomain":false}}'
+isOrganizationDefault: false

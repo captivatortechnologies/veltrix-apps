@@ -1,0 +1,108 @@
+# =============================================================================
+# Canvas Template — Entra ID Tenant Authorization Policy (singleton)
+#
+# The authorization policy is a tenant-wide singleton (id "authorizationPolicy")
+# with no create/delete — deploy reads it, PATCHes the managed fields and stores
+# the prior values for rollback. Declare it at most once per canvas.
+#
+# Field keys must match config-types/authorization-policy/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-authorization-policy"
+name: "Tenant Authorization Policy Configuration"
+toolType: "microsoft-entra-id"
+entityType: "authorization-policy"
+description: "Manage the Entra tenant authorization policy (default user/guest/consent controls) as code through the Microsoft Graph API. This is a tenant-wide singleton."
+
+item:
+  label: "Authorization Policy"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Guest & Invitations"
+      icon: "users"
+      description: "Who can invite guests and the access level guests receive"
+      fields:
+        - key: "allowInvitesFrom"
+          label: "Who can invite guests"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - label: "Do not manage"
+              value: ""
+            - label: "No one"
+              value: "none"
+            - label: "Admins and guest inviters only"
+              value: "adminsAndGuestInviters"
+            - label: "Admins, guest inviters and all members"
+              value: "adminsGuestInvitersAndAllMembers"
+            - label: "Everyone (including guests)"
+              value: "everyone"
+          helpText: "Controls allowInvitesFrom. Leave on \"Do not manage\" to keep the tenant's current value."
+
+        - key: "guestUserRoleId"
+          label: "Guest access level"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - label: "Do not manage"
+              value: ""
+            - label: "User (same as members)"
+              value: "a0b1b346-4d3e-4e8b-98f8-753987be4970"
+            - label: "Guest User (default, limited)"
+              value: "10dae51f-b6af-4016-8d66-8c2a99b929b3"
+            - label: "Restricted Guest User (most restricted)"
+              value: "2af84b1e-32c8-42b7-82bc-daa82404023b"
+          helpText: "Controls guestUserRoleId. Leave on \"Do not manage\" to keep the current value."
+
+        - key: "allowEmailVerifiedUsersToJoinOrganization"
+          label: "Allow email-verified users to join the tenant"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When off, users cannot self-join the tenant by email validation."
+
+    - name: "User Permissions & Consent"
+      icon: "shield"
+      description: "Default user role capabilities and app consent behavior"
+      fields:
+        - key: "allowedToUseSSPR"
+          label: "Admins can use self-service password reset"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Controls allowedToUseSSPR."
+
+        - key: "allowUserConsentForRiskyApps"
+          label: "Allow user consent for risky apps"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Recommended off. Controls allowUserConsentForRiskyApps."
+
+        - key: "blockMsolPowerShell"
+          label: "Block MSOL PowerShell access"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When on, disables the legacy MSOL PowerShell service endpoint."
+
+        - key: "allowedToSignUpEmailBasedSubscriptions"
+          label: "Allow email-based subscription sign-up"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Controls allowedToSignUpEmailBasedSubscriptions."
+
+        - key: "defaultUserRolePermissions"
+          label: "Default user role permissions (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional JSON object for defaultUserRolePermissions, e.g.
+            {"allowedToCreateApps":false,"allowedToCreateSecurityGroups":false,
+            "allowedToReadOtherUsers":true,"permissionGrantPoliciesAssigned":[]}.
+            Leave blank to leave these untouched.

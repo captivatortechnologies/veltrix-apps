@@ -1,0 +1,74 @@
+# =============================================================================
+# Canvas Template — Entra ID Staged Feature Rollout Policies
+#
+# Declares ONE feature rollout policy — the item. Users add as many as they need.
+# A policy's logical identity is its NAME (displayName); deploy lists policies,
+# matches on the name (or a stored id, rename-safe), and PATCHes (update) or
+# POSTs (create) accordingly. Reconcile only deletes policies this app created.
+#
+# Scope: this type manages the policy scalars only. The appliesTo group targeting
+# is NOT managed here — set "Apply to entire organization" for org-wide rollout.
+#
+# Field keys must match config-types/feature-rollout-policies/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-feature-rollout-policies"
+name: "Feature Rollout Policy Configuration"
+toolType: "microsoft-entra-id"
+entityType: "feature-rollout-policies"
+description: "Define Entra staged feature rollout policies (e.g. cloud MFA, seamless SSO, certificate-based auth) as code through the Microsoft Graph API. Group targeting is not managed by this type."
+
+item:
+  label: "Feature Rollout Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Feature Rollout Policy"
+      icon: "flag"
+      description: "Feature, name and enablement"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            Display name of the policy (max 256 chars). Must be unique within
+            this canvas — it is the logical identity deploy matches on.
+
+        - key: "feature"
+          label: "Feature"
+          fieldType: "select"
+          required: true
+          defaultValue: "multiFactorAuthentication"
+          options:
+            - label: "Cloud multifactor authentication"
+              value: "multiFactorAuthentication"
+            - label: "Pass-through authentication"
+              value: "passthroughAuthentication"
+            - label: "Seamless single sign-on"
+              value: "seamlessSso"
+            - label: "Password hash sync"
+              value: "passwordHashSync"
+            - label: "Email as alternate ID"
+              value: "emailAsAlternateId"
+            - label: "Certificate-based authentication"
+              value: "certificateBasedAuthentication"
+          helpText: "The feature this policy stages. Immutable after creation."
+
+        - key: "isEnabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether the staged rollout is enabled."
+
+        - key: "isAppliedToOrganization"
+          label: "Apply to entire organization"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When on, the feature applies org-wide. (Group targeting is not managed by this type.)"

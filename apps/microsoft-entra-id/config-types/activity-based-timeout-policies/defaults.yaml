@@ -1,0 +1,7 @@
+# Defaults for a new activity based timeout policy item.
+#
+# Seeds a minimal, valid definition (1-hour idle web session) the author can
+# adjust. Values are a FLAT map keyed by the canvas field keys (name, definition,
+# isOrganizationDefault).
+definition: '{"ActivityBasedTimeoutPolicy":{"Version":1,"ApplicationPolicies":[{"ApplicationId":"default","WebSessionIdleTimeout":"01:00:00"}]}}'
+isOrganizationDefault: false

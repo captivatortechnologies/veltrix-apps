@@ -1,0 +1,48 @@
+# =============================================================================
+# Canvas Template — Entra ID Group (Directory) Settings
+#
+# Declares ONE tenant/group directory settings object — the item. Users add one
+# per groupSettingTemplate they want to configure. The identity is the TEMPLATE
+# ID (one settings object per template); deploy lists /groupSettings, matches on
+# templateId and PATCHes (values) or POSTs (create) accordingly. Reconcile only
+# deletes settings this app created.
+#
+# First GET /groupSettingTemplates to discover valid template ids and value names
+# (e.g. the Group.Unified template governs guest owners, naming, classifications).
+#
+# Field keys must match config-types/group-settings/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-group-settings"
+name: "Group Settings Configuration"
+toolType: "microsoft-entra-id"
+entityType: "group-settings"
+description: "Define Entra tenant/group directory settings (guest owners, group naming, classifications, creation) as code through the Microsoft Graph API, one object per groupSettingTemplate."
+
+item:
+  label: "Group Setting"
+  identityField: "templateId"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Group Setting"
+      icon: "settings"
+      description: "Template and name/value pairs"
+      fields:
+        - key: "templateId"
+          label: "Template ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The groupSettingTemplate id (a GUID) this settings object is based on,
+            e.g. the "Group.Unified" template. Discover ids via GET /groupSettingTemplates.
+
+        - key: "values"
+          label: "Values (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            A JSON array of { name, value } pairs matching the template, e.g.
+            [{"name":"EnableGroupCreation","value":"false"},{"name":"AllowGuestsToBeGroupOwner","value":"false"}].
+            Provide the complete set of values for the template.

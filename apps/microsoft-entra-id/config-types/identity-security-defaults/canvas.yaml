@@ -1,0 +1,37 @@
+# =============================================================================
+# Canvas Template — Entra ID Security Defaults (singleton)
+#
+# The security defaults enforcement policy is a tenant-wide singleton with a
+# single writable field, isEnabled. Deploy reads it, PATCHes isEnabled and stores
+# the prior value for rollback. Declare it at most once per canvas.
+#
+# Note: security defaults are mutually exclusive with Conditional Access.
+#
+# Field keys must match config-types/identity-security-defaults/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-identity-security-defaults"
+name: "Security Defaults Configuration"
+toolType: "microsoft-entra-id"
+entityType: "identity-security-defaults"
+description: "Manage the Entra security defaults enforcement policy (isEnabled) as code through the Microsoft Graph API. This is a tenant-wide singleton and is mutually exclusive with Conditional Access."
+
+item:
+  label: "Security Defaults"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Security Defaults"
+      icon: "shield"
+      description: "Enable or disable the preconfigured security defaults"
+      fields:
+        - key: "isEnabled"
+          label: "Enable security defaults"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: >
+            When on, Microsoft Entra security defaults are enforced for the tenant.
+            This is mutually exclusive with Conditional Access — enabling it blocks
+            all Conditional Access policies.

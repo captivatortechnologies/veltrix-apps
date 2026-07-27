@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — Entra ID Entitlement Management Access Packages
+#
+# Declares ONE access package — the item. Users add as many as they need. A
+# package belongs to a catalog (referenced by catalog display name and resolved
+# to an id at deploy time). The logical identity is the package NAME
+# (displayName); deploy lists packages, matches on the name (or a stored id,
+# rename-safe), and PATCHes (update) or POSTs (create, binding the catalog)
+# accordingly. Reconcile only deletes packages this app created. Resource-role
+# scopes are not managed by this type.
+#
+# Field keys must match config-types/entitlement-access-packages/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-entitlement-access-packages"
+name: "Access Package Configuration"
+toolType: "microsoft-entra-id"
+entityType: "entitlement-access-packages"
+description: "Define Entra entitlement management access packages (bundles of access within a catalog) as code through the Microsoft Graph API."
+
+item:
+  label: "Access Package"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Access Package"
+      icon: "package"
+      description: "Name, catalog and visibility"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            Display name of the access package (max 256 chars). Must be unique
+            within this canvas — it is the logical identity deploy matches on.
+
+        - key: "catalogName"
+          label: "Catalog Name"
+          fieldType: "text"
+          required: true
+          helpText: "The display name of the catalog this package belongs to. Resolved to an id at deploy time."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the access package."
+
+        - key: "isHidden"
+          label: "Hidden from requestors"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When on, the package is not shown in the requestor's My Access portal."

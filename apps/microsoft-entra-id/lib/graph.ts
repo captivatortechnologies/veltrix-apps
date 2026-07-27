@@ -137,8 +137,15 @@ export class GraphClient {
   }
 
   /** Make a Graph request. `path` is either an absolute URL (e.g. a nextLink) or a
-   *  `/v1.0`-relative path like `/identity/conditionalAccess/policies`. */
-  async request(method: GraphMethod, path: string, body?: unknown): Promise<GraphResponse> {
+   *  `/v1.0`-relative path like `/identity/conditionalAccess/policies`. `opts.headers`
+   *  merges over (and can override) the default headers — e.g. the `Accept-Language`
+   *  header the organizational-branding default-locale PUT requires. */
+  async request(
+    method: GraphMethod,
+    path: string,
+    body?: unknown,
+    opts?: { headers?: Record<string, string> },
+  ): Promise<GraphResponse> {
     const auth = await this.ensureToken()
     if (auth.error || !auth.token) {
       return { status: 0, ok: false, body: auth.error ?? 'no token', nextUrl: null }
@@ -155,6 +162,7 @@ export class GraphClient {
             Authorization: `Bearer ${auth.token}`,
             'Content-Type': 'application/json',
             Accept: 'application/json',
+            ...(opts?.headers ?? {}),
           },
           body: body === undefined ? undefined : JSON.stringify(body),
           signal: controller.signal,
@@ -200,6 +208,9 @@ export class GraphClient {
   }
   patch(path: string, body: unknown): Promise<GraphResponse> {
     return this.request('PATCH', path, body)
+  }
+  put(path: string, body: unknown, opts?: { headers?: Record<string, string> }): Promise<GraphResponse> {
+    return this.request('PUT', path, body, opts)
   }
   delete(path: string): Promise<GraphResponse> {
     return this.request('DELETE', path)

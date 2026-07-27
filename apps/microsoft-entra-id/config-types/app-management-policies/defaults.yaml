@@ -1,0 +1,7 @@
+# Defaults for a new application management policy item.
+#
+# Seeds a disabled policy with empty restrictions the author can fill in. Values
+# are a FLAT map keyed by the canvas field keys.
+description: ""
+isEnabled: false
+restrictions: '{"passwordCredentials":[],"keyCredentials":[]}'

@@ -1,0 +1,65 @@
+# =============================================================================
+# Canvas Template — Entra ID Entitlement Management Access Package Catalogs
+#
+# Declares ONE access package catalog — the item. Users add as many as they need.
+# A catalog's logical identity is its NAME (displayName); deploy lists catalogs,
+# matches on the name (or a stored id, rename-safe), and PATCHes (update) or
+# POSTs (create) accordingly. Reconcile only deletes catalogs this app created.
+#
+# The built-in service-managed catalog ("General") is protected and never
+# modified or deleted.
+#
+# Field keys must match config-types/entitlement-access-package-catalogs/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-entitlement-access-package-catalogs"
+name: "Access Package Catalog Configuration"
+toolType: "microsoft-entra-id"
+entityType: "entitlement-access-package-catalogs"
+description: "Define Entra entitlement management access package catalogs (containers for access packages) as code through the Microsoft Graph API. The built-in General catalog is protected."
+
+item:
+  label: "Access Package Catalog"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Access Package Catalog"
+      icon: "folder"
+      description: "Name, state and visibility"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            Display name of the catalog (max 256 chars). Must be unique within
+            this canvas — it is the logical identity deploy matches on.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the catalog."
+
+        - key: "state"
+          label: "State"
+          fieldType: "select"
+          required: true
+          defaultValue: "published"
+          options:
+            - label: "Published"
+              value: "published"
+            - label: "Unpublished"
+              value: "unpublished"
+          helpText: "Published catalogs can hold access packages available to requestors."
+
+        - key: "isExternallyVisible"
+          label: "Visible to external users"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When on, access packages in this catalog can be requested by users from connected organizations."
