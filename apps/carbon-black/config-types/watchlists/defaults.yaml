@@ -1,0 +1,7 @@
+# Defaults for a new watchlist item.
+#
+# A FLAT map keyed by the canvas field keys. Seeds the tagging/alerting flags
+# (tag matches, don't alert — the safe default); name, description and feed ID
+# are left blank for a deliberate choice.
+tags_enabled: true
+alerts_enabled: false

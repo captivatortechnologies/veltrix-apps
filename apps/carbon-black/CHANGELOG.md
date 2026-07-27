@@ -8,6 +8,17 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.3.0 — 2026-07-26
+
+### Added
+- **Watchlists** configuration type — manage Carbon Black Cloud watchlists that
+  subscribe to a threat feed as code, with the full pipeline handler set.
+  Watchlists are modelled as feed subscriptions (`classifier = { key: "feed_id",
+  value: <feedId> }`, no `report_ids`) and matched by name, with the stored id
+  preferred so a rename updates in place. Deploy creates via POST, updates via
+  PUT, and reconcile only deletes watchlists this app created. Invariant: alerts
+  may be enabled only when tags are enabled.
+
 ## 0.2.0 — 2026-07-26
 
 ### Added

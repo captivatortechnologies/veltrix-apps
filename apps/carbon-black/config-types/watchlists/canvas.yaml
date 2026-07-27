@@ -1,0 +1,66 @@
+# =============================================================================
+# Canvas Template — Carbon Black Cloud Watchlists
+#
+# Declares ONE feed-subscription watchlist — the item. Users add as many as they
+# need. A watchlist's identity is its NAME (watchlists are id-addressed; matched
+# by name, with the stored id preferred so a rename updates in place). Each
+# watchlist subscribes to a single threat feed (classifier feed_id); deploy
+# reconciles by deleting watchlists this app created but no longer declares.
+#
+# INVARIANT: alerts can be enabled ONLY when tags are enabled.
+#
+# Field keys must match config-types/watchlists/validate.ts.
+# =============================================================================
+
+id: "carbon-black-watchlists"
+name: "Watchlist Configuration"
+toolType: "carbon-black"
+entityType: "watchlists"
+description: "Define Carbon Black Cloud watchlists that subscribe to a threat feed (feed_id) as code through the CBC watchlist-manager API."
+
+item:
+  label: "Watchlist"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Watchlist"
+      icon: "eye"
+      description: "Watchlist metadata"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The watchlist's name — its identity. Unique within this canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "A short description of the watchlist."
+
+        - key: "feedId"
+          label: "Feed ID"
+          fieldType: "text"
+          required: true
+          helpText: "The feed_id this watchlist subscribes to (the classifier value)."
+
+    - name: "Notifications"
+      icon: "bell"
+      description: "Tagging and alerting behaviour"
+      fields:
+        - key: "tags_enabled"
+          label: "Tags Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Tag processes that match the subscribed feed's reports."
+
+        - key: "alerts_enabled"
+          label: "Alerts Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Raise alerts on matches. Requires Tags Enabled."

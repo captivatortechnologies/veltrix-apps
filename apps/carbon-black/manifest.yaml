@@ -1,11 +1,11 @@
 id: carbon-black
 name: VMware Carbon Black
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage VMware Carbon Black Cloud configuration as code through the CBC API —
-  Reputation Overrides and private Threat Feeds — with validation, drift
-  detection and rollback handled by the Security-as-Code pipeline.
+  Reputation Overrides, private Threat Feeds and Watchlists — with validation,
+  drift detection and rollback handled by the Security-as-Code pipeline.
 category: EDR
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/carbon-black
@@ -32,6 +32,9 @@ permissions:
     - resource: threat-feeds
       actions: [read, write, delete]
       description: Manage Carbon Black Cloud private threat feeds (a set of IOCs — file hashes, domains, or IPs)
+    - resource: watchlists
+      actions: [read, write, delete]
+      description: Manage Carbon Black Cloud watchlists that subscribe to a threat feed (feed_id classifier)
 
 pipeline:
   configurationTypes:
@@ -47,6 +50,23 @@ pipeline:
         healthCheck: config-types/threat-feeds/healthCheck
         driftDetect: config-types/threat-feeds/driftDetect
         getStatus: config-types/threat-feeds/getStatus
+      targets:
+        componentTypes: [carbon-black]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: watchlists
+      name: Watchlists
+      description: Watchlists that subscribe to a threat feed (feed_id classifier) with tagging/alerting (name-keyed; reconciled)
+      canvasTemplate: config-types/watchlists/canvas.yaml
+      defaultConfig: config-types/watchlists/defaults.yaml
+      handlers:
+        validate: config-types/watchlists/validate
+        deploy: config-types/watchlists/deploy
+        rollback: config-types/watchlists/rollback
+        healthCheck: config-types/watchlists/healthCheck
+        driftDetect: config-types/watchlists/driftDetect
+        getStatus: config-types/watchlists/getStatus
       targets:
         componentTypes: [carbon-black]
         requiresCredential: true
