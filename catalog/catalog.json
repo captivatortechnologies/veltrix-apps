@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-27T15:19:25.360Z",
+  "generatedAt": "2026-07-27T15:47:47.290Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -84,7 +84,7 @@
     {
       "appId": "crowdstrike-edr",
       "name": "CrowdStrike Falcon",
-      "version": "1.9.0",
+      "version": "1.10.0",
       "vendor": "Veltrix",
       "description": "Manage CrowdStrike Falcon configurations as code through the Falcon APIs. Covers Endpoint Policies (prevention, sensor update, response, USB device control, content update, custom IOA rule groups), Exclusions (ML, IOA, sensor visibility), host groups, and custom IOCs — with validation, drift detection, and rollback handled by the Security-as-Code pipeline. Configuration types are grouped by Falcon API family in the sidebar.",
       "category": "EDR",
@@ -94,11 +94,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/crowdstrike-edr",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/crowdstrike-edr-v1.9.0/crowdstrike-edr.zip",
-      "sha256": "01d9316d3658b7f6117ea322ab0d4019086da1379d3eea7e0e23764984134a4b",
-      "sizeBytes": 403413,
-      "publishedAt": "2026-07-27T15:19:25.302Z",
-      "releaseNotes": "## 1.9.0 — 2026-07-27\n\n### Added\n- **File Integrity Monitoring (FileVantage)** — a new sidebar group with three\n  configuration types on the self-contained `/filevantage/` collection:\n  - **FileVantage Policy** — per-platform FIM policy (enable/disable, host-group\n    and rule-group assignment).\n  - **FileVantage Rule Group** — reusable rule groups with their monitoring rules\n    (path, depth, watched attributes, include/exclude), rules embedded in the group.\n  - **FileVantage Scheduled Exclusion** — time-windowed suppression (recurrence,\n    timezone, processes/users/paths) bound to a policy.\n- Shared `lib/filevantageAdapter.ts` (query→get→CRUD-by-name transport for the\n  FileVantage collection), unit-tested.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/crowdstrike-edr-v1.10.0/crowdstrike-edr.zip",
+      "sha256": "94caa49deb70eb4f5762b386d387ae9e21f221b4c6c66e330c5bd6c8307d9623",
+      "sizeBytes": 641303,
+      "publishedAt": "2026-07-27T15:47:47.246Z",
+      "releaseNotes": "## 1.10.0 — 2026-07-27\n\n### Added\n- **Cloud Security** — a new sidebar group with ten configuration types across the\n  Falcon Cloud Security surface:\n  - `/cloud-policies/` family: **Custom Configuration (IOM) Rule** (Rego logic),\n    **Suppression Rule**, **Rule Override**, **Compliance Framework**, **Compliance\n    Control** (+ rule assignments).\n  - **Cloud Group** (asset grouping), **Account Registration** (AWS/Azure/GCP),\n    **Image Assessment Policy**, **Registry Connection**, **Kubernetes Admission\n    (KAC) Policy**.\n- Shared generic `lib/entityAdapter.ts` (query→get→CRUD by configurable identity)\n  powering the `/cloud-policies/` family + Cloud Groups; the bespoke registration /\n  image-assessment / registry / KAC types call the Falcon client directly.",
       "releasedAt": "2026-07-27T00:00:00.000Z"
     },
     {
