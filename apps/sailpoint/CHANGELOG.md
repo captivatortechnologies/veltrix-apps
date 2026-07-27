@@ -8,6 +8,16 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.3.0 — 2026-07-26
+
+### Added
+- **Governance Groups** configuration type — manage ISC governance groups
+  (workgroups: name, description, owner Identity) as code, with the full pipeline
+  handler set. Groups are matched by name with the id stored for rename-safety;
+  updates use JSON-Patch; each group requires an owner Identity id; membership is
+  managed separately in ISC and is out of scope; reconcile only deletes groups
+  this app created.
+
 ## 0.2.0 — 2026-07-26
 
 ### Added

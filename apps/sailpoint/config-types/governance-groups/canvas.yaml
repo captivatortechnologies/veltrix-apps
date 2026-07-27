@@ -1,0 +1,54 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Governance Groups (Workgroups)
+#
+# Declares ONE governance group — the item. Users add as many as they need.
+# The app matches a declared group to a live one by NAME and stores the id for
+# rename-safety. Updates use JSON-Patch. Each group requires an owner Identity id
+# (supply the Identity's id from ISC). Membership is managed separately in ISC
+# and is out of scope for this configuration type. Reconcile deletes groups this
+# app created but no longer declares.
+#
+# Field keys must match config-types/governance-groups/validate.ts.
+# =============================================================================
+
+id: "sailpoint-governance-groups"
+name: "Governance Group Configuration"
+toolType: "sailpoint"
+entityType: "governance-groups"
+description: "Define SailPoint Identity Security Cloud governance groups (workgroups: name, description, owner Identity) as code through the ISC API."
+
+item:
+  label: "Governance Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Governance Group"
+      icon: "users"
+      description: "Group name, description and owner"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: >
+            The governance group name. Must be unique within this canvas — the app
+            matches live groups on it (the id is stored after deploy for
+            rename-safety).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the governance group."
+
+        - key: "ownerId"
+          label: "Owner Identity ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The id of the owning ISC Identity (required). Find it in ISC under the
+            identity's details.
