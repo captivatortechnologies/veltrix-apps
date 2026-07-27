@@ -1,12 +1,13 @@
 id: fortimanager
 name: FortiManager
-version: "0.3.0"
+version: "0.4.0"
 vendor: Veltrix
 description: >
   Manage Fortinet FortiManager configuration as code through the FortiManager
-  JSON-RPC API — Firewall Address objects, custom Firewall Service objects and
-  Address Groups — with validation, drift detection and rollback handled by the
-  Security-as-Code pipeline.
+  JSON-RPC API — Firewall Address objects (IPv4 and IPv6), Wildcard FQDNs, custom
+  Firewall Service objects, Address and Service Groups, IP Pools, and recurring /
+  one-time Schedules — with validation, drift detection and rollback handled by
+  the Security-as-Code pipeline.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/fortimanager
@@ -36,9 +37,129 @@ permissions:
     - resource: firewall-address-groups
       actions: [read, write, delete]
       description: Manage FortiManager firewall address groups (named sets of member address objects) in the ADOM object database
+    - resource: firewall-service-groups
+      actions: [read, write, delete]
+      description: Manage FortiManager firewall service groups (named sets of member service objects) in the ADOM object database
+    - resource: firewall-ip-pools
+      actions: [read, write, delete]
+      description: Manage FortiManager IPv4 IP pools (overload / one-to-one source-NAT ranges) in the ADOM object database
+    - resource: firewall-schedules-recurring
+      actions: [read, write, delete]
+      description: Manage FortiManager recurring firewall schedules (weekly day + time windows) in the ADOM object database
+    - resource: firewall-schedules-onetime
+      actions: [read, write, delete]
+      description: Manage FortiManager one-time firewall schedules (single date-time windows) in the ADOM object database
+    - resource: firewall-addresses6
+      actions: [read, write, delete]
+      description: Manage FortiManager firewall IPv6 address objects (ipprefix / iprange / fqdn) in the ADOM object database
+    - resource: firewall-wildcard-fqdns
+      actions: [read, write, delete]
+      description: Manage FortiManager wildcard-FQDN address objects (e.g. *.example.com) in the ADOM object database
 
 pipeline:
   configurationTypes:
+    - id: firewall-service-groups
+      name: Firewall Service Groups
+      description: Firewall service groups — a named set of member service objects (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/firewall-service-groups/canvas.yaml
+      defaultConfig: config-types/firewall-service-groups/defaults.yaml
+      handlers:
+        validate: config-types/firewall-service-groups/validate
+        deploy: config-types/firewall-service-groups/deploy
+        rollback: config-types/firewall-service-groups/rollback
+        healthCheck: config-types/firewall-service-groups/healthCheck
+        driftDetect: config-types/firewall-service-groups/driftDetect
+        getStatus: config-types/firewall-service-groups/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewall-ip-pools
+      name: Firewall IP Pools
+      description: IPv4 IP pools — overload (PAT) or one-to-one source-NAT ranges (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/firewall-ip-pools/canvas.yaml
+      defaultConfig: config-types/firewall-ip-pools/defaults.yaml
+      handlers:
+        validate: config-types/firewall-ip-pools/validate
+        deploy: config-types/firewall-ip-pools/deploy
+        rollback: config-types/firewall-ip-pools/rollback
+        healthCheck: config-types/firewall-ip-pools/healthCheck
+        driftDetect: config-types/firewall-ip-pools/driftDetect
+        getStatus: config-types/firewall-ip-pools/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewall-schedules-recurring
+      name: Recurring Schedules
+      description: Recurring firewall schedules — weekly day(s) + start/end time window (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/firewall-schedules-recurring/canvas.yaml
+      defaultConfig: config-types/firewall-schedules-recurring/defaults.yaml
+      handlers:
+        validate: config-types/firewall-schedules-recurring/validate
+        deploy: config-types/firewall-schedules-recurring/deploy
+        rollback: config-types/firewall-schedules-recurring/rollback
+        healthCheck: config-types/firewall-schedules-recurring/healthCheck
+        driftDetect: config-types/firewall-schedules-recurring/driftDetect
+        getStatus: config-types/firewall-schedules-recurring/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewall-schedules-onetime
+      name: One-time Schedules
+      description: One-time firewall schedules — a single start/end date-time window (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/firewall-schedules-onetime/canvas.yaml
+      defaultConfig: config-types/firewall-schedules-onetime/defaults.yaml
+      handlers:
+        validate: config-types/firewall-schedules-onetime/validate
+        deploy: config-types/firewall-schedules-onetime/deploy
+        rollback: config-types/firewall-schedules-onetime/rollback
+        healthCheck: config-types/firewall-schedules-onetime/healthCheck
+        driftDetect: config-types/firewall-schedules-onetime/driftDetect
+        getStatus: config-types/firewall-schedules-onetime/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewall-addresses6
+      name: Firewall IPv6 Addresses
+      description: Firewall IPv6 address objects — IPv6 prefix, range or FQDN (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/firewall-addresses6/canvas.yaml
+      defaultConfig: config-types/firewall-addresses6/defaults.yaml
+      handlers:
+        validate: config-types/firewall-addresses6/validate
+        deploy: config-types/firewall-addresses6/deploy
+        rollback: config-types/firewall-addresses6/rollback
+        healthCheck: config-types/firewall-addresses6/healthCheck
+        driftDetect: config-types/firewall-addresses6/driftDetect
+        getStatus: config-types/firewall-addresses6/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewall-wildcard-fqdns
+      name: Wildcard FQDNs
+      description: Wildcard-FQDN address objects — domain patterns with "*" wildcards, e.g. *.example.com (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/firewall-wildcard-fqdns/canvas.yaml
+      defaultConfig: config-types/firewall-wildcard-fqdns/defaults.yaml
+      handlers:
+        validate: config-types/firewall-wildcard-fqdns/validate
+        deploy: config-types/firewall-wildcard-fqdns/deploy
+        rollback: config-types/firewall-wildcard-fqdns/rollback
+        healthCheck: config-types/firewall-wildcard-fqdns/healthCheck
+        driftDetect: config-types/firewall-wildcard-fqdns/driftDetect
+        getStatus: config-types/firewall-wildcard-fqdns/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: firewall-address-groups
       name: Firewall Address Groups
       description: Firewall address groups — a named set of member address objects (name-keyed, upserted per ADOM)

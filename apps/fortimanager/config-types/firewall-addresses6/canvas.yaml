@@ -1,0 +1,87 @@
+# =============================================================================
+# Canvas Template — FortiManager Firewall IPv6 Address Objects
+#
+# Declares ONE IPv6 firewall address — the item. Users add as many as they need.
+# An address's identity is its NAME (the FortiManager mkey); deploy lists the ADOM
+# address6 table, matches on the name, and uses `set` (create-or-replace) to
+# upsert each declared address. Reconcile deletes addresses this app created but
+# no longer declares.
+#
+# ONE item = ONE IPv6 address of type ipprefix | iprange | fqdn.
+#   ipprefix → ip6 (IPv6 prefix, e.g. 2001:db8::/32)
+#   iprange  → startIp + endIp (IPv6)
+#   fqdn     → fqdn
+#
+# Field keys must match config-types/firewall-addresses6/validate.ts.
+# =============================================================================
+
+id: "fortimanager-firewall-addresses6"
+name: "Firewall IPv6 Address Configuration"
+toolType: "fortimanager"
+entityType: "firewall-addresses6"
+description: "Define FortiManager firewall IPv6 address objects (IPv6 prefix, range or FQDN) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "Firewall IPv6 Address"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Address"
+      icon: "globe"
+      description: "Address name, type and definition"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: >
+            The IPv6 address object name — its identity (mkey) in FortiManager.
+            Must be unique within this canvas; deploy matches live addresses on it.
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "ipprefix"
+          options:
+            - label: "IPv6 prefix (ipprefix)"
+              value: "ipprefix"
+            - label: "IPv6 range"
+              value: "iprange"
+            - label: "FQDN"
+              value: "fqdn"
+          helpText: "The address kind. The fields below are used per type."
+
+        - key: "ip6"
+          label: "IPv6 Prefix"
+          fieldType: "text"
+          required: false
+          helpText: "For ipprefix: an IPv6 address/prefix, e.g. 2001:db8::/32 (a single host is /128)."
+
+        - key: "startIp"
+          label: "Start IP (IPv6)"
+          fieldType: "text"
+          required: false
+          helpText: "For iprange: the first IPv6 address in the range."
+
+        - key: "endIp"
+          label: "End IP (IPv6)"
+          fieldType: "text"
+          required: false
+          helpText: "For iprange: the last IPv6 address in the range."
+
+        - key: "fqdn"
+          label: "FQDN"
+          fieldType: "text"
+          required: false
+          helpText: "For fqdn: the fully-qualified domain name, e.g. www.example.com."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the address object."

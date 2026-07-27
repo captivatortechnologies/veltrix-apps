@@ -1,0 +1,52 @@
+# =============================================================================
+# Canvas Template — FortiManager Firewall Service Groups
+#
+# Declares ONE service group — the item. Users add as many as they need.
+# A service group's identity is its NAME (the FortiManager mkey); deploy lists
+# the ADOM service/group table, matches on the name, and uses `set`
+# (create-or-replace) to upsert each declared group. Members reference existing
+# firewall service object names (compose with the Firewall Services configuration
+# type). Reconcile deletes groups this app created but no longer declares.
+#
+# Field keys must match config-types/firewall-service-groups/validate.ts.
+# =============================================================================
+
+id: "fortimanager-firewall-service-groups"
+name: "Firewall Service Group Configuration"
+toolType: "fortimanager"
+entityType: "firewall-service-groups"
+description: "Define FortiManager firewall service groups (a named set of member service objects) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "Firewall Service Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Service Group"
+      icon: "folder"
+      description: "Group name and member services"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: "The service group name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "members"
+          label: "Member Services (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            The member service object names, one per line. Each must be an
+            existing firewall service (built-in or from the Firewall Services
+            configuration type). At least one is required.
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the service group."

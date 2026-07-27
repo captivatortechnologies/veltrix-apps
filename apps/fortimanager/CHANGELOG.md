@@ -8,6 +8,32 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.4.0 — 2026-07-26
+
+### Added
+- **Firewall Service Groups** configuration type — manage FortiManager service
+  groups (a named set of member service objects) as code; members reference
+  existing firewall services (compose with the Firewall Services type).
+  `obj/firewall/service/group`.
+- **Firewall IP Pools** configuration type — manage FortiManager IPv4 IP pools
+  (overload / one-to-one source-NAT ranges) as code, keyed by name with a start
+  and end IP. `obj/firewall/ippool`.
+- **Recurring Schedules** configuration type — manage FortiManager recurring
+  firewall schedules (one or more weekdays with a start/end time-of-day window)
+  as code. `obj/firewall/schedule/recurring`.
+- **One-time Schedules** configuration type — manage FortiManager one-time
+  firewall schedules (a single `hh:mm yyyy/mm/dd` start/end window) as code.
+  `obj/firewall/schedule/onetime`.
+- **Firewall IPv6 Addresses** configuration type — manage FortiManager IPv6
+  address objects (ipprefix / iprange / fqdn) as code, the IPv6 analog of the
+  Firewall Addresses type. `obj/firewall/address6`.
+- **Wildcard FQDNs** configuration type — manage FortiManager wildcard-FQDN
+  address objects (domain patterns with `*` wildcards, e.g. `*.example.com`) as
+  code. `obj/firewall/wildcard-fqdn/custom`.
+- All six types are name-keyed and upserted with `set`; reconcile only deletes
+  objects this app created; deploys/rollbacks run inside the ADOM workspace
+  transaction (reusing `firewall-addresses` `finishWorkspace`) when enabled.
+
 ## 0.3.0 — 2026-07-26
 
 ### Added

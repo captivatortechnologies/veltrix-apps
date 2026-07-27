@@ -1,0 +1,52 @@
+# =============================================================================
+# Canvas Template — FortiManager One-time Schedules
+#
+# Declares ONE one-time firewall schedule — the item. Users add as many as they
+# need. A schedule's identity is its NAME (the FortiManager mkey); deploy lists
+# the ADOM schedule/onetime table, matches on the name, and uses `set`
+# (create-or-replace) to upsert each declared schedule. Reconcile deletes
+# schedules this app created but no longer declares.
+#
+# A one-time schedule is active over a single date-time window:
+#   start → hh:mm yyyy/mm/dd (24-hour), e.g. 08:00 2026/01/01
+#   end   → hh:mm yyyy/mm/dd (24-hour), e.g. 18:00 2026/01/07
+#
+# Field keys must match config-types/firewall-schedules-onetime/validate.ts.
+# =============================================================================
+
+id: "fortimanager-firewall-schedules-onetime"
+name: "One-time Schedule Configuration"
+toolType: "fortimanager"
+entityType: "firewall-schedules-onetime"
+description: "Define FortiManager one-time firewall schedules (single date-time windows) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "One-time Schedule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Schedule"
+      icon: "calendar"
+      description: "Schedule name and date-time window"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: "The schedule name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "start"
+          label: "Start (hh:mm yyyy/mm/dd)"
+          fieldType: "text"
+          required: true
+          helpText: "Start date and time, 24-hour hh:mm yyyy/mm/dd (e.g. 08:00 2026/01/01)."
+
+        - key: "end"
+          label: "End (hh:mm yyyy/mm/dd)"
+          fieldType: "text"
+          required: true
+          helpText: "End date and time, 24-hour hh:mm yyyy/mm/dd (e.g. 18:00 2026/01/07)."

@@ -1,0 +1,52 @@
+# =============================================================================
+# Canvas Template — FortiManager Wildcard FQDN Addresses
+#
+# Declares ONE wildcard-FQDN address — the item. Users add as many as they need.
+# The object's identity is its NAME (the FortiManager mkey); deploy lists the ADOM
+# wildcard-fqdn/custom table, matches on the name, and uses `set`
+# (create-or-replace) to upsert each declared object. Reconcile deletes objects
+# this app created but no longer declares.
+#
+# A wildcard FQDN matches a domain pattern that contains a "*" wildcard segment,
+# e.g. *.example.com. (A plain, non-wildcard domain is better modelled as a
+# Firewall Address of type fqdn.)
+#
+# Field keys must match config-types/firewall-wildcard-fqdns/validate.ts.
+# =============================================================================
+
+id: "fortimanager-firewall-wildcard-fqdns"
+name: "Wildcard FQDN Configuration"
+toolType: "fortimanager"
+entityType: "firewall-wildcard-fqdns"
+description: "Define FortiManager wildcard-FQDN address objects (e.g. *.example.com) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "Wildcard FQDN"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Wildcard FQDN"
+      icon: "globe"
+      description: "Object name and wildcard domain pattern"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: "The object name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "wildcardFqdn"
+          label: "Wildcard FQDN"
+          fieldType: "text"
+          required: true
+          helpText: "The wildcard domain pattern, e.g. *.example.com."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the object."

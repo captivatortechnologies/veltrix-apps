@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template — FortiManager Recurring Schedules
+#
+# Declares ONE recurring (weekly) firewall schedule — the item. Users add as many
+# as they need. A schedule's identity is its NAME (the FortiManager mkey); deploy
+# lists the ADOM schedule/recurring table, matches on the name, and uses `set`
+# (create-or-replace) to upsert each declared schedule. Reconcile deletes
+# schedules this app created but no longer declares.
+#
+# A recurring schedule is active on the given weekday(s) between start and end.
+#   days  → one or more of sunday..saturday (one per line)
+#   start → time of day, hh:mm (24-hour)
+#   end   → time of day, hh:mm (24-hour)
+#
+# Field keys must match config-types/firewall-schedules-recurring/validate.ts.
+# =============================================================================
+
+id: "fortimanager-firewall-schedules-recurring"
+name: "Recurring Schedule Configuration"
+toolType: "fortimanager"
+entityType: "firewall-schedules-recurring"
+description: "Define FortiManager recurring firewall schedules (weekly day + time windows) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "Recurring Schedule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Schedule"
+      icon: "clock"
+      description: "Schedule name, days and time window"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: "The schedule name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "days"
+          label: "Days (one per line)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            One or more days of the week the schedule is active, one per line:
+            sunday, monday, tuesday, wednesday, thursday, friday, saturday.
+
+        - key: "start"
+          label: "Start Time (hh:mm)"
+          fieldType: "text"
+          required: true
+          helpText: "Time of day to start, 24-hour hh:mm (e.g. 09:00)."
+
+        - key: "end"
+          label: "End Time (hh:mm)"
+          fieldType: "text"
+          required: true
+          helpText: "Time of day to end, 24-hour hh:mm (e.g. 17:00)."

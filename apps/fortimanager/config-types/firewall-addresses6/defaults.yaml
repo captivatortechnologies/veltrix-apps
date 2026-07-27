@@ -1,0 +1,6 @@
+# Defaults for a new firewall IPv6 address item.
+#
+# A FLAT map keyed by the canvas field keys. Only the type is seeded (ipprefix,
+# the most common) so the ip6 field is the relevant one by default; name and the
+# address value are left blank for a deliberate choice.
+type: ipprefix

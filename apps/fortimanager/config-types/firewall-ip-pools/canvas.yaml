@@ -1,0 +1,71 @@
+# =============================================================================
+# Canvas Template — FortiManager Firewall IP Pools (IPv4)
+#
+# Declares ONE IPv4 IP pool — the item. Users add as many as they need.
+# A pool's identity is its NAME (the FortiManager mkey); deploy lists the ADOM
+# ippool table, matches on the name, and uses `set` (create-or-replace) to upsert
+# each declared pool. Reconcile deletes pools this app created but no longer
+# declares.
+#
+# Only the two range-only pool types are offered — both need just a start and end
+# IP:
+#   overload    → many-to-one source NAT with port translation (PAT)
+#   one-to-one  → fixed one-to-one source NAT (no port translation)
+#
+# Field keys must match config-types/firewall-ip-pools/validate.ts.
+# =============================================================================
+
+id: "fortimanager-firewall-ip-pools"
+name: "Firewall IP Pool Configuration"
+toolType: "fortimanager"
+entityType: "firewall-ip-pools"
+description: "Define FortiManager IPv4 IP pools (overload or one-to-one source-NAT ranges) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "Firewall IP Pool"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "IP Pool"
+      icon: "globe"
+      description: "Pool name, type and address range"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: "The IP pool name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "overload"
+          options:
+            - label: "Overload (PAT / many-to-one)"
+              value: "overload"
+            - label: "One-to-one (fixed 1:1)"
+              value: "one-to-one"
+          helpText: "The NAT pool type."
+
+        - key: "startIp"
+          label: "Start IP"
+          fieldType: "text"
+          required: true
+          helpText: "The first IPv4 address in the pool range."
+
+        - key: "endIp"
+          label: "End IP"
+          fieldType: "text"
+          required: true
+          helpText: "The last IPv4 address in the pool range."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the IP pool."
