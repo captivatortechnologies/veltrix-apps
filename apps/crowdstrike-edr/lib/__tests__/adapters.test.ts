@@ -12,6 +12,12 @@ import {
   exclusionGroupIds,
   type ExclusionEndpoints,
 } from '../exclusionAdapter'
+import {
+  findFileVantageByName,
+  createFileVantage,
+  deleteFileVantage,
+  type FileVantageEndpoints,
+} from '../filevantageAdapter'
 import type { FalconClient } from '../falcon'
 
 interface Call {
@@ -171,5 +177,44 @@ describe('exclusionAdapter', () => {
       err = e as Error
     }
     expect(err?.message ?? '').toMatch(/bad value/)
+  })
+})
+
+const FV: FileVantageEndpoints = {
+  entity: '/filevantage/entities/policies/v1',
+  queries: '/filevantage/queries/policies/v1',
+}
+
+describe('filevantageAdapter', () => {
+  it('finds a FileVantage object by querying ids then getting entities and pinning name', async () => {
+    const { client, calls } = mockClient((_m, path) => {
+      if (path.startsWith(FV.queries)) return { body: env(['p1', 'p2']) }
+      return { body: env([{ id: 'p1', name: 'Other' }, { id: 'p2', name: 'Prod FIM' }]) }
+    })
+    const found = await findFileVantageByName(client, FV, 'Prod FIM')
+    expect(found?.id).toBe('p2')
+    expect(calls[0].path).toBe(FV.queries)
+    expect(calls[1].path).toContain('ids=p1')
+  })
+
+  it('adopts a single case-insensitive match, else null', async () => {
+    const one = mockClient((_m, path) =>
+      path.startsWith(FV.queries) ? { body: env(['p1']) } : { body: env([{ id: 'p1', name: 'prod fim' }]) },
+    )
+    expect((await findFileVantageByName(one.client, FV, 'Prod FIM'))?.id).toBe('p1')
+  })
+
+  it('creates a FileVantage object and returns the new id', async () => {
+    const { client, calls } = mockClient(() => ({ status: 201, body: env([{ id: 'new1' }]) }))
+    const id = await createFileVantage(client, FV, { name: 'Prod FIM', platform: 'Windows' })
+    expect(id).toBe('new1')
+    expect(calls[0].method).toBe('POST')
+  })
+
+  it('deletes a FileVantage object with an ids query', async () => {
+    const { client, calls } = mockClient(() => ({ body: env([{}]) }))
+    await deleteFileVantage(client, FV, 'p9')
+    expect(calls[0].method).toBe('DELETE')
+    expect(calls[0].path).toContain('ids=p9')
   })
 })

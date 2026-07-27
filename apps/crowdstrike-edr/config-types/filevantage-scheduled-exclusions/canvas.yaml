@@ -1,0 +1,138 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon FileVantage Scheduled Exclusions
+#
+# Declares ONE scheduled exclusion — the item. Users add as many exclusions as
+# they need. Field keys must match what
+# config-types/filevantage-scheduled-exclusions/validate.ts checks.
+#
+# A scheduled exclusion is BOUND TO A FILEVANTAGE POLICY (policyId) and its
+# identity within that policy is its `name` (uniqueness per policy is enforced
+# by validate.ts). It suppresses FileVantage change monitoring for the named
+# processes/users during a time window (schedule_start..schedule_end), optionally
+# recurring daily/weekly/monthly.
+# =============================================================================
+
+id: "crowdstrike-edr-filevantage-scheduled-exclusions"
+name: "FileVantage Scheduled Exclusion Configuration"
+toolType: "crowdstrike-edr"
+entityType: "filevantage-scheduled-exclusions"
+description: "Define FileVantage scheduled exclusions (time-windowed process/user suppression bound to a policy) as code via the Falcon FileVantage API"
+
+item:
+  label: "Scheduled Exclusion"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Schedule"
+      icon: "clock"
+      description: "Exclusion identity, target policy, and active time window"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique scheduled-exclusion name within its FileVantage policy"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Why this exclusion exists — shown in the Falcon console"
+
+        - key: "policyId"
+          label: "FileVantage Policy ID"
+          fieldType: "text"
+          required: true
+          helpText: "ID of the FileVantage policy this exclusion is bound to. A scheduled exclusion cannot exist without a policy."
+
+        - key: "timezone"
+          label: "Timezone"
+          fieldType: "text"
+          required: true
+          defaultValue: "UTC"
+          helpText: "IANA timezone name used to interpret the start/end times, e.g. UTC, America/New_York, Europe/London"
+
+        - key: "scheduleStart"
+          label: "Schedule Start (RFC3339)"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]\\d{2}:\\d{2})$"
+            message: "Must be an RFC3339 timestamp, e.g. 2026-08-01T00:00:00Z"
+          helpText: "When the exclusion window begins, RFC3339 format, e.g. 2026-08-01T00:00:00Z"
+
+        - key: "scheduleEnd"
+          label: "Schedule End (RFC3339)"
+          fieldType: "text"
+          validation:
+            pattern: "^$|^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]\\d{2}:\\d{2})$"
+            message: "Must be an RFC3339 timestamp after the start, e.g. 2026-08-08T00:00:00Z (leave empty for an open-ended window)"
+          helpText: "Optional end of the exclusion window, RFC3339 format. Leave empty for an open-ended exclusion."
+
+    - name: "Recurrence"
+      icon: "clock"
+      description: "How the exclusion repeats within the schedule window"
+      fields:
+        - key: "recurrence"
+          label: "Recurrence"
+          fieldType: "select"
+          defaultValue: "never"
+          options:
+            - label: "Does not repeat (one-time window)"
+              value: "never"
+            - label: "Daily"
+              value: "daily"
+            - label: "Weekly"
+              value: "weekly"
+            - label: "Monthly"
+              value: "monthly"
+          helpText: "How often the exclusion recurs. \"Does not repeat\" applies once across the whole schedule window."
+
+        - key: "allDay"
+          label: "All Day"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Apply for the entire day on each recurrence. Uncheck to limit each recurrence to a start/end time. Ignored when recurrence is \"Does not repeat\"."
+
+        - key: "startTime"
+          label: "Recurrence Start Time (HH:MM)"
+          fieldType: "text"
+          validation:
+            pattern: "^$|^([01]\\d|2[0-3]):[0-5]\\d$"
+            message: "Must be a 24-hour HH:MM time, e.g. 22:00"
+          helpText: "Daily start time of each recurrence, 24-hour HH:MM. Required when recurring and not all-day."
+
+        - key: "endTime"
+          label: "Recurrence End Time (HH:MM)"
+          fieldType: "text"
+          validation:
+            pattern: "^$|^([01]\\d|2[0-3]):[0-5]\\d$"
+            message: "Must be a 24-hour HH:MM time, e.g. 06:00"
+          helpText: "Daily end time of each recurrence, 24-hour HH:MM. Required when recurring and not all-day."
+
+        - key: "weeklyDays"
+          label: "Weekly Days"
+          fieldType: "tags"
+          helpText: "Days of the week the exclusion recurs (monday..sunday) — required when recurrence is Weekly, ignored otherwise"
+
+        - key: "monthlyDays"
+          label: "Monthly Days"
+          fieldType: "tags"
+          helpText: "Days of the month the exclusion recurs (1–31) — required when recurrence is Monthly, ignored otherwise"
+
+    - name: "Scope"
+      icon: "eye-off"
+      description: "Processes and users FileVantage should NOT monitor during the window"
+      fields:
+        - key: "processes"
+          label: "Processes"
+          fieldType: "textarea"
+          helpText: "Comma or newline separated processes to stop monitoring during the window, e.g. C:\\backup\\agent.exe. The combined list may be up to 500 characters."
+
+        - key: "users"
+          label: "Users"
+          fieldType: "textarea"
+          helpText: "Comma or newline separated users to stop monitoring during the window, e.g. DOMAIN\\svc_backup. The combined list may be up to 500 characters. At least one process or user is required."

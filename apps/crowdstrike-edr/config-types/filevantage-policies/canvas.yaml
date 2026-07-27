@@ -1,0 +1,71 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon FileVantage Policies
+#
+# Declares ONE FileVantage (file integrity monitoring) policy — the item. Users
+# add as many policies as they need. Field keys must match what
+# config-types/filevantage-policies/validate.ts checks.
+# =============================================================================
+
+id: "crowdstrike-edr-filevantage-policies"
+name: "FileVantage Policy Configuration"
+toolType: "crowdstrike-edr"
+entityType: "filevantage-policies"
+description: "Define Falcon FileVantage (FIM) policies (platform, enablement, host group assignment, ordered rule group assignment) as code via the FileVantage Policy API"
+
+item:
+  label: "FileVantage Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "shield"
+      description: "Policy identity, assignment, and rule groups"
+      fields:
+        - key: "name"
+          label: "Policy Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique FileVantage policy name in the Falcon tenant"
+
+        - key: "platform"
+          label: "Platform"
+          fieldType: "select"
+          required: true
+          defaultValue: "Windows"
+          options:
+            - label: "Windows"
+              value: "Windows"
+            - label: "Linux"
+              value: "Linux"
+            - label: "Mac"
+              value: "Mac"
+          helpText: "Immutable after creation — the sensor platform this policy applies to"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "What this policy monitors — shown in the Falcon console"
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether the policy is active. New Falcon policies always start disabled; deployment converges to this value."
+
+        - key: "hostGroups"
+          label: "Host Group IDs"
+          fieldType: "tags"
+          helpText: "Falcon host group IDs this policy is assigned to. Deployment converges assignments to exactly this list."
+
+        - key: "ruleGroups"
+          label: "Rule Group IDs (ordered)"
+          fieldType: "textarea"
+          helpText: >
+            FileVantage rule group IDs this policy applies, one per line or
+            comma-separated. Order sets precedence — the first rule group takes
+            precedence over later ones. Deployment converges assignments to
+            exactly this list and applies this order.

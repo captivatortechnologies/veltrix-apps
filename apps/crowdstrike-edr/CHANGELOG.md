@@ -3,6 +3,20 @@
 All notable changes to the CrowdStrike Falcon app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.9.0 — 2026-07-27
+
+### Added
+- **File Integrity Monitoring (FileVantage)** — a new sidebar group with three
+  configuration types on the self-contained `/filevantage/` collection:
+  - **FileVantage Policy** — per-platform FIM policy (enable/disable, host-group
+    and rule-group assignment).
+  - **FileVantage Rule Group** — reusable rule groups with their monitoring rules
+    (path, depth, watched attributes, include/exclude), rules embedded in the group.
+  - **FileVantage Scheduled Exclusion** — time-windowed suppression (recurrence,
+    timezone, processes/users/paths) bound to a policy.
+- Shared `lib/filevantageAdapter.ts` (query→get→CRUD-by-name transport for the
+  FileVantage collection), unit-tested.
+
 ## 1.8.0 — 2026-07-27
 
 ### Added

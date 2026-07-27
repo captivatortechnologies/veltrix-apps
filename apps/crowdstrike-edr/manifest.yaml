@@ -1,6 +1,6 @@
 id: crowdstrike-edr
 name: CrowdStrike Falcon
-version: "1.8.0"
+version: "1.9.0"
 vendor: Veltrix
 description: >
   Manage CrowdStrike Falcon configurations as code through the Falcon
@@ -67,6 +67,15 @@ permissions:
     - resource: sv-exclusions
       actions: [read, write, delete]
       description: Manage CrowdStrike Falcon sensor visibility exclusions
+    - resource: filevantage-policies
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon FileVantage (file integrity monitoring) policies
+    - resource: filevantage-rule-groups
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon FileVantage rule groups and their rules
+    - resource: filevantage-scheduled-exclusions
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon FileVantage scheduled exclusions
 
 pipeline:
   configurationTypes:
@@ -263,6 +272,60 @@ pipeline:
         healthCheck: config-types/sv-exclusions/healthCheck
         driftDetect: config-types/sv-exclusions/driftDetect
         getStatus: config-types/sv-exclusions/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: filevantage-policies
+      group: "File Integrity Monitoring"
+      name: FileVantage Policy Configuration
+      description: Falcon FileVantage (FIM) policies — per-platform, enable/disable, host-group + rule-group assignment (ordered) for file integrity monitoring
+      canvasTemplate: config-types/filevantage-policies/canvas.yaml
+      defaultConfig: config-types/filevantage-policies/defaults.yaml
+      handlers:
+        validate: config-types/filevantage-policies/validate
+        deploy: config-types/filevantage-policies/deploy
+        rollback: config-types/filevantage-policies/rollback
+        healthCheck: config-types/filevantage-policies/healthCheck
+        driftDetect: config-types/filevantage-policies/driftDetect
+        getStatus: config-types/filevantage-policies/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: filevantage-rule-groups
+      group: "File Integrity Monitoring"
+      name: FileVantage Rule Group Configuration
+      description: Falcon FileVantage rule groups and their monitoring rules (path, depth, watched attributes, include/exclude) — reusable across FileVantage policies
+      canvasTemplate: config-types/filevantage-rule-groups/canvas.yaml
+      defaultConfig: config-types/filevantage-rule-groups/defaults.yaml
+      handlers:
+        validate: config-types/filevantage-rule-groups/validate
+        deploy: config-types/filevantage-rule-groups/deploy
+        rollback: config-types/filevantage-rule-groups/rollback
+        healthCheck: config-types/filevantage-rule-groups/healthCheck
+        driftDetect: config-types/filevantage-rule-groups/driftDetect
+        getStatus: config-types/filevantage-rule-groups/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: filevantage-scheduled-exclusions
+      group: "File Integrity Monitoring"
+      name: FileVantage Scheduled Exclusion Configuration
+      description: Falcon FileVantage scheduled exclusions — time-windowed suppression (recurrence, timezone, processes/users) bound to a FileVantage policy
+      canvasTemplate: config-types/filevantage-scheduled-exclusions/canvas.yaml
+      defaultConfig: config-types/filevantage-scheduled-exclusions/defaults.yaml
+      handlers:
+        validate: config-types/filevantage-scheduled-exclusions/validate
+        deploy: config-types/filevantage-scheduled-exclusions/deploy
+        rollback: config-types/filevantage-scheduled-exclusions/rollback
+        healthCheck: config-types/filevantage-scheduled-exclusions/healthCheck
+        driftDetect: config-types/filevantage-scheduled-exclusions/driftDetect
+        getStatus: config-types/filevantage-scheduled-exclusions/getStatus
       targets:
         componentTypes: [falcon-tenant]
         requiresCredential: true

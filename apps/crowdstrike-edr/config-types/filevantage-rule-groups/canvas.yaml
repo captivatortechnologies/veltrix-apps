@@ -1,0 +1,75 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon FileVantage Rule Groups
+#
+# Declares ONE FileVantage (file integrity monitoring) rule group — the item.
+# Users add as many groups as they need. A rule group is a typed collection of
+# monitoring rules that FileVantage policies reference. Field keys must match
+# what config-types/filevantage-rule-groups/validate.ts checks.
+# =============================================================================
+
+id: "crowdstrike-edr-filevantage-rule-groups"
+name: "FileVantage Rule Group Configuration"
+toolType: "crowdstrike-edr"
+entityType: "filevantage-rule-groups"
+description: "Define Falcon FileVantage rule groups and their file-integrity monitoring rules (path, depth, watched attributes, include/exclude) as code via the FileVantage API"
+
+item:
+  label: "FileVantage Rule Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "shield"
+      description: "Rule group identity, type, and monitoring rules"
+      fields:
+        - key: "name"
+          label: "Rule Group Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique rule group name in the Falcon tenant"
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "WindowsFiles"
+          options:
+            - label: "Windows — Files & Directories"
+              value: "WindowsFiles"
+            - label: "Windows — Registry"
+              value: "WindowsRegistry"
+            - label: "Linux — Files & Directories"
+              value: "LinuxFiles"
+            - label: "Mac — Files & Directories"
+              value: "MacFiles"
+          helpText: "Immutable after creation — the platform and object class this group's rules monitor (file/directory vs registry)"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "What this rule group monitors — shown in the Falcon console"
+
+        - key: "rules"
+          label: "Rules (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            JSON array of monitoring rules managed under this group. Each entry
+            mirrors the Falcon FileVantage rule body, e.g.
+            {"path": "C:\\Windows\\System32", "severity": "High",
+            "depth": "ANY", "description": "System32 changes",
+            "include": "*", "watch_write_file_changes": true,
+            "watch_delete_file_changes": true}. Required per rule: path,
+            severity (Low/Medium/High/Critical), description (1-500 chars).
+            depth is one of ANY/1/2/3/4/5 (ANY = fully recursive).
+            Watched attributes are the Falcon watch_* toggles: file/directory
+            events (watch_*_file_changes / watch_*_directory_changes) for the
+            *Files types, registry events (watch_*_key_changes /
+            watch_set_value_changes / watch_delete_value_changes) for
+            WindowsRegistry. Content capture (enable_content_capture) needs
+            content_files (files) or content_registry_values (registry) plus its
+            write/set-value watch toggle. Rules are matched by path and upserted;
+            rules not declared here are left untouched.
