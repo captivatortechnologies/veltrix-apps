@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-27T00:46:16.767Z",
+  "generatedAt": "2026-07-27T00:51:07.359Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -25,20 +25,20 @@
     {
       "appId": "cisco-duo",
       "name": "Cisco Duo",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "vendor": "Veltrix",
-      "description": "Manage Cisco Duo configuration as code through the Duo Admin API — Groups and Integrations — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
+      "description": "Manage Cisco Duo configuration as code through the Duo Admin API — Groups, Integrations and Administrators — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
       "icon": "🔐",
       "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggNDAiIHdpZHRoPSIxMjgiIGhlaWdodD0iNDAiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iQ2lzY28gRHVvIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idmR1byIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM2QkJGNEUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjM0M5QTNDIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8IS0tIE9yaWdpbmFsIGFic3RyYWN0IHNoaWVsZCArIGNoZWNrbWFyayBtYXJrIGZvciB0d28tZmFjdG9yIHRydXN0LiBOb3QgYQogICAgICAgdHJhZGVtYXJrZWQgQ2lzY28vRHVvIGxvZ28uIC0tPgogIDxwYXRoIGQ9Ik0xOCA0IEwzMSA5IFYyMSBDMzEgMjguNSAyNS40IDMzLjYgMTggMzYgQzEwLjYgMzMuNiA1IDI4LjUgNSAyMSBWOSBaIiBmaWxsPSJ1cmwoI3ZkdW8pIi8+CiAgPHBhdGggZD0iTTEyIDIwIEwxNi41IDI0LjUgTDI0LjUgMTUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyLjYiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDx0ZXh0IHg9IjQwIiB5PSIyNiIgZm9udC1mYW1pbHk9IlNlZ29lIFVJLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iY3VycmVudENvbG9yIj5DaXNjbyBEdW88L3RleHQ+Cjwvc3ZnPgo=",
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cisco-duo",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cisco-duo-v0.2.0/cisco-duo.zip",
-      "sha256": "ee19af6d75c1408f6dc7be98cb760dc8c0115da6e30fce40b9631338eb40c7de",
-      "sizeBytes": 70045,
-      "publishedAt": "2026-07-26T21:54:27.496Z",
-      "releaseNotes": "## 0.2.0 — 2026-07-26\n\n### Added\n- **Integrations** configuration type — manage Duo integrations (name + type) as\n  code, with the full pipeline handler set. Integrations are id-addressed by\n  `integration_key` with no lookup-by-name, so the app matches by name and stores\n  the key for rename-safety; the type is immutable (a same-name integration of a\n  different type is not modified); reconcile only deletes integrations this app\n  created. (Duo generates the integration secret; retrieve it from the Admin\n  Panel.)",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cisco-duo-v0.3.0/cisco-duo.zip",
+      "sha256": "0a56121bedf129bbb58facb3207b275d391ac33154c9a45e0022267f1347ad40",
+      "sizeBytes": 85648,
+      "publishedAt": "2026-07-27T00:51:07.310Z",
+      "releaseNotes": "## 0.3.0 — 2026-07-26\n\n### Added\n- **Administrators** configuration type — manage Duo administrators (email, name\n  and role) as code, with the full pipeline handler set. Admins are matched by\n  email and their `admin_id` is stored for email-change-safety; name/role are\n  reconciled to the declared values; reconcile only deletes admins this app\n  created. Creating a new administrator sends a Duo activation email; the \"Owner\"\n  role cannot be created/modified via the Admin API (declared Owners warn).",
       "releasedAt": "2026-07-26T00:00:00.000Z"
     },
     {
