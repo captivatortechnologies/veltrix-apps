@@ -1,12 +1,13 @@
 id: prisma-cloud
 name: Prisma Cloud
-version: "0.3.0"
+version: "0.4.0"
 vendor: Veltrix
 description: >
   Manage Palo Alto Prisma Cloud (CSPM) configuration as code through the Prisma
-  Cloud REST API — Custom Compliance Standards, Compliance Requirements and
-  Account Groups — with validation, drift detection and rollback handled by the
-  Security-as-Code pipeline.
+  Cloud REST API — Custom Compliance Standards, Compliance Requirements,
+  Compliance Sections, Account Groups, User Roles and Resource Lists — with
+  validation, drift detection and rollback handled by the Security-as-Code
+  pipeline.
 category: CLOUD
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/prisma-cloud
@@ -36,6 +37,15 @@ permissions:
     - resource: account-groups
       actions: [read, write, delete]
       description: Manage Prisma Cloud account groups (name, description, member cloud-account ids); auto-created groups protected
+    - resource: compliance-sections
+      actions: [read, write, delete]
+      description: Manage Prisma Cloud custom compliance sections under a custom requirement (sectionId + description + viewOrder); built-in objects protected
+    - resource: roles
+      actions: [read, write, delete]
+      description: Manage Prisma Cloud user roles (name, roleType, account groups, resource lists, restrict-dismissal); matched by name
+    - resource: resource-lists
+      actions: [read, write, delete]
+      description: Manage Prisma Cloud resource lists (name, resourceListType, members); matched by name
 
 pipeline:
   configurationTypes:
@@ -51,6 +61,57 @@ pipeline:
         healthCheck: config-types/account-groups/healthCheck
         driftDetect: config-types/account-groups/driftDetect
         getStatus: config-types/account-groups/getStatus
+      targets:
+        componentTypes: [prisma-cloud]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: compliance-sections
+      name: Compliance Sections
+      description: Custom compliance sections under a custom requirement — sectionId, description, viewOrder (matched by sectionId within the requirement; resolves parent standard by name then requirement by requirementId; built-in objects protected)
+      canvasTemplate: config-types/compliance-sections/canvas.yaml
+      defaultConfig: config-types/compliance-sections/defaults.yaml
+      handlers:
+        validate: config-types/compliance-sections/validate
+        deploy: config-types/compliance-sections/deploy
+        rollback: config-types/compliance-sections/rollback
+        healthCheck: config-types/compliance-sections/healthCheck
+        driftDetect: config-types/compliance-sections/driftDetect
+        getStatus: config-types/compliance-sections/getStatus
+      targets:
+        componentTypes: [prisma-cloud]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: roles
+      name: Roles
+      description: User roles — name, roleType (built-in or custom permission group), account groups, resource lists, restrict-dismissal (matched by name; the id is stored for rename-safety; reconcile only deletes roles this app created)
+      canvasTemplate: config-types/roles/canvas.yaml
+      defaultConfig: config-types/roles/defaults.yaml
+      handlers:
+        validate: config-types/roles/validate
+        deploy: config-types/roles/deploy
+        rollback: config-types/roles/rollback
+        healthCheck: config-types/roles/healthCheck
+        driftDetect: config-types/roles/driftDetect
+        getStatus: config-types/roles/getStatus
+      targets:
+        componentTypes: [prisma-cloud]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: resource-lists
+      name: Resource Lists
+      description: Resource lists — name, resourceListType (TAG, RESOURCE_GROUP, COMPUTE_ACCESS_GROUP) and members as JSON (matched by name; the id is stored for rename-safety; reconcile only deletes lists this app created)
+      canvasTemplate: config-types/resource-lists/canvas.yaml
+      defaultConfig: config-types/resource-lists/defaults.yaml
+      handlers:
+        validate: config-types/resource-lists/validate
+        deploy: config-types/resource-lists/deploy
+        rollback: config-types/resource-lists/rollback
+        healthCheck: config-types/resource-lists/healthCheck
+        driftDetect: config-types/resource-lists/driftDetect
+        getStatus: config-types/resource-lists/getStatus
       targets:
         componentTypes: [prisma-cloud]
         requiresCredential: true

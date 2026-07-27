@@ -1,0 +1,76 @@
+# =============================================================================
+# Canvas Template — Prisma Cloud User Roles
+#
+# Declares ONE role — the item. Users add as many as they need. Prisma Cloud
+# roles are id-addressed; the app matches a declared role to a live one by NAME
+# (storing the id for rename-safety). roleType is a built-in role type OR a custom
+# permission group name. Reconcile deletes roles this app created but no longer
+# declares (a role still assigned to users may be blocked from deletion by Prisma).
+#
+# Field keys must match config-types/roles/validate.ts.
+# =============================================================================
+
+id: "prisma-cloud-roles"
+name: "Role Configuration"
+toolType: "prisma-cloud"
+entityType: "roles"
+description: "Define Prisma Cloud user roles (name, role type, account groups, resource lists) as code through the Prisma Cloud CSPM API."
+
+item:
+  label: "Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Role"
+      icon: "user-cog"
+      description: "Role name, type and scope"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The role name. Must be unique within this canvas — the app matches
+            live roles on it (the id is stored after deploy for rename-safety).
+
+        - key: "roleType"
+          label: "Role Type"
+          fieldType: "text"
+          required: true
+          helpText: >
+            A built-in role type — "System Admin", "Account Group Admin",
+            "Account Group Read Only", "Cloud Provisioning Admin", "Account and
+            Cloud Provisioning Admin", "Build and Deploy Security" — or the name
+            of a custom Permission Group.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Optional description of the role."
+
+        - key: "accountGroupIds"
+          label: "Account Group IDs (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            The account group ids this role can access, one per line. Not used by
+            System Admin or Build and Deploy Security roles.
+
+        - key: "resourceListIds"
+          label: "Resource List IDs (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "The resource list ids associated with this role, one per line."
+
+        - key: "restrictDismissalAccess"
+          label: "Restrict Alert Dismissal"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether this role is restricted from dismissing alerts."

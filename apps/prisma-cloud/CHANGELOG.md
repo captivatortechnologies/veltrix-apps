@@ -8,6 +8,27 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.4.0 — 2026-07-26
+
+### Added
+- **Compliance Sections** configuration type — manage custom compliance sections
+  under a custom requirement as code, completing the standard → requirement →
+  section tree. Each section resolves its parent standard by name then its parent
+  requirement by `requirementId`, and is matched by `sectionId` within the
+  requirement (the id is stored for rename-safety) and reconciled
+  (description/viewOrder). Built-in standards, requirements and sections are
+  protected; reconcile only deletes sections this app created.
+- **Roles** configuration type — manage Prisma Cloud user roles (name, roleType,
+  account groups, resource lists, restrict-dismissal) as code. `roleType` may be a
+  built-in role type or a custom permission group name. Roles are matched by name
+  (the id is stored for rename-safety) and reconciled; reconcile only deletes
+  roles this app created.
+- **Resource Lists** configuration type — manage Prisma Cloud resource lists
+  (name, resourceListType of TAG / RESOURCE_GROUP / COMPUTE_ACCESS_GROUP, and
+  members as a JSON array) as code. Lists are matched by name (the id is stored
+  for rename-safety) and reconciled; reconcile only deletes lists this app
+  created.
+
 ## 0.3.0 — 2026-07-26
 
 ### Added

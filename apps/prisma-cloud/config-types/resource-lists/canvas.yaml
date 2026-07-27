@@ -1,0 +1,70 @@
+# =============================================================================
+# Canvas Template — Prisma Cloud Resource Lists
+#
+# Declares ONE resource list — the item. Users add as many as they need. Prisma
+# Cloud resource lists are id-addressed; the app matches a declared list to a
+# live one by NAME (storing the id for rename-safety). The `members` field is a
+# JSON array whose element shape depends on the resource list type:
+#   TAG                  -> [{ "key": "env", "value": "prod" }]
+#   RESOURCE_GROUP       -> ["/subscriptions/…/resourceGroups/rg-name"]
+#   COMPUTE_ACCESS_GROUP -> [{ "hosts": ["*"], "images": ["*"], … }]
+# Reconcile deletes resource lists this app created but no longer declares.
+#
+# Field keys must match config-types/resource-lists/validate.ts.
+# =============================================================================
+
+id: "prisma-cloud-resource-lists"
+name: "Resource List Configuration"
+toolType: "prisma-cloud"
+entityType: "resource-lists"
+description: "Define Prisma Cloud resource lists (name, type, members) as code through the Prisma Cloud CSPM API."
+
+item:
+  label: "Resource List"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Resource List"
+      icon: "list"
+      description: "List name, type and members"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The resource list name. Must be unique within this canvas — the app
+            matches live lists on it (the id is stored after deploy for
+            rename-safety).
+
+        - key: "resourceListType"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "TAG"
+          options:
+            - { label: "Tags", value: "TAG" }
+            - { label: "Azure Resource Groups", value: "RESOURCE_GROUP" }
+            - { label: "Compute Access Groups", value: "COMPUTE_ACCESS_GROUP" }
+          helpText: "The kind of members this list holds — it determines the members JSON shape."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Optional description of the resource list."
+
+        - key: "members"
+          label: "Members (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            A JSON array of members. TAG -> [{"key":"env","value":"prod"}];
+            RESOURCE_GROUP -> ["/subscriptions/…/resourceGroups/rg"];
+            COMPUTE_ACCESS_GROUP -> [{"hosts":["*"],"images":["*"]}].

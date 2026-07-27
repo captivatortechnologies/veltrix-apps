@@ -1,0 +1,73 @@
+# =============================================================================
+# Canvas Template — Prisma Cloud Custom Compliance Sections
+#
+# Declares ONE section — the item — belonging to a custom compliance requirement
+# (which belongs to a custom standard). Sections complete the three-level
+# standard -> requirement -> section tree. At deploy the app resolves the parent
+# standard by NAME, then the parent requirement by its requirementId within that
+# standard, then matches a declared section to a live one by its sectionId within
+# that requirement (storing the section id for rename-safety). Built-in (system
+# default) standards, requirements and sections are protected. Reconcile deletes
+# sections this app created but no longer declares.
+#
+# Field keys must match config-types/compliance-sections/validate.ts.
+# =============================================================================
+
+id: "prisma-cloud-compliance-sections"
+name: "Compliance Section Configuration"
+toolType: "prisma-cloud"
+entityType: "compliance-sections"
+description: "Define Prisma Cloud custom compliance sections (under a custom requirement) as code through the Prisma Cloud CSPM API."
+
+item:
+  label: "Compliance Section"
+  identityField: "sectionId"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Section"
+      icon: "list-checks"
+      description: "The parent standard and requirement, plus the section's code and description"
+      fields:
+        - key: "standardName"
+          label: "Parent Standard Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The name of the custom compliance standard the parent requirement
+            belongs to. It must already exist — declare it on the Compliance
+            Standards canvas first. Built-in standards cannot take custom content.
+
+        - key: "requirementId"
+          label: "Parent Requirement ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The requirementId (short code, e.g. "1.1") of the parent requirement.
+            It must already exist — declare it on the Compliance Requirements
+            canvas first.
+
+        - key: "sectionId"
+          label: "Section ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The section's short code (e.g. "1.1.1"). Its identity within the
+            requirement — unique per (standard, requirement, section) in this canvas.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Optional description of the section."
+
+        - key: "viewOrder"
+          label: "View Order"
+          fieldType: "number"
+          required: false
+          helpText: "Optional display order within the requirement (0 or greater)."
