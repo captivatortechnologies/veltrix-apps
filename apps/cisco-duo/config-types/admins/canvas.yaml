@@ -1,0 +1,71 @@
+# =============================================================================
+# Canvas Template — Cisco Duo Administrators
+#
+# Declares ONE Duo administrator — the item. Users add as many as they need.
+# Duo admins are addressed by an opaque admin_id (no lookup-by-email), so the app
+# matches a declared admin to a live one by EMAIL and stores the admin_id from the
+# deploy so a later email change is still tracked. Creating an administrator sends
+# a Duo activation email. Reconcile deletes admins this app created but no longer
+# declares.
+#
+# Field keys must match what config-types/admins/validate.ts checks.
+# =============================================================================
+
+id: "cisco-duo-admins"
+name: "Administrator Configuration"
+toolType: "cisco-duo"
+entityType: "admins"
+description: "Define Cisco Duo administrators (email + name + role) as code through the Duo Admin API."
+
+item:
+  label: "Administrator"
+  identityField: "email"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Administrator"
+      icon: "user-shield"
+      description: "Administrator email, name and role"
+      fields:
+        - key: "email"
+          label: "Email"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The administrator's login email — their identity in this canvas.
+            Creating a new administrator sends a Duo activation email to it.
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: "The administrator's display name."
+
+        - key: "role"
+          label: "Role"
+          fieldType: "select"
+          required: true
+          defaultValue: "Read-only"
+          options:
+            - label: "Administrator"
+              value: "Administrator"
+            - label: "Application Manager"
+              value: "Application Manager"
+            - label: "User Manager"
+              value: "User Manager"
+            - label: "Help Desk"
+              value: "Help Desk"
+            - label: "Billing"
+              value: "Billing"
+            - label: "Phishing Manager"
+              value: "Phishing Manager"
+            - label: "Read-only"
+              value: "Read-only"
+            - label: "Owner (existing only)"
+              value: "Owner"
+          helpText: >
+            The administrator role. "Owner" cannot be created or modified through
+            the Admin API — only declare it for admins that already hold it.

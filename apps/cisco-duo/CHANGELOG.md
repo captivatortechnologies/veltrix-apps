@@ -8,6 +8,16 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.3.0 — 2026-07-26
+
+### Added
+- **Administrators** configuration type — manage Duo administrators (email, name
+  and role) as code, with the full pipeline handler set. Admins are matched by
+  email and their `admin_id` is stored for email-change-safety; name/role are
+  reconciled to the declared values; reconcile only deletes admins this app
+  created. Creating a new administrator sends a Duo activation email; the "Owner"
+  role cannot be created/modified via the Admin API (declared Owners warn).
+
 ## 0.2.0 — 2026-07-26
 
 ### Added
