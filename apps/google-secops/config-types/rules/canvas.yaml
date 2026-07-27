@@ -1,0 +1,42 @@
+# =============================================================================
+# Canvas Template — Google SecOps Detection Rules
+#
+# Declares ONE detection rule — the item. Users add as many as they need.
+# A rule's identity is its NAME — the `rule <name> { ... }` name in the YARA-L
+# 2.0 source, which Chronicle echoes as displayName. There is no separate id
+# field: validate.ts parses the name out of the rule text. Deploy verifies the
+# text, then creates a new rule or updates the matching one (a new revision);
+# rules this app created but no longer declares are deleted (force=true).
+#
+# SCOPE: this manages rule TEXT only (create / update / delete). A rule's
+# DEPLOYMENT state (live / alerting enablement, via rules/{id}/deployment) is
+# separate and OUT OF SCOPE — this config type never touches it.
+#
+# Field keys must match config-types/rules/validate.ts.
+# =============================================================================
+
+id: "google-secops-rules"
+name: "Detection Rule Configuration"
+toolType: "google-secops"
+entityType: "rules"
+description: "Define Google Security Operations (Chronicle) detection rules (YARA-L 2.0 rule source) as code through the SecOps API."
+
+item:
+  label: "Detection Rule"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Detection Rule"
+      icon: "shield"
+      description: "The YARA-L 2.0 rule source"
+      fields:
+        - key: "text"
+          label: "Rule Text (YARA-L 2.0)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The full YARA-L 2.0 rule source, including the `rule <name> { ... }`
+            header (its name is the rule's identity), a `meta:` section and a
+            `condition:` section. Chronicle compiles the text authoritatively;
+            deploy verifies it first and stores each change as a new revision.

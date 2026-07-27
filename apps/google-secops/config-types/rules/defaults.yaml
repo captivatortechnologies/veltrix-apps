@@ -1,0 +1,16 @@
+# Defaults for a new detection rule item.
+#
+# A FLAT map keyed by the canvas field keys. `text` is seeded with a minimal
+# YARA-L 2.0 skeleton (rule header + meta + events + condition) so a new rule
+# starts from a compiling shape — rename it and fill in the logic.
+text: |
+  rule my_detection_rule {
+    meta:
+      author = "your-team"
+      description = "Describe what this rule detects"
+      severity = "Low"
+    events:
+      $e.metadata.event_type != ""
+    condition:
+      $e
+  }

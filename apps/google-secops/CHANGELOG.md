@@ -8,6 +8,21 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.3.0 — 2026-07-26
+
+### Added
+- **Detection Rules** configuration type — manage SecOps (Chronicle) detection
+  rules (YARA-L 2.0 rule source) as code, with the full pipeline handler set. A
+  rule's identity is its name (the `rule <name> { ... }` header, which Chronicle
+  echoes as `displayName`); validate parses it out of the text. Deploy lists live
+  rules, matches each declared rule by the ruleId stored last deploy (rename-safe)
+  or by display name, verifies the text with `rules:verifyRuleText` before writing,
+  then creates a new rule or updates the matching one (a new revision) — a
+  whitespace-normalized comparison avoids re-writing on cosmetic reformatting.
+  Rules this app created but no longer declares are deleted (`force=true`), and
+  rollback deletes created rules or restores prior text. This manages rule TEXT
+  only; a rule's DEPLOYMENT state (live/alerting enablement) is out of scope.
+
 ## 0.2.0 — 2026-07-26
 
 ### Added

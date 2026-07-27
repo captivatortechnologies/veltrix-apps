@@ -1,11 +1,12 @@
 id: google-secops
 name: Google SecOps
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Google Security Operations (Chronicle) configuration as code through the
-  SecOps REST API — Reference Lists and Data Tables — with validation, drift
-  detection and rollback handled by the Security-as-Code pipeline.
+  SecOps REST API — Reference Lists, Data Tables and Detection Rules — with
+  validation, drift detection and rollback handled by the Security-as-Code
+  pipeline.
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/google-secops
@@ -32,6 +33,9 @@ permissions:
     - resource: data-tables
       actions: [read, write, delete]
       description: Manage Google SecOps data tables (named, typed columnar tables of rows)
+    - resource: rules
+      actions: [read, write, delete]
+      description: Manage Google SecOps detection rules (YARA-L 2.0 rule text; deployment state is out of scope)
 
 pipeline:
   configurationTypes:
@@ -64,6 +68,23 @@ pipeline:
         healthCheck: config-types/reference-lists/healthCheck
         driftDetect: config-types/reference-lists/driftDetect
         getStatus: config-types/reference-lists/getStatus
+      targets:
+        componentTypes: [google-secops]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: rules
+      name: Detection Rules
+      description: Detection rules — YARA-L 2.0 rule text (identity is the rule name; verified then created/updated as new revisions; app-created rules are deleted on reconcile; deployment state is out of scope)
+      canvasTemplate: config-types/rules/canvas.yaml
+      defaultConfig: config-types/rules/defaults.yaml
+      handlers:
+        validate: config-types/rules/validate
+        deploy: config-types/rules/deploy
+        rollback: config-types/rules/rollback
+        healthCheck: config-types/rules/healthCheck
+        driftDetect: config-types/rules/driftDetect
+        getStatus: config-types/rules/getStatus
       targets:
         componentTypes: [google-secops]
         requiresCredential: true
