@@ -1,0 +1,76 @@
+# =============================================================================
+# Canvas Template — FortiManager Traffic Shaping Profiles
+#
+# Declares ONE shaping profile — the item. Users add as many as they need.
+# A profile's identity is its PROFILE NAME (the FortiManager mkey is
+# `profile-name`, NOT `name`); deploy lists the ADOM shaping-profile table,
+# matches on the profile name, and uses `set` (create-or-replace) to upsert each
+# declared profile. Reconcile deletes profiles this app created but no longer
+# declares (keyed by profile-name).
+#
+# The per-class ToS/queuing rows are supplied as a JSON array in the
+# "Shaping Entries" field — each entry is an object such as:
+#   { "class-id": 2, "priority": 3,
+#     "guaranteed-bandwidth-percentage": 20, "maximum-bandwidth-percentage": 80 }
+#
+# Field keys must match config-types/firewall-shaping-profiles/validate.ts.
+# =============================================================================
+
+id: "fortimanager-firewall-shaping-profiles"
+name: "Firewall Shaping Profile Configuration"
+toolType: "fortimanager"
+entityType: "firewall-shaping-profiles"
+description: "Define FortiManager traffic shaping profiles (ToS/queuing classes with per-class bandwidth guarantees) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "Shaping Profile"
+  identityField: "profileName"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Shaping Profile"
+      icon: "sliders"
+      description: "Profile name, type and per-class shaping entries"
+      fields:
+        - key: "profileName"
+          label: "Profile Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 35
+          helpText: "The shaping profile name — its identity (mkey `profile-name`) in FortiManager. Unique within this canvas."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "policing"
+          options:
+            - label: "Policing"
+              value: "policing"
+            - label: "Queuing"
+              value: "queuing"
+          helpText: "How the profile enforces its class bandwidth: policing (drop) or queuing."
+
+        - key: "defaultClassId"
+          label: "Default Class ID"
+          fieldType: "number"
+          required: false
+          helpText: "The class id that handles packets not matched by any shaping entry."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the shaping profile."
+
+        - key: "shapingEntries"
+          label: "Shaping Entries (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            A JSON array of per-class shaping entries, each an object with
+            class-id, priority, guaranteed-bandwidth-percentage and
+            maximum-bandwidth-percentage. Leave empty for a profile with no
+            explicit classes.

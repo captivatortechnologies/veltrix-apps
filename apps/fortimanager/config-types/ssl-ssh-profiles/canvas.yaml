@@ -1,0 +1,110 @@
+# =============================================================================
+# Canvas Template — FortiManager SSL/SSH Inspection Profiles
+#
+# Declares ONE SSL/SSH inspection (security) profile — the item. Users add as
+# many as they need. A profile's identity is its NAME (the FortiManager mkey);
+# deploy lists the ADOM firewall/ssl-ssh-profile table, matches on the name, and
+# uses `set` (create-or-replace) to upsert each declared profile.
+#
+# Bounded scope: the top-level scalar fields are first-class; the per-protocol
+# inspection dicts (ssl, https, ftps, imaps, pop3s, smtps, ssh, dot) are supplied
+# as one validated-JSON object in "Advanced Body (JSON)".
+#
+# Built-in profiles (certificate-inspection, deep-inspection, no-inspection)
+# reject delete — reconcile only removes profiles THIS app created.
+#
+# Field keys must match config-types/ssl-ssh-profiles/validate.ts.
+# =============================================================================
+
+id: "fortimanager-ssl-ssh-profiles"
+name: "SSL/SSH Inspection Profile Configuration"
+toolType: "fortimanager"
+entityType: "ssl-ssh-profiles"
+description: "Define FortiManager SSL/SSH inspection security profiles as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "SSL/SSH Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "SSL/SSH Profile"
+      icon: "shield"
+      description: "Profile name, inspection toggles and the advanced body"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: "The SSL/SSH profile name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the profile."
+
+        - key: "serverCertMode"
+          label: "Server Certificate Mode"
+          fieldType: "select"
+          required: true
+          defaultValue: "re-sign"
+          options:
+            - label: "Re-sign (multiple-clients, CA re-signs)"
+              value: "re-sign"
+            - label: "Replace (protecting SSL server)"
+              value: "replace"
+          helpText: "How the server certificate is handled during inspection."
+
+        - key: "allowlist"
+          label: "Allowlist Exemptions"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Exempt FortiGuard-categorised and reputable sites from inspection."
+
+        - key: "blockBlocklistedCertificates"
+          label: "Block Blocklisted Certificates"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Block connections presenting a blocklisted certificate."
+
+        - key: "sslAnomaliesLog"
+          label: "Log SSL Anomalies"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Log detected SSL protocol anomalies."
+
+        - key: "sslExemptionsLog"
+          label: "Log SSL Exemptions"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Log connections exempted from SSL inspection."
+
+        - key: "useSslServer"
+          label: "Use SSL Server Config"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Use server-side SSL settings for inspection."
+
+        - key: "untrustedCaname"
+          label: "Untrusted CA Name"
+          fieldType: "text"
+          required: false
+          helpText: "Optional name of the CA certificate used for untrusted SSL connections."
+
+        - key: "bodyJson"
+          label: "Advanced Body (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional JSON object for the per-protocol inspection body, e.g.
+            {"https": {"status": "deep-inspection"}, "ssh": {"status": "disable"}}.
+            Must parse to a JSON object.

@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template — FortiManager Firewall VIP Groups
+#
+# Declares ONE VIP group — the item. Users add as many as they need.
+# A VIP group's identity is its NAME (the FortiManager mkey); deploy lists the
+# ADOM vipgrp table, matches on the name, and uses `set` (create-or-replace) to
+# upsert each declared group. Members reference existing virtual IP object names
+# (compose with the Firewall Virtual IPs configuration type). Reconcile deletes
+# groups this app created but no longer declares.
+#
+# All member VIPs should share the same external interface — set it here if the
+# member VIPs are bound to a specific interface.
+#
+# Field keys must match config-types/firewall-vip-groups/validate.ts.
+# =============================================================================
+
+id: "fortimanager-firewall-vip-groups"
+name: "Firewall VIP Group Configuration"
+toolType: "fortimanager"
+entityType: "firewall-vip-groups"
+description: "Define FortiManager firewall VIP groups (a named set of member virtual IP objects) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "Firewall VIP Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "VIP Group"
+      icon: "folder"
+      description: "Group name and member virtual IPs"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: "The VIP group name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "members"
+          label: "Member Virtual IPs (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            The member virtual IP object names, one per line. Each must be an
+            existing virtual IP (see the Firewall Virtual IPs configuration type).
+            At least one is required.
+
+        - key: "interface"
+          label: "External Interface"
+          fieldType: "text"
+          required: false
+          helpText: "The external interface all member VIPs share (leave blank to inherit \"any\")."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the VIP group."

@@ -1,0 +1,86 @@
+# =============================================================================
+# Canvas Template — FortiManager Per-IP Traffic Shapers
+#
+# Declares ONE per-IP traffic shaper — the item. Users add as many as they need.
+# A shaper's identity is its NAME (the FortiManager mkey); deploy lists the ADOM
+# per-ip-shaper table, matches on the name, and uses `set` (create-or-replace) to
+# upsert each declared shaper. Reconcile deletes shapers this app created but no
+# longer declares.
+#
+# Field keys must match config-types/firewall-per-ip-shapers/validate.ts.
+# =============================================================================
+
+id: "fortimanager-firewall-per-ip-shapers"
+name: "Firewall Per-IP Shaper Configuration"
+toolType: "fortimanager"
+entityType: "firewall-per-ip-shapers"
+description: "Define FortiManager per-IP traffic shapers (per-source bandwidth and concurrent-session limits) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "Per-IP Shaper"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Per-IP Shaper"
+      icon: "gauge"
+      description: "Shaper name, per-IP bandwidth and session limits"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 35
+          helpText: "The per-IP shaper name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "maxBandwidth"
+          label: "Max Bandwidth (per IP)"
+          fieldType: "number"
+          required: false
+          helpText: "Maximum bandwidth per source IP, interpreted in the selected unit."
+
+        - key: "bandwidthUnit"
+          label: "Bandwidth Unit"
+          fieldType: "select"
+          required: true
+          defaultValue: "kbps"
+          options:
+            - label: "Kbps"
+              value: "kbps"
+            - label: "Mbps"
+              value: "mbps"
+            - label: "Gbps"
+              value: "gbps"
+          helpText: "The unit the bandwidth value is expressed in."
+
+        - key: "maxConcurrentSession"
+          label: "Max Concurrent Sessions (per IP)"
+          fieldType: "number"
+          required: false
+          helpText: "Maximum concurrent sessions per source IP (0 = unlimited)."
+
+        - key: "maxConcurrentTcpSession"
+          label: "Max Concurrent TCP Sessions (per IP)"
+          fieldType: "number"
+          required: false
+          helpText: "Maximum concurrent TCP sessions per source IP (0 = unlimited)."
+
+        - key: "maxConcurrentUdpSession"
+          label: "Max Concurrent UDP Sessions (per IP)"
+          fieldType: "number"
+          required: false
+          helpText: "Maximum concurrent UDP sessions per source IP (0 = unlimited)."
+
+        - key: "diffservForward"
+          label: "Enable DiffServ (Forward)"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Apply DiffServ marking to forward-direction traffic."
+
+        - key: "diffservReverse"
+          label: "Enable DiffServ (Reverse)"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Apply DiffServ marking to reverse-direction traffic."

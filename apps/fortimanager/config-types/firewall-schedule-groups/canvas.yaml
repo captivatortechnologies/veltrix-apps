@@ -1,0 +1,47 @@
+# =============================================================================
+# Canvas Template — FortiManager Firewall Schedule Groups
+#
+# Declares ONE schedule group — the item. Users add as many as they need.
+# A schedule group's identity is its NAME (the FortiManager mkey); deploy lists
+# the ADOM schedule/group table, matches on the name, and uses `set` (create-or-
+# replace) to upsert each declared group. Members reference existing schedule
+# object names (compose with the one-time and recurring Firewall Schedules
+# configuration types). Reconcile deletes groups this app created but no longer
+# declares.
+#
+# Field keys must match config-types/firewall-schedule-groups/validate.ts.
+# =============================================================================
+
+id: "fortimanager-firewall-schedule-groups"
+name: "Firewall Schedule Group Configuration"
+toolType: "fortimanager"
+entityType: "firewall-schedule-groups"
+description: "Define FortiManager firewall schedule groups (a named set of member one-time / recurring schedules) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "Firewall Schedule Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Schedule Group"
+      icon: "clock"
+      description: "Group name and member schedules"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: "The schedule group name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "members"
+          label: "Member Schedules (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            The member schedule object names, one per line. Each must be an
+            existing one-time or recurring schedule (see the Firewall Schedules
+            configuration types). At least one is required.

@@ -1,0 +1,94 @@
+# =============================================================================
+# Canvas Template — FortiManager Shared Traffic Shapers
+#
+# Declares ONE shared traffic shaper — the item. Users add as many as they need.
+# A shaper's identity is its NAME (the FortiManager mkey); deploy lists the ADOM
+# traffic-shaper table, matches on the name, and uses `set` (create-or-replace)
+# to upsert each declared shaper. Reconcile deletes shapers this app created but
+# no longer declares.
+#
+# Field keys must match config-types/firewall-traffic-shapers/validate.ts.
+# =============================================================================
+
+id: "fortimanager-firewall-traffic-shapers"
+name: "Firewall Traffic Shaper Configuration"
+toolType: "fortimanager"
+entityType: "firewall-traffic-shapers"
+description: "Define FortiManager shared traffic shapers (guaranteed/maximum bandwidth, priority and DiffServ marking) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "Traffic Shaper"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Traffic Shaper"
+      icon: "gauge"
+      description: "Shaper name, bandwidth limits and priority"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 35
+          helpText: "The traffic shaper name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "guaranteedBandwidth"
+          label: "Guaranteed Bandwidth"
+          fieldType: "number"
+          required: false
+          helpText: "Guaranteed bandwidth, interpreted in the selected unit."
+
+        - key: "maximumBandwidth"
+          label: "Maximum Bandwidth"
+          fieldType: "number"
+          required: false
+          helpText: "Maximum bandwidth, interpreted in the selected unit."
+
+        - key: "bandwidthUnit"
+          label: "Bandwidth Unit"
+          fieldType: "select"
+          required: true
+          defaultValue: "kbps"
+          options:
+            - label: "Kbps"
+              value: "kbps"
+            - label: "Mbps"
+              value: "mbps"
+            - label: "Gbps"
+              value: "gbps"
+          helpText: "The unit the bandwidth values are expressed in."
+
+        - key: "priority"
+          label: "Priority"
+          fieldType: "select"
+          required: true
+          defaultValue: "high"
+          options:
+            - label: "Low"
+              value: "low"
+            - label: "Medium"
+              value: "medium"
+            - label: "High"
+              value: "high"
+          helpText: "Traffic priority for packets matched by this shaper."
+
+        - key: "perPolicy"
+          label: "Apply Shaper Per Policy"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Apply the shaper's bandwidth limits per policy instead of shared across policies."
+
+        - key: "diffserv"
+          label: "Enable DiffServ Marking"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Change the DiffServ setting of packets matched by this shaper."
+
+        - key: "diffservcode"
+          label: "DiffServ Code"
+          fieldType: "text"
+          required: false
+          helpText: "6-bit binary DiffServ code (e.g. 000000). Only used when DiffServ marking is enabled."

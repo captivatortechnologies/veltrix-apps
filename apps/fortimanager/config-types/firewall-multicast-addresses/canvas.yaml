@@ -1,0 +1,82 @@
+# =============================================================================
+# Canvas Template — FortiManager Firewall Multicast Addresses
+#
+# Declares ONE multicast address — the item. Users add as many as they need.
+# A multicast address's identity is its NAME (the FortiManager mkey); deploy
+# lists the ADOM multicast-address table, matches on the name, and uses `set`
+# (create-or-replace) to upsert each declared address. Reconcile deletes
+# addresses this app created but no longer declares.
+#
+# The relevant fields depend on the type:
+#   multicastrange → startIp + endIp (a multicast IP range)
+#   broadcastmask  → subnetCidr (an IPv4 subnet in CIDR form)
+#
+# Field keys must match config-types/firewall-multicast-addresses/validate.ts.
+# =============================================================================
+
+id: "fortimanager-firewall-multicast-addresses"
+name: "Firewall Multicast Address Configuration"
+toolType: "fortimanager"
+entityType: "firewall-multicast-addresses"
+description: "Define FortiManager firewall multicast addresses (a multicast IP range or a broadcast subnet) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "Multicast Address"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Multicast Address"
+      icon: "globe"
+      description: "Address type and its range or subnet"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: "The multicast address name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "multicastrange"
+          options:
+            - label: "Multicast range (start/end IP)"
+              value: "multicastrange"
+            - label: "Broadcast subnet (mask)"
+              value: "broadcastmask"
+          helpText: "The multicast address type — determines which of the fields below apply."
+
+        - key: "startIp"
+          label: "Start IP"
+          fieldType: "text"
+          required: false
+          helpText: "The first multicast IP in the range (required for the multicastrange type)."
+
+        - key: "endIp"
+          label: "End IP"
+          fieldType: "text"
+          required: false
+          helpText: "The last multicast IP in the range (required for the multicastrange type)."
+
+        - key: "subnetCidr"
+          label: "Subnet (CIDR)"
+          fieldType: "text"
+          required: false
+          helpText: "The broadcast subnet in CIDR form, e.g. 10.0.0.0/24 (required for the broadcastmask type)."
+
+        - key: "associatedInterface"
+          label: "Associated Interface"
+          fieldType: "text"
+          required: false
+          helpText: "The interface this address applies to (leave blank to inherit \"any\")."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the multicast address."

@@ -1,0 +1,117 @@
+# =============================================================================
+# Canvas Template — FortiManager Firewall Virtual IPs (IPv4 static-NAT / DNAT)
+#
+# Declares ONE virtual IP — the item. Users add as many as they need.
+# A VIP's identity is its NAME (the FortiManager mkey); deploy lists the ADOM
+# vip table, matches on the name, and uses `set` (create-or-replace) to upsert
+# each declared VIP. Reconcile deletes VIPs this app created but no longer
+# declares.
+#
+# Bound to type=static-nat (destination NAT): external traffic hitting `extip`
+# on `extintf` is forwarded to `mappedip`. Enable port forwarding to also
+# translate a single service port (extport -> mappedport for the chosen protocol).
+#
+# Field keys must match config-types/firewall-vips/validate.ts.
+# =============================================================================
+
+id: "fortimanager-firewall-vips"
+name: "Firewall Virtual IP Configuration"
+toolType: "fortimanager"
+entityType: "firewall-vips"
+description: "Define FortiManager IPv4 static-NAT virtual IPs (DNAT with optional port forwarding) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "Firewall Virtual IP"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Virtual IP"
+      icon: "globe"
+      description: "Static-NAT (DNAT) mapping and optional port forwarding"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: "The virtual IP name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "extintf"
+          label: "External Interface"
+          fieldType: "text"
+          required: false
+          defaultValue: "any"
+          helpText: "The interface the external IP is reached on (e.g. \"any\" or \"port1\")."
+
+        - key: "extip"
+          label: "External IP"
+          fieldType: "text"
+          required: true
+          helpText: "The external IP that receives the traffic — a single IPv4 or a \"start-end\" range."
+
+        - key: "mappedip"
+          label: "Mapped IP"
+          fieldType: "text"
+          required: true
+          helpText: "The internal IP traffic is forwarded to — a single IPv4 or a \"start-end\" range."
+
+        - key: "portforward"
+          label: "Port Forwarding"
+          fieldType: "select"
+          required: false
+          defaultValue: "disable"
+          options:
+            - label: "Disabled"
+              value: "disable"
+            - label: "Enabled"
+              value: "enable"
+          helpText: "When enabled, translate a single service port (protocol + external -> mapped port)."
+
+        - key: "protocol"
+          label: "Protocol"
+          fieldType: "select"
+          required: false
+          defaultValue: "tcp"
+          options:
+            - label: "TCP"
+              value: "tcp"
+            - label: "UDP"
+              value: "udp"
+            - label: "SCTP"
+              value: "sctp"
+            - label: "ICMP"
+              value: "icmp"
+          helpText: "The forwarded protocol — only applied when port forwarding is enabled."
+
+        - key: "extport"
+          label: "External Port"
+          fieldType: "text"
+          required: false
+          helpText: "The external port (or range) — required when port forwarding is enabled."
+
+        - key: "mappedport"
+          label: "Mapped Port"
+          fieldType: "text"
+          required: false
+          helpText: "The internal port (or range) traffic is forwarded to — required when port forwarding is enabled."
+
+        - key: "arpReply"
+          label: "ARP Reply"
+          fieldType: "select"
+          required: false
+          defaultValue: "enable"
+          options:
+            - label: "Enabled"
+              value: "enable"
+            - label: "Disabled"
+              value: "disable"
+          helpText: "Reply to ARP requests for the external IP (usually enabled)."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the virtual IP."

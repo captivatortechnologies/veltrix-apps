@@ -1,0 +1,112 @@
+# =============================================================================
+# Canvas Template — FortiManager DNS Filter Profiles
+#
+# Declares ONE DNS filter (security) profile — the item. Users add as many as
+# they need. A profile's identity is its NAME (the FortiManager mkey); deploy
+# lists the ADOM dnsfilter/profile table, matches on the name, and uses `set`
+# (create-or-replace) to upsert each declared profile.
+#
+# Bounded scope: the top-level scalar fields are first-class; the complex nested
+# body (FortiGuard DNS category filters, domain-filter, external-ip-blocklist) is
+# supplied as one validated-JSON object in "Advanced Body (JSON)".
+#
+# The built-in "default" profile rejects delete — reconcile only removes profiles
+# THIS app created.
+#
+# Field keys must match config-types/dnsfilter-profiles/validate.ts.
+# =============================================================================
+
+id: "fortimanager-dnsfilter-profiles"
+name: "DNS Filter Profile Configuration"
+toolType: "fortimanager"
+entityType: "dnsfilter-profiles"
+description: "Define FortiManager DNS filter security profiles as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "DNS Filter Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "DNS Filter Profile"
+      icon: "shield"
+      description: "Profile name, block behaviour and the advanced body"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: "The DNS filter profile name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the profile."
+
+        - key: "blockAction"
+          label: "Block Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "redirect"
+          options:
+            - label: "Redirect (send to the block portal)"
+              value: "redirect"
+            - label: "Block (drop the response)"
+              value: "block"
+            - label: "Block with SERVFAIL"
+              value: "block-sevrfail"
+          helpText: "How a blocked DNS lookup is handled."
+
+        - key: "redirectPortal"
+          label: "Redirect Portal IP"
+          fieldType: "text"
+          required: false
+          helpText: "IPv4 address a blocked domain is redirected to (used with the redirect action)."
+
+        - key: "blockBotnet"
+          label: "Block Botnet C&C"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Block DNS requests to known botnet command-and-control domains."
+
+        - key: "safeSearch"
+          label: "Enforce Safe Search"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Force safe search on supported search engines."
+
+        - key: "logAllDomain"
+          label: "Log All Domains"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Log every DNS lookup, not just blocked ones."
+
+        - key: "sdnsFtgdErrLog"
+          label: "Log FortiGuard Errors"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Log FortiGuard SDNS lookup errors."
+
+        - key: "sdnsDomainLog"
+          label: "Log SDNS Domains"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Log domains resolved via FortiGuard SDNS."
+
+        - key: "bodyJson"
+          label: "Advanced Body (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional JSON object for the nested DNS filter body, e.g.
+            {"ftgd-dns": {"filters": [{"category": 26, "action": "block"}]}}.
+            Must parse to a JSON object. Category IDs are FortiGuard integers.

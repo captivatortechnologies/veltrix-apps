@@ -1,0 +1,95 @@
+# =============================================================================
+# Canvas Template — FortiManager Explicit-Proxy Addresses
+#
+# Declares ONE proxy address — the item. Users add as many as they need.
+# A proxy address's identity is its NAME (the FortiManager mkey); deploy lists
+# the ADOM proxy-address table, matches on the name, and uses `set` (create-or-
+# replace) to upsert each declared address. Reconcile deletes addresses this app
+# created but no longer declares.
+#
+# The relevant fields depend on the type:
+#   host-regex → hostRegex (a regex matched against the request host)
+#   url        → host + path (a base host address plus a URL path regex)
+#   method     → host + methods (HTTP methods to match)
+#   ua         → host + userAgents (client user agents to match)
+# The host field references an existing firewall address object name.
+#
+# Field keys must match config-types/firewall-proxy-addresses/validate.ts.
+# =============================================================================
+
+id: "fortimanager-firewall-proxy-addresses"
+name: "Explicit-Proxy Address Configuration"
+toolType: "fortimanager"
+entityType: "firewall-proxy-addresses"
+description: "Define FortiManager explicit-proxy addresses (host-regex, url, method or ua matchers) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "Proxy Address"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Proxy Address"
+      icon: "globe"
+      description: "Matcher type and its fields"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: "The proxy address name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "url"
+          options:
+            - label: "URL (host + path)"
+              value: "url"
+            - label: "Host regex"
+              value: "host-regex"
+            - label: "HTTP method"
+              value: "method"
+            - label: "User agent"
+              value: "ua"
+          helpText: "The matcher type — determines which of the fields below apply."
+
+        - key: "host"
+          label: "Host Address"
+          fieldType: "text"
+          required: false
+          helpText: "An existing firewall address name (required for url, method and ua types)."
+
+        - key: "hostRegex"
+          label: "Host Regex"
+          fieldType: "text"
+          required: false
+          helpText: "A regex matched against the request host (required for the host-regex type)."
+
+        - key: "path"
+          label: "Path"
+          fieldType: "text"
+          required: false
+          helpText: "A URL path regex (required for the url type)."
+
+        - key: "methods"
+          label: "HTTP Methods (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "One per line from: get, post, put, delete, head, options, trace, connect (required for the method type)."
+
+        - key: "userAgents"
+          label: "User Agents (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "One per line from: chrome, firefox, safari, ie, edge, other (required for the ua type)."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the proxy address."

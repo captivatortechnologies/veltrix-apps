@@ -1,0 +1,67 @@
+# =============================================================================
+# Canvas Template — FortiManager Explicit-Proxy Address Groups
+#
+# Declares ONE proxy address group — the item. Users add as many as they need.
+# A group's identity is its NAME (the FortiManager mkey); deploy lists the ADOM
+# proxy-addrgrp table, matches on the name, and uses `set` (create-or-replace) to
+# upsert each declared group. Members reference existing proxy-address object
+# names (compose with the Explicit-Proxy Addresses configuration type). Reconcile
+# deletes groups this app created but no longer declares.
+#
+# The group type (src or dst) must match the member proxy addresses: a src group
+# holds src-type addresses, a dst group holds dst-type addresses.
+#
+# Field keys must match config-types/firewall-proxy-address-groups/validate.ts.
+# =============================================================================
+
+id: "fortimanager-firewall-proxy-address-groups"
+name: "Explicit-Proxy Address Group Configuration"
+toolType: "fortimanager"
+entityType: "firewall-proxy-address-groups"
+description: "Define FortiManager explicit-proxy address groups (a named set of member proxy-address objects) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "Proxy Address Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Proxy Address Group"
+      icon: "folder"
+      description: "Group name, type and member proxy addresses"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: "The proxy address group name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "src"
+          options:
+            - label: "Source (src)"
+              value: "src"
+            - label: "Destination (dst)"
+              value: "dst"
+          helpText: "Must match the member proxy addresses' direction."
+
+        - key: "members"
+          label: "Member Proxy Addresses (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            The member proxy-address object names, one per line. Each must be an
+            existing proxy address (see the Explicit-Proxy Addresses configuration
+            type). At least one is required.
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the proxy address group."

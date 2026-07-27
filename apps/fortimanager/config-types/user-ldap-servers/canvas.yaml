@@ -1,0 +1,132 @@
+# =============================================================================
+# Canvas Template — FortiManager User LDAP Auth Servers
+#
+# Declares ONE LDAP authentication server — the item. Users add as many as they
+# need. A server's identity is its NAME (the FortiManager mkey); deploy lists the
+# ADOM user/ldap table, matches on the name, and uses `set` (create-or-replace)
+# to upsert each declared server. Reconcile deletes servers this app created but
+# no longer declares.
+#
+# The bind password is WRITE-ONLY: FortiManager never returns it, so it is never
+# read back or drift-compared — it is re-sent from this canvas on every deploy.
+#
+# Field keys must match config-types/user-ldap-servers/validate.ts.
+# =============================================================================
+
+id: "fortimanager-user-ldap-servers"
+name: "User LDAP Server Configuration"
+toolType: "fortimanager"
+entityType: "user-ldap-servers"
+description: "Define FortiManager LDAP authentication servers as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "LDAP Server"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "LDAP Server"
+      icon: "server"
+      description: "Server address, bind type and credentials"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: "The LDAP server name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "server"
+          label: "Server"
+          fieldType: "text"
+          required: true
+          helpText: "The primary LDAP server IP address or FQDN."
+
+        - key: "secondaryServer"
+          label: "Secondary Server"
+          fieldType: "text"
+          required: false
+          helpText: "Optional fallback LDAP server IP address or FQDN."
+
+        - key: "type"
+          label: "Bind Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "simple"
+          options:
+            - label: "Simple (bind as the authenticating user)"
+              value: "simple"
+            - label: "Anonymous (unauthenticated bind)"
+              value: "anonymous"
+            - label: "Regular (bind with a service account)"
+              value: "regular"
+          helpText: "How FortiManager binds to the directory. Regular needs a bind DN and password."
+
+        - key: "dn"
+          label: "Distinguished Name (Base DN)"
+          fieldType: "text"
+          required: false
+          helpText: "The base DN to search, e.g. dc=example,dc=com."
+
+        - key: "cnid"
+          label: "Common Name Identifier"
+          fieldType: "text"
+          required: false
+          defaultValue: "cn"
+          helpText: "The attribute holding the user's name (default cn; sAMAccountName for AD)."
+
+        - key: "username"
+          label: "Bind DN (Username)"
+          fieldType: "text"
+          required: false
+          helpText: "The service-account DN for a regular bind, e.g. cn=svc,dc=example,dc=com."
+
+        - key: "password"
+          label: "Bind Password"
+          fieldType: "password"
+          required: false
+          helpText: >
+            ⚠ WRITE-ONLY. The regular-bind service-account password. It is sent to
+            FortiManager on every deploy and is never read back, drift-compared, or
+            stored in rollback data. Required for the regular bind type.
+
+        - key: "port"
+          label: "Port"
+          fieldType: "number"
+          required: false
+          helpText: "LDAP port. Leave blank for the FortiManager default (389, or 636 for LDAPS)."
+
+        - key: "secure"
+          label: "Connection Security"
+          fieldType: "select"
+          required: true
+          defaultValue: "disable"
+          options:
+            - label: "None (plaintext LDAP)"
+              value: "disable"
+            - label: "STARTTLS"
+              value: "starttls"
+            - label: "LDAPS"
+              value: "ldaps"
+          helpText: "Transport security for the LDAP connection."
+
+        - key: "groupMemberCheck"
+          label: "Group Member Check"
+          fieldType: "select"
+          required: false
+          options:
+            - label: "User attribute"
+              value: "user-attr"
+            - label: "Group object"
+              value: "group-object"
+            - label: "POSIX group object"
+              value: "posix-group-object"
+          helpText: "How group membership is resolved (optional)."
+
+        - key: "groupSearchBase"
+          label: "Group Search Base"
+          fieldType: "text"
+          required: false
+          helpText: "Optional base DN under which to search for groups."

@@ -1,0 +1,100 @@
+# =============================================================================
+# Canvas Template — FortiManager Application Control Profiles
+#
+# Declares ONE application control profile — the item. Users add as many as they
+# need. Identity is the NAME (the FortiManager mkey); deploy lists the ADOM
+# application/list table, matches on the name, and uses `set` (create-or-replace)
+# to upsert each declared profile. Reconcile PRESERVES built-in/default profiles
+# and only deletes profiles this app created but no longer declares.
+#
+# The per-category/application rules are supplied as a JSON array in the
+# "Entries" field — each entry is an object such as:
+#   { "id": 1, "action": "block", "category": [2, 6],
+#     "application": [15832], "log": "enable" }
+# category/application values are ISDB integer ids.
+#
+# Field keys must match config-types/application-control-lists/validate.ts.
+# =============================================================================
+
+id: "fortimanager-application-control-lists"
+name: "Application Control Profile Configuration"
+toolType: "fortimanager"
+entityType: "application-control-lists"
+description: "Define FortiManager application control profiles (default actions plus per-category/application rules) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "Application Control Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Application Control Profile"
+      icon: "shield"
+      description: "Profile name, default actions and application rules"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 47
+          helpText: "The application control profile name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the profile."
+
+        - key: "otherApplicationAction"
+          label: "Other Applications Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "pass"
+          options:
+            - label: "Pass"
+              value: "pass"
+            - label: "Block"
+              value: "block"
+          helpText: "Action for applications not matched by any rule."
+
+        - key: "unknownApplicationAction"
+          label: "Unknown Applications Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "pass"
+          options:
+            - label: "Pass"
+              value: "pass"
+            - label: "Block"
+              value: "block"
+          helpText: "Action for unknown applications."
+
+        - key: "deepAppInspection"
+          label: "Deep Application Inspection"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Enable deep inspection of application traffic."
+
+        - key: "enforceDefaultAppPort"
+          label: "Enforce Default Application Ports"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Block applications that run on non-default ports."
+
+        - key: "appReplacemsg"
+          label: "Application Replacement Message"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Show a replacement message for blocked applications."
+
+        - key: "entries"
+          label: "Entries (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            A JSON array of application rules, each an object with id, action
+            (pass/block/reset), category (list of ISDB category ids),
+            application (list of ISDB application ids) and log. Leave empty for a
+            profile with only default actions.

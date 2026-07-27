@@ -1,0 +1,69 @@
+# =============================================================================
+# Canvas Template — FortiManager Custom Internet Services
+#
+# Declares ONE custom Internet Service (ISDB extension) — the item. Users add as
+# many as they need. Identity is the NAME (the FortiManager mkey); deploy lists
+# the ADOM internet-service-custom table, matches on the name, and uses `set`
+# (create-or-replace) to upsert each declared service. Reconcile deletes services
+# this app created but no longer declares.
+#
+# The protocol/port/destination rows are supplied as a JSON array in the "Entry"
+# field — each entry is an object such as:
+#   { "id": 1, "protocol": 6,
+#     "port-range": [{ "id": 1, "start-port": 443, "end-port": 443 }],
+#     "dst": ["all"] }
+#
+# Field keys must match config-types/firewall-internet-service-custom/validate.ts.
+# =============================================================================
+
+id: "fortimanager-firewall-internet-service-custom"
+name: "Custom Internet Service Configuration"
+toolType: "fortimanager"
+entityType: "firewall-internet-service-custom"
+description: "Define FortiManager custom Internet Services (ISDB extensions with protocol/port-range/destination entries) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "Custom Internet Service"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Custom Internet Service"
+      icon: "globe"
+      description: "Service name, base service and matching entries"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: "The custom internet service name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the service."
+
+        - key: "masterServiceId"
+          label: "Master Service ID"
+          fieldType: "number"
+          required: false
+          helpText: "The base ISDB Internet Service id this custom service extends."
+
+        - key: "reputation"
+          label: "Reputation"
+          fieldType: "number"
+          required: false
+          helpText: "Reputation level to associate with the service."
+
+        - key: "entry"
+          label: "Entries (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            A JSON array of matching entries, each an object with id, protocol
+            (IANA number, e.g. 6 for TCP), a port-range list and a dst list of
+            firewall address names. Leave empty for a service with no entries.

@@ -1,0 +1,82 @@
+# =============================================================================
+# Canvas Template — FortiManager IPS Sensors
+#
+# Declares ONE IPS sensor — the item. Users add as many as they need. Identity
+# is the NAME (the FortiManager mkey); deploy lists the ADOM ips/sensor table,
+# matches on the name, and uses `set` (create-or-replace) to upsert each declared
+# sensor. Reconcile PRESERVES built-in sensors and only deletes sensors this app
+# created but no longer declares.
+#
+# The IPS filter rows are supplied as a JSON array in the "Entries" field — each
+# entry is an object such as:
+#   { "id": 1, "severity": ["high", "critical"], "action": "block",
+#     "status": "enable", "log": "enable" }
+#
+# Field keys must match config-types/ips-sensors/validate.ts.
+# =============================================================================
+
+id: "fortimanager-ips-sensors"
+name: "IPS Sensor Configuration"
+toolType: "fortimanager"
+entityType: "ips-sensors"
+description: "Define FortiManager IPS sensors (signature filter entries plus botnet/malicious-URL controls) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "IPS Sensor"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "IPS Sensor"
+      icon: "shield"
+      description: "Sensor name, scanning controls and filter entries"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 35
+          helpText: "The IPS sensor name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the sensor."
+
+        - key: "scanBotnetConnections"
+          label: "Scan Botnet Connections"
+          fieldType: "select"
+          required: true
+          defaultValue: "disable"
+          options:
+            - label: "Disable"
+              value: "disable"
+            - label: "Block"
+              value: "block"
+            - label: "Monitor"
+              value: "monitor"
+          helpText: "How to handle connections to known botnet servers."
+
+        - key: "blockMaliciousUrl"
+          label: "Block Malicious URLs"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Block access to known malicious URLs."
+
+        - key: "extendedLog"
+          label: "Extended Logging"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Enable extended logging for this sensor."
+
+        - key: "entries"
+          label: "Entries (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            A JSON array of IPS filter entries, each an object with id, severity
+            (list), action (pass/block/reset/default), status and log. Leave
+            empty for a sensor with no explicit filters.

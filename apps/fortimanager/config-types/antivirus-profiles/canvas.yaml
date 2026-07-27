@@ -1,0 +1,110 @@
+# =============================================================================
+# Canvas Template — FortiManager AntiVirus Profiles
+#
+# Declares ONE antivirus profile — the item. Users add as many as they need.
+# Identity is the NAME (the FortiManager mkey); deploy lists the ADOM
+# antivirus/profile table, matches on the name, and uses `set` (create-or-replace)
+# to upsert each declared profile. Reconcile PRESERVES built-in profiles and only
+# deletes profiles this app created but no longer declares.
+#
+# The per-protocol scanning behaviour is supplied as a JSON object in the
+# "Protocols" field — keyed by protocol, each value a settings object, e.g.:
+#   { "http": { "av-scan": "block", "outbreak-prevention": "block" },
+#     "smtp": { "av-scan": "block" } }
+# Recognised keys: http, ftp, imap, pop3, smtp, ssh, cifs, nntp, mapi, smb,
+# content-disarm, outbreak-prevention, nac-quar.
+#
+# Field keys must match config-types/antivirus-profiles/validate.ts.
+# =============================================================================
+
+id: "fortimanager-antivirus-profiles"
+name: "AntiVirus Profile Configuration"
+toolType: "fortimanager"
+entityType: "antivirus-profiles"
+description: "Define FortiManager antivirus profiles (inspection mode, scan mode and per-protocol scanning behaviour) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "AntiVirus Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "AntiVirus Profile"
+      icon: "shield"
+      description: "Profile name, inspection settings and per-protocol behaviour"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 35
+          helpText: "The antivirus profile name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the profile."
+
+        - key: "inspectionMode"
+          label: "Inspection Mode"
+          fieldType: "select"
+          required: true
+          defaultValue: "proxy"
+          options:
+            - label: "Proxy"
+              value: "proxy"
+            - label: "Flow"
+              value: "flow"
+          helpText: "Inspection mode used by the profile."
+
+        - key: "featureSet"
+          label: "Feature Set"
+          fieldType: "select"
+          required: true
+          defaultValue: "proxy"
+          options:
+            - label: "Proxy"
+              value: "proxy"
+            - label: "Flow"
+              value: "flow"
+          helpText: "Feature set (proxy or flow) the profile applies."
+
+        - key: "scanMode"
+          label: "Scan Mode"
+          fieldType: "select"
+          required: true
+          defaultValue: "default"
+          options:
+            - label: "Default"
+              value: "default"
+            - label: "Quick"
+              value: "quick"
+            - label: "Full"
+              value: "full"
+            - label: "Legacy"
+              value: "legacy"
+          helpText: "The antivirus scan mode."
+
+        - key: "analyticsDb"
+          label: "Use FortiSandbox Analytics DB"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Also scan using the FortiSandbox analytics signature database."
+
+        - key: "mobileMalwareDb"
+          label: "Use Mobile Malware DB"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Also scan using the mobile malware signature database."
+
+        - key: "protocols"
+          label: "Per-Protocol Settings (JSON object)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            A JSON object keyed by protocol (http, ftp, smtp, ...), each value a
+            settings object such as {"av-scan":"block"}. Leave empty to keep the
+            profile's protocol defaults.

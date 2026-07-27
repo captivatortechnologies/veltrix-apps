@@ -1,0 +1,105 @@
+# =============================================================================
+# Canvas Template — FortiManager User RADIUS Auth Servers
+#
+# Declares ONE RADIUS authentication server — the item. Users add as many as they
+# need. A server's identity is its NAME (the FortiManager mkey); deploy lists the
+# ADOM user/radius table, matches on the name, and uses `set` (create-or-replace)
+# to upsert each declared server. Reconcile deletes servers this app created but
+# no longer declares.
+#
+# The shared secret(s) are WRITE-ONLY: FortiManager never returns them, so they
+# are never read back or drift-compared — they are re-sent from this canvas on
+# every deploy.
+#
+# Field keys must match config-types/user-radius-servers/validate.ts.
+# =============================================================================
+
+id: "fortimanager-user-radius-servers"
+name: "User RADIUS Server Configuration"
+toolType: "fortimanager"
+entityType: "user-radius-servers"
+description: "Define FortiManager RADIUS authentication servers as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "RADIUS Server"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "RADIUS Server"
+      icon: "server"
+      description: "Server address, shared secret and auth options"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: "The RADIUS server name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "server"
+          label: "Server"
+          fieldType: "text"
+          required: true
+          helpText: "The primary RADIUS server IP address or FQDN."
+
+        - key: "secret"
+          label: "Shared Secret"
+          fieldType: "password"
+          required: true
+          helpText: >
+            ⚠ WRITE-ONLY. The primary RADIUS shared secret. It is sent to
+            FortiManager on every deploy and is never read back, drift-compared, or
+            stored in rollback data.
+
+        - key: "secondaryServer"
+          label: "Secondary Server"
+          fieldType: "text"
+          required: false
+          helpText: "Optional fallback RADIUS server IP address or FQDN."
+
+        - key: "secondarySecret"
+          label: "Secondary Shared Secret"
+          fieldType: "password"
+          required: false
+          helpText: >
+            ⚠ WRITE-ONLY. The fallback RADIUS shared secret. Same handling as the
+            primary secret — re-sent every deploy, never read back or diffed.
+
+        - key: "authType"
+          label: "Authentication Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "auto"
+          options:
+            - label: "Auto (negotiate)"
+              value: "auto"
+            - label: "MS-CHAP v2"
+              value: "ms_chap_v2"
+            - label: "MS-CHAP"
+              value: "ms_chap"
+            - label: "CHAP"
+              value: "chap"
+            - label: "PAP"
+              value: "pap"
+          helpText: "The RADIUS authentication protocol."
+
+        - key: "nasIp"
+          label: "NAS IP"
+          fieldType: "text"
+          required: false
+          helpText: "Optional NAS-IP-Address / Called-Station-ID sent to the RADIUS server."
+
+        - key: "radiusPort"
+          label: "Port"
+          fieldType: "number"
+          required: false
+          helpText: "RADIUS auth port. Leave blank for the FortiManager default (1812)."
+
+        - key: "timeout"
+          label: "Timeout (seconds)"
+          fieldType: "number"
+          required: false
+          helpText: "Optional per-request timeout in seconds."

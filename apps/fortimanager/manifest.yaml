@@ -1,13 +1,16 @@
 id: fortimanager
 name: FortiManager
-version: "0.4.0"
+version: "0.5.0"
 vendor: Veltrix
 description: >
   Manage Fortinet FortiManager configuration as code through the FortiManager
-  JSON-RPC API — Firewall Address objects (IPv4 and IPv6), Wildcard FQDNs, custom
-  Firewall Service objects, Address and Service Groups, IP Pools, and recurring /
-  one-time Schedules — with validation, drift detection and rollback handled by
-  the Security-as-Code pipeline.
+  JSON-RPC API — firewall address objects (IPv4 and IPv6), wildcard FQDNs, custom
+  services, address / service / schedule groups, IP pools (v4 and v6), virtual IPs
+  and VIP groups, multicast and explicit-proxy addresses, traffic shapers and
+  shaping profiles, custom Internet Services, security profiles (application
+  control, IPS, antivirus, web / DNS filtering, SSL/SSH inspection) and user
+  authentication (LDAP / RADIUS / FSSO servers and user groups) — with validation,
+  drift detection and rollback handled by the Security-as-Code pipeline.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/fortimanager
@@ -55,6 +58,72 @@ permissions:
     - resource: firewall-wildcard-fqdns
       actions: [read, write, delete]
       description: Manage FortiManager wildcard-FQDN address objects (e.g. *.example.com) in the ADOM object database
+    - resource: firewall-vips
+      actions: [read, write, delete]
+      description: Manage FortiManager firewall virtual IPs (IPv4 static-NAT / DNAT with optional port forwarding) in the ADOM object database
+    - resource: firewall-vip-groups
+      actions: [read, write, delete]
+      description: Manage FortiManager firewall VIP groups (named sets of member virtual IP objects) in the ADOM object database
+    - resource: firewall-schedule-groups
+      actions: [read, write, delete]
+      description: Manage FortiManager firewall schedule groups (named sets of member one-time / recurring schedules) in the ADOM object database
+    - resource: firewall-ippools6
+      actions: [read, write, delete]
+      description: Manage FortiManager IPv6 IP pools (overload source-NAT ranges) in the ADOM object database
+    - resource: firewall-proxy-addresses
+      actions: [read, write, delete]
+      description: Manage FortiManager explicit-proxy address objects (host-regex / url / method / ua matchers) in the ADOM object database
+    - resource: firewall-proxy-address-groups
+      actions: [read, write, delete]
+      description: Manage FortiManager explicit-proxy address groups (named sets of member proxy-address objects) in the ADOM object database
+    - resource: firewall-multicast-addresses
+      actions: [read, write, delete]
+      description: Manage FortiManager firewall multicast address objects (multicast IP ranges or broadcast subnets) in the ADOM object database
+    - resource: firewall-traffic-shapers
+      actions: [read, write, delete]
+      description: Manage FortiManager shared traffic shapers (guaranteed / maximum bandwidth, priority, DiffServ marking) in the ADOM object database
+    - resource: firewall-per-ip-shapers
+      actions: [read, write, delete]
+      description: Manage FortiManager per-IP traffic shapers (per-source bandwidth and concurrent-session limits) in the ADOM object database
+    - resource: firewall-shaping-profiles
+      actions: [read, write, delete]
+      description: Manage FortiManager traffic shaping profiles (ToS / queuing classes with per-class bandwidth guarantees) in the ADOM object database
+    - resource: firewall-internet-service-custom
+      actions: [read, write, delete]
+      description: Manage FortiManager custom Internet Services (ISDB extensions with protocol / port-range / destination entries) in the ADOM object database
+    - resource: firewall-internet-service-custom-groups
+      actions: [read, write, delete]
+      description: Manage FortiManager custom Internet Service groups (named sets of member custom internet services) in the ADOM object database
+    - resource: application-control-lists
+      actions: [read, write, delete]
+      description: Manage FortiManager application control profiles (default actions plus per-category / application rules) in the ADOM object database
+    - resource: ips-sensors
+      actions: [read, write, delete]
+      description: Manage FortiManager IPS sensors (signature filter entries plus botnet / malicious-URL controls) in the ADOM object database
+    - resource: antivirus-profiles
+      actions: [read, write, delete]
+      description: Manage FortiManager antivirus profiles (inspection mode, scan mode and per-protocol scanning behaviour) in the ADOM object database
+    - resource: webfilter-profiles
+      actions: [read, write, delete]
+      description: Manage FortiManager web filter security profiles in the ADOM object database
+    - resource: dnsfilter-profiles
+      actions: [read, write, delete]
+      description: Manage FortiManager DNS filter security profiles in the ADOM object database
+    - resource: ssl-ssh-profiles
+      actions: [read, write, delete]
+      description: Manage FortiManager SSL/SSH inspection security profiles in the ADOM object database
+    - resource: user-ldap-servers
+      actions: [read, write, delete]
+      description: Manage FortiManager LDAP authentication servers in the ADOM object database
+    - resource: user-radius-servers
+      actions: [read, write, delete]
+      description: Manage FortiManager RADIUS authentication servers in the ADOM object database
+    - resource: user-fsso-agents
+      actions: [read, write, delete]
+      description: Manage FortiManager FSSO collector-agent connections in the ADOM object database
+    - resource: user-groups
+      actions: [read, write, delete]
+      description: Manage FortiManager user groups (named sets of members and auth servers) in the ADOM object database
 
 pipeline:
   configurationTypes:
@@ -206,6 +275,380 @@ pipeline:
         healthCheck: config-types/firewall-addresses/healthCheck
         driftDetect: config-types/firewall-addresses/driftDetect
         getStatus: config-types/firewall-addresses/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewall-vips
+      name: Firewall Virtual IPs
+      description: Virtual IPs — IPv4 static-NAT / DNAT with optional single-port forwarding (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/firewall-vips/canvas.yaml
+      defaultConfig: config-types/firewall-vips/defaults.yaml
+      handlers:
+        validate: config-types/firewall-vips/validate
+        deploy: config-types/firewall-vips/deploy
+        rollback: config-types/firewall-vips/rollback
+        healthCheck: config-types/firewall-vips/healthCheck
+        driftDetect: config-types/firewall-vips/driftDetect
+        getStatus: config-types/firewall-vips/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewall-vip-groups
+      name: Firewall VIP Groups
+      description: Firewall VIP groups — a named set of member virtual IP objects (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/firewall-vip-groups/canvas.yaml
+      defaultConfig: config-types/firewall-vip-groups/defaults.yaml
+      handlers:
+        validate: config-types/firewall-vip-groups/validate
+        deploy: config-types/firewall-vip-groups/deploy
+        rollback: config-types/firewall-vip-groups/rollback
+        healthCheck: config-types/firewall-vip-groups/healthCheck
+        driftDetect: config-types/firewall-vip-groups/driftDetect
+        getStatus: config-types/firewall-vip-groups/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewall-schedule-groups
+      name: Schedule Groups
+      description: Firewall schedule groups — a named set of member one-time / recurring schedules (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/firewall-schedule-groups/canvas.yaml
+      defaultConfig: config-types/firewall-schedule-groups/defaults.yaml
+      handlers:
+        validate: config-types/firewall-schedule-groups/validate
+        deploy: config-types/firewall-schedule-groups/deploy
+        rollback: config-types/firewall-schedule-groups/rollback
+        healthCheck: config-types/firewall-schedule-groups/healthCheck
+        driftDetect: config-types/firewall-schedule-groups/driftDetect
+        getStatus: config-types/firewall-schedule-groups/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewall-ippools6
+      name: Firewall IPv6 IP Pools
+      description: IPv6 IP pools — an overload source-NAT range (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/firewall-ippools6/canvas.yaml
+      defaultConfig: config-types/firewall-ippools6/defaults.yaml
+      handlers:
+        validate: config-types/firewall-ippools6/validate
+        deploy: config-types/firewall-ippools6/deploy
+        rollback: config-types/firewall-ippools6/rollback
+        healthCheck: config-types/firewall-ippools6/healthCheck
+        driftDetect: config-types/firewall-ippools6/driftDetect
+        getStatus: config-types/firewall-ippools6/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewall-proxy-addresses
+      name: Explicit-Proxy Addresses
+      description: Explicit-proxy addresses — host-regex, url, method or ua matchers (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/firewall-proxy-addresses/canvas.yaml
+      defaultConfig: config-types/firewall-proxy-addresses/defaults.yaml
+      handlers:
+        validate: config-types/firewall-proxy-addresses/validate
+        deploy: config-types/firewall-proxy-addresses/deploy
+        rollback: config-types/firewall-proxy-addresses/rollback
+        healthCheck: config-types/firewall-proxy-addresses/healthCheck
+        driftDetect: config-types/firewall-proxy-addresses/driftDetect
+        getStatus: config-types/firewall-proxy-addresses/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewall-proxy-address-groups
+      name: Explicit-Proxy Address Groups
+      description: Explicit-proxy address groups — a named set of member proxy-address objects (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/firewall-proxy-address-groups/canvas.yaml
+      defaultConfig: config-types/firewall-proxy-address-groups/defaults.yaml
+      handlers:
+        validate: config-types/firewall-proxy-address-groups/validate
+        deploy: config-types/firewall-proxy-address-groups/deploy
+        rollback: config-types/firewall-proxy-address-groups/rollback
+        healthCheck: config-types/firewall-proxy-address-groups/healthCheck
+        driftDetect: config-types/firewall-proxy-address-groups/driftDetect
+        getStatus: config-types/firewall-proxy-address-groups/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewall-multicast-addresses
+      name: Firewall Multicast Addresses
+      description: Firewall multicast addresses — a multicast IP range or a broadcast subnet (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/firewall-multicast-addresses/canvas.yaml
+      defaultConfig: config-types/firewall-multicast-addresses/defaults.yaml
+      handlers:
+        validate: config-types/firewall-multicast-addresses/validate
+        deploy: config-types/firewall-multicast-addresses/deploy
+        rollback: config-types/firewall-multicast-addresses/rollback
+        healthCheck: config-types/firewall-multicast-addresses/healthCheck
+        driftDetect: config-types/firewall-multicast-addresses/driftDetect
+        getStatus: config-types/firewall-multicast-addresses/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewall-traffic-shapers
+      name: Traffic Shapers
+      description: Shared traffic shapers — guaranteed / maximum bandwidth, priority and DiffServ marking (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/firewall-traffic-shapers/canvas.yaml
+      defaultConfig: config-types/firewall-traffic-shapers/defaults.yaml
+      handlers:
+        validate: config-types/firewall-traffic-shapers/validate
+        deploy: config-types/firewall-traffic-shapers/deploy
+        rollback: config-types/firewall-traffic-shapers/rollback
+        healthCheck: config-types/firewall-traffic-shapers/healthCheck
+        driftDetect: config-types/firewall-traffic-shapers/driftDetect
+        getStatus: config-types/firewall-traffic-shapers/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewall-per-ip-shapers
+      name: Per-IP Shapers
+      description: Per-IP traffic shapers — per-source bandwidth and concurrent-session limits (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/firewall-per-ip-shapers/canvas.yaml
+      defaultConfig: config-types/firewall-per-ip-shapers/defaults.yaml
+      handlers:
+        validate: config-types/firewall-per-ip-shapers/validate
+        deploy: config-types/firewall-per-ip-shapers/deploy
+        rollback: config-types/firewall-per-ip-shapers/rollback
+        healthCheck: config-types/firewall-per-ip-shapers/healthCheck
+        driftDetect: config-types/firewall-per-ip-shapers/driftDetect
+        getStatus: config-types/firewall-per-ip-shapers/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewall-shaping-profiles
+      name: Shaping Profiles
+      description: Traffic shaping profiles — ToS / queuing classes with per-class bandwidth guarantees (profile-name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/firewall-shaping-profiles/canvas.yaml
+      defaultConfig: config-types/firewall-shaping-profiles/defaults.yaml
+      handlers:
+        validate: config-types/firewall-shaping-profiles/validate
+        deploy: config-types/firewall-shaping-profiles/deploy
+        rollback: config-types/firewall-shaping-profiles/rollback
+        healthCheck: config-types/firewall-shaping-profiles/healthCheck
+        driftDetect: config-types/firewall-shaping-profiles/driftDetect
+        getStatus: config-types/firewall-shaping-profiles/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewall-internet-service-custom
+      name: Custom Internet Services
+      description: Custom Internet Services — ISDB extensions with protocol / port-range / destination entries (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/firewall-internet-service-custom/canvas.yaml
+      defaultConfig: config-types/firewall-internet-service-custom/defaults.yaml
+      handlers:
+        validate: config-types/firewall-internet-service-custom/validate
+        deploy: config-types/firewall-internet-service-custom/deploy
+        rollback: config-types/firewall-internet-service-custom/rollback
+        healthCheck: config-types/firewall-internet-service-custom/healthCheck
+        driftDetect: config-types/firewall-internet-service-custom/driftDetect
+        getStatus: config-types/firewall-internet-service-custom/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewall-internet-service-custom-groups
+      name: Custom Internet Service Groups
+      description: Custom Internet Service groups — a named set of member custom internet services (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/firewall-internet-service-custom-groups/canvas.yaml
+      defaultConfig: config-types/firewall-internet-service-custom-groups/defaults.yaml
+      handlers:
+        validate: config-types/firewall-internet-service-custom-groups/validate
+        deploy: config-types/firewall-internet-service-custom-groups/deploy
+        rollback: config-types/firewall-internet-service-custom-groups/rollback
+        healthCheck: config-types/firewall-internet-service-custom-groups/healthCheck
+        driftDetect: config-types/firewall-internet-service-custom-groups/driftDetect
+        getStatus: config-types/firewall-internet-service-custom-groups/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: application-control-lists
+      name: Application Control Profiles
+      description: Application control profiles — default actions plus per-category / application rules (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/application-control-lists/canvas.yaml
+      defaultConfig: config-types/application-control-lists/defaults.yaml
+      handlers:
+        validate: config-types/application-control-lists/validate
+        deploy: config-types/application-control-lists/deploy
+        rollback: config-types/application-control-lists/rollback
+        healthCheck: config-types/application-control-lists/healthCheck
+        driftDetect: config-types/application-control-lists/driftDetect
+        getStatus: config-types/application-control-lists/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ips-sensors
+      name: IPS Sensors
+      description: IPS sensors — signature filter entries plus botnet / malicious-URL controls (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/ips-sensors/canvas.yaml
+      defaultConfig: config-types/ips-sensors/defaults.yaml
+      handlers:
+        validate: config-types/ips-sensors/validate
+        deploy: config-types/ips-sensors/deploy
+        rollback: config-types/ips-sensors/rollback
+        healthCheck: config-types/ips-sensors/healthCheck
+        driftDetect: config-types/ips-sensors/driftDetect
+        getStatus: config-types/ips-sensors/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: antivirus-profiles
+      name: AntiVirus Profiles
+      description: AntiVirus profiles — inspection mode, scan mode and per-protocol scanning behaviour (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/antivirus-profiles/canvas.yaml
+      defaultConfig: config-types/antivirus-profiles/defaults.yaml
+      handlers:
+        validate: config-types/antivirus-profiles/validate
+        deploy: config-types/antivirus-profiles/deploy
+        rollback: config-types/antivirus-profiles/rollback
+        healthCheck: config-types/antivirus-profiles/healthCheck
+        driftDetect: config-types/antivirus-profiles/driftDetect
+        getStatus: config-types/antivirus-profiles/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: webfilter-profiles
+      name: Web Filter Profiles
+      description: Web filter security profiles (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/webfilter-profiles/canvas.yaml
+      defaultConfig: config-types/webfilter-profiles/defaults.yaml
+      handlers:
+        validate: config-types/webfilter-profiles/validate
+        deploy: config-types/webfilter-profiles/deploy
+        rollback: config-types/webfilter-profiles/rollback
+        healthCheck: config-types/webfilter-profiles/healthCheck
+        driftDetect: config-types/webfilter-profiles/driftDetect
+        getStatus: config-types/webfilter-profiles/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: dnsfilter-profiles
+      name: DNS Filter Profiles
+      description: DNS filter security profiles (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/dnsfilter-profiles/canvas.yaml
+      defaultConfig: config-types/dnsfilter-profiles/defaults.yaml
+      handlers:
+        validate: config-types/dnsfilter-profiles/validate
+        deploy: config-types/dnsfilter-profiles/deploy
+        rollback: config-types/dnsfilter-profiles/rollback
+        healthCheck: config-types/dnsfilter-profiles/healthCheck
+        driftDetect: config-types/dnsfilter-profiles/driftDetect
+        getStatus: config-types/dnsfilter-profiles/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ssl-ssh-profiles
+      name: SSL/SSH Inspection Profiles
+      description: SSL/SSH inspection security profiles (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/ssl-ssh-profiles/canvas.yaml
+      defaultConfig: config-types/ssl-ssh-profiles/defaults.yaml
+      handlers:
+        validate: config-types/ssl-ssh-profiles/validate
+        deploy: config-types/ssl-ssh-profiles/deploy
+        rollback: config-types/ssl-ssh-profiles/rollback
+        healthCheck: config-types/ssl-ssh-profiles/healthCheck
+        driftDetect: config-types/ssl-ssh-profiles/driftDetect
+        getStatus: config-types/ssl-ssh-profiles/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: user-ldap-servers
+      name: User LDAP Servers
+      description: LDAP authentication servers (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/user-ldap-servers/canvas.yaml
+      defaultConfig: config-types/user-ldap-servers/defaults.yaml
+      handlers:
+        validate: config-types/user-ldap-servers/validate
+        deploy: config-types/user-ldap-servers/deploy
+        rollback: config-types/user-ldap-servers/rollback
+        healthCheck: config-types/user-ldap-servers/healthCheck
+        driftDetect: config-types/user-ldap-servers/driftDetect
+        getStatus: config-types/user-ldap-servers/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: user-radius-servers
+      name: User RADIUS Servers
+      description: RADIUS authentication servers (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/user-radius-servers/canvas.yaml
+      defaultConfig: config-types/user-radius-servers/defaults.yaml
+      handlers:
+        validate: config-types/user-radius-servers/validate
+        deploy: config-types/user-radius-servers/deploy
+        rollback: config-types/user-radius-servers/rollback
+        healthCheck: config-types/user-radius-servers/healthCheck
+        driftDetect: config-types/user-radius-servers/driftDetect
+        getStatus: config-types/user-radius-servers/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: user-fsso-agents
+      name: User FSSO Agents
+      description: FSSO collector-agent connections (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/user-fsso-agents/canvas.yaml
+      defaultConfig: config-types/user-fsso-agents/defaults.yaml
+      handlers:
+        validate: config-types/user-fsso-agents/validate
+        deploy: config-types/user-fsso-agents/deploy
+        rollback: config-types/user-fsso-agents/rollback
+        healthCheck: config-types/user-fsso-agents/healthCheck
+        driftDetect: config-types/user-fsso-agents/driftDetect
+        getStatus: config-types/user-fsso-agents/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: user-groups
+      name: User Groups
+      description: User groups — a named set of members and auth servers (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/user-groups/canvas.yaml
+      defaultConfig: config-types/user-groups/defaults.yaml
+      handlers:
+        validate: config-types/user-groups/validate
+        deploy: config-types/user-groups/deploy
+        rollback: config-types/user-groups/rollback
+        healthCheck: config-types/user-groups/healthCheck
+        driftDetect: config-types/user-groups/driftDetect
+        getStatus: config-types/user-groups/getStatus
       targets:
         componentTypes: [fortimanager]
         requiresCredential: true

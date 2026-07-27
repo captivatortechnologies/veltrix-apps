@@ -1,0 +1,8 @@
+# Defaults for a new firewall virtual IP item.
+#
+# A FLAT map keyed by the canvas field keys. Sensible static-NAT defaults are
+# seeded; the addresses (extip/mappedip) are left blank for a deliberate choice.
+extintf: any
+portforward: disable
+protocol: tcp
+arpReply: enable

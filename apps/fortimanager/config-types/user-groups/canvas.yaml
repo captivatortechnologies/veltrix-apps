@@ -1,0 +1,81 @@
+# =============================================================================
+# Canvas Template — FortiManager User Groups
+#
+# Declares ONE user group — the item. Users add as many as they need. A group's
+# identity is its NAME (the FortiManager mkey); deploy lists the ADOM user/group
+# table, matches on the name, and uses `set` (create-or-replace) to upsert each
+# declared group. Members reference existing local users and LDAP / RADIUS / FSSO
+# server names (compose with the User LDAP / RADIUS / FSSO configuration types).
+# Reconcile deletes groups this app created but no longer declares.
+#
+# Field keys must match config-types/user-groups/validate.ts.
+# =============================================================================
+
+id: "fortimanager-user-groups"
+name: "User Group Configuration"
+toolType: "fortimanager"
+entityType: "user-groups"
+description: "Define FortiManager user groups (a named set of members and auth servers) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "User Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "User Group"
+      icon: "users"
+      description: "Group name, type and members"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: "The user group name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "groupType"
+          label: "Group Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "firewall"
+          options:
+            - label: "Firewall"
+              value: "firewall"
+            - label: "Directory Service"
+              value: "directory-service"
+            - label: "FSSO Service"
+              value: "fsso-service"
+            - label: "Guest"
+              value: "guest"
+            - label: "RADIUS SSO (RSSO)"
+              value: "rsso"
+          helpText: "The FortiManager user group type."
+
+        - key: "members"
+          label: "Members (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Member names, one per line. Each must be an existing local user or an
+            LDAP / RADIUS / FSSO server (see the User LDAP / RADIUS / FSSO
+            configuration types). At least one is required.
+
+        - key: "logicType"
+          label: "Match Logic"
+          fieldType: "select"
+          required: false
+          options:
+            - label: "OR (any member matches)"
+              value: "or"
+            - label: "AND (all members match)"
+              value: "and"
+          helpText: "How multiple members are combined (optional)."
+
+        - key: "authTimeout"
+          label: "Auth Timeout (minutes)"
+          fieldType: "number"
+          required: false
+          helpText: "Optional authenticated-session timeout in minutes (0 uses the global default)."

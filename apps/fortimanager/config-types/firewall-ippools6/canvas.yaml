@@ -1,0 +1,58 @@
+# =============================================================================
+# Canvas Template — FortiManager Firewall IPv6 IP Pools
+#
+# Declares ONE IPv6 IP pool — the item. Users add as many as they need.
+# A pool's identity is its NAME (the FortiManager mkey); deploy lists the ADOM
+# ippool6 table, matches on the name, and uses `set` (create-or-replace) to
+# upsert each declared pool. Reconcile deletes pools this app created but no
+# longer declares.
+#
+# Bounded to a range-only (overload) pool needing just a start and end IPv6 —
+# mirroring the IPv4 Firewall IP Pools configuration type (NPTv6 prefix pools
+# are out of scope for v1).
+#
+# Field keys must match config-types/firewall-ippools6/validate.ts.
+# =============================================================================
+
+id: "fortimanager-firewall-ippools6"
+name: "Firewall IPv6 IP Pool Configuration"
+toolType: "fortimanager"
+entityType: "firewall-ippools6"
+description: "Define FortiManager IPv6 IP pools (an overload source-NAT range) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "Firewall IPv6 IP Pool"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "IPv6 IP Pool"
+      icon: "globe"
+      description: "Pool name and IPv6 address range"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: "The IPv6 pool name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "startIp"
+          label: "Start IPv6"
+          fieldType: "text"
+          required: true
+          helpText: "The first IPv6 address in the pool range (e.g. 2001:db8::1)."
+
+        - key: "endIp"
+          label: "End IPv6"
+          fieldType: "text"
+          required: true
+          helpText: "The last IPv6 address in the pool range (e.g. 2001:db8::ffff)."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the IPv6 pool."

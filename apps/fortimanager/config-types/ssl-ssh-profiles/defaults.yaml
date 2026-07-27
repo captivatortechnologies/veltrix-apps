@@ -1,0 +1,11 @@
+# Defaults for a new SSL/SSH inspection profile item.
+#
+# A FLAT map keyed by the canvas field keys. Only the common server-cert mode and
+# logging toggles are seeded; the name and advanced body are left blank for a
+# deliberate choice.
+serverCertMode: re-sign
+allowlist: false
+blockBlocklistedCertificates: true
+sslAnomaliesLog: true
+sslExemptionsLog: false
+useSslServer: false

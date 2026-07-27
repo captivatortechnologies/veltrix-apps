@@ -1,0 +1,92 @@
+# =============================================================================
+# Canvas Template — FortiManager Web Filter Profiles
+#
+# Declares ONE web filter (security) profile — the item. Users add as many as
+# they need. A profile's identity is its NAME (the FortiManager mkey); deploy
+# lists the ADOM webfilter/profile table, matches on the name, and uses `set`
+# (create-or-replace) to upsert each declared profile.
+#
+# Bounded scope: the top-level scalar toggles are first-class fields; the complex
+# nested body (FortiGuard category filters and friends) is supplied as one
+# validated-JSON object in "Advanced Body (JSON)".
+#
+# Built-in default profiles (default, monitor-all, sniffer-profile, g-default)
+# reject delete — reconcile only removes profiles THIS app created.
+#
+# Field keys must match config-types/webfilter-profiles/validate.ts.
+# =============================================================================
+
+id: "fortimanager-webfilter-profiles"
+name: "Web Filter Profile Configuration"
+toolType: "fortimanager"
+entityType: "webfilter-profiles"
+description: "Define FortiManager web filter security profiles as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "Web Filter Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Web Filter Profile"
+      icon: "shield"
+      description: "Profile name, logging toggles and the advanced body"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: "The web filter profile name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the profile."
+
+        - key: "httpsReplacemsg"
+          label: "HTTPS Replacement Message"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Show a replacement message for blocked HTTPS pages."
+
+        - key: "logAllUrl"
+          label: "Log All URLs"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Log every visited URL, not just blocked ones."
+
+        - key: "webContentLog"
+          label: "Log Web Content"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Log content-category matches."
+
+        - key: "extendedLog"
+          label: "Extended Logging"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Enable extended web filter logging."
+
+        - key: "wisp"
+          label: "WISP"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Enable Web Cache Communication / WISP integration."
+
+        - key: "bodyJson"
+          label: "Advanced Body (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional JSON object for the nested web filter body, e.g.
+            {"ftgd-wf": {"filters": [{"category": 26, "action": "block"}]}}.
+            Must parse to a JSON object. Category IDs are FortiGuard integers.

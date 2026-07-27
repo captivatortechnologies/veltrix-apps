@@ -8,6 +8,67 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.5.0 — 2026-07-26
+
+### Added
+
+Twenty-two new configuration types, taking the app well beyond firewall address
+management into NAT, traffic management, threat inspection and user
+authentication. All are name-keyed (profiles keyed by their `name`, shaping
+profiles by `profile-name`) and upserted with `set`; reconcile only deletes
+objects this app created (security-profile types additionally preserve
+FortiManager built-ins); deploys/rollbacks run inside the ADOM workspace
+transaction when enabled.
+
+- **Firewall network objects**
+  - **Firewall Virtual IPs** — IPv4 static-NAT / DNAT VIPs with optional
+    single-port forwarding. `obj/firewall/vip`.
+  - **Firewall VIP Groups** — named sets of member virtual IP objects.
+    `obj/firewall/vipgrp`.
+  - **Schedule Groups** — named sets of member one-time / recurring schedules.
+    `obj/firewall/schedule/group`.
+  - **Firewall IPv6 IP Pools** — overload source-NAT ranges (the IPv6 analog of
+    Firewall IP Pools). `obj/firewall/ippool6`.
+  - **Explicit-Proxy Addresses** — host-regex, url, method or ua matchers.
+    `obj/firewall/proxy-address`.
+  - **Explicit-Proxy Address Groups** — named sets of member proxy-address
+    objects. `obj/firewall/proxy-addrgrp`.
+  - **Firewall Multicast Addresses** — a multicast IP range or a broadcast
+    subnet. `obj/firewall/multicast-address`.
+- **Traffic shaping**
+  - **Traffic Shapers** — shared shapers (guaranteed / maximum bandwidth,
+    priority, DiffServ marking). `obj/firewall/shaper/traffic-shaper`.
+  - **Per-IP Shapers** — per-source bandwidth and concurrent-session limits.
+    `obj/firewall/shaper/per-ip-shaper`.
+  - **Shaping Profiles** — ToS / queuing classes with per-class bandwidth
+    guarantees (keyed by `profile-name`). `obj/firewall/shaping-profile`.
+- **Internet Service (ISDB)**
+  - **Custom Internet Services** — ISDB extensions with protocol / port-range /
+    destination entries. `obj/firewall/internet-service-custom`.
+  - **Custom Internet Service Groups** — named sets of member custom internet
+    services. `obj/firewall/internet-service-custom-group`.
+- **Security profiles**
+  - **Application Control Profiles** — default actions plus per-category /
+    application rules. `obj/application/list`.
+  - **IPS Sensors** — signature filter entries plus botnet / malicious-URL
+    controls. `obj/ips/sensor`.
+  - **AntiVirus Profiles** — inspection mode, scan mode and per-protocol
+    scanning behaviour. `obj/antivirus/profile`.
+  - **Web Filter Profiles** — web filter security profiles.
+    `obj/webfilter/profile`.
+  - **DNS Filter Profiles** — DNS filter security profiles.
+    `obj/dnsfilter/profile`.
+  - **SSL/SSH Inspection Profiles** — SSL/SSH inspection security profiles.
+    `obj/firewall/ssl-ssh-profile`.
+- **User / authentication**
+  - **User LDAP Servers** — LDAP authentication servers (bind password is
+    write-only). `obj/user/ldap`.
+  - **User RADIUS Servers** — RADIUS authentication servers (shared secrets are
+    write-only). `obj/user/radius`.
+  - **User FSSO Agents** — FSSO collector-agent connections (agent password is
+    write-only). `obj/user/fsso`.
+  - **User Groups** — named sets of members and auth servers. `obj/user/group`.
+
 ## 0.4.0 — 2026-07-26
 
 ### Added

@@ -1,0 +1,98 @@
+# =============================================================================
+# Canvas Template — FortiManager User FSSO Collector Agents
+#
+# Declares ONE FSSO (Fortinet Single Sign-On) collector-agent connection — the
+# item. Users add as many as they need. An agent's identity is its NAME (the
+# FortiManager mkey); deploy lists the ADOM user/fsso table, matches on the name,
+# and uses `set` (create-or-replace) to upsert each declared agent. Reconcile
+# deletes agents this app created but no longer declares.
+#
+# The agent password is WRITE-ONLY: FortiManager never returns it, so it is never
+# read back or drift-compared — it is re-sent from this canvas on every deploy.
+#
+# Field keys must match config-types/user-fsso-agents/validate.ts.
+# =============================================================================
+
+id: "fortimanager-user-fsso-agents"
+name: "User FSSO Agent Configuration"
+toolType: "fortimanager"
+entityType: "user-fsso-agents"
+description: "Define FortiManager FSSO collector-agent connections as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "FSSO Agent"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "FSSO Agent"
+      icon: "users"
+      description: "Collector-agent hosts, password and LDAP linkage"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: "The FSSO agent name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "server"
+          label: "Primary Collector Agent"
+          fieldType: "text"
+          required: true
+          helpText: "The primary FSSO collector-agent IP address or FQDN."
+
+        - key: "port"
+          label: "Port"
+          fieldType: "number"
+          required: false
+          helpText: "Collector-agent listening port. Leave blank for the FortiManager default (8000)."
+
+        - key: "password"
+          label: "Agent Password"
+          fieldType: "password"
+          required: false
+          helpText: >
+            ⚠ WRITE-ONLY. The collector-agent password. It is sent to FortiManager
+            on every deploy and is never read back, drift-compared, or stored in
+            rollback data.
+
+        - key: "server2"
+          label: "Collector Agent 2"
+          fieldType: "text"
+          required: false
+          helpText: "Optional second collector-agent host."
+
+        - key: "server3"
+          label: "Collector Agent 3"
+          fieldType: "text"
+          required: false
+          helpText: "Optional third collector-agent host."
+
+        - key: "server4"
+          label: "Collector Agent 4"
+          fieldType: "text"
+          required: false
+          helpText: "Optional fourth collector-agent host."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: false
+          defaultValue: "default"
+          options:
+            - label: "Default (FSSO collector agent)"
+              value: "default"
+            - label: "FortiNAC"
+              value: "fortinac"
+          helpText: "The FSSO agent type."
+
+        - key: "ldapServer"
+          label: "LDAP Server"
+          fieldType: "text"
+          required: false
+          helpText: >
+            Optional name of a User LDAP Server used for group lookups (see the User
+            LDAP Servers configuration type). Must reference an existing LDAP server.

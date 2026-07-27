@@ -1,0 +1,6 @@
+# Defaults for a new traffic shaper item.
+#
+# A FLAT map keyed by the canvas field keys. Only the enum defaults are seeded;
+# the name and bandwidth values are left blank for a deliberate choice.
+bandwidthUnit: kbps
+priority: high

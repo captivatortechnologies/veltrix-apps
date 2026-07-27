@@ -1,0 +1,5 @@
+# Defaults for a new per-IP shaper item.
+#
+# A FLAT map keyed by the canvas field keys. Only the bandwidth unit is seeded;
+# the name and limits are left blank for a deliberate choice.
+bandwidthUnit: kbps

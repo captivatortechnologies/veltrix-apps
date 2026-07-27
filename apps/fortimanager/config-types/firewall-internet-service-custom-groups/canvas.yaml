@@ -1,0 +1,54 @@
+# =============================================================================
+# Canvas Template — FortiManager Custom Internet Service Groups
+#
+# Declares ONE custom Internet Service group — the item. Users add as many as
+# they need. Identity is the NAME (the FortiManager mkey); deploy lists the ADOM
+# internet-service-custom-group table, matches on the name, and uses `set`
+# (create-or-replace) to upsert each declared group. Members reference existing
+# custom internet-service names (compose with the Custom Internet Service
+# configuration type). Reconcile deletes groups this app created but no longer
+# declares.
+#
+# Field keys must match
+# config-types/firewall-internet-service-custom-groups/validate.ts.
+# =============================================================================
+
+id: "fortimanager-firewall-internet-service-custom-groups"
+name: "Custom Internet Service Group Configuration"
+toolType: "fortimanager"
+entityType: "firewall-internet-service-custom-groups"
+description: "Define FortiManager custom Internet Service groups (a named set of member custom internet services) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "Custom Internet Service Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Internet Service Group"
+      icon: "folder"
+      description: "Group name and member services"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: "The group name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "members"
+          label: "Member Services (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            The member custom internet-service names, one per line. Each must be
+            an existing custom internet service (see the Custom Internet Service
+            configuration type). At least one is required.
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the group."

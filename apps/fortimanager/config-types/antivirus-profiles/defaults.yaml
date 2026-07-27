@@ -1,0 +1,9 @@
+# Defaults for a new antivirus profile item.
+#
+# A FLAT map keyed by the canvas field keys. The inspection/scan-mode defaults
+# are seeded and the per-protocol settings start as an empty JSON object; the
+# name is left blank for a deliberate choice.
+inspectionMode: proxy
+featureSet: proxy
+scanMode: default
+protocols: "{}"

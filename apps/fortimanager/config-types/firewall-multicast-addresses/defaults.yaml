@@ -1,0 +1,6 @@
+# Defaults for a new firewall multicast address item.
+#
+# A FLAT map keyed by the canvas field keys. Only the type is seeded
+# (multicastrange, the most common); the range/subnet is left blank for a
+# deliberate choice.
+type: multicastrange
