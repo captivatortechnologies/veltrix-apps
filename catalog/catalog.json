@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-27T16:08:10.462Z",
+  "generatedAt": "2026-07-27T16:36:10.589Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -84,7 +84,7 @@
     {
       "appId": "crowdstrike-edr",
       "name": "CrowdStrike Falcon",
-      "version": "1.11.0",
+      "version": "1.12.0",
       "vendor": "Veltrix",
       "description": "Manage CrowdStrike Falcon configurations as code through the Falcon APIs. Covers Endpoint Policies (prevention, sensor update, response, USB device control, content update, custom IOA rule groups), Exclusions (ML, IOA, sensor visibility), host groups, and custom IOCs — with validation, drift detection, and rollback handled by the Security-as-Code pipeline. Configuration types are grouped by Falcon API family in the sidebar.",
       "category": "EDR",
@@ -94,11 +94,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/crowdstrike-edr",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/crowdstrike-edr-v1.11.0/crowdstrike-edr.zip",
-      "sha256": "ec2add5a08debe15901d0bd897643916069501e4571b3d2ca4c4cfc4f03e9f09",
-      "sizeBytes": 770280,
-      "publishedAt": "2026-07-27T16:08:10.414Z",
-      "releaseNotes": "## 1.11.0 — 2026-07-27\n\n### Added\n- **Next-Gen SIEM** — a new sidebar group with six configuration types:\n  - **Correlation Rule** — CQL detection rules (schedule, severity, MITRE mapping,\n    notifications, publish), on `/correlation-rules/`.\n  - **Parser** — log-normalization parsers, **Saved Query** / scheduled search,\n    **Dashboard**, **Lookup File** (CSV enrichment), and **Data Connection**\n    (ingest connectors; tokens handled as secrets) on `/ngsiem-content/`.\n- Correlation rules reuse `lib/entityAdapter.ts` (+ a publish call); the\n  `/ngsiem-content/` types use the collection's template-split CRUD directly.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/crowdstrike-edr-v1.12.0/crowdstrike-edr.zip",
+      "sha256": "cb7c493495f50e0ce6bb5ff6cf54b39a31d59b56c97eda6dee829715df003cbe",
+      "sizeBytes": 1032893,
+      "publishedAt": "2026-07-27T16:36:10.545Z",
+      "releaseNotes": "## 1.12.0 — 2026-07-27\n\n### Added\n- **Phase 5 — eleven config types across five families**, completing the roadmap:\n  - **Firewall** — Rule Group (rules) and Policy (rule-group assignment; reuses the\n    shared policy adapter + fwmgr).\n  - **Response & RTR** — RTR Custom Scripts and Put-Files (reusable RTR assets).\n  - **IT Automation** (Falcon for IT) — Policy, Task (osquery/scripts), Scheduled Task.\n  - **Counter Adversary Ops** — Recon Monitoring Rules (+ notification actions).\n  - **Platform Administration** — Installation Tokens (drift-corrected via revoke,\n    not delete) and Users (with role-grant as a separate step).\n  - **Identity Protection** — IDP Policy Rules (no PATCH API → replace-in-place).\n- MSSP / Flight Control is intentionally deferred (multi-tenant, requires parent-CID\n  credentials).",
       "releasedAt": "2026-07-27T00:00:00.000Z"
     },
     {
