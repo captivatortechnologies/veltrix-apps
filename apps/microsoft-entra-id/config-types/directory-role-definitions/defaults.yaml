@@ -1,0 +1,7 @@
+# Defaults for a new custom role definition item.
+#
+# Seeds an enabled role with a single read action the author can extend. Values
+# are a FLAT map keyed by the canvas field keys (name, description, isEnabled,
+# allowedResourceActions).
+isEnabled: true
+allowedResourceActions: "microsoft.directory/applications/basic/read"

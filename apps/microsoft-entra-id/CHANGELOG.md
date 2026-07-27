@@ -8,6 +8,28 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.5.0 — 2026-07-26
+
+### Added
+- **Administrative Units** configuration type — manage Entra administrative
+  units (name, description, visibility) as code. Membership and scoped role
+  assignments are not managed; reconcile only deletes units this app created.
+- **Authentication Strengths** configuration type — manage custom Conditional
+  Access authentication strengths (allowed authentication method combinations)
+  as code. Built-in strengths are protected; combinations are changed via the
+  Graph `updateAllowedCombinations` action.
+- **Token Lifetime Policies** configuration type — manage access / ID token
+  lifetimes as code via a JSON `definition` (validated as JSON) with optional
+  organization-default activation.
+- **Claims Mapping Policies** configuration type — manage token claims
+  customization as code via a JSON `definition` (validated as JSON).
+- **Custom Role Definitions** configuration type — manage custom directory roles
+  (allowed resource actions, enabled state) as code. Built-in roles are
+  protected. Requires Microsoft Entra ID P1/P2.
+- **Authentication Contexts** configuration type — manage Conditional Access
+  authentication context class references (c1..c25) as code via an id-keyed
+  PATCH upsert; referenced by policies and issued in the acrs token claim.
+
 ## 0.4.0 — 2026-07-26
 
 ### Added

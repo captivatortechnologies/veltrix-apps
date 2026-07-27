@@ -1,0 +1,51 @@
+# =============================================================================
+# Canvas Template — Entra ID Claims Mapping Policies
+#
+# Declares ONE claims mapping policy — the item. Users add as many as they need.
+# A policy's logical identity is its NAME (displayName); deploy lists policies,
+# matches on the name (or a stored id, rename-safe), and PATCHes (update) or
+# POSTs (create) accordingly.
+#
+# The policy body is a nested JSON "definition" that customizes the claims
+# emitted in tokens for service principals it is assigned to. Assignment to a
+# service principal is NOT managed here. Reconcile only deletes policies this
+# app created.
+#
+# Field keys must match config-types/claims-mapping-policies/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-claims-mapping-policies"
+name: "Claims Mapping Policy Configuration"
+toolType: "microsoft-entra-id"
+entityType: "claims-mapping-policies"
+description: "Define Entra ID claims mapping policies (claims customization for tokens) as code through the Microsoft Graph API. The policy body is a JSON definition."
+
+item:
+  label: "Claims Mapping Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Claims Mapping Policy"
+      icon: "file-text"
+      description: "Name and JSON definition"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            Display name of the policy (max 256 chars). Must be unique within
+            this canvas — it is the logical identity deploy matches on.
+
+        - key: "definition"
+          label: "Definition (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A JSON object with a "ClaimsMappingPolicy" root key, e.g.
+            {"ClaimsMappingPolicy":{"Version":1,"IncludeBasicClaimSet":"true","ClaimsSchema":[...]}}.
+            Defines which claims are emitted and how they are sourced.

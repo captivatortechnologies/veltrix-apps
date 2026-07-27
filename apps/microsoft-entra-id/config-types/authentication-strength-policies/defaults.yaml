@@ -1,0 +1,6 @@
+# Defaults for a new authentication strength item.
+#
+# Seeds a single FIDO2-only combination — a strong, phishing-resistant starting
+# point the author can extend. Values are a FLAT map keyed by the canvas field
+# keys (name, description, allowedCombinations).
+allowedCombinations: "fido2"

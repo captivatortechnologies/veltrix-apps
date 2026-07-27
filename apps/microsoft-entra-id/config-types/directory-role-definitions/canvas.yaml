@@ -1,0 +1,65 @@
+# =============================================================================
+# Canvas Template — Entra ID Custom Directory Role Definitions
+#
+# Declares ONE custom directory role — the item. Users add as many as they need.
+# A role's logical identity is its NAME (displayName); deploy lists role
+# definitions, matches on the name (or a stored id, rename-safe), and PATCHes
+# (update) or POSTs (create) accordingly.
+#
+# Only CUSTOM roles are managed. Built-in directory roles are protected — deploy
+# refuses to modify a live name-match whose isBuiltIn is true. Reconcile only
+# deletes roles this app created. Requires Microsoft Entra ID P1 or P2.
+#
+# Field keys must match config-types/directory-role-definitions/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-directory-role-definitions"
+name: "Custom Role Definition Configuration"
+toolType: "microsoft-entra-id"
+entityType: "directory-role-definitions"
+description: "Define Entra ID custom directory roles (name, description, enabled, allowed resource actions) as code through the Microsoft Graph API. Built-in roles are protected."
+
+item:
+  label: "Custom Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Role"
+      icon: "key"
+      description: "Name, state and allowed resource actions"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            Display name of the custom role (max 256 chars). Must be unique
+            within this canvas — it is the logical identity deploy matches on.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 1024
+          helpText: "Optional description shown in the Entra admin center."
+
+        - key: "isEnabled"
+          label: "Enabled for assignment"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "When off, the role exists but cannot be assigned to principals."
+
+        - key: "allowedResourceActions"
+          label: "Allowed Resource Actions (one per line)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            One resource action per line, e.g.
+            microsoft.directory/applications/basic/read. These define exactly
+            what the role permits.

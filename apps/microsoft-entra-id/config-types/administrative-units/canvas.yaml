@@ -1,0 +1,63 @@
+# =============================================================================
+# Canvas Template — Entra ID Administrative Units
+#
+# Declares ONE administrative unit — the item. Users add as many as they need.
+# An administrative unit's logical identity is its NAME (displayName); deploy
+# lists units, matches on the name (or a stored id, rename-safe), and PATCHes
+# (update) or POSTs (create) accordingly.
+#
+# This configuration type manages the unit's name, description and visibility.
+# Membership and scoped role assignments are NOT managed here. Reconcile only
+# deletes units this app created.
+#
+# Field keys must match what config-types/administrative-units/validate.ts checks.
+# =============================================================================
+
+id: "microsoft-entra-id-administrative-units"
+name: "Administrative Unit Configuration"
+toolType: "microsoft-entra-id"
+entityType: "administrative-units"
+description: "Define Entra ID administrative units (name, description, visibility) as code through the Microsoft Graph API. Membership and scoped role assignments are not managed."
+
+item:
+  label: "Administrative Unit"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Administrative Unit"
+      icon: "layers"
+      description: "Name, description and visibility"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            The administrative unit's display name. Must be unique within this
+            canvas — it is the logical identity deploy matches on.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 1024
+          helpText: "Optional description shown in the Entra admin center."
+
+        - key: "visibility"
+          label: "Visibility"
+          fieldType: "select"
+          required: true
+          defaultValue: "public"
+          options:
+            - label: "Public"
+              value: "public"
+            - label: "Hidden membership"
+              value: "hiddenmembership"
+          helpText: >
+            Public units show their membership to non-members. Hidden membership
+            hides the member list from non-members.

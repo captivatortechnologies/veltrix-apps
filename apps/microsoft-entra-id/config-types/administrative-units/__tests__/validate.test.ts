@@ -1,0 +1,50 @@
+import validate, { graphVisibility } from '../validate'
+import type { PipelineContext } from '@veltrixsecops/app-sdk'
+
+function ctxWith(
+  items: Array<{ id?: string; name: string; fields: Record<string, unknown> }>
+): PipelineContext {
+  return { canvas: { items } } as unknown as PipelineContext
+}
+
+describe('administrative-units validate', () => {
+  it('accepts a valid administrative unit', () => {
+    const r = validate(ctxWith([{ name: 'West Region', fields: { name: 'West Region', description: 'West', visibility: 'public' } }]))
+    expect(r.valid).toBe(true)
+    expect(r.errors).toHaveLength(0)
+  })
+
+  it('requires a name', () => {
+    const r = validate(ctxWith([{ name: '', fields: { description: 'x' } }]))
+    expect(r.valid).toBe(false)
+    expect(r.errors.some((e) => e.code === 'required')).toBe(true)
+  })
+
+  it('rejects duplicate names', () => {
+    const r = validate(
+      ctxWith([
+        { name: 'Dup', fields: { name: 'Dup' } },
+        { name: 'Dup', fields: { name: 'Dup' } },
+      ])
+    )
+    expect(r.errors.some((e) => e.code === 'duplicate_name')).toBe(true)
+  })
+
+  it('rejects an invalid visibility', () => {
+    const r = validate(ctxWith([{ name: 'AU', fields: { name: 'AU', visibility: 'secret' } }]))
+    expect(r.valid).toBe(false)
+    expect(r.errors.some((e) => e.code === 'invalid_visibility')).toBe(true)
+  })
+
+  it('enforces the description length limit', () => {
+    const r = validate(ctxWith([{ name: 'G', fields: { name: 'G', description: 'x'.repeat(1025) } }]))
+    expect(r.errors.some((e) => e.code === 'too_long')).toBe(true)
+  })
+})
+
+describe('graphVisibility', () => {
+  it('maps hidden membership to HiddenMembership and public to null', () => {
+    expect(graphVisibility({ name: 'a', description: '', visibility: 'hiddenmembership' })).toBe('HiddenMembership')
+    expect(graphVisibility({ name: 'a', description: '', visibility: 'public' })).toBe(null)
+  })
+})

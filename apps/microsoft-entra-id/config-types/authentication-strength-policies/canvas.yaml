@@ -1,0 +1,65 @@
+# =============================================================================
+# Canvas Template — Entra ID Authentication Strength Policies
+#
+# Declares ONE custom authentication strength — the item. Users add as many as
+# they need. A strength's logical identity is its NAME (displayName); deploy
+# lists policies, matches on the name (or a stored id, rename-safe), and PATCHes
+# metadata / updates combinations, or POSTs (create) accordingly.
+#
+# Only CUSTOM strengths are managed. The built-in strengths (MFA, Passwordless
+# MFA, Phishing-resistant MFA) are protected — deploy refuses to modify a live
+# name-match whose policyType is builtIn. Reconcile only deletes strengths this
+# app created.
+#
+# Field keys must match config-types/authentication-strength-policies/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-authentication-strength-policies"
+name: "Authentication Strength Configuration"
+toolType: "microsoft-entra-id"
+entityType: "authentication-strength-policies"
+description: "Define custom Entra ID Conditional Access authentication strengths (allowed authentication method combinations) as code through the Microsoft Graph API. Built-in strengths are protected."
+
+item:
+  label: "Authentication Strength"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Authentication Strength"
+      icon: "shield"
+      description: "Name, description and allowed method combinations"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            Display name of the authentication strength (max 256 chars). Must be
+            unique within this canvas — it is the logical identity deploy matches
+            on.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 1024
+          helpText: "Optional description shown in the Entra admin center."
+
+        - key: "allowedCombinations"
+          label: "Allowed Combinations (one per line)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            One allowed authentication method combination per line. Combine
+            methods on a line with commas to require them together, e.g.
+            "password,sms". Valid modes include: password, sms, voice,
+            hardwareOath, softwareOath, fido2, windowsHelloForBusiness,
+            microsoftAuthenticatorPush, deviceBasedPush,
+            temporaryAccessPassOneTime, temporaryAccessPassMultiUse, email,
+            x509CertificateSingleFactor, x509CertificateMultiFactor,
+            federatedSingleFactor, federatedMultiFactor.

@@ -1,0 +1,63 @@
+# =============================================================================
+# Canvas Template — Entra ID Authentication Context Class References
+#
+# Declares ONE authentication context — the item. Users add as many as they need
+# (up to the reserved ids c1..c25). A context's logical identity is its ID
+# (c1..c25), which is also the value issued in the acrs token claim. Deploy
+# lists contexts and upserts each by id (create-or-update via PATCH), then
+# reconcile-deletes only contexts this app created.
+#
+# Field keys must match config-types/authentication-context-class-references/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-authentication-context-class-references"
+name: "Authentication Context Configuration"
+toolType: "microsoft-entra-id"
+entityType: "authentication-context-class-references"
+description: "Define Entra ID Conditional Access authentication contexts (c1..c25) as code through the Microsoft Graph API. These are referenced by Conditional Access policies and the acrs token claim."
+
+item:
+  label: "Authentication Context"
+  identityField: "contextId"
+  repeatable: true
+  minItems: 1
+  maxItems: 25
+  groups:
+    - name: "Authentication Context"
+      icon: "shield"
+      description: "Context id, display name and availability"
+      fields:
+        - key: "contextId"
+          label: "Context ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            One of the reserved ids c1 through c25. This is the value issued in
+            the acrs claim and referenced by Conditional Access policies. Must be
+            unique within this canvas.
+
+        - key: "displayName"
+          label: "Display Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: "Friendly name shown when selecting the authentication context."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 1024
+          helpText: "Optional secondary text describing what the context protects."
+
+        - key: "isAvailable"
+          label: "Published (available to apps)"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: >
+            When set, the context is published for use by apps and to protect
+            resources. When off, it is only available for Conditional Access
+            policy authoring.

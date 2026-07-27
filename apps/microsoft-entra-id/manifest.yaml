@@ -1,12 +1,14 @@
 id: microsoft-entra-id
 name: Microsoft Entra ID
-version: "0.4.0"
+version: "0.5.0"
 vendor: Veltrix
 description: >
   Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the
-  Microsoft Graph API. Covers Conditional Access policies and named locations and
-  assigned security groups — with validation, drift detection and rollback handled
-  by the Security-as-Code pipeline.
+  Microsoft Graph API. Covers Conditional Access policies, named locations,
+  security groups, administrative units, custom directory roles, authentication
+  strengths, authentication contexts, and token-lifetime and claims-mapping
+  policies — with validation, drift detection and rollback handled by the
+  Security-as-Code pipeline.
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-entra-id
@@ -36,6 +38,24 @@ permissions:
     - resource: conditional-access-policies
       actions: [read, write, delete]
       description: Manage Entra Conditional Access policies (user/group + cloud-app targeting, grant controls; report-only by default)
+    - resource: administrative-units
+      actions: [read, write, delete]
+      description: Manage Entra administrative units (name, description, visibility; membership not managed)
+    - resource: authentication-strength-policies
+      actions: [read, write, delete]
+      description: Manage custom Entra Conditional Access authentication strengths (allowed method combinations; built-in strengths protected)
+    - resource: token-lifetime-policies
+      actions: [read, write, delete]
+      description: Manage Entra token lifetime policies (access / ID token lifetimes via JSON definition)
+    - resource: claims-mapping-policies
+      actions: [read, write, delete]
+      description: Manage Entra claims mapping policies (token claims customization via JSON definition)
+    - resource: directory-role-definitions
+      actions: [read, write, delete]
+      description: Manage Entra custom directory roles (allowed resource actions; built-in roles protected)
+    - resource: authentication-context-class-references
+      actions: [read, write, delete]
+      description: Manage Entra Conditional Access authentication contexts (c1..c25) referenced by policies and the acrs claim
 
 pipeline:
   configurationTypes:
@@ -85,6 +105,108 @@ pipeline:
         healthCheck: config-types/groups/healthCheck
         driftDetect: config-types/groups/driftDetect
         getStatus: config-types/groups/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: administrative-units
+      name: Administrative Units
+      description: Administrative units — name, description and visibility (membership not managed)
+      canvasTemplate: config-types/administrative-units/canvas.yaml
+      defaultConfig: config-types/administrative-units/defaults.yaml
+      handlers:
+        validate: config-types/administrative-units/validate
+        deploy: config-types/administrative-units/deploy
+        rollback: config-types/administrative-units/rollback
+        healthCheck: config-types/administrative-units/healthCheck
+        driftDetect: config-types/administrative-units/driftDetect
+        getStatus: config-types/administrative-units/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: authentication-strength-policies
+      name: Authentication Strengths
+      description: Custom Conditional Access authentication strengths — allowed authentication method combinations (built-in strengths protected)
+      canvasTemplate: config-types/authentication-strength-policies/canvas.yaml
+      defaultConfig: config-types/authentication-strength-policies/defaults.yaml
+      handlers:
+        validate: config-types/authentication-strength-policies/validate
+        deploy: config-types/authentication-strength-policies/deploy
+        rollback: config-types/authentication-strength-policies/rollback
+        healthCheck: config-types/authentication-strength-policies/healthCheck
+        driftDetect: config-types/authentication-strength-policies/driftDetect
+        getStatus: config-types/authentication-strength-policies/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: token-lifetime-policies
+      name: Token Lifetime Policies
+      description: Token lifetime policies — access / ID token lifetimes via a JSON definition
+      canvasTemplate: config-types/token-lifetime-policies/canvas.yaml
+      defaultConfig: config-types/token-lifetime-policies/defaults.yaml
+      handlers:
+        validate: config-types/token-lifetime-policies/validate
+        deploy: config-types/token-lifetime-policies/deploy
+        rollback: config-types/token-lifetime-policies/rollback
+        healthCheck: config-types/token-lifetime-policies/healthCheck
+        driftDetect: config-types/token-lifetime-policies/driftDetect
+        getStatus: config-types/token-lifetime-policies/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: claims-mapping-policies
+      name: Claims Mapping Policies
+      description: Claims mapping policies — token claims customization via a JSON definition
+      canvasTemplate: config-types/claims-mapping-policies/canvas.yaml
+      defaultConfig: config-types/claims-mapping-policies/defaults.yaml
+      handlers:
+        validate: config-types/claims-mapping-policies/validate
+        deploy: config-types/claims-mapping-policies/deploy
+        rollback: config-types/claims-mapping-policies/rollback
+        healthCheck: config-types/claims-mapping-policies/healthCheck
+        driftDetect: config-types/claims-mapping-policies/driftDetect
+        getStatus: config-types/claims-mapping-policies/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: directory-role-definitions
+      name: Custom Role Definitions
+      description: Custom directory roles — allowed resource actions (built-in roles protected)
+      canvasTemplate: config-types/directory-role-definitions/canvas.yaml
+      defaultConfig: config-types/directory-role-definitions/defaults.yaml
+      handlers:
+        validate: config-types/directory-role-definitions/validate
+        deploy: config-types/directory-role-definitions/deploy
+        rollback: config-types/directory-role-definitions/rollback
+        healthCheck: config-types/directory-role-definitions/healthCheck
+        driftDetect: config-types/directory-role-definitions/driftDetect
+        getStatus: config-types/directory-role-definitions/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: authentication-context-class-references
+      name: Authentication Contexts
+      description: Conditional Access authentication contexts (c1..c25) referenced by policies and the acrs claim
+      canvasTemplate: config-types/authentication-context-class-references/canvas.yaml
+      defaultConfig: config-types/authentication-context-class-references/defaults.yaml
+      handlers:
+        validate: config-types/authentication-context-class-references/validate
+        deploy: config-types/authentication-context-class-references/deploy
+        rollback: config-types/authentication-context-class-references/rollback
+        healthCheck: config-types/authentication-context-class-references/healthCheck
+        driftDetect: config-types/authentication-context-class-references/driftDetect
+        getStatus: config-types/authentication-context-class-references/getStatus
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true

@@ -1,0 +1,7 @@
+# Defaults for a new token lifetime policy item.
+#
+# Seeds a minimal, valid definition (8-hour access token lifetime) the author
+# can adjust. Values are a FLAT map keyed by the canvas field keys (name,
+# definition, isOrganizationDefault).
+definition: '{"TokenLifetimePolicy":{"Version":1,"AccessTokenLifetime":"8:00:00"}}'
+isOrganizationDefault: false

@@ -1,0 +1,6 @@
+# Defaults for a new claims mapping policy item.
+#
+# Seeds a minimal, valid definition (basic claim set only) the author can
+# extend. Values are a FLAT map keyed by the canvas field keys (name,
+# definition).
+definition: '{"ClaimsMappingPolicy":{"Version":1,"IncludeBasicClaimSet":"true","ClaimsSchema":[]}}'
