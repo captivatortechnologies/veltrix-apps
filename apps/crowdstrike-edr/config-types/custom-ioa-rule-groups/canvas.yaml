@@ -1,0 +1,75 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Custom IOA Rule Groups
+#
+# Declares ONE custom IOA rule group — the item. Users add as many groups as
+# they need. Field keys must match what
+# config-types/custom-ioa-rule-groups/validate.ts checks.
+# =============================================================================
+
+id: "crowdstrike-edr-custom-ioa-rule-groups"
+name: "Custom IOA Rule Group Configuration"
+toolType: "crowdstrike-edr"
+entityType: "custom-ioa-rule-groups"
+description: "Define Falcon custom indicator-of-attack (IOA) rule groups and their rules (platform, enablement, and per-rule specs) as code via the Custom IOA API"
+
+item:
+  label: "IOA Rule Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "shield"
+      description: "Rule group identity, platform, and rules"
+      fields:
+        - key: "name"
+          label: "Rule Group Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique rule group name per platform in the Falcon tenant"
+
+        - key: "platform"
+          label: "Platform"
+          fieldType: "select"
+          required: true
+          defaultValue: "windows"
+          options:
+            - label: "Windows"
+              value: "windows"
+            - label: "Mac"
+              value: "mac"
+            - label: "Linux"
+              value: "linux"
+          helpText: "Immutable after creation — the sensor platform this rule group applies to"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "What this rule group covers — shown in the Falcon console"
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether the rule group is active. New Falcon rule groups always start disabled; deployment converges to this value after its rules are in place."
+
+        - key: "comment"
+          label: "Audit Comment"
+          fieldType: "text"
+          helpText: "Optional comment recorded on the change in the Falcon audit log"
+
+        - key: "rules"
+          label: "Rules (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON array of rules to manage under this group. Each entry is
+            {"name": "Suspicious Encoded PowerShell", "ruletypeId": "5",
+            "dispositionId": 20, "patternSeverity": "high", "enabled": true,
+            "fieldValues": [ … ]}. ruletypeId comes from the rule-types lookup and
+            is per-platform; dispositionId is numeric (e.g. 10 monitor, 20 detect,
+            30 block); patternSeverity is one of critical, high, medium, low,
+            informational. Declared rules are created or updated by name; rules
+            not declared here are left untouched.

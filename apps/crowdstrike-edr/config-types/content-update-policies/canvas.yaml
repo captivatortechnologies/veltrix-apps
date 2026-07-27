@@ -1,0 +1,62 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Content Update Policies
+#
+# Declares ONE content update policy — the item. Users add as many policies as
+# they need. Field keys must match what
+# config-types/content-update-policies/validate.ts checks.
+# =============================================================================
+
+id: "crowdstrike-edr-content-update-policies"
+name: "Content Update Policy Configuration"
+toolType: "crowdstrike-edr"
+entityType: "content-update-policies"
+description: "Define Falcon content update policies (rapid-response content ring assignments, enablement, host group assignment) as code via the Content Update Policy API"
+
+item:
+  label: "Content Update Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "shield"
+      description: "Policy identity, assignment, and ring assignment settings"
+      fields:
+        - key: "name"
+          label: "Policy Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique policy name in the Falcon tenant"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "What this policy enforces — shown in the Falcon console"
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether the policy is active. New Falcon policies always start disabled; deployment converges to this value."
+
+        - key: "hostGroups"
+          label: "Host Group IDs"
+          fieldType: "tags"
+          helpText: "Falcon host group IDs this policy is assigned to. Deployment converges assignments to exactly this list."
+
+        - key: "settings"
+          label: "Policy Settings (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            JSON object with a "ring_assignment_settings" array. Each entry is
+            {"id": "sensor_operations", "ring_assignment": "ga", "delay_hours": "0"}
+            where id is one of sensor_operations, system_critical,
+            vulnerability_management, rapid_response_al_bl_listing;
+            ring_assignment is ga (general availability), ea (early access), or
+            pause (pause is not permitted for system_critical); and delay_hours
+            (a string like "0", "1", "2", "4", "8", "12", "24", "48", "72")
+            applies only to the ga ring. Content update policies are not
+            per-platform. May also include "pinned_content_versions".

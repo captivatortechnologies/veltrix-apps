@@ -1,0 +1,84 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Sensor Update Policies
+#
+# Declares ONE sensor update policy — the item. Users add as many policies as
+# they need. Field keys must match what
+# config-types/sensor-update-policies/validate.ts checks.
+# =============================================================================
+
+id: "crowdstrike-edr-sensor-update-policies"
+name: "Sensor Update Policy Configuration"
+toolType: "crowdstrike-edr"
+entityType: "sensor-update-policies"
+description: "Define Falcon sensor update policies (build pinning, uninstall protection, host group assignment) as code via the Sensor Update Policy API"
+
+item:
+  label: "Sensor Update Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "shield"
+      description: "Policy identity, assignment, and settings"
+      fields:
+        - key: "name"
+          label: "Policy Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique policy name per platform in the Falcon tenant"
+
+        - key: "platform"
+          label: "Platform"
+          fieldType: "select"
+          required: true
+          defaultValue: "Windows"
+          options:
+            - label: "Windows"
+              value: "Windows"
+            - label: "Mac"
+              value: "Mac"
+            - label: "Linux"
+              value: "Linux"
+          helpText: "Immutable after creation — the sensor platform this policy applies to"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "What this policy enforces — shown in the Falcon console"
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether the policy is active. New Falcon policies always start disabled; deployment converges to this value."
+
+        - key: "hostGroups"
+          label: "Host Group IDs"
+          fieldType: "tags"
+          helpText: "Falcon host group IDs this policy is assigned to. Deployment converges assignments to exactly this list."
+
+        - key: "build"
+          label: "Sensor Build"
+          fieldType: "text"
+          helpText: >
+            The sensor version this policy pins hosts to, taken from the Falcon
+            build catalog — a tagged track such as "n-1|tagged" (one release
+            behind latest) or a pinned build id. Leave blank to keep the policy's
+            current build and manage only the other settings.
+
+        - key: "uninstall_protection"
+          label: "Uninstall Protection"
+          fieldType: "select"
+          defaultValue: "DISABLED"
+          options:
+            - label: "Disabled"
+              value: "DISABLED"
+            - label: "Enabled"
+              value: "ENABLED"
+            - label: "Maintenance Mode"
+              value: "MAINTENANCE_MODE"
+          helpText: "Whether end users can uninstall the sensor. ENABLED requires a per-host maintenance token to remove the sensor."

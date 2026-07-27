@@ -183,6 +183,7 @@ describe('extractIocSpecs', () => {
       name: 'n',
       toolType: 'crowdstrike-edr',
       entityType: 'custom-iocs',
+      items: [],
       sections: [
         { name: 'sec1', fields: { type: 'sha256', value: 'A'.repeat(64) } },
         { name: 'sec2', fields: { type: 'domain', value: 'EVIL.Example.COM' } },

@@ -1,0 +1,51 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Sensor Visibility (SV) Exclusions
+#
+# Declares ONE exclusion — the item. Users add as many exclusions as they need.
+# Field keys must match what config-types/sv-exclusions/validate.ts checks.
+#
+# A sensor visibility exclusion's identity in Falcon is its `value` (a glob
+# path); uniqueness per canvas is enforced by validate.ts. These exclusions
+# suppress sensor telemetry on the matching path — apply globally with care.
+# =============================================================================
+
+id: "crowdstrike-edr-sv-exclusions"
+name: "Sensor Visibility Exclusion Configuration"
+toolType: "crowdstrike-edr"
+entityType: "sv-exclusions"
+description: "Define sensor visibility exclusions (glob path values) as code via the Falcon Sensor Visibility Exclusions API"
+
+item:
+  label: "Sensor Visibility Exclusion"
+  identityField: "value"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "General"
+      icon: "eye-off"
+      description: "Exclusion path and scope"
+      fields:
+        - key: "value"
+          label: "Value (glob path)"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 500
+          helpText: "Glob path to exclude from sensor visibility, e.g. /opt/app/** or C:\\Program Files\\App\\*. Must be unique per canvas."
+
+        - key: "appliedGlobally"
+          label: "Apply Globally"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Apply to every host in the tenant — suppresses telemetry broadly. Leave unchecked to target specific host groups instead."
+
+        - key: "hostGroups"
+          label: "Host Group IDs"
+          fieldType: "tags"
+          helpText: "Falcon host group IDs the exclusion applies to — required when not applied globally, ignored otherwise"
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          helpText: "Why this exclusion exists — recorded on the exclusion in the Falcon console"

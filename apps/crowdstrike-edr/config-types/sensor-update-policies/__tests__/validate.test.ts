@@ -1,4 +1,9 @@
-import validate, { parsePolicySettings, extractPolicySpecs, flattenLiveSettings } from '../validate'
+import validate, {
+  buildSensorSettings,
+  extractPolicySpecs,
+  readSensorSettings,
+  type PolicySpec,
+} from '../validate'
 import type { PipelineContext, PlatformDataApi } from '@veltrixsecops/app-sdk'
 
 const stubPlatform: PlatformDataApi = {
@@ -10,14 +15,14 @@ function makeCtx(sections: Array<{ name: string; fields: Record<string, unknown>
   return {
     appId: 'crowdstrike-edr',
     customerId: 'cust-1',
-    configTypeId: 'prevention-policies',
+    configTypeId: 'sensor-update-policies',
     canvas: {
       id: 'snap-1',
       canvasId: 'canvas-1',
       version: 1,
       name: 'Test Canvas',
       toolType: 'crowdstrike-edr',
-      entityType: 'prevention-policies',
+      entityType: 'sensor-update-policies',
       items: sections,
       sections,
       snapshot: {},
@@ -35,15 +40,13 @@ function validPolicyFields(overrides: Record<string, unknown> = {}): Record<stri
     platform: 'Windows',
     enabled: true,
     hostGroups: 'group-id-1',
-    settings: JSON.stringify([
-      { id: 'NextGenAV', value: { enabled: true } },
-      { id: 'CloudAntiMalware', value: { detection: 'MODERATE', prevention: 'MODERATE' } },
-    ]),
+    build: 'n-1|tagged',
+    uninstall_protection: 'ENABLED',
     ...overrides,
   }
 }
 
-describe('CrowdStrike Prevention Policies Validate Handler', () => {
+describe('CrowdStrike Sensor Update Policies Validate Handler', () => {
   it('returns invalid for empty sections', async () => {
     const result = await validate(makeCtx([]))
     expect(result.valid).toBe(false)
@@ -82,7 +85,24 @@ describe('CrowdStrike Prevention Policies Validate Handler', () => {
 
   it('normalizes platform casing to the API title case', async () => {
     const result = await validate(
-      makeCtx([{ name: 'sec1', fields: validPolicyFields({ platform: 'windows' }) }]),
+      makeCtx([{ name: 'sec1', fields: validPolicyFields({ platform: 'linux' }) }]),
+    )
+    expect(result.valid).toBe(true)
+  })
+
+  it('rejects an unknown uninstall protection mode', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'sec1', fields: validPolicyFields({ uninstall_protection: 'PARANOID' }) }]),
+    )
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.code === 'invalid_uninstall_protection')).toBe(true)
+  })
+
+  it('normalizes uninstall protection casing', async () => {
+    const result = await validate(
+      makeCtx([
+        { name: 'sec1', fields: validPolicyFields({ uninstall_protection: 'maintenance_mode' }) },
+      ]),
     )
     expect(result.valid).toBe(true)
   })
@@ -95,12 +115,12 @@ describe('CrowdStrike Prevention Policies Validate Handler', () => {
     expect(result.warnings.some((w) => w.code === 'no_host_groups')).toBe(true)
   })
 
-  it('rejects invalid settings JSON', async () => {
+  it('warns when no sensor build is specified', async () => {
     const result = await validate(
-      makeCtx([{ name: 'sec1', fields: validPolicyFields({ settings: '{not json' }) }]),
+      makeCtx([{ name: 'sec1', fields: validPolicyFields({ build: '' }) }]),
     )
-    expect(result.valid).toBe(false)
-    expect(result.errors.some((e) => e.code === 'invalid_settings')).toBe(true)
+    expect(result.valid).toBe(true)
+    expect(result.warnings.some((w) => w.code === 'no_build')).toBe(true)
   })
 
   it('rejects duplicate policy names per platform', async () => {
@@ -125,103 +145,92 @@ describe('CrowdStrike Prevention Policies Validate Handler', () => {
   })
 })
 
-describe('parsePolicySettings', () => {
-  it('accepts toggle and slider settings', () => {
-    const { settings, errors } = parsePolicySettings(
-      JSON.stringify([
-        { id: 'NextGenAV', value: { enabled: true } },
-        { id: 'OnSensorMLSlider', value: { detection: 'AGGRESSIVE', prevention: 'MODERATE' } },
-      ]),
-    )
-    expect(errors).toHaveLength(0)
-    expect(settings).toHaveLength(2)
+describe('buildSensorSettings', () => {
+  const baseSpec: PolicySpec = {
+    sectionName: 'sec1',
+    name: 'p1',
+    platform: 'Windows',
+    enabled: true,
+    hostGroups: [],
+    build: 'n-1|tagged',
+    uninstallProtection: 'ENABLED',
+  }
+
+  it('includes build and uninstall_protection when a build is set', () => {
+    expect(buildSensorSettings(baseSpec)).toEqual({
+      uninstall_protection: 'ENABLED',
+      build: 'n-1|tagged',
+    })
   })
 
-  it('rejects a prevention level more aggressive than detection', () => {
-    const { errors } = parsePolicySettings(
-      JSON.stringify([
-        { id: 'CloudAntiMalware', value: { detection: 'CAUTIOUS', prevention: 'AGGRESSIVE' } },
-      ]),
-    )
-    expect(errors.some((e) => e.includes('more aggressive'))).toBe(true)
-  })
-
-  it('rejects unknown slider levels', () => {
-    const { errors } = parsePolicySettings(
-      JSON.stringify([{ id: 'CloudAntiMalware', value: { detection: 'MAXIMUM' } }]),
-    )
-    expect(errors.some((e) => e.includes('must be one of'))).toBe(true)
-  })
-
-  it('rejects non-boolean toggles', () => {
-    const { errors } = parsePolicySettings(
-      JSON.stringify([{ id: 'NextGenAV', value: { enabled: 'yes' } }]),
-    )
-    expect(errors.some((e) => e.includes('true or false'))).toBe(true)
-  })
-
-  it('rejects duplicate setting ids', () => {
-    const { errors } = parsePolicySettings(
-      JSON.stringify([
-        { id: 'NextGenAV', value: { enabled: true } },
-        { id: 'NextGenAV', value: { enabled: false } },
-      ]),
-    )
-    expect(errors.some((e) => e.includes('more than once'))).toBe(true)
-  })
-
-  it('returns empty settings for empty input', () => {
-    expect(parsePolicySettings(undefined)).toEqual({ settings: [], errors: [] })
+  it('omits build when the spec has no build', () => {
+    expect(buildSensorSettings({ ...baseSpec, build: undefined })).toEqual({
+      uninstall_protection: 'ENABLED',
+    })
   })
 })
 
-describe('flattenLiveSettings', () => {
-  it('flattens categorized prevention_settings into id/value pairs', () => {
-    const flat = flattenLiveSettings({
-      prevention_settings: [
-        {
-          name: 'Enhanced Visibility',
-          settings: [
-            { id: 'NextGenAV', name: 'Next-Gen AV', type: 'toggle', value: { enabled: true } },
-          ],
-        },
-        {
-          name: 'Cloud Machine Learning',
-          settings: [
-            {
-              id: 'CloudAntiMalware',
-              name: 'Cloud Anti-malware',
-              type: 'mlslider',
-              value: { detection: 'MODERATE', prevention: 'CAUTIOUS' },
-            },
-          ],
-        },
-      ],
+describe('readSensorSettings', () => {
+  it('reads build and uninstall_protection from a live settings object', () => {
+    const settings = readSensorSettings({
+      settings: { build: '20008|n-1|tagged|1', uninstall_protection: 'ENABLED', scheduler: {} },
     })
-    expect(flat).toEqual([
-      { id: 'NextGenAV', value: { enabled: true } },
-      { id: 'CloudAntiMalware', value: { detection: 'MODERATE', prevention: 'CAUTIOUS' } },
-    ])
+    expect(settings).toEqual({ build: '20008|n-1|tagged|1', uninstall_protection: 'ENABLED' })
+  })
+
+  it('returns an empty object when settings are missing', () => {
+    expect(readSensorSettings({})).toEqual({})
+  })
+
+  it('returns an empty object when settings is not an object', () => {
+    expect(readSensorSettings({ settings: [] })).toEqual({})
   })
 })
 
 describe('extractPolicySpecs', () => {
-  it('parses host groups from comma-separated tags', () => {
+  it('parses host groups, build, uninstall protection, and platform casing', () => {
     const specs = extractPolicySpecs({
       id: 's',
       canvasId: 'c',
       version: 1,
       name: 'n',
       toolType: 'crowdstrike-edr',
-      entityType: 'prevention-policies',
+      entityType: 'sensor-update-policies',
       items: [],
       sections: [
-        { name: 'sec1', fields: { name: 'p1', platform: 'Mac', hostGroups: 'g1, g2' } },
+        {
+          name: 'sec1',
+          fields: {
+            name: 'p1',
+            platform: 'Mac',
+            hostGroups: 'g1, g2',
+            build: 'n-2|tagged',
+            uninstall_protection: 'enabled',
+          },
+        },
       ],
       snapshot: {},
     })
     expect(specs[0].hostGroups).toEqual(['g1', 'g2'])
     expect(specs[0].platform).toBe('Mac')
+    expect(specs[0].build).toBe('n-2|tagged')
+    expect(specs[0].uninstallProtection).toBe('ENABLED')
     expect(specs[0].enabled).toBe(false)
+  })
+
+  it('defaults uninstall protection to DISABLED when omitted', () => {
+    const specs = extractPolicySpecs({
+      id: 's',
+      canvasId: 'c',
+      version: 1,
+      name: 'n',
+      toolType: 'crowdstrike-edr',
+      entityType: 'sensor-update-policies',
+      items: [],
+      sections: [{ name: 'sec1', fields: { name: 'p1', platform: 'Windows' } }],
+      snapshot: {},
+    })
+    expect(specs[0].uninstallProtection).toBe('DISABLED')
+    expect(specs[0].build).toBeUndefined()
   })
 })

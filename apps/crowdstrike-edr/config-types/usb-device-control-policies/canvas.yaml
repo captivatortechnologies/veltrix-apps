@@ -1,0 +1,73 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon USB Device Control Policies
+#
+# Declares ONE device control policy — the item. Users add as many policies as
+# they need. Field keys must match what
+# config-types/usb-device-control-policies/validate.ts checks.
+# =============================================================================
+
+id: "crowdstrike-edr-usb-device-control-policies"
+name: "USB Device Control Policy Configuration"
+toolType: "crowdstrike-edr"
+entityType: "usb-device-control-policies"
+description: "Define Falcon USB device control policies (platform, enablement, host group assignment, per device-class enforcement) as code via the Device Control Policy API (v2)"
+
+item:
+  label: "Device Control Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "usb"
+      description: "Policy identity, assignment, and device-class settings"
+      fields:
+        - key: "name"
+          label: "Policy Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique policy name per platform in the Falcon tenant"
+
+        - key: "platform"
+          label: "Platform"
+          fieldType: "select"
+          required: true
+          defaultValue: "Windows"
+          options:
+            - label: "Windows"
+              value: "Windows"
+            - label: "Mac"
+              value: "Mac"
+          helpText: "Immutable after creation — the sensor platform this policy applies to. USB device control is supported on Windows and Mac."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "What this policy enforces — shown in the Falcon console"
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether the policy is active. New Falcon policies always start disabled; deployment converges to this value."
+
+        - key: "hostGroups"
+          label: "Host Group IDs"
+          fieldType: "tags"
+          helpText: "Falcon host group IDs this policy is assigned to. Deployment converges assignments to exactly this list."
+
+        - key: "settings"
+          label: "Policy Settings (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            JSON object with a "classes" array. Each entry sets the enforcement
+            action for a device class, e.g.
+            {"classes": [{"id": "MASS_STORAGE", "action": "FULL_BLOCK"}, {"id": "WIRELESS", "action": "FULL_ACCESS"}]}.
+            Class ids include MASS_STORAGE, WIRELESS, IMAGING, PRINTER, MOBILE.
+            Actions are FULL_ACCESS, READ_ONLY, BLOCK_EXECUTE (mass storage), and
+            FULL_BLOCK. Optional vendor/product/serial exceptions may be attached
+            per class. The whole settings object is written as-is; classes not
+            listed keep their tenant values.

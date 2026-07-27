@@ -1,12 +1,15 @@
 id: crowdstrike-edr
 name: CrowdStrike Falcon
-version: "1.7.0"
+version: "1.8.0"
 vendor: Veltrix
 description: >
   Manage CrowdStrike Falcon configurations as code through the Falcon
-  APIs. Includes host groups, prevention policies, and custom IOCs
-  (indicators of compromise), with validation, drift detection, and
-  rollback handled by the Security-as-Code pipeline.
+  APIs. Covers Endpoint Policies (prevention, sensor update, response,
+  USB device control, content update, custom IOA rule groups), Exclusions
+  (ML, IOA, sensor visibility), host groups, and custom IOCs — with
+  validation, drift detection, and rollback handled by the
+  Security-as-Code pipeline. Configuration types are grouped by Falcon
+  API family in the sidebar.
 category: EDR
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/crowdstrike-edr
@@ -40,10 +43,35 @@ permissions:
     - resource: custom-iocs
       actions: [read, write, delete]
       description: Manage CrowdStrike Falcon custom IOCs (indicators of compromise)
+    - resource: sensor-update-policies
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon sensor update policies (build pinning, uninstall protection, update scheduling)
+    - resource: response-policies
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon response (Real Time Response) policies
+    - resource: usb-device-control-policies
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon USB device control policies (device class enforcement + exceptions)
+    - resource: content-update-policies
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon content update policies (rapid-response content ring assignments)
+    - resource: custom-ioa-rule-groups
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon custom IOA rule groups and their rules
+    - resource: ml-exclusions
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon machine-learning exclusions
+    - resource: ioa-exclusions
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon indicator-of-attack exclusions
+    - resource: sv-exclusions
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon sensor visibility exclusions
 
 pipeline:
   configurationTypes:
     - id: host-groups
+      group: "Host & Assets"
       name: Host Group Configuration
       description: Falcon host group definitions (static or dynamic membership via FQL assignment rules)
       canvasTemplate: config-types/host-groups/canvas.yaml
@@ -61,6 +89,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: prevention-policies
+      group: "Endpoint Policies"
       name: Prevention Policy Configuration
       description: Falcon prevention policy definitions (platform, enablement, host group assignment, policy settings)
       canvasTemplate: config-types/prevention-policies/canvas.yaml
@@ -78,6 +107,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: custom-iocs
+      group: "Indicators"
       name: Custom IOC Configuration
       description: Custom indicators of compromise (hashes, domains, IPs) with detect/prevent/allow actions
       canvasTemplate: config-types/custom-iocs/canvas.yaml
@@ -89,6 +119,150 @@ pipeline:
         healthCheck: config-types/custom-iocs/healthCheck
         driftDetect: config-types/custom-iocs/driftDetect
         getStatus: config-types/custom-iocs/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: sensor-update-policies
+      group: "Endpoint Policies"
+      name: Sensor Update Policy Configuration
+      description: Falcon sensor update policies — build pinning (n/n-1/n-2), uninstall protection, and update scheduling, assigned to host groups
+      canvasTemplate: config-types/sensor-update-policies/canvas.yaml
+      defaultConfig: config-types/sensor-update-policies/defaults.yaml
+      handlers:
+        validate: config-types/sensor-update-policies/validate
+        deploy: config-types/sensor-update-policies/deploy
+        rollback: config-types/sensor-update-policies/rollback
+        healthCheck: config-types/sensor-update-policies/healthCheck
+        driftDetect: config-types/sensor-update-policies/driftDetect
+        getStatus: config-types/sensor-update-policies/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: response-policies
+      group: "Endpoint Policies"
+      name: Response Policy Configuration
+      description: Falcon response (Real Time Response) policies — RTR capability tiers (read-only / active-responder / admin) assigned to host groups
+      canvasTemplate: config-types/response-policies/canvas.yaml
+      defaultConfig: config-types/response-policies/defaults.yaml
+      handlers:
+        validate: config-types/response-policies/validate
+        deploy: config-types/response-policies/deploy
+        rollback: config-types/response-policies/rollback
+        healthCheck: config-types/response-policies/healthCheck
+        driftDetect: config-types/response-policies/driftDetect
+        getStatus: config-types/response-policies/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: usb-device-control-policies
+      group: "Endpoint Policies"
+      name: USB Device Control Policy Configuration
+      description: Falcon USB device control policies (v2) — per device-class enforcement (block / read-only / full access) with vendor/product exceptions
+      canvasTemplate: config-types/usb-device-control-policies/canvas.yaml
+      defaultConfig: config-types/usb-device-control-policies/defaults.yaml
+      handlers:
+        validate: config-types/usb-device-control-policies/validate
+        deploy: config-types/usb-device-control-policies/deploy
+        rollback: config-types/usb-device-control-policies/rollback
+        healthCheck: config-types/usb-device-control-policies/healthCheck
+        driftDetect: config-types/usb-device-control-policies/driftDetect
+        getStatus: config-types/usb-device-control-policies/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: content-update-policies
+      group: "Endpoint Policies"
+      name: Content Update Policy Configuration
+      description: Falcon content update policies — rapid-response / system-critical / sensor-operations content ring assignments (ga/ea/pause + delay)
+      canvasTemplate: config-types/content-update-policies/canvas.yaml
+      defaultConfig: config-types/content-update-policies/defaults.yaml
+      handlers:
+        validate: config-types/content-update-policies/validate
+        deploy: config-types/content-update-policies/deploy
+        rollback: config-types/content-update-policies/rollback
+        healthCheck: config-types/content-update-policies/healthCheck
+        driftDetect: config-types/content-update-policies/driftDetect
+        getStatus: config-types/content-update-policies/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: custom-ioa-rule-groups
+      group: "Endpoint Policies"
+      name: Custom IOA Rule Group Configuration
+      description: Falcon custom indicator-of-attack rule groups and their rules (per-platform, enable/disable; rule upsert by name)
+      canvasTemplate: config-types/custom-ioa-rule-groups/canvas.yaml
+      defaultConfig: config-types/custom-ioa-rule-groups/defaults.yaml
+      handlers:
+        validate: config-types/custom-ioa-rule-groups/validate
+        deploy: config-types/custom-ioa-rule-groups/deploy
+        rollback: config-types/custom-ioa-rule-groups/rollback
+        healthCheck: config-types/custom-ioa-rule-groups/healthCheck
+        driftDetect: config-types/custom-ioa-rule-groups/driftDetect
+        getStatus: config-types/custom-ioa-rule-groups/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ml-exclusions
+      group: "Exclusions"
+      name: ML Exclusion Configuration
+      description: Falcon machine-learning exclusions (glob path values) applied globally or to host groups
+      canvasTemplate: config-types/ml-exclusions/canvas.yaml
+      defaultConfig: config-types/ml-exclusions/defaults.yaml
+      handlers:
+        validate: config-types/ml-exclusions/validate
+        deploy: config-types/ml-exclusions/deploy
+        rollback: config-types/ml-exclusions/rollback
+        healthCheck: config-types/ml-exclusions/healthCheck
+        driftDetect: config-types/ml-exclusions/driftDetect
+        getStatus: config-types/ml-exclusions/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ioa-exclusions
+      group: "Exclusions"
+      name: IOA Exclusion Configuration
+      description: Falcon indicator-of-attack exclusions (pattern id + image-filename / command-line regex) applied globally or to host groups
+      canvasTemplate: config-types/ioa-exclusions/canvas.yaml
+      defaultConfig: config-types/ioa-exclusions/defaults.yaml
+      handlers:
+        validate: config-types/ioa-exclusions/validate
+        deploy: config-types/ioa-exclusions/deploy
+        rollback: config-types/ioa-exclusions/rollback
+        healthCheck: config-types/ioa-exclusions/healthCheck
+        driftDetect: config-types/ioa-exclusions/driftDetect
+        getStatus: config-types/ioa-exclusions/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: sv-exclusions
+      group: "Exclusions"
+      name: Sensor Visibility Exclusion Configuration
+      description: Falcon sensor visibility exclusions (glob path values) applied globally or to host groups — suppresses sensor telemetry on matching paths
+      canvasTemplate: config-types/sv-exclusions/canvas.yaml
+      defaultConfig: config-types/sv-exclusions/defaults.yaml
+      handlers:
+        validate: config-types/sv-exclusions/validate
+        deploy: config-types/sv-exclusions/deploy
+        rollback: config-types/sv-exclusions/rollback
+        healthCheck: config-types/sv-exclusions/healthCheck
+        driftDetect: config-types/sv-exclusions/driftDetect
+        getStatus: config-types/sv-exclusions/getStatus
       targets:
         componentTypes: [falcon-tenant]
         requiresCredential: true

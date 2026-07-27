@@ -3,6 +3,27 @@
 All notable changes to the CrowdStrike Falcon app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.8.0 — 2026-07-27
+
+### Added
+- **Eight new configuration types**, grouped in the sidebar by Falcon API family
+  (like the Okta app), all reusing the shared `lib/falcon.ts` client:
+  - **Endpoint Policies** — Sensor Update Policy (build pinning n/n-1/n-2,
+    uninstall protection, update scheduling), Response (Real Time Response)
+    Policy (RTR capability tiers), USB Device Control Policy (v2 — per
+    device-class enforcement with vendor/product exceptions), Content Update
+    Policy (rapid-response content ring assignments), and Custom IOA Rule Groups
+    (per-platform indicator-of-attack rules).
+  - **Exclusions** — ML, IOA, and Sensor Visibility exclusions, applied globally
+    or to host groups.
+- **Shared policy/exclusion adapters** (`lib/policyAdapter.ts`,
+  `lib/exclusionAdapter.ts`) that factor the proven Falcon lifecycle mechanics —
+  the `name:~` contains-then-exact paged lookup, create-disabled → enable, the
+  `*-actions` host-group attach/detach, and exclusion query→get→CRUD transport —
+  so the endpoint-policy types share one code path. Unit-tested.
+- Existing types (Host Groups, Prevention Policies, Custom IOCs) are now assigned
+  to sidebar groups (Host & Assets, Endpoint Policies, Indicators).
+
 ## 1.7.0 — 2026-07-22
 
 ### Added

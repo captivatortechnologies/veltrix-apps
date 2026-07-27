@@ -1,4 +1,7 @@
-import validate, { parsePolicySettings, extractPolicySpecs, flattenLiveSettings } from '../validate'
+import validate, {
+  parseDeviceControlSettings,
+  extractDeviceControlSpecs,
+} from '../validate'
 import type { PipelineContext, PlatformDataApi } from '@veltrixsecops/app-sdk'
 
 const stubPlatform: PlatformDataApi = {
@@ -10,14 +13,14 @@ function makeCtx(sections: Array<{ name: string; fields: Record<string, unknown>
   return {
     appId: 'crowdstrike-edr',
     customerId: 'cust-1',
-    configTypeId: 'prevention-policies',
+    configTypeId: 'usb-device-control-policies',
     canvas: {
       id: 'snap-1',
       canvasId: 'canvas-1',
       version: 1,
       name: 'Test Canvas',
       toolType: 'crowdstrike-edr',
-      entityType: 'prevention-policies',
+      entityType: 'usb-device-control-policies',
       items: sections,
       sections,
       snapshot: {},
@@ -31,19 +34,21 @@ function makeCtx(sections: Array<{ name: string; fields: Record<string, unknown>
 
 function validPolicyFields(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
-    name: 'Production Workstations',
+    name: 'Locked-Down Workstations',
     platform: 'Windows',
     enabled: true,
     hostGroups: 'group-id-1',
-    settings: JSON.stringify([
-      { id: 'NextGenAV', value: { enabled: true } },
-      { id: 'CloudAntiMalware', value: { detection: 'MODERATE', prevention: 'MODERATE' } },
-    ]),
+    settings: JSON.stringify({
+      classes: [
+        { id: 'MASS_STORAGE', action: 'FULL_BLOCK' },
+        { id: 'WIRELESS', action: 'FULL_ACCESS' },
+      ],
+    }),
     ...overrides,
   }
 }
 
-describe('CrowdStrike Prevention Policies Validate Handler', () => {
+describe('CrowdStrike USB Device Control Policies Validate Handler', () => {
   it('returns invalid for empty sections', async () => {
     const result = await validate(makeCtx([]))
     expect(result.valid).toBe(false)
@@ -72,9 +77,9 @@ describe('CrowdStrike Prevention Policies Validate Handler', () => {
     expect(result.errors.some((e) => e.code === 'reserved_name')).toBe(true)
   })
 
-  it('rejects unknown platforms', async () => {
+  it('rejects unsupported platforms', async () => {
     const result = await validate(
-      makeCtx([{ name: 'sec1', fields: validPolicyFields({ platform: 'Solaris' }) }]),
+      makeCtx([{ name: 'sec1', fields: validPolicyFields({ platform: 'Linux' }) }]),
     )
     expect(result.valid).toBe(false)
     expect(result.errors.some((e) => e.code === 'invalid_platform')).toBe(true)
@@ -103,6 +108,21 @@ describe('CrowdStrike Prevention Policies Validate Handler', () => {
     expect(result.errors.some((e) => e.code === 'invalid_settings')).toBe(true)
   })
 
+  it('rejects a device class with an unknown action', async () => {
+    const result = await validate(
+      makeCtx([
+        {
+          name: 'sec1',
+          fields: validPolicyFields({
+            settings: JSON.stringify({ classes: [{ id: 'MASS_STORAGE', action: 'ALLOW' }] }),
+          }),
+        },
+      ]),
+    )
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.code === 'invalid_settings')).toBe(true)
+  })
+
   it('rejects duplicate policy names per platform', async () => {
     const result = await validate(
       makeCtx([
@@ -118,102 +138,86 @@ describe('CrowdStrike Prevention Policies Validate Handler', () => {
     const result = await validate(
       makeCtx([
         { name: 'sec1', fields: validPolicyFields() },
-        { name: 'sec2', fields: validPolicyFields({ platform: 'Linux' }) },
+        { name: 'sec2', fields: validPolicyFields({ platform: 'Mac' }) },
       ]),
     )
     expect(result.valid).toBe(true)
   })
 })
 
-describe('parsePolicySettings', () => {
-  it('accepts toggle and slider settings', () => {
-    const { settings, errors } = parsePolicySettings(
-      JSON.stringify([
-        { id: 'NextGenAV', value: { enabled: true } },
-        { id: 'OnSensorMLSlider', value: { detection: 'AGGRESSIVE', prevention: 'MODERATE' } },
-      ]),
+describe('parseDeviceControlSettings', () => {
+  it('accepts a classes array with allowed actions', () => {
+    const { settings, errors } = parseDeviceControlSettings(
+      JSON.stringify({
+        classes: [
+          { id: 'MASS_STORAGE', action: 'READ_ONLY' },
+          { id: 'PRINTER', action: 'FULL_ACCESS' },
+        ],
+      }),
     )
     expect(errors).toHaveLength(0)
-    expect(settings).toHaveLength(2)
+    expect(settings).toBeTruthy()
   })
 
-  it('rejects a prevention level more aggressive than detection', () => {
-    const { errors } = parsePolicySettings(
-      JSON.stringify([
-        { id: 'CloudAntiMalware', value: { detection: 'CAUTIOUS', prevention: 'AGGRESSIVE' } },
-      ]),
-    )
-    expect(errors.some((e) => e.includes('more aggressive'))).toBe(true)
-  })
-
-  it('rejects unknown slider levels', () => {
-    const { errors } = parsePolicySettings(
-      JSON.stringify([{ id: 'CloudAntiMalware', value: { detection: 'MAXIMUM' } }]),
+  it('rejects an unknown class action', () => {
+    const { errors } = parseDeviceControlSettings(
+      JSON.stringify({ classes: [{ id: 'MASS_STORAGE', action: 'ALLOW' }] }),
     )
     expect(errors.some((e) => e.includes('must be one of'))).toBe(true)
   })
 
-  it('rejects non-boolean toggles', () => {
-    const { errors } = parsePolicySettings(
-      JSON.stringify([{ id: 'NextGenAV', value: { enabled: 'yes' } }]),
+  it('rejects settings that is not a JSON object', () => {
+    const { errors } = parseDeviceControlSettings(
+      JSON.stringify([{ id: 'MASS_STORAGE', action: 'FULL_BLOCK' }]),
     )
-    expect(errors.some((e) => e.includes('true or false'))).toBe(true)
+    expect(errors.some((e) => e.includes('must be a JSON object'))).toBe(true)
   })
 
-  it('rejects duplicate setting ids', () => {
-    const { errors } = parsePolicySettings(
-      JSON.stringify([
-        { id: 'NextGenAV', value: { enabled: true } },
-        { id: 'NextGenAV', value: { enabled: false } },
-      ]),
+  it('rejects a settings object with no classes array', () => {
+    const { errors } = parseDeviceControlSettings(JSON.stringify({ end_user_notification: 'TRUE' }))
+    expect(errors.some((e) => e.includes('classes'))).toBe(true)
+  })
+
+  it('rejects a class missing its id', () => {
+    const { errors } = parseDeviceControlSettings(
+      JSON.stringify({ classes: [{ action: 'FULL_BLOCK' }] }),
+    )
+    expect(errors.some((e) => e.includes('non-empty string'))).toBe(true)
+  })
+
+  it('rejects duplicate class ids', () => {
+    const { errors } = parseDeviceControlSettings(
+      JSON.stringify({
+        classes: [
+          { id: 'MASS_STORAGE', action: 'FULL_BLOCK' },
+          { id: 'MASS_STORAGE', action: 'FULL_ACCESS' },
+        ],
+      }),
     )
     expect(errors.some((e) => e.includes('more than once'))).toBe(true)
   })
 
-  it('returns empty settings for empty input', () => {
-    expect(parsePolicySettings(undefined)).toEqual({ settings: [], errors: [] })
+  it('rejects a non-array exceptions field', () => {
+    const { errors } = parseDeviceControlSettings(
+      JSON.stringify({ classes: [{ id: 'MASS_STORAGE', action: 'FULL_ACCESS', exceptions: {} }] }),
+    )
+    expect(errors.some((e) => e.includes('exceptions'))).toBe(true)
+  })
+
+  it('returns null settings for empty input', () => {
+    expect(parseDeviceControlSettings(undefined)).toEqual({ settings: null, errors: [] })
   })
 })
 
-describe('flattenLiveSettings', () => {
-  it('flattens categorized prevention_settings into id/value pairs', () => {
-    const flat = flattenLiveSettings({
-      prevention_settings: [
-        {
-          name: 'Enhanced Visibility',
-          settings: [
-            { id: 'NextGenAV', name: 'Next-Gen AV', type: 'toggle', value: { enabled: true } },
-          ],
-        },
-        {
-          name: 'Cloud Machine Learning',
-          settings: [
-            {
-              id: 'CloudAntiMalware',
-              name: 'Cloud Anti-malware',
-              type: 'mlslider',
-              value: { detection: 'MODERATE', prevention: 'CAUTIOUS' },
-            },
-          ],
-        },
-      ],
-    })
-    expect(flat).toEqual([
-      { id: 'NextGenAV', value: { enabled: true } },
-      { id: 'CloudAntiMalware', value: { detection: 'MODERATE', prevention: 'CAUTIOUS' } },
-    ])
-  })
-})
-
-describe('extractPolicySpecs', () => {
+describe('extractDeviceControlSpecs', () => {
   it('parses host groups from comma-separated tags', () => {
-    const specs = extractPolicySpecs({
+    const specs = extractDeviceControlSpecs({
       id: 's',
       canvasId: 'c',
       version: 1,
       name: 'n',
       toolType: 'crowdstrike-edr',
-      entityType: 'prevention-policies',
+      entityType: 'usb-device-control-policies',
       items: [],
       sections: [
         { name: 'sec1', fields: { name: 'p1', platform: 'Mac', hostGroups: 'g1, g2' } },

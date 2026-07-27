@@ -1,4 +1,4 @@
-import validate, { parsePolicySettings, extractPolicySpecs, flattenLiveSettings } from '../validate'
+import validate, { parseResponseSettings, extractPolicySpecs, flattenLiveSettings } from '../validate'
 import type { PipelineContext, PlatformDataApi } from '@veltrixsecops/app-sdk'
 
 const stubPlatform: PlatformDataApi = {
@@ -10,14 +10,14 @@ function makeCtx(sections: Array<{ name: string; fields: Record<string, unknown>
   return {
     appId: 'crowdstrike-edr',
     customerId: 'cust-1',
-    configTypeId: 'prevention-policies',
+    configTypeId: 'response-policies',
     canvas: {
       id: 'snap-1',
       canvasId: 'canvas-1',
       version: 1,
       name: 'Test Canvas',
       toolType: 'crowdstrike-edr',
-      entityType: 'prevention-policies',
+      entityType: 'response-policies',
       items: sections,
       sections,
       snapshot: {},
@@ -31,19 +31,19 @@ function makeCtx(sections: Array<{ name: string; fields: Record<string, unknown>
 
 function validPolicyFields(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
-    name: 'Production Workstations',
+    name: 'Responders RTR',
     platform: 'Windows',
     enabled: true,
     hostGroups: 'group-id-1',
     settings: JSON.stringify([
-      { id: 'NextGenAV', value: { enabled: true } },
-      { id: 'CloudAntiMalware', value: { detection: 'MODERATE', prevention: 'MODERATE' } },
+      { id: 'RealTimeResponse', value: { enabled: true } },
+      { id: 'RealTimeResponseActiveResponder', value: { enabled: true } },
     ]),
     ...overrides,
   }
 }
 
-describe('CrowdStrike Prevention Policies Validate Handler', () => {
+describe('CrowdStrike Response Policies Validate Handler', () => {
   it('returns invalid for empty sections', async () => {
     const result = await validate(makeCtx([]))
     expect(result.valid).toBe(false)
@@ -103,6 +103,23 @@ describe('CrowdStrike Prevention Policies Validate Handler', () => {
     expect(result.errors.some((e) => e.code === 'invalid_settings')).toBe(true)
   })
 
+  it('rejects ML-slider settings that belong to prevention policies', async () => {
+    const result = await validate(
+      makeCtx([
+        {
+          name: 'sec1',
+          fields: validPolicyFields({
+            settings: JSON.stringify([
+              { id: 'CloudAntiMalware', value: { detection: 'MODERATE', prevention: 'MODERATE' } },
+            ]),
+          }),
+        },
+      ]),
+    )
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.code === 'invalid_settings')).toBe(true)
+  })
+
   it('rejects duplicate policy names per platform', async () => {
     const result = await validate(
       makeCtx([
@@ -125,83 +142,70 @@ describe('CrowdStrike Prevention Policies Validate Handler', () => {
   })
 })
 
-describe('parsePolicySettings', () => {
-  it('accepts toggle and slider settings', () => {
-    const { settings, errors } = parsePolicySettings(
+describe('parseResponseSettings', () => {
+  it('accepts capability toggle settings', () => {
+    const { settings, errors } = parseResponseSettings(
       JSON.stringify([
-        { id: 'NextGenAV', value: { enabled: true } },
-        { id: 'OnSensorMLSlider', value: { detection: 'AGGRESSIVE', prevention: 'MODERATE' } },
+        { id: 'RealTimeResponse', value: { enabled: true } },
+        { id: 'RealTimeResponseAdmin', value: { enabled: false } },
       ]),
     )
     expect(errors).toHaveLength(0)
     expect(settings).toHaveLength(2)
   })
 
-  it('rejects a prevention level more aggressive than detection', () => {
-    const { errors } = parsePolicySettings(
-      JSON.stringify([
-        { id: 'CloudAntiMalware', value: { detection: 'CAUTIOUS', prevention: 'AGGRESSIVE' } },
-      ]),
+  it('rejects ML-slider values (prevention-style settings)', () => {
+    const { errors } = parseResponseSettings(
+      JSON.stringify([{ id: 'CloudAntiMalware', value: { detection: 'MODERATE' } }]),
     )
-    expect(errors.some((e) => e.includes('more aggressive'))).toBe(true)
+    expect(errors.some((e) => e.includes('toggles'))).toBe(true)
   })
 
-  it('rejects unknown slider levels', () => {
-    const { errors } = parsePolicySettings(
-      JSON.stringify([{ id: 'CloudAntiMalware', value: { detection: 'MAXIMUM' } }]),
+  it('rejects a value missing the enabled key', () => {
+    const { errors } = parseResponseSettings(
+      JSON.stringify([{ id: 'RealTimeResponse', value: {} }]),
     )
-    expect(errors.some((e) => e.includes('must be one of'))).toBe(true)
+    expect(errors.some((e) => e.includes('toggle'))).toBe(true)
   })
 
   it('rejects non-boolean toggles', () => {
-    const { errors } = parsePolicySettings(
-      JSON.stringify([{ id: 'NextGenAV', value: { enabled: 'yes' } }]),
+    const { errors } = parseResponseSettings(
+      JSON.stringify([{ id: 'RealTimeResponse', value: { enabled: 'yes' } }]),
     )
     expect(errors.some((e) => e.includes('true or false'))).toBe(true)
   })
 
   it('rejects duplicate setting ids', () => {
-    const { errors } = parsePolicySettings(
+    const { errors } = parseResponseSettings(
       JSON.stringify([
-        { id: 'NextGenAV', value: { enabled: true } },
-        { id: 'NextGenAV', value: { enabled: false } },
+        { id: 'RealTimeResponse', value: { enabled: true } },
+        { id: 'RealTimeResponse', value: { enabled: false } },
       ]),
     )
     expect(errors.some((e) => e.includes('more than once'))).toBe(true)
   })
 
   it('returns empty settings for empty input', () => {
-    expect(parsePolicySettings(undefined)).toEqual({ settings: [], errors: [] })
+    expect(parseResponseSettings(undefined)).toEqual({ settings: [], errors: [] })
   })
 })
 
 describe('flattenLiveSettings', () => {
-  it('flattens categorized prevention_settings into id/value pairs', () => {
+  it('flattens the flat settings array into id/value pairs', () => {
     const flat = flattenLiveSettings({
-      prevention_settings: [
-        {
-          name: 'Enhanced Visibility',
-          settings: [
-            { id: 'NextGenAV', name: 'Next-Gen AV', type: 'toggle', value: { enabled: true } },
-          ],
-        },
-        {
-          name: 'Cloud Machine Learning',
-          settings: [
-            {
-              id: 'CloudAntiMalware',
-              name: 'Cloud Anti-malware',
-              type: 'mlslider',
-              value: { detection: 'MODERATE', prevention: 'CAUTIOUS' },
-            },
-          ],
-        },
+      settings: [
+        { id: 'RealTimeResponse', name: 'Real Time Response', value: { enabled: true } },
+        { id: 'RealTimeResponseActiveResponder', name: 'Active Responder', value: { enabled: false } },
       ],
     })
     expect(flat).toEqual([
-      { id: 'NextGenAV', value: { enabled: true } },
-      { id: 'CloudAntiMalware', value: { detection: 'MODERATE', prevention: 'CAUTIOUS' } },
+      { id: 'RealTimeResponse', value: { enabled: true } },
+      { id: 'RealTimeResponseActiveResponder', value: { enabled: false } },
     ])
+  })
+
+  it('returns no settings when the live policy has none', () => {
+    expect(flattenLiveSettings({})).toEqual([])
   })
 })
 
@@ -213,7 +217,7 @@ describe('extractPolicySpecs', () => {
       version: 1,
       name: 'n',
       toolType: 'crowdstrike-edr',
-      entityType: 'prevention-policies',
+      entityType: 'response-policies',
       items: [],
       sections: [
         { name: 'sec1', fields: { name: 'p1', platform: 'Mac', hostGroups: 'g1, g2' } },

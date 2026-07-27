@@ -138,6 +138,7 @@ describe('extractHostGroupSpecs', () => {
       name: 'n',
       toolType: 'crowdstrike-edr',
       entityType: 'host-groups',
+      items: [],
       sections: [
         {
           name: 'sec1',

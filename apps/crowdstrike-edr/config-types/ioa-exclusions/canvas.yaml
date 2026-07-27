@@ -1,0 +1,83 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon IOA (indicator-of-attack) Exclusions
+#
+# Declares ONE exclusion — the item. Users add as many exclusions as they need.
+# Field keys must match what config-types/ioa-exclusions/validate.ts checks.
+#
+# An IOA exclusion's identity in Falcon is its `name`; uniqueness per canvas is
+# enforced by validate.ts. An exclusion targets a specific IOA pattern and
+# narrows on a command-line and/or image-filename regex.
+# =============================================================================
+
+id: "crowdstrike-edr-ioa-exclusions"
+name: "IOA Exclusion Configuration"
+toolType: "crowdstrike-edr"
+entityType: "ioa-exclusions"
+description: "Define indicator-of-attack exclusions (pattern id + command-line / image-filename regex) as code via the Falcon IOA Exclusions API"
+
+item:
+  label: "IOA Exclusion"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "General"
+      icon: "shield-off"
+      description: "Exclusion identity, target pattern, matching, and scope"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 200
+          helpText: "Unique name for the exclusion — its identity in Falcon. Must be unique per canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Why this exclusion exists — shown in the Falcon console"
+
+        - key: "patternId"
+          label: "Pattern ID"
+          fieldType: "text"
+          required: true
+          helpText: "The Falcon IOA pattern (behavior) ID this exclusion suppresses"
+
+        - key: "patternName"
+          label: "Pattern Name"
+          fieldType: "text"
+          helpText: "Human-readable name of the IOA pattern (recorded alongside the pattern ID)"
+
+        - key: "clRegex"
+          label: "Command Line Regex"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: "Regex matched against the process command line. Use .* to match any. Max 256 characters."
+
+        - key: "ifnRegex"
+          label: "Image Filename Regex"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: "Regex matched against the process image filename. Use .* to match any. Max 256 characters."
+
+        - key: "appliedGlobally"
+          label: "Apply Globally"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Apply to every host in the tenant. Leave unchecked to target specific host groups instead."
+
+        - key: "hostGroups"
+          label: "Host Group IDs"
+          fieldType: "tags"
+          helpText: "Falcon host group IDs the exclusion applies to — required when not applied globally, ignored otherwise"
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          helpText: "Why this exclusion exists — recorded on the exclusion in the Falcon console"
