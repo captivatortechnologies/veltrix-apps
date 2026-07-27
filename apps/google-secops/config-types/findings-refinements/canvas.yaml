@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — Google SecOps Findings Refinements (Rule Exclusions)
+#
+# Declares ONE findings refinement — the item. Users add as many as they need.
+# A findings refinement of type DETECTION_EXCLUSION suppresses detections that
+# match a UDM query (optionally narrowed by outcome filters). Its id is
+# server-assigned, so its identity here is the DISPLAY NAME you own; deploy lists
+# refinements, matches by the id stored last deploy (rename-safe) or the display
+# name, then creates or PATCHes the refinement.
+#
+# NO-DELETE resource: findings refinements have no delete endpoint. When a
+# refinement this app created is no longer declared, deploy disables + archives
+# its deployment (enabled=false, archived=true) instead of deleting it.
+#
+# Field keys must match config-types/findings-refinements/validate.ts.
+# =============================================================================
+
+id: "google-secops-findings-refinements"
+name: "Findings Refinement Configuration"
+toolType: "google-secops"
+entityType: "findings-refinements"
+description: "Define Google Security Operations (Chronicle) findings refinements (detection exclusions) as code through the SecOps API."
+
+item:
+  label: "Findings Refinement"
+  identityField: "displayName"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Findings Refinement"
+      icon: "filter"
+      description: "Detection exclusion definition"
+      fields:
+        - key: "displayName"
+          label: "Display Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The refinement's display name — its identity here (the id is
+            server-assigned). Must be unique within the canvas.
+
+        - key: "query"
+          label: "UDM Query"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The UDM query selecting the findings to exclude, e.g.
+            principal.hostname = "test-host". Detections matching this query (and
+            any outcome filters) are suppressed.
+
+        - key: "outcomeFilters"
+          label: "Outcome Filters (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional JSON array of { field, operator, value } narrowing the
+            exclusion, e.g. [{"field":"risk_score","operator":"EQUAL","value":"0"}].
+            operator is one of EQUAL, CONTAINS, MATCHES_REGEX, MATCHES_CIDR.

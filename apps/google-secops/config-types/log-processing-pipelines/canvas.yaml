@@ -1,0 +1,60 @@
+# =============================================================================
+# Canvas Template — Google SecOps Log Processing Pipelines
+#
+# Declares ONE log processing pipeline — the item. Users add as many as they need.
+# A pipeline applies ordered ingest-time routing / transform steps to incoming
+# logs. Its id is CLIENT-SETTABLE, so its identity is a clean name key: deploy
+# GETs the pipeline by id, creates it (passing logProcessingPipelineId) when
+# absent, or PATCHes it otherwise. Pipelines this app created but no longer
+# declares are deleted.
+#
+# BOUNDED SCOPE: the ordered `processors` steps are a validated JSON blob (an
+# array). displayName + description are managed as scalar fields.
+#
+# Field keys must match config-types/log-processing-pipelines/validate.ts.
+# =============================================================================
+
+id: "google-secops-log-processing-pipelines"
+name: "Log Processing Pipeline Configuration"
+toolType: "google-secops"
+entityType: "log-processing-pipelines"
+description: "Define Google Security Operations (Chronicle) log processing pipelines (ingest-time routing / transform steps) as code through the SecOps API."
+
+item:
+  label: "Log Processing Pipeline"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Log Processing Pipeline"
+      icon: "git-branch"
+      description: "Pipeline id, metadata and processors"
+      fields:
+        - key: "id"
+          label: "Pipeline ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The pipeline id — its client-set immutable identity. Must start with a
+            letter and contain only letters, digits, underscores and hyphens.
+
+        - key: "displayName"
+          label: "Display Name"
+          fieldType: "text"
+          required: true
+          helpText: "The pipeline's display name."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the pipeline for a human reader."
+
+        - key: "processors"
+          label: "Processors (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The ordered pipeline steps as a JSON array, e.g. [{"type":"FILTER",
+            ...}]. Deploy replaces the pipeline's processors with this array.

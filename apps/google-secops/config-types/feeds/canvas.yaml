@@ -1,0 +1,56 @@
+# =============================================================================
+# Canvas Template — Google SecOps Data Feeds
+#
+# Declares ONE data feed — the item. Users add as many as they need.
+# A feed ingests logs from a source (HTTP, Amazon S3/SQS, Google Cloud Storage,
+# Azure Blob, HTTPS push, third-party API pullers, ...). Its id is a server-
+# assigned UUID, so its identity here is the DISPLAY NAME you own; deploy lists
+# feeds, matches by the feedId stored last deploy (rename-safe) or the display
+# name, then creates or PATCHes the feed. Feeds this app created but no longer
+# declares are deleted.
+#
+# BOUNDED SCOPE: the source configuration is one validated `details` JSON blob —
+# an object with `feedSourceType`, `logType` (the full logTypes/{LOGTYPE} path)
+# and exactly one `<source>Settings` object (e.g. httpSettings). Per-source
+# secrets inside settings are WRITE-ONLY: sent on every deploy, never read back,
+# excluded from drift and not restored on rollback.
+#
+# Field keys must match config-types/feeds/validate.ts.
+# =============================================================================
+
+id: "google-secops-feeds"
+name: "Data Feed Configuration"
+toolType: "google-secops"
+entityType: "feeds"
+description: "Define Google Security Operations (Chronicle) data feeds (log-ingestion connectors) as code through the SecOps API."
+
+item:
+  label: "Data Feed"
+  identityField: "displayName"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Data Feed"
+      icon: "rss"
+      description: "Feed display name and source details"
+      fields:
+        - key: "displayName"
+          label: "Display Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The feed's display name — its identity here (the feed id itself is a
+            server-assigned UUID). Must be unique within the canvas.
+
+        - key: "details"
+          label: "Feed Details (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The feed's source configuration as a JSON object. Must include
+            "feedSourceType" (e.g. HTTP), "logType" (the full
+            projects/.../logTypes/LOGTYPE path) and exactly one "<source>Settings"
+            object, e.g. {"feedSourceType":"HTTP","logType":"...logTypes/WINEVTLOG",
+            "httpSettings":{"uri":"https://...","sourceType":"FILES"}}. Any secrets
+            inside settings are write-only — sent on deploy but never read back.

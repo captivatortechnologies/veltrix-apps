@@ -1,0 +1,14 @@
+# Defaults for a new forwarder collector item.
+#
+# A FLAT map keyed by the canvas field keys (forwarderName, displayName, config).
+# The config blob is seeded with a minimal syslog-source shape — set the log type
+# and the source settings for the input you are collecting.
+config: |
+  {
+    "logType": "WINEVTLOG",
+    "syslogSettings": {
+      "protocol": "TCP",
+      "address": "0.0.0.0",
+      "port": 514
+    }
+  }

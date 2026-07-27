@@ -1,0 +1,52 @@
+# =============================================================================
+# Canvas Template — Google SecOps Forwarders
+#
+# Declares ONE forwarder — the item. Users add as many as they need.
+# A forwarder is an on-prem collector-agent configuration. Its id is a server-
+# assigned UUID, so its identity here is the DISPLAY NAME you own; deploy lists
+# forwarders, matches by the forwarderId stored last deploy (rename-safe) or the
+# display name, then creates or PATCHes the forwarder. Forwarders this app
+# created but no longer declares are deleted.
+#
+# BOUNDED SCOPE: the agent settings are one validated `config` JSON blob
+# (uploadCompression, metadata.assetNamespace/labels, regexFilters,
+# serverSettings.httpSettings, ...). Per-forwarder INPUT sources are managed by
+# the separate Forwarder Collectors config type.
+#
+# Field keys must match config-types/forwarders/validate.ts.
+# =============================================================================
+
+id: "google-secops-forwarders"
+name: "Forwarder Configuration"
+toolType: "google-secops"
+entityType: "forwarders"
+description: "Define Google Security Operations (Chronicle) forwarders (on-prem collector-agent configurations) as code through the SecOps API."
+
+item:
+  label: "Forwarder"
+  identityField: "displayName"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Forwarder"
+      icon: "server"
+      description: "Forwarder display name and agent config"
+      fields:
+        - key: "displayName"
+          label: "Display Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The forwarder's display name — its identity here (the forwarder id
+            itself is a server-assigned UUID). Must be unique within the canvas.
+
+        - key: "config"
+          label: "Forwarder Config (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            The agent configuration as a JSON object, e.g.
+            {"uploadCompression":true,"metadata":{"assetNamespace":"corp",
+            "labels":{"env":"prod"}}}. Optional — a forwarder can be created with
+            just a display name. Input sources (collectors) are managed separately.

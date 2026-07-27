@@ -1,0 +1,6 @@
+# Defaults for a new log processing pipeline item.
+#
+# A FLAT map keyed by the canvas field keys (id, displayName, description,
+# processors). The processors array starts empty; set the id, display name and
+# add the ordered steps.
+processors: "[]"

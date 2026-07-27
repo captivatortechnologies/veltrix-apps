@@ -1,0 +1,99 @@
+# =============================================================================
+# Canvas Template — Google SecOps BigQuery Export
+#
+# BigQuery Export is an instance SINGLETON — there is no create/list/delete, only
+# a get + patch of per-data-source export toggles. This template is therefore a
+# SINGLE, non-repeatable item: deploy reads the current settings and PATCHes the
+# per-source enable/retention toggles you declare; rollback restores the prior
+# settings. BigQuery export must already be provisioned for the instance.
+#
+# Field keys must match config-types/bigquery-export/validate.ts
+# (per source: <key>Enabled + <key>RetentionDays).
+# =============================================================================
+
+id: "google-secops-bigquery-export"
+name: "BigQuery Export Configuration"
+toolType: "google-secops"
+entityType: "bigquery-export"
+description: "Manage Google Security Operations (Chronicle) BigQuery Export per-data-source settings (which data sources export to BigQuery and their retention) as code through the SecOps API."
+
+item:
+  label: "BigQuery Export"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "UDM Events"
+      icon: "database"
+      description: "Export normalized UDM events"
+      fields:
+        - key: "udmEventsEnabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Export UDM events to BigQuery."
+        - key: "udmEventsRetentionDays"
+          label: "Retention (days)"
+          fieldType: "number"
+          required: false
+          helpText: "Retention period in days when enabled (a positive whole number)."
+
+    - name: "UDM Events Aggregates"
+      icon: "database"
+      description: "Export UDM event aggregates"
+      fields:
+        - key: "udmEventsAggregatesEnabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Export UDM event aggregates to BigQuery."
+        - key: "udmEventsAggregatesRetentionDays"
+          label: "Retention (days)"
+          fieldType: "number"
+          required: false
+          helpText: "Retention period in days when enabled (a positive whole number)."
+
+    - name: "Rule Detections"
+      icon: "database"
+      description: "Export rule detections"
+      fields:
+        - key: "ruleDetectionsEnabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Export rule detections to BigQuery."
+        - key: "ruleDetectionsRetentionDays"
+          label: "Retention (days)"
+          fieldType: "number"
+          required: false
+          helpText: "Retention period in days when enabled (a positive whole number)."
+
+    - name: "IoC Matches"
+      icon: "database"
+      description: "Export IoC matches"
+      fields:
+        - key: "iocMatchesEnabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Export IoC matches to BigQuery."
+        - key: "iocMatchesRetentionDays"
+          label: "Retention (days)"
+          fieldType: "number"
+          required: false
+          helpText: "Retention period in days when enabled (a positive whole number)."
+
+    - name: "Entity Graph"
+      icon: "database"
+      description: "Export entity graph data"
+      fields:
+        - key: "entityGraphEnabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Export entity graph data to BigQuery."
+        - key: "entityGraphRetentionDays"
+          label: "Retention (days)"
+          fieldType: "number"
+          required: false
+          helpText: "Retention period in days when enabled (a positive whole number)."

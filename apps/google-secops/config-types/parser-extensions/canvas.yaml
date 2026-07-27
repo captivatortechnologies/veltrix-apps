@@ -1,0 +1,57 @@
+# =============================================================================
+# Canvas Template — Google SecOps Parser Extensions
+#
+# Declares ONE parser extension — the item. Users add as many as they need (one
+# per log type). A parser extension EXTENDS (does not replace) the base parser for
+# a log type. Extensions are nested under a log type, immutable (no update) and
+# promoted with :activate. Deploy content-hashes the desired CBN snippet against
+# the app-owned extension; if it differs, a new extension is created and activated
+# and the previous app-created one is deleted (delete + recreate family).
+#
+# SCOPE: this manages the `cbnSnippet` extension path only. The field-extractors
+# and dynamic-parsing extension paths are out of scope.
+#
+# Field keys must match config-types/parser-extensions/validate.ts.
+# =============================================================================
+
+id: "google-secops-parser-extensions"
+name: "Parser Extension Configuration"
+toolType: "google-secops"
+entityType: "parser-extensions"
+description: "Define Google Security Operations (Chronicle) parser extensions (per log type; CBN snippet that extends the base parser; immutable, create + activate) as code through the SecOps API."
+
+item:
+  label: "Parser Extension"
+  identityField: "logType"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Parser Extension"
+      icon: "plus-square"
+      description: "Target log type and extension snippet"
+      fields:
+        - key: "logType"
+          label: "Log Type"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The log type id the extension belongs to, e.g. WINEVTLOG. One managed
+            extension per log type.
+
+        - key: "cbnSnippet"
+          label: "CBN Snippet"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The CBN snippet that extends the base parser. Deploy base64-encodes it,
+            creates a new extension and activates it. Extensions are immutable —
+            changing the snippet creates and activates a new one.
+
+        - key: "logSample"
+          label: "Sample Log (optional)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            An optional raw sample log used to validate the snippet. Sent
+            base64-encoded when provided.

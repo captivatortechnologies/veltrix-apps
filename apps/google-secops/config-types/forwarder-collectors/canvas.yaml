@@ -1,0 +1,62 @@
+# =============================================================================
+# Canvas Template — Google SecOps Forwarder Collectors
+#
+# Declares ONE collector — the item. Users add as many as they need.
+# A collector is an input source (files, syslog, kafka, pcap, splunk, ...) on a
+# parent forwarder. It is a NESTED CHILD: deploy resolves the parent forwarder by
+# its display name (declare it with the Forwarders config type first), then lists
+# that forwarder's collectors and matches by the collectorId stored last deploy
+# (rename-safe) or the display name, and creates or PATCHes the collector.
+# Collectors this app created but no longer declares are deleted (a deleted
+# parent forwarder cascades).
+#
+# BOUNDED SCOPE: the source is one validated `config` JSON blob (logType + exactly
+# one <source>Settings union). Per-source secrets (e.g. Splunk creds) are
+# WRITE-ONLY: sent on deploy, never read back, excluded from drift, not restored
+# on rollback.
+#
+# Field keys must match config-types/forwarder-collectors/validate.ts.
+# =============================================================================
+
+id: "google-secops-forwarder-collectors"
+name: "Forwarder Collector Configuration"
+toolType: "google-secops"
+entityType: "forwarder-collectors"
+description: "Define Google Security Operations (Chronicle) forwarder collectors (per-forwarder input sources) as code through the SecOps API."
+
+item:
+  label: "Collector"
+  identityField: "displayName"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Collector"
+      icon: "download"
+      description: "Parent forwarder, collector name and source config"
+      fields:
+        - key: "forwarderName"
+          label: "Forwarder Name (displayName)"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The display name of the parent forwarder (declare it with the
+            Forwarders config type first). The collector is created under it.
+
+        - key: "displayName"
+          label: "Display Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The collector's display name — its identity within the forwarder.
+            Must be unique per forwarder within the canvas.
+
+        - key: "config"
+          label: "Collector Config (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The source configuration as a JSON object. Must include "logType" and
+            exactly one "<source>Settings" object, e.g.
+            {"logType":"WINEVTLOG","syslogSettings":{"protocol":"TCP","address":
+            "0.0.0.0","port":514}}. Any secrets inside settings are write-only.

@@ -1,0 +1,71 @@
+# =============================================================================
+# Canvas Template — Google SecOps Curated Rule Set Deployments
+#
+# Declares the DEPLOYMENT STATE of ONE Google-curated rule set — the item. Users
+# add as many as they need. Google owns the curated rule set CONTENT; only its
+# deployment state (enabled / alerting) is configurable — this is a STATE-ONLY
+# reconcile, analogous to the Rule Deployments type. A deployment is identified by
+# its category id + rule set id + precision (broad / precise); discover these ids
+# via the curatedRuleSetCategories / curatedRules listings in the SecOps console.
+#
+# These deployments are never created or deleted (Google owns them): deploy only
+# flips the state of the ones you declare and leaves everything else untouched.
+# When a spec is removed the deployment is left at its last-set state; an explicit
+# rollback restores the prior state.
+#
+# Field keys must match config-types/curated-ruleset-deployments/validate.ts.
+# =============================================================================
+
+id: "google-secops-curated-ruleset-deployments"
+name: "Curated Rule Set Deployment Configuration"
+toolType: "google-secops"
+entityType: "curated-ruleset-deployments"
+description: "Manage the deployment state (enabled / alerting) of Google-curated (Google-managed) Security Operations rule sets as code through the SecOps API."
+
+item:
+  label: "Curated Rule Set Deployment"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Curated Rule Set Deployment"
+      icon: "shield-check"
+      description: "Target curated rule set and its deployment state"
+      fields:
+        - key: "category"
+          label: "Category ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The curated rule set CATEGORY id (a Google-defined UUID). Find it in
+            the SecOps console under Curated Detections / Rule Sets.
+
+        - key: "ruleSet"
+          label: "Rule Set ID"
+          fieldType: "text"
+          required: true
+          helpText: "The curated RULE SET id (a Google-defined UUID) within the category."
+
+        - key: "precision"
+          label: "Precision"
+          fieldType: "select"
+          required: true
+          defaultValue: "broad"
+          options:
+            - label: "Broad"
+              value: "broad"
+            - label: "Precise"
+              value: "precise"
+          helpText: "Which precision band of the rule set to manage."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Run this curated rule set against incoming data."
+
+        - key: "alerting"
+          label: "Alerting"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Treat this rule set's detections as alerts. Has no effect unless enabled."

@@ -1,0 +1,15 @@
+# Defaults for a new custom parser item.
+#
+# A FLAT map keyed by the canvas field keys (logType, code). The code is seeded
+# with a minimal CBN skeleton so a new parser starts from a valid shape — set the
+# log type and fill in the parser logic.
+code: |
+  filter {
+    mutate {
+      replace => {
+        "event1.idm.read_only_udm.metadata.event_type" => "GENERIC_EVENT"
+      }
+    }
+    grok { }
+    statedump { }
+  }

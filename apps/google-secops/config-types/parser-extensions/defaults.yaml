@@ -1,0 +1,13 @@
+# Defaults for a new parser extension item.
+#
+# A FLAT map keyed by the canvas field keys (logType, cbnSnippet, logSample). The
+# snippet is seeded with a minimal shape — set the log type and fill in the CBN
+# extension logic.
+cbnSnippet: |
+  filter {
+    mutate {
+      replace => {
+        "event1.idm.read_only_udm.metadata.product_name" => "MyProduct"
+      }
+    }
+  }

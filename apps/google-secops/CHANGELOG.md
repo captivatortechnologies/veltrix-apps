@@ -8,6 +8,58 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.5.0 — 2026-07-26
+
+### Added
+- **Data Feeds** configuration type — manage log-ingestion connectors as code.
+  Identity is the display name (the feed id is a server UUID); the source config
+  is one validated `details` JSON blob (feedSourceType + logType + a `<source>Settings`
+  object). Per-source secrets are write-only: sent on every deploy, never read
+  back, excluded from drift and not restored on rollback (only the name is).
+  Created/updated/deleted; app-created feeds are deleted on reconcile.
+- **Forwarders** configuration type — manage on-prem collector-agent configs as
+  code. Identity is the display name; the agent settings are one validated
+  `config` JSON blob. Created/updated/deleted; forwarder config round-trips so
+  rollback restores it in full.
+- **Forwarder Collectors** configuration type — manage per-forwarder input
+  sources as code. A nested child: the parent forwarder is resolved by display
+  name (declare it with the Forwarders type first), then collectors are matched
+  within it. Source config is a validated JSON blob; per-source secrets are
+  write-only (excluded from drift, not restored on rollback). Created/updated/deleted.
+- **Watchlists** configuration type — manage entity watchlists (a named entity
+  group whose risk score is boosted by a multiplying factor) as code. Identity is
+  the display name; created/updated/deleted (force). Entity membership is out of
+  scope (populated out-of-band).
+- **Findings Refinements** configuration type — manage detection exclusions as
+  code. Identity is the display name; created/updated. NO delete endpoint — a
+  removed refinement's deployment is disabled + archived instead; rollback
+  disables created ones and restores updated ones (same no-delete family as
+  reference lists).
+- **Curated Rule Set Deployments** configuration type — manage the enabled /
+  alerting state of Google-curated rule sets as code. Identity is category + rule
+  set + precision (broad / precise). State-only reconcile via PATCH — Google owns
+  the content, so nothing is created or deleted and unowned deployments are left
+  untouched; rollback restores prior state (analogous to Rule Deployments).
+- **Custom Parsers** configuration type — manage per-log-type custom parsers as
+  code. Parsers are immutable + versioned: deploy content-hashes the desired code
+  (base64-encoded as `cbn`) against the active parser and, when it differs,
+  creates a new version and activates it, pruning the version it previously
+  created. Identity is the log type; reconcile / rollback re-activate the prior
+  parser and delete the created version.
+- **Parser Extensions** configuration type — manage per-log-type CBN snippet
+  extensions (which extend, not replace, the base parser) as code. Immutable:
+  deploy content-hashes the snippet and, when it differs, creates and activates a
+  new extension and deletes the previous app-created one. Identity is the log type.
+- **Log Processing Pipelines** configuration type — manage ingest-time routing /
+  transform pipelines as code. Identity is a client-set id (clean name key);
+  displayName + description + a validated `processors` JSON array. Created/updated/
+  deleted; app-created pipelines are deleted on reconcile.
+- **BigQuery Export** configuration type — manage the instance-wide per-data-source
+  export toggles (UDM Events / UDM Event Aggregates / Rule Detections / IoC Matches
+  / Entity Graph: enable + retention) as code. A singleton — never created or
+  deleted, only patched; rollback restores the prior settings (requires BigQuery
+  export to be provisioned for the instance).
+
 ## 0.4.0 — 2026-07-26
 
 ### Added

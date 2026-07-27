@@ -1,0 +1,13 @@
+# Defaults for a new forwarder item.
+#
+# A FLAT map keyed by the canvas field keys (displayName, config). The config
+# blob is seeded with a minimal shape — set the asset namespace / labels or clear
+# it to create a forwarder with just a display name.
+config: |
+  {
+    "uploadCompression": true,
+    "metadata": {
+      "assetNamespace": "",
+      "labels": {}
+    }
+  }

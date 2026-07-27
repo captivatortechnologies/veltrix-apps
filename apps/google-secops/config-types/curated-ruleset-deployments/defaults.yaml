@@ -1,0 +1,8 @@
+# Defaults for a new curated rule set deployment item.
+#
+# A FLAT map keyed by the canvas field keys. A new deployment defaults to the
+# broad precision band, disabled; the category and rule set ids are left blank for
+# a deliberate choice per rule set.
+precision: broad
+enabled: false
+alerting: false

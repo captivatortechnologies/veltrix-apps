@@ -1,0 +1,14 @@
+# Defaults for the BigQuery export singleton.
+#
+# A FLAT map keyed by the canvas field keys. All sources start disabled with a
+# neutral 30-day retention; enable the ones you want exported and set retention.
+udmEventsEnabled: false
+udmEventsRetentionDays: 30
+udmEventsAggregatesEnabled: false
+udmEventsAggregatesRetentionDays: 30
+ruleDetectionsEnabled: false
+ruleDetectionsRetentionDays: 30
+iocMatchesEnabled: false
+iocMatchesRetentionDays: 30
+entityGraphEnabled: false
+entityGraphRetentionDays: 30

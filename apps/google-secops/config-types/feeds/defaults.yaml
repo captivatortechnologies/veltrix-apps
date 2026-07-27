@@ -1,0 +1,14 @@
+# Defaults for a new data feed item.
+#
+# A FLAT map keyed by the canvas field keys (displayName, details). The details
+# blob is seeded with a minimal HTTP-feed shape so a new feed starts from a valid
+# structure — set the log type, the source settings and (if any) its secret.
+details: |
+  {
+    "feedSourceType": "HTTP",
+    "logType": "projects/PROJECT/locations/REGION/instances/INSTANCE/logTypes/WINEVTLOG",
+    "httpSettings": {
+      "uri": "https://example.com/feed",
+      "sourceType": "FILES"
+    }
+  }

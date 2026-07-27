@@ -1,0 +1,50 @@
+# =============================================================================
+# Canvas Template — Google SecOps Custom Parsers
+#
+# Declares ONE custom parser — the item. Users add as many as they need (one per
+# log type). A parser is nested under a log type and is IMMUTABLE + versioned:
+# there is no update. Deploy content-hashes the desired code against the active
+# parser's decoded code; if they differ it creates a NEW parser version (code is
+# base64-encoded as `cbn`) and activates it, then prunes the version it previously
+# created. Only one parser is active per log type, so this type keys by LOG TYPE.
+#
+# Reconcile / rollback: a version this app created and activated is undone by
+# re-activating the parser that was active before and deleting the created
+# version. A parser whose log type is no longer declared is reverted the same way.
+#
+# Field keys must match config-types/parsers/validate.ts.
+# =============================================================================
+
+id: "google-secops-parsers"
+name: "Custom Parser Configuration"
+toolType: "google-secops"
+entityType: "parsers"
+description: "Define Google Security Operations (Chronicle) custom log parsers (per log type; immutable, versioned, create + activate) as code through the SecOps API."
+
+item:
+  label: "Custom Parser"
+  identityField: "logType"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Custom Parser"
+      icon: "code"
+      description: "Target log type and parser code"
+      fields:
+        - key: "logType"
+          label: "Log Type"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The log type id the parser belongs to, e.g. WINEVTLOG. One active
+            custom parser is managed per log type.
+
+        - key: "code"
+          label: "Parser Code (CBN)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The parser source (CBN / Logstash-style config). Deploy base64-encodes
+            it, creates a new parser version and activates it. Parsers are
+            immutable — changing the code creates and activates a new version.

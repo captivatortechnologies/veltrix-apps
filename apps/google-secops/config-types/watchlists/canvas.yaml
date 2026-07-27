@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template — Google SecOps Entity Watchlists
+#
+# Declares ONE entity watchlist — the item. Users add as many as they need.
+# A watchlist groups entities (users, assets, ...) and boosts their risk score by
+# a multiplying factor. Its id is server-assigned, so its identity here is the
+# DISPLAY NAME you own; deploy lists watchlists, matches by the watchlistId stored
+# last deploy (rename-safe) or the display name, then creates or PATCHes the
+# watchlist. Watchlists this app created but no longer declares are deleted.
+#
+# SCOPE: this manages the watchlist DEFINITION only. Entity MEMBERSHIP is
+# populated out-of-band (entityPopulationMechanism.manual) and is out of scope.
+#
+# Field keys must match config-types/watchlists/validate.ts.
+# =============================================================================
+
+id: "google-secops-watchlists"
+name: "Watchlist Configuration"
+toolType: "google-secops"
+entityType: "watchlists"
+description: "Define Google Security Operations (Chronicle) entity watchlists (a named group of entities whose risk score is boosted) as code through the SecOps API."
+
+item:
+  label: "Watchlist"
+  identityField: "displayName"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Watchlist"
+      icon: "eye"
+      description: "Watchlist definition"
+      fields:
+        - key: "displayName"
+          label: "Display Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The watchlist's display name — its identity here (the watchlist id is
+            server-assigned). Must be unique within the canvas.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description of the watchlist for a human reader."
+
+        - key: "multiplyingFactor"
+          label: "Multiplying Factor"
+          fieldType: "number"
+          required: false
+          defaultValue: 1
+          helpText: >
+            The risk-score multiplier applied to entities in this watchlist
+            (e.g. 2 doubles their risk). Must be 0 or more.
+
+        - key: "pinned"
+          label: "Pinned"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Pin this watchlist in the SecOps console."

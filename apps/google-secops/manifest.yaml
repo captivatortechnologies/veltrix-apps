@@ -1,12 +1,15 @@
 id: google-secops
 name: Google SecOps
-version: "0.4.0"
+version: "0.5.0"
 vendor: Veltrix
 description: >
   Manage Google Security Operations (Chronicle) configuration as code through the
   SecOps REST API — Reference Lists, Data Tables, Detection Rules, Rule
-  Deployments, Data Access Labels and Data Access Scopes — with validation, drift
-  detection and rollback handled by the Security-as-Code pipeline.
+  Deployments, Data Access Labels and Scopes, Data Feeds, Forwarders and their
+  Collectors, Entity Watchlists, Findings Refinements, Curated Rule Set
+  Deployments, Custom Parsers and Parser Extensions, Log Processing Pipelines and
+  BigQuery Export — with validation, drift detection and rollback handled by the
+  Security-as-Code pipeline.
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/google-secops
@@ -45,6 +48,36 @@ permissions:
     - resource: data-access-scopes
       actions: [read, write, delete]
       description: Manage Google SecOps data access scopes (boolean expressions of data access labels)
+    - resource: feeds
+      actions: [read, write, delete]
+      description: Manage Google SecOps data feeds (log-ingestion connectors; per-source settings as a validated JSON blob)
+    - resource: forwarders
+      actions: [read, write, delete]
+      description: Manage Google SecOps forwarders (on-prem collector-agent configurations)
+    - resource: watchlists
+      actions: [read, write, delete]
+      description: Manage Google SecOps entity watchlists (named entity groups whose risk score is boosted)
+    - resource: findings-refinements
+      actions: [read, write, delete]
+      description: Manage Google SecOps findings refinements (detection exclusions; no-delete — reconciled by disabling the deployment)
+    - resource: forwarder-collectors
+      actions: [read, write, delete]
+      description: Manage Google SecOps forwarder collectors (per-forwarder input sources; nested under a forwarder)
+    - resource: curated-ruleset-deployments
+      actions: [read, write, delete]
+      description: Manage the deployment state (enabled / alerting) of Google-curated SecOps rule sets
+    - resource: parsers
+      actions: [read, write, delete]
+      description: Manage Google SecOps custom log parsers (per log type; immutable, versioned, create + activate)
+    - resource: parser-extensions
+      actions: [read, write, delete]
+      description: Manage Google SecOps parser extensions (per log type; CBN snippet extending the base parser; immutable, create + activate)
+    - resource: log-processing-pipelines
+      actions: [read, write, delete]
+      description: Manage Google SecOps log processing pipelines (ingest-time routing / transform steps; client-set id)
+    - resource: bigquery-export
+      actions: [read, write, delete]
+      description: Manage Google SecOps BigQuery Export per-data-source settings (instance singleton; get + patch)
 
 pipeline:
   configurationTypes:
@@ -145,6 +178,176 @@ pipeline:
         healthCheck: config-types/data-access-scopes/healthCheck
         driftDetect: config-types/data-access-scopes/driftDetect
         getStatus: config-types/data-access-scopes/getStatus
+      targets:
+        componentTypes: [google-secops]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: feeds
+      name: Data Feeds
+      description: Data feeds — log-ingestion connectors (identity is the display name; source config is a validated `details` JSON blob with per-source secrets treated as write-only; created/updated/deleted; secrets excluded from drift and not restored on rollback)
+      canvasTemplate: config-types/feeds/canvas.yaml
+      defaultConfig: config-types/feeds/defaults.yaml
+      handlers:
+        validate: config-types/feeds/validate
+        deploy: config-types/feeds/deploy
+        rollback: config-types/feeds/rollback
+        healthCheck: config-types/feeds/healthCheck
+        driftDetect: config-types/feeds/driftDetect
+        getStatus: config-types/feeds/getStatus
+      targets:
+        componentTypes: [google-secops]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: forwarders
+      name: Forwarders
+      description: Forwarders — on-prem collector-agent configurations (identity is the display name; agent settings are a validated `config` JSON blob; created/updated/deleted; input sources are managed by the Forwarder Collectors type)
+      canvasTemplate: config-types/forwarders/canvas.yaml
+      defaultConfig: config-types/forwarders/defaults.yaml
+      handlers:
+        validate: config-types/forwarders/validate
+        deploy: config-types/forwarders/deploy
+        rollback: config-types/forwarders/rollback
+        healthCheck: config-types/forwarders/healthCheck
+        driftDetect: config-types/forwarders/driftDetect
+        getStatus: config-types/forwarders/getStatus
+      targets:
+        componentTypes: [google-secops]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: watchlists
+      name: Watchlists
+      description: Entity watchlists — a named group of entities whose risk score is boosted by a multiplying factor (identity is the display name; created/updated/deleted; entity membership is out of scope)
+      canvasTemplate: config-types/watchlists/canvas.yaml
+      defaultConfig: config-types/watchlists/defaults.yaml
+      handlers:
+        validate: config-types/watchlists/validate
+        deploy: config-types/watchlists/deploy
+        rollback: config-types/watchlists/rollback
+        healthCheck: config-types/watchlists/healthCheck
+        driftDetect: config-types/watchlists/driftDetect
+        getStatus: config-types/watchlists/getStatus
+      targets:
+        componentTypes: [google-secops]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: findings-refinements
+      name: Findings Refinements
+      description: Findings refinements — detection exclusions that suppress detections matching a UDM query (identity is the display name; created/updated; NO delete — a removed refinement's deployment is disabled + archived; rollback disables created ones and restores updated ones)
+      canvasTemplate: config-types/findings-refinements/canvas.yaml
+      defaultConfig: config-types/findings-refinements/defaults.yaml
+      handlers:
+        validate: config-types/findings-refinements/validate
+        deploy: config-types/findings-refinements/deploy
+        rollback: config-types/findings-refinements/rollback
+        healthCheck: config-types/findings-refinements/healthCheck
+        driftDetect: config-types/findings-refinements/driftDetect
+        getStatus: config-types/findings-refinements/getStatus
+      targets:
+        componentTypes: [google-secops]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: forwarder-collectors
+      name: Forwarder Collectors
+      description: Forwarder collectors — per-forwarder input sources (nested child; the parent forwarder is resolved by display name; source config is a validated JSON blob with write-only secrets excluded from drift; created/updated/deleted)
+      canvasTemplate: config-types/forwarder-collectors/canvas.yaml
+      defaultConfig: config-types/forwarder-collectors/defaults.yaml
+      handlers:
+        validate: config-types/forwarder-collectors/validate
+        deploy: config-types/forwarder-collectors/deploy
+        rollback: config-types/forwarder-collectors/rollback
+        healthCheck: config-types/forwarder-collectors/healthCheck
+        driftDetect: config-types/forwarder-collectors/driftDetect
+        getStatus: config-types/forwarder-collectors/getStatus
+      targets:
+        componentTypes: [google-secops]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: curated-ruleset-deployments
+      name: Curated Rule Set Deployments
+      description: Curated rule set deployments — the enabled / alerting state of a Google-curated rule set (identity is category + rule set + precision; state-only reconcile via PATCH; Google owns the content so nothing is created or deleted; rollback restores prior state)
+      canvasTemplate: config-types/curated-ruleset-deployments/canvas.yaml
+      defaultConfig: config-types/curated-ruleset-deployments/defaults.yaml
+      handlers:
+        validate: config-types/curated-ruleset-deployments/validate
+        deploy: config-types/curated-ruleset-deployments/deploy
+        rollback: config-types/curated-ruleset-deployments/rollback
+        healthCheck: config-types/curated-ruleset-deployments/healthCheck
+        driftDetect: config-types/curated-ruleset-deployments/driftDetect
+        getStatus: config-types/curated-ruleset-deployments/getStatus
+      targets:
+        componentTypes: [google-secops]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: parsers
+      name: Custom Parsers
+      description: Custom log parsers — per log type (immutable + versioned; deploy content-hashes the code, then creates a new version and activates it, pruning the version it previously created; identity is the log type; reconcile/rollback re-activate the prior parser and delete the created version)
+      canvasTemplate: config-types/parsers/canvas.yaml
+      defaultConfig: config-types/parsers/defaults.yaml
+      handlers:
+        validate: config-types/parsers/validate
+        deploy: config-types/parsers/deploy
+        rollback: config-types/parsers/rollback
+        healthCheck: config-types/parsers/healthCheck
+        driftDetect: config-types/parsers/driftDetect
+        getStatus: config-types/parsers/getStatus
+      targets:
+        componentTypes: [google-secops]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: parser-extensions
+      name: Parser Extensions
+      description: Parser extensions — a CBN snippet that extends the base parser for a log type (immutable + versioned; deploy content-hashes the snippet, then creates a new extension and activates it, deleting the version it previously created; identity is the log type)
+      canvasTemplate: config-types/parser-extensions/canvas.yaml
+      defaultConfig: config-types/parser-extensions/defaults.yaml
+      handlers:
+        validate: config-types/parser-extensions/validate
+        deploy: config-types/parser-extensions/deploy
+        rollback: config-types/parser-extensions/rollback
+        healthCheck: config-types/parser-extensions/healthCheck
+        driftDetect: config-types/parser-extensions/driftDetect
+        getStatus: config-types/parser-extensions/getStatus
+      targets:
+        componentTypes: [google-secops]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: log-processing-pipelines
+      name: Log Processing Pipelines
+      description: Log processing pipelines — ingest-time routing / transform steps (identity is a client-set id; displayName + description + a validated `processors` JSON array; created/updated/deleted)
+      canvasTemplate: config-types/log-processing-pipelines/canvas.yaml
+      defaultConfig: config-types/log-processing-pipelines/defaults.yaml
+      handlers:
+        validate: config-types/log-processing-pipelines/validate
+        deploy: config-types/log-processing-pipelines/deploy
+        rollback: config-types/log-processing-pipelines/rollback
+        healthCheck: config-types/log-processing-pipelines/healthCheck
+        driftDetect: config-types/log-processing-pipelines/driftDetect
+        getStatus: config-types/log-processing-pipelines/getStatus
+      targets:
+        componentTypes: [google-secops]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: bigquery-export
+      name: BigQuery Export
+      description: BigQuery Export — the instance-wide per-data-source export toggles (a singleton; get + patch of udmEvents / udmEventsAggregates / ruleDetections / iocMatches / entityGraph enable + retention; never created or deleted; rollback restores prior settings)
+      canvasTemplate: config-types/bigquery-export/canvas.yaml
+      defaultConfig: config-types/bigquery-export/defaults.yaml
+      handlers:
+        validate: config-types/bigquery-export/validate
+        deploy: config-types/bigquery-export/deploy
+        rollback: config-types/bigquery-export/rollback
+        healthCheck: config-types/bigquery-export/healthCheck
+        driftDetect: config-types/bigquery-export/driftDetect
+        getStatus: config-types/bigquery-export/getStatus
       targets:
         componentTypes: [google-secops]
         requiresCredential: true
