@@ -1,0 +1,94 @@
+# =============================================================================
+# Canvas Template — Prisma Cloud Anomaly Trusted Lists
+#
+# Declares ONE anomaly trusted list — the item. Users add as many as they need. A
+# trusted list suppresses anomaly-policy alerts for the declared entries (IPs,
+# resources, images, tags, ports, etc.). Lists are id-addressed; the app matches
+# a declared list to a live one by NAME (storing the id for rename-safety). The
+# entry shape depends on trustedListType. Reconcile deletes lists this app created
+# but no longer declares.
+#
+# Field keys must match config-types/anomaly-trusted-list/validate.ts.
+# =============================================================================
+
+id: "prisma-cloud-anomaly-trusted-list"
+name: "Anomaly Trusted List Configuration"
+toolType: "prisma-cloud"
+entityType: "anomaly-trusted-list"
+description: "Define Prisma Cloud anomaly trusted lists (name, type, applicable policies, entries) that suppress anomaly alerts, as code through the Prisma Cloud CSPM API."
+
+item:
+  label: "Anomaly Trusted List"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Anomaly Trusted List"
+      icon: "shield-off"
+      description: "List name, type, scope and entries"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The trusted list name. Must be unique within this canvas — the app
+            matches live lists on it (the id is stored after deploy for
+            rename-safety).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Optional description of the trusted list."
+
+        - key: "trustedListType"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "ip"
+          options:
+            - { label: "IP", value: "ip" }
+            - { label: "Resource", value: "resource" }
+            - { label: "Image", value: "image" }
+            - { label: "Tag", value: "tag" }
+            - { label: "Service", value: "service" }
+            - { label: "Port", value: "port" }
+            - { label: "Subject", value: "subject" }
+            - { label: "Domain", value: "domain" }
+            - { label: "Protocol", value: "protocol" }
+          helpText: "The kind of entries this list holds — it determines the entries JSON shape."
+
+        - key: "accountId"
+          label: "Account ID"
+          fieldType: "text"
+          required: false
+          defaultValue: "any"
+          helpText: "The cloud account this applies to, or 'any'."
+
+        - key: "vpc"
+          label: "VPC"
+          fieldType: "text"
+          required: false
+          defaultValue: "any"
+          helpText: "The VPC this applies to, or 'any'."
+
+        - key: "applicablePolicies"
+          label: "Applicable Policy IDs (one per line)"
+          fieldType: "textarea"
+          required: true
+          helpText: "The anomaly policy ids this trusted list applies to, one per line."
+
+        - key: "trustedListEntries"
+          label: "Entries (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A JSON array of entries; the shape depends on the type, e.g. IP ->
+            [{"ipCidr":"203.0.113.0/24"}]; port -> [{"port":"443"}]; tag ->
+            [{"tagKey":"env","tagValue":"prod"}].

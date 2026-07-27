@@ -1,0 +1,71 @@
+# =============================================================================
+# Canvas Template — Prisma Cloud Notification Templates
+#
+# Declares ONE notification template — the item. Users add as many as they need.
+# A template maps Prisma alert states (open/resolved/dismissed/snoozed) to an
+# outbound channel. email templates need no integration; jira / service_now
+# templates reference an Integration by integrationId. Templates are id-addressed;
+# the app matches a declared template to a live one by NAME (storing the id for
+# rename-safety). templateConfig is managed as a validated JSON blob. Reconcile
+# deletes templates this app created but no longer declares.
+#
+# Field keys must match config-types/notification-templates/validate.ts.
+# =============================================================================
+
+id: "prisma-cloud-notification-templates"
+name: "Notification Template Configuration"
+toolType: "prisma-cloud"
+entityType: "notification-templates"
+description: "Define Prisma Cloud notification templates (name, integration type, template config) as code through the Prisma Cloud CSPM API."
+
+item:
+  label: "Notification Template"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Notification Template"
+      icon: "mail"
+      description: "Template name, channel and config"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The template name. Must be unique within this canvas — the app
+            matches live templates on it (the id is stored after deploy for
+            rename-safety).
+
+        - key: "integrationType"
+          label: "Integration Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "email"
+          options:
+            - { label: "Email", value: "email" }
+            - { label: "Jira", value: "jira" }
+            - { label: "ServiceNow", value: "service_now" }
+          helpText: "email needs no integration; jira / service_now require an integrationId."
+
+        - key: "integrationId"
+          label: "Integration ID"
+          fieldType: "text"
+          required: false
+          helpText: "The Integration id for jira / service_now templates."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "templateConfig"
+          label: "Template Config (JSON object)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A JSON object of per-state field descriptors, e.g.
+            {"open":[{"fieldName":"summary","value":"...","required":true}]}.

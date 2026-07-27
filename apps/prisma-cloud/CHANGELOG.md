@@ -8,6 +8,61 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.5.0 — 2026-07-26
+
+### Added
+- **Saved Searches** configuration type — manage saved RQL searches (name, query,
+  searchType, cloudType, time range) as code. Searches are id-addressed with a
+  client-supplied UUID stored for stability; the name is unique and immutable, so
+  they are matched by name. Saved searches are the dependency for Config/IAM/
+  Network/Audit custom policies. Reconcile only deletes searches this app created.
+- **Custom Policies** configuration type — manage custom security policies (name,
+  policyType, cloudType, severity, enabled, labels and a rule with type +
+  saved-search criteria) as code. Matched by name (the policyId is stored for
+  rename-safety); built-in systemDefault policies are protected; POST returns no
+  body so the app re-lists by name to resolve the policyId; reconcile only deletes
+  custom policies this app created.
+- **Alert Rules** configuration type — manage alert rules / scan configs (name,
+  policy selection via scanAll or policies/labels, target scope of account groups/
+  regions/tags, and per-state notification flags, with an optional
+  alertRuleNotificationConfig blob) as code. Matched by name (the
+  policyScanConfigId is stored for rename-safety); create returns no body so the
+  app re-lists by name; reconcile only deletes rules this app created.
+- **Login IP Allow Lists** configuration type — manage trusted login IP allow
+  lists (name, 1–10 CIDR blocks, description) as code. Matched by name (the id is
+  stored for rename-safety); the enable/disable status toggle is intentionally out
+  of scope; reconcile only deletes lists this app created.
+- **Permission Groups** configuration type — manage custom permission groups
+  (name, accepted scopes, feature grants) as code. Only Custom groups are managed;
+  Default and Internal groups are protected. Matched by name (the id is stored for
+  rename-safety); reconcile only deletes groups this app created.
+- **Collections** configuration type — manage collections (name, description and
+  asset scoping by account groups, cloud accounts and code repositories) as code.
+  Matched by name (the id is stored for rename-safety); reconcile only deletes
+  collections this app created.
+- **Anomaly Trusted Lists** configuration type — manage anomaly trusted lists
+  (name, trustedListType, applicable anomaly policies and typed entries that
+  suppress anomaly alerts) as code. Matched by name (the id is stored for
+  rename-safety); reconcile only deletes lists this app created.
+- **Trusted Alert IPs** configuration type — manage trusted alert IPs (name and
+  CIDR entries) excluded from network anomaly alerting, as code. Distinct from the
+  login IP allow list. Matched by name (the uuid is stored for rename-safety);
+  reconcile only deletes lists this app created.
+- **Notification Templates** configuration type — manage notification templates
+  (name, integrationType of email/jira/service_now, integrationId and a validated
+  templateConfig blob) as code. jira/service_now templates reference an
+  Integration. Matched by name (the id is stored for rename-safety); reconcile
+  only deletes templates this app created.
+- **Reports** configuration type — manage scheduled report definitions (name,
+  reportType, cloudType and a validated target/schedule blob) as code. Manages the
+  report definition/schedule, never the generated artifact. Matched by name (the
+  id is stored for rename-safety); reconcile only deletes reports this app created.
+- **Enterprise Settings** configuration type — manage tenant-wide enterprise
+  settings (session timeout, access-key validity, notification and default-policy
+  options) as a singleton via GET-merge-PUT of only the declared fields (blanks
+  leave live values untouched; boolean fields are tri-state). Rollback restores the
+  full pre-deploy snapshot; there is no create/delete.
+
 ## 0.4.0 — 2026-07-26
 
 ### Added

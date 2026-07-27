@@ -1,0 +1,91 @@
+# =============================================================================
+# Canvas Template — Prisma Cloud Saved Searches
+#
+# Declares ONE saved RQL search — the item. Users add as many as they need. A
+# saved search is id-addressed with a client-supplied UUID (generated on first
+# deploy and stored for stability); the name is UNIQUE and IMMUTABLE in Prisma
+# Cloud, so the app matches by name. Saved searches are the dependency for Config/
+# IAM/Network/Audit custom policies (a policy's rule criteria is a saved-search
+# id). Reconcile deletes saved searches this app created but no longer declares.
+#
+# Field keys must match config-types/saved-searches/validate.ts.
+# =============================================================================
+
+id: "prisma-cloud-saved-searches"
+name: "Saved Search Configuration"
+toolType: "prisma-cloud"
+entityType: "saved-searches"
+description: "Define Prisma Cloud saved RQL searches (name, query, time range) as code through the Prisma Cloud CSPM API."
+
+item:
+  label: "Saved Search"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Saved Search"
+      icon: "search"
+      description: "Search name, RQL query and time range"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The saved search name. Must be unique within this canvas and is
+            immutable in Prisma Cloud — the app matches live searches on it.
+
+        - key: "query"
+          label: "RQL Query"
+          fieldType: "textarea"
+          required: true
+          helpText: "The RQL query, e.g. config from cloud.resource where api.name = 'aws-s3api-get-bucket-acl'."
+
+        - key: "searchType"
+          label: "Search Type"
+          fieldType: "select"
+          required: false
+          defaultValue: "config"
+          options:
+            - { label: "Config", value: "config" }
+            - { label: "Network", value: "network" }
+            - { label: "Event", value: "event" }
+            - { label: "IAM", value: "iam" }
+            - { label: "Audit Event", value: "audit_event" }
+            - { label: "Asset", value: "asset" }
+          helpText: "The RQL search type."
+
+        - key: "cloudType"
+          label: "Cloud Type"
+          fieldType: "select"
+          required: false
+          options:
+            - { label: "(any)", value: "" }
+            - { label: "AWS", value: "aws" }
+            - { label: "Azure", value: "azure" }
+            - { label: "GCP", value: "gcp" }
+            - { label: "Alibaba Cloud", value: "alibaba_cloud" }
+            - { label: "OCI", value: "oci" }
+          helpText: "Optional cloud provider scope for the search."
+
+        - key: "timeRange"
+          label: "Time Range (JSON)"
+          fieldType: "textarea"
+          required: true
+          defaultValue: '{"type":"relative","value":{"amount":24,"unit":"hour"},"relativeTimeType":"BACKWARD"}'
+          helpText: >
+            A JSON time range object. Relative:
+            {"type":"relative","value":{"amount":24,"unit":"hour"}}. To-now:
+            {"type":"to_now","value":"epoch"}. Absolute:
+            {"type":"absolute","value":{"startTime":1600000000000,"endTime":1600100000000}}.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Optional description of the saved search."

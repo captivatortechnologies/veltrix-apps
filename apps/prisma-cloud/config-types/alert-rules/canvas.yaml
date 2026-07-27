@@ -1,0 +1,143 @@
+# =============================================================================
+# Canvas Template — Prisma Cloud Alert Rules
+#
+# Declares ONE alert rule (scan config) — the item. Users add as many as they
+# need. An alert rule binds a set of policies to a target scope (account groups,
+# regions, tags) and controls which alert states notify. Rules are id-addressed
+# (policyScanConfigId); the app matches a declared rule to a live one by NAME
+# (storing the id for rename-safety). policies reference policy ids (pairs well
+# with the Custom Policies config type) and target.accountGroups reference
+# account-group ids. Reconcile deletes rules this app created but no longer
+# declares.
+#
+# Field keys must match config-types/alert-rules/validate.ts.
+# =============================================================================
+
+id: "prisma-cloud-alert-rules"
+name: "Alert Rule Configuration"
+toolType: "prisma-cloud"
+entityType: "alert-rules"
+description: "Define Prisma Cloud alert rules (name, policy selection, target scope, notification states) as code through the Prisma Cloud CSPM API."
+
+item:
+  label: "Alert Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Rule"
+      icon: "bell"
+      description: "Rule name, policy selection and notification states"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The alert rule name. Must be unique within this canvas — the app
+            matches live rules on it (the id is stored after deploy for
+            rename-safety).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "scanAll"
+          label: "Scan All Policies"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "When on, the rule evaluates all policies; when off, only the selected policies/labels."
+
+        - key: "policies"
+          label: "Policy IDs (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Policy ids to include when Scan All is off, one per line."
+
+        - key: "policyLabels"
+          label: "Policy Labels (one per line)"
+          fieldType: "textarea"
+          required: false
+
+        - key: "excludedPolicies"
+          label: "Excluded Policy IDs (one per line)"
+          fieldType: "textarea"
+          required: false
+
+        - key: "allowAutoRemediate"
+          label: "Allow Auto-Remediation"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "delayNotificationMs"
+          label: "Notification Delay (ms)"
+          fieldType: "number"
+          required: false
+
+        - key: "notifyOnOpen"
+          label: "Notify on Open"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "notifyOnDismissed"
+          label: "Notify on Dismissed"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "notifyOnSnoozed"
+          label: "Notify on Snoozed"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "notifyOnResolved"
+          label: "Notify on Resolved"
+          fieldType: "checkbox"
+          defaultValue: false
+
+    - name: "Target"
+      icon: "target"
+      description: "The scope the rule evaluates"
+      fields:
+        - key: "accountGroups"
+          label: "Account Group IDs (one per line)"
+          fieldType: "textarea"
+          required: true
+          helpText: "The target account group ids, one per line. At least one is required."
+
+        - key: "excludedAccounts"
+          label: "Excluded Account IDs (one per line)"
+          fieldType: "textarea"
+          required: false
+
+        - key: "regions"
+          label: "Regions (one per line)"
+          fieldType: "textarea"
+          required: false
+
+        - key: "tags"
+          label: "Tags (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            A JSON array of target tag filters, each
+            {"key":"env","values":["prod"]}.
+
+        - key: "notificationConfig"
+          label: "Notification Channels (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional third-party notification channel config
+            (alertRuleNotificationConfig), a JSON array. Omit for console-only
+            alerts.

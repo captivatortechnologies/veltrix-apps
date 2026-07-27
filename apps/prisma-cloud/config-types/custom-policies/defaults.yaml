@@ -1,0 +1,9 @@
+# Defaults for a new custom policy item.
+#
+# A FLAT map keyed by the canvas field keys.
+policyType: "config"
+cloudType: "all"
+severity: "low"
+enabled: true
+ruleType: "Config"
+withIac: false

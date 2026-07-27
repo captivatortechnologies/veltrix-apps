@@ -1,0 +1,7 @@
+# Defaults for a new anomaly trusted list item.
+#
+# A FLAT map keyed by the canvas field keys (name, description, trustedListType,
+# accountId, vpc, applicablePolicies, trustedListEntries).
+trustedListType: "ip"
+accountId: "any"
+vpc: "any"

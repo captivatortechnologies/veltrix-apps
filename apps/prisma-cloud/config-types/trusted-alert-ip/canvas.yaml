@@ -1,0 +1,49 @@
+# =============================================================================
+# Canvas Template — Prisma Cloud Trusted Alert IPs
+#
+# Declares ONE named trusted alert IP list — the item. Users add as many as they
+# need. These CIDRs are excluded from NETWORK ANOMALY alerting (distinct from the
+# Login IP Allow List, which governs console sign-in). Entries are id-addressed
+# (uuid); the app matches a declared list to a live one by NAME (storing the uuid
+# for rename-safety). Reconcile deletes lists this app created but no longer
+# declares.
+#
+# Field keys must match config-types/trusted-alert-ip/validate.ts.
+# =============================================================================
+
+id: "prisma-cloud-trusted-alert-ip"
+name: "Trusted Alert IP Configuration"
+toolType: "prisma-cloud"
+entityType: "trusted-alert-ip"
+description: "Define Prisma Cloud trusted alert IPs (name, CIDR entries) that are excluded from network anomaly alerting, as code through the Prisma Cloud CSPM API."
+
+item:
+  label: "Trusted Alert IP"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Trusted Alert IP"
+      icon: "network"
+      description: "List name and CIDR entries"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The trusted alert IP list name. Must be unique within this canvas —
+            the app matches live lists on it (the uuid is stored after deploy for
+            rename-safety).
+
+        - key: "cidrs"
+          label: "CIDR Entries (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A JSON array of CIDR entries. Each entry is
+            {"cidr":"203.0.113.0/24","description":"office"} (description is
+            optional). Plain CIDR strings are also accepted.

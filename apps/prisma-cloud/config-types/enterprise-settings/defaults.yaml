@@ -1,0 +1,9 @@
+# Defaults for the enterprise settings singleton item.
+#
+# A FLAT map keyed by the canvas field keys. Boolean fields default to the empty
+# tri-state ("" = leave unchanged) so a fresh canvas is a no-op until edited.
+userAttributionInNotification: ""
+requireAlertDismissalNote: ""
+alarmEnabled: ""
+applyDefaultPoliciesEnabled: ""
+namedUsersAccessKeysExpiryNotificationsEnabled: ""

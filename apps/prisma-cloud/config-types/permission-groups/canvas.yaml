@@ -1,0 +1,83 @@
+# =============================================================================
+# Canvas Template — Prisma Cloud Permission Groups
+#
+# Declares ONE custom permission group — the item. Users add as many as they
+# need. Permission groups define the feature-level operations (create/read/
+# update/delete) a role can perform. Only Custom groups are managed as code;
+# Default and Internal groups are built-in and protected. Groups are id-addressed;
+# the app matches a declared group to a live one by NAME (storing the id for
+# rename-safety). Reconcile deletes groups this app created but no longer declares.
+#
+# Field keys must match config-types/permission-groups/validate.ts.
+# =============================================================================
+
+id: "prisma-cloud-permission-groups"
+name: "Permission Group Configuration"
+toolType: "prisma-cloud"
+entityType: "permission-groups"
+description: "Define Prisma Cloud custom permission groups (name, accepted scopes, feature grants) as code through the Prisma Cloud CSPM API."
+
+item:
+  label: "Permission Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Permission Group"
+      icon: "key-round"
+      description: "Group name, accepted scopes and feature grants"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The permission group name. Must be unique within this canvas — the
+            app matches live groups on it (the id is stored after deploy for
+            rename-safety).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Optional description of the permission group."
+
+        - key: "permissionGroupType"
+          label: "Type"
+          fieldType: "select"
+          required: false
+          defaultValue: "Custom"
+          options:
+            - { label: "Custom", value: "Custom" }
+          helpText: "Only Custom groups can be managed as code; Default and Internal groups are built-in."
+
+        - key: "acceptAccountGroups"
+          label: "Accept Account Groups"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether roles using this group can be scoped to account groups."
+
+        - key: "acceptResourceLists"
+          label: "Accept Resource Lists"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether roles using this group can be scoped to resource lists."
+
+        - key: "acceptCodeRepositories"
+          label: "Accept Code Repositories"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether roles using this group can be scoped to code repositories."
+
+        - key: "features"
+          label: "Features (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A JSON array of feature grants. Each entry is
+            {"featureName":"<feature key>","operations":{"create":true,"read":true,"update":false,"delete":false}}.

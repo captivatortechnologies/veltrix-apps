@@ -1,0 +1,66 @@
+# =============================================================================
+# Canvas Template — Prisma Cloud Collections
+#
+# Declares ONE collection — the item. Users add as many as they need. A
+# collection scopes assets by account groups, cloud accounts and/or code
+# repositories. Collections are id-addressed; the app matches a declared
+# collection to a live one by NAME (storing the id for rename-safety). Use "*"
+# in account/repository ids to mean "all". Reconcile deletes collections this app
+# created but no longer declares.
+#
+# Field keys must match config-types/collections/validate.ts.
+# =============================================================================
+
+id: "prisma-cloud-collections"
+name: "Collection Configuration"
+toolType: "prisma-cloud"
+entityType: "collections"
+description: "Define Prisma Cloud collections (name, asset scoping by account groups, accounts and repositories) as code through the Prisma Cloud CSPM API."
+
+item:
+  label: "Collection"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Collection"
+      icon: "layers"
+      description: "Collection name and asset scope"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The collection name. Must be unique within this canvas — the app
+            matches live collections on it (the id is stored after deploy for
+            rename-safety).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Optional description of the collection."
+
+        - key: "accountGroupIds"
+          label: "Account Group IDs (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Account group ids to include, one per line."
+
+        - key: "accountIds"
+          label: "Cloud Account IDs (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Cloud account ids to include, one per line. Use * for all."
+
+        - key: "repositoryIds"
+          label: "Repository IDs (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Code repository ids to include, one per line. Use * for all."

@@ -1,13 +1,15 @@
 id: prisma-cloud
 name: Prisma Cloud
-version: "0.4.0"
+version: "0.5.0"
 vendor: Veltrix
 description: >
   Manage Palo Alto Prisma Cloud (CSPM) configuration as code through the Prisma
   Cloud REST API — Custom Compliance Standards, Compliance Requirements,
-  Compliance Sections, Account Groups, User Roles and Resource Lists — with
-  validation, drift detection and rollback handled by the Security-as-Code
-  pipeline.
+  Compliance Sections, Account Groups, User Roles, Resource Lists, Custom
+  Policies, Saved Searches, Alert Rules, Login IP Allow Lists, Permission Groups,
+  Collections, Anomaly Trusted Lists, Trusted Alert IPs, Notification Templates,
+  Reports and tenant Enterprise Settings — with validation, drift detection and
+  rollback handled by the Security-as-Code pipeline.
 category: CLOUD
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/prisma-cloud
@@ -46,6 +48,39 @@ permissions:
     - resource: resource-lists
       actions: [read, write, delete]
       description: Manage Prisma Cloud resource lists (name, resourceListType, members); matched by name
+    - resource: saved-searches
+      actions: [read, write, delete]
+      description: Manage Prisma Cloud saved RQL searches (name, query, time range); client-supplied id, matched by name
+    - resource: custom-policies
+      actions: [read, write, delete]
+      description: Manage Prisma Cloud custom security policies (name, type, severity, rule + saved-search criteria); systemDefault policies protected, matched by name
+    - resource: login-ip-allow-list
+      actions: [read, write, delete]
+      description: Manage Prisma Cloud trusted login IP allow lists (name, CIDR blocks); matched by name
+    - resource: permission-groups
+      actions: [read, write, delete]
+      description: Manage Prisma Cloud custom permission groups (name, accepted scopes, feature grants); Default/Internal groups protected, matched by name
+    - resource: collections
+      actions: [read, write, delete]
+      description: Manage Prisma Cloud collections (name, asset scoping by account groups/accounts/repositories); matched by name
+    - resource: alert-rules
+      actions: [read, write, delete]
+      description: Manage Prisma Cloud alert rules (name, policy selection, target scope, notification states); matched by name
+    - resource: anomaly-trusted-list
+      actions: [read, write, delete]
+      description: Manage Prisma Cloud anomaly trusted lists (name, type, applicable policies, entries); matched by name
+    - resource: trusted-alert-ip
+      actions: [read, write, delete]
+      description: Manage Prisma Cloud trusted alert IPs (name, CIDR entries) excluded from network anomaly alerting; matched by name
+    - resource: notification-templates
+      actions: [read, write, delete]
+      description: Manage Prisma Cloud notification templates (name, integration type, template config); matched by name
+    - resource: reports
+      actions: [read, write, delete]
+      description: Manage Prisma Cloud scheduled report definitions (name, report type, target/schedule); matched by name
+    - resource: enterprise-settings
+      actions: [read, write]
+      description: Manage Prisma Cloud tenant-wide enterprise settings (singleton, GET-merge-PUT of declared fields only)
 
 pipeline:
   configurationTypes:
@@ -146,6 +181,193 @@ pipeline:
         healthCheck: config-types/compliance-standards/healthCheck
         driftDetect: config-types/compliance-standards/driftDetect
         getStatus: config-types/compliance-standards/getStatus
+      targets:
+        componentTypes: [prisma-cloud]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: saved-searches
+      name: Saved Searches
+      description: Saved RQL searches — name, query, searchType, cloudType, time range (client-supplied UUID id stored for stability; name is unique and immutable so matched by name; the dependency for Config/IAM/Network/Audit custom policies; reconcile only deletes searches this app created)
+      canvasTemplate: config-types/saved-searches/canvas.yaml
+      defaultConfig: config-types/saved-searches/defaults.yaml
+      handlers:
+        validate: config-types/saved-searches/validate
+        deploy: config-types/saved-searches/deploy
+        rollback: config-types/saved-searches/rollback
+        healthCheck: config-types/saved-searches/healthCheck
+        driftDetect: config-types/saved-searches/driftDetect
+        getStatus: config-types/saved-searches/getStatus
+      targets:
+        componentTypes: [prisma-cloud]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: custom-policies
+      name: Custom Policies
+      description: Custom security policies — name, policyType, cloudType, severity, enabled, labels and a rule (type + saved-search criteria) (matched by name; the policyId is stored for rename-safety; built-in systemDefault policies are protected; reconcile only deletes custom policies this app created)
+      canvasTemplate: config-types/custom-policies/canvas.yaml
+      defaultConfig: config-types/custom-policies/defaults.yaml
+      handlers:
+        validate: config-types/custom-policies/validate
+        deploy: config-types/custom-policies/deploy
+        rollback: config-types/custom-policies/rollback
+        healthCheck: config-types/custom-policies/healthCheck
+        driftDetect: config-types/custom-policies/driftDetect
+        getStatus: config-types/custom-policies/getStatus
+      targets:
+        componentTypes: [prisma-cloud]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: login-ip-allow-list
+      name: Login IP Allow Lists
+      description: Trusted login IP allow lists — name, 1–10 CIDR blocks, description (matched by name; the id is stored for rename-safety; the enable/disable toggle is out of scope; reconcile only deletes lists this app created)
+      canvasTemplate: config-types/login-ip-allow-list/canvas.yaml
+      defaultConfig: config-types/login-ip-allow-list/defaults.yaml
+      handlers:
+        validate: config-types/login-ip-allow-list/validate
+        deploy: config-types/login-ip-allow-list/deploy
+        rollback: config-types/login-ip-allow-list/rollback
+        healthCheck: config-types/login-ip-allow-list/healthCheck
+        driftDetect: config-types/login-ip-allow-list/driftDetect
+        getStatus: config-types/login-ip-allow-list/getStatus
+      targets:
+        componentTypes: [prisma-cloud]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: permission-groups
+      name: Permission Groups
+      description: Custom permission groups — name, accepted scopes (account groups/resource lists/code repositories) and feature grants (matched by name; the id is stored for rename-safety; only Custom groups are managed, Default/Internal are protected; reconcile only deletes groups this app created)
+      canvasTemplate: config-types/permission-groups/canvas.yaml
+      defaultConfig: config-types/permission-groups/defaults.yaml
+      handlers:
+        validate: config-types/permission-groups/validate
+        deploy: config-types/permission-groups/deploy
+        rollback: config-types/permission-groups/rollback
+        healthCheck: config-types/permission-groups/healthCheck
+        driftDetect: config-types/permission-groups/driftDetect
+        getStatus: config-types/permission-groups/getStatus
+      targets:
+        componentTypes: [prisma-cloud]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: collections
+      name: Collections
+      description: Collections — name, description and asset scoping by account groups, cloud accounts and code repositories (matched by name; the id is stored for rename-safety; reconcile only deletes collections this app created)
+      canvasTemplate: config-types/collections/canvas.yaml
+      defaultConfig: config-types/collections/defaults.yaml
+      handlers:
+        validate: config-types/collections/validate
+        deploy: config-types/collections/deploy
+        rollback: config-types/collections/rollback
+        healthCheck: config-types/collections/healthCheck
+        driftDetect: config-types/collections/driftDetect
+        getStatus: config-types/collections/getStatus
+      targets:
+        componentTypes: [prisma-cloud]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: alert-rules
+      name: Alert Rules
+      description: Alert rules (scan configs) — name, policy selection (scanAll or policies/labels), target scope (account groups/regions/tags) and notification states (matched by name; the policyScanConfigId is stored for rename-safety; reconcile only deletes rules this app created)
+      canvasTemplate: config-types/alert-rules/canvas.yaml
+      defaultConfig: config-types/alert-rules/defaults.yaml
+      handlers:
+        validate: config-types/alert-rules/validate
+        deploy: config-types/alert-rules/deploy
+        rollback: config-types/alert-rules/rollback
+        healthCheck: config-types/alert-rules/healthCheck
+        driftDetect: config-types/alert-rules/driftDetect
+        getStatus: config-types/alert-rules/getStatus
+      targets:
+        componentTypes: [prisma-cloud]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: anomaly-trusted-list
+      name: Anomaly Trusted Lists
+      description: Anomaly trusted lists — name, trustedListType, applicable anomaly policies and typed entries that suppress anomaly alerts (matched by name; the id is stored for rename-safety; reconcile only deletes lists this app created)
+      canvasTemplate: config-types/anomaly-trusted-list/canvas.yaml
+      defaultConfig: config-types/anomaly-trusted-list/defaults.yaml
+      handlers:
+        validate: config-types/anomaly-trusted-list/validate
+        deploy: config-types/anomaly-trusted-list/deploy
+        rollback: config-types/anomaly-trusted-list/rollback
+        healthCheck: config-types/anomaly-trusted-list/healthCheck
+        driftDetect: config-types/anomaly-trusted-list/driftDetect
+        getStatus: config-types/anomaly-trusted-list/getStatus
+      targets:
+        componentTypes: [prisma-cloud]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: trusted-alert-ip
+      name: Trusted Alert IPs
+      description: Trusted alert IPs — name and CIDR entries excluded from network anomaly alerting (matched by name; the uuid is stored for rename-safety; distinct from the login IP allow list; reconcile only deletes lists this app created)
+      canvasTemplate: config-types/trusted-alert-ip/canvas.yaml
+      defaultConfig: config-types/trusted-alert-ip/defaults.yaml
+      handlers:
+        validate: config-types/trusted-alert-ip/validate
+        deploy: config-types/trusted-alert-ip/deploy
+        rollback: config-types/trusted-alert-ip/rollback
+        healthCheck: config-types/trusted-alert-ip/healthCheck
+        driftDetect: config-types/trusted-alert-ip/driftDetect
+        getStatus: config-types/trusted-alert-ip/getStatus
+      targets:
+        componentTypes: [prisma-cloud]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: notification-templates
+      name: Notification Templates
+      description: Notification templates — name, integrationType (email/jira/service_now), integrationId and a validated templateConfig blob (matched by name; the id is stored for rename-safety; jira/service_now reference an Integration; reconcile only deletes templates this app created)
+      canvasTemplate: config-types/notification-templates/canvas.yaml
+      defaultConfig: config-types/notification-templates/defaults.yaml
+      handlers:
+        validate: config-types/notification-templates/validate
+        deploy: config-types/notification-templates/deploy
+        rollback: config-types/notification-templates/rollback
+        healthCheck: config-types/notification-templates/healthCheck
+        driftDetect: config-types/notification-templates/driftDetect
+        getStatus: config-types/notification-templates/getStatus
+      targets:
+        componentTypes: [prisma-cloud]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: reports
+      name: Reports
+      description: Scheduled report definitions — name, reportType, cloudType and a validated target/schedule blob (manages the definition, never the generated artifact; matched by name; the id is stored for rename-safety; reconcile only deletes reports this app created)
+      canvasTemplate: config-types/reports/canvas.yaml
+      defaultConfig: config-types/reports/defaults.yaml
+      handlers:
+        validate: config-types/reports/validate
+        deploy: config-types/reports/deploy
+        rollback: config-types/reports/rollback
+        healthCheck: config-types/reports/healthCheck
+        driftDetect: config-types/reports/driftDetect
+        getStatus: config-types/reports/getStatus
+      targets:
+        componentTypes: [prisma-cloud]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: enterprise-settings
+      name: Enterprise Settings
+      description: Tenant-wide enterprise settings singleton — session timeout, access-key validity, notification and default-policy options (GET-merge-PUT of only the declared fields; blanks leave live values untouched; rollback restores the pre-deploy snapshot; no create/delete)
+      canvasTemplate: config-types/enterprise-settings/canvas.yaml
+      defaultConfig: config-types/enterprise-settings/defaults.yaml
+      handlers:
+        validate: config-types/enterprise-settings/validate
+        deploy: config-types/enterprise-settings/deploy
+        rollback: config-types/enterprise-settings/rollback
+        healthCheck: config-types/enterprise-settings/healthCheck
+        driftDetect: config-types/enterprise-settings/driftDetect
+        getStatus: config-types/enterprise-settings/getStatus
       targets:
         componentTypes: [prisma-cloud]
         requiresCredential: true

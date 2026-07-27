@@ -1,0 +1,151 @@
+# =============================================================================
+# Canvas Template — Prisma Cloud Custom Policies
+#
+# Declares ONE custom security policy — the item. Users add as many as they need.
+# Policies are id-addressed (policyId); the app matches a declared policy to a
+# live one by NAME (storing the policyId for rename-safety). Built-in
+# (systemDefault) policies are protected and never modified or deleted. For
+# Config/AuditEvent/IAM/Network rule types the rule criteria is a Saved Search id
+# — declare that saved search first (see the Saved Searches config type).
+# Reconcile deletes custom policies this app created but no longer declares.
+#
+# Field keys must match config-types/custom-policies/validate.ts.
+# =============================================================================
+
+id: "prisma-cloud-custom-policies"
+name: "Custom Policy Configuration"
+toolType: "prisma-cloud"
+entityType: "custom-policies"
+description: "Define Prisma Cloud custom security policies (name, type, severity, rule + saved-search criteria) as code through the Prisma Cloud CSPM API."
+
+item:
+  label: "Custom Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "shield-alert"
+      description: "Policy metadata"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The policy name. Must be unique within this canvas — the app matches
+            live custom policies on it (the policyId is stored for rename-safety).
+
+        - key: "policyType"
+          label: "Policy Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "config"
+          options:
+            - { label: "Config", value: "config" }
+            - { label: "Audit Event", value: "audit_event" }
+            - { label: "IAM", value: "iam" }
+            - { label: "Network", value: "network" }
+            - { label: "Data", value: "data" }
+            - { label: "Anomaly", value: "anomaly" }
+            - { label: "Attack Path", value: "attack_path" }
+
+        - key: "cloudType"
+          label: "Cloud Type"
+          fieldType: "select"
+          required: false
+          defaultValue: "all"
+          options:
+            - { label: "All", value: "all" }
+            - { label: "AWS", value: "aws" }
+            - { label: "Azure", value: "azure" }
+            - { label: "GCP", value: "gcp" }
+            - { label: "Alibaba Cloud", value: "alibaba_cloud" }
+            - { label: "OCI", value: "oci" }
+
+        - key: "severity"
+          label: "Severity"
+          fieldType: "select"
+          required: false
+          defaultValue: "low"
+          options:
+            - { label: "Informational", value: "informational" }
+            - { label: "Low", value: "low" }
+            - { label: "Medium", value: "medium" }
+            - { label: "High", value: "high" }
+            - { label: "Critical", value: "critical" }
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the policy is enabled."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+
+        - key: "recommendation"
+          label: "Recommendation"
+          fieldType: "textarea"
+          required: false
+          helpText: "Remediation guidance shown with alerts."
+
+        - key: "labels"
+          label: "Labels (one per line)"
+          fieldType: "textarea"
+          required: false
+
+        - key: "policySubTypes"
+          label: "Policy Subtypes (one per line: build, run)"
+          fieldType: "textarea"
+          required: false
+
+    - name: "Rule"
+      icon: "filter"
+      description: "The rule that evaluates the policy"
+      fields:
+        - key: "ruleName"
+          label: "Rule Name"
+          fieldType: "text"
+          required: false
+          helpText: "Defaults to the policy name if left blank."
+
+        - key: "ruleType"
+          label: "Rule Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "Config"
+          options:
+            - { label: "Config", value: "Config" }
+            - { label: "Audit Event", value: "AuditEvent" }
+            - { label: "IAM", value: "IAM" }
+            - { label: "Network", value: "Network" }
+            - { label: "DLP", value: "DLP" }
+            - { label: "Anomaly", value: "Anomaly" }
+            - { label: "Network Config", value: "NetworkConfig" }
+
+        - key: "criteria"
+          label: "Criteria (Saved Search ID)"
+          fieldType: "text"
+          required: false
+          helpText: >
+            The Saved Search id carrying the RQL. Required for Config, Audit
+            Event, IAM and Network rule types.
+
+        - key: "resourceType"
+          label: "Resource Type"
+          fieldType: "text"
+          required: false
+
+        - key: "withIac"
+          label: "Include IaC Scan"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether the policy also evaluates infrastructure-as-code."

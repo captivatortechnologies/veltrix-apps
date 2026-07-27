@@ -1,0 +1,6 @@
+# Defaults for a new saved search item.
+#
+# A FLAT map keyed by the canvas field keys (name, query, searchType, cloudType,
+# timeRange, description).
+searchType: "config"
+timeRange: '{"type":"relative","value":{"amount":24,"unit":"hour"},"relativeTimeType":"BACKWARD"}'

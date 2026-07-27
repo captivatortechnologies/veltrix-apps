@@ -1,0 +1,69 @@
+# =============================================================================
+# Canvas Template — Prisma Cloud Reports
+#
+# Declares ONE scheduled report definition — the item. Users add as many as they
+# need. This manages the report DEFINITION and schedule, never the generated
+# artifact (generation is async). Reports are id-addressed; the app matches a
+# declared report to a live one by NAME (storing the id for rename-safety). The
+# target (scope + schedule + recipients) is managed as a validated JSON blob
+# because its shape varies by reportType. Reconcile deletes reports this app
+# created but no longer declares.
+#
+# Field keys must match config-types/reports/validate.ts.
+# =============================================================================
+
+id: "prisma-cloud-reports"
+name: "Report Configuration"
+toolType: "prisma-cloud"
+entityType: "reports"
+description: "Define Prisma Cloud scheduled report definitions (name, type, target scope and schedule) as code through the Prisma Cloud CSPM API."
+
+item:
+  label: "Report"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Report"
+      icon: "file-text"
+      description: "Report name, type and target"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The report name. Must be unique within this canvas — the app matches
+            live reports on it (the id is stored after deploy for rename-safety).
+
+        - key: "reportType"
+          label: "Report Type"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The report type, e.g. RIS, INVENTORY_OVERVIEW, INVENTORY_DETAIL, or a
+            compliance standard name.
+
+        - key: "cloudType"
+          label: "Cloud Type"
+          fieldType: "select"
+          required: false
+          options:
+            - { label: "(any)", value: "" }
+            - { label: "All", value: "all" }
+            - { label: "AWS", value: "aws" }
+            - { label: "Azure", value: "azure" }
+            - { label: "GCP", value: "gcp" }
+            - { label: "Alibaba Cloud", value: "alibaba_cloud" }
+            - { label: "OCI", value: "oci" }
+
+        - key: "target"
+          label: "Target (JSON object)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A JSON target object, e.g.
+            {"accountGroups":["ag-1"],"timeRange":{"type":"to_now","value":"epoch"},"scheduleEnabled":true,"schedule":"RRULE:FREQ=DAILY","notifyTo":["team@example.com"]}.

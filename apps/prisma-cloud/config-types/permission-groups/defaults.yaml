@@ -1,0 +1,9 @@
+# Defaults for a new permission group item.
+#
+# A FLAT map keyed by the canvas field keys (name, description,
+# permissionGroupType, acceptAccountGroups, acceptResourceLists,
+# acceptCodeRepositories, features).
+permissionGroupType: "Custom"
+acceptAccountGroups: false
+acceptResourceLists: false
+acceptCodeRepositories: false

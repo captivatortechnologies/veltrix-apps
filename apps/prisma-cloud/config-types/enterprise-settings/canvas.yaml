@@ -1,0 +1,109 @@
+# =============================================================================
+# Canvas Template — Prisma Cloud Enterprise Settings (singleton)
+#
+# Enterprise settings are a per-tenant SINGLETON, so this canvas declares exactly
+# ONE item. Reconcile is a GET-merge-PUT: only the fields you set here are
+# overlaid onto the live settings; blank fields are left untouched. Boolean
+# settings use a tri-state (Leave unchanged / Enable / Disable). Rollback restores
+# the full pre-deploy snapshot. These settings have GLOBAL blast radius (session
+# timeout and access-key validity affect every user) — change deliberately.
+#
+# Field keys must match config-types/enterprise-settings/validate.ts.
+# =============================================================================
+
+id: "prisma-cloud-enterprise-settings"
+name: "Enterprise Settings Configuration"
+toolType: "prisma-cloud"
+entityType: "enterprise-settings"
+description: "Manage Prisma Cloud tenant-wide enterprise settings (session timeout, access-key validity, notification and default-policy options) as code through the Prisma Cloud CSPM API."
+
+item:
+  label: "Enterprise Settings"
+  identityField: "sessionTimeout"
+  identityDerived: true
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Session & Access Keys"
+      icon: "settings"
+      description: "Session and access-key controls (blank = leave unchanged)"
+      fields:
+        - key: "sessionTimeout"
+          label: "Session Timeout (minutes)"
+          fieldType: "number"
+          required: false
+          helpText: "Console session timeout in minutes. Blank leaves it unchanged."
+
+        - key: "accessKeyMaxValidity"
+          label: "Access Key Max Validity (days)"
+          fieldType: "number"
+          required: false
+          helpText: "Maximum access-key validity in days. Blank leaves it unchanged."
+
+        - key: "notificationThresholdAccessKeysExpiry"
+          label: "Access Key Expiry Notification Threshold (days)"
+          fieldType: "number"
+          required: false
+
+        - key: "namedUsersAccessKeysExpiryNotificationsEnabled"
+          label: "Notify Named Users of Access Key Expiry"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - { label: "Leave unchanged", value: "" }
+            - { label: "Enable", value: "true" }
+            - { label: "Disable", value: "false" }
+
+    - name: "Alerts & Policies"
+      icon: "sliders"
+      description: "Alerting and default-policy controls (blank = leave unchanged)"
+      fields:
+        - key: "userAttributionInNotification"
+          label: "User Attribution in Notifications"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - { label: "Leave unchanged", value: "" }
+            - { label: "Enable", value: "true" }
+            - { label: "Disable", value: "false" }
+
+        - key: "requireAlertDismissalNote"
+          label: "Require Alert Dismissal Note"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - { label: "Leave unchanged", value: "" }
+            - { label: "Enable", value: "true" }
+            - { label: "Disable", value: "false" }
+
+        - key: "alarmEnabled"
+          label: "Platform Health Alarms"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - { label: "Leave unchanged", value: "" }
+            - { label: "Enable", value: "true" }
+            - { label: "Disable", value: "false" }
+
+        - key: "applyDefaultPoliciesEnabled"
+          label: "Apply Default Policies"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - { label: "Leave unchanged", value: "" }
+            - { label: "Enable", value: "true" }
+            - { label: "Disable", value: "false" }
+
+        - key: "defaultPoliciesEnabled"
+          label: "Default Policies Enabled (JSON object)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional JSON map of severity -> bool controlling which default
+            policy severities are enabled, e.g. {"high":true,"medium":false}.
