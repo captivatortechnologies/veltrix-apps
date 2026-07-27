@@ -8,6 +8,16 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.3.0 — 2026-07-26
+
+### Added
+- **Firewall Address Groups** configuration type — manage FortiManager address
+  groups (a named set of member address objects) as code, with the full pipeline
+  handler set. Groups are matched by name and upserted with `set`; members
+  reference existing firewall address objects (compose with the Firewall
+  Addresses type); reconcile only deletes groups this app created; deploys run
+  inside the ADOM workspace transaction when enabled.
+
 ## 0.2.0 — 2026-07-26
 
 ### Added

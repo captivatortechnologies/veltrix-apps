@@ -1,12 +1,12 @@
 id: fortimanager
 name: FortiManager
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Fortinet FortiManager configuration as code through the FortiManager
-  JSON-RPC API — Firewall Address objects and custom Firewall Service objects —
-  with validation, drift detection and rollback handled by the Security-as-Code
-  pipeline.
+  JSON-RPC API — Firewall Address objects, custom Firewall Service objects and
+  Address Groups — with validation, drift detection and rollback handled by the
+  Security-as-Code pipeline.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/fortimanager
@@ -33,9 +33,29 @@ permissions:
     - resource: firewall-services
       actions: [read, write, delete]
       description: Manage FortiManager custom firewall service objects (TCP/UDP/SCTP, ICMP, IP) in the ADOM object database
+    - resource: firewall-address-groups
+      actions: [read, write, delete]
+      description: Manage FortiManager firewall address groups (named sets of member address objects) in the ADOM object database
 
 pipeline:
   configurationTypes:
+    - id: firewall-address-groups
+      name: Firewall Address Groups
+      description: Firewall address groups — a named set of member address objects (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/firewall-address-groups/canvas.yaml
+      defaultConfig: config-types/firewall-address-groups/defaults.yaml
+      handlers:
+        validate: config-types/firewall-address-groups/validate
+        deploy: config-types/firewall-address-groups/deploy
+        rollback: config-types/firewall-address-groups/rollback
+        healthCheck: config-types/firewall-address-groups/healthCheck
+        driftDetect: config-types/firewall-address-groups/driftDetect
+        getStatus: config-types/firewall-address-groups/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: firewall-services
       name: Firewall Services
       description: Custom firewall service objects — TCP/UDP/SCTP port ranges, ICMP, or IP protocol (name-keyed, upserted per ADOM)

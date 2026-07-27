@@ -1,0 +1,52 @@
+# =============================================================================
+# Canvas Template — FortiManager Firewall Address Groups
+#
+# Declares ONE address group — the item. Users add as many as they need.
+# An address group's identity is its NAME (the FortiManager mkey); deploy lists
+# the ADOM addrgrp table, matches on the name, and uses `set` (create-or-replace)
+# to upsert each declared group. Members reference existing firewall address
+# object names (compose with the Firewall Addresses configuration type).
+# Reconcile deletes groups this app created but no longer declares.
+#
+# Field keys must match config-types/firewall-address-groups/validate.ts.
+# =============================================================================
+
+id: "fortimanager-firewall-address-groups"
+name: "Firewall Address Group Configuration"
+toolType: "fortimanager"
+entityType: "firewall-address-groups"
+description: "Define FortiManager firewall address groups (a named set of member address objects) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "Firewall Address Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Address Group"
+      icon: "folder"
+      description: "Group name and member addresses"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: "The address group name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "members"
+          label: "Member Addresses (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            The member address object names, one per line. Each must be an
+            existing firewall address (see the Firewall Addresses configuration
+            type). At least one is required.
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the address group."
