@@ -30,14 +30,12 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const liveByUnique = new Map(
     listed.items.filter((a) => a.uniqueName).map((a) => [a.uniqueName!.toLowerCase(), a]),
   )
-  const liveByName = new Map(
-    listed.items.filter((a) => a.displayName).map((a) => [a.displayName!.toLowerCase(), a]),
-  )
 
   const diffs: Diffs = []
   for (const spec of specs) {
-    const live =
-      liveByUnique.get(effectiveUniqueName(spec).toLowerCase()) ?? liveByName.get(spec.name.toLowerCase())
+    // Match only by our immutable uniqueName — never by (non-unique) displayName,
+    // so drift never compares against an unrelated same-named registration.
+    const live = liveByUnique.get(effectiveUniqueName(spec).toLowerCase())
     if (!live) {
       diffs.push({ field: spec.name, expected: 'present', actual: 'absent', severity: 'critical' })
       continue
@@ -104,6 +102,13 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           actual: got,
           severity: 'warning',
         })
+      }
+    }
+    if (spec.tags.length) {
+      const want = canonicalStringList(spec.tags)
+      const got = canonicalStringList(live.tags ?? [])
+      if (want !== got) {
+        diffs.push({ field: `${spec.name}.tags`, expected: want, actual: got, severity: 'warning' })
       }
     }
   }

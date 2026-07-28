@@ -60,7 +60,10 @@ export function buildBody(spec: ApplicationSpec): Record<string, unknown> {
   if (spec.groupMembershipClaims) body.groupMembershipClaims = spec.groupMembershipClaims
   if (hasText(spec.appRoles)) {
     const roles = parseJsonArray(spec.appRoles)
-    if (roles) body.appRoles = roles
+    // Strip the read-only appRole `origin` before writing — an author who pastes
+    // an exported appRoles array would otherwise send it (Graph ignores/rejects it,
+    // and it must stay out of writes to match drift + the rollback snapshot).
+    if (roles) body.appRoles = stripAppRoleReadOnly(roles as Record<string, unknown>[])
   }
   if (hasText(spec.requiredResourceAccess)) {
     const rra = parseJsonArray(spec.requiredResourceAccess)
@@ -107,11 +110,9 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     return { success: false, message: `Failed to list applications: ${graphErrorMessage(listed.lastError!)}` }
   }
   const liveByUniqueName = new Map<string, LiveApplication>()
-  const liveByName = new Map<string, LiveApplication>()
   const liveById = new Map<string, LiveApplication>()
   for (const a of listed.items) {
     if (a.uniqueName) liveByUniqueName.set(a.uniqueName.toLowerCase(), a)
-    if (a.displayName) liveByName.set(a.displayName.toLowerCase(), a)
     if (a.id) liveById.set(a.id, a)
   }
 
@@ -121,6 +122,10 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
 
   const entries: RollbackEntry[] = []
   const failures: string[] = []
+  // Every uniqueName this deploy DECLARES (regardless of per-item success), so the
+  // reconcile below never deletes a still-declared app just because its update
+  // transiently failed this run.
+  const declaredUnique = new Set<string>()
 
   for (const spec of specs) {
     // Prefer the uniqueName we assigned on a prior deploy so a displayName rename
@@ -129,11 +134,16 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       (spec.itemId && priorByItemId.get(spec.itemId)) ||
       priorByUnique.get(effectiveUniqueName(spec).toLowerCase())
     const uniqueName = priorEntry?.uniqueName || effectiveUniqueName(spec)
+    declaredUnique.add(uniqueName.toLowerCase())
 
+    // Match ONLY by our own keys (prior id, then the immutable uniqueName). A
+    // displayName fallback is deliberately NOT used: displayName is not unique in
+    // Entra, so it would adopt and PATCH an unrelated pre-existing registration.
+    // An app we created always carries our uniqueName, so the upsert-by-uniqueName
+    // path below handles create/update without touching a same-named look-alike.
     const liveMatch =
       (priorEntry?.id ? liveById.get(priorEntry.id) : undefined) ??
       liveByUniqueName.get(uniqueName.toLowerCase()) ??
-      liveByName.get(spec.name.toLowerCase()) ??
       null
 
     const body = buildBody(spec)
@@ -180,7 +190,8 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   }
 
   // Reconcile: delete apps THIS config created previously but no longer declares.
-  const declaredUnique = new Set(entries.map((e) => e.uniqueName.toLowerCase()))
+  // `declaredUnique` is built from the SPECS (above), not from successful entries,
+  // so a transient update failure can never turn into a delete of a declared app.
   const keptIds = new Set(entries.map((e) => e.id).filter(Boolean) as string[])
   for (const p of prior) {
     if (!p.existed && p.id && !keptIds.has(p.id) && !declaredUnique.has(p.uniqueName.toLowerCase())) {

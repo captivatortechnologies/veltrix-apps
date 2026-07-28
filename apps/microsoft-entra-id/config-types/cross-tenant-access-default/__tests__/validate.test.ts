@@ -79,13 +79,14 @@ describe('buildBody', () => {
     })
   })
 
-  it('omits automaticUserConsentSettings unless opted in', () => {
+  it('never sends automaticUserConsentSettings — read-only on the default policy', () => {
+    // It cannot be set on the default policy, and bundling it into the PATCH would
+    // make Graph reject the whole request. It is never emitted, even when opted in.
     const off = extractCrossTenantDefaultSpecs({ items: [{ fields: {} }] } as never)[0]
     expect('automaticUserConsentSettings' in buildBody(off)).toBe(false)
 
     const on = extractCrossTenantDefaultSpecs({ items: [{ fields: { autoConsentOutbound: true } }] } as never)[0]
-    const body = buildBody(on) as { automaticUserConsentSettings: Record<string, boolean> }
-    expect(body.automaticUserConsentSettings).toEqual({ inboundAllowed: false, outboundAllowed: true })
+    expect('automaticUserConsentSettings' in buildBody(on)).toBe(false)
   })
 
   it('merges only recognized b2b blocks into the body', () => {

@@ -37,16 +37,11 @@ export function buildBody(spec: CrossTenantDefaultSpec): Record<string, unknown>
     },
   }
 
-  // automaticUserConsentSettings is read-only on the default policy, so only
-  // attempt it when the author explicitly opts in — a default deploy never
-  // touches it and never trips the Graph read-only rejection.
-  if (spec.autoConsentInbound || spec.autoConsentOutbound) {
-    body.automaticUserConsentSettings = {
-      inboundAllowed: spec.autoConsentInbound,
-      outboundAllowed: spec.autoConsentOutbound,
-    }
-  }
-
+  // automaticUserConsentSettings is READ-ONLY on the default policy (it can only
+  // be set on per-partner configurations), so it is NEVER sent here — including it
+  // would make Graph reject the whole PATCH and drop the valid inboundTrust/b2b
+  // changes too. The canvas checkboxes stay advisory (the validator warns), and
+  // drift reports any live auto-consent value as info, not a correctable warning.
   const blocks = spec.b2bCollaboration ? parseObject(spec.b2bCollaboration) : null
   if (blocks) {
     for (const key of Object.keys(blocks)) {

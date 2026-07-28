@@ -44,13 +44,9 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     trust.isHybridAzureADJoinedDeviceAccepted,
   )
 
-  // Only surface auto-consent drift when the author opted in — Graph keeps these
-  // false on the default policy, so an opted-in value legitimately shows as drift.
-  if (spec.autoConsentInbound || spec.autoConsentOutbound) {
-    const auto = live.automaticUserConsentSettings ?? {}
-    bool('automaticUserConsentSettings.inboundAllowed', spec.autoConsentInbound, auto.inboundAllowed ?? false)
-    bool('automaticUserConsentSettings.outboundAllowed', spec.autoConsentOutbound, auto.outboundAllowed ?? false)
-  }
+  // automaticUserConsentSettings is read-only on the default policy and is never
+  // written by deploy, so it is intentionally NOT compared here — flagging it would
+  // be perpetual, uncorrectable drift. Auto-consent belongs on per-partner configs.
 
   const blocks = spec.b2bCollaboration ? parseObject(spec.b2bCollaboration) : null
   if (blocks) {

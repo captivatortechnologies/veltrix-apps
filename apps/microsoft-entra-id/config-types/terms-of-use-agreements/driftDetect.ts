@@ -50,43 +50,48 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
       })
     }
 
+    // The fields below are CREATE-ONLY on a live agreement — v1.0 PATCH updates
+    // only displayName + isViewingBeforeAcceptanceRequired. Report them as `info`
+    // (not a correctable warning) so the drift "Correct" action doesn't re-deploy
+    // forever against fields a PATCH can never reconcile; the agreement must be
+    // recreated to change them.
     const livePerDevice = live.isPerDeviceAcceptanceRequired ?? false
     if (spec.perDeviceAcceptanceRequired !== livePerDevice) {
       diffs.push({
-        field: `${spec.name}.perDeviceAcceptanceRequired`,
+        field: `${spec.name}.perDeviceAcceptanceRequired (create-only; recreate to change)`,
         expected: spec.perDeviceAcceptanceRequired,
         actual: livePerDevice,
-        severity: 'warning',
+        severity: 'info',
       })
     }
 
     const liveReaccept = (live.userReacceptRequiredFrequency ?? '') as string
     if (spec.reacceptFrequency !== liveReaccept) {
       diffs.push({
-        field: `${spec.name}.reacceptFrequency`,
+        field: `${spec.name}.reacceptFrequency (create-only; recreate to change)`,
         expected: spec.reacceptFrequency,
         actual: liveReaccept,
-        severity: 'warning',
+        severity: 'info',
       })
     }
 
     const liveStart = (live.termsExpiration?.startDateTime ?? '') as string
     if (!sameInstant(spec.expirationStartDate, liveStart)) {
       diffs.push({
-        field: `${spec.name}.expirationStartDate`,
+        field: `${spec.name}.expirationStartDate (create-only; recreate to change)`,
         expected: spec.expirationStartDate,
         actual: liveStart,
-        severity: 'warning',
+        severity: 'info',
       })
     }
 
     const liveFrequency = (live.termsExpiration?.frequency ?? '') as string
     if (spec.expirationFrequency !== liveFrequency) {
       diffs.push({
-        field: `${spec.name}.expirationFrequency`,
+        field: `${spec.name}.expirationFrequency (create-only; recreate to change)`,
         expected: spec.expirationFrequency,
         actual: liveFrequency,
-        severity: 'warning',
+        severity: 'info',
       })
     }
   }
