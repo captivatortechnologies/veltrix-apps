@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-28T15:49:04.841Z",
+  "generatedAt": "2026-07-28T17:51:26.883Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -251,9 +251,9 @@
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-entra-id",
       "available": true,
       "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-entra-id-v0.7.0/microsoft-entra-id.zip",
-      "sha256": "f9edf424398aeb225eb9e7faf49f8193f82cb52949d023d206795c75547d2ab3",
-      "sizeBytes": 769857,
-      "publishedAt": "2026-07-28T15:48:07.684Z",
+      "sha256": "09d9abc7165b9e70dd976b07f9da29065554afd8245985eaa07e33cf752cac2e",
+      "sizeBytes": 770482,
+      "publishedAt": "2026-07-28T17:51:26.856Z",
       "releaseNotes": "## 0.7.0 — 2026-07-28\n\n### Added\n- **Six new configuration types** covering the identity objects that policies act upon:\n  - **Directory Role Assignments** — active/permanent privileged role holders\n    (`/roleManagement/directory/roleAssignments`; no PATCH → delete + recreate on change).\n  - **PIM Role Eligibility** — eligible role assignments via\n    `roleEligibilityScheduleRequests` (request-based; drift diffs derived schedules).\n  - **App Registrations** — `/applications` (upsert by uniqueName; redirect URIs,\n    app roles, required resource access).\n  - **Service Principals** — `/servicePrincipals` (SSO, app role assignments).\n  - **Terms of Use Agreements** — `/identityGovernance/termsOfUse/agreements`.\n  - **Cross-Tenant Access Default** — the tenant-wide default policy singleton\n    (completes the existing per-partner coverage).",
       "releasedAt": "2026-07-28T00:00:00.000Z"
     },
