@@ -24,8 +24,19 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   for (const spec of specs) {
     const key = assignmentKey(spec)
     if (!liveByKey.has(key)) {
+      // A truncated listing can't prove absence — skip the (false) critical.
+      if (listed.truncated) continue
       diffs.push({ field: spec.label || key, expected: 'present', actual: 'absent', severity: 'critical' })
     }
+  }
+
+  if (listed.truncated) {
+    diffs.push({
+      field: '(role-assignment listing)',
+      expected: 'complete',
+      actual: `truncated at ${listed.items.length}+ assignments — absence of declared assignments not verified`,
+      severity: 'info',
+    })
   }
 
   return { hasDrift: diffs.length > 0, diffs }

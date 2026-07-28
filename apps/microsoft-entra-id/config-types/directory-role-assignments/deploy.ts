@@ -57,12 +57,21 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   if (!listed.ok) {
     return { success: false, message: `Failed to list role assignments: ${graphErrorMessage(listed.lastError!)}` }
   }
+  // A truncated listing would mis-read an existing tuple as "missing" and POST a
+  // duplicate — fail safe instead of corrupting privileged role assignments.
+  if (listed.truncated) {
+    return {
+      success: false,
+      message: `Cannot safely reconcile role assignments: the directory returned more than ~${listed.items.length} assignments and the listing was truncated, so a declared assignment could be mis-detected as missing and duplicated. Reduce the number of managed assignments or contact support.`,
+    }
+  }
   const liveByKey = new Map<string, LiveRoleAssignment>()
   for (const a of listed.items) {
     if (a.id) liveByKey.set(assignmentKey(a), a)
   }
 
   const prior = await loadPriorEntries(ctx)
+  const priorByKey = new Map(prior.map((e) => [e.name, e]))
   const entries: RollbackEntry[] = []
   const failures: string[] = []
 
@@ -72,7 +81,15 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
 
     if (live?.id) {
       // Exact tuple already exists — nothing to change on an immutable object.
-      entries.push({ itemId: spec.itemId, name: key, existed: true, id: live.id })
+      // Sticky provenance: keep existed:false if a prior deploy created this
+      // assignment, so a later removal still revokes it (a privileged grant must
+      // not leak just because it survived one intervening deploy).
+      entries.push({
+        itemId: spec.itemId,
+        name: key,
+        existed: priorByKey.get(key)?.existed === false ? false : true,
+        id: live.id,
+      })
     } else {
       const resp = await client.post(BASE, buildCreateBody(spec))
       if (!resp.ok) {

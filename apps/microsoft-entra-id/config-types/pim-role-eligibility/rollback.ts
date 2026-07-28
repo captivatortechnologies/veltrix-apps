@@ -24,6 +24,9 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
 
   // PIM has no direct delete/patch — every reversal is another schedule request.
   for (const e of entries) {
+    // Carried entries only propagate provenance forward; this deploy changed
+    // nothing for them, so there is nothing to reverse.
+    if (e.carried) continue
     const specLike = {
       principalId: e.principalId,
       roleDefinitionId: e.roleDefinitionId,

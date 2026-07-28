@@ -35,8 +35,10 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     const label = eligibilityLabel(spec)
     const live = byKey.get(eligibilityKey(spec.principalId, spec.roleDefinitionId, spec.directoryScopeId))
 
-    // A declared eligibility missing from the applied schedules is critical.
+    // A declared eligibility missing from the applied schedules is critical —
+    // unless the listing was truncated, where absence can't be proven.
     if (!live) {
+      if (listed.truncated) continue
       diffs.push({ field: label, expected: 'eligible', actual: 'absent', severity: 'critical' })
       continue
     }
@@ -46,6 +48,15 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     if (diff) {
       diffs.push({ field: `${label}.expiration`, expected: diff.expected, actual: diff.actual, severity: 'warning' })
     }
+  }
+
+  if (listed.truncated) {
+    diffs.push({
+      field: '(eligibility listing)',
+      expected: 'complete',
+      actual: `truncated at ${byKey.size}+ schedules — absence of declared eligibilities not verified`,
+      severity: 'info',
+    })
   }
 
   return { hasDrift: diffs.length > 0, diffs }

@@ -36,6 +36,8 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   for (const spec of specs) {
     const live = liveByName.get(spec.name.toLowerCase())
     if (!live) {
+      // A truncated listing can't prove absence — skip the (false) critical.
+      if (listed.truncated) continue
       diffs.push({ field: spec.name, expected: 'present', actual: 'absent', severity: 'critical' })
       continue
     }
@@ -94,6 +96,15 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         severity: 'info',
       })
     }
+  }
+
+  if (listed.truncated) {
+    diffs.push({
+      field: '(agreement listing)',
+      expected: 'complete',
+      actual: `truncated at ${listed.items.length}+ agreements — absence of declared agreements not verified`,
+      severity: 'info',
+    })
   }
 
   return { hasDrift: diffs.length > 0, diffs }

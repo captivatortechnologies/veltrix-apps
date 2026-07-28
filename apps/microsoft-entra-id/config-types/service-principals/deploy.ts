@@ -69,6 +69,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
 
   const specs = extractServicePrincipalSpecs(ctx.canvas).filter((s) => s.appId)
   const prior = await loadPriorEntries(ctx)
+  const priorByAppId = new Map(prior.map((e) => [e.appId.toLowerCase(), e]))
 
   const entries: RollbackEntry[] = []
   const failures: string[] = []
@@ -88,7 +89,16 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         failures.push(`${spec.appId}: ${graphErrorMessage(resp)}`)
         continue
       }
-      entries.push({ itemId: spec.itemId, appId: spec.appId, existed: true, id: live.id, prior: snapshotLive(live) })
+      // Sticky provenance: keep existed:false if a prior deploy created this SP,
+      // so a later removal still deletes it (existed is otherwise re-derived and
+      // would flip to true after one deploy, orphaning the SP).
+      entries.push({
+        itemId: spec.itemId,
+        appId: spec.appId,
+        existed: priorByAppId.get(spec.appId.toLowerCase())?.existed === false ? false : true,
+        id: live.id,
+        prior: snapshotLive(live),
+      })
     } else {
       // Rare: no SP for this app yet. Create with { appId }, then apply settings.
       const createResp = await client.post(SP_BASE, { appId: spec.appId })

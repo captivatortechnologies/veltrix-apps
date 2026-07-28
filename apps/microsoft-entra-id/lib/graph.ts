@@ -216,18 +216,32 @@ export class GraphClient {
     return this.request('DELETE', path)
   }
 
-  /** GET a collection following `@odata.nextLink` pagination (bounded page count). */
-  async getAll<T = unknown>(path: string, maxPages = 20): Promise<{ ok: boolean; items: T[]; lastError?: GraphResponse }> {
+  /**
+   * GET a collection following `@odata.nextLink` pagination.
+   *
+   * `truncated` is true when the page budget ran out while more pages remained —
+   * i.e. the returned `items` is an INCOMPLETE view of the collection. Callers that
+   * infer "declared object is absent" from a full listing MUST NOT treat a missing
+   * item as absent when `truncated` is set (it may simply be on an unfetched page),
+   * or they raise false "absent" drift / create duplicates. The cap bounds latency;
+   * at Graph's default page size it now covers ~10k objects before truncating.
+   */
+  async getAll<T = unknown>(
+    path: string,
+    maxPages = 100,
+  ): Promise<{ ok: boolean; items: T[]; truncated: boolean; lastError?: GraphResponse }> {
     const items: T[] = []
     let next: string | null = path
-    for (let page = 0; page < maxPages && next; page++) {
+    let page = 0
+    for (; page < maxPages && next; page++) {
       const res: GraphResponse = await this.get(next)
-      if (!res.ok) return { ok: false, items, lastError: res }
+      if (!res.ok) return { ok: false, items, truncated: false, lastError: res }
       const parsed = parseJson<{ value?: T[]; '@odata.nextLink'?: string }>(res.body)
       if (parsed?.value) items.push(...parsed.value)
       next = res.nextUrl
     }
-    return { ok: true, items }
+    // Stopped because the page budget ran out with a nextLink still pending.
+    return { ok: true, items, truncated: next !== null }
   }
 }
 

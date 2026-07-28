@@ -42,10 +42,13 @@ export interface RollbackEntry {
   directoryScopeId: string
   /** What this deploy did to the eligibility. */
   action: EligibilityAction
-  /** Whether the eligibility already existed before this deploy. */
+  /** Provenance: false = created by this app (sticky across deploys), true = pre-existing. */
   existed: boolean
   /** Prior eligibility window, captured when this deploy UPDATED an existing one. */
   priorExpiration?: ExpirationPattern
+  /** True = this deploy made NO change (entry only carries provenance forward);
+   *  rollback skips it and no request was issued. */
+  carried?: boolean
 }
 
 /** Build a unifiedRoleEligibilityScheduleRequest body for a given action. */
@@ -81,16 +84,18 @@ async function loadPriorEntries(ctx: DeployContext): Promise<RollbackEntry[]> {
   }
 }
 
-async function listLiveSchedules(client: GraphClient): Promise<{ ok: boolean; byKey: Map<string, LiveEligibilitySchedule>; error?: string }> {
+async function listLiveSchedules(
+  client: GraphClient,
+): Promise<{ ok: boolean; byKey: Map<string, LiveEligibilitySchedule>; truncated: boolean; error?: string }> {
   const listed = await client.getAll<LiveEligibilitySchedule>(`${SCHEDULES}${SCHEDULE_SELECT}`)
   const byKey = new Map<string, LiveEligibilitySchedule>()
-  if (!listed.ok) return { ok: false, byKey, error: graphErrorMessage(listed.lastError!) }
+  if (!listed.ok) return { ok: false, byKey, truncated: false, error: graphErrorMessage(listed.lastError!) }
   for (const s of listed.items) {
     if (s.principalId && s.roleDefinitionId) {
       byKey.set(eligibilityKey(s.principalId, s.roleDefinitionId, s.directoryScopeId ?? '/'), s)
     }
   }
-  return { ok: true, byKey }
+  return { ok: true, byKey, truncated: listed.truncated }
 }
 
 export default async function deploy(ctx: DeployContext): Promise<DeployResult> {
@@ -105,8 +110,19 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   if (!live.ok) {
     return { success: false, message: `Failed to list role eligibility schedules: ${live.error}` }
   }
+  // A truncated listing would mis-read an existing eligibility as "missing" and
+  // re-issue a privileged adminAssign — fail safe instead.
+  if (live.truncated) {
+    return {
+      success: false,
+      message: `Cannot safely reconcile role eligibility: the schedule listing was truncated at ~${live.byKey.size}+ entries, so a declared eligibility could be mis-detected as missing and re-requested. Reduce the number of managed eligibilities or contact support.`,
+    }
+  }
 
   const prior = await loadPriorEntries(ctx)
+  const priorByKey = new Map(
+    prior.map((e) => [eligibilityKey(e.principalId, e.roleDefinitionId, e.directoryScopeId), e]),
+  )
   const entries: RollbackEntry[] = []
   const failures: string[] = []
   const pending: string[] = []
@@ -115,6 +131,9 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     const key = eligibilityKey(spec.principalId, spec.roleDefinitionId, spec.directoryScopeId)
     const match = live.byKey.get(key)
     const label = eligibilityLabel(spec)
+    // Sticky provenance: once this app created the eligibility (existed:false),
+    // keep it marked created across deploys, so a later removal still revokes it.
+    const stickyExisted = priorByKey.get(key)?.existed === false ? false : Boolean(match)
 
     let action: EligibilityAction
     let priorExpiration: ExpirationPattern | undefined
@@ -123,7 +142,21 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     } else {
       // Present already — only emit a request when the eligibility window differs.
       const diff = expirationDiff(spec, match)
-      if (!diff) continue
+      if (!diff) {
+        // No change this deploy — record a carried entry so provenance (whether we
+        // created it) survives to the next deploy's reconcile. Rollback skips it.
+        entries.push({
+          itemId: spec.itemId,
+          name: label,
+          principalId: spec.principalId,
+          roleDefinitionId: spec.roleDefinitionId,
+          directoryScopeId: normalizeScope(spec.directoryScopeId),
+          action: 'adminAssign',
+          existed: stickyExisted,
+          carried: true,
+        })
+        continue
+      }
       action = 'adminUpdate'
       priorExpiration = match.scheduleInfo?.expiration ?? { type: 'noExpiration' }
     }
@@ -148,7 +181,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       roleDefinitionId: spec.roleDefinitionId,
       directoryScopeId: normalizeScope(spec.directoryScopeId),
       action,
-      existed: Boolean(match),
+      existed: stickyExisted,
       priorExpiration,
     })
 
@@ -157,10 +190,13 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     }
   }
 
-  // Reconcile: revoke eligibilities THIS app created previously but no longer declares.
+  // Reconcile: revoke eligibilities THIS app created previously but no longer
+  // declares. Keyed on provenance (existed:false) alone — an app-created
+  // eligibility that was later updated (or unchanged) must still be revoked, so we
+  // no longer also require the last action to have been adminAssign.
   const declaredKeys = new Set(specs.map((s) => eligibilityKey(s.principalId, s.roleDefinitionId, s.directoryScopeId)))
   for (const p of prior) {
-    if (p.existed || p.action !== 'adminAssign') continue
+    if (p.existed) continue
     const key = eligibilityKey(p.principalId, p.roleDefinitionId, p.directoryScopeId)
     if (declaredKeys.has(key)) continue
     // Only revoke if it is actually still present as an applied eligibility.
@@ -186,9 +222,11 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       rollbackData: { entries },
     }
   }
+  // Count only real requests — carried entries issued no request (no-op provenance).
+  const applied = entries.filter((e) => !e.carried).length
   return {
     success: true,
-    message: `Applied ${entries.length} eligibility request(s)${pendingNote}`,
+    message: `Applied ${applied} eligibility request(s)${pendingNote}`,
     rollbackData: { entries },
   }
 }

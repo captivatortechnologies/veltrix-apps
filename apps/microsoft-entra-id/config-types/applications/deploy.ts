@@ -165,7 +165,11 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         itemId: spec.itemId,
         name: spec.name,
         uniqueName: liveMatch.uniqueName || uniqueName,
-        existed: true,
+        // Sticky provenance: if a prior deploy created this app (existed:false),
+        // keep it marked created so a later removal still cleans it up. `existed`
+        // is otherwise re-derived from live state and would flip to true after one
+        // deploy, orphaning the app.
+        existed: priorEntry?.existed === false ? false : true,
         id: liveMatch.id,
         prior: snapshotLive(liveMatch),
       })

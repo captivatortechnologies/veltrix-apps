@@ -37,6 +37,9 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     // so drift never compares against an unrelated same-named registration.
     const live = liveByUnique.get(effectiveUniqueName(spec).toLowerCase())
     if (!live) {
+      // A truncated listing can't prove absence — the app may be on an unfetched
+      // page. Skip the (false) critical; the info diff below flags the gap.
+      if (listed.truncated) continue
       diffs.push({ field: spec.name, expected: 'present', actual: 'absent', severity: 'critical' })
       continue
     }
@@ -111,6 +114,15 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         diffs.push({ field: `${spec.name}.tags`, expected: want, actual: got, severity: 'warning' })
       }
     }
+  }
+
+  if (listed.truncated) {
+    diffs.push({
+      field: '(directory listing)',
+      expected: 'complete',
+      actual: `truncated at ${listed.items.length}+ applications — absence of declared items not verified`,
+      severity: 'info',
+    })
   }
 
   return { hasDrift: diffs.length > 0, diffs }

@@ -101,6 +101,14 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   if (!listed.ok) {
     return { success: false, message: `Failed to list agreements: ${graphErrorMessage(listed.lastError!)}` }
   }
+  // Agreements reconcile by displayName and can be freely duplicated, so a
+  // truncated listing would silently create a second copy — fail safe instead.
+  if (listed.truncated) {
+    return {
+      success: false,
+      message: `Cannot safely reconcile terms-of-use agreements: the listing was truncated at ~${listed.items.length} agreements, so a declared agreement could be duplicated. Reduce the number of agreements or contact support.`,
+    }
+  }
   const liveByName = new Map<string, LiveTermsOfUse>()
   const liveById = new Map<string, LiveTermsOfUse>()
   for (const a of listed.items) {
@@ -127,7 +135,16 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         failures.push(`${spec.name}: ${graphErrorMessage(resp)}`)
         continue
       }
-      entries.push({ itemId: spec.itemId, name: spec.name, existed: true, id: liveMatch.id, prior: snapshotLive(liveMatch) })
+      // Sticky provenance: keep existed:false if a prior deploy created this
+      // agreement, so a later removal still deletes it (existed is otherwise
+      // re-derived and would flip to true after one deploy, orphaning it).
+      entries.push({
+        itemId: spec.itemId,
+        name: spec.name,
+        existed: priorEntry?.existed === false ? false : true,
+        id: liveMatch.id,
+        prior: snapshotLive(liveMatch),
+      })
     } else {
       // Create requires the base64 PDF — refuse rather than emit an invalid request.
       if (!spec.fileData) {
