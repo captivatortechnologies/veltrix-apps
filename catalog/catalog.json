@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-28T13:30:26.323Z",
+  "generatedAt": "2026-07-28T13:39:34.799Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -84,7 +84,7 @@
     {
       "appId": "crowdstrike-edr",
       "name": "CrowdStrike Falcon",
-      "version": "1.13.0",
+      "version": "1.13.1",
       "vendor": "Veltrix",
       "description": "Manage CrowdStrike Falcon configurations as code through the Falcon APIs. Covers Endpoint Policies (prevention, sensor update, response, USB device control, content update, custom IOA rule groups), Exclusions (ML, IOA, sensor visibility), host groups, and custom IOCs — with validation, drift detection, and rollback handled by the Security-as-Code pipeline. Configuration types are grouped by Falcon API family in the sidebar.",
       "category": "EDR",
@@ -94,11 +94,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/crowdstrike-edr",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/crowdstrike-edr-v1.13.0/crowdstrike-edr.zip",
-      "sha256": "b5bccecaf85df707f7da051053d742595d179cd39644e251882e00c69b8185fb",
-      "sizeBytes": 1096278,
-      "publishedAt": "2026-07-28T13:30:26.285Z",
-      "releaseNotes": "## 1.13.0 — 2026-07-28\n\n### Added\n- **MSSP / Flight Control** — a new sidebar group completing Platform Administration:\n  - **CID Group** — Flight Control CID groups + member child CIDs.\n  - **User Group** — Flight Control user groups + member user UUIDs.\n  - **Role Mapping** — binds a user group ↔ CID group ↔ roles (grants are additive,\n    so drift-correction diffs and revokes extras).\n- Requires parent-CID credentials with Flight Control scope (MSSP tenants only) —\n  noted in each type's description.\n\n### Fixed (from an adversarial logic review)\n- **Recon monitoring rules** — a blank `actions` field no longer converges to\n  zero (it now leaves pre-existing notification actions untouched, matching drift),\n  and actions this deploy deletes are captured and **recreated on rollback**, so\n  rollback is again the exact inverse of deploy. (Previously a rule edited through\n  Veltrix could silently, irreversibly destroy console-created notifications.)\n- **Custom IOA rule groups** — drift now compares disposition, pattern severity,\n  field values, and description of each rule (not just presence + enablement), so a\n  manual weakening of a deployed rule is reported instead of silently missed.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/crowdstrike-edr-v1.13.1/crowdstrike-edr.zip",
+      "sha256": "fa61cb2c598974be32e80e780f7036f2f4ee7fd775ec0e5442fc79e3839fb0db",
+      "sizeBytes": 1097036,
+      "publishedAt": "2026-07-28T13:39:34.755Z",
+      "releaseNotes": "## 1.13.1 — 2026-07-28\n\n### Fixed (remaining low-severity review findings)\n- **Cloud compliance controls** — rollback of a just-created control now deletes it\n  by the id captured at create (with a name-lookup fallback), instead of re-querying\n  first, so an eventually-consistent query can no longer leak the control.\n- **Users** — role grant/revoke deltas are recorded *before* each batch action, so a\n  partial batch apply that still errors is fully reversible on rollback.\n- **NG-SIEM data connections** — the source endpoint is captured and restored on\n  rollback (alongside the repository), so a wholesale `config` replace no longer\n  strips it. (The credential is still never captured or restored.)\n- Remaining documented limitation: IDP policy-rule drift/deploy scope to declared\n  condition keys, so a removed condition isn't reconciled (needs nested-tree diff).",
       "releasedAt": "2026-07-28T00:00:00.000Z"
     },
     {
