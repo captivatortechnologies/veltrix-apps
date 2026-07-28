@@ -33,14 +33,19 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
   try {
     for (const entry of previousState) {
       if (!entry.existed) {
-        // Deploy created this control — remove it. Re-resolve by identity so a
-        // concurrent delete makes this a no-op instead of a hard error.
-        const live = await findControl(client, {
-          name: entry.name,
-          frameworkId: entry.frameworkId,
-          section: entry.section,
-        })
-        const uuid = controlId(live)
+        // Deploy created this control — delete it by the id captured at create,
+        // since a just-created control may not be returned by the query endpoint
+        // yet (querying first could leak it). Fall back to a name lookup only when
+        // no id was captured.
+        const uuid =
+          entry.uuid ??
+          controlId(
+            await findControl(client, {
+              name: entry.name,
+              frameworkId: entry.frameworkId,
+              section: entry.section,
+            }),
+          )
         if (uuid) await deleteControl(client, uuid)
       } else if (entry.uuid && entry.prior) {
         // Deploy updated this control — restore the captured prior values.

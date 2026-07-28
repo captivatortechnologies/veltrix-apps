@@ -106,6 +106,12 @@ export function liveRepository(live: LiveDataConnection): string | undefined {
   return typeof fromConfig === 'string' ? fromConfig : undefined
 }
 
+/** Live source endpoint, best-effort — a non-secret `config.endpoint`. */
+export function liveEndpoint(live: LiveDataConnection): string | undefined {
+  const fromConfig = live.config?.endpoint
+  return typeof fromConfig === 'string' ? fromConfig : undefined
+}
+
 /** Live enable/disable status, best-effort (`status` then `state`). */
 export function liveStatus(live: LiveDataConnection): string | undefined {
   if (typeof live.status === 'string') return live.status

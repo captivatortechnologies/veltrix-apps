@@ -49,9 +49,12 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
         if (entry.prior.name !== undefined) restore.name = entry.prior.name
         if (entry.prior.parser !== undefined) restore.parser = entry.prior.parser
         if (entry.prior.description !== undefined) restore.description = entry.prior.description
-        if (entry.prior.repository !== undefined) {
-          restore.config = { repository: entry.prior.repository }
-        }
+        // Rebuild the non-secret config so a wholesale `config` replace keeps both
+        // the source endpoint and the repository (the credential is never restored).
+        const config: Record<string, unknown> = {}
+        if (entry.prior.endpoint !== undefined) config.endpoint = entry.prior.endpoint
+        if (entry.prior.repository !== undefined) config.repository = entry.prior.repository
+        if (Object.keys(config).length > 0) restore.config = config
 
         const res = await client.request(
           'PATCH',

@@ -230,8 +230,12 @@ export async function convergeRoles(
   const toGrant = declared.filter((r) => !currentSet.has(r))
   const toRevoke = current.filter((r) => !declaredSet.has(r))
 
-  await roleAction(client, uuid, 'grant', toGrant)
+  // Record the intended deltas BEFORE issuing each batch action: Falcon role
+  // actions can partially apply and still return an envelope error, so recording
+  // after would lose the applied changes for rollback. Rollback reversing a
+  // grant/revoke that didn't actually apply is a harmless no-op.
   entry.rolesGranted = toGrant
-  await roleAction(client, uuid, 'revoke', toRevoke)
+  await roleAction(client, uuid, 'grant', toGrant)
   entry.rolesRevoked = toRevoke
+  await roleAction(client, uuid, 'revoke', toRevoke)
 }

@@ -3,6 +3,20 @@
 All notable changes to the CrowdStrike Falcon app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.13.1 — 2026-07-28
+
+### Fixed (remaining low-severity review findings)
+- **Cloud compliance controls** — rollback of a just-created control now deletes it
+  by the id captured at create (with a name-lookup fallback), instead of re-querying
+  first, so an eventually-consistent query can no longer leak the control.
+- **Users** — role grant/revoke deltas are recorded *before* each batch action, so a
+  partial batch apply that still errors is fully reversible on rollback.
+- **NG-SIEM data connections** — the source endpoint is captured and restored on
+  rollback (alongside the repository), so a wholesale `config` replace no longer
+  strips it. (The credential is still never captured or restored.)
+- Remaining documented limitation: IDP policy-rule drift/deploy scope to declared
+  condition keys, so a removed condition isn't reconciled (needs nested-tree diff).
+
 ## 1.13.0 — 2026-07-28
 
 ### Added

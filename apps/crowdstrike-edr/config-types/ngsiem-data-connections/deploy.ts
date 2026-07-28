@@ -10,6 +10,7 @@ import {
   extractConnectionSpecs,
   hasCredential,
   liveRepository,
+  liveEndpoint,
   liveStatus,
   STATUS_DISABLED,
   STATUS_ENABLED,
@@ -36,6 +37,7 @@ export interface ConnectionRollbackEntry {
     connector_type?: string
     parser?: string
     repository?: string
+    endpoint?: string
     status?: string
     description?: string
   }
@@ -231,6 +233,7 @@ export function priorNonSecret(live: LiveDataConnection): ConnectionRollbackEntr
     connector_type: live.connector_type,
     parser: live.parser,
     repository: liveRepository(live),
+    endpoint: liveEndpoint(live),
     status: liveStatus(live),
     description: live.description,
   }
