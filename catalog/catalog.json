@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-28T15:30:17.760Z",
+  "generatedAt": "2026-07-28T15:48:07.712Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -241,7 +241,7 @@
     {
       "appId": "microsoft-entra-id",
       "name": "Microsoft Entra ID",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "vendor": "Veltrix",
       "description": "Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the Microsoft Graph API. Covers Conditional Access, named locations, security groups, administrative units, custom roles and authentication strengths/contexts; the tenant authorization, security-defaults, authentication-methods, authentication-flows, admin-consent-request, permission-grant, cross-tenant access, app-management, token-issuance / lifetime / claims-mapping, home-realm-discovery, activity-timeout and feature-rollout policies; group directory settings, custom security attributes, external identity providers, delegated permission grants, user-flow attributes and self-service sign-up flows; and identity governance (entitlement catalogs, access packages, assignment policies, connected organizations, access reviews, lifecycle workflows and PIM role activation policies); plus company branding — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
@@ -250,12 +250,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-entra-id",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-entra-id-v0.6.0/microsoft-entra-id.zip",
-      "sha256": "6f9ef4f983499f4ff72d368d68b6fb24f7bd84fbe0a056f11f3a02e9459b732c",
-      "sizeBytes": 650146,
-      "publishedAt": "2026-07-27T03:46:38.086Z",
-      "releaseNotes": "## 0.6.0 — 2026-07-26\n\n### Added\n\nTwenty-two new configuration types across policy, directory, external identity,\nidentity-governance, branding and privileged-access surfaces of Microsoft Graph v1.0:\n\n**Tenant policy singletons**\n- **Tenant Authorization Policy** — default user/guest/consent controls\n  (allowInvitesFrom, guest role, default user role permissions) via singleton PATCH.\n- **Security Defaults** — the security defaults enforcement policy toggle.\n- **Authentication Flows Policy** — the self-service sign-up toggle.\n- **Admin Consent Request Policy** — admin consent workflow (reviewers, reminders,\n  request duration) via a full-replace PUT.\n\n**Policy collections (JSON `definition` / restrictions)**\n- **Token Issuance Policies**, **Home Realm Discovery Policies** and\n  **Activity-Based Timeout Policies** — managed via a JSON `definition` (canonicalized\n  for idempotent drift), the latter two with organization-default handling.\n- **App Management Policies** — credential (password / key) hygiene restrictions.\n- **Feature Rollout Policies** — staged rollout of cloud MFA, seamless SSO,\n  certificate-based auth, etc. (group targeting not managed).\n- **Permission Grant Policies** — app-consent policies with their include / exclude\n  condition sets reconciled as owned sets; built-in `microsoft-*` policies protected.\n- **Cross-Tenant Access Partners** — per-partner B2B collaboration / direct connect /\n  trust settings, keyed by tenant id.\n\n**Authentication methods**\n- **Authentication Methods** — per-method enablement (state) for FIDO2, Microsoft\n  Authenticator, SMS, TAP, email, certificate, OATH and voice (fixed-id PATCH).\n\n**Directory & external identity**\n- **Group Settings** — tenant/group directory settings from groupSettingTemplates\n  (guest owners, naming, classifications) via name/value pairs.\n- **Custom Security Attribute Sets** and **Definitions** — attribute governance;\n  sets are never deleted and definitions are deactivated (status Deprecated) rather\n  than deleted.\n- **External Identity Providers** — social IdPs (Google, Facebook, GitHub, …) for\n  B2B guest sign-in; the client secret is write-only.\n- **Delegated Permission Grants** — admin-consented OAuth2 scopes keyed by\n  client + resource + consent type.\n- **User Flow Attributes** — custom self-service sign-up profile fields.\n- **Self-Service Sign-Up Flows** — b2xIdentityUserFlow (create/delete only).\n\n**Identity governance (entitlement management & reviews)**\n- **Access Package Catalogs** (built-in General protected), **Access Packages**\n  (bound to a catalog) and **Assignment Policies** (targeting / approval / expiration).\n- **Connected Organizations** — external partner directories/domains.\n- **Access Review Definitions** — recurring membership reviews.\n- **Lifecycle Workflows** — joiner / mover / leaver automation (requires Entra ID\n  Governance).\n\n**Branding & privileged access**\n- **Organizational Branding** — the company branding default sign-in page text,\n  colors and footer links, managed as a scalar-bounded singleton (locale \"0\")\n  via PATCH with `Accept-Language: 0`; logos, background image, favicon and custom\n  CSS are out of scope. Requires Entra ID P1/P2.\n- **PIM Role Policies** — Privileged Identity Management activation requirements\n  (MFA / justification / ticketing / approval / maximum duration) for Directory-scope\n  roles. The policy is resolved from the role's assignment and the three end-user\n  activation rules (enablement, expiration, approval) are patched in place; the\n  approval toggle merges into the live setting so existing approval stages are\n  preserved. Rules are never created or deleted.\n\n### Changed\n- `lib/graph.ts`: added a `put()` convenience helper and an optional per-call\n  header override on `request()` (both used by the new PUT-based / localized types),\n  leaving existing behavior unchanged.",
-      "releasedAt": "2026-07-26T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-entra-id-v0.7.0/microsoft-entra-id.zip",
+      "sha256": "f9edf424398aeb225eb9e7faf49f8193f82cb52949d023d206795c75547d2ab3",
+      "sizeBytes": 769857,
+      "publishedAt": "2026-07-28T15:48:07.684Z",
+      "releaseNotes": "## 0.7.0 — 2026-07-28\n\n### Added\n- **Six new configuration types** covering the identity objects that policies act upon:\n  - **Directory Role Assignments** — active/permanent privileged role holders\n    (`/roleManagement/directory/roleAssignments`; no PATCH → delete + recreate on change).\n  - **PIM Role Eligibility** — eligible role assignments via\n    `roleEligibilityScheduleRequests` (request-based; drift diffs derived schedules).\n  - **App Registrations** — `/applications` (upsert by uniqueName; redirect URIs,\n    app roles, required resource access).\n  - **Service Principals** — `/servicePrincipals` (SSO, app role assignments).\n  - **Terms of Use Agreements** — `/identityGovernance/termsOfUse/agreements`.\n  - **Cross-Tenant Access Default** — the tenant-wide default policy singleton\n    (completes the existing per-partner coverage).",
+      "releasedAt": "2026-07-28T00:00:00.000Z"
     },
     {
       "appId": "microsoft-intune",
