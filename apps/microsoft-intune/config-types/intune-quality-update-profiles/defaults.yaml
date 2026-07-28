@@ -1,0 +1,7 @@
+# Defaults for a new Quality Update expedite profile item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank (daysUntilForcedReboot falls back to its canvas
+# defaultValue of 2). Any values here would be a flat map keyed by the canvas
+# field keys (profile_name, description, qualityUpdateRelease, daysUntilForcedReboot,
+# includeGroups, …).

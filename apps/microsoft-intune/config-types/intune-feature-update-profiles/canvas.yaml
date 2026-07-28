@@ -1,0 +1,114 @@
+# =============================================================================
+# Canvas Template — Intune Windows Feature Update Profiles
+#
+# Declares ONE feature update profile — the item. Users add as many as they need
+# (e.g. Pilot on 23H2, Broad on 22H2). A profile pins devices to a target Windows
+# feature version, optionally rolls it out gradually over a date window, and is
+# assigned to groups/devices. Reconciled by profile name (displayName). Field keys
+# must match config-types/intune-feature-update-profiles/validate.ts and equal the
+# Graph windowsFeatureUpdateProfile property names.
+# =============================================================================
+
+id: "intune-feature-update-profiles"
+name: "Windows Feature Update Profiles"
+toolType: "microsoft-intune"
+entityType: "intune-feature-update-profiles"
+description: "Define Windows feature update profiles as code via Graph windowsFeatureUpdateProfiles — pin devices to a target feature version, optionally roll it out gradually over a date window, and assign to groups/devices. Reconciled by profile name."
+
+item:
+  label: "Feature Update Profile"
+  identityField: "profile_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Profile"
+      icon: "arrow-up-circle"
+      description: "Profile name, description and the target feature version"
+      fields:
+        - key: "profile_name"
+          label: "Profile name"
+          fieldType: "text"
+          required: true
+          helpText: "The Intune feature update profile name. This is the reconciliation identity."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Intune admin center."
+
+        - key: "featureUpdateVersion"
+          label: "Feature update version"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The target Windows feature version, exactly as it appears in Microsoft's
+            catalog — e.g. "Windows 11, version 23H2" or "Windows 11, version 24H2".
+            Devices are held at this version until the profile changes.
+
+        - key: "installLatestWindows10OnWindows11IneligibleDevice"
+          label: "Install latest Windows 10 on Windows 11-ineligible devices"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: >
+            When on and the target version is a Windows 11 build, devices that do not
+            meet the Windows 11 hardware requirements receive the latest Windows 10
+            feature update instead.
+
+    - name: "Rollout"
+      icon: "clock"
+      description: >
+        Optional gradual rollout. Leave all blank to make the update available to
+        every targeted device immediately. Set a start date to begin offering on a
+        specific day; add an end date and interval to ramp the offer gradually.
+      fields:
+        - key: "rolloutStartDate"
+          label: "Offer start (UTC)"
+          fieldType: "text"
+          required: false
+          helpText: >
+            ISO 8601 date/time in UTC when the update begins being offered
+            (e.g. 2026-09-01T00:00:00Z). Leave blank to offer immediately.
+
+        - key: "rolloutEndDate"
+          label: "Offer end (UTC)"
+          fieldType: "text"
+          required: false
+          helpText: >
+            ISO 8601 date/time in UTC by which every targeted device is offered the
+            update. Must be after the start date. Used with the interval for a gradual
+            rollout.
+
+        - key: "rolloutIntervalInDays"
+          label: "Offer interval (days)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+            max: 365
+          helpText: >
+            Days between each wave of the gradual rollout. Requires both a start and
+            an end date to define the offer window.
+
+    - name: "Assignments"
+      icon: "users"
+      description: "Which devices this profile applies to. Leave all blank to leave assignments unmanaged."
+      fields:
+        - key: "allDevices"
+          label: "All devices"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Assign the profile to every managed device."
+
+        - key: "includeGroups"
+          label: "Included groups"
+          fieldType: "tags"
+          helpText: >
+            Entra ID group object IDs (GUIDs) to include, one per entry. When any
+            assignment target is set here, this deploy manages (replaces) the profile's
+            assignments; leave every assignment field blank to leave them untouched.
+
+        - key: "excludeGroups"
+          label: "Excluded groups"
+          fieldType: "tags"
+          helpText: "Entra ID group object IDs (GUIDs) to exclude from the profile, one per entry."

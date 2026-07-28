@@ -1,0 +1,8 @@
+# Defaults for a new iOS app protection policy item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank and in-UI defaults come from each field's
+# `defaultValue` in canvas.yaml (appGroupType=selectedPublicApps, the enum selects
+# = Not configured, the checkboxes = off). Any values here would be a flat map
+# keyed by the canvas field keys (name, description, pinRequired, minimumPinLength,
+# appGroupType, targetedApps, includeGroups, …).

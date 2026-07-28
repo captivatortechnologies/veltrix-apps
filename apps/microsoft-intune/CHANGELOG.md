@@ -3,6 +3,19 @@
 All notable changes to the Microsoft Intune app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.4.0 — 2026-07-28
+
+### Added
+- **App Protection (MAM)** — `intune-app-protection-ios` and
+  `intune-app-protection-android` (group *App Protection*): PIN, data-transfer /
+  clipboard controls, encryption, offline-wipe, with targeted apps + assignments.
+- **Windows Feature / Quality update profiles** (group *Windows Updates*) —
+  `intune-feature-update-profiles` (target feature version + gradual rollout) and
+  `intune-quality-update-profiles` (expedited quality updates).
+- Shared `lib/targetApps.ts` — the Graph `targetApps`-action payload builder
+  (iOS bundleId / Android packageId identifiers, app group types), unit-tested and
+  reused by both MAM types.
+
 ## 1.3.0 — 2026-07-28
 
 ### Added

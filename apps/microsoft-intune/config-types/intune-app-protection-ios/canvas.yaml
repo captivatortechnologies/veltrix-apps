@@ -1,0 +1,161 @@
+# =============================================================================
+# Canvas Template — Intune iOS App Protection (MAM) Policies
+#
+# Declares ONE iOS app protection policy — the item. Users add as many as they
+# need. A policy is a name + app-level PIN and data-protection settings + the set
+# of managed apps it protects (appGroupType + targeted bundle ids) + its user
+# group assignment. Scalar field keys equal the Graph iosManagedAppProtection
+# property names; appGroupType/targetedApps are bound via the targetApps action
+# and the groups via the assign action. Field keys must match
+# config-types/intune-app-protection-ios/validate.ts and iosAppProtection.ts.
+# Reconciled by policy name (displayName).
+# =============================================================================
+
+id: "intune-app-protection-ios"
+name: "iOS App Protection Policies"
+toolType: "microsoft-intune"
+entityType: "intune-app-protection-ios"
+description: "Define Intune iOS app protection (MAM) policies via Microsoft Graph iosManagedAppProtection — app PIN, data transfer / clipboard controls, Save-As and device-compliance requirements — with the protected apps and user group assignments. Reconciled by policy name."
+
+item:
+  label: "App Protection Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Policy name and description"
+      fields:
+        - key: "name"
+          label: "Policy name"
+          fieldType: "text"
+          required: true
+          helpText: "The Intune policy display name. This is the reconciliation identity."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Intune admin center."
+
+    - name: "Access (PIN)"
+      icon: "lock"
+      description: "App-level PIN requirements. Leave a number blank to leave it unmanaged."
+      fields:
+        - key: "pinRequired"
+          label: "Require an app PIN"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When on, users must enter an app-level PIN to open a managed app."
+
+        - key: "minimumPinLength"
+          label: "Minimum PIN length"
+          fieldType: "number"
+          validation:
+            min: 1
+          helpText: "Minimum length of the app PIN when a PIN is required. Leave blank to leave unmanaged."
+
+        - key: "maximumPinRetries"
+          label: "Maximum PIN retries"
+          fieldType: "number"
+          validation:
+            min: 1
+            max: 65535
+          helpText: "Incorrect PIN attempts before the app is blocked or wiped (1-65535). Leave blank to leave unmanaged."
+
+    - name: "Data Protection"
+      icon: "folder"
+      description: "Where app data may move and how the clipboard is shared. Leave 'Not configured' to leave a setting unmanaged."
+      fields:
+        - key: "allowedInboundDataTransferSources"
+          label: "Allowed inbound data transfer sources"
+          fieldType: "select"
+          defaultValue: ""
+          options:
+            - { label: "Not configured", value: "" }
+            - { label: "All apps", value: "allApps" }
+            - { label: "Managed apps only", value: "managedApps" }
+            - { label: "None", value: "none" }
+
+        - key: "allowedOutboundDataTransferDestinations"
+          label: "Allowed outbound data transfer destinations"
+          fieldType: "select"
+          defaultValue: ""
+          options:
+            - { label: "Not configured", value: "" }
+            - { label: "All apps", value: "allApps" }
+            - { label: "Managed apps only", value: "managedApps" }
+            - { label: "None", value: "none" }
+
+        - key: "allowedOutboundClipboardSharingLevel"
+          label: "Allowed outbound clipboard sharing level"
+          fieldType: "select"
+          defaultValue: ""
+          options:
+            - { label: "Not configured", value: "" }
+            - { label: "All apps", value: "allApps" }
+            - { label: "Managed apps with paste-in", value: "managedAppsWithPasteIn" }
+            - { label: "Managed apps only", value: "managedApps" }
+            - { label: "Blocked", value: "blocked" }
+
+        - key: "saveAsBlocked"
+          label: 'Block "Save As"'
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When on, users cannot use Save As to save protected files to unmanaged locations."
+
+    - name: "Access Requirements"
+      icon: "check-circle"
+      description: "Conditional-launch requirements for accessing managed apps"
+      fields:
+        - key: "deviceComplianceRequired"
+          label: "Require device compliance"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When on, only compliant devices may access managed apps."
+
+        - key: "minimumRequiredOsVersion"
+          label: "Minimum required OS version"
+          fieldType: "text"
+          helpText: "e.g. 17.0 — versions below this block access to company data. Leave blank to leave unmanaged."
+
+    - name: "Targeted Apps"
+      icon: "grid"
+      description: "Which managed apps this policy protects"
+      fields:
+        - key: "appGroupType"
+          label: "App group"
+          fieldType: "select"
+          defaultValue: "selectedPublicApps"
+          helpText: "Which public apps the policy protects. 'Selected apps' requires at least one targeted bundle id below."
+          options:
+            - { label: "Selected apps", value: "selectedPublicApps" }
+            - { label: "All apps", value: "allApps" }
+            - { label: "All Microsoft apps", value: "allMicrosoftApps" }
+            - { label: "Core Microsoft apps", value: "allCoreMicrosoftApps" }
+
+        - key: "targetedApps"
+          label: "Targeted apps (bundle ids)"
+          fieldType: "tags"
+          helpText: "iOS bundle ids to protect (e.g. com.microsoft.office.outlook), one per entry. Required when the app group is 'Selected apps'."
+
+    - name: "Assignment"
+      icon: "users"
+      description: "Which users this policy applies to. App protection policies target users, not devices. Leave all blank to deploy it unassigned."
+      fields:
+        - key: "allUsers"
+          label: "Assign to all users"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Assign the policy to every licensed user."
+
+        - key: "includeGroups"
+          label: "Include groups"
+          fieldType: "tags"
+          helpText: "Microsoft Entra group object IDs (GUIDs) to include, one per entry."
+
+        - key: "excludeGroups"
+          label: "Exclude groups"
+          fieldType: "tags"
+          helpText: "Microsoft Entra group object IDs (GUIDs) to exclude, one per entry."

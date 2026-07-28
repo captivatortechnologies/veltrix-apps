@@ -1,0 +1,171 @@
+# =============================================================================
+# Canvas Template — Intune Android App Protection (MAM) Policies
+#
+# Declares ONE Android app protection policy — the item. Users add as many as
+# they need. A policy is a name + app-level PIN, data-transfer/clipboard controls,
+# encryption and screen-capture toggles + the set of managed apps it targets +
+# group assignment. Reconciled by policy name (displayName). Field keys must match
+# config-types/intune-app-protection-android/validate.ts and appProtection.ts and
+# (for the managed scalars) equal the Graph androidManagedAppProtection property
+# names.
+# =============================================================================
+
+id: "intune-app-protection-android"
+name: "Android App Protection Policies"
+toolType: "microsoft-intune"
+entityType: "intune-app-protection-android"
+description: "Define Intune Android app protection (MAM) policies via Microsoft Graph androidManagedAppProtection — app PIN, data transfer/clipboard controls, encryption, screen-capture and device-compliance requirements — with their targeted apps and group assignments. Reconciled by policy name."
+
+item:
+  label: "App Protection Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Policy name and description"
+      fields:
+        - key: "name"
+          label: "Policy name"
+          fieldType: "text"
+          required: true
+          helpText: "The Intune app protection policy display name. This is the reconciliation identity."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Intune admin center."
+
+    - name: "Access requirements (PIN)"
+      icon: "lock"
+      description: "App-level PIN requirements enforced before company data can be accessed."
+      fields:
+        - key: "pinRequired"
+          label: "Require app PIN"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Require an app-level PIN to access the managed app."
+
+        - key: "minimumPinLength"
+          label: "Minimum PIN length"
+          fieldType: "number"
+          validation:
+            min: 4
+            max: 16
+          helpText: "Minimum length of the app PIN (4-16). Leave blank to leave unmanaged."
+
+        - key: "maximumPinRetries"
+          label: "Maximum PIN attempts"
+          fieldType: "number"
+          validation:
+            min: 1
+            max: 65535
+          helpText: "Incorrect PIN attempts before the app is blocked or wiped (1-65535). Leave blank to leave unmanaged."
+
+    - name: "Data protection"
+      icon: "folder"
+      description: "How data may move between managed and unmanaged apps, and clipboard sharing."
+      fields:
+        - key: "allowedInboundDataTransferSources"
+          label: "Allow data transfer INTO the app from"
+          fieldType: "select"
+          defaultValue: "allApps"
+          options:
+            - { label: "All apps", value: "allApps" }
+            - { label: "Policy-managed apps only", value: "managedApps" }
+            - { label: "None", value: "none" }
+
+        - key: "allowedOutboundDataTransferDestinations"
+          label: "Allow data transfer OUT of the app to"
+          fieldType: "select"
+          defaultValue: "allApps"
+          options:
+            - { label: "All apps", value: "allApps" }
+            - { label: "Policy-managed apps only", value: "managedApps" }
+            - { label: "None", value: "none" }
+
+        - key: "allowedOutboundClipboardSharingLevel"
+          label: "Clipboard sharing"
+          fieldType: "select"
+          defaultValue: "allApps"
+          options:
+            - { label: "Any app", value: "allApps" }
+            - { label: "Managed apps, with paste-in from any app", value: "managedAppsWithPasteIn" }
+            - { label: "Policy-managed apps only", value: "managedApps" }
+            - { label: "Blocked", value: "blocked" }
+
+        - key: "saveAsBlocked"
+          label: "Block \"Save As\""
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Prevent saving a copy of org data to a personal / unmanaged location."
+
+        - key: "screenCaptureBlocked"
+          label: "Block screen capture and Assistant"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Android-only: block screenshots and Google Assistant reading org data in the managed app."
+
+        - key: "encryptAppData"
+          label: "Encrypt org data"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Android-only: encrypt the managed app's org data at rest."
+
+    - name: "Conditional launch"
+      icon: "check-circle"
+      description: "Device / OS requirements checked when the managed app launches."
+      fields:
+        - key: "deviceComplianceRequired"
+          label: "Require device compliance"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Require the device to be Intune-compliant for the managed app to run."
+
+        - key: "minimumRequiredOsVersion"
+          label: "Minimum required OS version"
+          fieldType: "text"
+          helpText: "e.g. 11.0 — Android versions below this block access. Leave blank to leave unmanaged."
+
+    - name: "Targeted apps"
+      icon: "grid"
+      description: "Which apps this policy protects."
+      fields:
+        - key: "appGroupType"
+          label: "Apps to target"
+          fieldType: "select"
+          defaultValue: "selectedPublicApps"
+          helpText: "Choose a Microsoft-app group, all apps, or a specific list of public apps."
+          options:
+            - { label: "Selected public apps", value: "selectedPublicApps" }
+            - { label: "All apps", value: "allApps" }
+            - { label: "All Microsoft apps", value: "allMicrosoftApps" }
+            - { label: "Core Microsoft apps", value: "allCoreMicrosoftApps" }
+
+        - key: "targetedApps"
+          label: "Targeted app package IDs"
+          fieldType: "tags"
+          helpText: >
+            Android package IDs (e.g. com.microsoft.emmx), one per entry. Required when
+            "Apps to target" is "Selected public apps"; ignored for the other choices.
+
+    - name: "Assignment"
+      icon: "users"
+      description: "Which users this policy is assigned to (app protection policies target users). Leaving all blank deploys the policy unassigned."
+      fields:
+        - key: "allUsers"
+          label: "Assign to all users"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "includeGroups"
+          label: "Include groups"
+          fieldType: "tags"
+          helpText: "Microsoft Entra group object IDs (GUIDs) to include."
+
+        - key: "excludeGroups"
+          label: "Exclude groups"
+          fieldType: "tags"
+          helpText: "Microsoft Entra group object IDs (GUIDs) to exclude."

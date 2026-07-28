@@ -1,0 +1,84 @@
+# =============================================================================
+# Canvas Template — Intune Quality Update Profiles (Expedite)
+#
+# Declares ONE quality update expedite profile — the item. Users add as many
+# profiles as they need (e.g. one per monthly release to rush out). A profile is
+# a name + the released quality update to expedite + a forced-reboot grace +
+# assignments. Reconciled by profile name (displayName). Field keys must match
+# config-types/intune-quality-update-profiles/validate.ts and equal the Graph
+# windowsQualityUpdateProfile property names.
+# =============================================================================
+
+id: "intune-quality-update-profiles"
+name: "Quality Update Profiles"
+toolType: "microsoft-intune"
+entityType: "intune-quality-update-profiles"
+description: "Expedite a released Windows quality update as code via Graph deviceManagement/windowsQualityUpdateProfiles — pick the release, set the forced-reboot grace, and assign to groups. Reconciled by profile name."
+
+item:
+  label: "Quality Update Profile"
+  identityField: "profile_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Profile"
+      icon: "zap"
+      description: "Profile name and description"
+      fields:
+        - key: "profile_name"
+          label: "Profile name"
+          fieldType: "text"
+          required: true
+          helpText: "The Intune quality update profile name. This is the reconciliation identity."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Intune admin center."
+
+    - name: "Expedite settings"
+      icon: "clock"
+      description: "Which released quality update to rush out and how soon devices are forced to reboot"
+      fields:
+        - key: "qualityUpdateRelease"
+          label: "Quality update release"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The released quality update to expedite — the KB / release identifier as
+            it appears in Intune (the deployable content for the target month). This
+            is what gets rushed to assigned devices.
+
+        - key: "daysUntilForcedReboot"
+          label: "Days until forced reboot"
+          fieldType: "number"
+          required: false
+          defaultValue: 2
+          validation:
+            min: 0
+            max: 2
+          helpText: "How many days a user may defer the automatic restart after the expedited update installs (0-2). Leave blank to use the Intune default."
+
+    - name: "Assignments"
+      icon: "users"
+      description: "Which devices this profile expedites the update on. Leave all blank to leave assignments unmanaged."
+      fields:
+        - key: "allDevices"
+          label: "All devices"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Expedite the update on every managed device."
+
+        - key: "includeGroups"
+          label: "Included groups"
+          fieldType: "tags"
+          helpText: >
+            Entra ID group object IDs (GUIDs) to include, one per entry. When any
+            assignment target is set here, this deploy manages (replaces) the profile's
+            assignments; leave every assignment field blank to leave them untouched.
+
+        - key: "excludeGroups"
+          label: "Excluded groups"
+          fieldType: "tags"
+          helpText: "Entra ID group object IDs (GUIDs) to exclude from the profile, one per entry."

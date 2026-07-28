@@ -1,0 +1,7 @@
+# Defaults for a new Windows feature update profile item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank (the install checkbox falls back to its canvas
+# defaultValue of false). Any values here would be a flat map keyed by the canvas
+# field keys (profile_name, description, featureUpdateVersion, rolloutStartDate,
+# rolloutEndDate, rolloutIntervalInDays, includeGroups, …).

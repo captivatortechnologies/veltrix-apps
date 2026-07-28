@@ -1,6 +1,6 @@
 id: microsoft-intune
 name: Microsoft Intune
-version: "1.3.0"
+version: "1.4.0"
 vendor: Veltrix
 description: >
   Manage Microsoft Intune endpoint-security policies as code through the
@@ -47,6 +47,18 @@ permissions:
     - resource: intune-assignment-filters
       actions: [read, write, delete]
       description: Manage Intune assignment filters (device/app targeting rules)
+    - resource: intune-app-protection-ios
+      actions: [read, write, delete]
+      description: Manage Intune iOS app protection (MAM) policies and their targeted apps + assignments
+    - resource: intune-app-protection-android
+      actions: [read, write, delete]
+      description: Manage Intune Android app protection (MAM) policies and their targeted apps + assignments
+    - resource: intune-feature-update-profiles
+      actions: [read, write, delete]
+      description: Manage Intune Windows feature update profiles and their assignments
+    - resource: intune-quality-update-profiles
+      actions: [read, write, delete]
+      description: Manage Intune Windows quality (expedited) update profiles and their assignments
 
 pipeline:
   configurationTypes:
@@ -152,6 +164,89 @@ pipeline:
         healthCheck: config-types/intune-assignment-filters/healthCheck
         driftDetect: config-types/intune-assignment-filters/driftDetect
         getStatus: config-types/intune-assignment-filters/getStatus
+      targets:
+        componentTypes: [intune-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: intune-app-protection-ios
+      group: "App Protection"
+      name: iOS App Protection Policies
+      description: >
+        Manage Intune iOS app protection (MAM) policies via Graph
+        iosManagedAppProtection — PIN, data transfer/clipboard controls, encryption,
+        offline wipe — with targeted apps and group assignments
+      canvasTemplate: config-types/intune-app-protection-ios/canvas.yaml
+      defaultConfig: config-types/intune-app-protection-ios/defaults.yaml
+      handlers:
+        validate: config-types/intune-app-protection-ios/validate
+        deploy: config-types/intune-app-protection-ios/deploy
+        rollback: config-types/intune-app-protection-ios/rollback
+        healthCheck: config-types/intune-app-protection-ios/healthCheck
+        driftDetect: config-types/intune-app-protection-ios/driftDetect
+        getStatus: config-types/intune-app-protection-ios/getStatus
+      targets:
+        componentTypes: [intune-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: intune-app-protection-android
+      group: "App Protection"
+      name: Android App Protection Policies
+      description: >
+        Manage Intune Android app protection (MAM) policies via Graph
+        androidManagedAppProtection — PIN, data transfer/clipboard controls,
+        encryption, root detection — with targeted apps and group assignments
+      canvasTemplate: config-types/intune-app-protection-android/canvas.yaml
+      defaultConfig: config-types/intune-app-protection-android/defaults.yaml
+      handlers:
+        validate: config-types/intune-app-protection-android/validate
+        deploy: config-types/intune-app-protection-android/deploy
+        rollback: config-types/intune-app-protection-android/rollback
+        healthCheck: config-types/intune-app-protection-android/healthCheck
+        driftDetect: config-types/intune-app-protection-android/driftDetect
+        getStatus: config-types/intune-app-protection-android/getStatus
+      targets:
+        componentTypes: [intune-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: intune-feature-update-profiles
+      group: "Windows Updates"
+      name: Windows Feature Update Profiles
+      description: >
+        Manage Intune Windows feature update profiles (windowsFeatureUpdateProfile)
+        — target feature version + gradual rollout — and their assignments
+      canvasTemplate: config-types/intune-feature-update-profiles/canvas.yaml
+      defaultConfig: config-types/intune-feature-update-profiles/defaults.yaml
+      handlers:
+        validate: config-types/intune-feature-update-profiles/validate
+        deploy: config-types/intune-feature-update-profiles/deploy
+        rollback: config-types/intune-feature-update-profiles/rollback
+        healthCheck: config-types/intune-feature-update-profiles/healthCheck
+        driftDetect: config-types/intune-feature-update-profiles/driftDetect
+        getStatus: config-types/intune-feature-update-profiles/getStatus
+      targets:
+        componentTypes: [intune-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: intune-quality-update-profiles
+      group: "Windows Updates"
+      name: Windows Quality Update Profiles
+      description: >
+        Manage Intune Windows quality (expedited) update profiles
+        (windowsQualityUpdateProfile) — expedite a released quality update — and
+        their assignments
+      canvasTemplate: config-types/intune-quality-update-profiles/canvas.yaml
+      defaultConfig: config-types/intune-quality-update-profiles/defaults.yaml
+      handlers:
+        validate: config-types/intune-quality-update-profiles/validate
+        deploy: config-types/intune-quality-update-profiles/deploy
+        rollback: config-types/intune-quality-update-profiles/rollback
+        healthCheck: config-types/intune-quality-update-profiles/healthCheck
+        driftDetect: config-types/intune-quality-update-profiles/driftDetect
+        getStatus: config-types/intune-quality-update-profiles/getStatus
       targets:
         componentTypes: [intune-tenant]
         requiresCredential: true
