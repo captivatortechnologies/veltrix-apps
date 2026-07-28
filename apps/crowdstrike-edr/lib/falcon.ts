@@ -293,6 +293,91 @@ export class FalconClient {
     }
   }
 
+  /**
+   * Perform a multipart/form-data request. Some Falcon endpoints accept ONLY
+   * multipart (file upload) — RTR scripts/put-files and NG-SIEM
+   * saved-query/dashboard templates. `fetch` derives the multipart
+   * Content-Type + boundary from a FormData body, so Content-Type must NOT be
+   * set manually here. Same auth + single 401/429 retry semantics as request().
+   */
+  async requestMultipart(
+    method: FalconMethod,
+    path: string,
+    opts: {
+      query?: Record<string, string | number | boolean | undefined>
+      fields?: Record<string, string | undefined>
+      files?: Record<string, { filename: string; content: string; contentType?: string } | undefined>
+    } = {},
+  ): Promise<FalconResponse> {
+    let token = await this.authenticate()
+    let res = await this.sendMultipart(method, path, token, opts)
+
+    if (res.status === 401) {
+      tokenCache.delete(this.cacheKey())
+      token = await this.authenticate()
+      res = await this.sendMultipart(method, path, token, opts)
+    }
+
+    if (res.status === 429) {
+      const waitMs = rateLimitWaitMs(res.retryAfterEpochSeconds)
+      if (waitMs !== null && waitMs <= MAX_RATE_LIMIT_WAIT_MS) {
+        await sleep(waitMs)
+        res = await this.sendMultipart(method, path, token, opts)
+      }
+    }
+
+    return { status: res.status, ok: res.ok, body: res.body }
+  }
+
+  private async sendMultipart(
+    method: FalconMethod,
+    path: string,
+    token: string,
+    opts: {
+      query?: Record<string, string | number | boolean | undefined>
+      fields?: Record<string, string | undefined>
+      files?: Record<string, { filename: string; content: string; contentType?: string } | undefined>
+    },
+  ): Promise<FalconResponse & { retryAfterEpochSeconds?: number }> {
+    const url = new URL(`${this.baseUrl}${path}`)
+    for (const [key, value] of Object.entries(opts.query ?? {})) {
+      if (value !== undefined) url.searchParams.set(key, String(value))
+    }
+
+    const form = new FormData()
+    for (const [key, value] of Object.entries(opts.fields ?? {})) {
+      if (value !== undefined) form.append(key, value)
+    }
+    for (const [key, file] of Object.entries(opts.files ?? {})) {
+      if (file !== undefined) {
+        const blob = new Blob([file.content], { type: file.contentType ?? 'application/octet-stream' })
+        form.append(key, blob, file.filename)
+      }
+    }
+
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs)
+    try {
+      // No Content-Type header — fetch sets multipart/form-data + boundary from FormData.
+      const res = await fetch(url.toString(), {
+        method,
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+        body: form,
+        signal: controller.signal,
+      })
+      const body = await res.text()
+      const retryAfter = res.headers.get('x-ratelimit-retryafter')
+      return {
+        status: res.status,
+        ok: res.status >= 200 && res.status < 300,
+        body,
+        retryAfterEpochSeconds: retryAfter ? Number(retryAfter) : undefined,
+      }
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
   private async rawFetch(
     url: string,
     init: { method: string; headers: Record<string, string>; body?: string },

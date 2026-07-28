@@ -24,13 +24,13 @@ import { extractSavedQuerySpecs, type LiveSavedQuery, type SavedQuerySpec } from
 //
 // IMPORTANT / UNVERIFIED — TRANSPORT: FalconPy models create/update as a
 // multipart `yaml_template` FILE upload (plus a `search_domain` form field),
-// NOT a JSON body. The shared FalconClient only sends JSON and is out of scope
-// to change here, so create/update send the template fields as a JSON body to
-// the template endpoints — the closest supported approximation. Making this
-// production-correct needs either a multipart capability on FalconClient or
-// confirmation that the endpoints also accept JSON. Body field names
-// (query/time_range/shared) and the create response id shape are also
-// unverified; see LiveSavedQuery.
+// NOT a JSON body. FalconClient NOW supports multipart (client.requestMultipart),
+// so the remaining blockers to wiring it are the exact `yaml_template` schema and
+// the `search_domain` value (not captured on the canvas) — both need a live-tenant
+// check. Until then create/update send the template fields as a JSON body to the
+// template endpoints as the closest supported approximation. Body field names
+// (query/time_range/shared) and the create response id shape are also unverified;
+// see LiveSavedQuery. Read/list/delete/drift work today over JSON + query params.
 // =============================================================================
 
 /** Read + create + update route: list ids, get templates, POST/PATCH template. */

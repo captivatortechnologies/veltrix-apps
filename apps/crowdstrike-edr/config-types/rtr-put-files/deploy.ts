@@ -3,37 +3,15 @@ import { buildFalconClient, falconFailure, parseEnvelope, type FalconClient } fr
 import { findEntityByIdentity, type EntityEndpoints } from '../../lib/entityAdapter'
 import { extractPutFileSpecs, type LiveRtrPutFile, type PutFileSpec } from './validate'
 
-// =============================================================================
-// ⚠️  MULTIPART + IMMUTABILITY CAVEATS — READ BEFORE PRODUCTION USE ⚠️
+// Put-file CREATE is multipart/form-data only (verified against FalconPy
+// real_time_response_admin) — the content is the required `file` part. Sent via
+// FalconClient.requestMultipart. Worth a live smoke test.
 //
-// 1. MULTIPART: The Falcon Real Time Response Admin API models put-file CREATE
-//    as **multipart/form-data (file upload)** — and ONLY that. Verified against
-//    FalconPy `real_time_response_admin`:
-//      RTR-CreatePut-Files (POST /real-time-response/entities/put-files/v1)
-//        — consumes: multipart/form-data; the file body is the required `file`
-//          part (there is NOT even an inline `content` field, unlike scripts).
-//    The shared FalconClient (lib/falcon.ts) sends ONLY application/json and is
-//    FORBIDDEN to edit from this config type. So createPutFile builds the
-//    correct fields but sends them as a JSON body — Falcon will reject this
-//    until lib/falcon.ts sends the content as a multipart `file` part. When it
-//    does, only the transport in createPutFile changes.
-//
-// 2. IMMUTABILITY: put-files have NO PATCH — they cannot be edited in place. To
-//    change one, it must be deleted and recreated. GET also never returns the
-//    stored bytes (only a `sha256`), so:
-//      - Deploy is idempotent: an existing put-file whose live `sha256` already
-//        matches the declared content is left untouched (no destructive churn).
-//      - A content change is converged by delete-then-recreate.
-//      - ROLLBACK of a replaced put-file can delete the new file but CANNOT
-//        restore the original bytes (the API never exposes them) — this is
-//        surfaced in the rollback message.
-//
-// Everything else works TODAY over JSON + query params: find-by-name (query +
-// get), delete, health check, and drift detection.
-// =============================================================================
-
-const MULTIPART_HINT =
-  '(RTR put-file create requires the content as a multipart/form-data `file` part — add multipart support to lib/falcon.ts)'
+// IMMUTABILITY: put-files have NO PATCH. GET never returns the stored bytes (only
+// a `sha256`), so deploy is idempotent (a matching live sha256 is left untouched),
+// a content change is converged by delete-then-recreate, and rollback of a
+// replaced put-file can delete the new file but CANNOT restore the original bytes
+// (surfaced in the rollback message). find/get/delete/drift use JSON + query params.
 
 const DEPLOY_AUDIT_COMMENT = 'Managed by Veltrix (crowdstrike-edr app)'
 
@@ -133,31 +111,29 @@ export async function findPutFile(client: FalconClient, name: string): Promise<L
   return (found as LiveRtrPutFile | null) ?? null
 }
 
-/**
- * The create body fields as the RTR Admin multipart form expects them. Sent as
- * a JSON body until lib/falcon.ts supports multipart (see caveat). `content`
- * is the file body — in a real multipart request it is the required `file` part.
- */
-export function putFileFormFields(spec: PutFileSpec): Record<string, unknown> {
+/** The non-file form fields for put-file create (the content is the `file` part). */
+export function putFileFormFields(spec: PutFileSpec): Record<string, string | undefined> {
   return {
     name: spec.name,
     description: spec.description,
-    content: spec.content,
     comments_for_audit_log: spec.commentsForAuditLog ?? DEPLOY_AUDIT_COMMENT,
   }
 }
 
-/** Create a put-file; returns the new id (or throws). MULTIPART — see caveat. */
+/** Create a put-file (content uploaded as the multipart `file` part); returns the new id. */
 export async function createPutFile(client: FalconClient, spec: PutFileSpec): Promise<string> {
-  const res = await client.request('POST', PUT_FILE_ENDPOINTS.entity, { body: putFileFormFields(spec) })
+  const res = await client.requestMultipart('POST', PUT_FILE_ENDPOINTS.entity, {
+    fields: putFileFormFields(spec),
+    files: { file: { filename: spec.name, content: spec.content } },
+  })
   const failure = falconFailure(res)
   if (failure) {
-    throw new Error(`Failed to create RTR put-file "${spec.name}" ${MULTIPART_HINT}: ${failure}`)
+    throw new Error(`Failed to create RTR put-file "${spec.name}": ${failure}`)
   }
   const created = parseEnvelope<LiveRtrPutFile | string>(res.body)?.resources?.[0]
   const id = typeof created === 'string' ? created : created?.id
   if (!id) {
-    throw new Error(`RTR put-file "${spec.name}" was created but the API returned no id ${MULTIPART_HINT}`)
+    throw new Error(`RTR put-file "${spec.name}" was created but the API returned no id`)
   }
   return id
 }

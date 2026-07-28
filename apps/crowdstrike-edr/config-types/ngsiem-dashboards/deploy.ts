@@ -29,13 +29,14 @@ import {
 //
 // IMPORTANT / UNVERIFIED — TRANSPORT: FalconPy models create/update as a
 // multipart `yaml_template` FILE upload (create also takes a `name` form
-// field), NOT a JSON body. The shared FalconClient only sends JSON and is out
-// of scope to change here, so create/update send the template fields as a JSON
-// body to the template endpoints — the closest supported approximation. Making
-// this production-correct needs either a multipart capability on FalconClient
-// or confirmation that the endpoints also accept JSON. The body field name for
-// the widget/layout (`definition`), the `shared` flag, and the create response
-// id shape are also unverified; see LiveDashboard.
+// field), NOT a JSON body. FalconClient NOW supports multipart
+// (client.requestMultipart), so the remaining blockers to wiring it are the
+// exact `yaml_template` schema and the search_domain/name form values — both
+// need a live-tenant check. Until then create/update send the template fields as
+// a JSON body to the template endpoints as the closest supported approximation.
+// The widget/layout body field (`definition`), the `shared` flag, and the create
+// response id shape are also unverified; see LiveDashboard. Read/list/delete/
+// drift work today over JSON + query params.
 // =============================================================================
 
 /** Read + create + update route: list ids, get templates, POST/PATCH template. */

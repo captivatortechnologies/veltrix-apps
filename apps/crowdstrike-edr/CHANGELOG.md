@@ -3,6 +3,20 @@
 All notable changes to the CrowdStrike Falcon app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.12.1 — 2026-07-28
+
+### Added / Fixed
+- **`FalconClient.requestMultipart`** — a multipart/form-data capability on the
+  shared client (same auth + 401/429 retry as `request()`), for endpoints that
+  only accept file uploads.
+- **RTR Custom Scripts and Put-Files now deploy correctly** — their create/update
+  are multipart-only; they were previously sending a JSON approximation. Scripts
+  send the body in the `content` form field; put-files upload the content as the
+  `file` part. (Read/delete/drift were already working.)
+- NG-SIEM Saved Queries and Dashboards: the multipart capability is now available,
+  but wiring their `yaml_template` upload still needs the exact template schema +
+  `search_domain` value confirmed on a live tenant — noted in their deploy headers.
+
 ## 1.12.0 — 2026-07-27
 
 ### Added
