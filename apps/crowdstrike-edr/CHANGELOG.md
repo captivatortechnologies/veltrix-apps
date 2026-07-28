@@ -3,6 +3,27 @@
 All notable changes to the CrowdStrike Falcon app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.13.0 — 2026-07-28
+
+### Added
+- **MSSP / Flight Control** — a new sidebar group completing Platform Administration:
+  - **CID Group** — Flight Control CID groups + member child CIDs.
+  - **User Group** — Flight Control user groups + member user UUIDs.
+  - **Role Mapping** — binds a user group ↔ CID group ↔ roles (grants are additive,
+    so drift-correction diffs and revokes extras).
+- Requires parent-CID credentials with Flight Control scope (MSSP tenants only) —
+  noted in each type's description.
+
+### Fixed (from an adversarial logic review)
+- **Recon monitoring rules** — a blank `actions` field no longer converges to
+  zero (it now leaves pre-existing notification actions untouched, matching drift),
+  and actions this deploy deletes are captured and **recreated on rollback**, so
+  rollback is again the exact inverse of deploy. (Previously a rule edited through
+  Veltrix could silently, irreversibly destroy console-created notifications.)
+- **Custom IOA rule groups** — drift now compares disposition, pattern severity,
+  field values, and description of each rule (not just presence + enablement), so a
+  manual weakening of a deployed rule is reported instead of silently missed.
+
 ## 1.12.1 — 2026-07-28
 
 ### Added / Fixed

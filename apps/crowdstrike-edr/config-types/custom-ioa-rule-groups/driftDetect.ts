@@ -1,7 +1,7 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildFalconClient } from '../../lib/falcon'
 import { attachDriftActor, veltrixActorLogins } from '../lib/crowdstrikeAudit'
-import { findRuleGroup } from './deploy'
+import { findRuleGroup, ruleDiffers } from './deploy'
 import { extractRuleGroupSpecs, parseRuleSpecs } from './validate'
 
 /**
@@ -79,6 +79,15 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
             expected: rule.enabled,
             actual: match.enabled ?? false,
             severity: rule.enabled ? 'critical' : 'warning',
+          })
+        } else if (ruleDiffers(rule, match)) {
+          // disposition / pattern_severity / field_values / description changed —
+          // deploy manages these, so a manual weakening is real drift.
+          diffs.push({
+            field: `${spec.name}.rules.${rule.name}`,
+            expected: `disposition ${rule.dispositionId} / severity ${rule.patternSeverity}`,
+            actual: `disposition ${match.disposition_id ?? '—'} / severity ${match.pattern_severity ?? '—'}`,
+            severity: 'warning',
           })
         }
       }

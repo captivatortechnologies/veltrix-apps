@@ -1,0 +1,50 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Flight Control (MSSP) Role Mappings
+#
+# Declares ONE role mapping — the item. Users add as many mappings as they need.
+# Field keys must match what config-types/mssp-role-mappings/validate.ts checks.
+#
+# A role mapping binds a user group to a CID group with a set of role ids. Its
+# identity is the (userGroupId, cidGroupId) pair; roleIds are converged to
+# exactly the declared set on deploy. Because the Flight Control grant is
+# ADDITIVE, deploy explicitly revokes any live role not declared here. Requires
+# PARENT-CID API credentials with the Flight Control (MSSP) scope.
+# =============================================================================
+
+id: "crowdstrike-edr-mssp-role-mappings"
+name: "MSSP Role Mapping Configuration"
+toolType: "crowdstrike-edr"
+entityType: "mssp-role-mappings"
+description: "Define Falcon Flight Control (MSSP) role mappings binding a user group ↔ CID group ↔ role ids as code via the MSSP API. Grants are additive, so deploy revokes any undeclared role to converge exactly. Requires parent-CID credentials with the Flight Control scope."
+
+item:
+  label: "Role Mapping"
+  identityField: "userGroupId"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "key"
+      description: "The user group ↔ CID group binding and the roles it grants"
+      fields:
+        - key: "userGroupId"
+          label: "User Group ID"
+          fieldType: "text"
+          required: true
+          helpText: "The MSSP user group id (from an MSSP User Group configuration) whose members receive the roles"
+
+        - key: "cidGroupId"
+          label: "CID Group ID"
+          fieldType: "text"
+          required: true
+          helpText: "The MSSP CID group id (from an MSSP CID Group configuration) the roles apply to"
+
+        - key: "roleIds"
+          label: "Role IDs"
+          fieldType: "tags"
+          required: true
+          helpText: >
+            The Falcon role ids granted on this binding. Membership is converged
+            to exactly this set on deploy — because the grant is additive, roles
+            present on the binding but not listed here are explicitly revoked.

@@ -1,6 +1,6 @@
 id: crowdstrike-edr
 name: CrowdStrike Falcon
-version: "1.12.1"
+version: "1.13.0"
 vendor: Veltrix
 description: >
   Manage CrowdStrike Falcon configurations as code through the Falcon
@@ -157,6 +157,15 @@ permissions:
     - resource: idp-policy-rules
       actions: [read, write, delete]
       description: Manage CrowdStrike Falcon Identity Protection policy rules
+    - resource: mssp-cid-groups
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon Flight Control (MSSP) CID groups and their member CIDs
+    - resource: mssp-user-groups
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon Flight Control (MSSP) user groups and their members
+    - resource: mssp-role-mappings
+      actions: [read, write, delete]
+      description: Manage CrowdStrike Falcon Flight Control (MSSP) role mappings (user group ↔ CID group ↔ roles)
 
 pipeline:
   configurationTypes:
@@ -893,6 +902,60 @@ pipeline:
         healthCheck: config-types/idp-policy-rules/healthCheck
         driftDetect: config-types/idp-policy-rules/driftDetect
         getStatus: config-types/idp-policy-rules/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: mssp-cid-groups
+      group: "MSSP / Flight Control"
+      name: MSSP CID Group Configuration
+      description: Falcon Flight Control CID groups (name, description) and their member child CIDs — requires parent-CID credentials with Flight Control scope
+      canvasTemplate: config-types/mssp-cid-groups/canvas.yaml
+      defaultConfig: config-types/mssp-cid-groups/defaults.yaml
+      handlers:
+        validate: config-types/mssp-cid-groups/validate
+        deploy: config-types/mssp-cid-groups/deploy
+        rollback: config-types/mssp-cid-groups/rollback
+        healthCheck: config-types/mssp-cid-groups/healthCheck
+        driftDetect: config-types/mssp-cid-groups/driftDetect
+        getStatus: config-types/mssp-cid-groups/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: mssp-user-groups
+      group: "MSSP / Flight Control"
+      name: MSSP User Group Configuration
+      description: Falcon Flight Control user groups (name, description) and their member user UUIDs — requires parent-CID credentials with Flight Control scope
+      canvasTemplate: config-types/mssp-user-groups/canvas.yaml
+      defaultConfig: config-types/mssp-user-groups/defaults.yaml
+      handlers:
+        validate: config-types/mssp-user-groups/validate
+        deploy: config-types/mssp-user-groups/deploy
+        rollback: config-types/mssp-user-groups/rollback
+        healthCheck: config-types/mssp-user-groups/healthCheck
+        driftDetect: config-types/mssp-user-groups/driftDetect
+        getStatus: config-types/mssp-user-groups/getStatus
+      targets:
+        componentTypes: [falcon-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: mssp-role-mappings
+      group: "MSSP / Flight Control"
+      name: MSSP Role Mapping Configuration
+      description: Falcon Flight Control role mappings binding a user group ↔ CID group ↔ roles (grants are additive — drift-correct diffs and revokes)
+      canvasTemplate: config-types/mssp-role-mappings/canvas.yaml
+      defaultConfig: config-types/mssp-role-mappings/defaults.yaml
+      handlers:
+        validate: config-types/mssp-role-mappings/validate
+        deploy: config-types/mssp-role-mappings/deploy
+        rollback: config-types/mssp-role-mappings/rollback
+        healthCheck: config-types/mssp-role-mappings/healthCheck
+        driftDetect: config-types/mssp-role-mappings/driftDetect
+        getStatus: config-types/mssp-role-mappings/getStatus
       targets:
         componentTypes: [falcon-tenant]
         requiresCredential: true

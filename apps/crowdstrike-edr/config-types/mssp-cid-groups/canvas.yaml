@@ -1,0 +1,50 @@
+# =============================================================================
+# Canvas Template — CrowdStrike Falcon Flight Control (MSSP) CID Groups
+#
+# Declares ONE CID group — the item. Users add as many groups as they need.
+# Field keys must match what config-types/mssp-cid-groups/validate.ts checks.
+#
+# A CID group's identity in Falcon is its `name`; uniqueness per canvas is
+# enforced by validate.ts. Member child CIDs are embedded here and converged to
+# exactly the declared set on deploy. Requires PARENT-CID API credentials with
+# the Flight Control (MSSP) scope — only available on MSSP parent tenants.
+# =============================================================================
+
+id: "crowdstrike-edr-mssp-cid-groups"
+name: "MSSP CID Group Configuration"
+toolType: "crowdstrike-edr"
+entityType: "mssp-cid-groups"
+description: "Define Falcon Flight Control (MSSP) CID groups (name, description) and their member child CIDs as code via the MSSP API. Requires parent-CID credentials with the Flight Control scope."
+
+item:
+  label: "CID Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "layers"
+      description: "CID group identity and member child CIDs"
+      fields:
+        - key: "name"
+          label: "CID Group Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique CID group name in the MSSP parent tenant. Immutable identity — renaming creates a new group."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "What this CID group represents — shown in the Falcon console"
+
+        - key: "cids"
+          label: "Member Child CIDs"
+          fieldType: "tags"
+          helpText: >
+            The child customer IDs (CIDs) that belong to this group, each a
+            32-character hexadecimal string. Membership is converged to exactly
+            this set on deploy — CIDs present on the group but not listed here are
+            removed. Leave empty for an empty group.

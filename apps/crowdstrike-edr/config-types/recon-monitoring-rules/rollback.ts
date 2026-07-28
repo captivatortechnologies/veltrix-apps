@@ -3,6 +3,7 @@ import { buildFalconClient, falconFailure } from '../../lib/falcon'
 import { deleteEntity, findEntityByIdentity, updateEntity } from '../../lib/entityAdapter'
 import {
   RECON_RULE_ENDPOINTS,
+  createAction,
   deleteAction,
   updateAction,
   type ReconRuleRollbackEntry,
@@ -60,6 +61,12 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
             recipients: prior.recipients,
             content_format: prior.content_format,
           })
+        }
+
+        // Recreate the actions this deploy deleted, returning the rule's
+        // notifications to their pre-deploy state.
+        for (const del of entry.deletedActions ?? []) {
+          await createAction(client, entry.id, del)
         }
 
         // Restore the rule's prior mutable fields (topic is immutable — untouched).

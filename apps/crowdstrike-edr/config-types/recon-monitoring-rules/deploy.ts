@@ -58,6 +58,8 @@ export interface ReconRuleRollbackEntry {
   createdActionIds: string[]
   /** Live actions THIS deploy updated, with their prior values (restored on rollback). */
   updatedActions: ActionRestore[]
+  /** Pre-existing actions THIS deploy deleted (recreated on rollback). */
+  deletedActions: ActionSpec[]
 }
 
 /**
@@ -106,6 +108,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
           prior: capturePrior(existing),
           createdActionIds: [],
           updatedActions: [],
+          deletedActions: [],
         }
         rollbackState.push(entry)
         ruleId = existing.id
@@ -123,11 +126,17 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
           id: ruleId,
           createdActionIds: [],
           updatedActions: [],
+          deletedActions: [],
         }
         rollbackState.push(entry)
       }
 
-      await convergeActions(client, ruleId, actions, entry)
+      // Only manage actions when the canvas declares an actions value — a blank
+      // field leaves pre-existing actions untouched (consistent with driftDetect,
+      // which also treats a blank actions field as unmanaged).
+      if (spec.actionsRaw) {
+        await convergeActions(client, ruleId, actions, entry)
+      }
       deployed.push(spec.name)
     }
 
@@ -248,9 +257,16 @@ export async function convergeActions(
     }
   }
 
-  // Actions on the rule that are no longer declared are removed.
+  // Actions on the rule that are no longer declared are removed — but capture
+  // each one's full prior state first so rollback can recreate it.
   for (const action of live) {
     if (action.id && !matchedIds.has(action.id)) {
+      entry.deletedActions.push({
+        type: liveStr(action.type) ?? 'email',
+        frequency: liveStr(action.frequency) ?? '',
+        recipients: Array.isArray(action.recipients) ? action.recipients.map((r) => String(r)) : [],
+        contentFormat: liveStr(action.content_format) ?? 'standard',
+      })
       const res = await deleteAction(client, action.id)
       const failure = res.status === 404 ? null : falconFailure(res)
       if (failure) throw new Error(`Failed to delete action ${action.id}: ${failure}`)
