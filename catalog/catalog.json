@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-28T15:48:07.712Z",
+  "generatedAt": "2026-07-28T15:49:04.841Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -124,7 +124,7 @@
     {
       "appId": "defender-endpoint",
       "name": "Microsoft Defender for Endpoint",
-      "version": "1.2.0",
+      "version": "1.3.0",
       "vendor": "Veltrix",
       "description": "Manage Microsoft Defender for Endpoint threat intelligence as code. Covers file, network and certificate indicators (IoCs) via the Defender /api/indicators API, plus custom detection rules (PREVIEW) via the Microsoft Graph beta API — with validation, drift detection and rollback handled by the Security-as-Code pipeline. Auth is an Azure AD app registration (OAuth2 client credentials); the component hostname is the Defender API host (api.security.microsoft.com) and the tenant is set via the Tenant ID app setting.",
       "category": "EDR",
@@ -134,12 +134,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/defender-endpoint",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/defender-endpoint-v1.2.0/defender-endpoint.zip",
-      "sha256": "dec3ba4e5389b184d10964b92e77031940400c9e686bc62f75b6fe7279300dcf",
-      "sizeBytes": 127547,
-      "publishedAt": "2026-07-26T18:15:08.369Z",
-      "releaseNotes": "## 1.2.0 — 2026-07-26\n\n### Added\n- **Machine tags config type (`mde-machine-tags`).** Manage Defender device\n  (machine) tags as code. Each item declares one device — by its stable 40-hex\n  Defender device id, or by computer name — and the set of tags that should be\n  present on it. Tags are reconciled per (device, tag) via\n  `POST /api/machines/{id}/tags` with `Action: Add`, and the reconciliation is\n  **idempotent and non-destructive**: only tags this app added are removed on\n  rollback, and tags set by the portal or other tools are never touched.\n  - A device referenced by **computer name** is resolved with an OData `$filter`\n    on `computerDnsName` and may match more than one device (e.g. after a\n    re-image); the tags apply to every match. A device referenced by **id** is\n    resolved with a single `GET /api/machines/{id}`.\n  - A referenced device that is not found (never onboarded, or aged out of the\n    retention window) is recorded and skipped rather than failing the deploy;\n    drift and health checks flag it.\n  - Drift reports a declared device that no longer resolves as **critical** and a\n    missing declared tag as a **warning**. Unlike indicators and detection rules,\n    the Machine resource carries **no** per-tag audit stamps and Defender exposes\n    no config-change audit log for tags, so tag drift is not attributed to an\n    actor.\n  - Requires the `Machine.ReadWrite.All` application permission (distinct from the\n    `Ti.ReadWrite.All` used by the indicator types).\n\n### Not covered (no public API)\n- **Device / machine groups** are portal-only (Settings > Endpoints >\n  Permissions > Device groups); Defender exposes no public REST API to create,\n  update, or delete them (the Machine resource surfaces `rbacGroupId` /\n  `rbacGroupName` read-only). **Web content filtering policies** are likewise\n  portal-only (Settings > Endpoints > Rules > Web content filtering) with no\n  public Defender or Microsoft Graph API. Neither is stubbed.",
-      "releasedAt": "2026-07-26T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/defender-endpoint-v1.3.0/defender-endpoint.zip",
+      "sha256": "83e136cd26ee5707396fa4aef4bd6c92305f094aaa8caf6de5dc721cc37761ac",
+      "sizeBytes": 145580,
+      "publishedAt": "2026-07-28T15:49:04.810Z",
+      "releaseNotes": "## 1.3.0 — 2026-07-28\n\n### Added\n- **Device value config type (`mde-device-values`).** Manage a device's\n  **business criticality** — `Normal` / `Low` / `High` — as code. This is the\n  `deviceValue` property that weights a device in Defender Vulnerability\n  Management exposure scoring. Each item declares one device (by its stable\n  40-hex Defender device id, or by computer name) and the criticality it should\n  carry; the value is reconciled per device via `PATCH /api/machines/{id}`.\n  - Unlike tags (a non-destructive set), `deviceValue` is a **single-valued**\n    property, so deploy captures the previous value per device and rollback\n    restores it exactly. Only one item may own a given device's value; the\n    validator rejects a device declared twice.\n  - A device referenced by **computer name** is resolved with an OData `$filter`\n    on `computerDnsName` and may match more than one device; the value applies to\n    every match. A device referenced by **id** is a single `GET /api/machines/{id}`.\n  - A referenced device that no longer resolves (never onboarded, or aged out of\n    the retention window) is recorded and skipped rather than failing the deploy;\n    drift reports it as **critical** and a changed live value as a **warning**.\n  - Shares the `Machine.ReadWrite.All` application permission already used by the\n    machine-tags type (same Update-machine endpoint).",
+      "releasedAt": "2026-07-28T00:00:00.000Z"
     },
     {
       "appId": "elastic-security",
