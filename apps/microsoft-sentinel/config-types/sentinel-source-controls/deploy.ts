@@ -7,6 +7,7 @@ import {
   extractSourceControlSpecs,
   pickNonSecretProperties,
   sourceControlKey,
+  sourceControlUnchanged,
   type SourceControlProperties,
 } from './validate'
 
@@ -45,6 +46,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const rollbackState: SourceControlRollbackEntry[] = []
   const created: string[] = []
   const updated: string[] = []
+  const unchanged: string[] = []
 
   try {
     // One list serves every lookup — the collection is reconciled by display name.
@@ -54,6 +56,17 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     for (const spec of specs) {
       const existing = byName.get(sourceControlKey(spec.displayName))
       const existed = Boolean(existing?.name)
+
+      // Skip a no-op re-PUT: an existing connection, no new credential, and no
+      // non-secret change. A bare PUT re-runs provisioning (re-consumes the
+      // credential, re-creates the repo webhook / ADO pipeline), so re-deploying an
+      // unchanged connection could break a working one — leave it untouched. Not
+      // recorded for rollback (this deploy changed nothing for it).
+      if (existed && !spec.accessToken && sourceControlUnchanged(spec, existing!.properties)) {
+        unchanged.push(spec.displayName)
+        continue
+      }
+
       const sourceControlId = existing?.name ?? randomUUID()
 
       rollbackState.push({
@@ -73,11 +86,12 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       ;(existed ? updated : created).push(spec.displayName)
     }
 
+    const skippedNote = unchanged.length ? `, ${unchanged.length} unchanged` : ''
     return {
       success: true,
-      message: `Source controls deployed to ${armHost}: ${created.length} created, ${updated.length} updated`,
+      message: `Source controls deployed to ${armHost}: ${created.length} created, ${updated.length} updated${skippedNote}`,
       // artifacts carry names only — never the repository credential.
-      artifacts: { armHost, created, updated },
+      artifacts: { armHost, created, updated, unchanged },
       rollbackData: { previousState: rollbackState },
     }
   } catch (error) {

@@ -177,6 +177,30 @@ export function pickNonSecretProperties(properties: unknown): SourceControlPrope
   }
 }
 
+/** Order-independent, case-preserving comparison key for a content-type array. */
+export function contentTypesKey(values: string[]): string {
+  return [...values].map((v) => String(v)).sort().join(',')
+}
+
+/**
+ * True when a live source control already matches the declared non-secret config
+ * (repo type, content types, repository url/branch, version) — the same fields
+ * drift compares. Deploy uses this to SKIP a no-op re-PUT: a bare PUT of an
+ * existing sourcecontrol re-runs repository provisioning and re-consumes the
+ * write-only credential, so an unchanged connection with no new credential is left
+ * untouched to avoid silently breaking a working repo webhook / pipeline.
+ */
+export function sourceControlUnchanged(spec: SourceControlSpec, liveProperties: unknown): boolean {
+  const live = pickNonSecretProperties(liveProperties)
+  return (
+    spec.repoType === live.repoType &&
+    spec.repoUrl === live.repository.url &&
+    spec.repoBranch === live.repository.branch &&
+    spec.version === live.version &&
+    contentTypesKey(spec.contentTypes) === contentTypesKey(live.contentTypes)
+  )
+}
+
 /**
  * Validate source controls. Each needs a unique display name, a supported repo
  * type, an http(s) repository URL, a branch, and at least one valid content type.

@@ -104,12 +104,22 @@ describe('Sentinel Microsoft Security Rules Validate Handler', () => {
     expect(result.errors.some((e) => e.code === 'duplicate_rule')).toBe(true)
   })
 
-  it('extract derives a deterministic ruleId slug and reads list fields', () => {
+  it('extract derives a deterministic, namespaced ruleId and reads list fields', () => {
     const specs = extractMsSecuritySpecs(makeCtx([{ name: 'r', fields: { ...validRule, rule_name: '  Impossible Travel!  ' } }]).canvas)
     expect(specs[0].ruleName).toBe('Impossible Travel!')
-    expect(specs[0].ruleId).toBe('impossible-travel')
+    // ruleId is namespaced (prefixed) so it can't collide with an analytics rule
+    // in the shared /alertRules collection; the intra-type key stays the bare slug.
+    expect(specs[0].ruleId).toBe('mssecurity--impossible-travel')
     expect(specs[0].severitiesFilter).toEqual(['High', 'Medium'])
     expect(ruleKey('Impossible Travel!')).toBe('impossible-travel')
+  })
+
+  it('never produces a ruleId that could collide with an analytics-rule slug', () => {
+    // slugify never emits `--`, so a `--`-containing namespaced id is disjoint from
+    // any analytics rule's slug — even for an adversarially crafted name.
+    const specs = extractMsSecuritySpecs(makeCtx([{ name: 'r', fields: { ...validRule, rule_name: 'mssecurity foo' } }]).canvas)
+    expect(specs[0].ruleId).toBe('mssecurity--mssecurity-foo')
+    expect(specs[0].ruleId.includes('--')).toBe(true)
   })
 
   it('reads a comma-separated list into a trimmed array', () => {

@@ -2,12 +2,7 @@ import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sd
 import { buildSentinelClient } from '../../lib/sentinel'
 import { attachDriftActor, veltrixActorLogins } from '../../lib/sentinelActivityLog'
 import { indexByDisplayName, listSourceControls, type LiveSourceControl } from './healthCheck'
-import { extractSourceControlSpecs, sourceControlKey } from './validate'
-
-/** Order-independent, case-preserving comparison of two content-type arrays. */
-function contentTypesKey(values: string[]): string {
-  return [...values].map((v) => String(v)).sort().join(',')
-}
+import { contentTypesKey, extractSourceControlSpecs, sourceControlKey } from './validate'
 
 /**
  * Detect drift between the deployed source controls and the live workspace. A

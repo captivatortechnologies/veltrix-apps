@@ -24,7 +24,8 @@ export type ProductFilter = (typeof PRODUCT_FILTERS)[number]
 export interface MsSecurityRuleSpec {
   sectionName: string
   ruleName: string
-  /** URL-safe ARM ruleId derived from the name (deterministic → idempotent PUT). */
+  /** Namespaced, URL-safe ARM ruleId derived from the name (deterministic →
+   *  idempotent PUT; prefixed so it can't collide with an analytics-rule slug). */
   ruleId: string
   enabled: boolean
   productFilter: string
@@ -35,9 +36,24 @@ export interface MsSecurityRuleSpec {
   severitiesFilter: string[]
 }
 
-/** The reconciliation key is the slug of the rule name (also the ARM ruleId). */
+/**
+ * ARM ruleId namespace for this type. Both this type and the shipped
+ * sentinel-analytics-rules type write into the SAME `/alertRules` collection keyed
+ * by slug-of-name, so identical names would collide (the second PUT overwrites the
+ * first and flips its `kind`). slugify collapses runs to a single hyphen and never
+ * emits a leading/trailing or double hyphen, so a prefix that ENDS in `--` can
+ * never equal any analytics rule's slug — making the namespaces provably disjoint.
+ */
+export const MS_SECURITY_RULE_ID_PREFIX = 'mssecurity--'
+
+/** The intra-type uniqueness key is the slug of the rule name. */
 export function ruleKey(name: string): string {
   return slugify(name)
+}
+
+/** The ARM ruleId — namespaced so it cannot collide with an analytics rule. */
+export function msSecurityRuleId(name: string): string {
+  return MS_SECURITY_RULE_ID_PREFIX + slugify(name)
 }
 
 function readBool(value: unknown, fallback = false): boolean {
@@ -61,7 +77,7 @@ export function extractMsSecuritySpecs(canvas: CanvasSnapshot): MsSecurityRuleSp
     return {
       sectionName: section.name,
       ruleName: name,
-      ruleId: slugify(name),
+      ruleId: msSecurityRuleId(name),
       enabled: readBool(fields.enabled, true),
       productFilter: typeof fields.product_filter === 'string' ? fields.product_filter.trim() : '',
       description: typeof fields.description === 'string' ? fields.description.trim() : '',

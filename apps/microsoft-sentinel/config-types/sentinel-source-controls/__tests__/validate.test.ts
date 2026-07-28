@@ -4,6 +4,7 @@ import validate, {
   buildRepositoryAccess,
   buildSourceControlBody,
   pickNonSecretProperties,
+  sourceControlUnchanged,
 } from '../validate'
 import type { PipelineContext, PlatformDataApi } from '@veltrixsecops/app-sdk'
 
@@ -201,6 +202,24 @@ describe('Sentinel Source Controls Validate Handler', () => {
     const noSecret = extractSourceControlSpecs(makeCtx([{ name: 'c', fields: { ...validPat, access_token: '' } }]).canvas)[0]
     const body2 = buildSourceControlBody(noSecret) as { properties: { repositoryAccess?: unknown } }
     expect(body2.properties.repositoryAccess).toBe(undefined)
+  })
+
+  it('sourceControlUnchanged detects a matching live connection (content types order-independent)', () => {
+    const [spec] = extractSourceControlSpecs(makeCtx([{ name: 'c', fields: { ...validPat } }]).canvas)
+    const liveMatch = {
+      displayName: 'SOC Content Repo',
+      repoType: 'Github',
+      // reversed order — the comparison is order-independent.
+      contentTypes: ['HuntingQuery', 'AnalyticsRule'],
+      repository: { url: 'https://github.com/org/sentinel-content', branch: 'main' },
+      version: 'V2',
+    }
+    expect(sourceControlUnchanged(spec, liveMatch)).toBe(true)
+    // Any non-secret difference flips it to changed → deploy will re-PUT.
+    expect(sourceControlUnchanged(spec, { ...liveMatch, version: 'V1' })).toBe(false)
+    expect(sourceControlUnchanged(spec, { ...liveMatch, repository: { url: 'https://github.com/org/other', branch: 'main' } })).toBe(false)
+    expect(sourceControlUnchanged(spec, { ...liveMatch, repository: { url: liveMatch.repository.url, branch: 'develop' } })).toBe(false)
+    expect(sourceControlUnchanged(spec, { ...liveMatch, contentTypes: ['AnalyticsRule'] })).toBe(false)
   })
 
   it('pickNonSecretProperties keeps non-secret fields and can never carry a credential', () => {
