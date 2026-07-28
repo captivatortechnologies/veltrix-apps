@@ -8,7 +8,7 @@ import {
   workspaceSourceId,
   type LiveWorkbook,
 } from '../deploy'
-import { serializedDataHash, canonicalizeSerializedData } from '../driftDetect'
+import { serializedDataHash, canonicalizeSerializedData, serializedDataContains } from '../driftDetect'
 import type { PipelineContext, PlatformDataApi } from '@veltrixsecops/app-sdk'
 
 const stubPlatform: PlatformDataApi = {
@@ -162,5 +162,43 @@ describe('Sentinel Workbooks serializedData hash (drift is hash-compared)', () =
   it('falls back to the trimmed raw string when serializedData does not parse', () => {
     expect(canonicalizeSerializedData('  not json  ')).toBe('not json')
     expect(serializedDataHash('not json')).toBe(serializedDataHash('  not json  '))
+  })
+})
+
+describe('Sentinel Workbooks serializedData containment (ignores Azure server-added defaults)', () => {
+  it('is NOT drift when the live blob only ADDS default properties (top-level + per-item)', () => {
+    const declared = JSON.stringify({ version: 'Notebook/1.0', items: [{ type: 1, content: { query: 'X' } }] })
+    // Azure adds $schema / isLocked / styleSettings and per-item defaults on save.
+    const live = JSON.stringify({
+      $schema: 'https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json',
+      version: 'Notebook/1.0',
+      isLocked: false,
+      styleSettings: {},
+      items: [{ type: 1, content: { query: 'X' }, conditionalVisibility: null, showPin: false }],
+    })
+    expect(serializedDataContains(declared, live)).toBe(true)
+  })
+
+  it('IS drift when a declared value changes', () => {
+    const declared = JSON.stringify({ items: [{ content: { query: 'A' } }] })
+    const live = JSON.stringify({ items: [{ content: { query: 'B' }, showPin: false }] })
+    expect(serializedDataContains(declared, live)).toBe(false)
+  })
+
+  it('IS drift when a declared key is removed from the live blob', () => {
+    const declared = JSON.stringify({ title: 'Ops', items: [1, 2] })
+    const live = JSON.stringify({ items: [1, 2], isLocked: false }) // title removed
+    expect(serializedDataContains(declared, live)).toBe(false)
+  })
+
+  it('IS drift when an item is added or removed (order + length are significant)', () => {
+    const declared = JSON.stringify({ items: [{ id: 'a' }, { id: 'b' }] })
+    expect(serializedDataContains(declared, JSON.stringify({ items: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] }))).toBe(false)
+    expect(serializedDataContains(declared, JSON.stringify({ items: [{ id: 'a' }] }))).toBe(false)
+  })
+
+  it('falls back to canonical-hash equality when a blob is not JSON', () => {
+    expect(serializedDataContains('not json', '  not json  ')).toBe(true)
+    expect(serializedDataContains('not json', 'different')).toBe(false)
   })
 })
