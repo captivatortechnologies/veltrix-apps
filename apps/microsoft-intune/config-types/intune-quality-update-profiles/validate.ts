@@ -1,5 +1,5 @@
 import type { CanvasSnapshot, PipelineContext, ValidationResult } from '@veltrixsecops/app-sdk'
-import type { AssignmentSpec } from '../../lib/assignments'
+import { hasAnyAssignment, type AssignmentSpec } from '../../lib/assignments'
 
 /** The @odata.type of a Windows quality update (expedite) profile — its own top-level collection. */
 export const QUALITY_UPDATE_PROFILE_ODATA_TYPE = '#microsoft.graph.windowsQualityUpdateProfile'
@@ -58,10 +58,9 @@ function readBool(value: unknown): boolean | undefined {
   return undefined
 }
 
-/** True when at least one assignment target is declared (drives assign convergence). */
-export function hasAnyAssignment(spec: AssignmentSpec): boolean {
-  return spec.includeGroupIds.length > 0 || spec.excludeGroupIds.length > 0 || Boolean(spec.allDevices) || Boolean(spec.allUsers)
-}
+// hasAnyAssignment lives once in lib/assignments (imported above); re-exported here
+// for this type's deploy/drift/tests that import it from ./validate.
+export { hasAnyAssignment }
 
 /** Each canvas item is one quality update profile: name + release/reboot settings + assignments. */
 export function extractProfileSpecs(canvas: CanvasSnapshot): QualityUpdateProfileSpec[] {

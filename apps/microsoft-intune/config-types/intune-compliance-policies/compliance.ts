@@ -187,11 +187,8 @@ export function readAssignmentSpec(fields: Record<string, unknown>): AssignmentS
   }
 }
 
-/** True when the canvas declares at least one assignment target. When false, deploy
- *  leaves the policy's assignments untouched (preserving manual assignments). */
-export function hasAnyAssignment(spec: AssignmentSpec): boolean {
-  return spec.includeGroupIds.length > 0 || spec.excludeGroupIds.length > 0 || Boolean(spec.allDevices) || Boolean(spec.allUsers)
-}
+// hasAnyAssignment is defined once in lib/assignments (single source of truth).
+export { hasAnyAssignment } from '../../lib/assignments'
 
 // --- Body builders -----------------------------------------------------------
 

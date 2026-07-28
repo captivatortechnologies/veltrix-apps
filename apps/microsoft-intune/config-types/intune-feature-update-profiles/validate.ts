@@ -1,5 +1,5 @@
 import type { CanvasSnapshot, PipelineContext, ValidationResult } from '@veltrixsecops/app-sdk'
-import type { AssignmentSpec } from '../../lib/assignments'
+import { hasAnyAssignment, type AssignmentSpec } from '../../lib/assignments'
 
 /** The @odata.type of a Windows feature update profile (its OWN top-level collection). */
 export const WINDOWS_FEATURE_UPDATE_PROFILE_ODATA_TYPE = '#microsoft.graph.windowsFeatureUpdateProfile'
@@ -128,10 +128,9 @@ export function readRolloutSettings(
   }
 }
 
-/** True when at least one assignment target is declared (drives assign convergence). */
-export function hasAnyAssignment(spec: AssignmentSpec): boolean {
-  return spec.includeGroupIds.length > 0 || spec.excludeGroupIds.length > 0 || Boolean(spec.allDevices) || Boolean(spec.allUsers)
-}
+// hasAnyAssignment lives once in lib/assignments (imported above); re-exported here
+// for this type's deploy/drift/tests that import it from ./validate.
+export { hasAnyAssignment }
 
 /** Each canvas item is one feature update profile: name + writable fields + rollout + assignments. */
 export function extractProfileSpecs(canvas: CanvasSnapshot): FeatureUpdateProfileSpec[] {

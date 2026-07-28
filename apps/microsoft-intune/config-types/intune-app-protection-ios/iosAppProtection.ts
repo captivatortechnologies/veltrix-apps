@@ -118,10 +118,8 @@ export function normalizeAppGroupType(value: unknown): AppGroupType {
   return 'selectedPublicApps'
 }
 
-/** True when at least one assignment target is declared (drives the no-assignment warning). */
-export function hasAnyAssignment(spec: AssignmentSpec): boolean {
-  return spec.includeGroupIds.length > 0 || spec.excludeGroupIds.length > 0 || Boolean(spec.allUsers)
-}
+// hasAnyAssignment is defined once in lib/assignments (single source of truth).
+export { hasAnyAssignment } from '../../lib/assignments'
 
 /** Read the writable scalar fields off a section into a Graph-keyed map (blank = omitted). */
 export function readManagedFields(fields: Record<string, unknown>): Record<string, unknown> {

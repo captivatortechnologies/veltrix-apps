@@ -91,3 +91,20 @@ export function readAssignments(
   }
   return { includeGroupIds, excludeGroupIds, allDevices, allUsers }
 }
+
+/**
+ * True when the canvas declares at least one assignment target (an include or
+ * exclude group, all-devices or all-users). This drives whether a type manages
+ * assignments at all: when it is false, deploy leaves the policy's live
+ * assignments untouched — so manually-added (portal) assignments are preserved —
+ * and drift does not compare them. When true, the `assign` action fully replaces
+ * the live assignments with the declared set.
+ */
+export function hasAnyAssignment(spec: AssignmentSpec): boolean {
+  return (
+    spec.includeGroupIds.length > 0 ||
+    spec.excludeGroupIds.length > 0 ||
+    Boolean(spec.allDevices) ||
+    Boolean(spec.allUsers)
+  )
+}

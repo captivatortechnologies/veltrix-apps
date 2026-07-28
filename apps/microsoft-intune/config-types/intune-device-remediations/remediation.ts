@@ -136,10 +136,8 @@ export function toTimeOfDay(value: string): string {
   return `${hhmm(value)}:00.0000000`
 }
 
-/** True when at least one assignment target is declared (drives the no-assignment warning). */
-export function hasAnyAssignment(spec: AssignmentSpec): boolean {
-  return spec.includeGroupIds.length > 0 || spec.excludeGroupIds.length > 0 || Boolean(spec.allDevices) || Boolean(spec.allUsers)
-}
+// hasAnyAssignment is defined once in lib/assignments (single source of truth).
+export { hasAnyAssignment } from '../../lib/assignments'
 
 // --- base64 (Buffer is a node global; typechecks against @types/node) ---------
 

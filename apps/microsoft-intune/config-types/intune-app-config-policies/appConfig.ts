@@ -186,10 +186,8 @@ export function readAssignmentSpec(fields: Record<string, unknown>): AssignmentS
   }
 }
 
-/** True when at least one assignment target is declared (drives the no-assignment warning). */
-export function hasAnyAssignment(spec: AssignmentSpec): boolean {
-  return spec.includeGroupIds.length > 0 || spec.excludeGroupIds.length > 0 || Boolean(spec.allUsers)
-}
+// hasAnyAssignment is defined once in lib/assignments (single source of truth).
+export { hasAnyAssignment } from '../../lib/assignments'
 
 // --- Body builders -----------------------------------------------------------
 
