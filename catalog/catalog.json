@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-28T18:39:31.426Z",
+  "generatedAt": "2026-07-28T18:53:34.611Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -271,9 +271,9 @@
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-intune",
       "available": true,
       "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-intune-v1.5.0/microsoft-intune.zip",
-      "sha256": "aacf65095ea2618cd1999ddf49ceb1b9bc4efede155122385b8ae5b6518175a6",
-      "sizeBytes": 372737,
-      "publishedAt": "2026-07-28T17:58:22.366Z",
+      "sha256": "bb1c85c7cb30b49db2fb12df48c6ec57b5498e2e9d611fcafa59afd86ed54314",
+      "sizeBytes": 374884,
+      "publishedAt": "2026-07-28T18:53:34.578Z",
       "releaseNotes": "## 1.5.0 — 2026-07-28\n\n### Added\n- **Scripts & Remediations** — `intune-device-remediations` (deviceHealthScript —\n  detection + remediation script pair with a run schedule) and\n  `intune-platform-scripts` (deviceManagementScript — Windows PowerShell scripts).\n- **Governance** — `intune-scope-tags` (roleScopeTag RBAC scoping labels).\n- **App Protection** — `intune-app-config-policies` (targetedManagedAppConfiguration —\n  custom key/value settings for managed apps, with targeted apps + assignments).\n\n### Notes\n- Deferred as lower-drift / heavier-schema future adds: device configuration\n  profile subtypes (settings-catalog import already covers the modern path),\n  enrollment configurations/ESP, Autopilot deployment profiles, and ADMX\n  administrative templates.",
       "releasedAt": "2026-07-28T00:00:00.000Z"
     },
