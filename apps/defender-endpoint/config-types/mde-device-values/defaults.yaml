@@ -1,0 +1,5 @@
+# Defaults for a new device-value item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a flat map keyed by the
+# canvas field keys (device_type, device, criticality).

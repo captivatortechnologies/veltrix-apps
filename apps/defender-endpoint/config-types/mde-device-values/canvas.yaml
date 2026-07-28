@@ -1,0 +1,57 @@
+# =============================================================================
+# Canvas Template — Defender for Endpoint Device Values (business criticality)
+#
+# Declares ONE device criticality assignment — the item. Users add as many as
+# they need. Identity is the device (a device may own only one criticality). The
+# value is applied via PATCH /api/machines/{id} { "deviceValue": ... } and is a
+# SINGLE-VALUED property. Field keys must match
+# config-types/mde-device-values/validate.ts (extractDeviceValueSpecs).
+# =============================================================================
+
+id: "mde-device-values"
+name: "Defender Device Values"
+toolType: "defender-endpoint"
+entityType: "mde-device-values"
+description: "Manage a Microsoft Defender for Endpoint device's business criticality (the deviceValue property) as code via the /api/machines/{id} API. Needs the Machine.ReadWrite.All application permission."
+
+item:
+  label: "Device Value"
+  identityField: "device"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Device"
+      icon: "monitor"
+      description: "The device to weight and how it is identified"
+      fields:
+        - key: "device_type"
+          label: "Identify device by"
+          fieldType: "select"
+          required: true
+          defaultValue: "id"
+          options:
+            - { label: "Device ID", value: "id" }
+            - { label: "Computer name", value: "name" }
+          helpText: "Device ID is the stable 40-character Defender device id. Computer name (DNS) may match more than one device — the value applies to every match."
+
+        - key: "device"
+          label: "Device"
+          fieldType: "text"
+          required: true
+          helpText: "The 40-character hex Defender device id, or the computer's fully-qualified name (e.g. host1.contoso.com)."
+
+    - name: "Value"
+      icon: "gauge"
+      description: "The business criticality assigned to the device"
+      fields:
+        - key: "criticality"
+          label: "Business criticality"
+          fieldType: "select"
+          required: true
+          defaultValue: "High"
+          options:
+            - { label: "Normal", value: "Normal" }
+            - { label: "Low", value: "Low" }
+            - { label: "High", value: "High" }
+          helpText: "The Defender deviceValue that weights the device in Defender Vulnerability Management exposure scoring."

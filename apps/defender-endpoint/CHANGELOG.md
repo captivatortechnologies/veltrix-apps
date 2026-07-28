@@ -3,6 +3,28 @@
 All notable changes to the Microsoft Defender for Endpoint app are documented
 here. This project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.3.0 — 2026-07-28
+
+### Added
+- **Device value config type (`mde-device-values`).** Manage a device's
+  **business criticality** — `Normal` / `Low` / `High` — as code. This is the
+  `deviceValue` property that weights a device in Defender Vulnerability
+  Management exposure scoring. Each item declares one device (by its stable
+  40-hex Defender device id, or by computer name) and the criticality it should
+  carry; the value is reconciled per device via `PATCH /api/machines/{id}`.
+  - Unlike tags (a non-destructive set), `deviceValue` is a **single-valued**
+    property, so deploy captures the previous value per device and rollback
+    restores it exactly. Only one item may own a given device's value; the
+    validator rejects a device declared twice.
+  - A device referenced by **computer name** is resolved with an OData `$filter`
+    on `computerDnsName` and may match more than one device; the value applies to
+    every match. A device referenced by **id** is a single `GET /api/machines/{id}`.
+  - A referenced device that no longer resolves (never onboarded, or aged out of
+    the retention window) is recorded and skipped rather than failing the deploy;
+    drift reports it as **critical** and a changed live value as a **warning**.
+  - Shares the `Machine.ReadWrite.All` application permission already used by the
+    machine-tags type (same Update-machine endpoint).
+
 ## 1.2.0 — 2026-07-26
 
 ### Added

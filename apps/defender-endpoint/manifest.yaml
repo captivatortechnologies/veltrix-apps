@@ -1,6 +1,6 @@
 id: defender-endpoint
 name: Microsoft Defender for Endpoint
-version: "1.2.0"
+version: "1.3.0"
 vendor: Veltrix
 description: >
   Manage Microsoft Defender for Endpoint threat intelligence as code. Covers file,
@@ -46,6 +46,9 @@ permissions:
     - resource: mde-machine-tags
       actions: [read, write, delete]
       description: Manage Defender device (machine) tags
+    - resource: mde-device-values
+      actions: [read, write]
+      description: Manage Defender device value (business criticality)
 
 pipeline:
   configurationTypes:
@@ -129,6 +132,23 @@ pipeline:
         healthCheck: config-types/mde-machine-tags/healthCheck
         driftDetect: config-types/mde-machine-tags/driftDetect
         getStatus: config-types/mde-machine-tags/getStatus
+      targets:
+        componentTypes: [mde-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: mde-device-values
+      name: Defender Device Value
+      description: Device business criticality (Normal / Low / High) via PATCH /api/machines/{id}; a single-valued property reconciled per device with previous-value rollback. Needs the Machine.ReadWrite.All application permission
+      canvasTemplate: config-types/mde-device-values/canvas.yaml
+      defaultConfig: config-types/mde-device-values/defaults.yaml
+      handlers:
+        validate: config-types/mde-device-values/validate
+        deploy: config-types/mde-device-values/deploy
+        rollback: config-types/mde-device-values/rollback
+        healthCheck: config-types/mde-device-values/healthCheck
+        driftDetect: config-types/mde-device-values/driftDetect
+        getStatus: config-types/mde-device-values/getStatus
       targets:
         componentTypes: [mde-tenant]
         requiresCredential: true
