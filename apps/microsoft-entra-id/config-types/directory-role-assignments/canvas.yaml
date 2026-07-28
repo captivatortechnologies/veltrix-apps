@@ -1,0 +1,60 @@
+# =============================================================================
+# Canvas Template — Entra ID Directory Role Assignments (unifiedRoleAssignment)
+#
+# Declares ONE active/permanent directory role assignment — the item. Users add
+# as many as they need. An assignment has no user-facing name; its identity is
+# the tuple (roleDefinitionId + principalId + directoryScopeId). deploy lists
+# assignments, matches on that tuple, and POSTs any that are missing.
+#
+# unifiedRoleAssignment is IMMUTABLE — there is NO PATCH. A "changed" assignment
+# is a new tuple (create), and its predecessor is deleted by reconcile only if
+# this app created it. Reconcile only deletes assignments this app created.
+#
+# Field keys must match config-types/directory-role-assignments/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-directory-role-assignments"
+name: "Directory Role Assignment Configuration"
+toolType: "microsoft-entra-id"
+entityType: "directory-role-assignments"
+description: "Define Entra ID active/permanent directory role assignments (which principal holds which role, and at what scope) as code through the Microsoft Graph API. Assignments are immutable — a change is reconciled as delete + recreate."
+
+item:
+  label: "Role Assignment"
+  identityField: "roleDefinitionId"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Role Assignment"
+      icon: "key"
+      description: "Role, principal and scope"
+      fields:
+        - key: "roleDefinitionId"
+          label: "Role Definition ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The role's template GUID (e.g. 62e90394-69f5-4237-9190-012177145e10
+            for Global Administrator) or a custom roleDefinition id.
+
+        - key: "principalId"
+          label: "Principal (object) ID"
+          fieldType: "text"
+          required: true
+          helpText: "Object id of the user, role-assignable group or service principal that receives the role."
+
+        - key: "directoryScopeId"
+          label: "Directory Scope"
+          fieldType: "text"
+          required: false
+          defaultValue: "/"
+          helpText: >
+            Scope of the assignment. "/" is tenant-wide; use
+            "/administrativeUnits/{id}" to scope to an administrative unit.
+
+        - key: "label"
+          label: "Label (display only)"
+          fieldType: "text"
+          required: false
+          helpText: "Optional friendly name shown in the console. Never sent to Graph."

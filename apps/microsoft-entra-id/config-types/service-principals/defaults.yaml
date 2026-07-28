@@ -1,0 +1,8 @@
+# Defaults for a new service principal item.
+#
+# Values are a FLAT map keyed by the canvas field keys. A new SP starts enabled,
+# without a user-assignment requirement, and with no single sign-on mode set.
+# appId is left blank — the operator supplies the application's appId.
+accountEnabled: true
+appRoleAssignmentRequired: false
+preferredSingleSignOnMode: ""

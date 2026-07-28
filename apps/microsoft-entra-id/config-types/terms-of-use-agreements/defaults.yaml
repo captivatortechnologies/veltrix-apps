@@ -1,0 +1,14 @@
+# Defaults for a new terms of use agreement item.
+#
+# Values are a FLAT map keyed by the canvas field keys. Acceptance flags default
+# off, the schedule fields blank (not managed), and the file name/language seed
+# sensible values. fileData is intentionally empty — the author must paste the
+# base64 PDF, which Graph requires to create the agreement.
+viewingBeforeAcceptanceRequired: false
+perDeviceAcceptanceRequired: false
+reacceptFrequency: ""
+expirationStartDate: ""
+expirationFrequency: ""
+fileName: "agreement.pdf"
+fileLanguage: "en"
+fileData: ""

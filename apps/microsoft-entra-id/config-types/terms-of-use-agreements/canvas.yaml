@@ -1,0 +1,125 @@
+# =============================================================================
+# Canvas Template — Entra ID Terms of Use Agreements
+#
+# Declares ONE terms of use agreement — the item. Users add as many as they
+# need. The logical identity is its NAME (displayName); deploy lists agreements,
+# matches on the name (or a stored id, rename-safe), and PATCHes (update) or
+# POSTs (create) accordingly. Reconcile only deletes agreements this app created.
+#
+# The agreement PDF is carried as base64 in the `fileData` field. Graph REQUIRES
+# at least one file with base64 fileData when an agreement is CREATED, so
+# fileData is required. Graph's v1.0 PATCH can only change `displayName` and
+# `isViewingBeforeAcceptanceRequired` — the other metadata (per-device
+# acceptance, re-accept frequency, expiration) and the PDF itself are only
+# settable at create time. Replacing the PDF or those create-only fields on a
+# live agreement is out of scope for update; recreate the agreement instead.
+#
+# Field keys must match config-types/terms-of-use-agreements/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-terms-of-use-agreements"
+name: "Terms of Use Agreement Configuration"
+toolType: "microsoft-entra-id"
+entityType: "terms-of-use-agreements"
+description: "Define Entra terms of use agreements (acceptance requirements, expiration schedule and the PDF localization) as code through the Microsoft Graph API."
+
+item:
+  label: "Terms of Use Agreement"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Agreement"
+      icon: "file-text"
+      description: "Name and acceptance requirements"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            Display name of the agreement (max 256 chars). Must be unique within
+            this canvas — it is the logical identity deploy matches on. Also used
+            as the PDF file display name.
+
+        - key: "viewingBeforeAcceptanceRequired"
+          label: "Require viewing before acceptance"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: >
+            When set, the user must expand and view the agreement before they can
+            accept it. This is the only acceptance flag Graph can also change on
+            an existing agreement via update.
+
+        - key: "perDeviceAcceptanceRequired"
+          label: "Require acceptance per device"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: >
+            When set, users must accept this agreement on every device they use.
+            Create-time only — Graph v1.0 cannot change this on a live agreement.
+
+    - name: "Re-acceptance & expiration"
+      icon: "clock"
+      description: "How often users must re-accept, and when the agreement expires"
+      fields:
+        - key: "reacceptFrequency"
+          label: "Re-accept required frequency"
+          fieldType: "text"
+          required: false
+          helpText: >
+            ISO 8601 duration after which users must re-accept, e.g. "P365D" for
+            yearly. Leave blank for none. Create-time only.
+
+        - key: "expirationStartDate"
+          label: "Expiration start date/time"
+          fieldType: "text"
+          required: false
+          helpText: >
+            ISO 8601 date-time (UTC) when the agreement first expires for all
+            users, e.g. "2026-01-01T00:00:00Z". Requires an expiration frequency.
+            Create-time only.
+
+        - key: "expirationFrequency"
+          label: "Expiration frequency"
+          fieldType: "text"
+          required: false
+          helpText: >
+            ISO 8601 duration at which the agreement re-expires after the start
+            date, e.g. "P365D". Requires an expiration start date. Create-time only.
+
+    - name: "PDF file"
+      icon: "upload"
+      description: "The agreement PDF (base64) and its localization"
+      fields:
+        - key: "fileName"
+          label: "File name"
+          fieldType: "text"
+          required: false
+          defaultValue: "agreement.pdf"
+          validation:
+            maxLength: 256
+          helpText: "Name of the PDF file, e.g. agreement.pdf."
+
+        - key: "fileLanguage"
+          label: "File language"
+          fieldType: "text"
+          required: false
+          defaultValue: "en"
+          helpText: >
+            Language of the PDF as a language/locale code, e.g. "en" or "en-US".
+
+        - key: "fileData"
+          label: "PDF content (base64)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The agreement PDF encoded as base64. Required — Graph needs a file to
+            create an agreement. The PDF bytes are NOT compared for drift, and a
+            live agreement's PDF cannot be replaced via update; recreate the
+            agreement to change the document.

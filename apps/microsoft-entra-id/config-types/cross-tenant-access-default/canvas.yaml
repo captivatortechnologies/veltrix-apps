@@ -1,0 +1,88 @@
+# =============================================================================
+# Canvas Template — Entra ID Cross-Tenant Access Default Policy (singleton)
+#
+# The cross-tenant access default policy is a tenant-wide singleton at
+# /policies/crossTenantAccessPolicy/default with no create/delete — deploy reads
+# it, PATCHes the managed fields (merge) and stores the full prior policy for
+# rollback. Declare it at most once per canvas.
+#
+# inboundTrust is freely writable in the default config. automaticUserConsentSettings
+# is READ-ONLY on the default policy (Graph keeps it false) — those checkboxes are
+# advisory and only take effect on per-partner configurations.
+#
+# Field keys must match config-types/cross-tenant-access-default/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-cross-tenant-access-default"
+name: "Cross-Tenant Access Default Policy Configuration"
+toolType: "microsoft-entra-id"
+entityType: "cross-tenant-access-default"
+description: "Manage the Entra tenant-wide cross-tenant access DEFAULT policy (B2B collaboration / direct connect defaults and inbound trust) as code through the Microsoft Graph API. This is a tenant-wide singleton (update-only)."
+
+item:
+  label: "Cross-Tenant Access Default Policy"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Inbound Trust"
+      icon: "shield"
+      description: "Conditional Access claims trusted from external Entra organizations by default"
+      fields:
+        - key: "inboundTrustMfa"
+          label: "Trust MFA from external organizations"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Sets inboundTrust.isMfaAccepted — external MFA satisfies your MFA Conditional Access requirements."
+
+        - key: "inboundTrustCompliantDevice"
+          label: "Trust compliant devices from external organizations"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Sets inboundTrust.isCompliantDeviceAccepted."
+
+        - key: "inboundTrustHybridJoined"
+          label: "Trust hybrid Azure AD joined devices from external organizations"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Sets inboundTrust.isHybridAzureADJoinedDeviceAccepted."
+
+    - name: "Automatic User Consent"
+      icon: "users"
+      description: "Automatic redemption / consent defaults (read-only on the default policy)"
+      fields:
+        - key: "autoConsentInbound"
+          label: "Allow inbound automatic user consent"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: >
+            Maps to automaticUserConsentSettings.inboundAllowed. NOTE: this is read-only on the
+            DEFAULT policy — Microsoft Graph keeps it false and rejects changes. Automatic user
+            consent is configurable only on per-partner cross-tenant configurations. Leave off here.
+
+        - key: "autoConsentOutbound"
+          label: "Allow outbound automatic user consent"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: >
+            Maps to automaticUserConsentSettings.outboundAllowed. NOTE: read-only on the DEFAULT
+            policy (see above) — configure per-partner instead. Leave off here.
+
+    - name: "B2B Collaboration (Advanced)"
+      icon: "building"
+      description: "Full B2B collaboration / direct-connect blocks as JSON"
+      fields:
+        - key: "b2bCollaboration"
+          label: "B2B collaboration & direct connect (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional JSON object of the full setting blocks, e.g.
+            {"b2bCollaborationOutbound":{"usersAndGroups":{"accessType":"blocked","targets":[{"target":"AllUsers","targetType":"user"}]},"applications":{"accessType":"blocked","targets":[{"target":"AllApplications","targetType":"application"}]}}}.
+            Valid keys: b2bCollaborationInbound, b2bCollaborationOutbound, b2bDirectConnectInbound,
+            b2bDirectConnectOutbound. accessType is "allowed" or "blocked". Omitted keys are untouched.

@@ -1,6 +1,6 @@
 id: microsoft-entra-id
 name: Microsoft Entra ID
-version: "0.6.0"
+version: "0.7.0"
 vendor: Veltrix
 description: >
   Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the
@@ -143,6 +143,25 @@ permissions:
     - resource: pim-role-management-policies
       actions: [read, write, delete]
       description: Manage Entra PIM role activation requirements (MFA / justification / ticketing / approval / max duration) for Directory-scope roles
+
+    - resource: directory-role-assignments
+      actions: [read, write, delete]
+      description: Manage Entra directory role assignments (active/permanent privileged role holders)
+    - resource: pim-role-eligibility
+      actions: [read, write, delete]
+      description: Manage Entra PIM eligible role assignments (roleEligibilityScheduleRequests)
+    - resource: applications
+      actions: [read, write, delete]
+      description: Manage Entra application registrations (redirect URIs, app roles, API permissions)
+    - resource: service-principals
+      actions: [read, write, delete]
+      description: Manage Entra service principals / enterprise apps (enablement, SSO mode, assignment-required, tags)
+    - resource: terms-of-use-agreements
+      actions: [read, write, delete]
+      description: Manage Entra terms of use agreements
+    - resource: cross-tenant-access-default
+      actions: [read, write]
+      description: Manage the Entra cross-tenant access DEFAULT policy (tenant-wide B2B defaults)
 
 pipeline:
   configurationTypes:
@@ -753,6 +772,103 @@ pipeline:
         healthCheck: config-types/pim-role-management-policies/healthCheck
         driftDetect: config-types/pim-role-management-policies/driftDetect
         getStatus: config-types/pim-role-management-policies/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: directory-role-assignments
+      name: Directory Role Assignments
+      description: Active/permanent directory role assignments via /roleManagement/directory/roleAssignments. unifiedRoleAssignment has no PATCH, so a changed assignment is reconciled by delete + recreate.
+      canvasTemplate: config-types/directory-role-assignments/canvas.yaml
+      defaultConfig: config-types/directory-role-assignments/defaults.yaml
+      handlers:
+        validate: config-types/directory-role-assignments/validate
+        deploy: config-types/directory-role-assignments/deploy
+        rollback: config-types/directory-role-assignments/rollback
+        healthCheck: config-types/directory-role-assignments/healthCheck
+        driftDetect: config-types/directory-role-assignments/driftDetect
+        getStatus: config-types/directory-role-assignments/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+    - id: pim-role-eligibility
+      name: PIM Role Eligibility
+      description: PIM eligible role assignments via /roleManagement/directory/roleEligibilityScheduleRequests (adminAssign/adminUpdate/adminRemove requests; drift diffs the derived roleEligibilitySchedules).
+      canvasTemplate: config-types/pim-role-eligibility/canvas.yaml
+      defaultConfig: config-types/pim-role-eligibility/defaults.yaml
+      handlers:
+        validate: config-types/pim-role-eligibility/validate
+        deploy: config-types/pim-role-eligibility/deploy
+        rollback: config-types/pim-role-eligibility/rollback
+        healthCheck: config-types/pim-role-eligibility/healthCheck
+        driftDetect: config-types/pim-role-eligibility/driftDetect
+        getStatus: config-types/pim-role-eligibility/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+    - id: applications
+      name: App Registrations
+      description: Application registrations via /applications (upsert by uniqueName) — sign-in audience, redirect URIs, app roles, required resource access / API permissions.
+      canvasTemplate: config-types/applications/canvas.yaml
+      defaultConfig: config-types/applications/defaults.yaml
+      handlers:
+        validate: config-types/applications/validate
+        deploy: config-types/applications/deploy
+        rollback: config-types/applications/rollback
+        healthCheck: config-types/applications/healthCheck
+        driftDetect: config-types/applications/driftDetect
+        getStatus: config-types/applications/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+    - id: service-principals
+      name: Service Principals
+      description: Service principals / enterprise apps via /servicePrincipals — accountEnabled, preferred SSO mode, app-role-assignment-required, homepage, notification emails and tags. Reconciled by appId. (appRoleAssignedTo entitlements and oauth2PermissionGrants are managed by their own types, not here.)
+      canvasTemplate: config-types/service-principals/canvas.yaml
+      defaultConfig: config-types/service-principals/defaults.yaml
+      handlers:
+        validate: config-types/service-principals/validate
+        deploy: config-types/service-principals/deploy
+        rollback: config-types/service-principals/rollback
+        healthCheck: config-types/service-principals/healthCheck
+        driftDetect: config-types/service-principals/driftDetect
+        getStatus: config-types/service-principals/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+    - id: terms-of-use-agreements
+      name: Terms of Use Agreements
+      description: Terms of use agreements via /identityGovernance/termsOfUse/agreements — acceptance requirements, expiration schedule, PDF file localizations.
+      canvasTemplate: config-types/terms-of-use-agreements/canvas.yaml
+      defaultConfig: config-types/terms-of-use-agreements/defaults.yaml
+      handlers:
+        validate: config-types/terms-of-use-agreements/validate
+        deploy: config-types/terms-of-use-agreements/deploy
+        rollback: config-types/terms-of-use-agreements/rollback
+        healthCheck: config-types/terms-of-use-agreements/healthCheck
+        driftDetect: config-types/terms-of-use-agreements/driftDetect
+        getStatus: config-types/terms-of-use-agreements/getStatus
+      targets:
+        componentTypes: [entra-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+    - id: cross-tenant-access-default
+      name: Cross-Tenant Access Default
+      description: The tenant-wide cross-tenant access DEFAULT policy via /policies/crossTenantAccessPolicy/default — B2B inbound/outbound + inbound trust settings (singleton; update-only).
+      canvasTemplate: config-types/cross-tenant-access-default/canvas.yaml
+      defaultConfig: config-types/cross-tenant-access-default/defaults.yaml
+      handlers:
+        validate: config-types/cross-tenant-access-default/validate
+        deploy: config-types/cross-tenant-access-default/deploy
+        rollback: config-types/cross-tenant-access-default/rollback
+        healthCheck: config-types/cross-tenant-access-default/healthCheck
+        driftDetect: config-types/cross-tenant-access-default/driftDetect
+        getStatus: config-types/cross-tenant-access-default/getStatus
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true

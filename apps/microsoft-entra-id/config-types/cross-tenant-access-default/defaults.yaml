@@ -1,0 +1,10 @@
+# Defaults for the cross-tenant access default policy singleton.
+#
+# All fields default to off / empty so a freshly added policy makes no change
+# until the admin opts in. Values are a FLAT map keyed by the canvas field keys.
+inboundTrustMfa: false
+inboundTrustCompliantDevice: false
+inboundTrustHybridJoined: false
+autoConsentInbound: false
+autoConsentOutbound: false
+b2bCollaboration: ""

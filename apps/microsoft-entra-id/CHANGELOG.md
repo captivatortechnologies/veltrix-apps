@@ -8,6 +8,21 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.7.0 — 2026-07-28
+
+### Added
+- **Six new configuration types** covering the identity objects that policies act upon:
+  - **Directory Role Assignments** — active/permanent privileged role holders
+    (`/roleManagement/directory/roleAssignments`; no PATCH → delete + recreate on change).
+  - **PIM Role Eligibility** — eligible role assignments via
+    `roleEligibilityScheduleRequests` (request-based; drift diffs derived schedules).
+  - **App Registrations** — `/applications` (upsert by uniqueName; redirect URIs,
+    app roles, required resource access).
+  - **Service Principals** — `/servicePrincipals` (SSO, app role assignments).
+  - **Terms of Use Agreements** — `/identityGovernance/termsOfUse/agreements`.
+  - **Cross-Tenant Access Default** — the tenant-wide default policy singleton
+    (completes the existing per-partner coverage).
+
 ## 0.6.0 — 2026-07-26
 
 ### Added

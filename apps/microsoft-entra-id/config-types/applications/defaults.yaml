@@ -1,0 +1,13 @@
+# Defaults for a new application registration item.
+#
+# Seeds a single-tenant app with no redirect URIs, roles or permissions the
+# author can fill in. Values are a FLAT map keyed by the canvas field keys.
+# uniqueName is derived from the display name at deploy time when left blank.
+signInAudience: "AzureADMyOrg"
+identifierUris: ""
+redirectUris: ""
+spaRedirectUris: ""
+appRoles: ""
+requiredResourceAccess: ""
+groupMembershipClaims: ""
+tags: ""

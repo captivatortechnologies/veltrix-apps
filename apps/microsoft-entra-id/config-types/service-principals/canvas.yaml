@@ -1,0 +1,104 @@
+# =============================================================================
+# Canvas Template — Entra ID Service Principals (Enterprise Applications)
+#
+# Declares ONE service principal — the item. Users add as many as they need.
+# ONE item = ONE service principal (the tenant instance of an application). Its
+# logical identity is the application's `appId`; deploy finds the SP by appId
+# (an SP already exists for any installed enterprise app), PATCHes the managed
+# fields, and only POSTs a new SP when none exists for that appId.
+#
+# Managed fields: accountEnabled, appRoleAssignmentRequired, single sign-on
+# mode, homepage, notification email addresses and tags. App role assignments
+# (appRoleAssignedTo — who is entitled to the app) and delegated permission
+# grants (oauth2PermissionGrants, a separate config type) are OUT OF SCOPE here.
+#
+# Field keys must match config-types/service-principals/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-service-principals"
+name: "Service Principal Configuration"
+toolType: "microsoft-entra-id"
+entityType: "service-principals"
+description: "Define Entra ID service principals (enterprise apps) as code through the Microsoft Graph API — reconciled by the application's appId. Manages account state, user-assignment requirement, single sign-on mode, homepage, notification emails and tags."
+
+item:
+  label: "Service Principal"
+  identityField: "appId"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Service Principal"
+      icon: "shield"
+      description: "Application (appId), account state and single sign-on"
+      fields:
+        - key: "appId"
+          label: "Application (client) ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The appId (a GUID) of the application this service principal
+            represents — the reconcile key. A service principal already exists
+            for any installed enterprise app, so this is matched (and updated)
+            rather than created in the common case.
+
+        - key: "accountEnabled"
+          label: "Account Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: >
+            When off, no user can sign in to this app even if assigned, and apps
+            cannot obtain tokens for it.
+
+        - key: "appRoleAssignmentRequired"
+          label: "Require User Assignment"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: >
+            When on, a user or service principal must be granted an app-role
+            assignment before they can sign in or get tokens for this app.
+
+        - key: "preferredSingleSignOnMode"
+          label: "Single Sign-On Mode"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - label: "None"
+              value: ""
+            - label: "SAML"
+              value: "saml"
+            - label: "Password-based"
+              value: "password"
+            - label: "OpenID Connect (OIDC)"
+              value: "oidc"
+            - label: "Linked / not supported"
+              value: "notSupported"
+          helpText: >
+            The sign-on mode Entra uses when launching the app from Microsoft 365
+            or My Apps. Leave as None to clear it.
+
+        - key: "homepage"
+          label: "Homepage URL"
+          fieldType: "text"
+          required: false
+          helpText: "Home page or landing page of the application."
+
+        - key: "notificationEmailAddresses"
+          label: "Notification Email Addresses"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Addresses Entra notifies when a SAML token-signing certificate nears
+            expiry. One per line (or comma-separated).
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Custom strings used to categorize the service principal. One per line
+            (or comma-separated). Live tags are the union of these and the
+            backing application's tags.

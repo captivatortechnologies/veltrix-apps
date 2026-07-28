@@ -1,0 +1,117 @@
+# =============================================================================
+# Canvas Template — Entra ID PIM Role Eligibility (eligible role assignments)
+#
+# Declares ONE eligible role assignment — the item. Users add one per
+# (principal, role, scope) they want to make eligible for PIM activation.
+#
+# PIM is REQUEST-based: there is no direct PATCH/DELETE of an eligibility.
+# Deploy reconciles by emitting unifiedRoleEligibilityScheduleRequest objects to
+#   POST /roleManagement/directory/roleEligibilityScheduleRequests
+# with an `action` of adminAssign (create), adminUpdate (change schedule) or
+# adminRemove (revoke, on rollback/reconcile). The PERSISTENT applied state is
+# read back from the derived GET /roleManagement/directory/roleEligibilitySchedules
+# collection and matched by the tuple (principalId + roleDefinitionId +
+# directoryScopeId). A request left in "PendingApproval" is reported, not failed.
+#
+# Field keys must match config-types/pim-role-eligibility/validate.ts.
+# =============================================================================
+
+id: "microsoft-entra-id-pim-role-eligibility"
+name: "PIM Role Eligibility Configuration"
+toolType: "microsoft-entra-id"
+entityType: "pim-role-eligibility"
+description: "Manage Entra PIM eligible role assignments (which principal is eligible to activate which directory role, at what scope, and for how long) as code through the Microsoft Graph roleEligibilityScheduleRequests API."
+
+item:
+  label: "Eligible Assignment"
+  identityField: "roleDefinitionId"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Principal & Role"
+      icon: "shield"
+      description: "Who becomes eligible for which role, and at what scope"
+      fields:
+        - key: "principalId"
+          label: "Principal (object) ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            Object id (a GUID) of the user, group or service principal that
+            becomes eligible to activate the role.
+
+        - key: "roleDefinitionId"
+          label: "Role Definition ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The directory role template id (a GUID) the principal is eligible
+            for, e.g. the Global Administrator role template id.
+
+        - key: "directoryScopeId"
+          label: "Directory Scope"
+          fieldType: "text"
+          required: false
+          defaultValue: "/"
+          helpText: >
+            Scope of the eligibility. "/" is tenant-wide; an administrative-unit
+            or directory-object id narrows it. Part of the eligibility identity.
+
+    - name: "Eligibility Window"
+      icon: "clock"
+      description: "How long the eligibility itself lasts (not the activation)"
+      fields:
+        - key: "expirationType"
+          label: "Expiration"
+          fieldType: "select"
+          required: true
+          defaultValue: "noExpiration"
+          options:
+            - label: "No expiration (permanent eligibility)"
+              value: "noExpiration"
+            - label: "Until a specific date/time"
+              value: "afterDateTime"
+            - label: "For a fixed duration"
+              value: "afterDuration"
+          helpText: "When the eligibility itself stops applying. Maps to scheduleInfo.expiration.type."
+
+        - key: "endDateTime"
+          label: "End date/time (ISO 8601)"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "expirationType"
+            equals: "afterDateTime"
+          helpText: "ISO 8601 instant, e.g. 2026-12-31T00:00:00Z. Required when expiration is a specific date/time."
+
+        - key: "duration"
+          label: "Duration (ISO 8601)"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "expirationType"
+            equals: "afterDuration"
+          helpText: "ISO 8601 duration, e.g. P365D or P6M. Required when expiration is a fixed duration."
+
+    - name: "Justification"
+      icon: "document"
+      description: "Audit context recorded with the PIM request"
+      fields:
+        - key: "justification"
+          label: "Justification"
+          fieldType: "text"
+          required: true
+          helpText: "Reason recorded on the eligibility request. Required by most PIM role policies."
+
+        - key: "ticketNumber"
+          label: "Ticket number"
+          fieldType: "text"
+          required: false
+          helpText: "Optional change/ticket number recorded as ticketInfo.ticketNumber."
+
+        - key: "ticketSystem"
+          label: "Ticket system"
+          fieldType: "text"
+          required: false
+          helpText: "Optional ticketing system name recorded as ticketInfo.ticketSystem."

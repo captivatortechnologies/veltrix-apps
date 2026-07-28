@@ -1,0 +1,7 @@
+# Defaults for a new PIM eligible assignment item.
+#
+# Seeds a tenant-wide, permanent eligibility the author fills in with the
+# principal and role. Values are a FLAT map keyed by the canvas field keys.
+directoryScopeId: "/"
+expirationType: "noExpiration"
+justification: "Managed by Veltrix config as code"

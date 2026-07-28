@@ -1,0 +1,156 @@
+# =============================================================================
+# Canvas Template — Entra ID Application Registrations
+#
+# Declares ONE application registration — the item. Users add as many as they
+# need. Each item's stable identity is its uniqueName (an immutable alternate
+# key). deploy upserts through PATCH /applications(uniqueName='...') with the
+# `Prefer: create-if-missing` header — a declarative create-or-update primitive
+# keyed on uniqueName. When uniqueName is left blank it is derived from the
+# display name; legacy apps that predate uniqueName are matched by displayName.
+#
+# Secrets (passwordCredentials / keyCredentials) are write-only and returned
+# once by Graph — they are NEVER managed or drift-tracked by this config type.
+#
+# The complex nested objects (appRoles, requiredResourceAccess / API
+# permissions) are authored as validated JSON arrays.
+#
+# Field keys must match what config-types/applications/validate.ts checks.
+# =============================================================================
+
+id: "microsoft-entra-id-applications"
+name: "Application Registration Configuration"
+toolType: "microsoft-entra-id"
+entityType: "applications"
+description: "Define Entra ID application registrations (sign-in audience, redirect URIs, identifier URIs, app roles, API permissions) as code through the Microsoft Graph API. Upserts idempotently by uniqueName. Secrets are never managed here."
+
+item:
+  label: "App Registration"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Application"
+      icon: "app-window"
+      description: "Identity, sign-in audience and identifier URIs"
+      fields:
+        - key: "name"
+          label: "Display Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            The application's display name (max 256 chars). Must be unique within
+            this canvas — it is the logical identity deploy matches on and, when
+            uniqueName is blank, the source of the derived uniqueName.
+
+        - key: "uniqueName"
+          label: "Unique Name (alternate key)"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 120
+          helpText: >
+            Immutable alternate key used for idempotent upsert. Letters, digits
+            and . _ - only (max 120, no spaces). Leave blank to derive one from
+            the display name. It cannot be changed once the app is created.
+
+        - key: "signInAudience"
+          label: "Sign-in Audience"
+          fieldType: "select"
+          required: false
+          defaultValue: "AzureADMyOrg"
+          options:
+            - label: "My organization only (AzureADMyOrg)"
+              value: "AzureADMyOrg"
+            - label: "Any Entra directory — multitenant (AzureADMultipleOrgs)"
+              value: "AzureADMultipleOrgs"
+            - label: "Any Entra directory + personal Microsoft accounts (AzureADandPersonalMicrosoftAccount)"
+              value: "AzureADandPersonalMicrosoftAccount"
+            - label: "Personal Microsoft accounts only (PersonalMicrosoftAccount)"
+              value: "PersonalMicrosoftAccount"
+          helpText: "Which accounts can sign in to the application."
+
+        - key: "identifierUris"
+          label: "Identifier URIs (App ID URIs, one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            One App ID URI per line, e.g. api://<app-id> or https://contoso.com/api.
+            Left blank means this field is not managed and existing values are
+            left untouched.
+
+    - name: "Redirect URIs"
+      icon: "link"
+      description: "Web and single-page-application reply URLs"
+      fields:
+        - key: "redirectUris"
+          label: "Web Redirect URIs (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Web platform reply URLs, one per line, e.g.
+            https://contoso.com/auth/callback. Blank leaves the Web platform
+            untouched (this config type does not manage homePageUrl / logoutUrl /
+            implicit grant).
+
+        - key: "spaRedirectUris"
+          label: "SPA Redirect URIs (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Single-page-application reply URLs, one per line. Blank leaves the SPA
+            platform untouched.
+
+    - name: "Roles & Permissions"
+      icon: "shield"
+      description: "App roles and requested API permissions (JSON)"
+      fields:
+        - key: "appRoles"
+          label: "App Roles (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            A JSON array of appRole objects, e.g.
+            [{"id":"18d14569-c3bd-439b-9a66-3a2aee01d14f","allowedMemberTypes":["User"],"displayName":"Admin","description":"Administrators","value":"Admin","isEnabled":true}].
+            Each id must be a new GUID. `origin` is read-only and must be omitted.
+            Leave blank to not manage app roles.
+
+        - key: "requiredResourceAccess"
+          label: "API Permissions / Required Resource Access (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            A JSON array of requiredResourceAccess objects, e.g.
+            [{"resourceAppId":"00000003-0000-0000-c000-000000000000","resourceAccess":[{"id":"e1fe6dd8-ba31-4d61-89e7-88639da4683d","type":"Scope"}]}].
+            type is "Scope" (delegated) or "Role" (application). Leave blank to
+            not manage API permissions.
+
+    - name: "Claims & Tags"
+      icon: "tag"
+      description: "Group membership claim and categorization tags"
+      fields:
+        - key: "groupMembershipClaims"
+          label: "Group Membership Claims"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - label: "Not managed"
+              value: ""
+            - label: "None"
+              value: "None"
+            - label: "Security groups & Entra roles (SecurityGroup)"
+              value: "SecurityGroup"
+            - label: "All groups (All)"
+              value: "All"
+          helpText: "Configures the groups claim emitted in tokens. Blank leaves it untouched."
+
+        - key: "tags"
+          label: "Tags (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Custom strings to categorize the app, one per line. Blank leaves tags
+            untouched.
