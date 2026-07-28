@@ -26,6 +26,18 @@ export interface GraphAssignment {
   target: Record<string, unknown>
 }
 
+/**
+ * The include/exclude group ids + all-devices/all-users flags read back off a live
+ * policy's assignments — the shape `readAssignments` returns and every structured
+ * policy type captures for rollback (compliance / app protection / app config / …).
+ */
+export interface AssignmentGroups {
+  includeGroupIds: string[]
+  excludeGroupIds: string[]
+  allDevices: boolean
+  allUsers: boolean
+}
+
 /** Filter props for an include/all target, or empty when no filter is set. */
 function filterProps(spec: AssignmentSpec): Record<string, unknown> {
   if (!spec.filterId) return {}
@@ -72,7 +84,7 @@ export function buildAssignments(spec: AssignmentSpec): GraphAssignment[] {
  */
 export function readAssignments(
   assignments: Array<{ target?: Record<string, unknown> }> | undefined,
-): { includeGroupIds: string[]; excludeGroupIds: string[]; allDevices: boolean; allUsers: boolean } {
+): AssignmentGroups {
   const includeGroupIds: string[] = []
   const excludeGroupIds: string[] = []
   let allDevices = false

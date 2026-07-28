@@ -14,13 +14,7 @@ import {
 } from './appProtection'
 import { extractProtectionSpecs, policyKey } from './validate'
 import type { AppGroupType } from '../../lib/targetApps'
-
-export interface ProtectionAssignmentGroups {
-  includeGroupIds: string[]
-  excludeGroupIds: string[]
-  allDevices: boolean
-  allUsers: boolean
-}
+import type { AssignmentGroups } from '../../lib/assignments'
 
 export interface ProtectionRollbackEntry {
   name: string
@@ -32,7 +26,7 @@ export interface ProtectionRollbackEntry {
     fields: Record<string, unknown>
     appGroupType: AppGroupType
     targetedApps: string[]
-    assignment: ProtectionAssignmentGroups
+    assignment: AssignmentGroups
   }
 }
 

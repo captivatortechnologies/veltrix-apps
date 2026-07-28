@@ -1,6 +1,6 @@
 import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
 import { buildIntuneClient, graphErrorMessage, parseJson, type IntuneClient } from '../../lib/intune'
-import type { AssignmentSpec } from '../../lib/assignments'
+import type { AssignmentSpec, AssignmentGroups } from '../../lib/assignments'
 import {
   APP_CONFIG_PATH,
   buildAssignBody,
@@ -19,14 +19,6 @@ import {
 } from './appConfig'
 import { extractAppConfigSpecs, policyKey } from './validate'
 
-/** Assignment groups captured for rollback. */
-export interface AppConfigAssignmentGroups {
-  includeGroupIds: string[]
-  excludeGroupIds: string[]
-  allDevices: boolean
-  allUsers: boolean
-}
-
 /** The state captured before a policy is changed, so rollback can restore it. */
 export interface AppConfigRollbackEntry {
   name: string
@@ -40,7 +32,7 @@ export interface AppConfigRollbackEntry {
     platform: MamPlatform
     appGroupType: AppGroupType
     targetedApps: string[]
-    assignment: AppConfigAssignmentGroups
+    assignment: AssignmentGroups
   }
 }
 

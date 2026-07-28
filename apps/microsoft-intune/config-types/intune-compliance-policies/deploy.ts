@@ -1,6 +1,6 @@
 import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
 import { buildIntuneClient, graphErrorMessage, parseJson, type IntuneClient } from '../../lib/intune'
-import { type AssignmentSpec } from '../../lib/assignments'
+import { type AssignmentSpec, type AssignmentGroups } from '../../lib/assignments'
 import {
   buildAssignments,
   buildComplianceBody,
@@ -15,13 +15,6 @@ import {
 } from './compliance'
 import { extractComplianceSpecs, policyKey } from './validate'
 
-export interface ComplianceAssignmentGroups {
-  includeGroupIds: string[]
-  excludeGroupIds: string[]
-  allDevices: boolean
-  allUsers: boolean
-}
-
 export interface ComplianceRollbackEntry {
   name: string
   existed: boolean
@@ -32,7 +25,7 @@ export interface ComplianceRollbackEntry {
   managedAssignments?: boolean
   prior?: {
     fields: Record<string, unknown>
-    assignment: ComplianceAssignmentGroups
+    assignment: AssignmentGroups
     /** The policy's scheduled actions (grace period / retire) before this deploy. */
     scheduledActions: Record<string, unknown>[]
   }

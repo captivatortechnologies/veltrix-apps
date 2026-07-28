@@ -1,6 +1,6 @@
 import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
 import { buildIntuneClient, graphErrorMessage, parseJson, type IntuneClient } from '../../lib/intune'
-import type { AssignmentSpec } from '../../lib/assignments'
+import type { AssignmentSpec, AssignmentGroups } from '../../lib/assignments'
 import {
   buildAssignBody,
   buildPolicyBody,
@@ -16,14 +16,6 @@ import {
 } from './iosAppProtection'
 import { extractIosMamSpecs, policyKey } from './validate'
 
-/** Assignment groups captured for rollback. */
-export interface IosMamAssignmentGroups {
-  includeGroupIds: string[]
-  excludeGroupIds: string[]
-  allDevices: boolean
-  allUsers: boolean
-}
-
 /** The state captured before a policy is changed, so rollback can restore it. */
 export interface IosMamRollbackEntry {
   name: string
@@ -36,7 +28,7 @@ export interface IosMamRollbackEntry {
     fields: Record<string, unknown>
     appGroupType: AppGroupType
     targetedApps: string[]
-    assignment: IosMamAssignmentGroups
+    assignment: AssignmentGroups
   }
 }
 
