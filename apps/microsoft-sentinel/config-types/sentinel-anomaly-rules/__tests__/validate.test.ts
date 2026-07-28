@@ -126,7 +126,9 @@ describe('Sentinel Anomaly Rules Validate Handler', () => {
     expect(specs[0].frequency).toBe('PT1H')
     expect(specs[0].anomalyVersion).toBe('1.0.0')
     expect(specs[0].settingsStatus).toBe('Production')
-    expect(specs[0].isDefaultSettings).toBe(true)
+    // A customized copy is non-default by default (each definition has exactly one
+    // built-in default at its own resource name).
+    expect(specs[0].isDefaultSettings).toBe(false)
   })
 
   it('builds an Anomaly body with the required mapped properties', () => {

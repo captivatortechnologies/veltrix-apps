@@ -153,7 +153,7 @@ export function extractAnomalySpecs(canvas: CanvasSnapshot): AnomalySettingSpec[
       // request body is always complete.
       frequency: readString(fields.frequency) || 'PT1H',
       anomalyVersion: readString(fields.anomaly_version) || '1.0.0',
-      isDefaultSettings: readBool(fields.is_default_settings, true),
+      isDefaultSettings: readBool(fields.is_default_settings, false),
       tactics: readList(fields.tactics),
       techniques: readList(fields.techniques),
       customizableObservations: observations.value,

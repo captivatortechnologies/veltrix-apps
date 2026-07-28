@@ -79,8 +79,8 @@ item:
         - key: "is_default_settings"
           label: "Is default settings"
           fieldType: "checkbox"
-          defaultValue: true
-          helpText: "Whether this represents the built-in default settings for the anomaly (as opposed to a duplicated, customized copy). Required by ARM."
+          defaultValue: false
+          helpText: "Leave OFF. This config type manages a customized COPY of a built-in anomaly at its own resource name, which must be non-default — each anomaly definition already has exactly one built-in default. Enabling this creates a second resource claiming to be the definition's default (duplicate detections) or is rejected by ARM."
 
     - name: "Tactics & tuning"
       icon: "layers"
