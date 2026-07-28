@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-28T17:51:26.883Z",
+  "generatedAt": "2026-07-28T17:54:06.987Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -291,9 +291,9 @@
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-sentinel",
       "available": true,
       "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-sentinel-v1.3.0/microsoft-sentinel.zip",
-      "sha256": "f8d68fcdf6be32c263c4f0dddfc25414fad524cbfc7f6fde2e426d11af823050",
-      "sizeBytes": 291951,
-      "publishedAt": "2026-07-28T15:30:17.746Z",
+      "sha256": "c1cd026cf93e9d8ee48f3d58d584aee7205ef23d28e7e4f293d347d866f53895",
+      "sizeBytes": 292058,
+      "publishedAt": "2026-07-28T17:54:06.959Z",
       "releaseNotes": "## 1.3.0 — 2026-07-28\n\n### Added\n- **Six new configuration types**, grouped in the sidebar:\n  - **Analytics Rules** — Microsoft Security rules (kind MicrosoftSecurityIncidentCreation)\n    and Anomaly (ML) rules (securityMLAnalyticsSettings).\n  - **Threat Intelligence** — hand-authored threat intelligence indicators.\n  - **Settings** — product settings (UEBA / Entity Analytics / Anomalies / EyesOn).\n  - **Content** — workbooks (Microsoft.Insights, scoped to the workspace) and\n    source-control repository connections (content-as-code; write-only creds).\n- Existing 5 types assigned to sidebar groups (Analytics Rules / Automation /\n  Content / Hunting / Data Collection).",
       "releasedAt": "2026-07-28T00:00:00.000Z"
     },
