@@ -1,0 +1,81 @@
+# =============================================================================
+# Canvas Template — Microsoft Sentinel Microsoft Security Rule
+#
+# Declares ONE MicrosoftSecurityIncidentCreation analytics rule — the item. Users
+# add as many as they need. Such a rule creates Sentinel incidents from alerts
+# raised by another Microsoft security product (Defender for Cloud Apps, Defender
+# for Cloud, Entra ID Protection, ...), optionally narrowed by alert display name
+# and severity. Reconciled by the rule name (slugged into the ARM ruleId, so a
+# re-deploy updates the rule in place). Field keys must match
+# config-types/sentinel-ms-security-rules/validate.ts.
+# =============================================================================
+
+id: "sentinel-ms-security-rules"
+name: "Microsoft Security Rule"
+toolType: "microsoft-sentinel"
+entityType: "sentinel-ms-security-rules"
+description: "Define Microsoft Sentinel Microsoft Security analytics rules (kind MicrosoftSecurityIncidentCreation) as code via Azure Resource Manager — create incidents from another Microsoft security product's alerts, filtered by product, display name and severity. Reconciled by rule name."
+
+item:
+  label: "Microsoft Security Rule"
+  identityField: "rule_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Rule"
+      icon: "shield"
+      description: "Identity and state"
+      fields:
+        - key: "rule_name"
+          label: "Rule name"
+          fieldType: "text"
+          required: true
+          helpText: "Display name of the rule. Slugged into the ARM ruleId — this is the reconciliation identity."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the rule runs. Disabled rules are created but do not create incidents."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown on the rule."
+
+    - name: "Source product"
+      icon: "filter"
+      description: "Which Microsoft product's alerts create incidents"
+      fields:
+        - key: "product_filter"
+          label: "Product filter"
+          fieldType: "select"
+          required: true
+          defaultValue: "Microsoft Cloud App Security"
+          helpText: "The Microsoft security product whose alerts generate Sentinel incidents (MicrosoftSecurityProductName). Values are the service enum; labels show the current product names."
+          options:
+            - { label: "Microsoft Defender for Cloud Apps", value: "Microsoft Cloud App Security" }
+            - { label: "Microsoft Defender for Cloud", value: "Azure Security Center" }
+            - { label: "Microsoft Defender for Identity", value: "Azure Advanced Threat Protection" }
+            - { label: "Microsoft Entra ID Protection", value: "Azure Active Directory Identity Protection" }
+            - { label: "Microsoft Defender for IoT", value: "Azure Security Center for IoT" }
+
+    - name: "Filters"
+      icon: "sliders"
+      description: "Optionally narrow which of the product's alerts create incidents"
+      fields:
+        - key: "severities_filter"
+          label: "Severities"
+          fieldType: "tags"
+          helpText: "Optional. Only alerts of these severities create incidents (High, Medium, Low, Informational). Leave empty for all severities."
+
+        - key: "display_names_filter"
+          label: "Include alert display names"
+          fieldType: "tags"
+          helpText: "Optional. Only alerts whose display name matches one of these create incidents. Leave empty to include all."
+
+        - key: "display_names_exclude_filter"
+          label: "Exclude alert display names"
+          fieldType: "tags"
+          helpText: "Optional. Alerts whose display name matches one of these do NOT create incidents."

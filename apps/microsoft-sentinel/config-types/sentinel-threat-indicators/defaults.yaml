@@ -1,0 +1,6 @@
+# Defaults for a new threat intelligence indicator item.
+#
+# Intentionally empty — a new item starts from the canvas field defaultValues
+# (confidence=50, pattern_type=ipv4-addr, revoked=false). Any values here would be
+# a FLAT map keyed by the canvas field keys (display_name, pattern, pattern_type,
+# threat_types, ...).

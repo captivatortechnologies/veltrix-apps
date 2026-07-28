@@ -1,6 +1,6 @@
 id: microsoft-sentinel
 name: Microsoft Sentinel
-version: "1.2.0"
+version: "1.3.0"
 vendor: Veltrix
 description: >
   Manage Microsoft Sentinel detection and response content as code through the
@@ -13,9 +13,11 @@ description: >
   Contributor" role scoped to the workspace resource group. The workspace is
   addressed via the Tenant ID, Subscription ID, Resource Group and Workspace Name
   app settings. NRT rules are written against a preview api-version (kind:NRT is
-  not part of the stable contract). ML/Fusion/Threat-Intelligence analytics
-  kinds, threat-intel indicator upload, and CCP/codeless/portal-only data
-  connectors remain out of scope.
+  not part of the stable contract). Also manages Microsoft-Security incident-
+  creation rules, anomaly (ML) analytics settings, threat-intelligence indicators,
+  product settings (UEBA/Entity Analytics/Anomalies/EyesOn), workbooks, and
+  source-control repositories. Fusion analytics rules and CCP/codeless/portal-only
+  data connectors remain out of scope.
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-sentinel
@@ -52,10 +54,29 @@ permissions:
     - resource: sentinel-data-connectors
       actions: [read, write, delete]
       description: Manage Microsoft Sentinel first-party (tenant-based) data connectors
+    - resource: sentinel-ms-security-rules
+      actions: [read, write, delete]
+      description: Manage Microsoft Sentinel Microsoft Security analytics rules (incident creation from other Microsoft products)
+    - resource: sentinel-anomaly-rules
+      actions: [read, write, delete]
+      description: Manage Microsoft Sentinel anomaly (ML) analytics rules (securityMLAnalyticsSettings)
+    - resource: sentinel-threat-indicators
+      actions: [read, write, delete]
+      description: Manage Microsoft Sentinel threat intelligence indicators (hand-authored)
+    - resource: sentinel-product-settings
+      actions: [read, write]
+      description: Manage Microsoft Sentinel product settings (UEBA / Entity Analytics / Anomalies / EyesOn)
+    - resource: sentinel-workbooks
+      actions: [read, write, delete]
+      description: Manage Microsoft Sentinel workbooks (Azure Monitor workbooks scoped to the workspace)
+    - resource: sentinel-source-controls
+      actions: [read, write, delete]
+      description: Manage Microsoft Sentinel source control repository connections (content-as-code)
 
 pipeline:
   configurationTypes:
     - id: sentinel-analytics-rules
+      group: "Analytics Rules"
       name: Analytics Rules (Scheduled / NRT)
       description: >
         Scheduled (KQL) and near-real-time (NRT) analytics rules via
@@ -78,6 +99,7 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: false
     - id: sentinel-automation-rules
+      group: "Automation"
       name: Automation Rules
       description: >
         Automation rules via Microsoft.SecurityInsights/automationRules
@@ -98,6 +120,7 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: false
     - id: sentinel-watchlists
+      group: "Content"
       name: Watchlists
       description: >
         Watchlists (with inline CSV items) via Microsoft.SecurityInsights/watchlists
@@ -117,6 +140,7 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: false
     - id: sentinel-hunting-queries
+      group: "Hunting"
       name: Hunting Queries & Saved Searches
       description: >
         Hunting queries and Log Analytics saved searches via
@@ -138,6 +162,7 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: false
     - id: sentinel-data-connectors
+      group: "Data Collection"
       name: Data Connectors
       description: >
         Microsoft first-party (tenant-based) data connectors via
@@ -155,6 +180,109 @@ pipeline:
         healthCheck: config-types/sentinel-data-connectors/healthCheck
         driftDetect: config-types/sentinel-data-connectors/driftDetect
         getStatus: config-types/sentinel-data-connectors/getStatus
+      targets:
+        componentTypes: [sentinel-workspace]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: sentinel-ms-security-rules
+      group: "Analytics Rules"
+      name: Microsoft Security Rules
+      description: Microsoft Security analytics rules (kind MicrosoftSecurityIncidentCreation) via Microsoft.SecurityInsights/alertRules — create Sentinel incidents from other Microsoft security products, filtered by productFilter/severity/displayName.
+      canvasTemplate: config-types/sentinel-ms-security-rules/canvas.yaml
+      defaultConfig: config-types/sentinel-ms-security-rules/defaults.yaml
+      handlers:
+        validate: config-types/sentinel-ms-security-rules/validate
+        deploy: config-types/sentinel-ms-security-rules/deploy
+        rollback: config-types/sentinel-ms-security-rules/rollback
+        healthCheck: config-types/sentinel-ms-security-rules/healthCheck
+        driftDetect: config-types/sentinel-ms-security-rules/driftDetect
+        getStatus: config-types/sentinel-ms-security-rules/getStatus
+      targets:
+        componentTypes: [sentinel-workspace]
+        requiresCredential: true
+        requiresConnectivity: false
+    - id: sentinel-anomaly-rules
+      group: "Analytics Rules"
+      name: Anomaly (ML) Rules
+      description: Anomaly analytics rules via Microsoft.SecurityInsights/securityMLAnalyticsSettings (kind Anomaly) — enable/tune built-in ML anomaly detections (settings definition, thresholds, production/flighting).
+      canvasTemplate: config-types/sentinel-anomaly-rules/canvas.yaml
+      defaultConfig: config-types/sentinel-anomaly-rules/defaults.yaml
+      handlers:
+        validate: config-types/sentinel-anomaly-rules/validate
+        deploy: config-types/sentinel-anomaly-rules/deploy
+        rollback: config-types/sentinel-anomaly-rules/rollback
+        healthCheck: config-types/sentinel-anomaly-rules/healthCheck
+        driftDetect: config-types/sentinel-anomaly-rules/driftDetect
+        getStatus: config-types/sentinel-anomaly-rules/getStatus
+      targets:
+        componentTypes: [sentinel-workspace]
+        requiresCredential: true
+        requiresConnectivity: false
+    - id: sentinel-threat-indicators
+      group: "Threat Intelligence"
+      name: Threat Intelligence Indicators
+      description: Hand-authored threat intelligence indicators via Microsoft.SecurityInsights/threatIntelligence/main — pattern/patternType, confidence, threat types, valid-from/until, tags. Scoped to a managed source.
+      canvasTemplate: config-types/sentinel-threat-indicators/canvas.yaml
+      defaultConfig: config-types/sentinel-threat-indicators/defaults.yaml
+      handlers:
+        validate: config-types/sentinel-threat-indicators/validate
+        deploy: config-types/sentinel-threat-indicators/deploy
+        rollback: config-types/sentinel-threat-indicators/rollback
+        healthCheck: config-types/sentinel-threat-indicators/healthCheck
+        driftDetect: config-types/sentinel-threat-indicators/driftDetect
+        getStatus: config-types/sentinel-threat-indicators/getStatus
+      targets:
+        componentTypes: [sentinel-workspace]
+        requiresCredential: true
+        requiresConnectivity: false
+    - id: sentinel-product-settings
+      group: "Settings"
+      name: Product Settings
+      description: Microsoft Sentinel product settings (UEBA, Entity Analytics, Anomalies, EyesOn) via Microsoft.SecurityInsights/settings — enable/configure the workspace security-posture toggles (singletons).
+      canvasTemplate: config-types/sentinel-product-settings/canvas.yaml
+      defaultConfig: config-types/sentinel-product-settings/defaults.yaml
+      handlers:
+        validate: config-types/sentinel-product-settings/validate
+        deploy: config-types/sentinel-product-settings/deploy
+        rollback: config-types/sentinel-product-settings/rollback
+        healthCheck: config-types/sentinel-product-settings/healthCheck
+        driftDetect: config-types/sentinel-product-settings/driftDetect
+        getStatus: config-types/sentinel-product-settings/getStatus
+      targets:
+        componentTypes: [sentinel-workspace]
+        requiresCredential: true
+        requiresConnectivity: false
+    - id: sentinel-workbooks
+      group: "Content"
+      name: Workbooks
+      description: Azure Monitor workbooks scoped to the Sentinel workspace via Microsoft.Insights/workbooks (category sentinel) — serialized workbook JSON as content-as-code.
+      canvasTemplate: config-types/sentinel-workbooks/canvas.yaml
+      defaultConfig: config-types/sentinel-workbooks/defaults.yaml
+      handlers:
+        validate: config-types/sentinel-workbooks/validate
+        deploy: config-types/sentinel-workbooks/deploy
+        rollback: config-types/sentinel-workbooks/rollback
+        healthCheck: config-types/sentinel-workbooks/healthCheck
+        driftDetect: config-types/sentinel-workbooks/driftDetect
+        getStatus: config-types/sentinel-workbooks/getStatus
+      targets:
+        componentTypes: [sentinel-workspace]
+        requiresCredential: true
+        requiresConnectivity: false
+    - id: sentinel-source-controls
+      group: "Content"
+      name: Source Control Repositories
+      description: Source control repository connections via Microsoft.SecurityInsights/sourcecontrols — GitHub/Azure DevOps repo, branch, and content types for content-as-code (credentials are write-only).
+      canvasTemplate: config-types/sentinel-source-controls/canvas.yaml
+      defaultConfig: config-types/sentinel-source-controls/defaults.yaml
+      handlers:
+        validate: config-types/sentinel-source-controls/validate
+        deploy: config-types/sentinel-source-controls/deploy
+        rollback: config-types/sentinel-source-controls/rollback
+        healthCheck: config-types/sentinel-source-controls/healthCheck
+        driftDetect: config-types/sentinel-source-controls/driftDetect
+        getStatus: config-types/sentinel-source-controls/getStatus
       targets:
         componentTypes: [sentinel-workspace]
         requiresCredential: true

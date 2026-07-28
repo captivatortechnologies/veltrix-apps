@@ -1,0 +1,7 @@
+# Defaults for a new source control item.
+#
+# Intentionally empty — a new item starts from the canvas field defaultValues
+# (repoType Github, branch main, version V2, access PAT, contentTypes
+# [AnalyticsRule]). Any values here would be a FLAT map keyed by the canvas field
+# keys (display_name, repo_type, repo_url, ...). The repositoryAccess credential
+# (access_token) is a WRITE-ONLY secret and must never be defaulted here.

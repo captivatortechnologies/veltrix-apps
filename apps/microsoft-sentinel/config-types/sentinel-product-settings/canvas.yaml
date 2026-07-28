@@ -1,0 +1,64 @@
+# =============================================================================
+# Canvas Template — Microsoft Sentinel Product Setting
+#
+# Declares ONE product setting — the item. The four settings are FIXED-NAME
+# SINGLETONS under Microsoft.SecurityInsights/settings (settingsName === kind):
+# Anomalies, EyesOn, EntityAnalytics and Ueba. Each may be declared at most once
+# per canvas; reconciled by the setting name. Which value field applies depends on
+# the chosen setting (see helpText). Field keys must match
+# config-types/sentinel-product-settings/validate.ts.
+# =============================================================================
+
+id: "sentinel-product-settings"
+name: "Product Setting"
+toolType: "microsoft-sentinel"
+entityType: "sentinel-product-settings"
+description: "Configure Microsoft Sentinel workspace product settings (UEBA, Entity Analytics, Anomalies, EyesOn) as code via Azure Resource Manager. Each setting is a singleton, reconciled by name."
+
+item:
+  label: "Product Setting"
+  identityField: "setting"
+  repeatable: true
+  minItems: 1
+  maxItems: 4
+  groups:
+    - name: "Setting"
+      icon: "settings"
+      description: "Which product-setting singleton to configure"
+      fields:
+        - key: "setting"
+          label: "Setting"
+          fieldType: "select"
+          required: true
+          defaultValue: "Ueba"
+          options:
+            - { label: "UEBA (User & Entity Behavior Analytics)", value: "Ueba" }
+            - { label: "Entity Analytics", value: "EntityAnalytics" }
+            - { label: "Anomalies", value: "Anomalies" }
+            - { label: "EyesOn (Interactive review)", value: "EyesOn" }
+          helpText: "The Microsoft.SecurityInsights/settings singleton to configure. Each may be declared only once. The value field below depends on this choice."
+
+    - name: "Value"
+      icon: "sliders"
+      description: "The setting's value — only the field matching the chosen setting applies"
+      fields:
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Anomalies and EyesOn only — toggles properties.isEnabled on or off."
+          visibleWhen:
+            field: "setting"
+            in: ["Anomalies", "EyesOn"]
+
+        - key: "entity_providers"
+          label: "Entity providers"
+          fieldType: "tags"
+          helpText: "Entity Analytics only — the identity providers synced (properties.entityProviders). Allowed: ActiveDirectory, AzureActiveDirectory. Leave empty to sync none."
+          visibleWhen: { field: "setting", equals: "EntityAnalytics" }
+
+        - key: "data_sources"
+          label: "UEBA data sources"
+          fieldType: "tags"
+          helpText: "UEBA only — the data sources enriched by UEBA (properties.dataSources). Allowed: AuditLogs, AzureActivity, SecurityEvent, SigninLogs. Leave empty to enrich none."
+          visibleWhen: { field: "setting", equals: "Ueba" }

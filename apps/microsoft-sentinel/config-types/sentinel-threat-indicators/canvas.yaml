@@ -1,0 +1,101 @@
+# =============================================================================
+# Canvas Template — Microsoft Sentinel Threat Intelligence Indicator
+#
+# Declares ONE hand-authored threat intelligence indicator — the item. Users add
+# as many as they need. Reconciled by the display name among indicators of the
+# managed source ("Veltrix") because creation is a POST that returns a server
+# GUID name we do not control. Field keys must match
+# config-types/sentinel-threat-indicators/validate.ts.
+# =============================================================================
+
+id: "sentinel-threat-indicators"
+name: "Threat Intelligence Indicator"
+toolType: "microsoft-sentinel"
+entityType: "sentinel-threat-indicators"
+description: "Define Microsoft Sentinel threat intelligence indicators as code via Azure Resource Manager. Scoped to a managed source and reconciled by display name."
+
+item:
+  label: "Indicator"
+  identityField: "display_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Indicator"
+      icon: "shield"
+      description: "Identity, confidence and state"
+      fields:
+        - key: "display_name"
+          label: "Display name"
+          fieldType: "text"
+          required: true
+          helpText: "The indicator's display name — the reconciliation identity within the managed source. Must be unique."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional analyst description of the indicator."
+
+        - key: "confidence"
+          label: "Confidence"
+          fieldType: "number"
+          defaultValue: 50
+          helpText: "Confidence score from 0 to 100."
+
+        - key: "revoked"
+          label: "Revoked"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Mark the indicator as revoked (kept for history but no longer active)."
+
+    - name: "Pattern"
+      icon: "search"
+      description: "What the indicator matches"
+      fields:
+        - key: "pattern_type"
+          label: "Pattern type"
+          fieldType: "select"
+          defaultValue: "ipv4-addr"
+          options:
+            - { label: "IPv4 address", value: "ipv4-addr" }
+            - { label: "IPv6 address", value: "ipv6-addr" }
+            - { label: "Domain name", value: "domain-name" }
+            - { label: "URL", value: "url" }
+            - { label: "File hash (SHA-256)", value: "file:sha256" }
+            - { label: "File hash (SHA-1)", value: "file:sha1" }
+            - { label: "File hash (MD5)", value: "file:md5" }
+          helpText: "The STIX observable type the pattern targets. Determines how a bare value is wrapped into a STIX pattern."
+
+        - key: "pattern"
+          label: "Pattern"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The indicator value. Enter a bare value (e.g. 1.2.3.4, evil.example.com,
+            https://bad.example.com, or a file hash) and it is wrapped into a STIX
+            pattern using the pattern type, or paste a full STIX pattern such as
+            [ipv4-addr:value = '1.2.3.4'] to use it verbatim.
+
+    - name: "Classification"
+      icon: "layers"
+      description: "Threat types, tags and validity window"
+      fields:
+        - key: "threat_types"
+          label: "Threat types"
+          fieldType: "tags"
+          helpText: "Threat types, e.g. malicious-activity, malware, phishing, c2, botnet."
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          helpText: "Free-form threat intelligence tags for grouping and search."
+
+        - key: "valid_from"
+          label: "Valid from (ISO-8601)"
+          fieldType: "text"
+          helpText: "When the indicator becomes valid, as ISO-8601 (e.g. 2024-01-31T00:00:00Z). Defaults to the deploy time when left blank."
+
+        - key: "valid_until"
+          label: "Valid until (ISO-8601)"
+          fieldType: "text"
+          helpText: "Optional expiry, as ISO-8601 (e.g. 2024-12-31T00:00:00Z). Must be on or after valid-from."

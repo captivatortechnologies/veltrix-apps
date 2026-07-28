@@ -1,0 +1,6 @@
+# Defaults for a new anomaly (ML) analytics setting item.
+#
+# Intentionally empty — a new item starts from the canvas field defaultValues
+# (enabled=true, settings_status=Production, frequency=PT1H, anomaly_version=1.0.0,
+# is_default_settings=true). Any values here would be a FLAT map keyed by the
+# canvas field keys (name, settings_definition_id, settings_status, ...).

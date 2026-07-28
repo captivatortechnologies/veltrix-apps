@@ -1,0 +1,120 @@
+# =============================================================================
+# Canvas Template — Microsoft Sentinel Source Control (repository connection)
+#
+# Declares ONE source control — a GitHub / Azure DevOps repository bound to the
+# workspace for content-as-code — the item. Users add as many as they need.
+#
+# The server id is a GUID assigned by ARM, so reconciliation is by DISPLAY NAME
+# (list sourcecontrols, match client-side). Field keys must match
+# config-types/sentinel-source-controls/validate.ts.
+#
+# SECRET: the repository credential (access_token) is a WRITE-ONLY password. It is
+# sent to ARM on create/update and is NEVER returned on GET, diffed, or stored in
+# rollback data / artifacts / logs. Leave it blank on an update to keep the stored
+# credential; supply a new value to rotate.
+#
+# SIDE EFFECT: creating a source control provisions a webhook in the GitHub repo,
+# or a pipeline + service connection in the Azure DevOps project.
+# =============================================================================
+
+id: "sentinel-source-controls"
+name: "Source Control Repository"
+toolType: "microsoft-sentinel"
+entityType: "sentinel-source-controls"
+description: "Bind a GitHub or Azure DevOps repository to the Sentinel workspace for content-as-code via Microsoft.SecurityInsights/sourcecontrols. Reconciled by display name; repository credentials are write-only."
+
+item:
+  label: "Source Control"
+  identityField: "display_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Repository"
+      icon: "git-branch"
+      description: "Identity and the repository this connection deploys from"
+      fields:
+        - key: "display_name"
+          label: "Display name"
+          fieldType: "text"
+          required: true
+          helpText: "Friendly name of the repository connection. This is the reconciliation identity (the ARM id is a server-assigned GUID)."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description shown in the Sentinel repositories blade."
+
+        - key: "repo_type"
+          label: "Repository type"
+          fieldType: "select"
+          defaultValue: "Github"
+          options:
+            - { label: "GitHub", value: "Github" }
+            - { label: "Azure DevOps", value: "AzureDevOps" }
+          helpText: "The repository backend to connect."
+
+        - key: "repo_url"
+          label: "Repository URL"
+          fieldType: "text"
+          required: true
+          helpText: "HTTPS URL of the repository, e.g. https://github.com/org/sentinel-content."
+
+        - key: "repo_branch"
+          label: "Branch"
+          fieldType: "text"
+          required: true
+          defaultValue: "main"
+          helpText: "Branch the connection deploys from, e.g. main."
+
+        - key: "version"
+          label: "Content-as-code version"
+          fieldType: "select"
+          defaultValue: "V2"
+          options:
+            - { label: "V2 (recommended)", value: "V2" }
+            - { label: "V1", value: "V1" }
+          helpText: "Source control contract version. V2 is the current content-as-code experience; V1 is legacy."
+
+    - name: "Content"
+      icon: "layers"
+      description: "Which Sentinel content types this repository deploys"
+      fields:
+        - key: "content_types"
+          label: "Content types"
+          fieldType: "multiselect"
+          required: true
+          defaultValue: ["AnalyticsRule"]
+          options:
+            - { label: "Analytics Rules", value: "AnalyticsRule" }
+            - { label: "Automation Rules", value: "AutomationRule" }
+            - { label: "Hunting Queries", value: "HuntingQuery" }
+            - { label: "Parsers", value: "Parser" }
+            - { label: "Playbooks", value: "Playbook" }
+            - { label: "Workbooks", value: "Workbook" }
+          helpText: "Select at least one content type the repository is allowed to deploy into the workspace."
+
+    - name: "Repository access"
+      icon: "key"
+      description: "Write-only credentials used to connect to the repository"
+      fields:
+        - key: "access_kind"
+          label: "Access kind"
+          fieldType: "select"
+          defaultValue: "PAT"
+          options:
+            - { label: "Personal Access Token (PAT)", value: "PAT" }
+            - { label: "OAuth", value: "OAuth" }
+            - { label: "GitHub App (installation id)", value: "App" }
+          helpText: "How to authenticate to the repository. PAT and OAuth work for both backends; App (installation id) is GitHub-only."
+
+        - key: "access_token"
+          label: "Credential (PAT / OAuth code / App installation id)"
+          fieldType: "password"
+          helpText: >
+            ⚠ WRITE-ONLY. The repository credential for the chosen access kind — a
+            PAT token, an OAuth authorization code, or a GitHub App installation id.
+            It is sent to ARM on create/update and is NEVER read back, diffed, or
+            stored in rollback data, artifacts or logs. Required on first deploy;
+            leave blank on an update to keep the existing credential, or supply a
+            new value to rotate it.

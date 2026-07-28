@@ -3,6 +3,19 @@
 All notable changes to the Microsoft Sentinel app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.3.0 — 2026-07-28
+
+### Added
+- **Six new configuration types**, grouped in the sidebar:
+  - **Analytics Rules** — Microsoft Security rules (kind MicrosoftSecurityIncidentCreation)
+    and Anomaly (ML) rules (securityMLAnalyticsSettings).
+  - **Threat Intelligence** — hand-authored threat intelligence indicators.
+  - **Settings** — product settings (UEBA / Entity Analytics / Anomalies / EyesOn).
+  - **Content** — workbooks (Microsoft.Insights, scoped to the workspace) and
+    source-control repository connections (content-as-code; write-only creds).
+- Existing 5 types assigned to sidebar groups (Analytics Rules / Automation /
+  Content / Hunting / Data Collection).
+
 ## 1.2.0 — 2026-07-26
 
 ### Added

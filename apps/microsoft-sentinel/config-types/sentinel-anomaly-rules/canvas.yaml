@@ -1,0 +1,106 @@
+# =============================================================================
+# Canvas Template — Microsoft Sentinel Anomaly (ML) Analytics Setting
+#
+# Declares ONE anomaly analytics setting — the item. Users add as many as they
+# need. Each item enables/tunes a built-in Microsoft Sentinel ML anomaly
+# (Microsoft.SecurityInsights/securityMLAnalyticsSettings, kind:Anomaly) by
+# pointing at its settingsDefinitionId and setting the mode/thresholds.
+#
+# Reconciled by the setting name (slugged into the ARM securityMLAnalyticsSettings
+# resource name, so a re-deploy updates the setting in place). Field keys must
+# match config-types/sentinel-anomaly-rules/validate.ts.
+# =============================================================================
+
+id: "sentinel-anomaly-rules"
+name: "Anomaly (ML) Rule"
+toolType: "microsoft-sentinel"
+entityType: "sentinel-anomaly-rules"
+description: "Enable and tune Microsoft Sentinel built-in anomaly (ML) analytics detections as code via Azure Resource Manager (securityMLAnalyticsSettings, kind Anomaly). Reconciled by setting name."
+
+item:
+  label: "Anomaly Setting"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Anomaly"
+      icon: "activity"
+      description: "Which built-in anomaly this tunes, and whether it runs"
+      fields:
+        - key: "name"
+          label: "Setting name"
+          fieldType: "text"
+          required: true
+          helpText: "Display name of the anomaly setting. Slugged into the ARM securityMLAnalyticsSettings resource name — this is the reconciliation identity."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description of what this anomaly detects and why it is tuned this way."
+
+        - key: "settings_definition_id"
+          label: "Anomaly definition ID (GUID)"
+          fieldType: "text"
+          required: true
+          helpText: "The settingsDefinitionId (GUID) of the built-in anomaly definition being tuned. Find it on the Anomalies page or via the securityMLAnalyticsSettings templates API."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether this anomaly is active. Disabled settings are persisted but do not generate anomalies."
+
+    - name: "Mode & schedule"
+      icon: "sliders"
+      description: "Production vs Flighting mode, run frequency and version"
+      fields:
+        - key: "settings_status"
+          label: "Settings status"
+          fieldType: "select"
+          defaultValue: "Production"
+          options:
+            - { label: "Production", value: "Production" }
+            - { label: "Flighting", value: "Flighting" }
+          helpText: "Production surfaces anomalies to the workspace; Flighting evaluates the anomaly in a shadow/test mode without production impact."
+
+        - key: "frequency"
+          label: "Frequency (ISO-8601)"
+          fieldType: "text"
+          defaultValue: "PT1H"
+          helpText: "How often the anomaly job runs, as an ISO-8601 duration (e.g. PT1H = hourly, P1D = daily). Defaults to PT1H when left blank."
+
+        - key: "anomaly_version"
+          label: "Anomaly version"
+          fieldType: "text"
+          defaultValue: "1.0.0"
+          helpText: "The anomalyVersion of the built-in definition (required by ARM). Match the version shown for the anomaly in the portal / templates API; defaults to 1.0.0 when blank."
+
+        - key: "is_default_settings"
+          label: "Is default settings"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether this represents the built-in default settings for the anomaly (as opposed to a duplicated, customized copy). Required by ARM."
+
+    - name: "Tactics & tuning"
+      icon: "layers"
+      description: "MITRE mapping and customizable observation thresholds"
+      fields:
+        - key: "tactics"
+          label: "MITRE ATT&CK tactics"
+          fieldType: "tags"
+          helpText: "Optional MITRE tactics (e.g. Exfiltration, CommandAndControl)."
+
+        - key: "techniques"
+          label: "MITRE ATT&CK techniques"
+          fieldType: "tags"
+          helpText: "Optional MITRE technique IDs (e.g. T1037, T1021)."
+
+        - key: "customizable_observations"
+          label: "Customizable observations (JSON)"
+          fieldType: "textarea"
+          helpText: >-
+            Optional JSON matching the ARM customizableObservations shape, used to tune thresholds.
+            Object with any of: thresholdObservations, singleSelectObservations, multiSelectObservations,
+            singleValueObservations, prioritizeExcludeObservations. Threshold entries look like
+            { "name": "...", "minimum": "2", "maximum": "10", "value": "3" }.

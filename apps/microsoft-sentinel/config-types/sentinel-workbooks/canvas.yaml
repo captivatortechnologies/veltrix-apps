@@ -1,0 +1,42 @@
+# =============================================================================
+# Canvas Template — Microsoft Sentinel Workbook
+#
+# Declares ONE workbook — the item. Users add as many as they need. A workbook is
+# an Azure Monitor workbook (Microsoft.Insights/workbooks, category "sentinel")
+# scoped to the workspace. Reconciled by DISPLAY NAME (the ARM resource name is a
+# server-assigned GUID). The workbook `location` (workspace region) and `sourceId`
+# (workspace resource id) are derived from the component/workspace, NOT authored
+# here. Field keys must match config-types/sentinel-workbooks/validate.ts.
+# =============================================================================
+
+id: "sentinel-workbooks"
+name: "Workbook"
+toolType: "microsoft-sentinel"
+entityType: "sentinel-workbooks"
+description: "Define Microsoft Sentinel workbooks (Azure Monitor workbooks, category sentinel) as code via Azure Resource Manager. The serialized workbook JSON is stored verbatim. Reconciled by display name."
+
+item:
+  label: "Workbook"
+  identityField: "display_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Workbook"
+      icon: "layout"
+      description: "Identity and the serialized workbook definition"
+      fields:
+        - key: "display_name"
+          label: "Display name"
+          fieldType: "text"
+          required: true
+          helpText: "The name shown in the Microsoft Sentinel portal. This is the reconciliation identity — the ARM resource name is a server-assigned GUID."
+
+        - key: "serialized_data"
+          label: "Workbook JSON (serialized data)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The ENTIRE workbook definition as JSON (the Gallery Template / Advanced
+            Editor content). Stored verbatim as the ARM serializedData string and
+            must be valid JSON.
