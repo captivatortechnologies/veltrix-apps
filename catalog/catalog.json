@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-27T16:36:10.589Z",
+  "generatedAt": "2026-07-28T13:00:09.016Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -84,7 +84,7 @@
     {
       "appId": "crowdstrike-edr",
       "name": "CrowdStrike Falcon",
-      "version": "1.12.0",
+      "version": "1.12.1",
       "vendor": "Veltrix",
       "description": "Manage CrowdStrike Falcon configurations as code through the Falcon APIs. Covers Endpoint Policies (prevention, sensor update, response, USB device control, content update, custom IOA rule groups), Exclusions (ML, IOA, sensor visibility), host groups, and custom IOCs — with validation, drift detection, and rollback handled by the Security-as-Code pipeline. Configuration types are grouped by Falcon API family in the sidebar.",
       "category": "EDR",
@@ -94,12 +94,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/crowdstrike-edr",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/crowdstrike-edr-v1.12.0/crowdstrike-edr.zip",
-      "sha256": "cb7c493495f50e0ce6bb5ff6cf54b39a31d59b56c97eda6dee829715df003cbe",
-      "sizeBytes": 1032893,
-      "publishedAt": "2026-07-27T16:36:10.545Z",
-      "releaseNotes": "## 1.12.0 — 2026-07-27\n\n### Added\n- **Phase 5 — eleven config types across five families**, completing the roadmap:\n  - **Firewall** — Rule Group (rules) and Policy (rule-group assignment; reuses the\n    shared policy adapter + fwmgr).\n  - **Response & RTR** — RTR Custom Scripts and Put-Files (reusable RTR assets).\n  - **IT Automation** (Falcon for IT) — Policy, Task (osquery/scripts), Scheduled Task.\n  - **Counter Adversary Ops** — Recon Monitoring Rules (+ notification actions).\n  - **Platform Administration** — Installation Tokens (drift-corrected via revoke,\n    not delete) and Users (with role-grant as a separate step).\n  - **Identity Protection** — IDP Policy Rules (no PATCH API → replace-in-place).\n- MSSP / Flight Control is intentionally deferred (multi-tenant, requires parent-CID\n  credentials).",
-      "releasedAt": "2026-07-27T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/crowdstrike-edr-v1.12.1/crowdstrike-edr.zip",
+      "sha256": "a976950d0f63b01e73a2324b90a7eccf8cf87e0868007e27d7ad1e4596a7e27c",
+      "sizeBytes": 1032998,
+      "publishedAt": "2026-07-28T13:00:08.981Z",
+      "releaseNotes": "## 1.12.1 — 2026-07-28\n\n### Added / Fixed\n- **`FalconClient.requestMultipart`** — a multipart/form-data capability on the\n  shared client (same auth + 401/429 retry as `request()`), for endpoints that\n  only accept file uploads.\n- **RTR Custom Scripts and Put-Files now deploy correctly** — their create/update\n  are multipart-only; they were previously sending a JSON approximation. Scripts\n  send the body in the `content` form field; put-files upload the content as the\n  `file` part. (Read/delete/drift were already working.)\n- NG-SIEM Saved Queries and Dashboards: the multipart capability is now available,\n  but wiring their `yaml_template` upload still needs the exact template schema +\n  `search_domain` value confirmed on a live tenant — noted in their deploy headers.",
+      "releasedAt": "2026-07-28T00:00:00.000Z"
     },
     {
       "appId": "cyberark",
