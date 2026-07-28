@@ -1,6 +1,11 @@
 import validate, { extractComplianceSpecs, policyKey } from '../validate'
 import type { PipelineContext, PlatformDataApi } from '@veltrixsecops/app-sdk'
-import { buildComplianceBody, PLATFORMS } from '../compliance'
+import {
+  buildComplianceBody,
+  buildScheduleActionsRequestFromPrior,
+  capturePriorScheduledActions,
+  PLATFORMS,
+} from '../compliance'
 
 const stubPlatform: PlatformDataApi = {
   getLatestDeployment: async () => null,
@@ -196,5 +201,64 @@ describe('Intune Device Compliance Policies Validate Handler', () => {
     expect(configs).toHaveLength(2)
     expect(configs[0].actionType).toBe('block')
     expect(configs[1].actionType).toBe('retire')
+  })
+
+  it('omits securityBlockJailbrokenDevices for Android device owner (no such property)', () => {
+    const specs = extractComplianceSpecs(
+      makeCtx([
+        {
+          name: 'p',
+          fields: {
+            policy_name: 'DO',
+            platform: 'androidDeviceOwner',
+            password_required: 'require',
+            security_block_jailbroken: 'require',
+          },
+        },
+      ]).canvas,
+    )
+    const body = buildComplianceBody(specs[0], { includeScheduledActions: false }) as Record<string, unknown>
+    expect(body['@odata.type']).toBe(PLATFORMS.androidDeviceOwner.odataType)
+    expect(body.passwordRequired).toBe(true)
+    // Device owner has no securityBlockJailbrokenDevices — it must NOT be sent.
+    expect(body.securityBlockJailbrokenDevices).toBeUndefined()
+  })
+
+  it('still emits securityBlockJailbrokenDevices for Android work profile', () => {
+    const specs = extractComplianceSpecs(
+      makeCtx([{ name: 'p', fields: { policy_name: 'WP', platform: 'androidWorkProfile', security_block_jailbroken: 'require' } }]).canvas,
+    )
+    const body = buildComplianceBody(specs[0], { includeScheduledActions: false }) as Record<string, unknown>
+    expect(body.securityBlockJailbrokenDevices).toBe(true)
+  })
+
+  it('captures and rebuilds prior scheduled actions for rollback, dropping server ids', () => {
+    const captured = capturePriorScheduledActions([
+      {
+        ruleName: 'PasswordRequired',
+        scheduledActionConfigurations: [
+          { id: 'srv-1', actionType: 'block', gracePeriodHours: 48, notificationTemplateId: '', notificationMessageCCList: [] },
+          { id: 'srv-2', actionType: 'retire', gracePeriodHours: 48 },
+        ],
+      },
+    ])
+    expect(captured).toHaveLength(1)
+    expect(captured[0].ruleName).toBe('PasswordRequired')
+    const configs = captured[0].scheduledActionConfigurations as Array<Record<string, unknown>>
+    expect(configs).toHaveLength(2)
+    expect(configs[0].actionType).toBe('block')
+    expect(configs[0].gracePeriodHours).toBe(48)
+    expect('id' in configs[0]).toBe(false) // server-managed id dropped
+    expect(configs[1].gracePeriodHours).toBe(48)
+    expect(configs[1].notificationTemplateId).toBe('') // defaulted
+    expect(configs[1].notificationMessageCCList).toEqual([])
+
+    const req = buildScheduleActionsRequestFromPrior(captured) as Record<string, unknown>
+    expect(req.deviceComplianceScheduledActionForRules).toBe(captured)
+  })
+
+  it('capturePriorScheduledActions tolerates missing/empty input', () => {
+    expect(capturePriorScheduledActions(undefined)).toEqual([])
+    expect(capturePriorScheduledActions([])).toEqual([])
   })
 })

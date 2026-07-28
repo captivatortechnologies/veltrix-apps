@@ -1,6 +1,6 @@
 import type { RollbackContext, RollbackResult } from '@veltrixsecops/app-sdk'
 import { buildIntuneClient, graphErrorMessage } from '../../lib/intune'
-import { buildRestoreBody } from './compliance'
+import { buildRestoreBody, buildScheduleActionsRequestFromPrior } from './compliance'
 import { assignPolicy, type ComplianceRollbackEntry } from './deploy'
 
 /**
@@ -31,6 +31,14 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
           body: buildRestoreBody(entry.prior.fields, entry.platform),
         })
         if (!res.ok) throw new Error(`Failed to restore compliance policy "${entry.name}": ${graphErrorMessage(res)}`)
+        // Restore the prior scheduled actions (grace period / retire) the deploy
+        // converged via scheduleActionsForRules — buildRestoreBody's PATCH does not.
+        if (entry.prior.scheduledActions?.length) {
+          const sched = await client.request('POST', `/deviceManagement/deviceCompliancePolicies/${entry.id}/scheduleActionsForRules`, {
+            body: buildScheduleActionsRequestFromPrior(entry.prior.scheduledActions),
+          })
+          if (!sched.ok) throw new Error(`Failed to restore scheduled actions for "${entry.name}": ${graphErrorMessage(sched)}`)
+        }
         await assignPolicy(client, entry.id, entry.prior.assignment)
       }
       reverted.push(entry.name)

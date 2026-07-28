@@ -6,9 +6,11 @@ import {
   buildComplianceBody,
   buildScheduleActionsRequest,
   capturePriorFields,
+  capturePriorScheduledActions,
   readLiveAssignment,
   type CompliancePlatform,
   type LiveCompliancePolicy,
+  type LiveScheduledActionForRule,
 } from './compliance'
 import { extractComplianceSpecs, policyKey } from './validate'
 
@@ -24,7 +26,12 @@ export interface ComplianceRollbackEntry {
   existed: boolean
   id?: string
   platform?: CompliancePlatform
-  prior?: { fields: Record<string, unknown>; assignment: ComplianceAssignmentGroups }
+  prior?: {
+    fields: Record<string, unknown>
+    assignment: ComplianceAssignmentGroups
+    /** The policy's scheduled actions (grace period / retire) before this deploy. */
+    scheduledActions: Record<string, unknown>[]
+  }
 }
 
 /**
@@ -56,12 +63,17 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
 
       if (live && live.id) {
         const full = (await getCompliancePolicy(client, live.id)) ?? live
+        const priorScheduled = await getScheduledActions(client, live.id)
         rollbackState.push({
           name: spec.name,
           existed: true,
           id: live.id,
           platform,
-          prior: { fields: capturePriorFields(full, platform), assignment: readLiveAssignment(full) },
+          prior: {
+            fields: capturePriorFields(full, platform),
+            assignment: readLiveAssignment(full),
+            scheduledActions: priorScheduled,
+          },
         })
 
         const patch = await client.request('PATCH', `/deviceManagement/deviceCompliancePolicies/${live.id}`, {
@@ -126,4 +138,18 @@ export async function getCompliancePolicy(client: IntuneClient, id: string): Pro
   const res = await client.request('GET', `/deviceManagement/deviceCompliancePolicies/${id}`, { query: { $expand: 'assignments' } })
   if (!res.ok) return null
   return parseJson<LiveCompliancePolicy>(res.body)
+}
+
+/**
+ * Read a policy's current scheduled actions (grace period / retire), normalized so
+ * rollback can replay them. Best-effort: an unreadable schedule yields [] (rollback
+ * then simply leaves the deployed schedule in place rather than failing).
+ */
+export async function getScheduledActions(client: IntuneClient, id: string): Promise<Record<string, unknown>[]> {
+  const res = await client.request('GET', `/deviceManagement/deviceCompliancePolicies/${id}/scheduledActionsForRule`, {
+    query: { $expand: 'scheduledActionConfigurations' },
+  })
+  if (!res.ok) return []
+  const parsed = parseJson<{ value?: LiveScheduledActionForRule[] }>(res.body)
+  return capturePriorScheduledActions(parsed?.value)
 }

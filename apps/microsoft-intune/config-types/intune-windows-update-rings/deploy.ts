@@ -7,7 +7,6 @@ import {
   extractRingSpecs,
   hasAnyAssignment,
   ringKey,
-  WINDOWS_UPDATE_RING_ODATA_TYPE,
 } from './validate'
 
 /** A live deviceConfiguration (only the fields we read/manage). */

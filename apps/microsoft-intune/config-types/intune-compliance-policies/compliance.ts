@@ -54,7 +54,10 @@ export interface ComplianceField {
 const ALL = () => true
 const isWindows = (p: CompliancePlatform) => p === 'windows'
 const hasEncryption = (p: CompliancePlatform) => p !== 'ios' // iOS is always encrypted — no property
-const hasJailbreak = (p: CompliancePlatform) => p === 'ios' || p === 'androidDeviceOwner' || p === 'androidWorkProfile'
+// jailbreak/root block: iOS + Android work profile only. androidDeviceOwner has
+// NO securityBlockJailbrokenDevices property (it uses Play Integrity / SafetyNet
+// attestation instead), so emitting it there would make Graph reject the create.
+const hasJailbreak = (p: CompliancePlatform) => p === 'ios' || p === 'androidWorkProfile'
 
 function prop(name: string, supports: (p: CompliancePlatform) => boolean): (p: CompliancePlatform) => string | null {
   return (p) => (supports(p) ? name : null)
@@ -285,6 +288,37 @@ export function capturePriorFields(live: LiveCompliancePolicy, platform: Complia
 /** Rebuild a restore PATCH body from captured prior fields (adds the @odata.type). */
 export function buildRestoreBody(prior: Record<string, unknown>, platform: CompliancePlatform): Record<string, unknown> {
   return { '@odata.type': PLATFORMS[platform].odataType, ...prior }
+}
+
+/** A live scheduledActionsForRule rule (its configurations expanded). */
+export interface LiveScheduledActionForRule {
+  ruleName?: string
+  scheduledActionConfigurations?: Array<Record<string, unknown>>
+}
+
+/**
+ * Normalize a live policy's scheduledActionsForRule into the exact shape the
+ * scheduleActionsForRules action accepts, dropping server-managed fields (ids)
+ * so it can be replayed verbatim on rollback. Deploy converges these on update
+ * (grace period / retire), so rollback must be able to restore the prior set.
+ */
+export function capturePriorScheduledActions(rules: LiveScheduledActionForRule[] | undefined): Record<string, unknown>[] {
+  return (Array.isArray(rules) ? rules : []).map((rule) => ({
+    '@odata.type': '#microsoft.graph.deviceComplianceScheduledActionForRule',
+    ruleName: typeof rule?.ruleName === 'string' && rule.ruleName ? rule.ruleName : 'PasswordRequired',
+    scheduledActionConfigurations: (Array.isArray(rule?.scheduledActionConfigurations) ? rule.scheduledActionConfigurations : []).map((c) => ({
+      '@odata.type': '#microsoft.graph.deviceComplianceActionItem',
+      actionType: c?.actionType,
+      gracePeriodHours: typeof c?.gracePeriodHours === 'number' ? c.gracePeriodHours : 0,
+      notificationTemplateId: typeof c?.notificationTemplateId === 'string' ? c.notificationTemplateId : '',
+      notificationMessageCCList: Array.isArray(c?.notificationMessageCCList) ? c.notificationMessageCCList : [],
+    })),
+  }))
+}
+
+/** Wrap captured prior scheduled actions for the scheduleActionsForRules action. */
+export function buildScheduleActionsRequestFromPrior(scheduled: Record<string, unknown>[]): Record<string, unknown> {
+  return { deviceComplianceScheduledActionForRules: scheduled }
 }
 
 /** Read include/exclude groups + all-devices/all-users off a live policy's assignments. */
