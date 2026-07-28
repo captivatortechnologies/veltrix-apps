@@ -33,17 +33,47 @@ jobs:
             exit 1
           fi
 
+      # Idempotent: a dispatch/re-run on a version already on npm is a green no-op
+      # (a plain `npm publish` would 403/EEXIST). Matches the SDK workflow.
+      - name: Resolve publish decision
+        id: resolve
+        run: |
+          VERSION=$(node -p "require('./cli/package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if npm view "@veltrixsecops/cli@$VERSION" version >/dev/null 2>&1; then
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+            echo "@veltrixsecops/cli@$VERSION is already on npm — nothing to publish."
+          else
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
+            echo "@veltrixsecops/cli@$VERSION is not on npm — will publish."
+          fi
+
       - name: Install
+        if: steps.resolve.outputs.already_published == 'false'
         working-directory: cli
         run: npm ci --no-audit --no-fund
 
       - name: Smoke test
+        if: steps.resolve.outputs.already_published == 'false'
         working-directory: cli
         run: |
           node bin/veltrix.mjs --help
           node bin/veltrix.mjs validate ../apps/splunk-enterprise
 
+      # Preflight the credential so a bad/expired token fails with a clear reason
+      # instead of npm's cryptic "E404 Not Found - PUT".
+      - name: Verify npm auth
+        if: steps.resolve.outputs.already_published == 'false'
+        run: |
+          npm whoami >/dev/null 2>&1 || {
+            echo "::error title=NPM_TOKEN invalid::npm authentication failed — the NPM_TOKEN repo secret is missing, expired, revoked, or lacks publish access to @veltrixsecops. Regenerate an npm Automation token (2FA-bypass) with read+write to the @veltrixsecops scope and update the NPM_TOKEN secret."
+            exit 1
+          }
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Publish
+        if: steps.resolve.outputs.already_published == 'false'
         working-directory: cli
         run: npm publish --provenance --access public
         env:
