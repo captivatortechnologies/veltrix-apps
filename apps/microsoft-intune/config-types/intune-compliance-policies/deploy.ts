@@ -7,6 +7,7 @@ import {
   buildScheduleActionsRequest,
   capturePriorFields,
   capturePriorScheduledActions,
+  hasAnyAssignment,
   readLiveAssignment,
   type CompliancePlatform,
   type LiveCompliancePolicy,
@@ -26,6 +27,9 @@ export interface ComplianceRollbackEntry {
   existed: boolean
   id?: string
   platform?: CompliancePlatform
+  /** Whether THIS deploy managed (replaced) the policy's assignments — only then
+   *  does rollback restore the prior assignments. */
+  managedAssignments?: boolean
   prior?: {
     fields: Record<string, unknown>
     assignment: ComplianceAssignmentGroups
@@ -60,6 +64,9 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     for (const spec of specs) {
       const platform = spec.platform as CompliancePlatform
       const live = byName.get(policyKey(spec.name))
+      // Only converge assignments when the canvas declares targets — an empty spec
+      // leaves the policy's assignments (e.g. manual portal ones) untouched.
+      const manageAssignments = hasAnyAssignment(spec.assignment)
 
       if (live && live.id) {
         const full = (await getCompliancePolicy(client, live.id)) ?? live
@@ -69,6 +76,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
           existed: true,
           id: live.id,
           platform,
+          managedAssignments: manageAssignments,
           prior: {
             fields: capturePriorFields(full, platform),
             assignment: readLiveAssignment(full),
@@ -86,7 +94,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         })
         if (!sched.ok) throw new Error(`Failed to update scheduled actions for "${spec.name}": ${graphErrorMessage(sched)}`)
 
-        await assignPolicy(client, live.id, spec.assignment)
+        if (manageAssignments) await assignPolicy(client, live.id, spec.assignment)
         updated.push(spec.name)
       } else {
         const res = await client.request('POST', '/deviceManagement/deviceCompliancePolicies', {
@@ -94,8 +102,8 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         })
         if (!res.ok) throw new Error(`Failed to create compliance policy "${spec.name}": ${graphErrorMessage(res)}`)
         const createdPolicy = parseJson<{ id?: string }>(res.body)
-        rollbackState.push({ name: spec.name, existed: false, id: createdPolicy?.id, platform })
-        if (createdPolicy?.id) await assignPolicy(client, createdPolicy.id, spec.assignment)
+        rollbackState.push({ name: spec.name, existed: false, id: createdPolicy?.id, platform, managedAssignments: manageAssignments })
+        if (createdPolicy?.id && manageAssignments) await assignPolicy(client, createdPolicy.id, spec.assignment)
         created.push(spec.name)
       }
     }
@@ -116,7 +124,9 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   }
 }
 
-/** Converge a policy's assignments to the declared set (empty spec clears all assignments). */
+/** Converge a policy's assignments to the declared set (a full replace). Only called
+ *  when the canvas declares targets — an empty spec never reaches here, so manual
+ *  assignments are preserved. */
 export async function assignPolicy(client: IntuneClient, id: string, spec: AssignmentSpec): Promise<void> {
   const res = await client.request('POST', `/deviceManagement/deviceCompliancePolicies/${id}/assign`, {
     body: { assignments: buildAssignments(spec) },

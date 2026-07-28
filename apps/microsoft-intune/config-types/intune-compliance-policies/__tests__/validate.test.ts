@@ -4,6 +4,7 @@ import {
   buildComplianceBody,
   buildScheduleActionsRequestFromPrior,
   capturePriorScheduledActions,
+  hasAnyAssignment,
   PLATFORMS,
 } from '../compliance'
 
@@ -260,5 +261,13 @@ describe('Intune Device Compliance Policies Validate Handler', () => {
   it('capturePriorScheduledActions tolerates missing/empty input', () => {
     expect(capturePriorScheduledActions(undefined)).toEqual([])
     expect(capturePriorScheduledActions([])).toEqual([])
+  })
+
+  it('hasAnyAssignment is false only when no target is declared (drives assignment preservation)', () => {
+    expect(hasAnyAssignment({ includeGroupIds: [], excludeGroupIds: [], allDevices: false, allUsers: false })).toBe(false)
+    expect(hasAnyAssignment({ includeGroupIds: ['g1'], excludeGroupIds: [], allDevices: false, allUsers: false })).toBe(true)
+    expect(hasAnyAssignment({ includeGroupIds: [], excludeGroupIds: ['g2'], allDevices: false, allUsers: false })).toBe(true)
+    expect(hasAnyAssignment({ includeGroupIds: [], excludeGroupIds: [], allDevices: true, allUsers: false })).toBe(true)
+    expect(hasAnyAssignment({ includeGroupIds: [], excludeGroupIds: [], allDevices: false, allUsers: true })).toBe(true)
   })
 })

@@ -4,6 +4,7 @@ import { attachDriftActor, veltrixActorLogins } from '../../lib/intuneAuditLog'
 import {
   COMPLIANCE_FIELDS,
   PLATFORMS,
+  hasAnyAssignment,
   normalizeOdataType,
   readLiveAssignment,
   type CompliancePlatform,
@@ -71,19 +72,24 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         }
       }
 
-      const wantA = spec.assignment
-      const haveA = readLiveAssignment(full)
-      if (!sameGroups(wantA.includeGroupIds, haveA.includeGroupIds)) {
-        diffs.push({ field: `${spec.name}.include_groups`, expected: wantA.includeGroupIds.join(', ') || 'none', actual: haveA.includeGroupIds.join(', ') || 'none', severity: 'warning' })
-      }
-      if (!sameGroups(wantA.excludeGroupIds, haveA.excludeGroupIds)) {
-        diffs.push({ field: `${spec.name}.exclude_groups`, expected: wantA.excludeGroupIds.join(', ') || 'none', actual: haveA.excludeGroupIds.join(', ') || 'none', severity: 'warning' })
-      }
-      if (Boolean(wantA.allDevices) !== haveA.allDevices) {
-        diffs.push({ field: `${spec.name}.all_devices`, expected: String(Boolean(wantA.allDevices)), actual: String(haveA.allDevices), severity: 'warning' })
-      }
-      if (Boolean(wantA.allUsers) !== haveA.allUsers) {
-        diffs.push({ field: `${spec.name}.all_users`, expected: String(Boolean(wantA.allUsers)), actual: String(haveA.allUsers), severity: 'warning' })
+      // Compare assignments only when the canvas declares targets — when it
+      // declares none, deploy preserves the live/manual assignments, so they are
+      // intentionally NOT managed here and must not read as drift.
+      if (hasAnyAssignment(spec.assignment)) {
+        const wantA = spec.assignment
+        const haveA = readLiveAssignment(full)
+        if (!sameGroups(wantA.includeGroupIds, haveA.includeGroupIds)) {
+          diffs.push({ field: `${spec.name}.include_groups`, expected: wantA.includeGroupIds.join(', ') || 'none', actual: haveA.includeGroupIds.join(', ') || 'none', severity: 'warning' })
+        }
+        if (!sameGroups(wantA.excludeGroupIds, haveA.excludeGroupIds)) {
+          diffs.push({ field: `${spec.name}.exclude_groups`, expected: wantA.excludeGroupIds.join(', ') || 'none', actual: haveA.excludeGroupIds.join(', ') || 'none', severity: 'warning' })
+        }
+        if (Boolean(wantA.allDevices) !== haveA.allDevices) {
+          diffs.push({ field: `${spec.name}.all_devices`, expected: String(Boolean(wantA.allDevices)), actual: String(haveA.allDevices), severity: 'warning' })
+        }
+        if (Boolean(wantA.allUsers) !== haveA.allUsers) {
+          diffs.push({ field: `${spec.name}.all_users`, expected: String(Boolean(wantA.allUsers)), actual: String(haveA.allUsers), severity: 'warning' })
+        }
       }
 
       // Attribute every diff this policy produced to the last human change (once);

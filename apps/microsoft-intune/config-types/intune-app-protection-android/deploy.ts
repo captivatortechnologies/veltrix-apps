@@ -6,6 +6,7 @@ import {
   buildProtectionBody,
   buildTargetAppsBody,
   capturePriorFields,
+  hasAnyAssignment,
   readLiveAssignment,
   readLiveTargetedApps,
   type AndroidAppProtectionSpec,
@@ -25,6 +26,8 @@ export interface ProtectionRollbackEntry {
   name: string
   existed: boolean
   id?: string
+  /** Whether THIS deploy managed (replaced) the policy's group assignments. */
+  managedAssignments?: boolean
   prior?: {
     fields: Record<string, unknown>
     appGroupType: AppGroupType
@@ -57,6 +60,9 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
 
     for (const spec of specs) {
       const live = byName.get(policyKey(spec.name))
+      // Only converge group assignments when the canvas declares targets — an empty
+      // spec leaves manual assignments untouched. (targetApps always runs.)
+      const manageAssignments = hasAnyAssignment(spec.assignment)
 
       if (live && live.id) {
         const full = (await getProtection(client, live.id)) ?? live
@@ -64,6 +70,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
           name: spec.name,
           existed: true,
           id: live.id,
+          managedAssignments: manageAssignments,
           prior: {
             fields: capturePriorFields(full),
             appGroupType: (typeof full.appGroupType === 'string' ? full.appGroupType : 'selectedPublicApps') as AppGroupType,
@@ -75,14 +82,14 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         const patch = await client.request('PATCH', `${ANDROID_APP_PROTECTION_PATH}/${live.id}`, { body: buildProtectionBody(spec) })
         if (!patch.ok) throw new Error(`Failed to update app protection policy "${spec.name}": ${graphErrorMessage(patch)}`)
 
-        await convergeTargetAppsAndAssignment(client, live.id, spec)
+        await convergeTargetAppsAndAssignment(client, live.id, spec, manageAssignments)
         updated.push(spec.name)
       } else {
         const res = await client.request('POST', ANDROID_APP_PROTECTION_PATH, { body: buildProtectionBody(spec) })
         if (!res.ok) throw new Error(`Failed to create app protection policy "${spec.name}": ${graphErrorMessage(res)}`)
         const createdPolicy = parseJson<{ id?: string }>(res.body)
-        rollbackState.push({ name: spec.name, existed: false, id: createdPolicy?.id })
-        if (createdPolicy?.id) await convergeTargetAppsAndAssignment(client, createdPolicy.id, spec)
+        rollbackState.push({ name: spec.name, existed: false, id: createdPolicy?.id, managedAssignments: manageAssignments })
+        if (createdPolicy?.id) await convergeTargetAppsAndAssignment(client, createdPolicy.id, spec, manageAssignments)
         created.push(spec.name)
       }
     }
@@ -103,10 +110,19 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   }
 }
 
-/** Converge a policy's targeted apps then its assignments (both replace the live set). */
-async function convergeTargetAppsAndAssignment(client: IntuneClient, id: string, spec: AndroidAppProtectionSpec): Promise<void> {
+/**
+ * Converge a policy's targeted apps, then its assignments IF the canvas declared
+ * any (targetApps always replaces the app list — the policy's core config; assign
+ * runs only when targets are declared, so manual assignments are preserved).
+ */
+async function convergeTargetAppsAndAssignment(
+  client: IntuneClient,
+  id: string,
+  spec: AndroidAppProtectionSpec,
+  manageAssignments: boolean,
+): Promise<void> {
   await targetApps(client, id, spec)
-  await assignPolicy(client, id, spec)
+  if (manageAssignments) await assignPolicy(client, id, spec)
 }
 
 /** Set the managed apps this policy targets (targetApps replaces the app list). */

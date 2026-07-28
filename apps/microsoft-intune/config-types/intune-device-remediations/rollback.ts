@@ -30,7 +30,8 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
         const spec = restoreSpec(entry.name, entry.prior)
         const res = await client.request('PATCH', `/deviceManagement/deviceHealthScripts/${entry.id}`, { body: buildRemediationBody(spec) })
         if (!res.ok) throw new Error(`Failed to restore remediation "${entry.name}": ${graphErrorMessage(res)}`)
-        await assignRemediation(client, entry.id, spec)
+        // Only restore assignments if THIS deploy managed them (else leave live/manual ones).
+        if (entry.managedAssignments) await assignRemediation(client, entry.id, spec)
       }
       reverted.push(entry.name)
     }

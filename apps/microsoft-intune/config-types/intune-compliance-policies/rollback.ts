@@ -39,7 +39,9 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
           })
           if (!sched.ok) throw new Error(`Failed to restore scheduled actions for "${entry.name}": ${graphErrorMessage(sched)}`)
         }
-        await assignPolicy(client, entry.id, entry.prior.assignment)
+        // Only restore assignments if THIS deploy managed them (else it never
+        // touched them — leave the live/manual assignments as they are).
+        if (entry.managedAssignments) await assignPolicy(client, entry.id, entry.prior.assignment)
       }
       reverted.push(entry.name)
     }

@@ -6,6 +6,7 @@ import {
   buildAssignBody,
   buildConfigBody,
   buildTargetAppsBody,
+  hasAnyAssignment,
   readLiveAppGroupType,
   readLiveAssignment,
   readLiveCustomSettings,
@@ -31,6 +32,8 @@ export interface AppConfigRollbackEntry {
   name: string
   existed: boolean
   id?: string
+  /** Whether THIS deploy managed (replaced) the policy's group assignments. */
+  managedAssignments?: boolean
   prior?: {
     description: string
     customSettings: CustomSetting[]
@@ -66,6 +69,9 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
 
     for (const spec of specs) {
       const live = byName.get(policyKey(spec.name))
+      // Only converge group assignments when the canvas declares targets — an empty
+      // spec leaves manual assignments untouched. (targetApps always runs.)
+      const manageAssignments = hasAnyAssignment(spec.assignment)
 
       if (live && live.id) {
         const full = (await getAppConfig(client, live.id)) ?? live
@@ -73,6 +79,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
           name: spec.name,
           existed: true,
           id: live.id,
+          managedAssignments: manageAssignments,
           prior: {
             description: typeof full.description === 'string' ? full.description : '',
             customSettings: readLiveCustomSettings(full),
@@ -87,16 +94,16 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         if (!patch.ok) throw new Error(`Failed to update app configuration policy "${spec.name}": ${graphErrorMessage(patch)}`)
 
         await targetApps(client, live.id, spec)
-        await assignPolicy(client, live.id, spec.assignment, spec.name)
+        if (manageAssignments) await assignPolicy(client, live.id, spec.assignment, spec.name)
         updated.push(spec.name)
       } else {
         const res = await client.request('POST', APP_CONFIG_PATH, { body: buildConfigBody(spec) })
         if (!res.ok) throw new Error(`Failed to create app configuration policy "${spec.name}": ${graphErrorMessage(res)}`)
         const createdPolicy = parseJson<{ id?: string }>(res.body)
-        rollbackState.push({ name: spec.name, existed: false, id: createdPolicy?.id })
+        rollbackState.push({ name: spec.name, existed: false, id: createdPolicy?.id, managedAssignments: manageAssignments })
         if (createdPolicy?.id) {
           await targetApps(client, createdPolicy.id, spec)
-          await assignPolicy(client, createdPolicy.id, spec.assignment, spec.name)
+          if (manageAssignments) await assignPolicy(client, createdPolicy.id, spec.assignment, spec.name)
         }
         created.push(spec.name)
       }

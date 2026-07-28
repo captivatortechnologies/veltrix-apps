@@ -4,6 +4,7 @@ import {
   buildAssignRequest,
   buildRemediationBody,
   capturePrior,
+  hasAnyAssignment,
   type LiveDeviceHealthScript,
   type RemediationPrior,
   type RemediationSpec,
@@ -14,6 +15,8 @@ export interface RemediationRollbackEntry {
   name: string
   existed: boolean
   id?: string
+  /** Whether THIS deploy managed (replaced) the remediation's group assignments. */
+  managedAssignments?: boolean
   prior?: RemediationPrior
 }
 
@@ -42,21 +45,24 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
 
     for (const spec of specs) {
       const live = byName.get(remediationKey(spec.name))
+      // Only converge assignments when the canvas declares targets — an empty spec
+      // leaves the remediation's assignments (e.g. manual ones) untouched.
+      const manageAssignments = hasAnyAssignment(spec.assignments)
 
       if (live && live.id) {
         const full = (await getRemediation(client, live.id)) ?? live
-        rollbackState.push({ name: spec.name, existed: true, id: live.id, prior: capturePrior(full) })
+        rollbackState.push({ name: spec.name, existed: true, id: live.id, managedAssignments: manageAssignments, prior: capturePrior(full) })
 
         const res = await client.request('PATCH', `/deviceManagement/deviceHealthScripts/${live.id}`, { body: buildRemediationBody(spec) })
         if (!res.ok) throw new Error(`Failed to update remediation "${spec.name}": ${graphErrorMessage(res)}`)
-        await assignRemediation(client, live.id, spec)
+        if (manageAssignments) await assignRemediation(client, live.id, spec)
         updated.push(spec.name)
       } else {
         const res = await client.request('POST', '/deviceManagement/deviceHealthScripts', { body: buildRemediationBody(spec) })
         if (!res.ok) throw new Error(`Failed to create remediation "${spec.name}": ${graphErrorMessage(res)}`)
         const createdScript = parseJson<{ id?: string }>(res.body)
-        rollbackState.push({ name: spec.name, existed: false, id: createdScript?.id })
-        if (createdScript?.id) await assignRemediation(client, createdScript.id, spec)
+        rollbackState.push({ name: spec.name, existed: false, id: createdScript?.id, managedAssignments: manageAssignments })
+        if (createdScript?.id && manageAssignments) await assignRemediation(client, createdScript.id, spec)
         created.push(spec.name)
       }
     }
@@ -77,7 +83,8 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   }
 }
 
-/** Converge a remediation's assignments to the declared set (an empty spec clears all assignments). */
+/** Converge a remediation's assignments to the declared set (a full replace). Only
+ *  called when the canvas declares targets, so manual assignments are preserved. */
 export async function assignRemediation(client: IntuneClient, id: string, spec: RemediationSpec): Promise<void> {
   const res = await client.request('POST', `/deviceManagement/deviceHealthScripts/${id}/assign`, { body: buildAssignRequest(spec) })
   if (!res.ok) throw new Error(`Failed to assign remediation "${spec.name}": ${graphErrorMessage(res)}`)

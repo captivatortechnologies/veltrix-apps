@@ -4,6 +4,7 @@ import { attachDriftActor, veltrixActorLogins } from '../../lib/intuneAuditLog'
 import { type AssignmentSpec } from '../../lib/assignments'
 import {
   decodeScript,
+  hasAnyAssignment,
   hhmm,
   normalizeRunAsAccount,
   normalizeScript,
@@ -107,7 +108,9 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         diffs.push({ field: `${spec.name}.scheduleTime`, expected: hhmm(spec.schedule.time), actual: hhmm(haveSchedule.time), severity: 'warning' })
       }
 
-      if (assignmentsDiffer(spec.assignments, readLiveAssignment(full))) {
+      // Compare assignments only when the canvas declares targets — when it declares
+      // none, deploy preserves manual assignments, so they must not read as drift.
+      if (hasAnyAssignment(spec.assignments) && assignmentsDiffer(spec.assignments, readLiveAssignment(full))) {
         diffs.push({ field: `${spec.name}.assignments`, expected: 'as declared', actual: 'differs from declared', severity: 'warning' })
       }
 

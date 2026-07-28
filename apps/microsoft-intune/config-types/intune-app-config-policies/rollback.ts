@@ -43,12 +43,13 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
           assignment: {
             includeGroupIds: entry.prior.assignment.includeGroupIds,
             excludeGroupIds: entry.prior.assignment.excludeGroupIds,
-            allDevices: false,
+            allDevices: entry.prior.assignment.allDevices,
             allUsers: entry.prior.assignment.allUsers,
           },
         }
         await targetApps(client, entry.id, restored)
-        await assignPolicy(client, entry.id, restored.assignment, entry.name)
+        // Only restore assignments if THIS deploy managed them (else leave live/manual ones).
+        if (entry.managedAssignments) await assignPolicy(client, entry.id, restored.assignment, entry.name)
       }
       reverted.push(entry.name)
     }

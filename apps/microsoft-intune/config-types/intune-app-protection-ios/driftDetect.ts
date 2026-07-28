@@ -3,6 +3,7 @@ import { buildIntuneClient } from '../../lib/intune'
 import { attachDriftActor, veltrixActorLogins } from '../../lib/intuneAuditLog'
 import {
   MAM_FIELDS,
+  hasAnyAssignment,
   readLiveAppGroupType,
   readLiveAssignment,
   readLiveTargetedApps,
@@ -75,16 +76,20 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         }
       }
 
-      const wantA = spec.assignment
-      const haveA = readLiveAssignment(full)
-      if (!sameGroups(wantA.includeGroupIds, haveA.includeGroupIds)) {
-        diffs.push({ field: `${spec.name}.includeGroups`, expected: wantA.includeGroupIds.join(', ') || 'none', actual: haveA.includeGroupIds.join(', ') || 'none', severity: 'warning' })
-      }
-      if (!sameGroups(wantA.excludeGroupIds, haveA.excludeGroupIds)) {
-        diffs.push({ field: `${spec.name}.excludeGroups`, expected: wantA.excludeGroupIds.join(', ') || 'none', actual: haveA.excludeGroupIds.join(', ') || 'none', severity: 'warning' })
-      }
-      if (Boolean(wantA.allUsers) !== haveA.allUsers) {
-        diffs.push({ field: `${spec.name}.allUsers`, expected: String(Boolean(wantA.allUsers)), actual: String(haveA.allUsers), severity: 'warning' })
+      // Compare assignments only when the canvas declares targets — when it declares
+      // none, deploy preserves manual assignments, so they must not read as drift.
+      if (hasAnyAssignment(spec.assignment)) {
+        const wantA = spec.assignment
+        const haveA = readLiveAssignment(full)
+        if (!sameGroups(wantA.includeGroupIds, haveA.includeGroupIds)) {
+          diffs.push({ field: `${spec.name}.includeGroups`, expected: wantA.includeGroupIds.join(', ') || 'none', actual: haveA.includeGroupIds.join(', ') || 'none', severity: 'warning' })
+        }
+        if (!sameGroups(wantA.excludeGroupIds, haveA.excludeGroupIds)) {
+          diffs.push({ field: `${spec.name}.excludeGroups`, expected: wantA.excludeGroupIds.join(', ') || 'none', actual: haveA.excludeGroupIds.join(', ') || 'none', severity: 'warning' })
+        }
+        if (Boolean(wantA.allUsers) !== haveA.allUsers) {
+          diffs.push({ field: `${spec.name}.allUsers`, expected: String(Boolean(wantA.allUsers)), actual: String(haveA.allUsers), severity: 'warning' })
+        }
       }
 
       // Attribute every diff this policy produced to the last human change (once);

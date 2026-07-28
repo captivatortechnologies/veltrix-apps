@@ -38,7 +38,8 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
         })
         if (!res.ok) throw new Error(`Failed to restore app protection policy "${entry.name}": ${graphErrorMessage(res)}`)
         await restoreTargetApps(client, entry.id, entry.name, entry.prior.appGroupType, entry.prior.targetedApps)
-        await restoreAssignment(client, entry.id, entry.name, entry.prior.assignment)
+        // Only restore assignments if THIS deploy managed them (else leave live/manual ones).
+        if (entry.managedAssignments) await restoreAssignment(client, entry.id, entry.name, entry.prior.assignment)
       }
       reverted.push(entry.name)
     }
