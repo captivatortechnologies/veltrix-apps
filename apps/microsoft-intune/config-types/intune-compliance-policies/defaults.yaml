@@ -1,0 +1,8 @@
+# Defaults for a new compliance policy item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank and in-UI defaults come from each field's
+# `defaultValue` in canvas.yaml (platform=windows, non_compliance_action=block,
+# grace_period_hours=0, every requirement select = Not configured). Any values
+# here would be a flat map keyed by the canvas field keys (policy_name, platform,
+# password_required, grace_period_hours, non_compliance_action, …).

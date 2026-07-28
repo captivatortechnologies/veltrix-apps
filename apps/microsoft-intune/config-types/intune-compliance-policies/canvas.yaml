@@ -1,0 +1,207 @@
+# =============================================================================
+# Canvas Template — Intune Device Compliance Policies
+#
+# Declares ONE device compliance policy — the item. Users add as many as they
+# need. A policy is a name + a platform (which selects the Graph @odata.type) +
+# a common set of compliance settings + the required non-compliance grace period
+# and action + group assignment. Settings that do not apply to the chosen platform
+# are ignored on deploy (validate warns). Reconciled by policy name (displayName).
+# Field keys must match config-types/intune-compliance-policies/validate.ts and
+# compliance.ts.
+# =============================================================================
+
+id: "intune-compliance-policies"
+name: "Device Compliance Policies"
+toolType: "microsoft-intune"
+entityType: "intune-compliance-policies"
+description: "Define Intune device compliance policies per platform (Windows / iOS / macOS / Android) via Microsoft Graph deviceCompliancePolicies, including the required non-compliance scheduled action and group assignments. Reconciled by policy name."
+
+item:
+  label: "Compliance Policy"
+  identityField: "policy_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Policy name, target platform and description"
+      fields:
+        - key: "policy_name"
+          label: "Policy name"
+          fieldType: "text"
+          required: true
+          helpText: "The Intune policy display name. This is the reconciliation identity."
+
+        - key: "platform"
+          label: "Platform"
+          fieldType: "select"
+          required: true
+          defaultValue: "windows"
+          helpText: "Selects the compliance policy type (@odata.type). Settings that do not apply to this platform are ignored."
+          options:
+            - { label: "Windows 10/11", value: "windows" }
+            - { label: "iOS/iPadOS", value: "ios" }
+            - { label: "macOS", value: "macos" }
+            - { label: "Android Enterprise (fully managed / device owner)", value: "androidDeviceOwner" }
+            - { label: "Android Enterprise (work profile)", value: "androidWorkProfile" }
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Intune admin center."
+
+    - name: "Password / Passcode"
+      icon: "lock"
+      description: "Device lock requirements. On iOS these map to passcode settings; leave a field 'Not configured' or blank to omit it."
+      fields:
+        - key: "password_required"
+          label: "Require a password/passcode"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Require", value: "require" }
+            - { label: "Don't require", value: "notrequire" }
+        - key: "password_minimum_length"
+          label: "Minimum password/passcode length"
+          fieldType: "number"
+          helpText: "Leave blank for not configured. Valid range is typically 4–16 depending on platform."
+        - key: "password_minutes_of_inactivity"
+          label: "Minutes of inactivity before lock"
+          fieldType: "number"
+          helpText: "Leave blank for not configured."
+
+    - name: "OS & Encryption"
+      icon: "folder"
+      description: "OS version bounds and storage encryption / jailbreak-root checks"
+      fields:
+        - key: "os_minimum_version"
+          label: "Minimum OS version"
+          fieldType: "text"
+          helpText: "e.g. 10.0.19041.0 (Windows), 17.0 (iOS), 14.0 (macOS), 14 (Android). Leave blank for not configured."
+        - key: "os_maximum_version"
+          label: "Maximum OS version"
+          fieldType: "text"
+          helpText: "Leave blank for not configured."
+        - key: "storage_require_encryption"
+          label: "Require storage encryption"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          helpText: "Windows / macOS / Android only — iOS/iPadOS is always encrypted so this is ignored there."
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Require", value: "require" }
+            - { label: "Don't require", value: "notrequire" }
+        - key: "security_block_jailbroken"
+          label: "Block jailbroken / rooted devices"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          helpText: "iOS and Android only — ignored on Windows / macOS."
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Require", value: "require" }
+            - { label: "Don't require", value: "notrequire" }
+
+    - name: "Threat Protection & Windows Health"
+      icon: "shield"
+      description: "Mobile threat protection (all platforms) and Windows-only Device Health Attestation / Defender checks"
+      fields:
+        - key: "device_threat_protection_enabled"
+          label: "Require device threat protection"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Require", value: "require" }
+            - { label: "Don't require", value: "notrequire" }
+        - key: "device_threat_protection_level"
+          label: "Minimum threat protection security level"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          helpText: "The maximum allowed machine risk level to still be compliant."
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Secured", value: "secured" }
+            - { label: "Low", value: "low" }
+            - { label: "Medium", value: "medium" }
+            - { label: "High", value: "high" }
+            - { label: "Not set", value: "notSet" }
+            - { label: "Unavailable", value: "unavailable" }
+        - key: "bitlocker_enabled"
+          label: "Require BitLocker (Windows only)"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Require", value: "require" }
+            - { label: "Don't require", value: "notrequire" }
+        - key: "secure_boot_enabled"
+          label: "Require Secure Boot (Windows only)"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Require", value: "require" }
+            - { label: "Don't require", value: "notrequire" }
+        - key: "defender_enabled"
+          label: "Require Microsoft Defender Antimalware (Windows only)"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Require", value: "require" }
+            - { label: "Don't require", value: "notrequire" }
+        - key: "active_firewall_required"
+          label: "Require an active firewall (Windows only)"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Require", value: "require" }
+            - { label: "Don't require", value: "notrequire" }
+        - key: "tpm_required"
+          label: "Require a Trusted Platform Module (Windows only)"
+          fieldType: "select"
+          defaultValue: "notconfigured"
+          options:
+            - { label: "Not configured", value: "notconfigured" }
+            - { label: "Require", value: "require" }
+            - { label: "Don't require", value: "notrequire" }
+
+    - name: "Non-compliance Action"
+      icon: "clock"
+      description: "The required scheduled action taken when a device is non-compliant"
+      fields:
+        - key: "grace_period_hours"
+          label: "Grace period (hours) before marking non-compliant"
+          fieldType: "number"
+          defaultValue: 0
+          helpText: "Hours a device may remain non-compliant before the action is applied. 0 = immediately."
+        - key: "non_compliance_action"
+          label: "Action after grace period"
+          fieldType: "select"
+          defaultValue: "block"
+          helpText: "Block always marks the device non-compliant; Retire additionally removes company data from the device."
+          options:
+            - { label: "Mark non-compliant (block)", value: "block" }
+            - { label: "Retire the non-compliant device", value: "retire" }
+
+    - name: "Assignment"
+      icon: "users"
+      description: "Which devices/users this policy is assigned to. Leaving all blank deploys the policy unassigned."
+      fields:
+        - key: "all_devices"
+          label: "Assign to all devices"
+          fieldType: "checkbox"
+        - key: "all_users"
+          label: "Assign to all users"
+          fieldType: "checkbox"
+        - key: "include_groups"
+          label: "Include groups"
+          fieldType: "tags"
+          helpText: "Microsoft Entra group object IDs (GUIDs) to include."
+        - key: "exclude_groups"
+          label: "Exclude groups"
+          fieldType: "tags"
+          helpText: "Microsoft Entra group object IDs (GUIDs) to exclude."

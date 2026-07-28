@@ -1,6 +1,6 @@
 id: microsoft-intune
 name: Microsoft Intune
-version: "1.2.0"
+version: "1.3.0"
 vendor: Veltrix
 description: >
   Manage Microsoft Intune endpoint-security policies as code through the
@@ -38,10 +38,20 @@ permissions:
     - resource: intune-security-policy
       actions: [read, write, delete]
       description: Manage imported Intune endpoint-security policies (AV / firewall / EDR / …)
+    - resource: intune-compliance-policies
+      actions: [read, write, delete]
+      description: Manage Intune device compliance policies (per-platform) and their assignments
+    - resource: intune-windows-update-rings
+      actions: [read, write, delete]
+      description: Manage Intune Windows Update rings (Windows Update for Business) and their assignments
+    - resource: intune-assignment-filters
+      actions: [read, write, delete]
+      description: Manage Intune assignment filters (device/app targeting rules)
 
 pipeline:
   configurationTypes:
     - id: intune-asr-rules
+      group: "Endpoint Security"
       name: Attack Surface Reduction Rules
       description: >
         Defender Attack Surface Reduction (ASR) rule policies via the Graph beta
@@ -63,6 +73,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: intune-security-policy
+      group: "Endpoint Security"
       name: Endpoint Security Policy (Import)
       description: >
         Manage Defender endpoint-security policies (Antivirus / Firewall / EDR /
@@ -78,6 +89,69 @@ pipeline:
         healthCheck: config-types/intune-security-policy/healthCheck
         driftDetect: config-types/intune-security-policy/driftDetect
         getStatus: config-types/intune-security-policy/getStatus
+      targets:
+        componentTypes: [intune-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: intune-compliance-policies
+      group: "Compliance"
+      name: Device Compliance Policies
+      description: >
+        Manage Intune device compliance policies per platform (Windows/iOS/macOS/
+        Android) via Microsoft Graph v1.0 deviceCompliancePolicies, including the
+        required non-compliance scheduled actions and group assignments
+      canvasTemplate: config-types/intune-compliance-policies/canvas.yaml
+      defaultConfig: config-types/intune-compliance-policies/defaults.yaml
+      handlers:
+        validate: config-types/intune-compliance-policies/validate
+        deploy: config-types/intune-compliance-policies/deploy
+        rollback: config-types/intune-compliance-policies/rollback
+        healthCheck: config-types/intune-compliance-policies/healthCheck
+        driftDetect: config-types/intune-compliance-policies/driftDetect
+        getStatus: config-types/intune-compliance-policies/getStatus
+      targets:
+        componentTypes: [intune-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: intune-windows-update-rings
+      group: "Windows Updates"
+      name: Windows Update Rings
+      description: >
+        Manage Intune Windows Update rings (Windows Update for Business) via Graph
+        v1.0 deviceConfigurations (windowsUpdateForBusinessConfiguration) — deferral,
+        deadline, active hours, delivery optimization — and their assignments
+      canvasTemplate: config-types/intune-windows-update-rings/canvas.yaml
+      defaultConfig: config-types/intune-windows-update-rings/defaults.yaml
+      handlers:
+        validate: config-types/intune-windows-update-rings/validate
+        deploy: config-types/intune-windows-update-rings/deploy
+        rollback: config-types/intune-windows-update-rings/rollback
+        healthCheck: config-types/intune-windows-update-rings/healthCheck
+        driftDetect: config-types/intune-windows-update-rings/driftDetect
+        getStatus: config-types/intune-windows-update-rings/getStatus
+      targets:
+        componentTypes: [intune-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: intune-assignment-filters
+      group: "Assignments"
+      name: Assignment Filters
+      description: >
+        Manage Intune assignment filters (deviceAndAppManagementAssignmentFilter)
+        via Graph — platform + filter rule DSL — used to include/exclude devices
+        or apps in policy assignments
+      canvasTemplate: config-types/intune-assignment-filters/canvas.yaml
+      defaultConfig: config-types/intune-assignment-filters/defaults.yaml
+      handlers:
+        validate: config-types/intune-assignment-filters/validate
+        deploy: config-types/intune-assignment-filters/deploy
+        rollback: config-types/intune-assignment-filters/rollback
+        healthCheck: config-types/intune-assignment-filters/healthCheck
+        driftDetect: config-types/intune-assignment-filters/driftDetect
+        getStatus: config-types/intune-assignment-filters/getStatus
       targets:
         componentTypes: [intune-tenant]
         requiresCredential: true

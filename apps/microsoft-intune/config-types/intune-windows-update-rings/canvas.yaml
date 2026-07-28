@@ -1,0 +1,163 @@
+# =============================================================================
+# Canvas Template — Intune Windows Update Rings (Windows Update for Business)
+#
+# Declares ONE update ring — the item. Users add as many rings as they need
+# (e.g. Pilot / Broad / Critical). A ring is a name + update behavior + deferral
+# and deadline windows + delivery optimization + assignments. Reconciled by ring
+# name. Field keys must match config-types/intune-windows-update-rings/validate.ts
+# and equal the Graph windowsUpdateForBusinessConfiguration property names.
+# =============================================================================
+
+id: "intune-windows-update-rings"
+name: "Windows Update Rings"
+toolType: "microsoft-intune"
+entityType: "intune-windows-update-rings"
+description: "Define Windows Update for Business rings as code via Graph deviceConfigurations (windowsUpdateForBusinessConfiguration) — deferral, deadline, delivery optimization and group assignments. Reconciled by ring name."
+
+item:
+  label: "Update Ring"
+  identityField: "ring_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Ring"
+      icon: "refresh-cw"
+      description: "Ring name and description"
+      fields:
+        - key: "ring_name"
+          label: "Ring name"
+          fieldType: "text"
+          required: true
+          helpText: "The Intune update ring name. This is the reconciliation identity."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Intune admin center."
+
+    - name: "Update behavior"
+      icon: "settings"
+      description: "How updates install and which servicing branch devices receive"
+      fields:
+        - key: "automaticUpdateMode"
+          label: "Automatic update behavior"
+          fieldType: "select"
+          defaultValue: "userDefined"
+          options:
+            - { label: "User defined (no intent)", value: "userDefined" }
+            - { label: "Notify download", value: "notifyDownload" }
+            - { label: "Auto-install at maintenance time", value: "autoInstallAtMaintenanceTime" }
+            - { label: "Auto-install and reboot at maintenance time", value: "autoInstallAndRebootAtMaintenanceTime" }
+            - { label: "Auto-install and reboot at scheduled time", value: "autoInstallAndRebootAtScheduledTime" }
+            - { label: "Auto-install and reboot without end-user control", value: "autoInstallAndRebootWithoutEndUserControl" }
+            - { label: "Windows default", value: "windowsDefault" }
+
+        - key: "businessReadyUpdatesOnly"
+          label: "Servicing channel"
+          fieldType: "select"
+          defaultValue: "userDefined"
+          options:
+            - { label: "User defined", value: "userDefined" }
+            - { label: "Get updates as soon as released (all)", value: "all" }
+            - { label: "Business ready (semi-annual)", value: "businessReadyOnly" }
+            - { label: "Windows Insider — Fast", value: "windowsInsiderBuildFast" }
+            - { label: "Windows Insider — Slow", value: "windowsInsiderBuildSlow" }
+            - { label: "Windows Insider — Release Preview", value: "windowsInsiderBuildRelease" }
+
+        - key: "deliveryOptimizationMode"
+          label: "Delivery optimization"
+          fieldType: "select"
+          defaultValue: "userDefined"
+          options:
+            - { label: "User defined", value: "userDefined" }
+            - { label: "HTTP only, no peering", value: "httpOnly" }
+            - { label: "HTTP with peering (NAT)", value: "httpWithPeeringNat" }
+            - { label: "HTTP with peering (private group)", value: "httpWithPeeringPrivateGroup" }
+            - { label: "HTTP with Internet peering", value: "httpWithInternetPeering" }
+            - { label: "Simple download (no peering)", value: "simpleDownload" }
+            - { label: "Bypass (use BITS)", value: "bypassMode" }
+
+        - key: "allowWindows11Upgrade"
+          label: "Allow eligible Windows 10 devices to upgrade to Windows 11"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When on, eligible Windows 10 devices may upgrade to Windows 11."
+
+    - name: "Deferral & deadlines"
+      icon: "clock"
+      description: "How long to defer updates and when they install automatically. Leave blank to leave a value unmanaged."
+      fields:
+        - key: "qualityUpdatesDeferralPeriodInDays"
+          label: "Quality updates deferral (days)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+            max: 30
+          helpText: "Defer monthly quality updates by 0-30 days. Leave blank to leave unmanaged."
+
+        - key: "featureUpdatesDeferralPeriodInDays"
+          label: "Feature updates deferral (days)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+            max: 365
+          helpText: "Defer feature (OS) updates by 0-365 days. Leave blank to leave unmanaged."
+
+        - key: "deadlineForQualityUpdatesInDays"
+          label: "Quality update deadline (days)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+            max: 30
+          helpText: "Days before a pending quality update installs automatically (0-30)."
+
+        - key: "deadlineForFeatureUpdatesInDays"
+          label: "Feature update deadline (days)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+            max: 30
+          helpText: "Days before a pending feature update installs automatically (0-30)."
+
+        - key: "deadlineGracePeriodInDays"
+          label: "Deadline grace period (days)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+            max: 7
+          helpText: "Days after the deadline before an automatic restart occurs (0-7)."
+
+    - name: "Assignments"
+      icon: "users"
+      description: "Which devices/users this ring applies to. Leave all blank to leave assignments unmanaged."
+      fields:
+        - key: "allDevices"
+          label: "All devices"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Assign the ring to every managed device."
+
+        - key: "allUsers"
+          label: "All users"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Assign the ring to every licensed user."
+
+        - key: "includeGroups"
+          label: "Included groups"
+          fieldType: "tags"
+          helpText: >
+            Entra ID group object IDs (GUIDs) to include, one per entry. When any
+            assignment target is set here, this deploy manages (replaces) the ring's
+            assignments; leave every assignment field blank to leave them untouched.
+
+        - key: "excludeGroups"
+          label: "Excluded groups"
+          fieldType: "tags"
+          helpText: "Entra ID group object IDs (GUIDs) to exclude from the ring, one per entry."

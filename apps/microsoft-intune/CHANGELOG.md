@@ -3,6 +3,23 @@
 All notable changes to the Microsoft Intune app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.3.0 — 2026-07-28
+
+### Added
+- **Three new configuration types**, grouped in the sidebar by area:
+  - **Device Compliance Policies** (group *Compliance*) — per-platform (Windows/iOS/
+    macOS/Android) via Graph v1.0 `deviceCompliancePolicies`, incl. the required
+    non-compliance scheduled actions.
+  - **Windows Update Rings** (group *Windows Updates*) — `windowsUpdateForBusiness`
+    deferral/deadline/active-hours/delivery-optimization.
+  - **Assignment Filters** (group *Assignments*) — `deviceAndAppManagementAssignmentFilter`
+    device/app targeting rules.
+- Shared `lib/assignments.ts` — the Graph `assign`-action payload builder
+  (include/exclude groups, all-devices/all-users, assignment filters), unit-tested
+  and reused by every structured policy type.
+- Existing ASR Rules + Endpoint Security Policy types assigned to an *Endpoint
+  Security* sidebar group.
+
 ## 1.2.0 — 2026-07-22
 
 ### Added

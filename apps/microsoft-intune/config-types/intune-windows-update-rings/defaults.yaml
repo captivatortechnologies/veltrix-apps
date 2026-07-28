@@ -1,0 +1,6 @@
+# Defaults for a new Windows Update ring item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank (selects fall back to their canvas defaultValue of
+# "userDefined"). Any values here would be a flat map keyed by the canvas field
+# keys (ring_name, description, the Graph property keys, includeGroups, …).

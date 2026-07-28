@@ -1,0 +1,91 @@
+# =============================================================================
+# Canvas Template — Intune Assignment Filters
+#
+# Declares ONE assignment filter — the item. Users add as many as they need.
+# A filter is a name + platform + management type + a rule DSL string (device
+# properties) used to include/exclude devices or apps in policy assignments.
+# Reconciled by filter name (displayName). Field keys must match
+# config-types/intune-assignment-filters/validate.ts.
+# =============================================================================
+
+id: "intune-assignment-filters"
+name: "Assignment Filter"
+toolType: "microsoft-intune"
+entityType: "intune-assignment-filters"
+description: "Define Intune assignment filters (deviceAndAppManagementAssignmentFilter) as code — platform + a rule DSL over device properties — to include/exclude devices or apps in policy assignments. Reconciled by filter name."
+
+item:
+  label: "Assignment Filter"
+  identityField: "filter_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Filter"
+      icon: "filter"
+      description: "Filter name, platform and management type"
+      fields:
+        - key: "filter_name"
+          label: "Filter name"
+          fieldType: "text"
+          required: true
+          helpText: "The Intune assignment filter name (displayName). This is the reconciliation identity."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Intune admin center."
+
+        - key: "platform"
+          label: "Platform"
+          fieldType: "select"
+          required: true
+          defaultValue: "windows10AndLater"
+          helpText: >
+            The device platform this filter applies to. A filter's platform is
+            fixed at creation and CANNOT be changed afterwards — deploy will skip
+            an existing filter if a different platform is declared.
+          options:
+            - { label: "Windows 10 and later", value: "windows10AndLater" }
+            - { label: "Windows 8.1 and later", value: "windows81AndLater" }
+            - { label: "Windows Phone 8.1", value: "windowsPhone81" }
+            - { label: "iOS/iPadOS", value: "iOS" }
+            - { label: "macOS", value: "macOS" }
+            - { label: "Android device administrator", value: "android" }
+            - { label: "Android Enterprise (work profile)", value: "androidWorkProfile" }
+            - { label: "Android for Work", value: "androidForWork" }
+            - { label: "Android (AOSP)", value: "androidAOSP" }
+
+        - key: "management_type"
+          label: "Management type"
+          fieldType: "select"
+          defaultValue: "devices"
+          helpText: "Whether the filter targets device configuration assignments or app assignments."
+          options:
+            - { label: "Devices", value: "devices" }
+            - { label: "Apps", value: "apps" }
+
+    - name: "Rule"
+      icon: "code"
+      description: "The filter rule DSL over device properties"
+      fields:
+        - key: "rule"
+          label: "Filter rule"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The assignment filter rule. Uses device properties with the Intune
+            rule DSL, e.g. (device.osVersion -startsWith "10.0") or
+            (device.manufacturer -eq "Microsoft"). Combine clauses with -and / -or.
+            The rule is validated as non-empty; its grammar is enforced by Intune.
+
+    - name: "Advanced"
+      icon: "tag"
+      description: "Optional role scope tags"
+      fields:
+        - key: "role_scope_tags"
+          label: "Role scope tags"
+          fieldType: "tags"
+          helpText: >
+            Optional Intune role scope tag IDs assigned to this filter (e.g. "0"
+            for the built-in Default tag). Leave blank to use the Default tag.

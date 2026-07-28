@@ -1,0 +1,7 @@
+# Defaults for a new assignment filter item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank (the select fields fall back to their canvas
+# defaultValue: platform=windows10AndLater, management_type=devices). Any values
+# here would be a flat map keyed by the canvas field keys (filter_name,
+# description, platform, management_type, rule, role_scope_tags).
