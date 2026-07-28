@@ -3,6 +3,22 @@
 All notable changes to the Microsoft Intune app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.5.0 — 2026-07-28
+
+### Added
+- **Scripts & Remediations** — `intune-device-remediations` (deviceHealthScript —
+  detection + remediation script pair with a run schedule) and
+  `intune-platform-scripts` (deviceManagementScript — Windows PowerShell scripts).
+- **Governance** — `intune-scope-tags` (roleScopeTag RBAC scoping labels).
+- **App Protection** — `intune-app-config-policies` (targetedManagedAppConfiguration —
+  custom key/value settings for managed apps, with targeted apps + assignments).
+
+### Notes
+- Deferred as lower-drift / heavier-schema future adds: device configuration
+  profile subtypes (settings-catalog import already covers the modern path),
+  enrollment configurations/ESP, Autopilot deployment profiles, and ADMX
+  administrative templates.
+
 ## 1.4.0 — 2026-07-28
 
 ### Added

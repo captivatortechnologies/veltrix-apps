@@ -1,0 +1,8 @@
+# Defaults for a new Intune platform script item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank (the run-as select falls back to its canvas
+# defaultValue of "system"; checkboxes to false; fileName to "script.ps1"). Any
+# values here would be a flat map keyed by the canvas field keys (script_name,
+# description, fileName, scriptText, runAsAccount, runAs32Bit,
+# enforceSignatureCheck, includeGroups, …).

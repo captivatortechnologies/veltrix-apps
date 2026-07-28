@@ -1,0 +1,45 @@
+# =============================================================================
+# Canvas Template — Intune Role Scope Tags
+#
+# Declares ONE role scope tag (roleScopeTag) — the item. Users add as many as
+# they need. A scope tag is an RBAC scoping label (name + optional description)
+# referenced by policies and role assignments to partition what an admin can see.
+# Reconciled by tag name (displayName). Field keys must match
+# config-types/intune-scope-tags/validate.ts.
+#
+# The built-in "Default" tag (id "0") is managed by Intune and is never created,
+# renamed or deleted here — declaring it is a no-op (deploy skips it). Assigning
+# a scope tag to security groups (the /assign auto-assignment action) is OUT OF
+# SCOPE for this type — this manages only the tag definition itself.
+# =============================================================================
+
+id: "intune-scope-tags"
+name: "Role Scope Tag"
+toolType: "microsoft-intune"
+entityType: "intune-scope-tags"
+description: "Define Intune role scope tags (roleScopeTag) as code — RBAC scoping labels referenced by policies and role assignments to partition administrative visibility. Reconciled by tag name. The built-in Default tag is never modified; group auto-assignment is out of scope."
+
+item:
+  label: "Role Scope Tag"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Scope Tag"
+      icon: "tag"
+      description: "Scope tag name and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The role scope tag name (displayName). This is the reconciliation
+            identity. Avoid "Default" — that name is reserved for the built-in
+            tag, which is managed by Intune and never modified here.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Intune admin center."

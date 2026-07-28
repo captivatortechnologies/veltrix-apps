@@ -1,0 +1,102 @@
+# =============================================================================
+# Canvas Template — Intune App Configuration Policies (MAM)
+#
+# Declares ONE app configuration policy — the item. Users add as many as they
+# need. A policy is a name + a platform + the custom key/value settings pushed
+# into the managed apps + the set of apps it targets (appGroupType + targeted
+# bundle/package ids) + its user group assignment. It maps to a Graph
+# targetedManagedAppConfiguration: the name/description/customSettings are written
+# on the create/PATCH body; appGroupType/targetedApps are bound via the targetApps
+# action and the groups via the assign action. Field keys must match
+# config-types/intune-app-config-policies/validate.ts and appConfig.ts.
+# Reconciled by policy name (displayName).
+# =============================================================================
+
+id: "intune-app-config-policies"
+name: "App Configuration Policies"
+toolType: "microsoft-intune"
+entityType: "intune-app-config-policies"
+description: "Define Intune app configuration policies for managed apps via Microsoft Graph targetedManagedAppConfiguration — custom key/value settings delivered as-is into managed apps — with the targeted apps and user group assignments. Reconciled by policy name."
+
+item:
+  label: "App Configuration Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Policy"
+      icon: "settings"
+      description: "Policy name, description and the platform whose apps it targets"
+      fields:
+        - key: "name"
+          label: "Policy name"
+          fieldType: "text"
+          required: true
+          helpText: "The Intune policy display name. This is the reconciliation identity."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Intune admin center."
+
+        - key: "platform"
+          label: "Platform"
+          fieldType: "select"
+          defaultValue: "ios"
+          helpText: "The platform whose app identifiers the targeted apps use (iOS = bundle id, Android = package id). One platform per policy."
+          options:
+            - { label: "iOS", value: "ios" }
+            - { label: "Android", value: "android" }
+
+    - name: "Custom Settings"
+      icon: "code"
+      description: "Key/value settings delivered as-is into the managed apps"
+      fields:
+        - key: "customSettings"
+          label: "Custom settings"
+          fieldType: "textarea"
+          helpText: >
+            The custom configuration to push into the managed apps. Enter one
+            key=value pair per line (e.g. com.microsoft.outlook.EmailProfile.AccountType=ModernAuth),
+            or paste a JSON array of { "name": "...", "value": "..." } objects. Values are sent as strings.
+
+    - name: "Targeted Apps"
+      icon: "grid"
+      description: "Which managed apps this policy configures"
+      fields:
+        - key: "appGroupType"
+          label: "App group"
+          fieldType: "select"
+          defaultValue: "selectedPublicApps"
+          helpText: "Which public apps the policy configures. 'Selected apps' requires at least one targeted id below."
+          options:
+            - { label: "Selected apps", value: "selectedPublicApps" }
+            - { label: "All apps", value: "allApps" }
+            - { label: "All Microsoft apps", value: "allMicrosoftApps" }
+            - { label: "Core Microsoft apps", value: "allCoreMicrosoftApps" }
+
+        - key: "targetedApps"
+          label: "Targeted apps (bundle / package ids)"
+          fieldType: "tags"
+          helpText: "iOS bundle ids or Android package ids to configure (e.g. com.microsoft.office.outlook), one per entry, matching the platform above. Required when the app group is 'Selected apps'."
+
+    - name: "Assignment"
+      icon: "users"
+      description: "Which users this policy applies to. App configuration policies target users, not devices. Leave all blank to deploy it unassigned."
+      fields:
+        - key: "allUsers"
+          label: "Assign to all users"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Assign the policy to every licensed user."
+
+        - key: "includeGroups"
+          label: "Include groups"
+          fieldType: "tags"
+          helpText: "Microsoft Entra group object IDs (GUIDs) to include, one per entry."
+
+        - key: "excludeGroups"
+          label: "Exclude groups"
+          fieldType: "tags"
+          helpText: "Microsoft Entra group object IDs (GUIDs) to exclude, one per entry."

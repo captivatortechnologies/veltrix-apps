@@ -1,0 +1,8 @@
+# Defaults for a new device remediation item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank (selects fall back to their canvas defaultValue, e.g.
+# runAsAccount "system", scheduleFrequency "daily"). Any values here would be a flat
+# map keyed by the canvas field keys (name, description, publisher, detectionScript,
+# remediationScript, runAsAccount, enforceSignatureCheck, runAs32Bit,
+# scheduleFrequency, scheduleInterval, scheduleTime, includeGroups, excludeGroups).

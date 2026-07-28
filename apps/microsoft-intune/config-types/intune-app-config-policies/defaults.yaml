@@ -1,0 +1,8 @@
+# Defaults for a new app configuration policy item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank and in-UI defaults come from each field's
+# `defaultValue` in canvas.yaml (platform=ios, appGroupType=selectedPublicApps,
+# the checkboxes = off). Any values here would be a flat map keyed by the canvas
+# field keys (name, description, platform, customSettings, appGroupType,
+# targetedApps, includeGroups, …).

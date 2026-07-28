@@ -1,6 +1,6 @@
 id: microsoft-intune
 name: Microsoft Intune
-version: "1.4.0"
+version: "1.5.0"
 vendor: Veltrix
 description: >
   Manage Microsoft Intune endpoint-security policies as code through the
@@ -59,6 +59,18 @@ permissions:
     - resource: intune-quality-update-profiles
       actions: [read, write, delete]
       description: Manage Intune Windows quality (expedited) update profiles and their assignments
+    - resource: intune-device-remediations
+      actions: [read, write, delete]
+      description: Manage Intune device remediations (proactive remediation detect/remediate scripts) and their assignments
+    - resource: intune-platform-scripts
+      actions: [read, write, delete]
+      description: Manage Intune platform scripts (Windows PowerShell management scripts) and their assignments
+    - resource: intune-scope-tags
+      actions: [read, write, delete]
+      description: Manage Intune role scope tags (RBAC scoping)
+    - resource: intune-app-config-policies
+      actions: [read, write, delete]
+      description: Manage Intune app configuration policies for managed apps (custom key/value settings) and their targeted apps + assignments
 
 pipeline:
   configurationTypes:
@@ -247,6 +259,87 @@ pipeline:
         healthCheck: config-types/intune-quality-update-profiles/healthCheck
         driftDetect: config-types/intune-quality-update-profiles/driftDetect
         getStatus: config-types/intune-quality-update-profiles/getStatus
+      targets:
+        componentTypes: [intune-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: intune-device-remediations
+      group: "Scripts & Remediations"
+      name: Device Remediations
+      description: >
+        Manage Intune device remediations (deviceHealthScript) — a detection +
+        remediation PowerShell script pair with a run schedule — and their assignments
+      canvasTemplate: config-types/intune-device-remediations/canvas.yaml
+      defaultConfig: config-types/intune-device-remediations/defaults.yaml
+      handlers:
+        validate: config-types/intune-device-remediations/validate
+        deploy: config-types/intune-device-remediations/deploy
+        rollback: config-types/intune-device-remediations/rollback
+        healthCheck: config-types/intune-device-remediations/healthCheck
+        driftDetect: config-types/intune-device-remediations/driftDetect
+        getStatus: config-types/intune-device-remediations/getStatus
+      targets:
+        componentTypes: [intune-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: intune-platform-scripts
+      group: "Scripts & Remediations"
+      name: Platform Scripts
+      description: >
+        Manage Intune platform scripts (deviceManagementScript) — Windows PowerShell
+        scripts run on managed devices — run-as account, signature check — and assignments
+      canvasTemplate: config-types/intune-platform-scripts/canvas.yaml
+      defaultConfig: config-types/intune-platform-scripts/defaults.yaml
+      handlers:
+        validate: config-types/intune-platform-scripts/validate
+        deploy: config-types/intune-platform-scripts/deploy
+        rollback: config-types/intune-platform-scripts/rollback
+        healthCheck: config-types/intune-platform-scripts/healthCheck
+        driftDetect: config-types/intune-platform-scripts/driftDetect
+        getStatus: config-types/intune-platform-scripts/getStatus
+      targets:
+        componentTypes: [intune-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: intune-scope-tags
+      group: "Governance"
+      name: Role Scope Tags
+      description: >
+        Manage Intune role scope tags (roleScopeTag) — RBAC scoping labels referenced
+        by policies and role assignments
+      canvasTemplate: config-types/intune-scope-tags/canvas.yaml
+      defaultConfig: config-types/intune-scope-tags/defaults.yaml
+      handlers:
+        validate: config-types/intune-scope-tags/validate
+        deploy: config-types/intune-scope-tags/deploy
+        rollback: config-types/intune-scope-tags/rollback
+        healthCheck: config-types/intune-scope-tags/healthCheck
+        driftDetect: config-types/intune-scope-tags/driftDetect
+        getStatus: config-types/intune-scope-tags/getStatus
+      targets:
+        componentTypes: [intune-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: intune-app-config-policies
+      group: "App Protection"
+      name: App Configuration Policies
+      description: >
+        Manage Intune app configuration policies for managed apps
+        (targetedManagedAppConfiguration) — custom key/value settings pushed into
+        managed apps — with targeted apps and group assignments
+      canvasTemplate: config-types/intune-app-config-policies/canvas.yaml
+      defaultConfig: config-types/intune-app-config-policies/defaults.yaml
+      handlers:
+        validate: config-types/intune-app-config-policies/validate
+        deploy: config-types/intune-app-config-policies/deploy
+        rollback: config-types/intune-app-config-policies/rollback
+        healthCheck: config-types/intune-app-config-policies/healthCheck
+        driftDetect: config-types/intune-app-config-policies/driftDetect
+        getStatus: config-types/intune-app-config-policies/getStatus
       targets:
         componentTypes: [intune-tenant]
         requiresCredential: true

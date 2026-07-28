@@ -1,0 +1,138 @@
+# =============================================================================
+# Canvas Template — Intune Device Remediations (proactive remediations)
+#
+# Declares ONE device remediation — the item. Users add as many as they need. A
+# remediation is a name + a detection PowerShell script (required) + an optional
+# remediation PowerShell script + run options + a run schedule + group assignments.
+# Reconciled by remediation name (displayName). The plain-text scripts are
+# base64-encoded into detection/remediationScriptContent on deploy. Field keys must
+# match config-types/intune-device-remediations/validate.ts and remediation.ts.
+# =============================================================================
+
+id: "intune-device-remediations"
+name: "Device Remediations"
+toolType: "microsoft-intune"
+entityType: "intune-device-remediations"
+description: "Define Intune device remediations (proactive remediations) as code via Microsoft Graph deviceHealthScripts — a detection + remediation PowerShell script pair with a run schedule and group assignments. Reconciled by remediation name."
+
+item:
+  label: "Device Remediation"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Remediation"
+      icon: "activity"
+      description: "Remediation name, publisher and description"
+      fields:
+        - key: "name"
+          label: "Remediation name"
+          fieldType: "text"
+          required: true
+          helpText: "The Intune remediation display name. This is the reconciliation identity."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Intune admin center."
+
+        - key: "publisher"
+          label: "Publisher"
+          fieldType: "text"
+          helpText: "Optional publisher name shown alongside the remediation."
+
+    - name: "Scripts"
+      icon: "code"
+      description: "The detection script decides whether a device needs fixing; the remediation script fixes it. Provide plain PowerShell — it is base64-encoded on deploy."
+      fields:
+        - key: "detectionScript"
+          label: "Detection script"
+          fieldType: "textarea"
+          required: true
+          helpText: "PowerShell that detects the condition. Exit 0 = compliant, exit 1 = run the remediation script."
+
+        - key: "remediationScript"
+          label: "Remediation script"
+          fieldType: "textarea"
+          helpText: "Optional PowerShell that remediates the condition. Leave blank for a detection-only (monitoring) remediation."
+
+    - name: "Run options"
+      icon: "settings"
+      description: "How the scripts execute on the device"
+      fields:
+        - key: "runAsAccount"
+          label: "Run this script using the logged-on credentials"
+          fieldType: "select"
+          defaultValue: "system"
+          helpText: "system runs as SYSTEM (recommended); user runs in the context of the signed-in user."
+          options:
+            - { label: "System (SYSTEM account)", value: "system" }
+            - { label: "User (signed-in user)", value: "user" }
+
+        - key: "enforceSignatureCheck"
+          label: "Enforce script signature check"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When on, the scripts must be signed by a trusted publisher."
+
+        - key: "runAs32Bit"
+          label: "Run script in 32-bit PowerShell"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When on, the scripts run as 32-bit PowerShell; leave off to run as 64-bit."
+
+    - name: "Schedule"
+      icon: "clock"
+      description: "How often the detection script runs on assigned devices"
+      fields:
+        - key: "scheduleFrequency"
+          label: "Frequency"
+          fieldType: "select"
+          defaultValue: "daily"
+          options:
+            - { label: "Daily", value: "daily" }
+            - { label: "Hourly", value: "hourly" }
+
+        - key: "scheduleInterval"
+          label: "Repeats every"
+          fieldType: "number"
+          defaultValue: 1
+          validation:
+            min: 1
+            max: 31
+          helpText: "Daily: every N days (1-31). Hourly: every N hours (1-23)."
+
+        - key: "scheduleTime"
+          label: "Run time (HH:MM, daily only)"
+          fieldType: "text"
+          defaultValue: "01:00"
+          helpText: "24-hour local time the daily schedule runs, e.g. 01:00. Ignored for an hourly schedule."
+
+    - name: "Assignments"
+      icon: "users"
+      description: "Which devices/users this remediation runs on. Leave all blank to deploy the remediation without assigning it."
+      fields:
+        - key: "allDevices"
+          label: "All devices"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Assign the remediation to every managed device."
+
+        - key: "allUsers"
+          label: "All users"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Assign the remediation to every licensed user."
+
+        - key: "includeGroups"
+          label: "Included groups"
+          fieldType: "tags"
+          helpText: >
+            Entra ID group object IDs (GUIDs) to include, one per entry. This deploy
+            manages (replaces) the remediation's assignments to match what is declared here.
+
+        - key: "excludeGroups"
+          label: "Excluded groups"
+          fieldType: "tags"
+          helpText: "Entra ID group object IDs (GUIDs) to exclude from the remediation, one per entry."

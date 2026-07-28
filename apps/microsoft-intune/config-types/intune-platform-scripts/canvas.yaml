@@ -1,0 +1,107 @@
+# =============================================================================
+# Canvas Template — Intune Platform Scripts (Windows PowerShell)
+#
+# Declares ONE platform script — the item. Users add as many scripts as they need.
+# A script is a name + PowerShell content + execution options (run-as account,
+# 32-bit, signature check) + assignments. Reconciled by displayName (the script
+# name is our key). Field keys must match
+# config-types/intune-platform-scripts/validate.ts and, where a Graph property
+# exists, equal the deviceManagementScript property name. The canvas takes PLAIN
+# PowerShell text (scriptText); deploy base64-encodes it into scriptContent.
+# =============================================================================
+
+id: "intune-platform-scripts"
+name: "Platform Scripts"
+toolType: "microsoft-intune"
+entityType: "intune-platform-scripts"
+description: "Define Intune Windows PowerShell platform scripts as code via Graph deviceManagementScripts — run-as account, 32-bit, signature check and group assignments. Reconciled by script name."
+
+item:
+  label: "Platform Script"
+  identityField: "script_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Script"
+      icon: "file-text"
+      description: "Script name, description and file name"
+      fields:
+        - key: "script_name"
+          label: "Script name"
+          fieldType: "text"
+          required: true
+          helpText: "The Intune platform script name (displayName). This is the reconciliation identity."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Intune admin center."
+
+        - key: "fileName"
+          label: "File name"
+          fieldType: "text"
+          defaultValue: "script.ps1"
+          helpText: "Script file name — must end in .ps1 (e.g. script.ps1)."
+
+    - name: "Script content"
+      icon: "terminal"
+      description: "The PowerShell to run on managed devices and how it executes"
+      fields:
+        - key: "scriptText"
+          label: "PowerShell script"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The PowerShell script content, in plain text. It is base64-encoded into
+            the Graph scriptContent field on deploy; drift compares the decoded text.
+
+        - key: "runAsAccount"
+          label: "Run this script using the following credentials"
+          fieldType: "select"
+          defaultValue: "system"
+          options:
+            - { label: "System", value: "system" }
+            - { label: "User", value: "user" }
+          helpText: "System runs in the device (SYSTEM) context; User runs in the signed-in user's context."
+
+        - key: "runAs32Bit"
+          label: "Run script in 32-bit PowerShell host"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When on, the script runs in the 32-bit PowerShell host (runAs32Bit). Off runs the 64-bit host."
+
+        - key: "enforceSignatureCheck"
+          label: "Enforce script signature check"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When on, the device verifies the script is signed by a trusted publisher before running."
+
+    - name: "Assignments"
+      icon: "users"
+      description: "Which devices/users this script runs on. Leave all blank to leave assignments unmanaged."
+      fields:
+        - key: "allDevices"
+          label: "All devices"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Assign the script to every managed device."
+
+        - key: "allUsers"
+          label: "All users"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Assign the script to every licensed user."
+
+        - key: "includeGroups"
+          label: "Included groups"
+          fieldType: "tags"
+          helpText: >
+            Entra ID group object IDs (GUIDs) to include, one per entry. When any
+            assignment target is set here, this deploy manages (replaces) the script's
+            assignments; leave every assignment field blank to leave them untouched.
+
+        - key: "excludeGroups"
+          label: "Excluded groups"
+          fieldType: "tags"
+          helpText: "Entra ID group object IDs (GUIDs) to exclude from the script, one per entry."
