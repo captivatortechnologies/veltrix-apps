@@ -39,6 +39,9 @@ import { defineDeployer } from '@veltrixsecops/app-sdk/pipeline'
 export default defineDeployer(async (ctx) => {
   // ctx.component, ctx.credential, ctx.connectivity, ctx.connectivityProvider
   // ctx.previousConfig, ctx.strategy, ctx.canaryPercent
+  // ctx.remote — a RemoteExecutor for managed-ZTNA targets (place files + run
+  //   allow-listed intents over the tenant's own tailnet); undefined for API-only
+  //   tools. Also present on the rollback + drift contexts.
   return { success: true, message: 'Deployed', rollbackData: {/* prior state */} }
 })
 ```
@@ -57,6 +60,37 @@ export default async function getStatus(ctx: PipelineContext): Promise<ConfigSta
   // ...
 }
 ```
+
+## Server routes & the credential seam
+
+An app's `server/index.ts` mounts as a Fastify plugin under `/api/apps/<app-id>` and
+receives an `AppRouteContext` — `db`, `events`, `manifest`, `hasPermission(resource, action)`
+(returns a preHandler enforcing an app-scoped permission), and **`resolveConnection`**.
+
+To reach a connected system from a route WITHOUT re-implementing the platform's credential
+decryption, resolve one of the tenant's Connections (by credential id) to its decrypted
+secret + endpoint:
+
+```ts
+import type { ResolvedConnection } from '@veltrixsecops/app-sdk'
+
+const conn: ResolvedConnection | null = await ctx.resolveConnection(customerId, credentialId)
+// conn?.endpoint / username / password / apiToken / certificate
+```
+
+It is scoped to `customerId` (the tenant boundary) and returns `null` when no matching
+connection exists. **Server-side only** — never return the decrypted secret to the client or
+log it. Pair it with a manifest `connectivity.testHandler` and a Settings → Connections page
+(see below) so users can add and test the credential your routes then resolve.
+
+## Drift attribution
+
+A `driftDetect` handler returns `DriftResult { diffs: DriftDiff[] }`, and each `DriftDiff` may
+carry an optional **`actor`** (`DriftActor`) — best-effort attribution of *who* changed the
+target outside Veltrix and *when*, resolved from the tool's own audit/system log (e.g. Okta's
+System Log): `{ name?, email?, at?, eventType?, source?, id? }`, all optional. Omit it when the
+tool has no audit API or the change can't be correlated; the platform renders it on the drift
+view so an alert answers **who + when**, not just *what*.
 
 ## Lifecycle hooks
 
@@ -134,6 +168,36 @@ platform too (local dev, tests): components render a minimal, unstyled, accessib
 `useToast` logs to the console, and `useConfirmDialog().confirm()` resolves to `false`
 (fails closed) — so nothing crashes, it just runs without platform theming.
 
+## Connections
+
+Most apps reach their tool through a credential the tenant admin adds under
+**Settings → Connections**. Give your app a `/connections` client page (nav `group: settings`)
+that renders the shared manager, and declare a connectivity test in the manifest:
+
+```tsx
+// client/pages/ConnectionsPage.tsx — a thin wrapper over the shared manager
+import { ConnectionsManager } from '@veltrixsecops/app-sdk/connections'
+
+export default () => (
+  <ConnectionsManager
+    appId="defender-endpoint"
+    appName="Microsoft Defender for Endpoint"
+    usernameLabel="Client ID"
+    tokenLabel="Client secret"
+  />
+)
+```
+
+```yaml
+# manifest.yaml — a lightweight authenticated probe backs the "Test" button
+connectivity:
+  testHandler: handlers/testConnection
+```
+
+Server routes then reach the tool with `ctx.resolveConnection(...)` (above), so the decrypted
+secret never leaves the server. Apps that provision their own hosted infrastructure
+additionally get a Bring-Your-Own-Infra console from `@veltrixsecops/app-sdk/byol`.
+
 ## Branding
 
 Declare your vendor identity in the manifest and the platform applies it in defined
@@ -190,6 +254,9 @@ conventionalPaths('indexes').handlers.deploy // 'config-types/indexes/deploy'
 | `@veltrixsecops/app-sdk/hooks` | React hooks for app client pages (requires `react`) |
 | `@veltrixsecops/app-sdk/client` | Browser client contract: `authFetch`, `getHostRuntime`, `AppClientModule` |
 | `@veltrixsecops/app-sdk/ui` | Platform design-system components + hooks for app client pages (requires `react`; renders richly inside the platform, degrades to a minimal accessible fallback outside it) |
+| `@veltrixsecops/app-sdk/connections` | `ConnectionsManager` — the shared Settings → Connections page an app's `/connections` client page renders (requires `react`) |
+| `@veltrixsecops/app-sdk/byol` | Bring-Your-Own-Infra console — `ByolInfrastructureManager`/`ByolInfrastructureDetail` + plan helpers (`buildByolPlan`, `diffPlan`, `planHasChanges`) for apps that provision hosted infra (requires `react`) |
+| `@veltrixsecops/app-sdk/opentofu` | Generic OpenTofu provisioning for BYOI apps: `InfraSpec` types + `renderInfraVars()` / `validateInfraSpec()` — see [opentofu/README](./opentofu/README.md) |
 
 ## Building an app
 

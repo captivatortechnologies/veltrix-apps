@@ -190,6 +190,45 @@ Flags: `--wait` (poll for approval, then deploy + follow), `--strategy <DIRECT|C
 
 Print a deployment's current status and recent logs.
 
+### `veltrix deploy rollback <canvasId>`
+
+Roll a deployed configuration back to its previous state, polling to completion:
+
+```bash
+veltrix deploy rollback <canvasId>                     # confirms first
+veltrix deploy rollback <canvasId> --yes --timeout 300
+```
+
+### Authoring configurations step by step
+
+`veltrix deploy <spec>` bundles create → validate → submit → deploy. When you want each step
+on its own — for scripting, or to review between them — use the `config` subcommands:
+
+```bash
+veltrix config create okta-groups.yaml --validate               # draft a canvas from a spec (no deploy)
+veltrix config update <id> --spec changes.yaml                  # edit a draft's name/description/sections
+veltrix config validate <id>                                    # run the config type's validate handler
+veltrix config submit <id> --approvers lead@ex.com --env prod   # submit for approval (+ optional --comment)
+veltrix config approvals <id>                                   # show approval requests + their status
+veltrix config delete <id> --yes                                # remove a configuration
+```
+
+Once approved, deploy it with `veltrix deploy --canvas <id> --env <name>`.
+
+## Drift
+
+Inspect and schedule configuration-drift checks — the same drift the platform runs on a
+schedule (and attributes to *who + when* where the tool exposes an audit log):
+
+```bash
+veltrix drift list <canvasId>      # drift records + the async check state for one configuration
+veltrix drift check <canvasId>     # run an on-demand check now (polls to completion)
+veltrix drift schedule             # show the scheduled frequency (tenant default + per-app overrides)
+veltrix drift schedule --set daily                        # off | hourly | daily | weekly (tenant default)
+veltrix drift schedule --set hourly --app okta-identity   # a per-app override
+veltrix drift schedule --clear --app okta-identity        # clear a per-app override
+```
+
 ## License
 
 Apache-2.0

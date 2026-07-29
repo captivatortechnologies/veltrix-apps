@@ -2,13 +2,16 @@
 // ============================================================================
 // Veltrix CLI
 //
-// veltrix login              Authenticate against your Veltrix tenant
-// veltrix whoami             Show the authenticated identity
-// veltrix logout             Remove stored credentials
+// veltrix init <app-id>      Scaffold a new app with the canonical layout
+// veltrix login|whoami|logout   Authenticate / show identity / sign out
 // veltrix validate [dir]     Validate an app against the platform contract
 // veltrix package [dir]      Build a release-identical ZIP (compiled JS)
 // veltrix sandbox …          Manage developer sandboxes in your tenant
 // veltrix dev [dir]          Live-sync an app directory into a sandbox
+// veltrix apps | env         Inspect installed apps / environments
+// veltrix config …           Author, inspect, and manage configuration canvases
+// veltrix deploy …           Create + deploy (approval-gated); status; rollback
+// veltrix drift …            Inspect + schedule configuration drift
 // ============================================================================
 
 import { createRequire } from 'node:module'
