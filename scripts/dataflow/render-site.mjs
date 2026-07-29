@@ -60,8 +60,14 @@ const STYLE = `<style>
   .lnode.op{cursor:pointer;color:var(--text)}
   .lnode.op:hover{border-color:var(--brand)}
   .lnode.state{background:var(--brand-soft);border-color:transparent;color:var(--brand);font-weight:700}
+  .lnode.gate{background:color-mix(in srgb,var(--ret) 13%,transparent);border-color:color-mix(in srgb,var(--ret) 45%,transparent);color:var(--ret)}
   .lnode.active{background:var(--brand);border-color:var(--brand);color:#fff}
   .life .sep{color:var(--faint);font-size:12px}
+  .envs{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:-8px 0 18px 2px}
+  .envs .lab{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:700;margin-right:4px}
+  .env{font-size:11.5px;font-weight:600;border:1px solid var(--border);border-radius:8px;padding:4px 10px;background:var(--surface-2);color:var(--muted)}
+  .env.gate{background:color-mix(in srgb,var(--ret) 12%,transparent);border-color:color-mix(in srgb,var(--ret) 40%,transparent);color:var(--ret)}
+  .envs .sep{color:var(--faint);font-size:12px}
 
   /* operation tabs */
   .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
@@ -135,6 +141,7 @@ const MARKUP = `<div class="df">
   </header>
 
   <div class="life" id="df-life"><span class="lab">Lifecycle</span></div>
+  <div class="envs" id="df-envs"></div>
 
   <div class="tabs" id="df-tabs"></div>
   <div class="applies" id="df-applies"></div>
@@ -182,11 +189,15 @@ const SCRIPT = `<script>
   F.lifecycle.nodes.forEach((n,i)=>{
     if(i) { const s=document.createElement('span'); s.className='sep'; s.textContent='→'; lifeEl.appendChild(s); }
     const el=document.createElement(opByLife[n.id]?'button':'span');
-    el.className='lnode '+(n.kind==='state'?'state ':'')+(opByLife[n.id]?'op ':'');
+    el.className='lnode '+(n.kind==='state'?'state ':'')+(n.kind==='gate'?'gate ':'')+(opByLife[n.id]?'op ':'');
     el.textContent=n.label; el.dataset.op=opByLife[n.id]||'';
     if(opByLife[n.id]) el.addEventListener('click',()=>selectOp(F.operations.findIndex(o=>o.key===opByLife[n.id])));
     lifeEl.appendChild(el);
   });
+
+  // environments & promotion strip
+  $('df-envs').innerHTML = '<span class="lab">Environments</span>' + F.environments.map((e,i)=>
+    (i?'<span class="sep">→</span>':'')+'<span class="env'+(e.approval?' gate':'')+'">'+esc(e.name)+(e.approval?' ✋ approval':'')+'</span>').join('');
 
   // tabs
   $('df-tabs').innerHTML = F.operations.map((o,i)=>

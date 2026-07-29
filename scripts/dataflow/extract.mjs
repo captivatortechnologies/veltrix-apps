@@ -90,6 +90,17 @@ export function extractApp(appDir) {
   const requiresCredential = types.some((t) => t.requiresCredential)
   const requiresConnectivity = types.some((t) => t.requiresConnectivity)
 
+  const perms = manifest.permissions ?? {}
+  const permissions = {
+    platform: Array.isArray(perms.platform) ? perms.platform : [],
+    app: (Array.isArray(perms.app) ? perms.app : []).map((a) => ({
+      resource: a.resource,
+      actions: Array.isArray(a.actions) ? a.actions : [],
+    })),
+  }
+  // A representative app resource for permission examples (e.g. "prevention-policies").
+  const sampleResource = permissions.app[0]?.resource ?? (vendorTypes[0]?.id ?? 'resource')
+
   // App-level operations available, inferred from which handlers any type declares.
   const ops = {
     deploy: types.some((t) => t.caps.deploy),
@@ -113,6 +124,8 @@ export function extractApp(appDir) {
     requiresCredential,
     requiresConnectivity,
     ops,
+    permissions,
+    sampleResource,
     adapters: libAdapters(appDir),
     families,
     counts: {

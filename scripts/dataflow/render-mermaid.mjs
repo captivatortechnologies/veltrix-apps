@@ -13,10 +13,18 @@ function nodeLabel(s) {
 }
 const nid = (s) => s.replace(/[^a-zA-Z0-9]/g, '_')
 
+const SHAPES = {
+  state: ['([', '])'],
+  act: ['[', ']'],
+  pre: ['[/', '/]'],
+  gate: ['{{', '}}'],
+  default: ['(', ')'],
+}
+
 function lifecycleDiagram(lc) {
   const lines = ['```mermaid', 'flowchart LR']
   for (const n of lc.nodes) {
-    const shape = n.kind === 'state' ? [`([`, `])`] : n.kind === 'act' ? ['[', ']'] : n.kind === 'pre' ? ['[/', '/]'] : ['(', ')']
+    const shape = SHAPES[n.kind] ?? SHAPES.default
     lines.push(`  ${nid(n.id)}${shape[0]}"${nodeLabel(n.label)}"${shape[1]}`)
   }
   const present = new Set(lc.nodes.map((n) => n.id))
@@ -26,10 +34,24 @@ function lifecycleDiagram(lc) {
   }
   lines.push('  classDef state fill:#eff6ff,stroke:#3b82f6,color:#1e3a8a,font-weight:bold;')
   lines.push('  classDef act fill:#ecfeff,stroke:#0ea5e9,color:#0c4a6e;')
-  const states = lc.nodes.filter((n) => n.kind === 'state').map((n) => nid(n.id))
-  const acts = lc.nodes.filter((n) => n.kind === 'act').map((n) => nid(n.id))
-  if (states.length) lines.push(`  class ${states.join(',')} state;`)
-  if (acts.length) lines.push(`  class ${acts.join(',')} act;`)
+  lines.push('  classDef gate fill:#fffbeb,stroke:#f59e0b,color:#78350f;')
+  const byKind = (k) => lc.nodes.filter((n) => n.kind === k).map((n) => nid(n.id))
+  if (byKind('state').length) lines.push(`  class ${byKind('state').join(',')} state;`)
+  if (byKind('act').length) lines.push(`  class ${byKind('act').join(',')} act;`)
+  if (byKind('gate').length) lines.push(`  class ${byKind('gate').join(',')} gate;`)
+  lines.push('```')
+  return lines.join('\n')
+}
+
+function environmentsDiagram(envs) {
+  const lines = ['```mermaid', 'flowchart LR']
+  envs.forEach((e, i) => {
+    lines.push(`  E${i}(["${nodeLabel(e.name)}"])`)
+    if (i > 0) {
+      const label = envs[i].approval ? 'promote · approval ✋' : 'promote'
+      lines.push(`  E${i - 1} -->|"${label}"| E${i}`)
+    }
+  })
   lines.push('```')
   return lines.join('\n')
 }
@@ -62,11 +84,19 @@ export function renderMarkdown(model) {
   )
   md.push(`Talks to **${model.name} API**${model.requiresCredential ? ' · credentials via the Credential Vault (`ctx.resolveConnection`)' : ''}${model.requiresConnectivity ? ' · reachable over `ctx.remote`' : ''}.`)
   md.push('')
+  md.push('Every operation authorizes against **RBAC** first; writes pass a **human approval gate** (enforced for production); credentials are **environment-scoped** and resolved per request.')
+  md.push('')
   md.push('## Lifecycle — how operations connect')
   md.push('')
   md.push('Where a config goes from authoring to steady state, and how each request type feeds the next.')
   md.push('')
   md.push(lifecycleDiagram(flows.lifecycle))
+  md.push('')
+  md.push('## Environments & promotion')
+  md.push('')
+  md.push('Config is deployed per environment; connections are environment-scoped. Promotion to production passes the approval gate.')
+  md.push('')
+  md.push(environmentsDiagram(flows.environments))
   md.push('')
   md.push('## Request flows — how each one reaches completion')
   md.push('')
