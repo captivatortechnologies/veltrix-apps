@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-29T22:11:01.743Z",
+  "generatedAt": "2026-07-29T22:34:47.507Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -476,7 +476,7 @@
     {
       "appId": "security-onion",
       "name": "Security Onion",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "vendor": "Veltrix",
       "description": "Manage Security Onion (open-source NSM / SIEM) as code. Author Suricata NIDS rules, firewall & analyst access, SOC users, Elastic detections and index lifecycle, and Zeek — with BYOL infrastructure provisioning. Grid configuration is applied on the manager via Salt (over managed ZTNA) and the SOC / Elasticsearch REST APIs, with validation, drift detection, and rollback handled by the Security-as-Code pipeline.",
       "category": "SIEM",
@@ -484,11 +484,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/security-onion",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/security-onion-v0.1.0/security-onion.zip",
-      "sha256": "549e008f1d306a42b482e44bfe2b9a662bea787473529e3cdaf27c7db2d0e9af",
-      "sizeBytes": 45185,
-      "publishedAt": "2026-07-29T22:11:01.726Z",
-      "releaseNotes": "## 0.1.0 — 2026-07-29\n\nInitial release — foundation + first config type.\n\n- **Suricata Rules** config type — enable/disable NIDS rules by SID across the\n  grid, applied on the manager via `so-rule` + a Salt highstate over managed ZTNA,\n  with validate / deploy / rollback (inverse-undo) / health-check / status.\n- **Connectivity test** against the SOC console (HTTPS, self-signed tolerated).\n- **BYOL infrastructure** groundwork: declarative `infra/spec.ts` composing the\n  generic OpenTofu modules (manager / search / sensor / forward / fleet grid) +\n  Salt bring-up entrypoint.\n- Uses the platform's new app-declared `remoteCommands` seam so Salt/CLI grid\n  operations run over managed ZTNA with per-param validation.\n\n> Grid config is applied via Salt (`so-*`, `salt-call`) and the SOC/Elasticsearch\n> REST APIs. Remote command paths follow Security Onion 2.4 conventions and should\n> be verified against your grid; the managed-ZTNA remote path ships behind the\n> platform's `REMOTE_EXEC_ENABLED` flag.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/security-onion-v0.2.0/security-onion.zip",
+      "sha256": "d411a0dc6555b5398a934efd6e4ea7f12313dfdc30fbed3540f334d930c44c17",
+      "sizeBytes": 117066,
+      "publishedAt": "2026-07-29T22:34:47.491Z",
+      "releaseNotes": "## 0.2.0 — 2026-07-29\n\nFive more config types — the full six-type set.\n\n- **Firewall Access** — include/exclude hosts in a Security Onion firewall host\n  group via `so-firewall` (+ Salt highstate); inverse-undo rollback.\n- **SOC Users** — enable/disable existing SOC Console users via `so-user`. (User\n  creation + passwords are interactive/stdin and remain a follow-up.)\n- **Zeek Configuration** — enable/disable Zeek log types via a declared command\n  (representative — verify against a live grid; deep pillar config is a follow-up).\n- **Detection Engine Rules** — create/update/delete Elastic/Kibana detection rules\n  over the SOC console REST API (443) with drift + rollback.\n- **Elasticsearch ILM Policies** — hot-rollover + retention ILM policies over the\n  Elasticsearch REST API (9200) with drift + rollback.\n\nAdds `remoteCommands` for `so-firewall`, `so-user`, and `zeek-toggle`, and app\npermission resources for each new config type.",
       "releasedAt": "2026-07-29T00:00:00.000Z"
     },
     {
