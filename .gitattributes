@@ -3,3 +3,5 @@
 # regeneration is a no-op instead of showing spurious CRLF churn in `git status`.
 # CI runs on Linux (LF) and is unaffected either way.
 apps/**/DATAFLOW.md text eol=lf
+# The hosted interactive dataflow site (served via GitHub Pages under catalog/).
+catalog/dataflow/**.html text eol=lf
