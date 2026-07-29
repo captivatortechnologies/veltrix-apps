@@ -19,7 +19,7 @@ cd crowdstrike-edr && npm install
 
 ### `veltrix validate [dir]`
 
-Validates an app directory against the platform contract — the **same rules CI enforces** on pull requests: manifest schema, handler completeness, no executables, size cap, import boundaries.
+Validates an app directory against the platform contract — the **same rules CI enforces** on pull requests: manifest schema, handler completeness, `remoteCommands` templates (safe absolute binary, param types, whole-arg refs), no executables, size cap, import boundaries.
 
 ```bash
 veltrix validate ./crowdstrike-edr

@@ -39,9 +39,10 @@ import { defineDeployer } from '@veltrixsecops/app-sdk/pipeline'
 export default defineDeployer(async (ctx) => {
   // ctx.component, ctx.credential, ctx.connectivity, ctx.connectivityProvider
   // ctx.previousConfig, ctx.strategy, ctx.canaryPercent
-  // ctx.remote — a RemoteExecutor for managed-ZTNA targets (place files + run
-  //   allow-listed intents over the tenant's own tailnet); undefined for API-only
-  //   tools. Also present on the rollback + drift contexts.
+  // ctx.remote — a RemoteExecutor for managed-ZTNA targets (place files, run
+  //   allow-listed intents, or ctx.remote.command(id, params) for the app's
+  //   manifest-declared remoteCommands — Salt/CLI tools) over the tenant's own
+  //   tailnet; undefined for API-only tools. Also on the rollback + drift contexts.
   return { success: true, message: 'Deployed', rollbackData: {/* prior state */} }
 })
 ```
@@ -383,6 +384,14 @@ connection:                         # optional — one-click consent onboarding
     provider: entra-admin-consent   # a platform onboarding adapter
     label: Connect Microsoft Defender
     params: { brokered: true, capture: { tenantId: "setting:tenant_id" }, requiredSettings: [tenant_id] }
+
+remoteCommands:                     # optional — allow-listed CLI templates for ctx.remote.command()
+  - id: so-rule                     #   (Salt/CLI-managed tools over managed ZTNA, e.g. Security Onion)
+    exec: /usr/sbin/so-rule         #   absolute binary path (validated; never a bare PATH name)
+    args: ["{action}", "{sid}"]     #   literals + whole-arg {param} refs — shell-quoted server-side
+    params:                         #   every interpolated param is validated to its type
+      - { name: action, type: enum, values: [enable, disable] }
+      - { name: sid, type: token }  #   param types: token | enum | int | path
 
 settings:                           # optional — admin-supplied app settings
   - key: tenant_id
