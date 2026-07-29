@@ -17,7 +17,7 @@ The SDK is types-first: pipeline handlers typically only need `import type`, so 
 Every configuration type your app declares in `manifest.yaml` implements six handlers. Each receives a typed context built by the platform:
 
 ```ts
-// handlers/indexes/validate.ts
+// config-types/indexes/validate.ts
 import type { PipelineContext, ValidationResult } from '@veltrixsecops/app-sdk'
 
 export default async function validate(ctx: PipelineContext): Promise<ValidationResult> {
@@ -45,6 +45,21 @@ export default defineDeployer(async (ctx) => {
   return { success: true, message: 'Deployed', rollbackData: {/* prior state */} }
 })
 ```
+
+The six handlers each configuration type implements, their `define*` helper, context and result:
+
+| Handler | Helper | Context | Result |
+|---|---|---|---|
+| `validate` | `defineValidator` | `PipelineContext` | `ValidationResult` |
+| `deploy` | `defineDeployer` | `DeployContext` | `DeployResult` (carries `rollbackData`) |
+| `rollback` | `defineRollbackHandler` | `RollbackContext` | `RollbackResult` |
+| `healthCheck` | `defineHealthChecker` | `HealthCheckContext` | `HealthCheckResult` |
+| `driftDetect` | `defineDriftDetector` | `DriftContext` | `DriftResult` |
+| `getStatus` | — | `PipelineContext` | `ConfigStatus` |
+
+Every context and result, plus the `*Ref` types (`ComponentRef`, `CredentialRef`,
+`ConnectivityRef`, `ConnectivityProviderRef`, `EnvironmentRef`, `UserRef`), the `CanvasSnapshot`
+model, and the `AppManifest` types are exported from the root `@veltrixsecops/app-sdk`.
 
 ## Reading platform data
 
@@ -83,6 +98,38 @@ connection exists. **Server-side only** — never return the decrypted secret to
 log it. Pair it with a manifest `connectivity.testHandler` and a Settings → Connections page
 (see below) so users can add and test the credential your routes then resolve.
 
+## Live pickers (option providers)
+
+A config field can offer a **live dropdown sourced from the connected tool** — e.g. Okta's
+real groups — instead of a static list. In `canvas.yaml`, declare the field `remote-select` /
+`remote-multiselect` with a named `optionsSource`:
+
+```yaml
+- key: group_id
+  fieldType: remote-select
+  optionsSource: groups        # names the option set your provider serves
+```
+
+Add a provider at `config-types/<type>/options.ts` (default export) and wire it in the
+manifest (`handlers.options: config-types/<type>/options`). The platform resolves the
+connection (decrypted credential + component) for the field's environment and runs the
+provider in-process with the user's search text:
+
+```ts
+import type { OptionsProvider } from '@veltrixsecops/app-sdk'
+
+const options: OptionsProvider = async (ctx) => {
+  // ctx.source (the field's optionsSource), ctx.query (typed search),
+  // ctx.component, ctx.credential, ctx.settings, ctx.identity
+  const groups = await fetchGroups(ctx, ctx.query)
+  return groups.map((g) => ({ value: g.id, label: g.name, description: g.id })) // OptionItem[]
+}
+export default options
+```
+
+The picker shows your `{ value, label, description? }` items, so stored ids stay stable while
+users choose by name — with live server-side search against the real tool.
+
 ## Drift attribution
 
 A `driftDetect` handler returns `DriftResult { diffs: DriftDiff[] }`, and each `DriftDiff` may
@@ -95,7 +142,7 @@ view so an alert answers **who + when**, not just *what*.
 ## Lifecycle hooks
 
 ```ts
-// hooks/on-install.ts
+// hooks/onInstall.ts
 import type { AppHookContext } from '@veltrixsecops/app-sdk'
 
 export default async function onInstall({ db, appId }: AppHookContext): Promise<void> {
@@ -106,9 +153,14 @@ export default async function onInstall({ db, appId }: AppHookContext): Promise<
 ## Client pages
 
 ```tsx
-import { useAppContext, usePipelineStatus } from '@veltrixsecops/app-sdk/hooks'
+import { useAppContext, usePipelineStatus, usePermissions } from '@veltrixsecops/app-sdk/hooks'
 import { authFetch } from '@veltrixsecops/app-sdk/client'
 ```
+
+`useAppContext()` gives the app id, tenant, and current user; `usePipelineStatus()` tracks a
+config's deploy/health state; `usePermissions()` returns `has(resource, action)` / `list()` so
+a page can gate UI on the caller's app-scoped permissions; `useAppBranding()` returns your
+vendor colors (see [Branding](#branding)).
 
 Your `client/index.tsx` default-exports an `AppClientModule` (`{ id, pages, sidebarItems }`;
 `pages` keys must match `manifest.client.pages[].component`). At packaging time the CLI
@@ -156,9 +208,10 @@ your app's branding automatically via the platform's CSS-token bridge — no sty
 The bundler shims `@veltrixsecops/app-sdk/ui` to the host's real components, so they share
 the single host React instance.
 
-Available components: `Button`, `Input`, `Textarea`, `Checkbox`, `Select`, `Card` (+
-`CardHeader`/`CardBody`/`CardFooter`), `Badge`, `Tooltip`, `EmptyState`, `Skeleton` (+
-`SkeletonText`/`SkeletonCard`), `DataTable`, `StatsCard`, `FormDialog`, `FormField`, `Tabs`,
+Available components: `Button`, `Input`, `Textarea`, `Checkbox`, `Select`, `MultiSelect`,
+`SearchBox`, `Card` (+ `CardHeader`/`CardBody`/`CardFooter`), `Badge`, `Alert`, `Tooltip`,
+`EmptyState`, `Skeleton` (+ `SkeletonText`/`SkeletonCard`), `DataTable`, `StatsCard`,
+`FormField`, `FormDialog`, `Modal`, `Tabs`, `FilterBar`, `SortSelect`, `Pagination`,
 `Spinner`. Hooks: `useToast`, `useConfirmDialog`. All prop types are exported alongside the
 components.
 
@@ -193,6 +246,25 @@ export default () => (
 connectivity:
   testHandler: handlers/testConnection
 ```
+
+Implement the test handler with `defineConnectionTester`:
+
+```ts
+import { defineConnectionTester } from '@veltrixsecops/app-sdk/pipeline'
+
+export default defineConnectionTester(async (ctx) => {
+  // ctx.endpoint, ctx.credential, ctx.settings, ctx.component, ctx.identity
+  const ok = await probe(ctx)                       // one lightweight authenticated call
+  return { ok, details: ok ? [] : ['auth failed'] } // TestConnectionResult
+})
+```
+
+**Brokered connections.** A connection onboarded through the platform's consent flow carries
+*no* secret; its handlers instead receive `ctx.identity` (an `IdentityBroker`) and mint an
+app-only token with `ctx.identity.getAccessToken({ tenantId, resource })`. `ctx.identity` is
+present on the test, options-provider, and pipeline contexts, and BYO-secret handlers just
+ignore it. Client pages drive the consent flow with the `/client` onboarding helpers
+(`startOnboarding`, `getOnboardingStatus`, `revokeOnboarding`).
 
 Server routes then reach the tool with `ctx.resolveConnection(...)` (above), so the decrypted
 secret never leaves the server. Apps that provision their own hosted infrastructure
@@ -250,9 +322,9 @@ conventionalPaths('indexes').handlers.deploy // 'config-types/indexes/deploy'
 | Entry point | Contents |
 |---|---|
 | `@veltrixsecops/app-sdk` | **React-free.** All types (handler contexts/results, manifest, platform refs, hook contexts), `APP_LAYOUT`/`HANDLER_NAMES`/`conventionalPaths()` — safe to load in a bare Node process, which is what the sandbox runner does |
-| `@veltrixsecops/app-sdk/pipeline` | `defineValidator`, `defineDeployer`, `defineRollbackHandler`, `defineHealthChecker`, `defineDriftDetector` |
-| `@veltrixsecops/app-sdk/hooks` | React hooks for app client pages (requires `react`) |
-| `@veltrixsecops/app-sdk/client` | Browser client contract: `authFetch`, `getHostRuntime`, `AppClientModule` |
+| `@veltrixsecops/app-sdk/pipeline` | `defineValidator`, `defineDeployer`, `defineRollbackHandler`, `defineHealthChecker`, `defineDriftDetector`, `defineConnectionTester` |
+| `@veltrixsecops/app-sdk/hooks` | React hooks for app client pages — `useAppContext`, `usePipelineStatus`, `useAppBranding`, `usePermissions` (requires `react`) |
+| `@veltrixsecops/app-sdk/client` | Browser client contract: `authFetch`, `getHostRuntime`/`requireHostRuntime`, `AppClientModule`/`AppSidebarItem`, tenant-data helpers (`listEnvironments`, `listConnectivityProviders`), connection ops (`runOperation`), and the consent-onboarding helpers (`startOnboarding`/`getOnboardingStatus`/`revokeOnboarding`/`fetchAppOnboarding`) |
 | `@veltrixsecops/app-sdk/ui` | Platform design-system components + hooks for app client pages (requires `react`; renders richly inside the platform, degrades to a minimal accessible fallback outside it) |
 | `@veltrixsecops/app-sdk/connections` | `ConnectionsManager` — the shared Settings → Connections page an app's `/connections` client page renders (requires `react`) |
 | `@veltrixsecops/app-sdk/byol` | Bring-Your-Own-Infra console — `ByolInfrastructureManager`/`ByolInfrastructureDetail` + plan helpers (`buildByolPlan`, `diffPlan`, `planHasChanges`) for apps that provision hosted infra (requires `react`) |
