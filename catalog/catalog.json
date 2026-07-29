@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-29T22:34:47.507Z",
+  "generatedAt": "2026-07-29T22:39:59.244Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -476,7 +476,7 @@
     {
       "appId": "security-onion",
       "name": "Security Onion",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "vendor": "Veltrix",
       "description": "Manage Security Onion (open-source NSM / SIEM) as code. Author Suricata NIDS rules, firewall & analyst access, SOC users, Elastic detections and index lifecycle, and Zeek — with BYOL infrastructure provisioning. Grid configuration is applied on the manager via Salt (over managed ZTNA) and the SOC / Elasticsearch REST APIs, with validation, drift detection, and rollback handled by the Security-as-Code pipeline.",
       "category": "SIEM",
@@ -484,11 +484,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/security-onion",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/security-onion-v0.2.0/security-onion.zip",
-      "sha256": "d411a0dc6555b5398a934efd6e4ea7f12313dfdc30fbed3540f334d930c44c17",
-      "sizeBytes": 117066,
-      "publishedAt": "2026-07-29T22:34:47.491Z",
-      "releaseNotes": "## 0.2.0 — 2026-07-29\n\nFive more config types — the full six-type set.\n\n- **Firewall Access** — include/exclude hosts in a Security Onion firewall host\n  group via `so-firewall` (+ Salt highstate); inverse-undo rollback.\n- **SOC Users** — enable/disable existing SOC Console users via `so-user`. (User\n  creation + passwords are interactive/stdin and remain a follow-up.)\n- **Zeek Configuration** — enable/disable Zeek log types via a declared command\n  (representative — verify against a live grid; deep pillar config is a follow-up).\n- **Detection Engine Rules** — create/update/delete Elastic/Kibana detection rules\n  over the SOC console REST API (443) with drift + rollback.\n- **Elasticsearch ILM Policies** — hot-rollover + retention ILM policies over the\n  Elasticsearch REST API (9200) with drift + rollback.\n\nAdds `remoteCommands` for `so-firewall`, `so-user`, and `zeek-toggle`, and app\npermission resources for each new config type.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/security-onion-v0.3.0/security-onion.zip",
+      "sha256": "5976b0bb3923e6e5497ad1eb424af9208ba2ed101b6e16c3a851b0db3152e5b4",
+      "sizeBytes": 140042,
+      "publishedAt": "2026-07-29T22:39:59.227Z",
+      "releaseNotes": "## 0.3.0 — 2026-07-29\n\nClient UI.\n\n- **Overview** — what the app manages in a grid, rendered with the platform\n  design system (fed by the app's `/meta` route).\n- **Setup Guide** — SOC credential → connection → managed connectivity → author.\n- **Connections** — wraps the SDK `ConnectionsManager` for the SOC manager\n  (HTTPS 443); saving a connection registers the manager as a deploy target.\n\n> The BYOL infrastructure **management console** (provision/list/deploy UI + its\n> server routes) is a tracked follow-on; the declarative provisioning foundation\n> (`infra/spec.ts` + Salt bring-up) is already in place and driven by the generic\n> provisioning worker.",
       "releasedAt": "2026-07-29T00:00:00.000Z"
     },
     {
