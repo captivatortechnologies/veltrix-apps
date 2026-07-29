@@ -8,11 +8,25 @@ A **Veltrix app** packages everything needed to manage one security tool's confi
 
 ## Available apps
 
-| App | Category | Description |
-|---|---|---|
-| [splunk-enterprise](apps/splunk-enterprise/) | SIEM | Manage Splunk Enterprise configurations as code — indexes, roles, BYOL infrastructure, version tracking |
+The **[`apps/`](apps/) directory is the authoritative, always-current list** — browse it for every app, or consume the published marketplace catalog:
 
-More integrations (CrowdStrike Falcon, Cortex XSOAR, Elastic Security, HashiCorp Vault, Wiz, Tenable, Okta) are planned — see the issue tracker for app requests, or build one yourself.
+```
+https://captivatortechnologies.github.io/veltrix-apps/catalog.json
+```
+
+Current coverage spans these categories (see [`apps/`](apps/) for the full, up-to-date set):
+
+| Category | Apps |
+|---|---|
+| **SIEM** | Splunk Enterprise, Splunk Cloud, Microsoft Sentinel, Elastic Security, IBM QRadar, Google SecOps |
+| **EDR** | CrowdStrike Falcon, Microsoft Defender for Endpoint, Microsoft Intune, SentinelOne, Carbon Black |
+| **SOAR** | Cortex XSOAR, Splunk SOAR |
+| **IAM** | Okta, Microsoft Entra ID, HashiCorp Vault, CyberArk, Cisco Duo, SailPoint |
+| **Network** | Cloudflare, Palo Alto Panorama, FortiManager, Zscaler, Netskope, Proofpoint |
+| **Cloud Security** | Wiz, Prisma Cloud |
+| **Compliance / VM** | Tenable, Qualys, Rapid7, Snyk, Mimecast |
+
+Don't see your tool? Open an app request in the issue tracker, or [build one yourself](#building-an-app).
 
 ## Installing an app
 
