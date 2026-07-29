@@ -1,0 +1,100 @@
+# =============================================================================
+# Canvas Template — Security Onion Detection Engine Rules
+#
+# Declares ONE Kibana Detection Engine rule (the item). Users add as many as
+# they need. Field keys must match config-types/detections/validate.ts.
+# Applied via the Kibana Detection Engine REST API (/api/detection_engine)
+# served behind the SOC console on port 443.
+# =============================================================================
+
+id: "security-onion-detections"
+name: "Detection Engine Rules"
+toolType: "security-onion"
+entityType: "detections"
+description: "Manage Elastic/Kibana Detection Engine rules — KQL query, severity and risk score — via the SOC console REST API (443)"
+
+item:
+  label: "Detection Rule"
+  identityField: "ruleId"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Rule"
+      icon: "shield"
+      description: "Detection rule identity and state"
+      fields:
+        - key: "ruleId"
+          label: "Rule ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-zA-Z0-9._:-]+$"
+            maxLength: 255
+          helpText: "Stable rule_id used to upsert the rule, e.g. so-suspicious-powershell"
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable rule name shown in the SOC console"
+
+        - key: "enabled"
+          label: "State"
+          fieldType: "select"
+          required: true
+          defaultValue: "enabled"
+          options:
+            - label: "Enabled"
+              value: "enabled"
+            - label: "Disabled"
+              value: "disabled"
+          helpText: "Whether the rule runs (enabled) or is turned off (disabled)"
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Notes on this rule — used as the rule description when set"
+
+    - name: "Detection"
+      icon: "search"
+      description: "What the rule looks for and how it scores"
+      fields:
+        - key: "severity"
+          label: "Severity"
+          fieldType: "select"
+          required: true
+          defaultValue: "medium"
+          options:
+            - label: "Low"
+              value: "low"
+            - label: "Medium"
+              value: "medium"
+            - label: "High"
+              value: "high"
+            - label: "Critical"
+              value: "critical"
+          helpText: "Rule severity assigned to matching alerts"
+
+        - key: "riskScore"
+          label: "Risk Score"
+          fieldType: "number"
+          required: true
+          defaultValue: 50
+          validation:
+            min: 0
+            max: 100
+          helpText: "Risk score for matching alerts, 0-100"
+
+        - key: "query"
+          label: "Query (KQL)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 4000
+          helpText: "KQL/kuery query the rule evaluates, e.g. event.category:process and process.name:powershell.exe"

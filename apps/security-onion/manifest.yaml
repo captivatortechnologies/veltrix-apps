@@ -1,6 +1,6 @@
 id: security-onion
 name: Security Onion
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Security Onion (open-source NSM / SIEM) as code. Author Suricata NIDS
@@ -32,6 +32,21 @@ permissions:
     - resource: suricata-rules
       actions: [read, write, delete]
       description: Manage Suricata NIDS rule state (enable/disable SIDs)
+    - resource: firewall-access
+      actions: [read, write, delete]
+      description: Manage Security Onion firewall host-group access (analyst/host include/exclude)
+    - resource: soc-users
+      actions: [read, write, delete]
+      description: Manage Security Onion Console user access (enable/disable existing users)
+    - resource: detections
+      actions: [read, write, delete]
+      description: Manage Elastic/Kibana Detection Engine rules
+    - resource: zeek-config
+      actions: [read, write, delete]
+      description: Manage Zeek log-type state across the grid
+    - resource: elastic-ilm
+      actions: [read, write, delete]
+      description: Manage Elasticsearch index lifecycle (ILM) policies
     - resource: byol
       actions: [read, write, delete]
       description: Manage BYOL Security Onion grid infrastructure
@@ -58,6 +73,30 @@ remoteCommands:
       - { name: action, type: enum, values: [enable, disable] }
       - { name: sid, type: token }
     description: Enable or disable a Suricata rule by SID
+  - id: so-firewall
+    exec: /usr/sbin/so-firewall
+    args: ["{action}", "{group}", "{host}"]
+    params:
+      - { name: action, type: enum, values: [includehost, excludehost] }
+      - { name: group, type: token }
+      - { name: host, type: token }
+    description: Add or remove a host from a Security Onion firewall host group
+  - id: so-user
+    exec: /usr/sbin/so-user
+    args: ["{action}", "{email}"]
+    params:
+      - { name: action, type: enum, values: [enable, disable] }
+      - { name: email, type: token }
+    description: Enable or disable an existing Security Onion Console user by email
+  - id: zeek-toggle
+    exec: /usr/sbin/so-zeek-logs
+    args: ["{action}", "{logtype}"]
+    params:
+      - { name: action, type: enum, values: [enable, disable] }
+      - { name: logtype, type: token }
+    description: >
+      Enable or disable a Zeek log type / analyzer by name (representative mapping —
+      verify against your grid; deep Zeek config is Salt-pillar/file-based)
 
 pipeline:
   configurationTypes:
@@ -74,6 +113,96 @@ pipeline:
         healthCheck: config-types/suricata-rules/healthCheck
         driftDetect: config-types/suricata-rules/driftDetect
         getStatus: config-types/suricata-rules/getStatus
+      targets:
+        componentTypes: [manager, manager-search, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: firewall-access
+      group: "Access & Firewall"
+      name: Firewall Access
+      description: Analyst/host access to a Security Onion firewall host group — include or exclude hosts
+      canvasTemplate: config-types/firewall-access/canvas.yaml
+      defaultConfig: config-types/firewall-access/defaults.yaml
+      handlers:
+        validate: config-types/firewall-access/validate
+        deploy: config-types/firewall-access/deploy
+        rollback: config-types/firewall-access/rollback
+        healthCheck: config-types/firewall-access/healthCheck
+        driftDetect: config-types/firewall-access/driftDetect
+        getStatus: config-types/firewall-access/getStatus
+      targets:
+        componentTypes: [manager, manager-search, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: soc-users
+      group: "Users & Access"
+      name: SOC Users
+      description: Security Onion Console user access — enable or disable existing users by email
+      canvasTemplate: config-types/soc-users/canvas.yaml
+      defaultConfig: config-types/soc-users/defaults.yaml
+      handlers:
+        validate: config-types/soc-users/validate
+        deploy: config-types/soc-users/deploy
+        rollback: config-types/soc-users/rollback
+        healthCheck: config-types/soc-users/healthCheck
+        driftDetect: config-types/soc-users/driftDetect
+        getStatus: config-types/soc-users/getStatus
+      targets:
+        componentTypes: [manager, manager-search, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: detections
+      group: "Detection & NIDS"
+      name: Detection Engine Rules
+      description: Elastic/Kibana Detection Engine rules — KQL query, severity and risk score — via the SOC console REST API (443)
+      canvasTemplate: config-types/detections/canvas.yaml
+      defaultConfig: config-types/detections/defaults.yaml
+      handlers:
+        validate: config-types/detections/validate
+        deploy: config-types/detections/deploy
+        rollback: config-types/detections/rollback
+        healthCheck: config-types/detections/healthCheck
+        driftDetect: config-types/detections/driftDetect
+        getStatus: config-types/detections/getStatus
+      targets:
+        componentTypes: [manager, manager-search, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: zeek-config
+      group: "Sensors & Zeek"
+      name: Zeek Configuration
+      description: Zeek log-type state — enable or disable Zeek logs / analyzers across the grid
+      canvasTemplate: config-types/zeek-config/canvas.yaml
+      defaultConfig: config-types/zeek-config/defaults.yaml
+      handlers:
+        validate: config-types/zeek-config/validate
+        deploy: config-types/zeek-config/deploy
+        rollback: config-types/zeek-config/rollback
+        healthCheck: config-types/zeek-config/healthCheck
+        driftDetect: config-types/zeek-config/driftDetect
+        getStatus: config-types/zeek-config/getStatus
+      targets:
+        componentTypes: [manager, manager-search, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: elastic-ilm
+      group: "Data Management"
+      name: Elasticsearch ILM Policies
+      description: Elasticsearch Index Lifecycle Management policies — hot rollover and total retention (via Elasticsearch REST on 9200)
+      canvasTemplate: config-types/elastic-ilm/canvas.yaml
+      defaultConfig: config-types/elastic-ilm/defaults.yaml
+      handlers:
+        validate: config-types/elastic-ilm/validate
+        deploy: config-types/elastic-ilm/deploy
+        rollback: config-types/elastic-ilm/rollback
+        healthCheck: config-types/elastic-ilm/healthCheck
+        driftDetect: config-types/elastic-ilm/driftDetect
+        getStatus: config-types/elastic-ilm/getStatus
       targets:
         componentTypes: [manager, manager-search, standalone]
         requiresCredential: true

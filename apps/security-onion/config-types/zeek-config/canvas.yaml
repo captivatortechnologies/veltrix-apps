@@ -1,0 +1,52 @@
+# =============================================================================
+# Canvas Template — Security Onion Zeek Configuration
+#
+# Declares ONE Zeek log-type state entry (the item). Users add as many as they
+# need. Field keys must match what config-types/zeek-config/validate.ts checks.
+# =============================================================================
+
+id: "security-onion-zeek-config"
+name: "Zeek Log Configuration"
+toolType: "security-onion"
+entityType: "zeek-config"
+description: "Enable or disable Zeek log types / analyzers across the Security Onion grid (applied via so-zeek-logs + Salt highstate)"
+
+item:
+  label: "Zeek Log"
+  identityField: "logType"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Zeek Log"
+      icon: "shield"
+      description: "Zeek log-type state"
+      fields:
+        - key: "logType"
+          label: "Log Type"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-z][a-z0-9_-]{0,63}$"
+            maxLength: 64
+          helpText: "The Zeek log / analyzer name, e.g. http, dns, ssl, files"
+
+        - key: "action"
+          label: "State"
+          fieldType: "select"
+          required: true
+          defaultValue: "enable"
+          options:
+            - label: "Enabled"
+              value: "enable"
+            - label: "Disabled"
+              value: "disable"
+          helpText: "Whether this Zeek log type is generated (enabled) or turned off (disabled)"
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this log-type state is set — recorded for audit"

@@ -1,0 +1,60 @@
+# =============================================================================
+# Canvas Template — Security Onion Firewall Access
+#
+# Declares ONE firewall access entry (the item). Users add as many as they need.
+# Field keys must match what config-types/firewall-access/validate.ts checks.
+# =============================================================================
+
+id: "security-onion-firewall-access"
+name: "Firewall Access Configuration"
+toolType: "security-onion"
+entityType: "firewall-access"
+description: "Grant or revoke analyst/host access to a Security Onion firewall host group (applied via so-firewall + Salt highstate)"
+
+item:
+  label: "Access Entry"
+  identityField: "host"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Access"
+      icon: "shield"
+      description: "Firewall host-group access"
+      fields:
+        - key: "group"
+          label: "Host Group"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 64
+          helpText: "The so-firewall host group, e.g. analyst"
+
+        - key: "host"
+          label: "Host"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9][A-Za-z0-9._:@-]{0,255}$"
+            maxLength: 256
+          helpText: "An IP, IPv6 or hostname to add to the group — NOT a CIDR range"
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "include"
+          options:
+            - label: "Include (grant)"
+              value: "include"
+            - label: "Exclude (revoke)"
+              value: "exclude"
+          helpText: "Add the host to the group (include) or remove it (exclude)"
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this access is set — recorded for audit"

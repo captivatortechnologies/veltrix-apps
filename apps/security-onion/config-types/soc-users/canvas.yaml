@@ -1,0 +1,52 @@
+# =============================================================================
+# Canvas Template — Security Onion SOC Users
+#
+# Declares ONE Security Onion Console (SOC) user state entry (the item). Users add
+# as many as they need. Field keys must match what config-types/soc-users/validate.ts
+# checks. This manages enable/disable of EXISTING users only.
+# =============================================================================
+
+id: "security-onion-soc-users"
+name: "SOC User Access"
+toolType: "security-onion"
+entityType: "soc-users"
+description: "Enable or disable existing Security Onion Console users by email across the grid (applied via so-user + Salt highstate)"
+
+item:
+  label: "User"
+  identityField: "email"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "User"
+      icon: "user"
+      description: "SOC user access state"
+      fields:
+        - key: "email"
+          label: "User Email"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 254
+          helpText: "The email of an existing SOC user, e.g. analyst@example.com"
+
+        - key: "action"
+          label: "State"
+          fieldType: "select"
+          required: true
+          defaultValue: "disable"
+          options:
+            - label: "Enabled"
+              value: "enable"
+            - label: "Disabled"
+              value: "disable"
+          helpText: "Whether the user can sign in (enabled) or is locked out (disabled)"
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this user state is set — recorded for audit"
