@@ -45,7 +45,9 @@ veltrix logout
 
 Sandboxes let you run your work-in-progress app inside your own tenant on the hosted platform: edit locally in any editor, and `veltrix dev` syncs changes near-realtime into the sandbox, where the platform validates and hot-reloads them.
 
-> Requires a tenant with sandboxes enabled (`SANDBOX_ENABLED`) and an API key carrying the `sandbox:read` / `sandbox:write` scopes (Settings → Keys & Tokens). Sandboxes are quota'd per tenant, capped in size, and expire after an idle TTL — every sync renews it.
+> Requires a tenant with sandboxes enabled (`SANDBOX_ENABLED`) and an API key authorized for sandboxes — either one carrying the `sandbox:read` / `sandbox:write` scopes, **or** an administrator key (its role grants access) — from Settings → Keys & Tokens.
+>
+> **Quota is per developer.** Each developer gets their own allotment of sandboxes (10 by default) — one developer reaching the cap never blocks another in the same org. On the CLI a "developer" is identified by their **own API key**, so give each person their own key (developers who share one key share one quota bucket). Sandboxes are also capped in size and expire after an idle TTL that every sync renews, freeing the slot automatically when abandoned.
 
 ### `veltrix sandbox create|list|delete|run`
 
