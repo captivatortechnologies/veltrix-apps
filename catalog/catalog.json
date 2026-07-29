@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-29T22:39:59.244Z",
+  "generatedAt": "2026-07-29T23:52:15.128Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -476,7 +476,7 @@
     {
       "appId": "security-onion",
       "name": "Security Onion",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "vendor": "Veltrix",
       "description": "Manage Security Onion (open-source NSM / SIEM) as code. Author Suricata NIDS rules, firewall & analyst access, SOC users, Elastic detections and index lifecycle, and Zeek — with BYOL infrastructure provisioning. Grid configuration is applied on the manager via Salt (over managed ZTNA) and the SOC / Elasticsearch REST APIs, with validation, drift detection, and rollback handled by the Security-as-Code pipeline.",
       "category": "SIEM",
@@ -484,11 +484,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/security-onion",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/security-onion-v0.3.0/security-onion.zip",
-      "sha256": "5976b0bb3923e6e5497ad1eb424af9208ba2ed101b6e16c3a851b0db3152e5b4",
-      "sizeBytes": 140042,
-      "publishedAt": "2026-07-29T22:39:59.227Z",
-      "releaseNotes": "## 0.3.0 — 2026-07-29\n\nClient UI.\n\n- **Overview** — what the app manages in a grid, rendered with the platform\n  design system (fed by the app's `/meta` route).\n- **Setup Guide** — SOC credential → connection → managed connectivity → author.\n- **Connections** — wraps the SDK `ConnectionsManager` for the SOC manager\n  (HTTPS 443); saving a connection registers the manager as a deploy target.\n\n> The BYOL infrastructure **management console** (provision/list/deploy UI + its\n> server routes) is a tracked follow-on; the declarative provisioning foundation\n> (`infra/spec.ts` + Salt bring-up) is already in place and driven by the generic\n> provisioning worker.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/security-onion-v0.4.0/security-onion.zip",
+      "sha256": "dd444c05c5a4f10a5071f2c04cb09daf56c6853b1087538b4f04ee021a70389b",
+      "sizeBytes": 230587,
+      "publishedAt": "2026-07-29T23:52:15.110Z",
+      "releaseNotes": "## 0.4.0 — 2026-07-29\n\nBYOL infrastructure hosting (like Splunk Enterprise).\n\n- **BYOL Infrastructure** page — provision and manage a Security Onion grid,\n  wrapping the SDK `ByolInfrastructureManager`: create/list/detail, a topology\n  **resource plan** (manager / search / sensor / forward / fleet nodes, derived\n  from `infra/spec.ts`), deploy (emits a provisioning event for the generic\n  worker), destroy, lifecycle (start/stop/restart), resources, deployments, and\n  usage metering.\n- App-owned store + routes under `/api/apps/security-onion/byol` (`so_byol_*`\n  tables) adapted from splunk-enterprise; grid sizing is a reasonable default —\n  verify against Security Onion deployment guidance.\n\n> The BYOL form currently renders the SDK's generic node labels; the server maps\n> them to Security Onion grid roles and the provisioned resource names are\n> SO-correct. SO-specific form labels need an SDK enhancement (tracked).",
       "releasedAt": "2026-07-29T00:00:00.000Z"
     },
     {
