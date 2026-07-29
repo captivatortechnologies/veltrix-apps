@@ -1,0 +1,52 @@
+# =============================================================================
+# Canvas Template — Security Onion Suricata Rules
+#
+# Declares ONE Suricata rule state entry (the item). Users add as many as they
+# need. Field keys must match what config-types/suricata-rules/validate.ts checks.
+# =============================================================================
+
+id: "security-onion-suricata-rules"
+name: "Suricata Rule Configuration"
+toolType: "security-onion"
+entityType: "suricata-rules"
+description: "Enable or disable Suricata NIDS rules by SID across the Security Onion grid (applied via so-rule + Salt highstate)"
+
+item:
+  label: "Rule"
+  identityField: "sid"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Rule"
+      icon: "shield"
+      description: "Suricata rule state"
+      fields:
+        - key: "sid"
+          label: "Signature ID (SID)"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[0-9]{1,12}$"
+            maxLength: 12
+          helpText: "The numeric Suricata rule SID, e.g. 2010935"
+
+        - key: "action"
+          label: "State"
+          fieldType: "select"
+          required: true
+          defaultValue: "disable"
+          options:
+            - label: "Enabled"
+              value: "enable"
+            - label: "Disabled"
+              value: "disable"
+          helpText: "Whether the rule fires (enabled) or is suppressed (disabled)"
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this rule state is set — recorded for audit"

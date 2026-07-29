@@ -1,0 +1,127 @@
+id: security-onion
+name: Security Onion
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Security Onion (open-source NSM / SIEM) as code. Author Suricata NIDS
+  rules, firewall & analyst access, SOC users, Elastic detections and index
+  lifecycle, and Zeek — with BYOL infrastructure provisioning. Grid configuration
+  is applied on the manager via Salt (over managed ZTNA) and the SOC / Elasticsearch
+  REST APIs, with validation, drift detection, and rollback handled by the
+  Security-as-Code pipeline.
+category: SIEM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/security-onion
+icon: "🧅"
+
+platform:
+  minVersion: "1.0.0"
+
+# Security Onion's brand blue. Assets are placeholders until the official lockup
+# is added — see assets/README.
+branding:
+  primaryColor: "#1d6fb8"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: suricata-rules
+      actions: [read, write, delete]
+      description: Manage Suricata NIDS rule state (enable/disable SIDs)
+    - resource: byol
+      actions: [read, write, delete]
+      description: Manage BYOL Security Onion grid infrastructure
+    - resource: usage
+      actions: [read, write]
+      description: Read BYOL infrastructure usage metering
+
+database:
+  migrations: migrations
+  tablePrefix: so_
+
+# Allow-listed remote commands the app runs on the manager over managed ZTNA. The
+# platform validates every param and shell-quotes it. Binary paths follow Security
+# Onion 2.4 conventions (/usr/sbin/so-*, salt-call) — verify against your grid.
+remoteCommands:
+  - id: salt-highstate
+    exec: /usr/bin/salt-call
+    args: ["state.highstate"]
+    description: Apply Salt highstate on the manager so grid state converges
+  - id: so-rule
+    exec: /usr/sbin/so-rule
+    args: ["{action}", "{sid}"]
+    params:
+      - { name: action, type: enum, values: [enable, disable] }
+      - { name: sid, type: token }
+    description: Enable or disable a Suricata rule by SID
+
+pipeline:
+  configurationTypes:
+    - id: suricata-rules
+      group: "Detection & NIDS"
+      name: Suricata Rules
+      description: Suricata NIDS rule state — enable or disable rules by SID on the grid
+      canvasTemplate: config-types/suricata-rules/canvas.yaml
+      defaultConfig: config-types/suricata-rules/defaults.yaml
+      handlers:
+        validate: config-types/suricata-rules/validate
+        deploy: config-types/suricata-rules/deploy
+        rollback: config-types/suricata-rules/rollback
+        healthCheck: config-types/suricata-rules/healthCheck
+        driftDetect: config-types/suricata-rules/driftDetect
+        getStatus: config-types/suricata-rules/getStatus
+      targets:
+        componentTypes: [manager, manager-search, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/security-onion
+
+# Connection-level connectivity test: verifies a Connection's endpoint + credential
+# against the SOC console (HTTPS 443 /login).
+connectivity:
+  testHandler: handlers/testConnection
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+  onEvent: hooks/onEvent
+  onWebhook: hooks/onWebhook
+
+settings:
+  - key: soc_port
+    type: number
+    label: SOC Console Port
+    description: HTTPS port for the Security Onion Console / Kibana
+    default: 443
+    required: false
+  - key: elasticsearch_port
+    type: number
+    label: Elasticsearch Port
+    description: Elasticsearch REST port (index lifecycle, detections)
+    default: 9200
+    required: false
+  - key: default_retention_days
+    type: number
+    label: Default Retention (days)
+    description: Default Elasticsearch index retention for new ILM policies
+    default: 30
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated
