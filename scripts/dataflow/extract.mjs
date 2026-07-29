@@ -74,6 +74,12 @@ function groupIntoFamilies(types) {
     .sort((a, b) => Number(a.isConnection) - Number(b.isConnection) || b.types.length - a.types.length)
 }
 
+function hasTestConnection(appDir) {
+  const dir = path.join(appDir, 'handlers')
+  if (!fs.existsSync(dir)) return false
+  return fs.readdirSync(dir).some((f) => /^testConnection\.(ts|mjs|js)$/.test(f))
+}
+
 export function extractApp(appDir) {
   const manifest = loadManifest(appDir)
   const rawTypes = manifest.pipeline?.configurationTypes ?? []
@@ -83,6 +89,15 @@ export function extractApp(appDir) {
 
   const requiresCredential = types.some((t) => t.requiresCredential)
   const requiresConnectivity = types.some((t) => t.requiresConnectivity)
+
+  // App-level operations available, inferred from which handlers any type declares.
+  const ops = {
+    deploy: types.some((t) => t.caps.deploy),
+    drift: types.some((t) => t.caps.drift),
+    rollback: types.some((t) => t.caps.rollback),
+    status: types.some((t) => t.caps.status || t.caps.health),
+    testConnection: hasTestConnection(appDir) || !!manifest.connectivity,
+  }
 
   return {
     id: manifest.id,
@@ -97,6 +112,7 @@ export function extractApp(appDir) {
     hasConnections: !!manifest.connectivity || !!manifest.settings,
     requiresCredential,
     requiresConnectivity,
+    ops,
     adapters: libAdapters(appDir),
     families,
     counts: {

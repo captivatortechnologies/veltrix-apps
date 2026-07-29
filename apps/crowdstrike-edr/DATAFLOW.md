@@ -1,163 +1,148 @@
-# 🦅 CrowdStrike Falcon — Dataflow
+# 🦅 CrowdStrike Falcon — Request Flows
 
-> How configuration flows between the Veltrix platform, this app, and the CrowdStrike Falcon APIs. **Auto-generated** from `manifest.yaml` — do not edit by hand (regenerate via `scripts/dataflow/generate.mjs`).
+> How a request is routed through the system — from the moment you act to when it reaches completion. **Auto-generated** from `manifest.yaml` (regenerate via `scripts/dataflow/generate.mjs`).
 
 **App:** `crowdstrike-edr` · **Category:** EDR · **Version:** 1.13.1  
-**44 config types** across **14 API families** · 44 deployable · 44 drift-detected · 44 rollback-capable
+**Operations:** Deploy a configuration · Detect drift · Roll back · Test connection  
+Talks to **CrowdStrike Falcon API** · credentials via the Credential Vault (`ctx.resolveConnection`).
 
-## Flow
+## Lifecycle — how operations connect
+
+Where a config goes from authoring to steady state, and how each request type feeds the next.
 
 ```mermaid
 flowchart LR
-  CANVAS["Config Canvas"] --> PIPE["Pipeline<br/>validate · deploy · drift · rollback"]
-  PIPE -->|"deploy · write ▶"| APP["CrowdStrike Falcon<br/><small>SDK ctx · adapters</small>"]
-  APP -->|"drift · read ◀"| PIPE
-  VAULT[("Credential Vault")] -.->|resolveConnection| APP
-  APP --> F0["Cloud Security<br/><small>10 types</small>"]
-  APP --> F1["Endpoint Policies<br/><small>6 types</small>"]
-  APP --> F2["Next-Gen SIEM<br/><small>6 types</small>"]
-  APP --> F3["Exclusions<br/><small>3 types</small>"]
-  APP --> F4["File Integrity Monitoring<br/><small>3 types</small>"]
-  APP --> F5["IT Automation<br/><small>3 types</small>"]
-  APP --> F6["MSSP / Flight Control<br/><small>3 types</small>"]
-  APP --> F7["Firewall<br/><small>2 types</small>"]
-  APP --> F8["Response & RTR<br/><small>2 types</small>"]
-  APP --> F9["Platform Administration<br/><small>2 types</small>"]
-  APP --> F10["Host & Assets<br/><small>1 type</small>"]
-  APP --> F11["Indicators<br/><small>1 type</small>"]
-  APP --> F12["Counter Adversary Ops<br/><small>1 type</small>"]
-  APP --> F13["Identity Protection<br/><small>1 type</small>"]
-
-  classDef platform fill:#eff6ff,stroke:#3b82f6,color:#1e3a8a;
-  classDef app fill:#1e293b,stroke:#0ea5e9,color:#f8fafc;
-  classDef vendor fill:#fef2f2,stroke:#ef4444,color:#7f1d1d;
-  classDef seam fill:#f1f5f9,stroke:#94a3b8,color:#334155;
-  class CANVAS,PIPE platform;
-  class APP app;
-  class VAULT,REMOTE seam;
-  class F0,F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12,F13 vendor;
+  connect[/"Test connection"/]
+  author("Author config")
+  validate("Validate")
+  deploy["Deploy ▶ (write)"]
+  live(["Live & monitored"])
+  drift["Drift detect ◀ (read)"]
+  correct["Correct (re-deploy)"]
+  rollback["Roll back"]
+  author --> validate
+  validate -->|"valid"| deploy
+  deploy -->|"stored"| live
+  live -->|"sweep"| drift
+  drift -->|"in sync ✓"| live
+  drift -->|"drift found"| correct
+  correct --> live
+  drift -->|"revert"| rollback
+  rollback --> live
+  connect -->|"enables"| deploy
+  classDef state fill:#eff6ff,stroke:#3b82f6,color:#1e3a8a,font-weight:bold;
+  classDef act fill:#ecfeff,stroke:#0ea5e9,color:#0c4a6e;
+  class live state;
+  class deploy,drift,correct,rollback act;
 ```
 
-- **Deploy ▶** — the pipeline validates a canvas and writes it to the vendor API (`deploy` handler).
-- **Drift ◀** — the app reads live vendor state and reconciles it against the canvas (`driftDetect` handler).
-- **Credential Vault** — tenant credentials are resolved per request via `ctx.resolveConnection` — never held by the app.
+## Request flows — how each one reaches completion
 
-## Config types by API family
+### Deploy a configuration
 
-### Cloud Security (10 types)
+*You publish or change a config (e.g. a policy, rule, or exclusion).*  
+<sub>Applies to: 44 config types · 14 API families.</sub>
 
-| Config type | Deploy ▶ | Drift ◀ | Rollback | Status |
-|---|:--:|:--:|:--:|:--:|
-| Cloud Account Registration Configuration `cloud-account-registrations` | ✅ | ✅ | ✅ | ✅ |
-| Cloud Compliance Control Configuration `cloud-compliance-controls` | ✅ | ✅ | ✅ | ✅ |
-| Cloud Compliance Framework Configuration `cloud-compliance-frameworks` | ✅ | ✅ | ✅ | ✅ |
-| Cloud Group Configuration `cloud-groups` | ✅ | ✅ | ✅ | ✅ |
-| Cloud IOM Custom Rule Configuration `cloud-iom-custom-rules` | ✅ | ✅ | ✅ | ✅ |
-| Cloud Rule Override Configuration `cloud-rule-overrides` | ✅ | ✅ | ✅ | ✅ |
-| Cloud Suppression Rule Configuration `cloud-suppression-rules` | ✅ | ✅ | ✅ | ✅ |
-| Image Assessment Policy Configuration `cloud-image-assessment-policies` | ✅ | ✅ | ✅ | ✅ |
-| Kubernetes Admission Policy Configuration `cloud-kac-policies` | ✅ | ✅ | ✅ | ✅ |
-| Registry Connection Configuration `cloud-registry-connections` | ✅ | ✅ | ✅ | ✅ |
+```mermaid
+sequenceDiagram
+  autonumber
+  participant operator as Operator / API
+  participant canvas as Config Canvas
+  participant pipeline as Pipeline
+  participant handler as App handler
+  participant vault as Credential Vault
+  participant adapter as Adapter
+  participant api as CrowdStrike Falcon API
+  operator->>canvas: author config (typed fields)
+  canvas->>pipeline: submit for deploy
+  pipeline->>handler: validate(config)
+  Note over handler: schema + business rules
+  handler-->>pipeline: valid ✓ / errors
+  pipeline->>handler: deploy(config, ctx)
+  handler->>vault: resolveConnection(credentialId)
+  vault-->>handler: decrypted credential
+  handler->>adapter: map canvas → API shape
+  adapter->>api: create / update resource (write ▶)
+  api-->>adapter: resource id(s)
+  adapter-->>handler: applied result
+  handler-->>pipeline: status + rollbackData (prior state)
+  pipeline-->>canvas: deployed ✓ — snapshot stored
+```
 
-### Endpoint Policies (6 types)
+### Detect drift
 
-| Config type | Deploy ▶ | Drift ◀ | Rollback | Status |
-|---|:--:|:--:|:--:|:--:|
-| Content Update Policy Configuration `content-update-policies` | ✅ | ✅ | ✅ | ✅ |
-| Custom IOA Rule Group Configuration `custom-ioa-rule-groups` | ✅ | ✅ | ✅ | ✅ |
-| Prevention Policy Configuration `prevention-policies` | ✅ | ✅ | ✅ | ✅ |
-| Response Policy Configuration `response-policies` | ✅ | ✅ | ✅ | ✅ |
-| Sensor Update Policy Configuration `sensor-update-policies` | ✅ | ✅ | ✅ | ✅ |
-| USB Device Control Policy Configuration `usb-device-control-policies` | ✅ | ✅ | ✅ | ✅ |
+*A scheduled sweep or on-demand check reconciles live state against the canvas.*  
+<sub>Applies to: 44 config types · 14 API families.</sub>
 
-### Next-Gen SIEM (6 types)
+```mermaid
+sequenceDiagram
+  autonumber
+  participant operator as Operator / API
+  participant pipeline as Pipeline
+  participant handler as App handler
+  participant vault as Credential Vault
+  participant adapter as Adapter
+  participant api as CrowdStrike Falcon API
+  operator->>pipeline: scheduled sweep / on-demand
+  pipeline->>handler: driftDetect(ctx, snapshot)
+  handler->>vault: resolveConnection(credentialId)
+  vault-->>handler: decrypted credential
+  handler->>adapter: fetch live state
+  adapter->>api: read resource (read ◀)
+  api-->>adapter: live config
+  adapter-->>handler: normalized live
+  handler->>handler: diff vs snapshot → DriftDiff[] (per-field actor)
+  handler-->>pipeline: in-sync ✓ or drift found
+  pipeline-->>operator: drift status → Correct / Acknowledge
+```
 
-| Config type | Deploy ▶ | Drift ◀ | Rollback | Status |
-|---|:--:|:--:|:--:|:--:|
-| Correlation Rule Configuration `ngsiem-correlation-rules` | ✅ | ✅ | ✅ | ✅ |
-| Dashboard Configuration `ngsiem-dashboards` | ✅ | ✅ | ✅ | ✅ |
-| Data Connection Configuration `ngsiem-data-connections` | ✅ | ✅ | ✅ | ✅ |
-| Lookup File Configuration `ngsiem-lookup-files` | ✅ | ✅ | ✅ | ✅ |
-| Parser Configuration `ngsiem-parsers` | ✅ | ✅ | ✅ | ✅ |
-| Saved Query Configuration `ngsiem-saved-queries` | ✅ | ✅ | ✅ | ✅ |
+### Roll back
 
-### Exclusions (3 types)
+*Revert a config to its previously-deployed state using the stored rollbackData.*  
+<sub>Applies to: 44 config types · 14 API families.</sub>
 
-| Config type | Deploy ▶ | Drift ◀ | Rollback | Status |
-|---|:--:|:--:|:--:|:--:|
-| IOA Exclusion Configuration `ioa-exclusions` | ✅ | ✅ | ✅ | ✅ |
-| ML Exclusion Configuration `ml-exclusions` | ✅ | ✅ | ✅ | ✅ |
-| Sensor Visibility Exclusion Configuration `sv-exclusions` | ✅ | ✅ | ✅ | ✅ |
+```mermaid
+sequenceDiagram
+  autonumber
+  participant operator as Operator / API
+  participant pipeline as Pipeline
+  participant handler as App handler
+  participant vault as Credential Vault
+  participant adapter as Adapter
+  participant api as CrowdStrike Falcon API
+  operator->>pipeline: roll back to prior version
+  pipeline->>handler: rollback(rollbackData, ctx)
+  handler->>vault: resolveConnection(credentialId)
+  vault-->>handler: decrypted credential
+  handler->>adapter: apply prior state
+  adapter->>api: restore resource (write ▶)
+  api-->>adapter: ok
+  adapter-->>handler: restored
+  handler-->>pipeline: rolled back ✓
+```
 
-### File Integrity Monitoring (3 types)
+### Test connection
 
-| Config type | Deploy ▶ | Drift ◀ | Rollback | Status |
-|---|:--:|:--:|:--:|:--:|
-| FileVantage Policy Configuration `filevantage-policies` | ✅ | ✅ | ✅ | ✅ |
-| FileVantage Rule Group Configuration `filevantage-rule-groups` | ✅ | ✅ | ✅ | ✅ |
-| FileVantage Scheduled Exclusion Configuration `filevantage-scheduled-exclusions` | ✅ | ✅ | ✅ | ✅ |
+*Verify a tenant credential before any deploy or drift can run.*  
+<sub>Applies to: precondition for every operation.</sub>
 
-### IT Automation (3 types)
-
-| Config type | Deploy ▶ | Drift ◀ | Rollback | Status |
-|---|:--:|:--:|:--:|:--:|
-| IT Automation Policy Configuration `it-automation-policies` | ✅ | ✅ | ✅ | ✅ |
-| IT Automation Scheduled Task Configuration `it-automation-scheduled-tasks` | ✅ | ✅ | ✅ | ✅ |
-| IT Automation Task Configuration `it-automation-tasks` | ✅ | ✅ | ✅ | ✅ |
-
-### MSSP / Flight Control (3 types)
-
-| Config type | Deploy ▶ | Drift ◀ | Rollback | Status |
-|---|:--:|:--:|:--:|:--:|
-| MSSP CID Group Configuration `mssp-cid-groups` | ✅ | ✅ | ✅ | ✅ |
-| MSSP Role Mapping Configuration `mssp-role-mappings` | ✅ | ✅ | ✅ | ✅ |
-| MSSP User Group Configuration `mssp-user-groups` | ✅ | ✅ | ✅ | ✅ |
-
-### Firewall (2 types)
-
-| Config type | Deploy ▶ | Drift ◀ | Rollback | Status |
-|---|:--:|:--:|:--:|:--:|
-| Firewall Policy Configuration `firewall-policies` | ✅ | ✅ | ✅ | ✅ |
-| Firewall Rule Group Configuration `firewall-rule-groups` | ✅ | ✅ | ✅ | ✅ |
-
-### Response & RTR (2 types)
-
-| Config type | Deploy ▶ | Drift ◀ | Rollback | Status |
-|---|:--:|:--:|:--:|:--:|
-| RTR Custom Script Configuration `rtr-response-scripts` | ✅ | ✅ | ✅ | ✅ |
-| RTR Put-File Configuration `rtr-put-files` | ✅ | ✅ | ✅ | ✅ |
-
-### Platform Administration (2 types)
-
-| Config type | Deploy ▶ | Drift ◀ | Rollback | Status |
-|---|:--:|:--:|:--:|:--:|
-| Installation Token Configuration `installation-tokens` | ✅ | ✅ | ✅ | ✅ |
-| User Configuration `users` | ✅ | ✅ | ✅ | ✅ |
-
-### Host & Assets (1 type)
-
-| Config type | Deploy ▶ | Drift ◀ | Rollback | Status |
-|---|:--:|:--:|:--:|:--:|
-| Host Group Configuration `host-groups` | ✅ | ✅ | ✅ | ✅ |
-
-### Indicators (1 type)
-
-| Config type | Deploy ▶ | Drift ◀ | Rollback | Status |
-|---|:--:|:--:|:--:|:--:|
-| Custom IOC Configuration `custom-iocs` | ✅ | ✅ | ✅ | ✅ |
-
-### Counter Adversary Ops (1 type)
-
-| Config type | Deploy ▶ | Drift ◀ | Rollback | Status |
-|---|:--:|:--:|:--:|:--:|
-| Recon Monitoring Rule Configuration `recon-monitoring-rules` | ✅ | ✅ | ✅ | ✅ |
-
-### Identity Protection (1 type)
-
-| Config type | Deploy ▶ | Drift ◀ | Rollback | Status |
-|---|:--:|:--:|:--:|:--:|
-| Identity Protection Policy Rule Configuration `idp-policy-rules` | ✅ | ✅ | ✅ | ✅ |
+```mermaid
+sequenceDiagram
+  autonumber
+  participant operator as Operator / API
+  participant page as Connections
+  participant handler as App handler
+  participant vault as Credential Vault
+  participant api as CrowdStrike Falcon API
+  operator->>page: enter / select credential
+  page->>handler: testConnection(ctx)
+  handler->>vault: resolveConnection
+  vault-->>handler: credential
+  handler->>api: auth probe (token → whoami)
+  api-->>handler: 200 / 401
+  handler-->>page: connected ✓ / failed
+```
 
 ---
 
-<sub>Generated by `scripts/dataflow/generate.mjs`. Legend: ✅ handler present · — not applicable.</sub>
+<sub>Generated by `scripts/dataflow/generate.mjs`. Solid arrow = call ▶ · dashed = return ◀.</sub>

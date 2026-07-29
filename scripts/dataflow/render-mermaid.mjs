@@ -1,93 +1,87 @@
-// Render a dataflow model as DATAFLOW.md — a Mermaid diagram (renders natively
-// on the GitHub repo file view) plus per-family capability tables.
+// Render a dataflow model as DATAFLOW.md — request-routing view: a lifecycle
+// map (how operations connect) + one Mermaid sequence diagram per operation
+// (how a request moves hop-by-hop to completion). Renders natively on GitHub.
 
-const check = (on) => (on ? '✅' : '—')
+import { buildFlows } from './flows.mjs'
 
-// Mermaid node text is wrapped in quotes; strip the few chars that break parsing.
-function mermaidLabel(s) {
-  return String(s).replace(/"/g, '').replace(/[[\]{}]/g, '').replace(/\|/g, '/')
+// Mermaid message text: strip chars that break the parser; keep it on one line.
+function msg(s) {
+  return String(s).replace(/[:;#]/g, '').replace(/\|/g, '/').replace(/\n/g, ' ').trim()
 }
-
-function familyNodeId(i) {
-  return `F${i}`
+function nodeLabel(s) {
+  return String(s).replace(/"/g, '').replace(/[[\]{}]/g, '')
 }
+const nid = (s) => s.replace(/[^a-zA-Z0-9]/g, '_')
 
-function diagram(model) {
-  const vendorFamilies = model.families.filter((f) => !f.isConnection)
-  const lines = []
-  lines.push('```mermaid')
-  lines.push('flowchart LR')
-  lines.push(`  CANVAS["Config Canvas"] --> PIPE["Pipeline<br/>validate · deploy · drift · rollback"]`)
-  lines.push(`  PIPE -->|"deploy · write ▶"| APP["${mermaidLabel(model.name)}<br/><small>SDK ctx · adapters</small>"]`)
-  lines.push(`  APP -->|"drift · read ◀"| PIPE`)
-  if (model.requiresCredential) {
-    lines.push(`  VAULT[("Credential Vault")] -.->|resolveConnection| APP`)
+function lifecycleDiagram(lc) {
+  const lines = ['```mermaid', 'flowchart LR']
+  for (const n of lc.nodes) {
+    const shape = n.kind === 'state' ? [`([`, `])`] : n.kind === 'act' ? ['[', ']'] : n.kind === 'pre' ? ['[/', '/]'] : ['(', ')']
+    lines.push(`  ${nid(n.id)}${shape[0]}"${nodeLabel(n.label)}"${shape[1]}`)
   }
-  if (model.requiresConnectivity) {
-    lines.push(`  REMOTE[("Network / ZTNA")] -.->|ctx.remote| APP`)
+  const present = new Set(lc.nodes.map((n) => n.id))
+  for (const [a, b, label] of lc.edges) {
+    if (!present.has(a) || !present.has(b)) continue
+    lines.push(label ? `  ${nid(a)} -->|"${nodeLabel(label)}"| ${nid(b)}` : `  ${nid(a)} --> ${nid(b)}`)
   }
-  vendorFamilies.forEach((f, i) => {
-    const id = familyNodeId(i)
-    lines.push(`  APP --> ${id}["${mermaidLabel(f.name)}<br/><small>${f.types.length} type${f.types.length === 1 ? '' : 's'}</small>"]`)
-  })
-  lines.push('')
-  lines.push('  classDef platform fill:#eff6ff,stroke:#3b82f6,color:#1e3a8a;')
-  lines.push('  classDef app fill:#1e293b,stroke:#0ea5e9,color:#f8fafc;')
-  lines.push('  classDef vendor fill:#fef2f2,stroke:#ef4444,color:#7f1d1d;')
-  lines.push('  classDef seam fill:#f1f5f9,stroke:#94a3b8,color:#334155;')
-  lines.push('  class CANVAS,PIPE platform;')
-  lines.push('  class APP app;')
-  if (model.requiresCredential || model.requiresConnectivity) lines.push('  class VAULT,REMOTE seam;')
-  lines.push(`  class ${vendorFamilies.map((_, i) => familyNodeId(i)).join(',')} vendor;`)
+  lines.push('  classDef state fill:#eff6ff,stroke:#3b82f6,color:#1e3a8a,font-weight:bold;')
+  lines.push('  classDef act fill:#ecfeff,stroke:#0ea5e9,color:#0c4a6e;')
+  const states = lc.nodes.filter((n) => n.kind === 'state').map((n) => nid(n.id))
+  const acts = lc.nodes.filter((n) => n.kind === 'act').map((n) => nid(n.id))
+  if (states.length) lines.push(`  class ${states.join(',')} state;`)
+  if (acts.length) lines.push(`  class ${acts.join(',')} act;`)
   lines.push('```')
   return lines.join('\n')
 }
 
-function familyTables(model) {
-  const out = []
-  for (const f of model.families) {
-    const heading = f.isConnection ? `${f.name} (connectivity)` : `${f.name} (${f.types.length} type${f.types.length === 1 ? '' : 's'})`
-    out.push(`### ${heading}`)
-    out.push('')
-    out.push('| Config type | Deploy ▶ | Drift ◀ | Rollback | Status |')
-    out.push('|---|:--:|:--:|:--:|:--:|')
-    for (const t of f.types) {
-      out.push(`| ${t.name} \`${t.id}\` | ${check(t.caps.deploy)} | ${check(t.caps.drift)} | ${check(t.caps.rollback)} | ${check(t.caps.status || t.caps.health)} |`)
-    }
-    out.push('')
+function sequenceDiagram(op, participants) {
+  const lines = ['```mermaid', 'sequenceDiagram', '  autonumber']
+  for (const key of op.participants) {
+    const p = participants[key]
+    lines.push(`  participant ${key} as ${nodeLabel(p.name)}`)
   }
-  return out.join('\n')
+  for (const s of op.steps) {
+    const arrow = s.dashed ? '-->>' : '->>'
+    lines.push(`  ${s.from}${arrow}${s.to}: ${msg(s.text)}`)
+    if (s.note) lines.push(`  Note over ${s.to}: ${msg(s.note)}`)
+  }
+  lines.push('```')
+  return lines.join('\n')
 }
 
 export function renderMarkdown(model) {
-  const c = model.counts
+  const flows = buildFlows(model)
   const md = []
-  md.push(`# ${model.icon ? model.icon + ' ' : ''}${model.name} — Dataflow`)
+  md.push(`# ${model.icon ? model.icon + ' ' : ''}${model.name} — Request Flows`)
   md.push('')
-  md.push(`> How configuration flows between the Veltrix platform, this app, and the ${model.name} APIs. **Auto-generated** from \`manifest.yaml\` — do not edit by hand (regenerate via \`scripts/dataflow/generate.mjs\`).`)
+  md.push(`> How a request is routed through the system — from the moment you act to when it reaches completion. **Auto-generated** from \`manifest.yaml\` (regenerate via \`scripts/dataflow/generate.mjs\`).`)
   md.push('')
+  md.push(`**App:** \`${model.id}\` · **Category:** ${model.category || '—'} · **Version:** ${model.version || '—'}  `)
   md.push(
-    `**App:** \`${model.id}\` · **Category:** ${model.category || '—'} · **Version:** ${model.version || '—'}  `,
+    `**Operations:** ${flows.operations.map((o) => o.title.replace(/^(Deploy|Detect|Roll|Test).*/, (m) => m)).join(' · ')}  `,
   )
-  md.push(
-    `**${c.vendorTypes} config types** across **${c.families} API families** · ${c.deployable} deployable · ${c.driftable} drift-detected · ${c.rollbackable} rollback-capable`,
-  )
+  md.push(`Talks to **${model.name} API**${model.requiresCredential ? ' · credentials via the Credential Vault (`ctx.resolveConnection`)' : ''}${model.requiresConnectivity ? ' · reachable over `ctx.remote`' : ''}.`)
   md.push('')
-  md.push('## Flow')
+  md.push('## Lifecycle — how operations connect')
   md.push('')
-  md.push(diagram(model))
+  md.push('Where a config goes from authoring to steady state, and how each request type feeds the next.')
   md.push('')
-  md.push('- **Deploy ▶** — the pipeline validates a canvas and writes it to the vendor API (`deploy` handler).')
-  md.push('- **Drift ◀** — the app reads live vendor state and reconciles it against the canvas (`driftDetect` handler).')
-  if (model.requiresCredential) md.push('- **Credential Vault** — tenant credentials are resolved per request via `ctx.resolveConnection` — never held by the app.')
-  if (model.requiresConnectivity) md.push('- **Network / ZTNA** — reaches the target over `ctx.remote` (managed connectivity).')
+  md.push(lifecycleDiagram(flows.lifecycle))
   md.push('')
-  md.push('## Config types by API family')
+  md.push('## Request flows — how each one reaches completion')
   md.push('')
-  md.push(familyTables(model))
+  for (const op of flows.operations) {
+    md.push(`### ${op.title}`)
+    md.push('')
+    md.push(`*${op.when}*  `)
+    md.push(`<sub>Applies to: ${op.appliesTo}.</sub>`)
+    md.push('')
+    md.push(sequenceDiagram(op, flows.participants))
+    md.push('')
+  }
   md.push('---')
   md.push('')
-  md.push('<sub>Generated by `scripts/dataflow/generate.mjs`. Legend: ✅ handler present · — not applicable.</sub>')
+  md.push('<sub>Generated by `scripts/dataflow/generate.mjs`. Solid arrow = call ▶ · dashed = return ◀.</sub>')
   md.push('')
   return md.join('\n')
 }
