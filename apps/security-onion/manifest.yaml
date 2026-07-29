@@ -1,6 +1,6 @@
 id: security-onion
 name: Security Onion
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Security Onion (open-source NSM / SIEM) as code. Author Suricata NIDS
@@ -218,6 +218,29 @@ server:
   entry: server/index
   routes:
     prefix: /api/apps/security-onion
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the Security Onion manager
+    # (component) with the SOC credential, with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
 
 # Connection-level connectivity test: verifies a Connection's endpoint + credential
 # against the SOC console (HTTPS 443 /login).

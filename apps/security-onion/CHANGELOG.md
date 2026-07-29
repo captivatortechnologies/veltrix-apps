@@ -2,6 +2,21 @@
 
 All notable changes to the Security Onion app are documented here.
 
+## 0.3.0 — 2026-07-29
+
+Client UI.
+
+- **Overview** — what the app manages in a grid, rendered with the platform
+  design system (fed by the app's `/meta` route).
+- **Setup Guide** — SOC credential → connection → managed connectivity → author.
+- **Connections** — wraps the SDK `ConnectionsManager` for the SOC manager
+  (HTTPS 443); saving a connection registers the manager as a deploy target.
+
+> The BYOL infrastructure **management console** (provision/list/deploy UI + its
+> server routes) is a tracked follow-on; the declarative provisioning foundation
+> (`infra/spec.ts` + Salt bring-up) is already in place and driven by the generic
+> provisioning worker.
+
 ## 0.2.0 — 2026-07-29
 
 Five more config types — the full six-type set.
