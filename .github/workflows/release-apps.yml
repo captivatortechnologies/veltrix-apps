@@ -159,15 +159,21 @@ jobs:
       - name: Rebuild marketplace catalog
         run: node scripts/build-catalog.mjs --repo "${{ github.repository }}"
 
-      - name: Commit catalog
+      - name: Regenerate dataflow docs
+        # Keep every app's DATAFLOW.md in sync with its manifest on the actual
+        # push-to-main path (this repo commits direct to main), so the docs never
+        # drift even when a maintainer forgets to regenerate locally.
+        run: node scripts/dataflow/generate.mjs --all
+
+      - name: Commit catalog + dataflow docs
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add catalog/catalog.json
+          git add catalog/catalog.json ':(glob)apps/**/DATAFLOW.md'
           if git diff --cached --quiet; then
-            echo "Catalog unchanged"
+            echo "Catalog + dataflow docs unchanged"
           else
-            git commit -m "chore(catalog): update marketplace catalog [skip ci]"
+            git commit -m "chore(catalog,dataflow): refresh catalog + dataflow docs [skip ci]"
             git push
           fi
 

@@ -90,6 +90,21 @@ jobs:
           done <<< "${{ steps.detect.outputs.apps }}"
           exit $FAILED
 
+      - name: Check DATAFLOW.md is up to date
+        # Regenerate every app's DATAFLOW.md from its manifest and fail if the
+        # result differs from what's committed — so a manifest change can't land
+        # without its request-flow doc being refreshed (mirrors the version-bump
+        # gate). Runs on any PR the workflow triggers on (apps/scripts/sdk/cli).
+        run: |
+          node scripts/dataflow/generate.mjs --all
+          if git diff --quiet -- ':(glob)apps/**/DATAFLOW.md'; then
+            echo "DATAFLOW.md is up to date"
+          else
+            echo "::error::DATAFLOW.md is out of date with the manifest(s). Run: node scripts/dataflow/generate.mjs --all  (then commit the result)"
+            git diff --stat -- ':(glob)apps/**/DATAFLOW.md'
+            exit 1
+          fi
+
       - name: Typecheck apps against in-repo SDK
         if: steps.detect.outputs.apps != '' || steps.detect.outputs.template_changed == 'true'
         run: |
