@@ -28,6 +28,16 @@ Current coverage spans these categories (see [`apps/`](apps/) for the full, up-t
 
 Don't see your tool? Open an app request in the issue tracker, or [build one yourself](#building-an-app).
 
+### See how each app works
+
+Every app ships a **[`DATAFLOW.md`](apps/crowdstrike-edr/DATAFLOW.md)** request-flow diagram — how a request routes through the platform, the app, and the vendor API to completion — rendered inline on GitHub. The **interactive versions are hosted together** at:
+
+```
+https://captivatortechnologies.github.io/veltrix-apps/dataflow/
+```
+
+Step through each app's Deploy, Drift, Rollback, and Test-connection flows, including the RBAC permission checks, the human approval gate, environment-scoped credentials, and the dev → staging → production promotion path.
+
 ## Installing an app
 
 Apps are installed from the **Apps** page of your Veltrix instance — either directly from the marketplace catalog or by URL using a release asset from this repository:
@@ -69,7 +79,7 @@ _template/         # Starting point for new apps
 sdk/               # @veltrixsecops/app-sdk — the typed app contract
 cli/               # @veltrixsecops/cli — validate, package, login, sandbox dev loop
 scripts/           # Validation + catalog generation used by CI and locally
-catalog/           # Generated marketplace catalog (committed by CI)
+catalog/           # Generated marketplace catalog + hosted dataflow site (committed by CI)
 .github/workflows/ # PR validation, release packaging, catalog + npm publishing
 ```
 
