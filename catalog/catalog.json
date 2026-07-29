@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-28T19:24:41.755Z",
+  "generatedAt": "2026-07-29T19:13:20.970Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -95,9 +95,9 @@
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/crowdstrike-edr",
       "available": true,
       "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/crowdstrike-edr-v1.13.1/crowdstrike-edr.zip",
-      "sha256": "fa61cb2c598974be32e80e780f7036f2f4ee7fd775ec0e5442fc79e3839fb0db",
-      "sizeBytes": 1097036,
-      "publishedAt": "2026-07-28T13:39:34.755Z",
+      "sha256": "bee56070e7d1c2ecfe0c829e9f1e6d6b956e637e84820ad694f9d87fb0ed035d",
+      "sizeBytes": 1099175,
+      "publishedAt": "2026-07-29T19:13:20.934Z",
       "releaseNotes": "## 1.13.1 — 2026-07-28\n\n### Fixed (remaining low-severity review findings)\n- **Cloud compliance controls** — rollback of a just-created control now deletes it\n  by the id captured at create (with a name-lookup fallback), instead of re-querying\n  first, so an eventually-consistent query can no longer leak the control.\n- **Users** — role grant/revoke deltas are recorded *before* each batch action, so a\n  partial batch apply that still errors is fully reversible on rollback.\n- **NG-SIEM data connections** — the source endpoint is captured and restored on\n  rollback (alongside the repository), so a wholesale `config` replace no longer\n  strips it. (The credential is still never captured or restored.)\n- Remaining documented limitation: IDP policy-rule drift/deploy scope to declared\n  condition keys, so a removed condition isn't reconciled (needs nested-tree diff).",
       "releasedAt": "2026-07-28T00:00:00.000Z"
     },
