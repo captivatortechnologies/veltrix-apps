@@ -53,6 +53,20 @@ jobs:
         working-directory: cli
         run: npm ci --no-audit --no-fund
 
+      # The smoke test runs a real client-bundle check on splunk-enterprise, which
+      # imports the BUNDLED SDK subpaths (@veltrixsecops/app-sdk/byol, /connections).
+      # Those are not host-runtime shims (unlike app-sdk / /hooks / /client / /ui,
+      # which the bundler externalizes), so esbuild must RESOLVE them — from the
+      # app's own node_modules (bundleAppClient uses nodePaths=[appDir/node_modules]).
+      # Build the in-repo SDK and link it there so the check passes.
+      - name: Build + link the app SDK for the smoke test
+        if: steps.resolve.outputs.already_published == 'false'
+        run: |
+          npm --prefix sdk ci --no-audit --no-fund
+          npm --prefix sdk run build
+          mkdir -p apps/splunk-enterprise/node_modules/@veltrixsecops
+          ln -sfn "$PWD/sdk" apps/splunk-enterprise/node_modules/@veltrixsecops/app-sdk
+
       - name: Smoke test
         if: steps.resolve.outputs.already_published == 'false'
         working-directory: cli
