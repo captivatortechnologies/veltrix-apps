@@ -2,6 +2,24 @@
 
 All notable changes to the Security Onion app are documented here.
 
+## 0.4.0 — 2026-07-29
+
+BYOL infrastructure hosting (like Splunk Enterprise).
+
+- **BYOL Infrastructure** page — provision and manage a Security Onion grid,
+  wrapping the SDK `ByolInfrastructureManager`: create/list/detail, a topology
+  **resource plan** (manager / search / sensor / forward / fleet nodes, derived
+  from `infra/spec.ts`), deploy (emits a provisioning event for the generic
+  worker), destroy, lifecycle (start/stop/restart), resources, deployments, and
+  usage metering.
+- App-owned store + routes under `/api/apps/security-onion/byol` (`so_byol_*`
+  tables) adapted from splunk-enterprise; grid sizing is a reasonable default —
+  verify against Security Onion deployment guidance.
+
+> The BYOL form currently renders the SDK's generic node labels; the server maps
+> them to Security Onion grid roles and the provisioned resource names are
+> SO-correct. SO-specific form labels need an SDK enhancement (tracked).
+
 ## 0.3.0 — 2026-07-29
 
 Client UI.
