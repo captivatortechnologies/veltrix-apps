@@ -313,6 +313,186 @@ import { conventionalPaths } from '@veltrixsecops/app-sdk'
 conventionalPaths('indexes').handlers.deploy // 'config-types/indexes/deploy'
 ```
 
+## Manifest reference
+
+`manifest.yaml` is the app contract. The `AppManifest` type is exported from the root entry;
+this is the full field set the platform parses.
+
+```yaml
+id: microsoft-defender-endpoint    # stable slug (lowercase, hyphens) — the app id everywhere
+name: Microsoft Defender for Endpoint
+version: 1.3.0                      # SemVer; bump on every release (CI compares it)
+vendor: Microsoft
+description: Manage Defender for Endpoint threat & device config as code.
+category: EDR                       # marketplace grouping (EDR, SIEM, IAM, …)
+license: Apache-2.0                 # optional
+homepage: https://…                # optional
+icon: "🛡️"                          # optional emoji/short glyph for compact lists
+
+platform:
+  minVersion: 1.0.0                 # lowest platform version this app supports
+
+permissions:
+  platform:                         # platform capabilities the app consumes
+    - configuration-canvas:read
+    - credential:read
+  app:                              # permissions the app EXPOSES (RBAC-assignable)
+    - resource: mde-file-indicators
+      actions: [read, write, delete]
+      description: Manage Defender file indicators
+
+pipeline:
+  configurationTypes: [ … ]         # see the table below (one entry per config type)
+  pipelineEvents:                   # optional: platform pipeline events the app emits
+    - canvas:deployed
+
+server:
+  entry: server/index              # extensionless path to the route module (AppRouteContext)
+  routes: { prefix: /api/apps/defender-endpoint }   # optional
+
+client:                             # optional — only if the app has UI
+  entry: client/index
+  navLayout: sidebar               # 'tabs' (default) | 'sidebar' (many config types)
+  pages: [ … ]                      # see the page table below
+
+database:                           # optional — only if the app owns tables
+  migrations: migrations
+  tablePrefix: mde_
+  isolation: schema                 # 'shared' | 'schema' (default for marketplace) | 'database' | 'external'
+
+branding:                           # optional — vendor identity in the app navbar
+  primaryColor: "#0078D4"
+  accentColor: "#50E6FF"
+  logo: ./assets/logo.svg
+  logoDark: ./assets/logo-dark.svg  # optional dark-bg variant
+
+hooks:                              # optional — all extensionless paths, all optional
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+  onEnable: …  onDisable: …  onUpgrade: …
+  onWebhook: …                      # inbound webhooks routed to the app
+  onEvent: …                        # inbound message-bus events
+
+events: [ some.platform.event ]     # optional — platform events the app subscribes to
+
+connectivity:
+  testHandler: handlers/testConnection   # backs the "Test" button on a Connection
+
+connection:                         # optional — one-click consent onboarding
+  onboarding:
+    provider: entra-admin-consent   # a platform onboarding adapter
+    label: Connect Microsoft Defender
+    params: { brokered: true, capture: { tenantId: "setting:tenant_id" }, requiredSettings: [tenant_id] }
+
+settings:                           # optional — admin-supplied app settings
+  - key: tenant_id
+    type: string                    # 'string' | 'number' | 'boolean' | 'select'
+    label: Tenant ID
+    required: true
+    default: ""
+    # options: [{ label: …, value: … }]   # required when type: select
+```
+
+**`pipeline.configurationTypes[]`** — one entry per manageable resource:
+
+| Field | Req | Notes |
+|---|---|---|
+| `id` | ✓ | Config type id (the canvas `entityType`) |
+| `name` | ✓ | Display name |
+| `description` | | Shown in the config list |
+| `canvasTemplate` | ✓ | Path to the `canvas.yaml` form schema |
+| `defaultConfig` | | Path to a `defaults.yaml` |
+| `handlers.{validate,deploy,rollback,healthCheck,getStatus}` | ✓ | Extensionless handler paths |
+| `handlers.driftDetect` | | Optional; omit if the type has no drift |
+| `handlers.options` | | Optional; powers `remote-select`/`remote-multiselect` fields |
+| `targets.componentTypes[]` | ✓ | Which component types this deploys to |
+| `targets.requiresCredential` | ✓ | Deploy needs a resolved credential |
+| `targets.requiresConnectivity` | ✓ | Deploy needs a connectivity provider |
+
+**`client.pages[]`** — one entry per client page:
+
+| Field | Req | Notes |
+|---|---|---|
+| `path` | ✓ | Route under the app, e.g. `/connections` → `/apps/<id>/connections` |
+| `component` | ✓ | Exported component name from the client entry |
+| `label` | ✓ | Nav label |
+| `nav` | | `sidebar` (default) \| `tab` \| `hidden` |
+| `parent` | | Parent page `path` — required for `nav: tab` |
+| `group` | | Sidebar section label (e.g. `settings`) |
+| `order` | | Deterministic ordering within a group/parent |
+| `layout` | | `standard` (default) \| `full-bleed` \| `canvas` |
+| `icon`, `description` | | Optional |
+| `requiresPermission` | | `{ resource, action }` — hide unless the user holds it |
+
+## Canvas field guide
+
+A config type's `canvas.yaml` is the form users fill in. Modern canvases use the **item model**:
+the canvas declares ONE `item` (a record), and the user adds as many instances as they need.
+An item has one or more `groups`, each a titled set of `fields`. A field's `key` is unique
+across the whole item (an item is one record, not one per group).
+
+```yaml
+id: "microsoft-entra-id-access-review-definitions"   # canvas id
+name: "Access Review Definition Configuration"
+toolType: "microsoft-entra-id"     # the app id
+entityType: "access-review-definitions"   # the configurationTypes[].id this canvas backs
+description: "…"
+
+item:
+  label: "Access Review Definition"
+  identityField: "name"            # the field whose value is the item's logical identity
+  # identityDerived: true          # set when the handler derives identity (else identityField must be required)
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Definition"
+      icon: "check-square"         # optional platform icon name
+      description: "Name, scope, reviewers"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation: { maxLength: 256 }
+          helpText: "Unique within this canvas — the identity deploy matches on."
+
+        - key: "scope_kind"
+          label: "Scope"
+          fieldType: "select"
+          options:                 # required for select / multiselect
+            - { label: "Group", value: "group" }
+            - { label: "Role",  value: "role" }
+
+        - key: "group_id"
+          label: "Group"
+          fieldType: "remote-select"     # live options from the tool
+          optionsSource: "groups"        # → handlers.options provider (see Live pickers)
+          visibleWhen: { field: "scope_kind", equals: "group" }  # show only when a sibling equals a value
+```
+
+**Field types** (`fieldType`):
+
+| Type | Stored value | Notes |
+|---|---|---|
+| `text`, `textarea` | string | single line / multi-line |
+| `password` | string | write-only secret — never echoed back or logged |
+| `number` | number | |
+| `checkbox` | boolean | |
+| `select` | string | one of `options[]` |
+| `multiselect` | string[] | subset of `options[]` |
+| `tags` | string[] | free-form chips |
+| `remote-select` | string | one live option (needs `optionsSource` + a `handlers.options` provider) |
+| `remote-multiselect` | string[] | many live options |
+| `keyvalue` | `{key,value}[]` | set `lockKeys: true` to make keys read-only (edit values only) |
+| `path` | string | a filesystem path on the target |
+| `files` | file refs | uploaded file content |
+
+**Field properties:** `key` (✓, unique), `label` (✓), `fieldType` (✓), `required`, `defaultValue`,
+`helpText`, `validation` (e.g. `{ maxLength }`), `options` (select/multiselect), `optionsSource`
+(remote-\*), `visibleWhen` (`{ field, equals }` — the referenced `field` must be a sibling key in
+the item), `lockKeys` (keyvalue only). `veltrix validate` checks all of these against the schema.
+
 ## Package layout
 
 > **2.0.0 (breaking):** the root entry no longer re-exports the React hooks — import them from
