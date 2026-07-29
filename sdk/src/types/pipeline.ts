@@ -352,6 +352,15 @@ export interface RemoteExecutor {
   readFile(remotePath: string): Promise<string>
   /** Run one allow-listed intent (bundle apply / deploy-server reload / probe). */
   run(intent: RemoteIntent): Promise<RemoteResult>
+  /**
+   * Run one of the app's manifest-declared `remoteCommands` templates by id, with
+   * validated params. For Salt/CLI-driven tools (e.g. Security Onion: so-rule,
+   * so-firewall, salt-call) that can't be expressed as the fixed intents above. The
+   * platform validates every param against the template's declared type and
+   * shell-quotes it — the app never builds a shell command. Present only for
+   * managed-ZTNA targets.
+   */
+  command?(commandId: string, params?: Record<string, unknown>): Promise<RemoteResult>
 }
 
 /** Allow-listed remote actions. The platform maps each to a fixed, argument-checked command. */

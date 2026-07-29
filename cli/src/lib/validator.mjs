@@ -305,6 +305,47 @@ export function validateApp(appDirArg) {
     for (const key of new Set(dupes)) err(`settings: key "${key}" is declared more than once`)
   }
 
+  // Remote commands — app-declared allow-list for ctx.remote.command() (Salt/CLI tools).
+  // Mirrors the platform builder's safety rules so a bad template is caught at packaging.
+  if (manifest.remoteCommands !== undefined) {
+    const REMOTE_PARAM_TYPES = new Set(['token', 'enum', 'int', 'path'])
+    const SAFE_ABS_BINARY = /^\/[A-Za-z0-9._\-/]+$/
+    if (!Array.isArray(manifest.remoteCommands)) {
+      err('remoteCommands must be an array')
+    } else {
+      const ids = []
+      manifest.remoteCommands.forEach((cmd, i) => {
+        const label = `remoteCommands[${i}]${cmd?.id ? ` (${cmd.id})` : ''}`
+        if (!cmd?.id || typeof cmd.id !== 'string') err(`${label}.id is required`)
+        else ids.push(cmd.id)
+        if (typeof cmd?.exec !== 'string' || !SAFE_ABS_BINARY.test(cmd.exec) || cmd.exec.includes('..') || cmd.exec.endsWith('/')) {
+          err(`${label}.exec must be a safe absolute binary path (got "${cmd?.exec}")`)
+        }
+        const params = cmd?.params ?? []
+        if (!Array.isArray(params)) err(`${label}.params must be an array`)
+        const paramNames = new Set()
+        ;(Array.isArray(params) ? params : []).forEach((p, j) => {
+          if (!p?.name || typeof p.name !== 'string') err(`${label}.params[${j}].name is required`)
+          else paramNames.add(p.name)
+          if (!REMOTE_PARAM_TYPES.has(p?.type)) err(`${label}.params[${j}].type must be one of ${[...REMOTE_PARAM_TYPES].join(', ')} (got "${p?.type}")`)
+          if (p?.type === 'enum' && (!Array.isArray(p.values) || p.values.length === 0)) err(`${label}.params[${j}] is an enum but declares no values`)
+        })
+        const args = cmd?.args ?? []
+        if (!Array.isArray(args)) err(`${label}.args must be an array`)
+        ;(Array.isArray(args) ? args : []).forEach((arg, j) => {
+          if (typeof arg !== 'string') { err(`${label}.args[${j}] must be a string`); return }
+          const ref = /^\{(\w+)\}$/.exec(arg)
+          if (ref) {
+            if (!paramNames.has(ref[1])) err(`${label}.args[${j}] references undeclared param "${ref[1]}"`)
+          } else if (arg.includes('{') || arg.includes('}')) {
+            err(`${label}.args[${j}] uses partial interpolation ("${arg}") — pass flag and value as separate args`)
+          }
+        })
+      })
+      for (const id of new Set(ids.filter((k, i) => ids.indexOf(k) !== i))) err(`remoteCommands: id "${id}" is declared more than once`)
+    }
+  }
+
   // Database
   if (manifest.database) {
     if (!manifest.database.tablePrefix || !TABLE_PREFIX_RE.test(manifest.database.tablePrefix)) {
