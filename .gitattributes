@@ -1,0 +1,5 @@
+# Generated request-flow docs are always written with LF by
+# scripts/dataflow/*.mjs. Pin them to LF so local (Windows, core.autocrlf=true)
+# regeneration is a no-op instead of showing spurious CRLF churn in `git status`.
+# CI runs on Linux (LF) and is unaffected either way.
+apps/**/DATAFLOW.md text eol=lf
