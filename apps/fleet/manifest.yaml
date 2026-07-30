@@ -1,0 +1,131 @@
+id: fleet
+name: Fleet
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Fleet (open-source osquery fleet management) as code — endpoint
+  visibility, vulnerability and device management across your osquery agent
+  fleet. Author saved osquery queries and drive them through the
+  Security-as-Code pipeline (validate, deploy, health check, drift detection and
+  rollback) over the Fleet REST API, with BYOL infrastructure provisioning
+  groundwork for a Fleet stack (server / MySQL / Redis).
+category: Endpoint Management
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/fleet
+icon: "🚀"
+
+platform:
+  minVersion: "1.0.0"
+
+# Fleet's brand purple. Assets are placeholders until the official lockup is
+# added — see assets/README.
+branding:
+  primaryColor: "#6a67ce"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: queries
+      actions: [read, write, delete]
+      description: Manage Fleet saved osquery queries (name, SQL, schedule interval, platform)
+    - resource: byol
+      actions: [read, write, delete]
+      description: Manage BYOL Fleet stack infrastructure (server / MySQL / Redis)
+    - resource: usage
+      actions: [read, write]
+      description: Read BYOL infrastructure usage metering
+
+database:
+  migrations: migrations
+  tablePrefix: fleet_
+
+# Fleet is managed entirely over its HTTPS REST API (/api/v1/fleet), so there are
+# NO remoteCommands — unlike Security Onion, whose grid is Salt-driven.
+
+pipeline:
+  configurationTypes:
+    - id: queries
+      group: "Osquery"
+      name: Saved Queries
+      description: Fleet saved osquery queries — SQL, schedule interval, target platform and observer access — via the Fleet REST API (/api/v1/fleet/queries)
+      canvasTemplate: config-types/queries/canvas.yaml
+      defaultConfig: config-types/queries/defaults.yaml
+      handlers:
+        validate: config-types/queries/validate
+        deploy: config-types/queries/deploy
+        rollback: config-types/queries/rollback
+        healthCheck: config-types/queries/healthCheck
+        driftDetect: config-types/queries/driftDetect
+        getStatus: config-types/queries/getStatus
+      targets:
+        componentTypes: [fleet-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/fleet
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the Fleet server (component) with
+    # the Fleet API-token credential, with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies a Connection's endpoint +
+# credential against the Fleet REST API (HTTPS /api/v1/fleet/me).
+connectivity:
+  testHandler: handlers/testConnection
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+  onEvent: hooks/onEvent
+  onWebhook: hooks/onWebhook
+
+settings:
+  - key: fleet_port
+    type: number
+    label: Fleet Server Port
+    description: HTTPS port for the Fleet server REST API / web UI (fleetdm default 8080; hosted commonly 443)
+    default: 443
+    required: false
+  - key: default_query_interval
+    type: number
+    label: Default Query Interval (seconds)
+    description: Default schedule interval applied to new saved queries
+    default: 3600
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated

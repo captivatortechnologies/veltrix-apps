@@ -1,0 +1,25 @@
+# Changelog
+
+All notable changes to the MISP app are documented here.
+
+## 0.1.0 — 2026-07-29
+
+Initial release — foundation + first config type.
+
+- **Threat Feeds** config type — add / edit / enable / disable MISP threat feeds
+  (name, provider, URL, source format, enabled) over the MISP REST API (443), with
+  validate / deploy (upsert by feed URL) / rollback (restore prior or disable) /
+  health-check / drift-detect / status.
+- **Connectivity test** against the MISP REST API (`/servers/getVersion`, HTTPS,
+  self-signed tolerated) using a MISP automation key.
+- **Client** — Overview (fed by the app's `/meta` route), Setup Guide (automation
+  key → connection → author), and Connections (wraps the SDK `ConnectionsManager`
+  for a MISP instance; saving a connection registers `misp-core` as a deploy
+  target).
+- **BYOL infrastructure** groundwork: declarative `infra/spec.ts` composing the
+  generic OpenTofu modules (`misp-core` + `database` MariaDB + `redis`, plus an
+  all-in-one `standalone`) + a MISP bring-up entrypoint.
+
+> MISP REST API paths follow 2.4 conventions and should be verified against a live
+> MISP 2.4 instance. TLS verification is off by default (self-signed) and
+> configurable via the `verify_tls` setting.

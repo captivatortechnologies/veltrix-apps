@@ -1,0 +1,15 @@
+{
+  "name": "veltrix-app-wazuh",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Veltrix app: manage Wazuh (SIEM/XDR/HIDS) as code — CDB lists over the Wazuh REST API (55000) — with BYOL cluster infrastructure groundwork",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@veltrixsecops/app-sdk": "^3.6.0",
+    "fastify": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}

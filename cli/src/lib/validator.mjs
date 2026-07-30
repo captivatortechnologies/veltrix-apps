@@ -24,7 +24,7 @@ const REQUIRED_HANDLERS = ['validate', 'deploy', 'rollback', 'healthCheck', 'get
 const CODE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'])
 // Extensionless manifest refs (handlers, entries) resolve like require() does
 const RESOLVE_CANDIDATES = ['', '.ts', '.tsx', '.js', '.mjs', '.cjs', '/index.ts', '/index.js']
-const CATEGORIES = new Set(['SIEM', 'EDR', 'SOAR', 'IAM', 'NETWORK', 'CLOUD', 'COMPLIANCE', 'CUSTOM'])
+const CATEGORIES = new Set(['SIEM', 'EDR', 'SOAR', 'IAM', 'NETWORK', 'CLOUD', 'COMPLIANCE', 'Threat Intelligence', 'Endpoint Management', 'CUSTOM'])
 // App UI & navigation contract (mirrors @veltrixsecops/app-sdk)
 const APP_PAGE_LAYOUTS = ['standard', 'full-bleed', 'canvas']
 const APP_PAGE_NAV = ['sidebar', 'tab', 'hidden']

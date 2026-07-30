@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": ["node"]
+  },
+  "include": [
+    "config-types/**/*.ts",
+    "lib/**/*.ts",
+    "hooks/**/*.ts",
+    "handlers/**/*.ts",
+    "server/**/*.ts",
+    "infra/spec.ts"
+  ],
+  "exclude": ["node_modules", "client"]
+}

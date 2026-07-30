@@ -1,0 +1,123 @@
+id: wazuh
+name: Wazuh
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Wazuh (open-source SIEM / XDR / HIDS) as code. Author CDB lists,
+  and — over the Wazuh REST API (55000, self-signed, token-authenticated) —
+  drive them through the Security-as-Code pipeline with validation, drift
+  detection and rollback. BYOL cluster provisioning (manager / indexer /
+  dashboard) is declared as a generic InfraSpec.
+category: SIEM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/wazuh
+icon: "🛡️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Wazuh's brand blue. Assets are placeholders until the official lockup is added.
+branding:
+  primaryColor: "#00A9E0"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: cdb-lists
+      actions: [read, write, delete]
+      description: Manage Wazuh CDB lists (constant databases — key:value lookup files)
+    - resource: byol
+      actions: [read, write, delete]
+      description: Manage BYOL Wazuh cluster infrastructure
+    - resource: usage
+      actions: [read, write]
+      description: Read BYOL infrastructure usage metering
+
+database:
+  migrations: migrations
+  tablePrefix: wazuh_
+
+# NOTE: Wazuh is managed purely over the REST API (55000) — there are no
+# app-declared remoteCommands. Salt/SSH-style seams are intentionally absent.
+
+pipeline:
+  configurationTypes:
+    - id: cdb-lists
+      group: "Lists & Data"
+      name: CDB Lists
+      description: Wazuh CDB lists (constant databases) — key:value lookup files backing blocklists/allowlists, via the Wazuh REST API (55000)
+      canvasTemplate: config-types/cdb-lists/canvas.yaml
+      defaultConfig: config-types/cdb-lists/defaults.yaml
+      handlers:
+        validate: config-types/cdb-lists/validate
+        deploy: config-types/cdb-lists/deploy
+        rollback: config-types/cdb-lists/rollback
+        healthCheck: config-types/cdb-lists/healthCheck
+        driftDetect: config-types/cdb-lists/driftDetect
+        getStatus: config-types/cdb-lists/getStatus
+      targets:
+        componentTypes: [manager, manager-master, manager-worker]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/wazuh
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the Wazuh manager (component) with
+    # the API credential, with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: authenticates a Connection's endpoint +
+# credential against the Wazuh REST API (HTTPS 55000 /security/user/authenticate).
+connectivity:
+  testHandler: handlers/testConnection
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+  onEvent: hooks/onEvent
+  onWebhook: hooks/onWebhook
+
+settings:
+  - key: wazuh_api_port
+    type: number
+    label: Wazuh API Port
+    description: HTTPS port for the Wazuh manager REST API
+    default: 55000
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated

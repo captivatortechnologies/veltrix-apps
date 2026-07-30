@@ -1,0 +1,62 @@
+# =============================================================================
+# Canvas Template — Wazuh CDB Lists
+#
+# Declares ONE CDB list (the item). Users add as many as they need. Field keys
+# must match config-types/cdb-lists/validate.ts. Applied via the Wazuh REST API
+# (/lists/files/{filename}) on port 55000.
+# =============================================================================
+
+id: "wazuh-cdb-lists"
+name: "CDB Lists"
+toolType: "wazuh"
+entityType: "cdb-lists"
+description: "Manage Wazuh CDB lists (constant databases) — key:value lookup files backing blocklists/allowlists — via the Wazuh REST API (55000)"
+
+item:
+  label: "CDB List"
+  identityField: "listName"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "List"
+      icon: "database"
+      description: "CDB list identity and location"
+      fields:
+        - key: "listName"
+          label: "List Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-zA-Z0-9._-]+$"
+            maxLength: 255
+          helpText: "The CDB list name, e.g. blocklist"
+
+        - key: "path"
+          label: "Path"
+          fieldType: "text"
+          required: true
+          defaultValue: "etc/lists/"
+          validation:
+            maxLength: 512
+          helpText: "Relative path under the manager ruleset, e.g. etc/lists/blocklist (no leading / and no .. segments)"
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this list exists — recorded for audit (CDB files can't hold inline comments)"
+
+    - name: "Entries"
+      icon: "list"
+      description: "The key:value pairs compiled into the constant database"
+      fields:
+        - key: "entries"
+          label: "Entries"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: "One key:value pair per line, e.g. 10.0.0.5:malicious host. The value may be empty (bare key:) for membership-only lists."

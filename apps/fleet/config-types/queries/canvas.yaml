@@ -1,0 +1,91 @@
+# =============================================================================
+# Canvas Template — Fleet Saved Queries
+#
+# Declares ONE saved osquery query (the item). Users add as many as they need.
+# Field keys must match config-types/queries/validate.ts. Applied via the Fleet
+# REST API (/api/v1/fleet/queries). Verify field semantics against a live Fleet
+# (fleetdm) instance.
+# =============================================================================
+
+id: "fleet-queries"
+name: "Saved Queries"
+toolType: "fleet"
+entityType: "queries"
+description: "Manage Fleet saved osquery queries — SQL, schedule interval, target platform and observer access — via the Fleet REST API (/api/v1/fleet/queries)"
+
+item:
+  label: "Saved Query"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Query"
+      icon: "search"
+      description: "The saved query identity and osquery SQL"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9 ._:-]+$"
+            maxLength: 255
+          helpText: "Unique query name used to upsert the query, e.g. installed_chrome_extensions"
+
+        - key: "query"
+          label: "Query (osquery SQL)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 8000
+          helpText: "The osquery SQL the query runs, e.g. SELECT name, version FROM chrome_extensions;"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this query checks — shown in the Fleet console"
+
+    - name: "Scheduling & Access"
+      icon: "clock"
+      description: "How often the query runs and who may run it"
+      fields:
+        - key: "interval"
+          label: "Interval (seconds)"
+          fieldType: "number"
+          required: true
+          defaultValue: 3600
+          validation:
+            min: 0
+          helpText: "How often the scheduled query runs, in seconds (0 = on-demand only)"
+
+        - key: "platform"
+          label: "Platform"
+          fieldType: "select"
+          required: true
+          defaultValue: "all"
+          options:
+            - label: "All platforms"
+              value: "all"
+            - label: "Linux"
+              value: "linux"
+            - label: "macOS (darwin)"
+              value: "darwin"
+            - label: "Windows"
+              value: "windows"
+          helpText: "Restrict the query to a platform (all = every enrolled host)"
+
+        - key: "observerCanRun"
+          label: "Observer Can Run"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options:
+            - label: "No"
+              value: "no"
+            - label: "Yes"
+              value: "yes"
+          helpText: "Whether users with the observer role may run this query live"

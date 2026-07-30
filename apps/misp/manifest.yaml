@@ -1,0 +1,128 @@
+id: misp
+name: MISP
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage MISP (open-source Threat Intelligence Platform) as code. Author threat
+  feeds and drive them through the Security-as-Code pipeline — validate, deploy,
+  health check, drift detection and rollback — over the MISP REST API (HTTPS,
+  self-signed tolerated), with BYOL infrastructure provisioning for the MISP
+  stack (core + MariaDB + Redis).
+category: Threat Intelligence
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/misp
+icon: "🧩"
+
+platform:
+  minVersion: "1.0.0"
+
+# MISP's brand green. Assets are placeholders until the official lockup is added.
+branding:
+  primaryColor: "#2f9e44"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: feeds
+      actions: [read, write, delete]
+      description: Manage MISP threat feeds (add / edit / enable / disable)
+    - resource: byol
+      actions: [read, write, delete]
+      description: Manage BYOL MISP stack infrastructure
+    - resource: usage
+      actions: [read, write]
+      description: Read BYOL infrastructure usage metering
+
+database:
+  migrations: migrations
+  tablePrefix: misp_
+
+pipeline:
+  configurationTypes:
+    - id: feeds
+      group: "Threat Intelligence"
+      name: Threat Feeds
+      description: MISP threat feeds — provider, feed URL, source format and enabled state — applied over the MISP REST API (443)
+      canvasTemplate: config-types/feeds/canvas.yaml
+      defaultConfig: config-types/feeds/defaults.yaml
+      handlers:
+        validate: config-types/feeds/validate
+        deploy: config-types/feeds/deploy
+        rollback: config-types/feeds/rollback
+        healthCheck: config-types/feeds/healthCheck
+        driftDetect: config-types/feeds/driftDetect
+        getStatus: config-types/feeds/getStatus
+      targets:
+        componentTypes: [misp-core, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/misp
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the MISP core (component) with the
+    # MISP automation key (credential), with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies a Connection's endpoint + automation
+# key against the MISP REST API (HTTPS 443 /servers/getVersion).
+connectivity:
+  testHandler: handlers/testConnection
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+  onEvent: hooks/onEvent
+  onWebhook: hooks/onWebhook
+
+settings:
+  - key: misp_port
+    type: number
+    label: MISP HTTPS Port
+    description: HTTPS port for the MISP web UI / REST API
+    default: 443
+    required: false
+  - key: verify_tls
+    type: boolean
+    label: Verify TLS certificate
+    description: >
+      Enforce a valid TLS certificate on the MISP endpoint. Off by default —
+      MISP commonly ships a self-signed certificate.
+    default: false
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated
