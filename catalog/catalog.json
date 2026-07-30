@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-30T00:51:56.574Z",
+  "generatedAt": "2026-07-30T01:11:17.821Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -164,7 +164,7 @@
     {
       "appId": "fleet",
       "name": "Fleet",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "vendor": "Veltrix",
       "description": "Manage Fleet (open-source osquery fleet management) as code — endpoint visibility, vulnerability and device management across your osquery agent fleet. Author saved osquery queries and drive them through the Security-as-Code pipeline (validate, deploy, health check, drift detection and rollback) over the Fleet REST API, with BYOL infrastructure provisioning groundwork for a Fleet stack (server / MySQL / Redis).",
       "category": "Endpoint Management",
@@ -172,11 +172,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/fleet",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/fleet-v0.2.0/fleet.zip",
-      "sha256": "031919e7d46bcba511db3d2e3e1b0c8ceada5f9449d39918ad997c1ee7695821",
-      "sizeBytes": 137368,
-      "publishedAt": "2026-07-30T00:51:56.533Z",
-      "releaseNotes": "## 0.2.0 — 2026-07-29\n\nFour more config types (all over the Fleet REST API):\n\n- **Global Policies** — pass/fail osquery compliance checks.\n- **Labels** — dynamic (osquery-SQL) host labels.\n- **Teams** — host segmentation (Fleet Premium).\n- **Agent Configuration** — the org-wide `agent_options` singleton (JSON).",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/fleet-v0.3.0/fleet.zip",
+      "sha256": "91b1296fa706a4ef858c8b91901b1a961fcb4e9210db0b12b4afb05aa636d98e",
+      "sizeBytes": 225547,
+      "publishedAt": "2026-07-30T01:11:17.780Z",
+      "releaseNotes": "## 0.3.0 — 2026-07-29\n\nBYOL infrastructure hosting — provision + manage a Fleet stack (fleet-server / MySQL /\nRedis). Client BYOLPage wraps the SDK `ByolInfrastructureManager`; app-owned `/byol`\nroutes + `fleet_byol_*` tables (migrations 002/003) with a topology resource plan,\ndeploy (emits a provisioning event), destroy, lifecycle, resources, deployments, and\nusage metering.",
       "releasedAt": "2026-07-29T00:00:00.000Z"
     },
     {
@@ -337,7 +337,7 @@
     {
       "appId": "misp",
       "name": "MISP",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "vendor": "Veltrix",
       "description": "Manage MISP (open-source Threat Intelligence Platform) as code. Author threat feeds and drive them through the Security-as-Code pipeline — validate, deploy, health check, drift detection and rollback — over the MISP REST API (HTTPS, self-signed tolerated), with BYOL infrastructure provisioning for the MISP stack (core + MariaDB + Redis).",
       "category": "Threat Intelligence",
@@ -345,11 +345,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/misp",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/misp-v0.2.0/misp.zip",
-      "sha256": "9ee7589d507ad697b015f3c0daee9a7484551a0ac772727b9351c5347c3de2b3",
-      "sizeBytes": 155183,
-      "publishedAt": "2026-07-30T00:51:56.551Z",
-      "releaseNotes": "## 0.2.0 — 2026-07-29\n\nFive more config types (all over the MISP REST API):\n\n- **Taxonomies** / **Warninglists** — enable/disable by namespace/name.\n- **Sharing Groups** / **Organisations** — create/edit.\n- **Sync Servers** — add/edit remote MISP sync servers (pull/push).",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/misp-v0.3.0/misp.zip",
+      "sha256": "07f8b85ff27f16b5e20b33121916c7db79ac2f44892babc0ea3dde0d17040eb6",
+      "sizeBytes": 243414,
+      "publishedAt": "2026-07-30T01:11:17.798Z",
+      "releaseNotes": "## 0.3.0 — 2026-07-29\n\nBYOL infrastructure hosting — provision + manage a MISP stack (misp-core / MariaDB /\nRedis). Client BYOLPage wraps the SDK `ByolInfrastructureManager`; app-owned `/byol`\nroutes + `misp_byol_*` tables (migrations 002/003) with a topology resource plan,\ndeploy (emits a provisioning event), destroy, lifecycle, resources, deployments, and\nusage metering.",
       "releasedAt": "2026-07-29T00:00:00.000Z"
     },
     {
@@ -649,7 +649,7 @@
     {
       "appId": "wazuh",
       "name": "Wazuh",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "vendor": "Veltrix",
       "description": "Manage Wazuh (open-source SIEM / XDR / HIDS) as code. Author CDB lists, and — over the Wazuh REST API (55000, self-signed, token-authenticated) — drive them through the Security-as-Code pipeline with validation, drift detection and rollback. BYOL cluster provisioning (manager / indexer / dashboard) is declared as a generic InfraSpec.",
       "category": "SIEM",
@@ -657,11 +657,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/wazuh",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/wazuh-v0.2.0/wazuh.zip",
-      "sha256": "b56d568fe6388fb94df3e94fc49a6ae51182d4ec00ca1535067016291bc097d3",
-      "sizeBytes": 129333,
-      "publishedAt": "2026-07-30T00:51:56.565Z",
-      "releaseNotes": "## 0.2.0 — 2026-07-29\n\nThree more config types (all over the Wazuh REST API):\n\n- **Agent Groups** — agent groups + their shared `agent.conf`.\n- **Custom Rules** — custom ruleset files (`etc/rules`); a manager restart activates the change.\n- **Custom Decoders** — custom decoder files (`etc/decoders`); manager restart to activate.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/wazuh-v0.3.0/wazuh.zip",
+      "sha256": "c22e24c26fd8f1ede1a02c53f110e5fc680f431bf4ec86e799565dc4c98b4d04",
+      "sizeBytes": 218050,
+      "publishedAt": "2026-07-30T01:11:17.810Z",
+      "releaseNotes": "## 0.3.0 — 2026-07-29\n\nBYOL infrastructure hosting — provision + manage a Wazuh cluster (manager-master /\nmanager-worker / indexer / dashboard). Client BYOLPage wraps the SDK\n`ByolInfrastructureManager`; app-owned `/byol` routes + `wazuh_byol_*` tables\n(migrations 002/003) with a topology resource plan, deploy (emits a provisioning\nevent), destroy, lifecycle, resources, deployments, and usage metering.",
       "releasedAt": "2026-07-29T00:00:00.000Z"
     },
     {
