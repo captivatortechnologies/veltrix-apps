@@ -2,6 +2,14 @@
 
 All notable changes to the MISP app are documented here.
 
+## 0.3.0 — 2026-07-29
+
+BYOL infrastructure hosting — provision + manage a MISP stack (misp-core / MariaDB /
+Redis). Client BYOLPage wraps the SDK `ByolInfrastructureManager`; app-owned `/byol`
+routes + `misp_byol_*` tables (migrations 002/003) with a topology resource plan,
+deploy (emits a provisioning event), destroy, lifecycle, resources, deployments, and
+usage metering.
+
 ## 0.2.0 — 2026-07-29
 
 Five more config types (all over the MISP REST API):

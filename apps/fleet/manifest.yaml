@@ -1,6 +1,6 @@
 id: fleet
 name: Fleet
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Fleet (open-source osquery fleet management) as code — endpoint
@@ -175,6 +175,14 @@ client:
       label: Setup Guide
       icon: book
       nav: sidebar
+    # BYOL Fleet stack infrastructure — Config nav group. Wraps the SDK
+    # <ByolInfrastructureManager> over this app's app-owned /byol routes.
+    - path: /byol
+      component: BYOLPage
+      label: BYOL Infrastructure
+      icon: server
+      nav: sidebar
+      group: config
     # Connections — Settings nav group. Pairs the Fleet server (component) with
     # the Fleet API-token credential, with a per-row connectivity test.
     - path: /connections

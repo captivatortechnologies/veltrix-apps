@@ -1,6 +1,6 @@
 id: wazuh
 name: Wazuh
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Wazuh (open-source SIEM / XDR / HIDS) as code. Author CDB lists,
@@ -152,6 +152,14 @@ client:
       label: Setup Guide
       icon: book
       nav: sidebar
+    # BYOL cluster infrastructure — Config nav group. Wraps the SDK
+    # <ByolInfrastructureManager> over this app's app-owned /byol routes.
+    - path: /byol
+      component: BYOLPage
+      label: BYOL Infrastructure
+      icon: server
+      nav: sidebar
+      group: config
     # Connections — Settings nav group. Pairs the Wazuh manager (component) with
     # the API credential, with a per-row connectivity test.
     - path: /connections

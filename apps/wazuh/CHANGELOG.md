@@ -2,6 +2,14 @@
 
 All notable changes to the Wazuh app are documented here.
 
+## 0.3.0 — 2026-07-29
+
+BYOL infrastructure hosting — provision + manage a Wazuh cluster (manager-master /
+manager-worker / indexer / dashboard). Client BYOLPage wraps the SDK
+`ByolInfrastructureManager`; app-owned `/byol` routes + `wazuh_byol_*` tables
+(migrations 002/003) with a topology resource plan, deploy (emits a provisioning
+event), destroy, lifecycle, resources, deployments, and usage metering.
+
 ## 0.2.0 — 2026-07-29
 
 Three more config types (all over the Wazuh REST API):

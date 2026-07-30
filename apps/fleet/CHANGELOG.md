@@ -2,6 +2,14 @@
 
 All notable changes to the Fleet app are documented here.
 
+## 0.3.0 — 2026-07-29
+
+BYOL infrastructure hosting — provision + manage a Fleet stack (fleet-server / MySQL /
+Redis). Client BYOLPage wraps the SDK `ByolInfrastructureManager`; app-owned `/byol`
+routes + `fleet_byol_*` tables (migrations 002/003) with a topology resource plan,
+deploy (emits a provisioning event), destroy, lifecycle, resources, deployments, and
+usage metering.
+
 ## 0.2.0 — 2026-07-29
 
 Four more config types (all over the Fleet REST API):
