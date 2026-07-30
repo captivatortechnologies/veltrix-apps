@@ -1,0 +1,78 @@
+# =============================================================================
+# Canvas Template — Fleet Labels
+#
+# Declares ONE dynamic label (the item). Users add as many as they need. Field
+# keys must match config-types/labels/validate.ts. Applied via the Fleet REST API
+# (/api/v1/fleet/labels). Verify field semantics against a live Fleet (fleetdm)
+# instance.
+# =============================================================================
+
+id: "fleet-labels"
+name: "Labels"
+toolType: "fleet"
+entityType: "labels"
+description: "Manage Fleet dynamic labels — the osquery SQL that assigns hosts to a label, its description and target platform — via the Fleet REST API (/api/v1/fleet/labels)"
+
+item:
+  label: "Label"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Label"
+      icon: "tag"
+      description: "The label identity and the osquery SQL that selects hosts"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9 ._:-]+$"
+            maxLength: 255
+          helpText: "Unique label name used to upsert the label, e.g. macOS Ventura"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this label groups — shown in the Fleet console"
+
+        - key: "query"
+          label: "Query (osquery SQL)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 8000
+          helpText: "The osquery SQL that selects hosts for this dynamic label, e.g. SELECT 1 FROM os_version WHERE name = 'macOS' AND major = 13;"
+
+    - name: "Targeting"
+      icon: "target"
+      description: "Which platform the label applies to"
+      fields:
+        - key: "platform"
+          label: "Platform"
+          fieldType: "select"
+          required: false
+          defaultValue: "all"
+          options:
+            - label: "All platforms"
+              value: "all"
+            - label: "Linux"
+              value: "linux"
+            - label: "macOS (darwin)"
+              value: "darwin"
+            - label: "Windows"
+              value: "windows"
+          helpText: "Restrict the label to a platform (all = every enrolled host; optional)"
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Optional change note for operators (not sent to Fleet)"

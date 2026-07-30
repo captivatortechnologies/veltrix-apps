@@ -1,0 +1,50 @@
+# =============================================================================
+# Canvas Template — Fleet Agent Configuration (org settings)
+#
+# SINGLETON — declares the org-wide osquery agent options (one item, maxItems 1).
+# Field keys must match config-types/agent-config/validate.ts. Applied via the
+# Fleet REST API (PATCH /api/v1/fleet/config { agent_options }). Verify the config
+# shape against a live Fleet (fleetdm) instance.
+# =============================================================================
+
+id: "fleet-agent-config"
+name: "Agent Configuration"
+toolType: "fleet"
+entityType: "agent-config"
+description: "Manage the Fleet org-wide osquery agent options — the singleton agent_options JSON applied to every enrolled host — via the Fleet REST API (/api/v1/fleet/config)"
+
+item:
+  label: "Agent Configuration"
+  identityField: "scope"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Agent Options"
+      icon: "settings"
+      description: "The org-wide osquery agent options (agent_options)"
+      fields:
+        - key: "scope"
+          label: "Scope"
+          fieldType: "text"
+          required: true
+          defaultValue: "org"
+          validation:
+            maxLength: 32
+          helpText: "Fixed scope for the org-wide agent options (singleton — leave as \"org\")"
+
+        - key: "agentOptions"
+          label: "Agent Options (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 20000
+          helpText: 'The osquery agent options as JSON, e.g. {"config":{"options":{"logger_plugin":"tls"}}}'
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Optional change note for operators (not sent to Fleet)"

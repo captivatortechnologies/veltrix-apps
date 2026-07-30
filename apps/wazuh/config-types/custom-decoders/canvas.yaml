@@ -1,0 +1,54 @@
+# =============================================================================
+# Canvas Template — Wazuh Custom Decoders
+#
+# Declares ONE custom decoder file (the item). Field keys must match
+# config-types/custom-decoders/validate.ts. Applied via the Wazuh REST API
+# (/decoders/files/{filename}) on port 55000; a manager restart activates the
+# change.
+# =============================================================================
+
+id: "wazuh-custom-decoders"
+name: "Custom Decoders"
+toolType: "wazuh"
+entityType: "custom-decoders"
+description: "Manage Wazuh custom decoder files (etc/decoders) — via the Wazuh REST API (55000)"
+
+item:
+  label: "Decoders File"
+  identityField: "filename"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "File"
+      icon: "file-code"
+      description: "Custom decoder file identity"
+      fields:
+        - key: "filename"
+          label: "Filename"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: '^[A-Za-z0-9._-]+\.xml$'
+            maxLength: 255
+          helpText: "The decoder filename, e.g. local_decoder.xml (must end in .xml)"
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why these decoders exist — recorded for audit only, never written into the file body"
+
+    - name: "Decoders"
+      icon: "code"
+      description: "The XML decoders compiled into the active decoder set on restart"
+      fields:
+        - key: "decodersXml"
+          label: "Decoders (XML)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 200000
+          helpText: "The decoders as XML, e.g. <decoder name=\"my-app\">…</decoder>"

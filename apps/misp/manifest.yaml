@@ -1,6 +1,6 @@
 id: misp
 name: MISP
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage MISP (open-source Threat Intelligence Platform) as code. Author threat
@@ -30,6 +30,21 @@ permissions:
     - resource: feeds
       actions: [read, write, delete]
       description: Manage MISP threat feeds (add / edit / enable / disable)
+    - resource: taxonomies
+      actions: [read, write]
+      description: Enable or disable MISP taxonomies
+    - resource: warninglists
+      actions: [read, write]
+      description: Enable or disable MISP warninglists
+    - resource: sharing-groups
+      actions: [read, write, delete]
+      description: Manage MISP sharing groups (add / edit)
+    - resource: organisations
+      actions: [read, write, delete]
+      description: Manage MISP organisations (add / edit)
+    - resource: sync-servers
+      actions: [read, write, delete]
+      description: Manage MISP sync servers (add / edit / pull / push)
     - resource: byol
       actions: [read, write, delete]
       description: Manage BYOL MISP stack infrastructure
@@ -56,6 +71,96 @@ pipeline:
         healthCheck: config-types/feeds/healthCheck
         driftDetect: config-types/feeds/driftDetect
         getStatus: config-types/feeds/getStatus
+      targets:
+        componentTypes: [misp-core, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: taxonomies
+      group: "Vocabularies"
+      name: Taxonomies
+      description: Enable or disable MISP taxonomies by namespace (e.g. tlp) — applied over the MISP REST API (443)
+      canvasTemplate: config-types/taxonomies/canvas.yaml
+      defaultConfig: config-types/taxonomies/defaults.yaml
+      handlers:
+        validate: config-types/taxonomies/validate
+        deploy: config-types/taxonomies/deploy
+        rollback: config-types/taxonomies/rollback
+        healthCheck: config-types/taxonomies/healthCheck
+        driftDetect: config-types/taxonomies/driftDetect
+        getStatus: config-types/taxonomies/getStatus
+      targets:
+        componentTypes: [misp-core, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: warninglists
+      group: "Vocabularies"
+      name: Warninglists
+      description: Enable or disable MISP warninglists by name — applied over the MISP REST API (443)
+      canvasTemplate: config-types/warninglists/canvas.yaml
+      defaultConfig: config-types/warninglists/defaults.yaml
+      handlers:
+        validate: config-types/warninglists/validate
+        deploy: config-types/warninglists/deploy
+        rollback: config-types/warninglists/rollback
+        healthCheck: config-types/warninglists/healthCheck
+        driftDetect: config-types/warninglists/driftDetect
+        getStatus: config-types/warninglists/getStatus
+      targets:
+        componentTypes: [misp-core, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: sharing-groups
+      group: "Sharing"
+      name: Sharing Groups
+      description: MISP sharing groups — name, description and releasability — applied over the MISP REST API (443)
+      canvasTemplate: config-types/sharing-groups/canvas.yaml
+      defaultConfig: config-types/sharing-groups/defaults.yaml
+      handlers:
+        validate: config-types/sharing-groups/validate
+        deploy: config-types/sharing-groups/deploy
+        rollback: config-types/sharing-groups/rollback
+        healthCheck: config-types/sharing-groups/healthCheck
+        driftDetect: config-types/sharing-groups/driftDetect
+        getStatus: config-types/sharing-groups/getStatus
+      targets:
+        componentTypes: [misp-core, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: organisations
+      group: "Sharing"
+      name: Organisations
+      description: MISP organisations — name, description, nationality and local flag — applied over the MISP REST API (443)
+      canvasTemplate: config-types/organisations/canvas.yaml
+      defaultConfig: config-types/organisations/defaults.yaml
+      handlers:
+        validate: config-types/organisations/validate
+        deploy: config-types/organisations/deploy
+        rollback: config-types/organisations/rollback
+        healthCheck: config-types/organisations/healthCheck
+        driftDetect: config-types/organisations/driftDetect
+        getStatus: config-types/organisations/getStatus
+      targets:
+        componentTypes: [misp-core, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: sync-servers
+      group: "Sync"
+      name: Sync Servers
+      description: MISP sync servers — remote URL, authkey and pull/push flags — applied over the MISP REST API (443)
+      canvasTemplate: config-types/sync-servers/canvas.yaml
+      defaultConfig: config-types/sync-servers/defaults.yaml
+      handlers:
+        validate: config-types/sync-servers/validate
+        deploy: config-types/sync-servers/deploy
+        rollback: config-types/sync-servers/rollback
+        healthCheck: config-types/sync-servers/healthCheck
+        driftDetect: config-types/sync-servers/driftDetect
+        getStatus: config-types/sync-servers/getStatus
       targets:
         componentTypes: [misp-core, standalone]
         requiresCredential: true

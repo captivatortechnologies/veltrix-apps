@@ -2,6 +2,14 @@
 
 All notable changes to the MISP app are documented here.
 
+## 0.2.0 — 2026-07-29
+
+Five more config types (all over the MISP REST API):
+
+- **Taxonomies** / **Warninglists** — enable/disable by namespace/name.
+- **Sharing Groups** / **Organisations** — create/edit.
+- **Sync Servers** — add/edit remote MISP sync servers (pull/push).
+
 ## 0.1.0 — 2026-07-29
 
 Initial release — foundation + first config type.

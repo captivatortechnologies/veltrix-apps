@@ -1,0 +1,54 @@
+# =============================================================================
+# Canvas Template — MISP Taxonomies
+#
+# Declares ONE MISP taxonomy toggle (the item). Users add as many as they need.
+# Field keys must match config-types/taxonomies/validate.ts. Applied via the MISP
+# REST API (/taxonomies, /taxonomies/enable/{id}, /taxonomies/disable/{id}) on
+# port 443. Taxonomies are loaded from MISP's taxonomy library; this type only
+# enables or disables the ones already present.
+# =============================================================================
+
+id: "misp-taxonomies"
+name: "Taxonomies"
+toolType: "misp"
+entityType: "taxonomies"
+description: "Enable or disable MISP taxonomies by namespace (e.g. tlp) via the MISP REST API (443)"
+
+item:
+  label: "Taxonomy"
+  identityField: "namespace"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Taxonomy"
+      icon: "tag"
+      description: "Taxonomy identity and desired state"
+      fields:
+        - key: "namespace"
+          label: "Namespace"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The taxonomy namespace as MISP knows it, e.g. tlp. Used as the stable identity for upsert and drift."
+
+        - key: "state"
+          label: "State"
+          fieldType: "select"
+          required: true
+          defaultValue: "enabled"
+          options:
+            - label: "Enabled"
+              value: "enabled"
+            - label: "Disabled"
+              value: "disabled"
+          helpText: "Whether MISP enables this taxonomy (enabled) or leaves it off (disabled)"
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this taxonomy state is configured — recorded for audit"

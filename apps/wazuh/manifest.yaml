@@ -1,6 +1,6 @@
 id: wazuh
 name: Wazuh
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Wazuh (open-source SIEM / XDR / HIDS) as code. Author CDB lists,
@@ -30,6 +30,15 @@ permissions:
     - resource: cdb-lists
       actions: [read, write, delete]
       description: Manage Wazuh CDB lists (constant databases — key:value lookup files)
+    - resource: agent-groups
+      actions: [read, write, delete]
+      description: Manage Wazuh agent groups and their shared agent.conf
+    - resource: custom-rules
+      actions: [read, write, delete]
+      description: Manage Wazuh custom ruleset files (etc/rules)
+    - resource: custom-decoders
+      actions: [read, write, delete]
+      description: Manage Wazuh custom decoder files (etc/decoders)
     - resource: byol
       actions: [read, write, delete]
       description: Manage BYOL Wazuh cluster infrastructure
@@ -59,6 +68,60 @@ pipeline:
         healthCheck: config-types/cdb-lists/healthCheck
         driftDetect: config-types/cdb-lists/driftDetect
         getStatus: config-types/cdb-lists/getStatus
+      targets:
+        componentTypes: [manager, manager-master, manager-worker]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: agent-groups
+      group: "Agents"
+      name: Agent Groups
+      description: Wazuh agent groups and their shared agent.conf, via the Wazuh REST API (55000)
+      canvasTemplate: config-types/agent-groups/canvas.yaml
+      defaultConfig: config-types/agent-groups/defaults.yaml
+      handlers:
+        validate: config-types/agent-groups/validate
+        deploy: config-types/agent-groups/deploy
+        rollback: config-types/agent-groups/rollback
+        healthCheck: config-types/agent-groups/healthCheck
+        driftDetect: config-types/agent-groups/driftDetect
+        getStatus: config-types/agent-groups/getStatus
+      targets:
+        componentTypes: [manager, manager-master, manager-worker]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: custom-rules
+      group: "Ruleset"
+      name: Custom Rules
+      description: Wazuh custom ruleset files (etc/rules), via the Wazuh REST API (55000); a manager restart activates the change
+      canvasTemplate: config-types/custom-rules/canvas.yaml
+      defaultConfig: config-types/custom-rules/defaults.yaml
+      handlers:
+        validate: config-types/custom-rules/validate
+        deploy: config-types/custom-rules/deploy
+        rollback: config-types/custom-rules/rollback
+        healthCheck: config-types/custom-rules/healthCheck
+        driftDetect: config-types/custom-rules/driftDetect
+        getStatus: config-types/custom-rules/getStatus
+      targets:
+        componentTypes: [manager, manager-master, manager-worker]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: custom-decoders
+      group: "Ruleset"
+      name: Custom Decoders
+      description: Wazuh custom decoder files (etc/decoders), via the Wazuh REST API (55000); a manager restart activates the change
+      canvasTemplate: config-types/custom-decoders/canvas.yaml
+      defaultConfig: config-types/custom-decoders/defaults.yaml
+      handlers:
+        validate: config-types/custom-decoders/validate
+        deploy: config-types/custom-decoders/deploy
+        rollback: config-types/custom-decoders/rollback
+        healthCheck: config-types/custom-decoders/healthCheck
+        driftDetect: config-types/custom-decoders/driftDetect
+        getStatus: config-types/custom-decoders/getStatus
       targets:
         componentTypes: [manager, manager-master, manager-worker]
         requiresCredential: true

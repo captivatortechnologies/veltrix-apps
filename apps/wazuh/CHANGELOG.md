@@ -2,6 +2,14 @@
 
 All notable changes to the Wazuh app are documented here.
 
+## 0.2.0 — 2026-07-29
+
+Three more config types (all over the Wazuh REST API):
+
+- **Agent Groups** — agent groups + their shared `agent.conf`.
+- **Custom Rules** — custom ruleset files (`etc/rules`); a manager restart activates the change.
+- **Custom Decoders** — custom decoder files (`etc/decoders`); manager restart to activate.
+
 ## 0.1.0 — 2026-07-29
 
 Initial release — foundation + first config type.

@@ -1,0 +1,98 @@
+# =============================================================================
+# Canvas Template — Fleet Global Policies
+#
+# Declares ONE global compliance policy (the item). Users add as many as they
+# need. Field keys must match config-types/policies/validate.ts. Applied via the
+# Fleet REST API (/api/v1/fleet/global/policies). Verify field semantics against
+# a live Fleet (fleetdm) instance.
+# =============================================================================
+
+id: "fleet-policies"
+name: "Global Policies"
+toolType: "fleet"
+entityType: "policies"
+description: "Manage Fleet global compliance policies — the yes/no osquery check, resolution guidance, target platform and criticality — via the Fleet REST API (/api/v1/fleet/global/policies)"
+
+item:
+  label: "Global Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "The policy identity and its pass/fail osquery check"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9 ._:-]+$"
+            maxLength: 255
+          helpText: "Unique policy name used to upsert the policy, e.g. Firewall enabled"
+
+        - key: "query"
+          label: "Query (osquery SQL)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 8000
+          helpText: "The osquery SQL a host must return at least one row for to PASS, e.g. SELECT 1 FROM alf WHERE global_state >= 1;"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this policy checks — shown in the Fleet console"
+
+        - key: "resolution"
+          label: "Resolution"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Guidance shown for hosts that FAIL the policy (optional)"
+
+    - name: "Targeting"
+      icon: "target"
+      description: "Which hosts the policy applies to and how it is prioritised"
+      fields:
+        - key: "platform"
+          label: "Platform"
+          fieldType: "select"
+          required: true
+          defaultValue: "all"
+          options:
+            - label: "All platforms"
+              value: "all"
+            - label: "Linux"
+              value: "linux"
+            - label: "macOS (darwin)"
+              value: "darwin"
+            - label: "Windows"
+              value: "windows"
+          helpText: "Restrict the policy to a platform (all = every enrolled host)"
+
+        - key: "critical"
+          label: "Critical"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options:
+            - label: "No"
+              value: "no"
+            - label: "Yes"
+              value: "yes"
+          helpText: "Mark the policy critical (a Fleet Premium field; ignored on Free)"
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Optional change note for operators (not sent to Fleet)"

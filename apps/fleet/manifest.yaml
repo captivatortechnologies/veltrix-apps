@@ -1,6 +1,6 @@
 id: fleet
 name: Fleet
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Fleet (open-source osquery fleet management) as code — endpoint
@@ -32,6 +32,18 @@ permissions:
     - resource: queries
       actions: [read, write, delete]
       description: Manage Fleet saved osquery queries (name, SQL, schedule interval, platform)
+    - resource: policies
+      actions: [read, write, delete]
+      description: Manage Fleet global compliance policies (name, osquery check, resolution, platform, criticality)
+    - resource: labels
+      actions: [read, write, delete]
+      description: Manage Fleet dynamic labels (name, description, osquery selector, platform)
+    - resource: teams
+      actions: [read, write, delete]
+      description: Manage Fleet teams (name, description) — Fleet Premium feature
+    - resource: agent-config
+      actions: [read, write]
+      description: Manage the Fleet org-wide osquery agent options singleton (agent_options)
     - resource: byol
       actions: [read, write, delete]
       description: Manage BYOL Fleet stack infrastructure (server / MySQL / Redis)
@@ -61,6 +73,78 @@ pipeline:
         healthCheck: config-types/queries/healthCheck
         driftDetect: config-types/queries/driftDetect
         getStatus: config-types/queries/getStatus
+      targets:
+        componentTypes: [fleet-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: policies
+      group: "Detections"
+      name: Global Policies
+      description: Fleet global compliance policies — the pass/fail osquery check, resolution guidance, target platform and criticality — via the Fleet REST API (/api/v1/fleet/global/policies)
+      canvasTemplate: config-types/policies/canvas.yaml
+      defaultConfig: config-types/policies/defaults.yaml
+      handlers:
+        validate: config-types/policies/validate
+        deploy: config-types/policies/deploy
+        rollback: config-types/policies/rollback
+        healthCheck: config-types/policies/healthCheck
+        driftDetect: config-types/policies/driftDetect
+        getStatus: config-types/policies/getStatus
+      targets:
+        componentTypes: [fleet-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: labels
+      group: "Detections"
+      name: Labels
+      description: Fleet dynamic labels — the osquery SQL that assigns hosts to a label, its description and target platform — via the Fleet REST API (/api/v1/fleet/labels)
+      canvasTemplate: config-types/labels/canvas.yaml
+      defaultConfig: config-types/labels/defaults.yaml
+      handlers:
+        validate: config-types/labels/validate
+        deploy: config-types/labels/deploy
+        rollback: config-types/labels/rollback
+        healthCheck: config-types/labels/healthCheck
+        driftDetect: config-types/labels/driftDetect
+        getStatus: config-types/labels/getStatus
+      targets:
+        componentTypes: [fleet-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: teams
+      group: "Teams"
+      name: Teams
+      description: Fleet teams — the team name and description used to segment hosts and scope access — via the Fleet REST API (/api/v1/fleet/teams). Fleet Premium feature.
+      canvasTemplate: config-types/teams/canvas.yaml
+      defaultConfig: config-types/teams/defaults.yaml
+      handlers:
+        validate: config-types/teams/validate
+        deploy: config-types/teams/deploy
+        rollback: config-types/teams/rollback
+        healthCheck: config-types/teams/healthCheck
+        driftDetect: config-types/teams/driftDetect
+        getStatus: config-types/teams/getStatus
+      targets:
+        componentTypes: [fleet-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: agent-config
+      group: "Configuration"
+      name: Agent Configuration
+      description: Fleet org-wide osquery agent options — the singleton agent_options JSON applied to every enrolled host — via the Fleet REST API (/api/v1/fleet/config)
+      canvasTemplate: config-types/agent-config/canvas.yaml
+      defaultConfig: config-types/agent-config/defaults.yaml
+      handlers:
+        validate: config-types/agent-config/validate
+        deploy: config-types/agent-config/deploy
+        rollback: config-types/agent-config/rollback
+        healthCheck: config-types/agent-config/healthCheck
+        driftDetect: config-types/agent-config/driftDetect
+        getStatus: config-types/agent-config/getStatus
       targets:
         componentTypes: [fleet-server, standalone]
         requiresCredential: true

@@ -1,0 +1,69 @@
+# =============================================================================
+# Canvas Template — MISP Organisations
+#
+# Declares ONE MISP organisation (the item). Users add as many as they need.
+# Field keys must match config-types/organisations/validate.ts. Applied via the
+# MISP REST API (/organisations, /admin/organisations/add,
+# /admin/organisations/edit/{id}) on port 443.
+# =============================================================================
+
+id: "misp-organisations"
+name: "Organisations"
+toolType: "misp"
+entityType: "organisations"
+description: "Manage MISP organisations — name, description, nationality and local flag — via the MISP REST API (443)"
+
+item:
+  label: "Organisation"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Organisation"
+      icon: "building"
+      description: "Organisation identity and attributes"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Organisation name shown in MISP. Used as the stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "What this organisation is"
+
+        - key: "nationality"
+          label: "Nationality"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Optional country / nationality of the organisation, e.g. Luxembourg"
+
+        - key: "local"
+          label: "Local"
+          fieldType: "select"
+          required: true
+          defaultValue: "yes"
+          options:
+            - label: "Yes"
+              value: "yes"
+            - label: "No"
+              value: "no"
+          helpText: "Whether this is a local organisation on this MISP instance (yes) or a known remote one (no)"
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this organisation is configured — recorded for audit"

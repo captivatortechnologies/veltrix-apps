@@ -2,6 +2,15 @@
 
 All notable changes to the Fleet app are documented here.
 
+## 0.2.0 — 2026-07-29
+
+Four more config types (all over the Fleet REST API):
+
+- **Global Policies** — pass/fail osquery compliance checks.
+- **Labels** — dynamic (osquery-SQL) host labels.
+- **Teams** — host segmentation (Fleet Premium).
+- **Agent Configuration** — the org-wide `agent_options` singleton (JSON).
+
 ## 0.1.0 — 2026-07-29
 
 Initial release — foundation + first config type.

@@ -1,0 +1,53 @@
+# =============================================================================
+# Canvas Template — Wazuh Agent Groups
+#
+# Declares ONE agent group (the item) plus its optional shared agent.conf. Field
+# keys must match config-types/agent-groups/validate.ts. Applied via the Wazuh
+# REST API (/groups + /groups/{group}/configuration) on port 55000.
+# =============================================================================
+
+id: "wazuh-agent-groups"
+name: "Agent Groups"
+toolType: "wazuh"
+entityType: "agent-groups"
+description: "Manage Wazuh agent groups and their shared agent.conf — via the Wazuh REST API (55000)"
+
+item:
+  label: "Agent Group"
+  identityField: "groupName"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Group"
+      icon: "users"
+      description: "Agent group identity"
+      fields:
+        - key: "groupName"
+          label: "Group Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9._-]+$"
+            maxLength: 255
+          helpText: "The agent group name, e.g. linux-servers"
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this group exists — recorded for audit only, never sent to the manager"
+
+    - name: "Shared Configuration"
+      icon: "file-code"
+      description: "The shared agent.conf the manager pushes to every member of the group"
+      fields:
+        - key: "agentConf"
+          label: "agent.conf (XML)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 50000
+          helpText: "The shared agent.conf as XML, e.g. <agent_config>…</agent_config>. Leave empty to create the group with no shared config."

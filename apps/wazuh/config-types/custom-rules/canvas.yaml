@@ -1,0 +1,53 @@
+# =============================================================================
+# Canvas Template — Wazuh Custom Rules
+#
+# Declares ONE custom ruleset file (the item). Field keys must match
+# config-types/custom-rules/validate.ts. Applied via the Wazuh REST API
+# (/rules/files/{filename}) on port 55000; a manager restart activates the change.
+# =============================================================================
+
+id: "wazuh-custom-rules"
+name: "Custom Rules"
+toolType: "wazuh"
+entityType: "custom-rules"
+description: "Manage Wazuh custom ruleset files (etc/rules) — via the Wazuh REST API (55000)"
+
+item:
+  label: "Rules File"
+  identityField: "filename"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "File"
+      icon: "file-code"
+      description: "Custom ruleset file identity"
+      fields:
+        - key: "filename"
+          label: "Filename"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: '^[A-Za-z0-9._-]+\.xml$'
+            maxLength: 255
+          helpText: "The ruleset filename, e.g. local_rules.xml (must end in .xml)"
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this ruleset exists — recorded for audit only, never written into the file body"
+
+    - name: "Rules"
+      icon: "shield"
+      description: "The XML ruleset compiled into the active rule set on restart"
+      fields:
+        - key: "rulesXml"
+          label: "Rules (XML)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 200000
+          helpText: "The ruleset as XML, e.g. <group name=\"local,\">…</group>"
