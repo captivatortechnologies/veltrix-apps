@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-30T00:32:53.292Z",
+  "generatedAt": "2026-07-30T00:51:56.574Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -164,7 +164,7 @@
     {
       "appId": "fleet",
       "name": "Fleet",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "vendor": "Veltrix",
       "description": "Manage Fleet (open-source osquery fleet management) as code — endpoint visibility, vulnerability and device management across your osquery agent fleet. Author saved osquery queries and drive them through the Security-as-Code pipeline (validate, deploy, health check, drift detection and rollback) over the Fleet REST API, with BYOL infrastructure provisioning groundwork for a Fleet stack (server / MySQL / Redis).",
       "category": "Endpoint Management",
@@ -172,11 +172,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/fleet",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/fleet-v0.1.0/fleet.zip",
-      "sha256": "12969c80ceb2c5878eb0a99efe9066085750b509758967a19ae93ab5722e26eb",
-      "sizeBytes": 71709,
-      "publishedAt": "2026-07-30T00:32:53.253Z",
-      "releaseNotes": "## 0.1.0 — 2026-07-29\n\nInitial release — foundation + first config type.\n\n- **Saved Queries** config type — author osquery saved queries (name, SQL,\n  schedule interval, target platform, observer access) and apply them over the\n  Fleet REST API (`/api/v1/fleet/queries`), upserting by name, with validate /\n  deploy / rollback (restore-prior or delete) / health-check / drift-detect /\n  status.\n- **Connectivity test** against the Fleet server (`GET /api/v1/fleet/me`, HTTPS,\n  self-signed tolerated) using a Fleet API token (Bearer).\n- **REST seam** `lib/fleetApi.ts` — `buildFleetUrl` / `buildAuthHeader` /\n  `fleetRequest` / `getJson` / `sendJson` over `node:https` (tolerates Fleet's\n  self-signed certs).\n- **BYOL infrastructure** groundwork: declarative `infra/spec.ts` composing the\n  generic OpenTofu modules (`fleet-server` / MySQL `database` / `redis` stack,\n  HTTPS front door on 8080) + `fleetctl` bring-up entrypoint.\n- **Client** — Overview (fed by the app's `/meta` route), Setup Guide (API token\n  → connection → author), and Connections (wraps the SDK `ConnectionsManager` for\n  the Fleet server; saving a connection registers it as a deploy target).\n\n> Fleet API paths and payloads follow the documented fleetdm conventions and\n> should be verified against a live Fleet (fleetdm) instance.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/fleet-v0.2.0/fleet.zip",
+      "sha256": "031919e7d46bcba511db3d2e3e1b0c8ceada5f9449d39918ad997c1ee7695821",
+      "sizeBytes": 137368,
+      "publishedAt": "2026-07-30T00:51:56.533Z",
+      "releaseNotes": "## 0.2.0 — 2026-07-29\n\nFour more config types (all over the Fleet REST API):\n\n- **Global Policies** — pass/fail osquery compliance checks.\n- **Labels** — dynamic (osquery-SQL) host labels.\n- **Teams** — host segmentation (Fleet Premium).\n- **Agent Configuration** — the org-wide `agent_options` singleton (JSON).",
       "releasedAt": "2026-07-29T00:00:00.000Z"
     },
     {
@@ -337,7 +337,7 @@
     {
       "appId": "misp",
       "name": "MISP",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "vendor": "Veltrix",
       "description": "Manage MISP (open-source Threat Intelligence Platform) as code. Author threat feeds and drive them through the Security-as-Code pipeline — validate, deploy, health check, drift detection and rollback — over the MISP REST API (HTTPS, self-signed tolerated), with BYOL infrastructure provisioning for the MISP stack (core + MariaDB + Redis).",
       "category": "Threat Intelligence",
@@ -345,11 +345,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/misp",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/misp-v0.1.0/misp.zip",
-      "sha256": "260527c83e2e438eb6e27176cce35281ccaa7b4aa931d6d4459669f79d4109e6",
-      "sizeBytes": 70929,
-      "publishedAt": "2026-07-30T00:32:53.269Z",
-      "releaseNotes": "## 0.1.0 — 2026-07-29\n\nInitial release — foundation + first config type.\n\n- **Threat Feeds** config type — add / edit / enable / disable MISP threat feeds\n  (name, provider, URL, source format, enabled) over the MISP REST API (443), with\n  validate / deploy (upsert by feed URL) / rollback (restore prior or disable) /\n  health-check / drift-detect / status.\n- **Connectivity test** against the MISP REST API (`/servers/getVersion`, HTTPS,\n  self-signed tolerated) using a MISP automation key.\n- **Client** — Overview (fed by the app's `/meta` route), Setup Guide (automation\n  key → connection → author), and Connections (wraps the SDK `ConnectionsManager`\n  for a MISP instance; saving a connection registers `misp-core` as a deploy\n  target).\n- **BYOL infrastructure** groundwork: declarative `infra/spec.ts` composing the\n  generic OpenTofu modules (`misp-core` + `database` MariaDB + `redis`, plus an\n  all-in-one `standalone`) + a MISP bring-up entrypoint.\n\n> MISP REST API paths follow 2.4 conventions and should be verified against a live\n> MISP 2.4 instance. TLS verification is off by default (self-signed) and\n> configurable via the `verify_tls` setting.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/misp-v0.2.0/misp.zip",
+      "sha256": "9ee7589d507ad697b015f3c0daee9a7484551a0ac772727b9351c5347c3de2b3",
+      "sizeBytes": 155183,
+      "publishedAt": "2026-07-30T00:51:56.551Z",
+      "releaseNotes": "## 0.2.0 — 2026-07-29\n\nFive more config types (all over the MISP REST API):\n\n- **Taxonomies** / **Warninglists** — enable/disable by namespace/name.\n- **Sharing Groups** / **Organisations** — create/edit.\n- **Sync Servers** — add/edit remote MISP sync servers (pull/push).",
       "releasedAt": "2026-07-29T00:00:00.000Z"
     },
     {
@@ -649,7 +649,7 @@
     {
       "appId": "wazuh",
       "name": "Wazuh",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "vendor": "Veltrix",
       "description": "Manage Wazuh (open-source SIEM / XDR / HIDS) as code. Author CDB lists, and — over the Wazuh REST API (55000, self-signed, token-authenticated) — drive them through the Security-as-Code pipeline with validation, drift detection and rollback. BYOL cluster provisioning (manager / indexer / dashboard) is declared as a generic InfraSpec.",
       "category": "SIEM",
@@ -657,11 +657,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/wazuh",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/wazuh-v0.1.0/wazuh.zip",
-      "sha256": "d3c253007f2ef12258d8f2bb8246ab6f001e266edc2b6765be68626f4c100027",
-      "sizeBytes": 74692,
-      "publishedAt": "2026-07-30T00:32:53.282Z",
-      "releaseNotes": "## 0.1.0 — 2026-07-29\n\nInitial release — foundation + first config type.\n\n- **CDB Lists** config type — manage Wazuh constant databases (`key:value` lookup\n  files backing blocklists/allowlists) over the Wazuh REST API (55000), with\n  validate / deploy / rollback (prior-body snapshot or delete) / health-check /\n  drift-detect / status. Deploy PUTs the raw CDB body to\n  `/lists/files/{filename}?overwrite=true`; drift compares live entries key-by-key.\n- **Wazuh REST seam** (`lib/wazuhApi.ts`) — self-signed-tolerant `node:https`\n  client with the two-step token flow (`/security/user/authenticate` → bearer).\n- **Connectivity test** — authenticates against the Wazuh API (HTTPS 55000); a\n  returned token means connected, 401 flags the credential.\n- **Client** — Overview (fed by the app's `/meta` route), Setup Guide (API user →\n  connection → author), and Connections (wraps the SDK `ConnectionsManager` for\n  the Wazuh manager API).\n- **BYOL infrastructure** groundwork — declarative `infra/spec.ts` composing the\n  generic OpenTofu modules (`manager-master` / `manager-worker` / `indexer` /\n  `dashboard` cluster) + a `wazuh-setup` bring-up entrypoint.\n\n> Wazuh is managed purely over the REST API — there is no Salt/SSH remote-command\n> seam. API paths follow Wazuh 4.x conventions and should be verified against your\n> build (notably the `/lists/files` octet-stream upload and the GET serialization\n> used for the rollback snapshot).",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/wazuh-v0.2.0/wazuh.zip",
+      "sha256": "b56d568fe6388fb94df3e94fc49a6ae51182d4ec00ca1535067016291bc097d3",
+      "sizeBytes": 129333,
+      "publishedAt": "2026-07-30T00:51:56.565Z",
+      "releaseNotes": "## 0.2.0 — 2026-07-29\n\nThree more config types (all over the Wazuh REST API):\n\n- **Agent Groups** — agent groups + their shared `agent.conf`.\n- **Custom Rules** — custom ruleset files (`etc/rules`); a manager restart activates the change.\n- **Custom Decoders** — custom decoder files (`etc/decoders`); manager restart to activate.",
       "releasedAt": "2026-07-29T00:00:00.000Z"
     },
     {
