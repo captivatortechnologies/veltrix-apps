@@ -1,6 +1,6 @@
 import React from 'react'
 import { Button } from '../../ui'
-import { SELF_HOSTED_LABEL, type ByolInfrastructure } from '../types'
+import { SELF_HOSTED_LABEL, DEFAULT_SPLUNK_TOPOLOGY, tierValue, type ByolInfrastructure, type ByolTopology } from '../types'
 import { isNotStarted } from '../status'
 import { tokens, Panel } from './shared'
 
@@ -23,15 +23,25 @@ const Row: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value
 export interface SettingsTabProps {
   infra: ByolInfrastructure
   busy: boolean
+  /** The app's node topology — drives the per-tier count row. Defaults to Splunk's. */
+  topology?: ByolTopology
   onEdit: () => void
   onDestroy: () => void
   onDelete: () => void
 }
 
 /** Topology summary + the danger zone (destroy / delete). */
-export const SettingsTab: React.FC<SettingsTabProps> = ({ infra, busy, onEdit, onDestroy, onDelete }) => {
+export const SettingsTab: React.FC<SettingsTabProps> = ({
+  infra,
+  busy,
+  topology = DEFAULT_SPLUNK_TOPOLOGY,
+  onEdit,
+  onDestroy,
+  onDelete,
+}) => {
   const provider = infra.hosting_type || (infra.cloudProviderId ? 'Cloud' : SELF_HOSTED_LABEL)
   const neverDeployed = isNotStarted(infra.status)
+  const tierSummary = topology.tiers.map((t, i) => `${tierValue(infra, t, i) ?? '—'} ${t.label}`).join(' · ')
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -45,7 +55,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ infra, busy, onEdit, o
       >
         <Row label="Name" value={infra.name} />
         <Row label="Deployment type" value={infra.deploymentType ?? '—'} />
-        <Row label="Indexers / Search heads" value={`${infra.indexerCount ?? '—'} / ${infra.searchHeadCount ?? '—'}`} />
+        <Row label="Nodes" value={tierSummary} />
         <Row label="Provider" value={provider} />
         <Row label="Region" value={infra.region || '—'} />
         <Row label="Environment" value={infra.environmentType || '—'} />

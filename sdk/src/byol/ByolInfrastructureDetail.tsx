@@ -13,8 +13,8 @@ import {
   errorText,
   formatDate,
 } from './api'
-import type { ByolInfrastructure, ByolResource, ByolDeployment, ByolConfigLink } from './types'
-import { SELF_HOSTED_LABEL } from './types'
+import type { ByolInfrastructure, ByolResource, ByolDeployment, ByolConfigLink, ByolTopology } from './types'
+import { SELF_HOSTED_LABEL, DEFAULT_SPLUNK_TOPOLOGY } from './types'
 import type { ByolPlan } from './diffPlan'
 import { tokens, StatusPill, Meta, ProgressMeter } from './detail/shared'
 import { OverviewTab } from './detail/OverviewTab'
@@ -57,6 +57,8 @@ export interface ByolInfrastructureDetailProps {
   initialInfra: ByolInfrastructure
   configBase?: string
   configLinks?: ByolConfigLink[]
+  /** The app's node topology — drives per-tier stats/labels shown in Overview/Settings/Access. Defaults to Splunk's. */
+  topology?: ByolTopology
   onBack: () => void
   onEdit: (infra: ByolInfrastructure) => void
   onDeleted: () => void
@@ -105,12 +107,14 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
   initialInfra,
   configBase,
   configLinks,
+  topology,
   onBack,
   onEdit,
   onDeleted,
   onChanged,
   reloadSignal = 0,
 }) => {
+  const topo = topology ?? DEFAULT_SPLUNK_TOPOLOGY
   const [infra, setInfra] = useState<ByolInfrastructure>(initialInfra)
   const [resources, setResources] = useState<ByolResource[]>([])
   const [deployments, setDeployments] = useState<ByolDeployment[]>([])
@@ -349,13 +353,13 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
   const content = (() => {
     switch (section) {
       case 'overview':
-        return <OverviewTab infra={infra} resources={displayResources} />
+        return <OverviewTab infra={infra} resources={displayResources} topology={topo} />
       case 'resources':
         return <ResourcesTab resources={displayResources} derived={derived} />
       case 'activity':
         return <ActivityTab deployments={deployments} />
       case 'access':
-        return <AccessTab infra={infra} resources={resources} />
+        return <AccessTab infra={infra} resources={resources} topology={topo} />
       case 'config':
         return <ConfigurationTab links={configLinks ?? []} configBase={configBase} />
       case 'settings':
@@ -363,6 +367,7 @@ export const ByolInfrastructureDetail: React.FC<ByolInfrastructureDetailProps> =
           <SettingsTab
             infra={infra}
             busy={busy}
+            topology={topo}
             onEdit={() => onEdit(infra)}
             onDestroy={openDestroy}
             onDelete={onDelete}

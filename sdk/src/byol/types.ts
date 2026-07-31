@@ -47,19 +47,86 @@ export const SINGLE_SITE_PLACEMENT: ClusterPlacement = { mode: 'single' }
 /** Minimum heavy forwarders in a distributed ingest tier. */
 export const MIN_HEAVY_FORWARDERS = 1
 
+/**
+ * One node tier in an app's BYOL topology — e.g. Splunk's "Indexers"/"Search
+ * heads", or Fleet's single "Fleet servers" tier. Apps declare 1..N of these
+ * via `ByolInfrastructureManagerProps.topology`; the manager renders one count
+ * input (and, when eligible, one placement editor) per tier instead of the
+ * hardcoded Splunk pair.
+ */
+export interface ByolNodeTier {
+  /** Stable id stored per-infra (in `ByolInfrastructure.tiers[].key`). Never rename in place. */
+  key: string
+  /** Form field / detail label, e.g. "Fleet servers". */
+  label: string
+  /** Table column header; defaults to `label` when omitted. */
+  shortLabel?: string
+  /** Distributed-deployment minimum node count. Defaults to 1. */
+  min?: number
+  /** Default count seeded into a brand-new form. Defaults to 1. */
+  default?: number
+  /** Helper text shown under the tier's count input. */
+  help?: string
+  /** Whether this tier supports multi-site placement in a distributed deployment. Defaults to true. */
+  placeable?: boolean
+}
+
+/**
+ * An app's full BYOL node topology — the generic replacement for the SDK's
+ * former Splunk-only indexer/search-head pair. Every app supplies its own via
+ * `ByolInfrastructureManagerProps.topology`; omitting it defaults to
+ * {@link DEFAULT_SPLUNK_TOPOLOGY} for back-compat with existing Splunk rows.
+ */
+export interface ByolTopology {
+  /** Replaces "Splunk" in generated copy (e.g. "BYOL {productName} environment"). */
+  productName?: string
+  /** 1..N node tiers, in display order. */
+  tiers: ByolNodeTier[]
+  /** Label for the software-version picker, e.g. "Wazuh version". Omit to use the generic "Version". */
+  versionLabel?: string
+  /** Overrides the create/edit dialog's subtitle. */
+  description?: string
+  /** Tooltip text for the ⓘ affordance next to the manager card's title. Omit to hide the icon. */
+  infoTooltip?: string
+}
+
+/** A single tier's persisted count + (optional) placement, stored on `ByolInfrastructure.tiers`. */
+export interface ByolTierValue {
+  key: string
+  count: number
+  placement?: ClusterPlacement | null
+  regions?: ByolRegion[]
+}
+
+/** The SDK's original Splunk topology — the default when an app supplies no `topology` prop. */
+export const DEFAULT_SPLUNK_TOPOLOGY: ByolTopology = {
+  productName: 'Splunk',
+  versionLabel: 'Splunk version',
+  tiers: [
+    { key: 'indexer', label: 'Indexers', min: 3 },
+    { key: 'searchHead', label: 'Search heads', min: 2 },
+  ],
+}
+
 export interface ByolInfrastructure {
   id: string
   name: string
   deploymentType?: string
   environmentType?: string
+  /** @deprecated Use `tiers` (first tier's count). Kept for back-compat with rows persisted before per-tier storage. */
   indexerCount?: number
+  /** @deprecated Use `tiers` (second tier's count). Kept for back-compat with rows persisted before per-tier storage. */
   searchHeadCount?: number
   status?: string
   hosting_type?: string
   cloudProviderId?: string | null
   region?: string | null
+  /** @deprecated Use `tiers[].regions`. */
   indexerRegions?: ByolRegion[]
+  /** @deprecated Use `tiers[].regions`. */
   searchHeadRegions?: ByolRegion[]
+  /** Generic per-tier node counts + placement — the app-agnostic replacement for `indexerCount`/`searchHeadCount`. */
+  tiers?: ByolTierValue[]
   /** Deployment target: platform-hosted network, or a customer-owned VPC. Defaults to 'shared'. */
   networkMode?: 'shared' | 'dedicated' | 'existing' | string
   /** DNS strategy for the deployment. Defaults to 'managed'. */
@@ -72,9 +139,9 @@ export interface ByolInfrastructure {
   heavyForwarderCount?: number
   /** Compute size override for every node (e.g. AWS `t2.medium`); empty = cloud default. */
   instanceType?: string | null
-  /** Placement of the indexer cluster — single-site or multi-site by percent. */
+  /** @deprecated Use `tiers[0].placement`. Placement of the first (indexer) cluster. */
   indexerPlacement?: ClusterPlacement
-  /** Placement of the search-head cluster — single-site or multi-site by percent. */
+  /** @deprecated Use `tiers[1].placement`. Placement of the second (search-head) cluster. */
   searchHeadPlacement?: ClusterPlacement
   /** Selected software version (app catalog entry id) to install on every node. */
   versionId?: string
@@ -176,8 +243,10 @@ export interface FormState {
   /** A cloud provider id, or the SELF_HOSTED sentinel. */
   providerId: string
   region: string
-  indexerCount: string
-  searchHeadCount: string
+  /** Node count per tier (form string), keyed by `ByolNodeTier.key`. */
+  tierCounts: Record<string, string>
+  /** Placement per tier, keyed by `ByolNodeTier.key`. */
+  tierPlacement: Record<string, ClusterPlacement>
   /** Deployment target: 'shared' (Veltrix-hosted), 'dedicated', or 'existing' (BYOC). */
   networkMode: string
   /** DNS strategy: 'managed', 'delegated', or 'private-only'. */
@@ -190,10 +259,6 @@ export interface FormState {
   heavyForwarderCount: string
   /** Compute size override for every node; empty = cloud default (t2.medium-class). */
   instanceType: string
-  /** Placement of the indexer cluster. */
-  indexerPlacement: ClusterPlacement
-  /** Placement of the search-head cluster. */
-  searchHeadPlacement: ClusterPlacement
   /** Selected software version (app catalog entry id); empty = app-default. */
   versionId: string
 }
@@ -239,6 +304,14 @@ export interface ByolInfrastructureManagerProps {
    * rows always reflect their own stored `versionId`, never this default.
    */
   defaultVersionId?: string
+  /**
+   * The app's node topology — 1..N tiers (e.g. Fleet's single "Fleet servers"
+   * tier, or Splunk's Indexers/Search heads pair). Drives the create/edit
+   * form's count + placement fields, the list table's per-tier columns, and
+   * the detail view's stats. Defaults to {@link DEFAULT_SPLUNK_TOPOLOGY} when
+   * omitted, so existing Splunk-shaped integrations keep working unchanged.
+   */
+  topology?: ByolTopology
 }
 
 // --- Constants --------------------------------------------------------------
@@ -292,60 +365,103 @@ export const PLACEMENT_GRANULARITY_OPTIONS: Array<{ value: PlacementGranularity;
 ]
 
 /**
+ * A tier's persisted count, falling back — for a row with no `tiers` array —
+ * to the legacy Splunk fields: the FIRST declared tier reads `indexerCount`,
+ * the SECOND reads `searchHeadCount`. Every other tier position has no legacy
+ * source. Shared by `editFormState` and the manager's table/sort so a
+ * pre-generic-topology row (Splunk-shaped, no `tiers`) keeps rendering
+ * correctly under any topology whose first two tiers stand in for indexer/SH.
+ */
+export function tierValue(row: ByolInfrastructure, tier: ByolNodeTier, index: number): number | undefined {
+  const persisted = row.tiers?.find((t) => t.key === tier.key)
+  if (persisted) return persisted.count
+  if (!row.tiers) {
+    if (index === 0) return row.indexerCount
+    if (index === 1) return row.searchHeadCount
+  }
+  return undefined
+}
+
+/** Same fallback as {@link tierValue}, for a tier's persisted placement. */
+function tierPlacementValue(row: ByolInfrastructure, tier: ByolNodeTier, index: number): ClusterPlacement | undefined {
+  const persisted = row.tiers?.find((t) => t.key === tier.key)
+  if (persisted) return persisted.placement ?? undefined
+  if (!row.tiers) {
+    if (index === 0) return row.indexerPlacement
+    if (index === 1) return row.searchHeadPlacement
+  }
+  return undefined
+}
+
+/**
  * Map a persisted infrastructure record back into the editable form state, so
  * "Edit topology" renders the accurate current values (placement, consolidation,
  * forwarders, instance size, network target, …). Missing fields fall back to the
  * same defaults a new form uses, so a legacy row (created before these fields
  * existed) opens cleanly. Pure — safe to unit test.
  */
-export function editFormState(row: ByolInfrastructure): FormState {
+export function editFormState(row: ByolInfrastructure, topology: ByolTopology = DEFAULT_SPLUNK_TOPOLOGY): FormState {
   const providerId = row.cloudProviderId
     ? row.cloudProviderId
     : row.hosting_type === SELF_HOSTED_LABEL
       ? SELF_HOSTED
       : ''
+  const tierCounts: Record<string, string> = {}
+  const tierPlacement: Record<string, ClusterPlacement> = {}
+  topology.tiers.forEach((tier, index) => {
+    tierCounts[tier.key] = String(tierValue(row, tier, index) ?? tier.default ?? 1)
+    tierPlacement[tier.key] = tierPlacementValue(row, tier, index) ?? { mode: 'single' }
+  })
   return {
     name: row.name ?? '',
     deploymentType: row.deploymentType ?? 'single',
     environmentType: row.environmentType ?? '',
     providerId,
     region: row.region ?? '',
-    indexerCount: String(row.indexerCount ?? 1),
-    searchHeadCount: String(row.searchHeadCount ?? 1),
+    tierCounts,
+    tierPlacement,
     networkMode: row.networkMode ?? 'shared',
     dnsMode: row.dnsMode ?? 'managed',
     cloudAccountConnectionId: row.cloudAccountConnectionId ?? '',
     controlPlaneLayout: row.controlPlaneLayout ?? 'dedicated',
     heavyForwarderCount: String(row.heavyForwarderCount ?? 1),
     instanceType: row.instanceType ?? '',
-    indexerPlacement: row.indexerPlacement ?? { mode: 'single' },
-    searchHeadPlacement: row.searchHeadPlacement ?? { mode: 'single' },
     versionId: row.versionId ?? '',
   }
 }
 
-export const BLANK_FORM: FormState = {
-  name: '',
-  deploymentType: 'single',
-  environmentType: '',
-  providerId: '',
-  region: '',
-  indexerCount: '1',
-  searchHeadCount: '1',
-  // New cloud infra defaults to 'dedicated' — OpenTofu creates its own VPC and the
-  // deployment depends on nothing pre-existing. 'shared' attaches to a Veltrix-managed
-  // base network that must be provisioned by a separate platform tofu stack; until that
-  // stack exists, defaulting to 'shared' produces "no matching VPC" at apply time.
-  networkMode: 'dedicated',
-  dnsMode: 'managed',
-  cloudAccountConnectionId: '',
-  controlPlaneLayout: 'dedicated',
-  heavyForwarderCount: '1',
-  instanceType: '',
-  indexerPlacement: { mode: 'single' },
-  searchHeadPlacement: { mode: 'single' },
-  versionId: '',
+/** Build a brand-new form's initial state for a given topology (its tiers seed `tierCounts`/`tierPlacement`). */
+export function blankForm(topology: ByolTopology): FormState {
+  const tierCounts: Record<string, string> = {}
+  const tierPlacement: Record<string, ClusterPlacement> = {}
+  for (const tier of topology.tiers) {
+    tierCounts[tier.key] = String(tier.default ?? 1)
+    tierPlacement[tier.key] = { mode: 'single' }
+  }
+  return {
+    name: '',
+    deploymentType: 'single',
+    environmentType: '',
+    providerId: '',
+    region: '',
+    tierCounts,
+    tierPlacement,
+    // New cloud infra defaults to 'dedicated' — OpenTofu creates its own VPC and the
+    // deployment depends on nothing pre-existing. 'shared' attaches to a Veltrix-managed
+    // base network that must be provisioned by a separate platform tofu stack; until that
+    // stack exists, defaulting to 'shared' produces "no matching VPC" at apply time.
+    networkMode: 'dedicated',
+    dnsMode: 'managed',
+    cloudAccountConnectionId: '',
+    controlPlaneLayout: 'dedicated',
+    heavyForwarderCount: '1',
+    instanceType: '',
+    versionId: '',
+  }
 }
+
+/** Blank form for the default Splunk topology — kept for callers that predate per-app topology. */
+export const BLANK_FORM: FormState = blankForm(DEFAULT_SPLUNK_TOPOLOGY)
 
 /**
  * Example compute sizes per cloud (~2 vCPU / 4 GB), shown as form guidance. An

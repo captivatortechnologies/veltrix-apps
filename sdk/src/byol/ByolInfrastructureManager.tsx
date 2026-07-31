@@ -8,6 +8,7 @@ import {
   Input,
   Select,
   Alert,
+  Tooltip,
   FormDialog,
   DataTable,
   FilterBar,
@@ -20,6 +21,8 @@ import {
 import {
   type ByolInfrastructure,
   type ByolInfrastructureManagerProps,
+  type ByolTopology,
+  type ClusterPlacement,
   type Tag,
   type CloudProvider,
   type CloudRegion,
@@ -28,19 +31,52 @@ import {
   SELF_HOSTED,
   SELF_HOSTED_LABEL,
   DEFAULT_DEPLOYMENT_TYPES,
+  DEFAULT_SPLUNK_TOPOLOGY,
   NETWORK_MODE_OPTIONS,
   DNS_MODE_OPTIONS,
   BYOC_NETWORK_MODES,
   CONTROL_PLANE_LAYOUT_OPTIONS,
   INSTANCE_TYPE_EXAMPLES,
-  BLANK_FORM,
+  blankForm,
   editFormState,
+  tierValue,
 } from './types'
 import { StatusPill, tokens } from './detail/shared'
 import { errorText, formatDate } from './api'
 import { ByolInfrastructureDetail } from './ByolInfrastructureDetail'
 import { ClusterPlacementField } from './ClusterPlacementField'
 import { validatePlacement } from './placement'
+
+/** A small keyboard-focusable ⓘ affordance next to the card title; renders nothing without a tooltip. */
+const TopologyInfoIcon: React.FC<{ tooltip?: string }> = ({ tooltip }) => {
+  if (!tooltip) return null
+  return (
+    <Tooltip content={tooltip} placement="right">
+      <button
+        type="button"
+        aria-label={tooltip}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 16,
+          height: 16,
+          borderRadius: '50%',
+          border: `1px solid ${tokens.border}`,
+          background: 'none',
+          color: tokens.muted,
+          fontSize: 10,
+          fontWeight: 700,
+          lineHeight: 1,
+          cursor: 'default',
+          padding: 0,
+        }}
+      >
+        i
+      </button>
+    </Tooltip>
+  )
+}
 
 /**
  * Reusable BYOL infrastructure manager: a searchable/filterable list whose rows
@@ -57,7 +93,15 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
   configLinks,
   versionOptions = [],
   defaultVersionId,
+  topology,
 }) => {
+  const topo = topology ?? DEFAULT_SPLUNK_TOPOLOGY
+  // Avoids a stray double space in the fallback sentence when an app omits productName.
+  const dialogDescription = (
+    topo.description ?? `Define the deployment topology for a Bring-Your-Own-License ${topo.productName ?? ''} environment.`
+  )
+    .replace(/\s{2,}/g, ' ')
+    .trim()
   const [infrastructure, setInfrastructure] = useState<ByolInfrastructure[]>([])
   const [tags, setTags] = useState<Tag[]>([])
   const [cloudProviders, setCloudProviders] = useState<CloudProvider[]>([])
@@ -84,7 +128,7 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<ByolInfrastructure | null>(null)
-  const [form, setForm] = useState<FormState>(BLANK_FORM)
+  const [form, setForm] = useState<FormState>(() => blankForm(topo))
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -159,14 +203,14 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
     // A fresh infrastructure defaults its version to the app-supplied "latest"
     // (defaultVersionId) when one is available; an existing row's Edit form
     // always reflects its own stored versionId instead (see editFormState).
-    setForm({ ...BLANK_FORM, versionId: defaultVersionId ?? '' })
+    setForm({ ...blankForm(topo), versionId: defaultVersionId ?? '' })
     setFormError(null)
     setDialogOpen(true)
   }
 
   const openEdit = (row: ByolInfrastructure) => {
     setEditing(row)
-    setForm(editFormState(row))
+    setForm(editFormState(row, topo))
     setFormError(null)
     setDialogOpen(true)
   }
@@ -179,6 +223,12 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
   const setField = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }))
 
+  const setTierCount = (key: string, value: string) =>
+    setForm((prev) => ({ ...prev, tierCounts: { ...prev.tierCounts, [key]: value } }))
+
+  const setTierPlacement = (key: string, value: ClusterPlacement) =>
+    setForm((prev) => ({ ...prev, tierPlacement: { ...prev.tierPlacement, [key]: value } }))
+
   // A cloud account is scoped to a provider — switching providers invalidates any
   // previously selected account (the Cloud account options are recomputed to match
   // the new provider, so keeping the stale id around would let it slip into submit).
@@ -190,27 +240,21 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
       setFormError('Name is required')
       return
     }
-    const indexerCount = Number(form.indexerCount)
-    const searchHeadCount = Number(form.searchHeadCount)
-    if (form.deploymentType === 'distributed') {
-      if (indexerCount < 3) {
-        setFormError('Distributed deployments require at least 3 indexers')
-        return
-      }
-      if (searchHeadCount < 2) {
-        setFormError('Distributed deployments require at least 2 search heads')
-        return
-      }
-      if (showRegion) {
-        const indexerErr = validatePlacement(form.indexerPlacement, indexerCount)
-        if (indexerErr) {
-          setFormError(`Indexer placement: ${indexerErr}`)
+    const distributed = form.deploymentType === 'distributed'
+    if (distributed) {
+      for (const t of topo.tiers) {
+        const min = t.min ?? 1
+        const count = Number(form.tierCounts[t.key])
+        if (count < min) {
+          setFormError(`Distributed deployments require at least ${min} ${t.label.toLowerCase()}`)
           return
         }
-        const searchErr = validatePlacement(form.searchHeadPlacement, searchHeadCount)
-        if (searchErr) {
-          setFormError(`Search head placement: ${searchErr}`)
-          return
+        if (showRegion && t.placeable !== false) {
+          const err = validatePlacement(form.tierPlacement[t.key], count)
+          if (err) {
+            setFormError(`${t.label} placement: ${err}`)
+            return
+          }
         }
       }
     }
@@ -220,10 +264,9 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
     }
     const selfHosted = form.providerId === SELF_HOSTED
     const selectedCloud = cloudProviders.find((c) => c.id === form.providerId)
-    const distributed = form.deploymentType === 'distributed'
     // Placement only applies to a distributed cloud deployment (needs AZs/regions);
     // single-instance or self-hosted always collapses to a single site.
-    const normalizePlacement = (p: FormState['indexerPlacement']) =>
+    const normalizePlacement = (p: ClusterPlacement | undefined): ClusterPlacement =>
       distributed && showRegion && p?.mode === 'multi-site' ? p : { mode: 'single' as const }
     setSubmitting(true)
     setFormError(null)
@@ -234,8 +277,13 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
       hosting_type: selfHosted ? SELF_HOSTED_LABEL : (selectedCloud?.name ?? ''),
       cloudProviderId: selfHosted ? undefined : form.providerId || undefined,
       region: showRegion ? form.region : '',
-      indexerCount,
-      searchHeadCount,
+      // Generic per-tier node counts + placement — replaces the old fixed
+      // indexerCount/searchHeadCount pair so any app's topology round-trips.
+      tiers: topo.tiers.map((t) => ({
+        key: t.key,
+        count: Number(form.tierCounts[t.key]) || 1,
+        placement: distributed && t.placeable !== false ? normalizePlacement(form.tierPlacement[t.key]) : null,
+      })),
       networkMode: form.networkMode,
       dnsMode: form.dnsMode,
       cloudAccountConnectionId: showCloudAccount ? form.cloudAccountConnectionId : undefined,
@@ -245,8 +293,6 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
       // Compute size override; empty → the cloud default (t2.medium-class). Only
       // meaningful for a cloud deployment.
       instanceType: !selfHosted ? form.instanceType.trim() || undefined : undefined,
-      indexerPlacement: normalizePlacement(form.indexerPlacement),
-      searchHeadPlacement: normalizePlacement(form.searchHeadPlacement),
       versionId: form.versionId || undefined,
     }
     try {
@@ -284,8 +330,12 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
     { key: 'environmentType', header: 'Environment', render: (row) => row.environmentType ?? '—' },
     { key: 'hosting_type', header: 'Provider', render: (row) => row.hosting_type ?? '—' },
     { key: 'region', header: 'Region', render: (row) => row.region || '—' },
-    { key: 'indexerCount', header: 'Indexers', align: 'right', render: (row) => row.indexerCount ?? '—' },
-    { key: 'searchHeadCount', header: 'Search heads', align: 'right', render: (row) => row.searchHeadCount ?? '—' },
+    ...topo.tiers.map((t, i) => ({
+      key: `tier:${t.key}`,
+      header: t.shortLabel ?? t.label,
+      align: 'right' as const,
+      render: (row: ByolInfrastructure) => tierValue(row, t, i) ?? '—',
+    })),
     { key: 'status', header: 'Status', render: (row) => <StatusPill status={row.status} /> },
     { key: 'updatedAt', header: 'Updated', render: (row) => formatDate(row.updatedAt) },
     { key: 'chevron', header: '', align: 'right', width: '32px', render: () => <span aria-hidden style={{ color: tokens.faint }}>›</span> },
@@ -332,8 +382,7 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
 
   const sortOptions: SortOption[] = [
     { value: 'name', label: 'Name' },
-    { value: 'indexerCount', label: 'Indexers' },
-    { value: 'searchHeadCount', label: 'Search heads' },
+    ...topo.tiers.map((t) => ({ value: `tier:${t.key}`, label: t.shortLabel ?? t.label })),
     { value: 'status', label: 'Status' },
     { value: 'updatedAt', label: 'Updated' },
   ]
@@ -357,11 +406,13 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
     })
     const dir = sortDir === 'asc' ? 1 : -1
     return [...rows].sort((a, b) => {
+      if (sortField.startsWith('tier:')) {
+        const key = sortField.slice('tier:'.length)
+        const index = topo.tiers.findIndex((t) => t.key === key)
+        const tier = topo.tiers[index]
+        if (tier) return ((tierValue(a, tier, index) ?? 0) - (tierValue(b, tier, index) ?? 0)) * dir
+      }
       switch (sortField) {
-        case 'indexerCount':
-          return ((a.indexerCount ?? 0) - (b.indexerCount ?? 0)) * dir
-        case 'searchHeadCount':
-          return ((a.searchHeadCount ?? 0) - (b.searchHeadCount ?? 0)) * dir
         case 'status':
           return (a.status ?? '').localeCompare(b.status ?? '') * dir
         case 'updatedAt':
@@ -371,7 +422,7 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
           return (a.name ?? '').localeCompare(b.name ?? '') * dir
       }
     })
-  }, [infrastructure, search, environmentFilter, deploymentFilter, statusFilter, sortField, sortDir])
+  }, [infrastructure, search, environmentFilter, deploymentFilter, statusFilter, sortField, sortDir, topo])
 
   const pageRows = useMemo(
     () => filteredSorted.slice((page - 1) * pageSize, page * pageSize),
@@ -393,6 +444,7 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
           initialInfra={selected}
           configBase={configBase}
           configLinks={configLinks}
+          topology={topo}
           reloadSignal={reloadSignal}
           onBack={() => openDetail(null)}
           onEdit={openEdit}
@@ -406,7 +458,7 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
           isOpen={dialogOpen}
           onClose={closeDialog}
           title={editing ? `Edit "${editing.name}"` : 'New BYOL infrastructure'}
-          description="Define the deployment topology for a Bring-Your-Own-License Splunk environment."
+          description={dialogDescription}
           onSubmit={handleSubmit}
           submitText={editing ? 'Save changes' : 'Create infrastructure'}
           isSubmitting={submitting}
@@ -417,6 +469,9 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
           <FormBody
             form={form}
             setField={setField}
+            setTierCount={setTierCount}
+            setTierPlacement={setTierPlacement}
+            topology={topo}
             onProviderChange={handleProviderChange}
             deploymentTypes={deploymentTypes}
             environmentOptions={environmentOptions}
@@ -450,7 +505,10 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
           </div>
         }
       >
-        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{title}</h2>
+        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+          {title}
+          <TopologyInfoIcon tooltip={topo.infoTooltip} />
+        </h2>
       </CardHeader>
       <CardBody>
         {error ? (
@@ -500,7 +558,7 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
         isOpen={dialogOpen}
         onClose={closeDialog}
         title={editing ? `Edit "${editing.name}"` : 'New BYOL infrastructure'}
-        description="Define the deployment topology for a Bring-Your-Own-License Splunk environment."
+        description={dialogDescription}
         onSubmit={handleSubmit}
         submitText={editing ? 'Save changes' : 'Create infrastructure'}
         isSubmitting={submitting}
@@ -511,6 +569,9 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
         <FormBody
           form={form}
           setField={setField}
+          setTierCount={setTierCount}
+          setTierPlacement={setTierPlacement}
+          topology={topo}
           onProviderChange={handleProviderChange}
           deploymentTypes={deploymentTypes}
           environmentOptions={environmentOptions}
@@ -521,6 +582,7 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
           cloudAccountRequired={cloudAccountRequired}
           cloudAccountOptions={cloudAccountOptions}
           selectedProviderName={selectedProvider?.name}
+          providerCode={selectedProvider?.code}
           versionOptions={versionOptions}
         />
       </FormDialog>
@@ -533,6 +595,10 @@ export const ByolInfrastructureManager: React.FC<ByolInfrastructureManagerProps>
 interface FormBodyProps {
   form: FormState
   setField: <K extends keyof FormState>(key: K, value: FormState[K]) => void
+  setTierCount: (key: string, value: string) => void
+  setTierPlacement: (key: string, value: ClusterPlacement) => void
+  /** The app's node topology — drives the tier count/placement fields and version-picker label. */
+  topology: ByolTopology
   /** Provider-specific onChange (also clears a now-mismatched cloud account selection). */
   onProviderChange: (value: string) => void
   deploymentTypes: Array<{ value: string; label: string }>
@@ -572,6 +638,9 @@ const FormSection: React.FC<{ title: string; description?: string; children: Rea
 const FormBody: React.FC<FormBodyProps> = ({
   form,
   setField,
+  setTierCount,
+  setTierPlacement,
+  topology,
   onProviderChange,
   deploymentTypes,
   environmentOptions,
@@ -644,23 +713,35 @@ const FormBody: React.FC<FormBodyProps> = ({
       title="Topology"
       description={
         form.deploymentType === 'distributed'
-          ? 'Distributed deployments need at least 3 indexers and 2 search heads.'
-          : 'Number of indexer and search-head nodes to provision.'
+          ? `Distributed deployments need at least ${topology.tiers
+              .map((t) => `${t.min ?? 1} ${(t.shortLabel ?? t.label).toLowerCase()}`)
+              .join(' and ')}.`
+          : 'Number of nodes to provision per tier.'
       }
     >
       {versionOptions.length > 0 ? (
         <Select
-          label="Splunk version"
+          label={topology.versionLabel ?? 'Version'}
           value={form.versionId}
           onChange={(value) => setField('versionId', value)}
           options={versionOptions}
           placeholder="Use the app's default version"
-          helperText="The Splunk release installed on every node. Leave unset to use the app's default installer."
+          helperText={`The ${topology.productName ?? 'software'} release installed on every node. Leave unset to use the app's default installer.`}
         />
       ) : null}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <Input label="Indexers" type="number" min={1} value={form.indexerCount} onChange={(e) => setField('indexerCount', e.target.value)} fullWidth />
-        <Input label="Search heads" type="number" min={1} value={form.searchHeadCount} onChange={(e) => setField('searchHeadCount', e.target.value)} fullWidth />
+        {topology.tiers.map((t) => (
+          <Input
+            key={t.key}
+            label={t.label}
+            helperText={t.help}
+            type="number"
+            min={1}
+            value={form.tierCounts[t.key] ?? ''}
+            onChange={(e) => setTierCount(t.key, e.target.value)}
+            fullWidth
+          />
+        ))}
       </div>
       {form.providerId && form.providerId !== SELF_HOSTED ? (
         <Input
@@ -672,28 +753,22 @@ const FormBody: React.FC<FormBodyProps> = ({
           helperText={`Leave blank for the cloud default (~2 vCPU / 4 GB). Examples: AWS ${INSTANCE_TYPE_EXAMPLES.aws}, Azure ${INSTANCE_TYPE_EXAMPLES.azure}, GCP ${INSTANCE_TYPE_EXAMPLES.gcp}, Hetzner ${INSTANCE_TYPE_EXAMPLES.hetzner}. Applies to every node; you can change it here later.`}
         />
       ) : null}
-      {showRegion ? (
-        <>
-          <ClusterPlacementField
-            label="Indexer cluster placement"
-            placement={form.indexerPlacement}
-            nodeCount={Math.max(1, Number(form.indexerCount) || 1)}
-            primaryRegion={form.region}
-            providerCode={providerCode}
-            regionOptions={regionOptions}
-            onChange={(p) => setField('indexerPlacement', p)}
-          />
-          <ClusterPlacementField
-            label="Search head cluster placement"
-            placement={form.searchHeadPlacement}
-            nodeCount={Math.max(1, Number(form.searchHeadCount) || 1)}
-            primaryRegion={form.region}
-            providerCode={providerCode}
-            regionOptions={regionOptions}
-            onChange={(p) => setField('searchHeadPlacement', p)}
-          />
-        </>
-      ) : null}
+      {showRegion
+        ? topology.tiers
+            .filter((t) => t.placeable !== false)
+            .map((t) => (
+              <ClusterPlacementField
+                key={t.key}
+                label={`${t.label} placement`}
+                placement={form.tierPlacement[t.key] ?? { mode: 'single' }}
+                nodeCount={Math.max(1, Number(form.tierCounts[t.key]) || 1)}
+                primaryRegion={form.region}
+                providerCode={providerCode}
+                regionOptions={regionOptions}
+                onChange={(p) => setTierPlacement(t.key, p)}
+              />
+            ))
+        : null}
     </FormSection>
 
     {form.deploymentType === 'distributed' ? (

@@ -1,7 +1,8 @@
 import React from 'react'
 import { EmptyState } from '../../ui'
 import { isRunning } from '../status'
-import type { ByolInfrastructure, ByolResource } from '../types'
+import type { ByolInfrastructure, ByolResource, ByolTopology } from '../types'
+import { DEFAULT_SPLUNK_TOPOLOGY } from '../types'
 import { tokens, Panel } from './shared'
 
 const mono = 'var(--font-mono, ui-monospace, monospace)'
@@ -49,6 +50,8 @@ const Row: React.FC<{ label: string; value: string }> = ({ label, value }) => (
 export interface AccessTabProps {
   infra: ByolInfrastructure
   resources: ByolResource[]
+  /** The app's node topology — supplies `productName` for the endpoint labels. Defaults to Splunk's. */
+  topology?: ByolTopology
 }
 
 /**
@@ -58,12 +61,13 @@ export interface AccessTabProps {
  * nothing is fabricated. Until the worker has reported a reachable endpoint, the
  * tab says so plainly rather than inventing a placeholder host.
  */
-export const AccessTab: React.FC<AccessTabProps> = ({ infra, resources }) => {
+export const AccessTab: React.FC<AccessTabProps> = ({ infra, resources, topology = DEFAULT_SPLUNK_TOPOLOGY }) => {
+  const productName = topology.productName ?? 'the app'
   if (!isRunning(infra.status)) {
     return (
       <EmptyState
         title="Endpoints appear once the environment is running"
-        description="Deploy the environment; when the search tier is up, its Splunk Web, management and HEC endpoints show here."
+        description={`Deploy the environment; when the search tier is up, its ${productName} Web, management and HEC endpoints show here.`}
       />
     )
   }
@@ -71,8 +75,8 @@ export const AccessTab: React.FC<AccessTabProps> = ({ infra, resources }) => {
   const refOf = (planKey: string): string | null =>
     resources.find((r) => r.planKey === planKey)?.externalRef ?? null
 
-  // Managed DNS FQDN is the friendly host for Splunk Web + management; the ALB
-  // DNS name (reported on ingest/hec) is where HEC lives and a fallback host.
+  // Managed DNS FQDN is the friendly host for the app's web UI + management; the
+  // ALB DNS name (reported on ingest/hec) is where HEC lives and a fallback host.
   const dnsHost = asHost(refOf('foundation/dns'))
   const albHost = asHost(refOf('ingest/hec'))
   const webHost = dnsHost ?? albHost
@@ -87,7 +91,7 @@ export const AccessTab: React.FC<AccessTabProps> = ({ infra, resources }) => {
 
   const endpoints: Array<{ label: string; value: string }> = []
   if (webHost) {
-    endpoints.push({ label: 'Splunk Web (search)', value: `https://${webHost}` })
+    endpoints.push({ label: `${productName} Web (search)`, value: `https://${webHost}` })
     endpoints.push({ label: 'Management API', value: `https://${webHost}:8089` })
   }
   if (hecHost) {
@@ -101,7 +105,7 @@ export const AccessTab: React.FC<AccessTabProps> = ({ infra, resources }) => {
       <Panel title="Endpoints">
         <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: tokens.muted }}>
           The environment is running, but the provisioner has not reported a reachable endpoint yet.
-          Splunk Web, the management API and the HTTP Event Collector URL appear here as soon as the
+          {` ${productName} Web`}, the management API and the HTTP Event Collector URL appear here as soon as the
           load balancer and DNS name are published. Check the <strong>Resources</strong> tab for each
           component&rsquo;s external reference.
         </p>
@@ -109,7 +113,7 @@ export const AccessTab: React.FC<AccessTabProps> = ({ infra, resources }) => {
     )
   }
 
-  const tcpoutGroup = infra.name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'veltrix_splunk'
+  const tcpoutGroup = infra.name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'veltrix_byol'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

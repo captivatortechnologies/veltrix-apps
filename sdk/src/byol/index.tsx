@@ -46,6 +46,9 @@ export type {
   ByolDeployment,
   ByolDeploymentStep,
   ByolRegion,
+  ByolNodeTier,
+  ByolTopology,
+  ByolTierValue,
   Tag,
   CloudProvider,
   CloudRegion,
@@ -61,6 +64,11 @@ export {
   MIN_HEAVY_FORWARDERS,
   CONTROL_PLANE_LAYOUT_OPTIONS,
   PLACEMENT_GRANULARITY_OPTIONS,
+  DEFAULT_SPLUNK_TOPOLOGY,
+  blankForm,
+  editFormState,
+  tierValue,
+  BLANK_FORM,
 } from './types'
 
 // Status helpers
