@@ -5,15 +5,45 @@
 // the topology-authoring fields (control-plane layout, heavy forwarders, cluster
 // placement) — can be unit tested without pulling in Fastify or the platform DB.
 //
+// The SDK's ByolInfrastructureManager sends a generic `tiers: [{ key, count,
+// placement }]` array (the app-agnostic replacement for the old fixed
+// indexerCount/searchHeadCount pair). Splunk declares two tiers matching its
+// original topology:
+//   • tier 'indexer'    → indexer cluster peers   [data tier]
+//   • tier 'searchHead' → search head cluster members [search tier]
+// This module unpacks `body.tiers` back into the legacy indexerCount /
+// searchHeadCount / indexerPlacement / searchHeadPlacement fields the rest of
+// the app (byolTopology.ts, the DB layer's legacy columns) already speaks, and
+// also exposes them as an ordered `nodeTiers` array for the `node_tiers`
+// column. A request from an older client with no `tiers` field falls back to
+// those legacy top-level fields directly.
+//
 // Region associations (indexerRegions / searchHeadRegions) and the splunkUpgrade
 // relation are intentionally NOT written here.
 // =============================================================================
 
-import { normalizeControlPlaneLayout, parsePlacement, validatePlacement } from './byolPlacement'
+import { normalizeControlPlaneLayout, parsePlacement, validatePlacement, type ClusterPlacement } from './byolPlacement'
+
+/** Splunk's two BYOL node tiers, keyed to match client/pages/BYOLPage.tsx's `topology.tiers`. */
+type NodeTierKey = 'indexer' | 'searchHead'
+
+export interface NodeTierInput {
+  key: NodeTierKey
+  count: number
+  placement: ClusterPlacement | null
+}
 
 function toInt(value: unknown, fallback: number): number {
   const n = typeof value === 'number' ? value : Number(value)
   return Number.isFinite(n) ? Math.trunc(n) : fallback
+}
+
+/** Look up a tier entry by key from a `body.tiers` array (undefined when absent/malformed). */
+function findTier(tiers: unknown, key: NodeTierKey): { count?: unknown; placement?: unknown } | undefined {
+  if (!Array.isArray(tiers)) return undefined
+  return tiers.find((t) => t && typeof t === 'object' && (t as any).key === key) as
+    | { count?: unknown; placement?: unknown }
+    | undefined
 }
 
 /** Coerce + validate an editable BYOL infrastructure record from a request body. */
@@ -30,8 +60,16 @@ export function readByol(body: any): { data: Record<string, unknown>; error?: st
   // Cloud region (only meaningful for a distributed cloud deployment).
   const region = typeof body?.region === 'string' ? body.region.trim() : ''
 
-  const indexerCount = toInt(body?.indexerCount, 1)
-  const searchHeadCount = toInt(body?.searchHeadCount, 1)
+  // Generic per-tier node counts + placement (SDK's `tiers: [{ key, count,
+  // placement }]`), falling back to the legacy top-level fields for a client
+  // that predates the generic-topology rollout.
+  const tiersRaw = body?.tiers
+  const hasTiers = Array.isArray(tiersRaw)
+  const indexerTier = findTier(tiersRaw, 'indexer')
+  const searchHeadTier = findTier(tiersRaw, 'searchHead')
+
+  const indexerCount = toInt(hasTiers ? indexerTier?.count : body?.indexerCount, 1)
+  const searchHeadCount = toInt(hasTiers ? searchHeadTier?.count : body?.searchHeadCount, 1)
   if (indexerCount < 1) return { data: {}, error: 'indexerCount must be at least 1' }
   if (searchHeadCount < 1) return { data: {}, error: 'searchHeadCount must be at least 1' }
 
@@ -46,8 +84,10 @@ export function readByol(body: any): { data: Record<string, unknown>; error?: st
   // instance / self-hosted collapse to defaults (dedicated, one forwarder, single-site).
   const controlPlaneLayout = isDistributed ? normalizeControlPlaneLayout(body?.controlPlaneLayout) : 'dedicated'
   const heavyForwarderCount = isDistributed ? Math.max(1, toInt(body?.heavyForwarderCount, 1)) : 1
-  const indexerPlacement = isDistributed ? parsePlacement(body?.indexerPlacement) : null
-  const searchHeadPlacement = isDistributed ? parsePlacement(body?.searchHeadPlacement) : null
+  const indexerPlacementRaw = hasTiers ? indexerTier?.placement : body?.indexerPlacement
+  const searchHeadPlacementRaw = hasTiers ? searchHeadTier?.placement : body?.searchHeadPlacement
+  const indexerPlacement = isDistributed ? parsePlacement(indexerPlacementRaw) : null
+  const searchHeadPlacement = isDistributed ? parsePlacement(searchHeadPlacementRaw) : null
   if (isDistributed) {
     const indexerErr = validatePlacement(indexerPlacement, indexerCount)
     if (indexerErr) return { data: {}, error: `Indexer placement: ${indexerErr}` }
@@ -69,6 +109,16 @@ export function readByol(body: any): { data: Record<string, unknown>; error?: st
       }
     }
   }
+
+  // Ordered [indexer, searchHead] tier snapshot for the generic `node_tiers`
+  // column — the app-agnostic replacement for reading indexerCount/
+  // searchHeadCount off discrete columns. Mirrors what the SDK form always
+  // sends when `tiers` is present; derived from the legacy fields either way
+  // so it's always populated.
+  const nodeTiers: NodeTierInput[] = [
+    { key: 'indexer', count: indexerCount, placement: indexerPlacement },
+    { key: 'searchHead', count: searchHeadCount, placement: searchHeadPlacement },
+  ]
 
   // Deployment target: shared = Veltrix-hosted; dedicated/existing = BYOC (into
   // the customer's own cloud account). Defaults keep hosted behaviour unchanged.
@@ -104,6 +154,7 @@ export function readByol(body: any): { data: Record<string, unknown>; error?: st
     region,
     indexerCount,
     searchHeadCount,
+    nodeTiers,
     networkMode,
     dnsMode,
     controlPlaneLayout,

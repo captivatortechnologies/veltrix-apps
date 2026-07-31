@@ -12,6 +12,6 @@ export default {
     { path: '/apps/wazuh/overview', label: 'Overview', icon: 'shield' },
     { path: '/apps/wazuh/setup', label: 'Setup Guide', icon: 'book' },
     { path: '/apps/wazuh/connections', label: 'Connections', icon: 'link' },
-    { path: '/apps/wazuh/byol', label: 'BYOL Infrastructure', icon: 'server' },
+    { path: '/apps/wazuh/byol', label: 'Infrastructure', icon: 'server' },
   ],
 }

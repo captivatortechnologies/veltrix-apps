@@ -1,6 +1,6 @@
 id: splunk-enterprise
 name: Splunk Enterprise
-version: "1.19.38"
+version: "1.20.0"
 vendor: Veltrix
 description: >
   Manage Splunk Enterprise configurations as code.
@@ -159,7 +159,7 @@ client:
       layout: standard
     - path: /byol
       component: BYOLPage
-      label: BYOL Infrastructure
+      label: Infrastructure
       icon: server
       nav: sidebar
       group: config

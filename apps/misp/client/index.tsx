@@ -12,6 +12,6 @@ export default {
     { path: '/apps/misp/overview', label: 'Overview', icon: 'shield' },
     { path: '/apps/misp/setup', label: 'Setup Guide', icon: 'book' },
     { path: '/apps/misp/connections', label: 'Connections', icon: 'link' },
-    { path: '/apps/misp/byol', label: 'BYOL Infrastructure', icon: 'server' },
+    { path: '/apps/misp/byol', label: 'Infrastructure', icon: 'server' },
   ],
 }

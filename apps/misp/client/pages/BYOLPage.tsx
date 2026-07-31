@@ -24,9 +24,9 @@ const CONFIG_LINKS: ByolConfigLink[] = [
   { key: 'sync-servers', title: 'Sync Servers', description: 'MISP sync servers — remote URL, authkey and pull/push flags.', configTypeId: 'sync-servers' },
 ]
 
-// The two MISP stack topologies. The SDK form reuses its Splunk-shaped node knobs
-// (Indexers / Search heads); the server maps them to the MISP stack (MariaDB
-// database nodes / MISP core nodes — see lib/byolTopology.ts).
+// The two MISP stack topologies. Node counts for each are driven by the
+// `topology` prop below (Database nodes / MISP core nodes); the server maps
+// them onto the MISP stack — see lib/byolTopology.ts.
 const DEPLOYMENT_TYPES = [
   { value: 'single', label: 'Single node (all-in-one)' },
   { value: 'distributed', label: 'Distributed stack (core + MariaDB + Redis)' },
@@ -40,6 +40,15 @@ export default function BYOLPage() {
       configBase="/apps/misp/config"
       configLinks={CONFIG_LINKS}
       deploymentTypes={DEPLOYMENT_TYPES}
+      topology={{
+        productName: 'MISP',
+        tiers: [
+          { key: 'database', label: 'Database nodes', min: 1, help: 'MariaDB data tier.' },
+          { key: 'core', label: 'MISP core nodes', min: 1, help: 'MISP web/API tier (behind the load balancer).' },
+        ],
+        infoTooltip:
+          'Provision and manage a dedicated MISP stack (bring-your-own-license): define the topology, deploy to a Veltrix-hosted or your own cloud account, then manage its lifecycle here.',
+      }}
     />
   )
 }

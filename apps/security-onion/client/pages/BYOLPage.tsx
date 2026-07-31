@@ -9,7 +9,13 @@ import { ByolInfrastructureManager, type ByolConfigLink } from '@veltrixsecops/a
  * deployment console — resource plan, activity timeline, expandable sidebar)
  * lives in the SDK so any app can reuse it; the data stays app-owned in this
  * app's DB + server. The Security-Onion-specific configuration links and grid
- * topology options are supplied here, keeping the SDK app-agnostic.
+ * topology are supplied here, keeping the SDK app-agnostic.
+ *
+ * The `topology` prop declares this app's two node tiers — Search nodes
+ * (Elasticsearch data / search-node) and Heavy nodes (heavy-node search tier;
+ * see lib/byolTopology.ts for the full grid mapping) — so the form, list table
+ * and detail view render Security-Onion-shaped labels instead of the SDK's
+ * former Splunk-only Indexers/Search-heads pair.
  *
  * Unlike Splunk there is NO version picker — Security Onion is open source, so
  * `versionOptions` is omitted (the SDK form hides the picker for an empty list)
@@ -24,9 +30,7 @@ const CONFIG_LINKS: ByolConfigLink[] = [
   { key: 'elastic-ilm', title: 'Elasticsearch ILM', description: 'Index lifecycle policies — hot rollover and total retention.', configTypeId: 'elastic-ilm' },
 ]
 
-// The two Security Onion grid topologies. The SDK form reuses its Splunk-shaped
-// node knobs (Indexers / Search heads / Heavy forwarders); the server maps them
-// to the SO grid (search nodes / heavy nodes / sensors — see lib/byolTopology.ts).
+// The two Security Onion grid deployment types.
 const DEPLOYMENT_TYPES = [
   { value: 'single', label: 'Single node (eval / standalone)' },
   { value: 'distributed', label: 'Distributed grid' },
@@ -40,6 +44,15 @@ export default function BYOLPage() {
       configBase="/apps/security-onion/config"
       configLinks={CONFIG_LINKS}
       deploymentTypes={DEPLOYMENT_TYPES}
+      topology={{
+        productName: 'Security Onion',
+        tiers: [
+          { key: 'search', label: 'Search nodes', min: 2, help: 'Elasticsearch data / search nodes.' },
+          { key: 'heavy', label: 'Heavy nodes', min: 1, help: 'Heavy nodes (search-tier processing + storage).' },
+        ],
+        infoTooltip:
+          'Provision and manage a dedicated Security Onion grid (bring-your-own-license): define the topology, deploy to a Veltrix-hosted or your own cloud account, then manage its lifecycle here.',
+      }}
     />
   )
 }

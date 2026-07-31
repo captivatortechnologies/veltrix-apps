@@ -33,7 +33,7 @@ export default {
     { path: '/apps/splunk-enterprise/setup', label: 'Setup Guide', icon: 'book' },
     { path: '/apps/splunk-enterprise/access-servers', label: 'Access Servers', icon: 'shield' },
     { path: '/apps/splunk-enterprise/connections', label: 'Connections', icon: 'link' },
-    { path: '/apps/splunk-enterprise/byol', label: 'BYOL Infrastructure', icon: 'server' },
+    { path: '/apps/splunk-enterprise/byol', label: 'Infrastructure', icon: 'server' },
     { path: '/apps/splunk-enterprise/upgrades', label: 'Upgrades', icon: 'refresh-cw' },
     { path: '/apps/splunk-enterprise/license', label: 'License', icon: 'file-text' },
   ],

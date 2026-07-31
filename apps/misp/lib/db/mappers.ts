@@ -36,6 +36,34 @@ export function mapRegion(r: Row): RegionDto {
   }
 }
 
+/** One entry of the generic `node_tiers` JSONB column — the SDK's `ByolTierValue` shape. */
+export interface NodeTierDto {
+  key: string
+  count: number
+  placement: ClusterPlacement | null
+}
+
+/** Parse a persisted `node_tiers` JSONB value (object/array from the driver, or a JSON string). */
+function parseNodeTiers(value: unknown): NodeTierDto[] {
+  if (value == null) return []
+  let arr: any = value
+  if (typeof value === 'string') {
+    try {
+      arr = JSON.parse(value)
+    } catch {
+      return []
+    }
+  }
+  if (!Array.isArray(arr)) return []
+  return arr
+    .filter((t): t is Record<string, unknown> => Boolean(t) && typeof t.key === 'string')
+    .map((t) => ({
+      key: String(t.key),
+      count: Number(t.count) || 1,
+      placement: parsePlacement(t.placement),
+    }))
+}
+
 export interface ByolDto {
   id: string
   name: string
@@ -60,6 +88,8 @@ export interface ByolDto {
   searchHeadPlacement: ClusterPlacement | null
   /** Compute size override for every node; null = cloud default. */
   instanceType: string | null
+  /** Generic per-tier node counts + placement — the SDK's app-agnostic replacement for indexerCount/searchHeadCount. */
+  tiers: NodeTierDto[]
   createdAt: Date
   updatedAt: Date
   indexerRegions: RegionDto[]
@@ -87,6 +117,7 @@ export function mapByol(r: Row): ByolDto {
     indexerPlacement: parsePlacement(r.indexer_placement),
     searchHeadPlacement: parsePlacement(r.search_head_placement),
     instanceType: r.instance_type ?? null,
+    tiers: parseNodeTiers(r.node_tiers),
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     indexerRegions: [],

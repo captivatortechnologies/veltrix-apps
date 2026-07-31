@@ -33,6 +33,10 @@ function fakeDb() {
     heavy_forwarder_count: 1,
     indexer_placement: null,
     search_head_placement: null,
+    node_tiers: [
+      { key: 'indexer', count: 3, placement: null },
+      { key: 'searchHead', count: 2, placement: null },
+    ],
     instance_type: null,
     version_id: null,
     created_at: new Date(),
@@ -135,5 +139,74 @@ describe('updateByol persists the selected Splunk version', () => {
 
     const update = calls.find((c) => c.sql.includes('UPDATE splunk_byol_infrastructure'))
     expect(update!.args[update!.args.length - 1]).toBeNull()
+  })
+})
+
+// =============================================================================
+// Regression: the generic per-tier `node_tiers` JSONB column — the app-agnostic
+// replacement for reading indexerCount/searchHeadCount off discrete columns
+// (see migration 014). Both create and update must persist it, and the row
+// mapper must round-trip it back into the DTO's `tiers` array.
+// =============================================================================
+
+describe('createByol persists node_tiers', () => {
+  it('inserts a [indexer, searchHead] JSON array derived from indexerCount/searchHeadCount when nodeTiers is omitted', async () => {
+    const { db, calls } = fakeDb()
+    await createByol(db, 'cust-1', input)
+
+    const insert = calls.find((c) => c.sql.includes('INSERT INTO splunk_byol_infrastructure'))
+    expect(insert).toBeTruthy()
+    expect(insert!.sql).toMatch(/node_tiers/)
+    const nodeTiersArg = insert!.args.find((a) => typeof a === 'string' && a.includes('"key"'))
+    expect(JSON.parse(nodeTiersArg as string)).toEqual([
+      { key: 'indexer', count: 3, placement: null },
+      { key: 'searchHead', count: 2, placement: null },
+    ])
+  })
+
+  it('serializes an explicit nodeTiers array (as readByol produces) verbatim', async () => {
+    const { db, calls } = fakeDb()
+    await createByol(db, 'cust-1', {
+      ...input,
+      nodeTiers: [
+        { key: 'indexer', count: 4, placement: null },
+        { key: 'searchHead', count: 2, placement: null },
+      ],
+    })
+
+    const insert = calls.find((c) => c.sql.includes('INSERT INTO splunk_byol_infrastructure'))
+    const nodeTiersArg = insert!.args.find((a) => typeof a === 'string' && a.includes('"key"'))
+    expect(JSON.parse(nodeTiersArg as string)).toEqual([
+      { key: 'indexer', count: 4, placement: null },
+      { key: 'searchHead', count: 2, placement: null },
+    ])
+  })
+})
+
+describe('updateByol persists node_tiers', () => {
+  it('writes node_tiers alongside the legacy columns', async () => {
+    const { db, calls } = fakeDb()
+    await updateByol(db, 'i1', input)
+
+    const update = calls.find((c) => c.sql.includes('UPDATE splunk_byol_infrastructure'))
+    expect(update).toBeTruthy()
+    expect(update!.sql).toMatch(/node_tiers\s*=/)
+    const nodeTiersArg = update!.args.find((a) => typeof a === 'string' && a.includes('"key"'))
+    expect(JSON.parse(nodeTiersArg as string)).toEqual([
+      { key: 'indexer', count: 3, placement: null },
+      { key: 'searchHead', count: 2, placement: null },
+    ])
+  })
+})
+
+describe('mapByol round-trips node_tiers into the DTO tiers array', () => {
+  it('parses the persisted node_tiers column', async () => {
+    const { db } = fakeDb()
+    const created = await createByol(db, 'cust-1', input)
+
+    expect(created.tiers).toEqual([
+      { key: 'indexer', count: 3, placement: null },
+      { key: 'searchHead', count: 2, placement: null },
+    ])
   })
 })

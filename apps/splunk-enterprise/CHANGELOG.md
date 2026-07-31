@@ -3,6 +3,12 @@
 All notable changes to the Splunk Enterprise app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.20.0 — 2026-07-30
+
+### Changed
+- **BYOL topology API generalized to `tiers[]`.** The SDK's `ByolInfrastructureManager` moved from a fixed Splunk-shaped indexer/search-head pair to an app-declared N-tier topology; this app now supplies its topology explicitly via the new `topology` prop (`Indexers` min 3 / `Search heads` min 2) plus an info tooltip, instead of relying on the SDK's Splunk-only default. The create/update `POST`/`PUT /byol` body now sends a generic `tiers: [{ key, count, placement }]` array; `lib/byolInput.ts` unpacks it back into the indexer/search-head counts and placements the rest of the app already speaks, with a legacy top-level-field fallback for any client that predates this rollout.
+- **New `node_tiers` JSONB column** on `splunk_byol_infrastructure` (migration `014_splunk_byol_node_tiers.sql`), backfilled from the existing `indexer_count`/`search_head_count`/`indexer_placement`/`search_head_placement` columns — which are kept for back-compat — preserving the live production infrastructure row. The GET DTO now includes an ordered `tiers` array alongside the legacy fields. Labels shown to users are unchanged (Indexers / Search heads).
+
 ## 1.19.38 — 2026-07-25
 
 ### Fixed

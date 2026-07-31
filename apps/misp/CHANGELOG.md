@@ -2,6 +2,11 @@
 
 All notable changes to the MISP app are documented here.
 
+## 0.4.0 — 2026-07-30
+
+Generic topology: BYOL dialog shows MISP tiers (Database nodes / MISP core nodes)
+not Splunk labels; adds `node_tiers` storage (migration 004).
+
 ## 0.3.0 — 2026-07-29
 
 BYOL infrastructure hosting — provision + manage a MISP stack (misp-core / MariaDB /

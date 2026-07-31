@@ -36,13 +36,52 @@ export function mapRegion(r: Row): RegionDto {
   }
 }
 
+/** One BYOL node tier's persisted count + placement (the SDK's generic per-tier shape). */
+export interface ByolTierValue {
+  key: string
+  count: number
+  placement: ClusterPlacement | null
+}
+
+/**
+ * Parse the `node_tiers` JSONB column (object array from the pg driver, or a
+ * JSON string) into the SDK's `ByolTierValue[]` shape. Malformed/empty input
+ * yields `[]`; the caller decides whether an empty result should surface as
+ * `undefined` so the SDK's legacy indexerCount/searchHeadCount fallback kicks in.
+ */
+function parseNodeTiers(value: unknown): ByolTierValue[] {
+  let arr: unknown = value
+  if (typeof value === 'string') {
+    try {
+      arr = JSON.parse(value)
+    } catch {
+      return []
+    }
+  }
+  if (!Array.isArray(arr)) return []
+  return arr
+    .filter((t): t is Row => Boolean(t) && typeof t.key === 'string')
+    .map((t) => {
+      const count = Number(t.count)
+      return {
+        key: t.key,
+        count: Number.isFinite(count) ? Math.trunc(count) : 1,
+        placement: parsePlacement(t.placement),
+      }
+    })
+}
+
 export interface ByolDto {
   id: string
   name: string
   deploymentType: string
   environmentType: string
+  /** @deprecated Kept for back-compat; the source of truth is `tiers[0]` ("database"). */
   indexerCount: number
+  /** @deprecated Kept for back-compat; the source of truth is `tiers[1]` ("server"). */
   searchHeadCount: number
+  /** Generic per-tier node counts + placement — [database, server] — the SDK's app-agnostic topology contract. */
+  tiers?: ByolTierValue[]
   status: string
   customerId: string
   cloudProviderId: string | null
@@ -67,6 +106,7 @@ export interface ByolDto {
 }
 
 export function mapByol(r: Row): ByolDto {
+  const tiers = parseNodeTiers(r.node_tiers)
   return {
     id: r.id,
     name: r.name,
@@ -74,6 +114,10 @@ export function mapByol(r: Row): ByolDto {
     environmentType: r.environment_type,
     indexerCount: r.indexer_count,
     searchHeadCount: r.search_head_count,
+    // Empty stays `undefined` (never `[]`) so the SDK's per-row fallback to
+    // indexerCount/searchHeadCount (keyed on `tiers` being falsy) still fires
+    // for any row a migration/backfill has not reached.
+    tiers: tiers.length > 0 ? tiers : undefined,
     status: r.status,
     customerId: r.customer_id,
     cloudProviderId: r.cloud_provider_id ?? null,

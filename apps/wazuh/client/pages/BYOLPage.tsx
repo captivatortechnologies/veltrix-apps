@@ -22,9 +22,9 @@ const CONFIG_LINKS: ByolConfigLink[] = [
   { key: 'custom-decoders', title: 'Custom Decoders', description: 'Wazuh custom decoder files (etc/decoders) — a manager restart activates the change.', configTypeId: 'custom-decoders' },
 ]
 
-// The two Wazuh cluster topologies. The SDK form reuses its Splunk-shaped node
-// knobs (Indexers / Search heads / Heavy forwarders); the server maps them to
-// the Wazuh cluster (indexer nodes / manager workers / dashboards — see
+// The two Wazuh cluster topologies. Node tiers (Indexers / Manager workers) are
+// declared below via the `topology` prop; the server maps their counts to the
+// full Wazuh cluster (indexer nodes / manager workers / dashboards — see
 // lib/byolTopology.ts).
 const DEPLOYMENT_TYPES = [
   { value: 'single', label: 'Single node (eval / standalone)' },
@@ -39,6 +39,15 @@ export default function BYOLPage() {
       configBase="/apps/wazuh/config"
       configLinks={CONFIG_LINKS}
       deploymentTypes={DEPLOYMENT_TYPES}
+      topology={{
+        productName: 'Wazuh',
+        tiers: [
+          { key: 'indexer', label: 'Indexers', min: 3, help: 'Wazuh indexer (OpenSearch) data tier.' },
+          { key: 'worker', label: 'Manager workers', min: 2, help: 'Wazuh manager worker nodes.' },
+        ],
+        infoTooltip:
+          'Provision and manage a dedicated Wazuh cluster (bring-your-own-license): define the topology, deploy to a Veltrix-hosted or your own cloud account, then manage its lifecycle here.',
+      }}
     />
   )
 }

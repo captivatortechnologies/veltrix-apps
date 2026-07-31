@@ -2,6 +2,25 @@
 
 All notable changes to the Security Onion app are documented here.
 
+## 0.5.0 — 2026-07-30
+
+Generic topology: BYOL dialog shows Security Onion tiers (Search nodes / Heavy
+nodes) not Splunk labels; adds `node_tiers` storage (migration 004).
+
+- Wired the app onto the SDK's generalized (app-declared N-tier) BYOL
+  infrastructure manager: `client/pages/BYOLPage.tsx` now passes a `topology`
+  prop declaring **Search nodes** (Elasticsearch data / search-node) and
+  **Heavy nodes** (heavy-node search tier) instead of the SDK's former
+  Splunk-only Indexers/Search-heads labels.
+- `POST`/`PUT /byol` now read the generic `tiers: [{ key, count, placement }]`
+  body shape (falling back to the legacy `indexerCount`/`searchHeadCount`/
+  `indexerPlacement`/`searchHeadPlacement` fields when absent); distributed
+  minimums are now expressed per tier (Search nodes ≥ 2, Heavy nodes ≥ 1) and
+  validation errors name the tier.
+- Added `node_tiers` (JSONB) to `so_byol_infrastructure` — the generic
+  per-tier column the GET responses now expose as `tiers`, backfilled for
+  existing rows; the legacy scalar columns are kept in sync for back-compat.
+
 ## 0.4.0 — 2026-07-29
 
 BYOL infrastructure hosting (like Splunk Enterprise).

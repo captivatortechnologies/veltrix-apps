@@ -7,7 +7,7 @@
 // =============================================================================
 
 import type { PlatformDatabaseClient } from '@veltrixsecops/app-sdk'
-import { mapByol, mapRegion, type ByolDto, type RegionDto, type Row } from './mappers'
+import { mapByol, mapRegion, type ByolDto, type ByolTierDto, type RegionDto, type Row } from './mappers'
 import {
   normalizeControlPlaneLayout,
   type ClusterPlacement,
@@ -19,6 +19,31 @@ import { recordStateEvent } from './usage'
 function placementJson(placement?: ClusterPlacement | null): string | null {
   if (!placement || placement.mode !== 'multi-site') return null
   return JSON.stringify(placement)
+}
+
+/** Null out a tier's placement unless it's genuinely multi-site — mirrors
+ *  `placementJson`'s column convention so `node_tiers` and the legacy
+ *  indexer_placement/search_head_placement columns agree on single-site. */
+function normalizeTierPlacement(placement: ClusterPlacement | null | undefined): ClusterPlacement | null {
+  if (!placement || placement.mode !== 'multi-site') return null
+  return placement
+}
+
+/**
+ * Serialize the generic per-tier node list for the `node_tiers` JSONB column.
+ * Falls back to deriving an [indexer, worker] pair from the legacy
+ * indexerCount/searchHeadCount + placement fields when the caller doesn't
+ * supply `nodeTiers` directly (defensive — every current caller goes through
+ * `readByol()`, which always populates it).
+ */
+function nodeTiersJson(input: ByolInput): string {
+  const tiers: ByolTierDto[] =
+    input.nodeTiers ??
+    [
+      { key: 'indexer', count: input.indexerCount, placement: input.indexerPlacement ?? null },
+      { key: 'worker', count: input.searchHeadCount, placement: input.searchHeadPlacement ?? null },
+    ]
+  return JSON.stringify(tiers.map((t) => ({ ...t, placement: normalizeTierPlacement(t.placement) })))
 }
 
 /** Append a lifecycle state event for an infra (foundation for node-hours billing). */
@@ -39,6 +64,8 @@ export interface ByolInput {
   region?: string
   indexerCount: number
   searchHeadCount: number
+  /** Generic per-tier node counts + placement, in display order [indexer, worker]. Derived from indexerCount/searchHeadCount + placements when omitted. */
+  nodeTiers?: ByolTierDto[]
   cloudProviderId?: string
   // Deployment target (hosted vs BYOC).
   networkMode?: string
@@ -99,14 +126,14 @@ export async function createByol(
     // 'not_started' — the deploy route is what moves it to 'provisioning'.
     `INSERT INTO wazuh_byol_infrastructure
        (name, deployment_type, environment_type, hosting_type, region,
-        indexer_count, search_head_count, cloud_provider_id, customer_id, status,
+        indexer_count, search_head_count, node_tiers, cloud_provider_id, customer_id, status,
         network_mode, dns_mode, cloud_account_connection_id,
         control_plane_layout, heavy_forwarder_count, indexer_placement, search_head_placement,
         instance_type)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::uuid, $9::uuid, 'not_started',
-             $10, $11, $12::uuid,
-             $13, $14, $15::jsonb, $16::jsonb,
-             $17)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::uuid, $10::uuid, 'not_started',
+             $11, $12, $13::uuid,
+             $14, $15, $16::jsonb, $17::jsonb,
+             $18)
      RETURNING *`,
     input.name,
     input.deploymentType,
@@ -115,6 +142,7 @@ export async function createByol(
     input.region ?? null,
     input.indexerCount,
     input.searchHeadCount,
+    nodeTiersJson(input),
     input.cloudProviderId ?? null,
     customerId,
     input.networkMode ?? 'shared',
@@ -139,12 +167,12 @@ export async function updateByol(
   const rows = await db.$queryRawUnsafe<Row[]>(
     `UPDATE wazuh_byol_infrastructure SET
        name = $2, deployment_type = $3, environment_type = $4, hosting_type = $5,
-       region = $6, indexer_count = $7, search_head_count = $8,
-       cloud_provider_id = COALESCE($9::uuid, cloud_provider_id),
-       control_plane_layout = $10, heavy_forwarder_count = $11,
-       indexer_placement = $12::jsonb, search_head_placement = $13::jsonb,
-       instance_type = $14,
-       network_mode = $15, dns_mode = $16, cloud_account_connection_id = $17::uuid,
+       region = $6, indexer_count = $7, search_head_count = $8, node_tiers = $9::jsonb,
+       cloud_provider_id = COALESCE($10::uuid, cloud_provider_id),
+       control_plane_layout = $11, heavy_forwarder_count = $12,
+       indexer_placement = $13::jsonb, search_head_placement = $14::jsonb,
+       instance_type = $15,
+       network_mode = $16, dns_mode = $17, cloud_account_connection_id = $18::uuid,
        updated_at = now()
      WHERE id = $1::uuid
      RETURNING *`,
@@ -156,6 +184,7 @@ export async function updateByol(
     input.region ?? null,
     input.indexerCount,
     input.searchHeadCount,
+    nodeTiersJson(input),
     input.cloudProviderId ?? null,
     normalizeControlPlaneLayout(input.controlPlaneLayout),
     Math.max(1, Math.floor(input.heavyForwarderCount ?? 1)),

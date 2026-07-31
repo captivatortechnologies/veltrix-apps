@@ -12,6 +12,6 @@ export default {
     { path: '/apps/security-onion/overview', label: 'Overview', icon: 'shield' },
     { path: '/apps/security-onion/setup', label: 'Setup Guide', icon: 'book' },
     { path: '/apps/security-onion/connections', label: 'Connections', icon: 'link' },
-    { path: '/apps/security-onion/byol', label: 'BYOL Infrastructure', icon: 'server' },
+    { path: '/apps/security-onion/byol', label: 'Infrastructure', icon: 'server' },
   ],
 }

@@ -1,6 +1,6 @@
 id: security-onion
 name: Security Onion
-version: "0.4.0"
+version: "0.5.0"
 vendor: Veltrix
 description: >
   Manage Security Onion (open-source NSM / SIEM) as code. Author Suricata NIDS
@@ -237,7 +237,7 @@ client:
     # <ByolInfrastructureManager> over this app's app-owned /byol routes.
     - path: /byol
       component: BYOLPage
-      label: BYOL Infrastructure
+      label: Infrastructure
       icon: server
       nav: sidebar
       group: config

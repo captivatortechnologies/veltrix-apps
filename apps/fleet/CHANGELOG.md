@@ -2,6 +2,20 @@
 
 All notable changes to the Fleet app are documented here.
 
+## 0.4.0 — 2026-07-30
+
+Generic topology: the BYOL dialog now shows Fleet's own tiers (**Database
+nodes** / **Fleet servers**) instead of the SDK's former Splunk-shaped
+indexer/search-head labels, via the `ByolInfrastructureManager`'s new
+app-declared `topology` prop. The stack's per-tier counts + placement are now
+also persisted generically (`node_tiers`, migration 004), alongside the
+existing `indexer_count`/`search_head_count` columns which are kept (and still
+written) for `lib/byolTopology.ts`. `POST`/`PUT /byol` accept the SDK's
+`tiers: [{ key, count, placement }]` body shape (preferred) with the legacy
+`indexerCount`/`searchHeadCount`/`indexerPlacement`/`searchHeadPlacement`
+fields as a back-compat fallback; `GET` routes now also return `tiers` on
+each record.
+
 ## 0.3.0 — 2026-07-29
 
 BYOL infrastructure hosting — provision + manage a Fleet stack (fleet-server / MySQL /

@@ -63,6 +63,16 @@ export default function BYOLPage() {
       configLinks={CONFIG_LINKS}
       versionOptions={versionOptions}
       defaultVersionId={defaultVersionId}
+      topology={{
+        productName: 'Splunk',
+        versionLabel: 'Splunk version',
+        tiers: [
+          { key: 'indexer', label: 'Indexers', min: 3 },
+          { key: 'searchHead', label: 'Search heads', min: 2 },
+        ],
+        infoTooltip:
+          'Provision and manage a dedicated Splunk Enterprise BYOL environment: define the topology, deploy to a Veltrix-hosted or your own cloud account, then manage its lifecycle here.',
+      }}
     />
   )
 }

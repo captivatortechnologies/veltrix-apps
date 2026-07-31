@@ -2,6 +2,25 @@
 
 All notable changes to the Wazuh app are documented here.
 
+## 0.4.0 — 2026-07-30
+
+Generic topology: BYOL dialog shows Wazuh tiers (Indexers / Manager workers) not
+Splunk search-head labels; adds `node_tiers` storage (migration 004).
+
+- Wired the BYOL cluster form to the SDK's app-declared N-tier
+  `ByolInfrastructureManager` (`topology` prop) instead of the SDK's previous
+  fixed Splunk-shaped indexer/search-head pair — the New/Edit dialog and list
+  table now read "Indexers" / "Manager workers" throughout.
+- The create/update `POST`/`PUT /byol` body now sends a generic
+  `tiers: [{ key, count, placement }]` array; `lib/byolInput.ts` unpacks it
+  back into the indexer/manager-worker counts and placements the rest of the
+  app already speaks (with a legacy-body fallback for older clients).
+- New `node_tiers` JSONB column on `wazuh_byol_infrastructure`
+  (migration `004_wazuh_byol_node_tiers.sql`), backfilled from the existing
+  `indexer_count`/`search_head_count`/`indexer_placement`/`search_head_placement`
+  columns, which are kept for back-compat. The GET DTO now includes an ordered
+  `tiers` array alongside the legacy fields.
+
 ## 0.3.0 — 2026-07-29
 
 BYOL infrastructure hosting — provision + manage a Wazuh cluster (manager-master /

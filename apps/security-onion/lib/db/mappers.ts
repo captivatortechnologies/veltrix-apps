@@ -36,6 +36,39 @@ export function mapRegion(r: Row): RegionDto {
   }
 }
 
+/**
+ * One tier's persisted count + placement — the generic per-tier shape the SDK's
+ * `<ByolInfrastructureManager topology>` form reads/writes, keyed by tier id
+ * ('search' | 'heavy', see lib/byolTopology.ts). Stored on `node_tiers` (JSONB)
+ * alongside the legacy indexer_count/search_head_count/*_placement columns.
+ */
+export interface NodeTierDto {
+  key: string
+  count: number
+  placement: ClusterPlacement | null
+}
+
+/** Parse a persisted JSONB `node_tiers` array value (object[] from the driver, or a JSON string). Malformed/absent -> []. */
+function parseNodeTiers(value: unknown): NodeTierDto[] {
+  if (value == null) return []
+  let arr: any = value
+  if (typeof value === 'string') {
+    try {
+      arr = JSON.parse(value)
+    } catch {
+      return []
+    }
+  }
+  if (!Array.isArray(arr)) return []
+  return arr
+    .filter((t: any) => t && typeof t.key === 'string')
+    .map((t: any) => ({
+      key: t.key,
+      count: Number(t.count) || 0,
+      placement: parsePlacement(t.placement),
+    }))
+}
+
 export interface ByolDto {
   id: string
   name: string
@@ -60,6 +93,8 @@ export interface ByolDto {
   searchHeadPlacement: ClusterPlacement | null
   /** Compute size override for every node; null = cloud default. */
   instanceType: string | null
+  /** Generic per-tier node counts + placement — the app-agnostic replacement for indexerCount/searchHeadCount. */
+  tiers: NodeTierDto[]
   createdAt: Date
   updatedAt: Date
   indexerRegions: RegionDto[]
@@ -87,6 +122,7 @@ export function mapByol(r: Row): ByolDto {
     indexerPlacement: parsePlacement(r.indexer_placement),
     searchHeadPlacement: parsePlacement(r.search_head_placement),
     instanceType: r.instance_type ?? null,
+    tiers: parseNodeTiers(r.node_tiers),
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     indexerRegions: [],

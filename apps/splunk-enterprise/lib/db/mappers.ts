@@ -121,6 +121,14 @@ export function mapRegion(r: Row): RegionDto {
   }
 }
 
+/** A single tier's persisted count + placement — the generic replacement for
+ *  the fixed indexerCount/searchHeadCount pair (SDK's `ByolTierValue`). */
+export interface ByolTierDto {
+  key: string
+  count: number
+  placement: ClusterPlacement | null
+}
+
 export interface ByolDto {
   id: string
   name: string
@@ -128,6 +136,8 @@ export interface ByolDto {
   environmentType: string
   indexerCount: number
   searchHeadCount: number
+  /** Generic per-tier node counts + placement, in display order [indexer, searchHead]. */
+  tiers: ByolTierDto[]
   status: string
   customerId: string
   cloudProviderId: string | null
@@ -155,6 +165,32 @@ export interface ByolDto {
   splunkUpgrade: unknown | null
 }
 
+/**
+ * Parse the `node_tiers` JSONB column (a JS array once the pg driver decodes
+ * it, or a JSON string in the rarer raw-text path) into the DTO's ordered
+ * tier list. Malformed / missing rows (pre-migration data not yet backfilled)
+ * fall back to an empty array — the SDK's `tierValue()` reads the legacy
+ * indexerCount/searchHeadCount columns for those.
+ */
+function parseNodeTiers(value: unknown): ByolTierDto[] {
+  let arr: any = value
+  if (typeof arr === 'string') {
+    try {
+      arr = JSON.parse(arr)
+    } catch {
+      return []
+    }
+  }
+  if (!Array.isArray(arr)) return []
+  return arr
+    .filter((t) => t && typeof t === 'object' && typeof t.key === 'string')
+    .map((t) => ({
+      key: t.key,
+      count: Number(t.count) || 0,
+      placement: parsePlacement(t.placement),
+    }))
+}
+
 export function mapByol(r: Row): ByolDto {
   return {
     id: r.id,
@@ -163,6 +199,7 @@ export function mapByol(r: Row): ByolDto {
     environmentType: r.environment_type,
     indexerCount: r.indexer_count,
     searchHeadCount: r.search_head_count,
+    tiers: parseNodeTiers(r.node_tiers),
     status: r.status,
     customerId: r.customer_id,
     cloudProviderId: r.cloud_provider_id ?? null,

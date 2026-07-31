@@ -12,6 +12,6 @@ export default {
     { path: '/apps/fleet/overview', label: 'Overview', icon: 'shield' },
     { path: '/apps/fleet/setup', label: 'Setup Guide', icon: 'book' },
     { path: '/apps/fleet/connections', label: 'Connections', icon: 'link' },
-    { path: '/apps/fleet/byol', label: 'BYOL Infrastructure', icon: 'server' },
+    { path: '/apps/fleet/byol', label: 'Infrastructure', icon: 'server' },
   ],
 }
