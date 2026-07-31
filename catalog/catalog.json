@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-30T01:11:17.821Z",
+  "generatedAt": "2026-07-31T02:57:27.756Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -164,7 +164,7 @@
     {
       "appId": "fleet",
       "name": "Fleet",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "vendor": "Veltrix",
       "description": "Manage Fleet (open-source osquery fleet management) as code — endpoint visibility, vulnerability and device management across your osquery agent fleet. Author saved osquery queries and drive them through the Security-as-Code pipeline (validate, deploy, health check, drift detection and rollback) over the Fleet REST API, with BYOL infrastructure provisioning groundwork for a Fleet stack (server / MySQL / Redis).",
       "category": "Endpoint Management",
@@ -172,12 +172,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/fleet",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/fleet-v0.3.0/fleet.zip",
-      "sha256": "91b1296fa706a4ef858c8b91901b1a961fcb4e9210db0b12b4afb05aa636d98e",
-      "sizeBytes": 225547,
-      "publishedAt": "2026-07-30T01:11:17.780Z",
-      "releaseNotes": "## 0.3.0 — 2026-07-29\n\nBYOL infrastructure hosting — provision + manage a Fleet stack (fleet-server / MySQL /\nRedis). Client BYOLPage wraps the SDK `ByolInfrastructureManager`; app-owned `/byol`\nroutes + `fleet_byol_*` tables (migrations 002/003) with a topology resource plan,\ndeploy (emits a provisioning event), destroy, lifecycle, resources, deployments, and\nusage metering.",
-      "releasedAt": "2026-07-29T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/fleet-v0.4.0/fleet.zip",
+      "sha256": "86441db6d6754c812f001f5ca2c6db62c29fc3c7bcd9bc5d26bcf9816011788f",
+      "sizeBytes": 230833,
+      "publishedAt": "2026-07-31T02:57:27.724Z",
+      "releaseNotes": "## 0.4.0 — 2026-07-30\n\nGeneric topology: the BYOL dialog now shows Fleet's own tiers (**Database\nnodes** / **Fleet servers**) instead of the SDK's former Splunk-shaped\nindexer/search-head labels, via the `ByolInfrastructureManager`'s new\napp-declared `topology` prop. The stack's per-tier counts + placement are now\nalso persisted generically (`node_tiers`, migration 004), alongside the\nexisting `indexer_count`/`search_head_count` columns which are kept (and still\nwritten) for `lib/byolTopology.ts`. `POST`/`PUT /byol` accept the SDK's\n`tiers: [{ key, count, placement }]` body shape (preferred) with the legacy\n`indexerCount`/`searchHeadCount`/`indexerPlacement`/`searchHeadPlacement`\nfields as a back-compat fallback; `GET` routes now also return `tiers` on\neach record.",
+      "releasedAt": "2026-07-30T00:00:00.000Z"
     },
     {
       "appId": "fortimanager",
@@ -337,7 +337,7 @@
     {
       "appId": "misp",
       "name": "MISP",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "vendor": "Veltrix",
       "description": "Manage MISP (open-source Threat Intelligence Platform) as code. Author threat feeds and drive them through the Security-as-Code pipeline — validate, deploy, health check, drift detection and rollback — over the MISP REST API (HTTPS, self-signed tolerated), with BYOL infrastructure provisioning for the MISP stack (core + MariaDB + Redis).",
       "category": "Threat Intelligence",
@@ -345,12 +345,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/misp",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/misp-v0.3.0/misp.zip",
-      "sha256": "07f8b85ff27f16b5e20b33121916c7db79ac2f44892babc0ea3dde0d17040eb6",
-      "sizeBytes": 243414,
-      "publishedAt": "2026-07-30T01:11:17.798Z",
-      "releaseNotes": "## 0.3.0 — 2026-07-29\n\nBYOL infrastructure hosting — provision + manage a MISP stack (misp-core / MariaDB /\nRedis). Client BYOLPage wraps the SDK `ByolInfrastructureManager`; app-owned `/byol`\nroutes + `misp_byol_*` tables (migrations 002/003) with a topology resource plan,\ndeploy (emits a provisioning event), destroy, lifecycle, resources, deployments, and\nusage metering.",
-      "releasedAt": "2026-07-29T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/misp-v0.4.0/misp.zip",
+      "sha256": "7c3a8d9716d9231132aed9cd1758ccf9373a0e5c02ff66fbc48af93e39e0df21",
+      "sizeBytes": 248058,
+      "publishedAt": "2026-07-31T02:57:27.737Z",
+      "releaseNotes": "## 0.4.0 — 2026-07-30\n\nGeneric topology: BYOL dialog shows MISP tiers (Database nodes / MISP core nodes)\nnot Splunk labels; adds `node_tiers` storage (migration 004).",
+      "releasedAt": "2026-07-30T00:00:00.000Z"
     },
     {
       "appId": "netskope",
@@ -512,7 +512,7 @@
     {
       "appId": "security-onion",
       "name": "Security Onion",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "vendor": "Veltrix",
       "description": "Manage Security Onion (open-source NSM / SIEM) as code. Author Suricata NIDS rules, firewall & analyst access, SOC users, Elastic detections and index lifecycle, and Zeek — with BYOL infrastructure provisioning. Grid configuration is applied on the manager via Salt (over managed ZTNA) and the SOC / Elasticsearch REST APIs, with validation, drift detection, and rollback handled by the Security-as-Code pipeline.",
       "category": "SIEM",
@@ -520,12 +520,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/security-onion",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/security-onion-v0.4.0/security-onion.zip",
-      "sha256": "dd444c05c5a4f10a5071f2c04cb09daf56c6853b1087538b4f04ee021a70389b",
-      "sizeBytes": 230587,
-      "publishedAt": "2026-07-29T23:52:15.110Z",
-      "releaseNotes": "## 0.4.0 — 2026-07-29\n\nBYOL infrastructure hosting (like Splunk Enterprise).\n\n- **BYOL Infrastructure** page — provision and manage a Security Onion grid,\n  wrapping the SDK `ByolInfrastructureManager`: create/list/detail, a topology\n  **resource plan** (manager / search / sensor / forward / fleet nodes, derived\n  from `infra/spec.ts`), deploy (emits a provisioning event for the generic\n  worker), destroy, lifecycle (start/stop/restart), resources, deployments, and\n  usage metering.\n- App-owned store + routes under `/api/apps/security-onion/byol` (`so_byol_*`\n  tables) adapted from splunk-enterprise; grid sizing is a reasonable default —\n  verify against Security Onion deployment guidance.\n\n> The BYOL form currently renders the SDK's generic node labels; the server maps\n> them to Security Onion grid roles and the provisioned resource names are\n> SO-correct. SO-specific form labels need an SDK enhancement (tracked).",
-      "releasedAt": "2026-07-29T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/security-onion-v0.5.0/security-onion.zip",
+      "sha256": "4fad50b3d7fec14256bf6a8072c68084014f280a275d8737aaafa229ddaa3626",
+      "sizeBytes": 240206,
+      "publishedAt": "2026-07-31T02:57:27.743Z",
+      "releaseNotes": "## 0.5.0 — 2026-07-30\n\nGeneric topology: BYOL dialog shows Security Onion tiers (Search nodes / Heavy\nnodes) not Splunk labels; adds `node_tiers` storage (migration 004).\n\n- Wired the app onto the SDK's generalized (app-declared N-tier) BYOL\n  infrastructure manager: `client/pages/BYOLPage.tsx` now passes a `topology`\n  prop declaring **Search nodes** (Elasticsearch data / search-node) and\n  **Heavy nodes** (heavy-node search tier) instead of the SDK's former\n  Splunk-only Indexers/Search-heads labels.\n- `POST`/`PUT /byol` now read the generic `tiers: [{ key, count, placement }]`\n  body shape (falling back to the legacy `indexerCount`/`searchHeadCount`/\n  `indexerPlacement`/`searchHeadPlacement` fields when absent); distributed\n  minimums are now expressed per tier (Search nodes ≥ 2, Heavy nodes ≥ 1) and\n  validation errors name the tier.\n- Added `node_tiers` (JSONB) to `so_byol_infrastructure` — the generic\n  per-tier column the GET responses now expose as `tiers`, backfilled for\n  existing rows; the legacy scalar columns are kept in sync for back-compat.",
+      "releasedAt": "2026-07-30T00:00:00.000Z"
     },
     {
       "appId": "sentinelone",
@@ -590,7 +590,7 @@
     {
       "appId": "splunk-enterprise",
       "name": "Splunk Enterprise",
-      "version": "1.19.38",
+      "version": "1.20.0",
       "vendor": "Veltrix",
       "description": "Manage Splunk Enterprise configurations as code. Author Splunk apps and add-ons (including their .conf files), HTTP Event Collector tokens, BYOL infrastructure, and version tracking for current Splunk release lines (9.4.x–10.4.x). Configuration ships the way Splunk ships it — inside an app — so indexes and roles are authored as indexes.conf / authorize.conf in the App Contents of a Splunk App.",
       "category": "SIEM",
@@ -600,12 +600,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-enterprise",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.19.38/splunk-enterprise.zip",
-      "sha256": "626ee62a92542a2f1e364bd676df0d197366c40304a06b854eddf033e794c5b6",
-      "sizeBytes": 487747,
-      "publishedAt": "2026-07-29T19:37:52.257Z",
-      "releaseNotes": "## 1.19.38 — 2026-07-25\n\n### Fixed\n- **Wider \"Add access server\" form.** The top row (Hostname · Management port · Web UI port) was cramped in the medium dialog; the Access Servers add/edit form now uses the large dialog size so every field fits comfortably.",
-      "releasedAt": "2026-07-25T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/splunk-enterprise-v1.20.0/splunk-enterprise.zip",
+      "sha256": "dfed0c79c93743ed01746b3bf53a1bf6126f1ff17152cc4b5570d59084ed2fe7",
+      "sizeBytes": 492897,
+      "publishedAt": "2026-07-31T02:57:27.746Z",
+      "releaseNotes": "## 1.20.0 — 2026-07-30\n\n### Changed\n- **BYOL topology API generalized to `tiers[]`.** The SDK's `ByolInfrastructureManager` moved from a fixed Splunk-shaped indexer/search-head pair to an app-declared N-tier topology; this app now supplies its topology explicitly via the new `topology` prop (`Indexers` min 3 / `Search heads` min 2) plus an info tooltip, instead of relying on the SDK's Splunk-only default. The create/update `POST`/`PUT /byol` body now sends a generic `tiers: [{ key, count, placement }]` array; `lib/byolInput.ts` unpacks it back into the indexer/search-head counts and placements the rest of the app already speaks, with a legacy top-level-field fallback for any client that predates this rollout.\n- **New `node_tiers` JSONB column** on `splunk_byol_infrastructure` (migration `014_splunk_byol_node_tiers.sql`), backfilled from the existing `indexer_count`/`search_head_count`/`indexer_placement`/`search_head_placement` columns — which are kept for back-compat — preserving the live production infrastructure row. The GET DTO now includes an ordered `tiers` array alongside the legacy fields. Labels shown to users are unchanged (Indexers / Search heads).",
+      "releasedAt": "2026-07-30T00:00:00.000Z"
     },
     {
       "appId": "splunk-soar",
@@ -649,7 +649,7 @@
     {
       "appId": "wazuh",
       "name": "Wazuh",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "vendor": "Veltrix",
       "description": "Manage Wazuh (open-source SIEM / XDR / HIDS) as code. Author CDB lists, and — over the Wazuh REST API (55000, self-signed, token-authenticated) — drive them through the Security-as-Code pipeline with validation, drift detection and rollback. BYOL cluster provisioning (manager / indexer / dashboard) is declared as a generic InfraSpec.",
       "category": "SIEM",
@@ -657,12 +657,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/wazuh",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/wazuh-v0.3.0/wazuh.zip",
-      "sha256": "c22e24c26fd8f1ede1a02c53f110e5fc680f431bf4ec86e799565dc4c98b4d04",
-      "sizeBytes": 218050,
-      "publishedAt": "2026-07-30T01:11:17.810Z",
-      "releaseNotes": "## 0.3.0 — 2026-07-29\n\nBYOL infrastructure hosting — provision + manage a Wazuh cluster (manager-master /\nmanager-worker / indexer / dashboard). Client BYOLPage wraps the SDK\n`ByolInfrastructureManager`; app-owned `/byol` routes + `wazuh_byol_*` tables\n(migrations 002/003) with a topology resource plan, deploy (emits a provisioning\nevent), destroy, lifecycle, resources, deployments, and usage metering.",
-      "releasedAt": "2026-07-29T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/wazuh-v0.4.0/wazuh.zip",
+      "sha256": "3613d4055bacc01763e8b2ac911e16c85f262ce0be0613631692e9c6c061eb39",
+      "sizeBytes": 223295,
+      "publishedAt": "2026-07-31T02:57:27.748Z",
+      "releaseNotes": "## 0.4.0 — 2026-07-30\n\nGeneric topology: BYOL dialog shows Wazuh tiers (Indexers / Manager workers) not\nSplunk search-head labels; adds `node_tiers` storage (migration 004).\n\n- Wired the BYOL cluster form to the SDK's app-declared N-tier\n  `ByolInfrastructureManager` (`topology` prop) instead of the SDK's previous\n  fixed Splunk-shaped indexer/search-head pair — the New/Edit dialog and list\n  table now read \"Indexers\" / \"Manager workers\" throughout.\n- The create/update `POST`/`PUT /byol` body now sends a generic\n  `tiers: [{ key, count, placement }]` array; `lib/byolInput.ts` unpacks it\n  back into the indexer/manager-worker counts and placements the rest of the\n  app already speaks (with a legacy-body fallback for older clients).\n- New `node_tiers` JSONB column on `wazuh_byol_infrastructure`\n  (migration `004_wazuh_byol_node_tiers.sql`), backfilled from the existing\n  `indexer_count`/`search_head_count`/`indexer_placement`/`search_head_placement`\n  columns, which are kept for back-compat. The GET DTO now includes an ordered\n  `tiers` array alongside the legacy fields.",
+      "releasedAt": "2026-07-30T00:00:00.000Z"
     },
     {
       "appId": "wiz",
