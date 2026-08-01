@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-07-31T02:57:27.756Z",
+  "generatedAt": "2026-08-01T16:27:39.053Z",
   "apps": [
     {
       "appId": "carbon-black",
@@ -60,6 +60,24 @@
       "publishedAt": "2026-07-29T19:37:52.206Z",
       "releaseNotes": "## 1.4.0 — 2026-07-26\n\n### Added\n- **Manage classic Page Rules as code** (new \"Cloudflare Page Rules (Legacy)\"\n  configuration type, in the **Rules & Lists** group). Declares Cloudflare's\n  classic Page Rules through the v4 API (`GET/POST/PUT/DELETE\n  /zones/{zone_id}/pagerules`), reconciled by their **URL match pattern** — the\n  rule's natural identity, since Cloudflare assigns the server id. Each rule is a\n  single `url` target (operator `matches`) plus a JSON array of actions; a\n  re-deploy updates the matching rule in place (`PUT` by id) or creates it, and\n  deploy captures the prior rule bodies so rollback restores updates and deletes\n  creates. Includes validation (unique URL pattern; actions must be a non-empty\n  JSON array of `{id, value}` objects; a `forwarding_url` action can't be combined\n  with setting overrides), health check, drift detection with audit attribution\n  (missing rule, status/priority/action-set changes), and the shared **Domain**\n  picker like the other zone-scoped types.\n  - **Why still ship a deprecated feature?** Cloudflare has deprecated Page Rules\n    in favour of the Rulesets engine, but — unlike the Firewall Rules and Rate\n    Limiting APIs (sunset 2025-06-15) — the Page Rules API is **not** on the\n    \"no longer supported\" list: existing rules keep working and Cloudflare will\n    auto-migrate them \"in late 2025 or beyond\" with advance notice. There is no\n    single Rulesets successor (Page Rules split across Configuration, Cache,\n    Origin, Compression Rules and Redirects), and this app implements only the\n    Redirect and Transform successors — so this type lets teams keep the Page\n    Rules a zone still relies on under configuration-as-code (drift, rollback,\n    audit) through the transition. **Prefer the Redirect / Transform types for new\n    work.**",
       "releasedAt": "2026-07-26T00:00:00.000Z"
+    },
+    {
+      "appId": "cortex-xdr",
+      "name": "Cortex XDR",
+      "version": "0.2.0",
+      "vendor": "Veltrix",
+      "description": "Manage Palo Alto Networks Cortex XDR configuration as code. Author threat indicators (IOCs), hash exceptions (allow / block lists), endpoint groups and alert exclusions, and drive them through the Security-as-Code pipeline — validate, deploy, health check, drift detection and rollback — over the Cortex XDR public REST API (POST { request_data }, x-xdr-auth-id + Authorization Standard auth). The connection endpoint is your Cortex XDR tenant API FQDN. NOTE: the Cortex XDR public API is limited for config writes — only IOCs and hash exceptions have confirmed write paths; endpoint-group and alert-exclusion writes are best-effort against unverified endpoints (see the README).",
+      "category": "EDR",
+      "icon": "🛰️",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cortex-xdr",
+      "available": true,
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cortex-xdr-v0.2.0/cortex-xdr.zip",
+      "sha256": "d7505ec4b890ca449337f6afa13ea78170bb593e70ec980333c205f946e1dc43",
+      "sizeBytes": 123387,
+      "publishedAt": "2026-08-01T16:27:38.996Z",
+      "releaseNotes": "## 0.2.0 — 2026-08-01\n\n### Added\n\n- **Hash Exceptions (allow / block list)** configuration type\n  (`config-types/hash-exceptions`) — the second **confirmed** public-API write\n  surface. Deploy adds SHA256 file hashes to the tenant allow list or block list\n  via `POST /public_api/v1/hash_exceptions/allowlist/` and\n  `.../hash_exceptions/blocklist/` (hashes are batched by list + comment).\n  Fields: `hash` (SHA256, identity), `list_type` (`allowlist`/`blocklist`),\n  `comment`.\n- **Endpoint Groups** configuration type (`config-types/endpoint-groups`) —\n  static or dynamic (filter-based) groups, upserted by `name`. Drift + health\n  read from the **real** `POST /public_api/v1/endpoints/get_endpoint_groups/`\n  endpoint. Fields: `name` (identity), `description`, `group_type`\n  (`static`/`dynamic`), `filter` (JSON).\n- **Alert Exclusions** configuration type (`config-types/alert-exclusions`) —\n  suppression rules with `name` (identity), `filter` (JSON), `comment` and a\n  `disabled` flag, upserted by `name`.\n- Full handler set (validate / deploy / rollback / healthCheck / driftDetect /\n  getStatus) for each new type, registered in `pipeline.configurationTypes`, plus\n  new tests (existing 16 + 36 new = 52 total).\n\n### Notes — Cortex XDR public API is limited for config writes (be honest)\n\n- **IOCs** (0.1.0) and **hash exceptions** are the only surfaces with a\n  **confirmed** public write path. Hash exceptions are **add-only**: Cortex XDR\n  documents no endpoint to **list** or **remove** them, so their drift is not\n  asserted and rollback **cannot auto-remove** — it reports the added hashes and\n  asks for manual console removal.\n- **Endpoint groups** — **listing is real** (`get_endpoint_groups`, also the\n  health probe) so drift + health are genuine, but **create / delete are NOT\n  documented** in the public API. Deploy / rollback attempt FLAGGED\n  (`/endpoints/create_endpoint_group/`, `/endpoints/delete_endpoint_group/`)\n  paths best-effort and will likely 404 on a live tenant.\n- **Alert exclusions** — the Cortex XDR public API documents **no** alert-exclusion\n  management at all (console-only feature). Every endpoint in this type is\n  **speculative / FLAGGED** (`/alerts/get_alert_exclusions/`,\n  `.../create_alert_exclusion/`, `.../delete_alert_exclusion/`); the type ships\n  the authoring + pipeline surface ready for a future API, but deploy is\n  best-effort and expected to fail today. It was kept (rather than dropped) to\n  provide the authoring surface, with every path loudly flagged — **do not treat\n  its endpoints as real**.\n- The originally-scoped **scoring-rules / alert-starring** surface was **dropped**\n  in favour of **hash exceptions**: the Cortex XDR public API exposes no scoring /\n  starring write path, whereas hash exceptions have a documented one.\n- Every endpoint path, request envelope, field name and enum value added here is\n  marked `VERIFY against live Cortex XDR` in the code — confirm against a live\n  tenant before production use.",
+      "releasedAt": "2026-08-01T00:00:00.000Z"
     },
     {
       "appId": "cortex-xsoar",
@@ -392,6 +410,24 @@
       "releasedAt": "2026-07-25T00:00:00.000Z"
     },
     {
+      "appId": "opencti",
+      "name": "OpenCTI",
+      "version": "0.3.0",
+      "vendor": "Veltrix",
+      "description": "Manage OpenCTI (open-source cyber threat-intelligence platform) as code. Author threat-intel configuration — data-marking definitions (TLP / PAP / statement), labels, RBAC groups and TAXII2 ingestion feeds — and drive it through the Security-as-Code pipeline: validate, deploy, health check, drift detection and rollback, over the OpenCTI GraphQL API (HTTPS, Bearer token, self-signed tolerated), with BYOL infrastructure provisioning for the OpenCTI stack (platform + workers + Elasticsearch + Redis + RabbitMQ + object storage).",
+      "category": "Threat Intelligence",
+      "icon": "🔭",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/opencti",
+      "available": true,
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/opencti-v0.3.0/opencti.zip",
+      "sha256": "8233cf099310c88e6854bad9ad49367ebbe1c2a4765844d8483ab98ed586fa0b",
+      "sizeBytes": 212693,
+      "publishedAt": "2026-08-01T16:27:39.031Z",
+      "releaseNotes": "## 0.3.0 — 2026-08-01\n\nBYOL infrastructure hosting — provision and manage a dedicated OpenCTI stack\n(bring-your-own-license) from an **Infrastructure** console, then run its\nlifecycle. Adapted from the MISP BYOL subsystem, but **node_tiers-native**: the\nper-tier node counts + placement are stored ONLY in a `node_tiers` JSONB column\n(no legacy indexer/search-head columns).\n\n- **Three user-scalable node tiers** — Platform nodes (OpenCTI GraphQL/web),\n  Ingest workers, and Search nodes (Elasticsearch / OpenSearch). A distributed\n  search tier requires ≥3 nodes for a real cluster (enforced server-side); the\n  platform tier is ALB-fronted (OpenCTI web/GraphQL on 4000).\n- **Fixed supporting services** added to every distributed plan automatically —\n  Redis (cache / sessions / stream), RabbitMQ (worker broker) and MinIO / S3\n  object storage — plus the foundation (network, load balancer, DNS, TLS,\n  secrets).\n- **Declarative `infra/spec.ts`** — composes the same generic OpenTofu modules as\n  the other BYOL apps by declaring OpenCTI's ports/roles + an S3 object-storage\n  bucket. No tool-specific HCL.\n- **`/byol` routes** — list / get / create / update / delete / plan / deploy /\n  destroy / start-stop-restart / resources / deployments, plus usage metering\n  (`/byol/usage`, `/byol/usage/collect`). Terraform-style plan diff, canonical\n  tenant/cost tags and a per-stack subnet reservation on deploy.\n- **App-owned schema** (`opencti_`-prefixed) — infrastructure + resource plan +\n  deployment runs/steps (migration 002) and the state-event + daily usage ledger\n  for node-hours billing (migration 003).\n- **Permissions** — new `byol` (read/write/delete) and `usage` (read/write) app\n  resources.\n\n> Stack sizing / ports are a reasonable default — **verify against current\n> OpenCTI deployment guidance** (docs.opencti.io) before treating them as\n> production-grade. The ALB health-check path (`/`) and the search-tier minimum\n> (≥3) are flagged in-code.",
+      "releasedAt": "2026-08-01T00:00:00.000Z"
+    },
+    {
       "appId": "palo-alto-panorama",
       "name": "Palo Alto Panorama",
       "version": "1.2.0",
@@ -645,6 +681,24 @@
       "publishedAt": "2026-07-29T19:37:52.259Z",
       "releaseNotes": "## 1.3.0 — 2026-07-22\n\n### Added\n- **Drift attribution (\"who changed it + when\").** When a configuration drifts\n  from its deployed state, every drift now carries a best-effort `actor` —\n  resolved from the Tenable **Audit Log** (`GET /audit-log/v1/events`) by\n  correlating recent events to the drifted object by target id/name. The last\n  change (create/update/delete) wins, falling back to the most recent event;\n  the mapped actor records the name/email, when it happened, and the action.\n  Attribution is **strictly best-effort**: it never throws, never blocks a drift\n  check, and yields nothing when the audit log is inaccessible (it needs an\n  admin API key and returns 403 otherwise), empty, or uncorrelated. The Veltrix\n  connection identity is excluded so our own deploys are never mis-attributed as\n  a manual change. Wired into all 18 configuration types' drift detection.\n\n### Changed\n- Grouped the **Configurations** sidebar into 7 collapsible sections — Scanning,\n  Assets, Credentials & Connectors, Organization, Agents, Findings, and Access\n  Control — so all 18 configuration types stay navigable. Sections collapse by\n  default, remember whether you left them open, and always expand the one you're\n  currently working in.",
       "releasedAt": "2026-07-22T00:00:00.000Z"
+    },
+    {
+      "appId": "velociraptor",
+      "name": "Velociraptor",
+      "version": "0.3.0",
+      "vendor": "Veltrix",
+      "description": "Manage Velociraptor (open-source endpoint DFIR / hunting platform) as code. Author custom VQL artifacts, client + server event monitoring, and GUI users / roles, and drive them through the Security-as-Code pipeline — validate, deploy, health check, drift detection and rollback — over the Velociraptor gRPC API (mutual TLS), executing VQL against the server, with BYOL infrastructure provisioning for the Velociraptor stack (frontends + shared MinIO datastore).",
+      "category": "EDR",
+      "icon": "🦖",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/velociraptor",
+      "available": true,
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/velociraptor-v0.3.0/velociraptor.zip",
+      "sha256": "2e9b757b04dcf016e0645d9d58d09c2e28a3bcd658ed5a293ee2864a52c84f5e",
+      "sizeBytes": 223932,
+      "publishedAt": "2026-08-01T16:27:39.042Z",
+      "releaseNotes": "## 0.3.0 — 2026-08-01\n\nBYOL infrastructure hosting for the Velociraptor server stack.\n\n- **BYOL infrastructure** — provision and manage a dedicated Velociraptor server\n  (bring-your-own-license) from an **Infrastructure** page (wraps the SDK\n  `ByolInfrastructureManager`): define the topology, deploy to a Veltrix-hosted or\n  your own cloud account (BYOC), then run its lifecycle (plan → deploy → destroy,\n  start/stop/restart) from the deployment console.\n- **node_tiers-native topology** — two user-scalable tiers stored generically in a\n  `node_tiers` JSONB column (`[{key,count,placement}]`), no legacy count columns:\n  - **Frontend nodes** (`velociraptor-server`) — the Velociraptor server (GUI 8889\n    + frontend 8000 + gRPC API 8001), ALB-fronted and horizontally scalable.\n  - **Datastore nodes (MinIO)** (`datastore`) — the shared S3/MinIO file+datastore\n    backend every frontend reads/writes.\n  Plus the fixed foundation (network, load balancer, DNS, TLS, secrets) — see\n  `infra/spec.ts` and `lib/byolTopology.ts`.\n- **App-owned provisioning + metering** — `/byol` routes derive a Terraform-style\n  resource plan from the stack topology, persist it, track deployment runs + steps,\n  and emit provisioning events for downstream workers; a lifecycle state log feeds\n  daily node-hours usage metering (`/byol/usage`). Tables are `velociraptor_`-owned\n  (migrations `002`/`003`).\n\n> The Velociraptor ports (GUI 8889 / frontend 8000 / gRPC API 8001), the GUI\n> health-check path, and the MinIO datastore sizing are reasonable defaults —\n> verify them against a live Velociraptor deployment before production use.",
+      "releasedAt": "2026-08-01T00:00:00.000Z"
     },
     {
       "appId": "wazuh",
