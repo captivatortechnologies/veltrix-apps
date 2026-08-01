@@ -2,6 +2,40 @@
 
 All notable changes to the SonarQube app are documented here.
 
+## 0.3.0 — 2026-08-01
+
+**BYOL infrastructure hosting** — provision and manage a dedicated SonarQube stack
+(bring-your-own-license) end to end from the new **Infrastructure** page, following
+the node_tiers-native model. Define the topology, deploy to a Veltrix-hosted or your
+own cloud account (BYOC), then manage its lifecycle here.
+
+- **Two scalable node tiers** — Application nodes (SonarQube web server + compute
+  engine, the ALB targets on HTTP 9000) and Search nodes (Elasticsearch). Counts +
+  cluster placement are authored per-tier and persisted ONLY in a `node_tiers` JSONB
+  column (no legacy indexer/search-head columns). A single deployment collapses to one
+  all-in-one node; a distributed (Data Center Edition) stack expands each tier, and a
+  distributed Elasticsearch search cluster is enforced at ≥3 nodes for a real quorum.
+- **Fixed supporting infra** — a single external PostgreSQL database plus the
+  foundation (network, load balancer, DNS, TLS, secrets), added to the resource plan
+  automatically. Multi-site placement (AZ or, for BYOC, region) spreads scalable-tier
+  nodes across sites.
+- **Deployment console** — the shared SDK `<ByolInfrastructureManager>` over app-owned
+  `/byol` routes: list/create/edit stacks, a Terraform-style plan diff
+  (add/change/destroy) enriched with the reserved subnet + canonical tenant/cost tags,
+  Apply/Destroy with an activity timeline, and start/stop/restart lifecycle.
+- **Usage metering** — an append-only lifecycle state log + a daily idempotent
+  node-hours ledger (foundation for usage-based cloud billing), collected via
+  `POST /byol/usage/collect` and read via `GET /byol/usage`.
+- **Declarative InfraSpec** (`infra/spec.ts`) — composes the same generic OpenTofu
+  modules as every other BYOL app purely by declaring data: HTTP front door on 9000,
+  Elasticsearch 9001 and PostgreSQL 5432 as peer/self rules, WAF on, health via
+  `/api/system/status`.
+
+> New app-owned tables are all `sonarqube_`-prefixed (`sonarqube_byol_*`). Ports and
+> the Data Center Edition topology (app/search/PostgreSQL split) are reasonable
+> defaults — verify against your SonarQube deployment guidance
+> (docs.sonarsource.com) before treating them as production-grade.
+
 ## 0.2.0 — 2026-08-01
 
 Three new config types, each driven through the full Security-as-Code pipeline

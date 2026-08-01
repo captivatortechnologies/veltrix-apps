@@ -1,6 +1,6 @@
 id: keycloak
 name: Keycloak
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Keycloak (open-source Identity and Access Management) as code. Author
@@ -8,7 +8,9 @@ description: >
   through the Security-as-Code pipeline — validate, deploy, health check, drift
   detection and rollback — over the Keycloak Admin REST API (HTTPS, self-signed
   tolerated). Authenticates as an admin service-account client (OAuth2
-  client-credentials); an admin username/password grant is also supported.
+  client-credentials); an admin username/password grant is also supported, with
+  BYOL infrastructure provisioning for the Keycloak stack (clustered Keycloak +
+  PostgreSQL).
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/keycloak
@@ -40,6 +42,16 @@ permissions:
     - resource: identity-providers
       actions: [read, write, delete]
       description: Manage Keycloak identity provider instances (OIDC / SAML / social)
+    - resource: byol
+      actions: [read, write, delete]
+      description: Manage BYOL Keycloak stack infrastructure
+    - resource: usage
+      actions: [read, write]
+      description: Read BYOL infrastructure usage metering
+
+database:
+  migrations: migrations
+  tablePrefix: keycloak_
 
 pipeline:
   configurationTypes:
@@ -140,6 +152,14 @@ client:
       label: Setup Guide
       icon: book
       nav: sidebar
+    # BYOL stack infrastructure — Config nav group. Wraps the SDK
+    # <ByolInfrastructureManager> over this app's app-owned /byol routes.
+    - path: /byol
+      component: BYOLPage
+      label: Infrastructure
+      icon: server
+      nav: sidebar
+      group: config
     # Connections — Settings nav group. Pairs the Keycloak realm (component) with
     # the admin service-account credential, with a per-row connectivity test.
     - path: /connections

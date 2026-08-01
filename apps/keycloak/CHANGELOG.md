@@ -2,6 +2,40 @@
 
 All notable changes to the Keycloak app are documented here.
 
+## 0.3.0 — 2026-08-01
+
+BYOL infrastructure hosting — provision and manage a dedicated Keycloak cluster
+(bring-your-own-license) from Veltrix, mirroring the deployment console the other
+BYOL apps ship.
+
+- **Infrastructure page** — a new sidebar page (Config group) wraps the SDK
+  `<ByolInfrastructureManager>` over this app's app-owned `/byol` routes: define
+  the stack topology, preview a Terraform-style plan (add/change/destroy), deploy
+  to a Veltrix-hosted or your own cloud account (BYOC), then manage its lifecycle
+  (start / stop / restart / destroy) with a live resource plan + activity
+  timeline.
+- **Topology** — one user-scalable node tier, **Keycloak nodes** (`server`, min 1,
+  Infinispan-clustered, behind the load balancer on HTTP 8080 / HTTPS 8443), plus
+  a fixed single **PostgreSQL** datastore and the foundation (network, load
+  balancer, DNS, TLS, secrets). A single deployment collapses to one all-in-one
+  Keycloak node with PostgreSQL; a distributed deployment clusters the Keycloak
+  servers against a dedicated PostgreSQL. **node_tiers-native**: node counts +
+  cluster placement are persisted ONLY in a `node_tiers` JSONB column — there are
+  no legacy indexer/search-head count columns.
+- **Declarative infra** — `infra/spec.ts` declares the Keycloak stack (ports,
+  ALB front door, DNS prefixes, WAF) as data for the SAME generic OpenTofu
+  modules the other apps use — no tool-specific HCL.
+- **Usage metering** — an append-only lifecycle state-event log + a daily,
+  idempotent metered ledger (node-hours) is the foundation for usage-based cloud
+  billing, exposed over `/byol/usage` and a `/byol/usage/collect` collector.
+- **Schema** — two app-owned, `keycloak_`-prefixed migrations add the BYOL
+  infrastructure, resource-plan, deployment-run/step, state-event and usage
+  tables. New `byol` (read/write/delete) and `usage` (read/write) app permissions.
+
+> Keycloak stack sizing (ports, clustering, health) is a reasonable default —
+> verify against the official Keycloak server / high-availability guides
+> (www.keycloak.org) before treating it as production-grade.
+
 ## 0.2.0 — 2026-08-01
 
 Access management as code — three new config types, each with validate / deploy

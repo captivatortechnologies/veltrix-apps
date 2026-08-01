@@ -92,8 +92,7 @@ them in production:
 ## Roadmap
 
 - **BYOL infrastructure hosting** — provision and manage a Keycloak stack
-  (Keycloak + database) from Veltrix, mirroring the BYOL console other apps ship.
-  **Planned for a later wave** — this v0.1.0 foundation is API-only (no database /
-  migrations).
-- More config types: realm roles, client scopes, identity providers, groups,
-  authentication flows.
+  (clustered Keycloak + PostgreSQL) from Veltrix, mirroring the BYOL console other
+  apps ship. **Shipped in 0.3.0** — Infrastructure page, `/byol` routes, app-owned
+  migrations and usage metering (see the [changelog](CHANGELOG.md)).
+- More config types: client scopes, authentication flows, sub-groups.

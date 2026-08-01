@@ -1,13 +1,14 @@
 id: sonarqube
 name: SonarQube
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage SonarQube as code. Author quality gates, quality profiles, webhooks and
   permission templates — and drive them through the Security-as-Code pipeline
   (validate, deploy, health check, drift detection and rollback) over the SonarQube
-  Web API (token authentication, self-signed TLS tolerated). BYOL infrastructure
-  hosting for a SonarQube server is planned for a later release.
+  Web API (token authentication, self-signed TLS tolerated), with BYOL
+  infrastructure provisioning for the SonarQube stack (SonarQube web/compute +
+  Elasticsearch search + PostgreSQL).
 category: COMPLIANCE
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/sonarqube
@@ -39,6 +40,16 @@ permissions:
     - resource: permission-templates
       actions: [read, write, delete]
       description: Manage SonarQube permission templates and their group grants (create / edit / delete)
+    - resource: byol
+      actions: [read, write, delete]
+      description: Manage BYOL SonarQube stack infrastructure
+    - resource: usage
+      actions: [read, write]
+      description: Read BYOL infrastructure usage metering
+
+database:
+  migrations: migrations
+  tablePrefix: sonarqube_
 
 pipeline:
   configurationTypes:
@@ -151,6 +162,14 @@ client:
       label: Setup Guide
       icon: book
       nav: sidebar
+    # BYOL stack infrastructure — Config nav group. Wraps the SDK
+    # <ByolInfrastructureManager> over this app's app-owned /byol routes.
+    - path: /byol
+      component: BYOLPage
+      label: Infrastructure
+      icon: server
+      nav: sidebar
+      group: config
     # Connections — Settings nav group. Pairs a SonarQube server (component) with
     # the API token used to reach it, with a per-row connectivity test.
     - path: /connections

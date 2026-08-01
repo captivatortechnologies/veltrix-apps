@@ -1,6 +1,6 @@
 id: thehive
 name: TheHive
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage TheHive (open-source Security Incident Response Platform / SOAR) as code.
@@ -8,6 +8,8 @@ description: >
   validate, deploy, health check, drift detection and rollback — over the TheHive
   REST API (Bearer API key, self-signed tolerated). Primary target is TheHive 5
   (StrangeBee, /api/v1); TheHive 4 (/api/case/template) is a flagged alternate.
+  Also provides BYOL infrastructure provisioning for a self-managed TheHive 5
+  stack (application + Cassandra + Elasticsearch + object storage).
 category: SOAR
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/thehive
@@ -39,6 +41,16 @@ permissions:
     - resource: users
       actions: [read, write, delete]
       description: Manage TheHive users (add / edit / delete)
+    - resource: byol
+      actions: [read, write, delete]
+      description: Manage BYOL TheHive stack infrastructure
+    - resource: usage
+      actions: [read, write]
+      description: Read BYOL infrastructure usage metering
+
+database:
+  migrations: migrations
+  tablePrefix: thehive_
 
 pipeline:
   configurationTypes:
@@ -139,6 +151,14 @@ client:
       label: Setup Guide
       icon: book
       nav: sidebar
+    # BYOL stack infrastructure — Config nav group. Wraps the SDK
+    # <ByolInfrastructureManager> over this app's app-owned /byol routes.
+    - path: /byol
+      component: BYOLPage
+      label: Infrastructure
+      icon: server
+      nav: sidebar
+      group: config
     # Connections — Settings nav group. Pairs the TheHive instance (component) with
     # the API key (credential), with a per-row connectivity test.
     - path: /connections
