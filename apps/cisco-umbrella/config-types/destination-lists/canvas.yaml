@@ -1,0 +1,79 @@
+# =============================================================================
+# Canvas Template — Cisco Umbrella Destination Lists
+#
+# Declares ONE Umbrella destination list — the item. Users add as many as they
+# need. Umbrella lists are addressed by an opaque numeric id (no lookup-by-name),
+# so the app matches a declared list to a live one by NAME and stores the id from
+# the deploy for rename-safety on the next deploy. A list's access (allow/block)
+# and global scope are set at create time and are immutable afterward; the list's
+# destinations are synced to exactly what is declared. Reconcile deletes lists
+# this app created but no longer declares.
+#
+# Field keys must match what config-types/destination-lists/validate.ts checks.
+# =============================================================================
+
+id: "cisco-umbrella-destination-lists"
+name: "Destination Lists Configuration"
+toolType: "cisco-umbrella"
+entityType: "destination-lists"
+description: "Define Cisco Umbrella destination lists (allow/block lists of domains, URLs and IPs) as code through the Umbrella API."
+
+item:
+  label: "Destination List"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "List"
+      icon: "list"
+      description: "List identity and enforcement"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 50
+          helpText: >
+            The destination list's name. Must be unique within this canvas — the
+            app matches live Umbrella lists on it (Umbrella has no lookup-by-name,
+            so the list id is stored after deploy for rename-safety).
+
+        - key: "access"
+          label: "Access"
+          fieldType: "select"
+          required: true
+          defaultValue: "block"
+          options:
+            - label: "Block"
+              value: "block"
+            - label: "Allow"
+              value: "allow"
+          helpText: >
+            Whether Umbrella blocks or allows the destinations in this list. Set
+            at create time and immutable afterward — changing it needs a new list.
+
+        - key: "isGlobal"
+          label: "Global list"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: >
+            Whether this is a global destination list applied to all policies.
+            Set at create time and immutable afterward.
+
+    - name: "Destinations"
+      icon: "globe"
+      description: "The domains, URLs and IPs in the list"
+      fields:
+        - key: "destinations"
+          label: "Destinations"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            One destination per line — a domain (example.com), a URL
+            (example.com/path) or an IPv4 address / CIDR (10.0.0.0/24). URLs are
+            only supported on block lists; IPv4 addresses only on allow lists;
+            domains work on both. Up to 500 per list. The list is synced to
+            exactly these values on deploy.

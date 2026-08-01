@@ -1,0 +1,15 @@
+{
+  "name": "veltrix-app-sysdig-secure",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Veltrix app: manage Sysdig Secure custom Falco (threat-detection) rules as code over the Sysdig Secure REST API",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@veltrixsecops/app-sdk": "^3.6.0",
+    "fastify": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}

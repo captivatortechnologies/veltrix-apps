@@ -1,0 +1,80 @@
+# =============================================================================
+# Canvas Template — Cybereason Custom Reputations
+#
+# Declares ONE custom reputation (the item). Users add as many as they need.
+# Field keys must match config-types/reputations/validate.ts. Applied via the
+# Cybereason REST API (POST /rest/classification/update). The `key` (hash /
+# domain / IP value) is the reputation's stable identity used for upsert + drift.
+# =============================================================================
+
+id: "cybereason-reputations"
+name: "Custom Reputations"
+toolType: "cybereason"
+entityType: "reputations"
+description: "Manage Cybereason custom reputations — allowlist / blocklist for file hashes, domains and IPs — via the Cybereason REST API"
+
+item:
+  label: "Reputation"
+  identityField: "key"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Indicator"
+      icon: "crosshair"
+      description: "What to classify"
+      fields:
+        - key: "keyType"
+          label: "Key Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "file"
+          options:
+            - label: "File hash (MD5 / SHA-1)"
+              value: "file"
+            - label: "Domain"
+              value: "domain"
+            - label: "IPv4 address"
+              value: "ipv4"
+          helpText: "Cybereason infers the type from the key; file reputations key on an MD5 or SHA-1 hash (SHA-256 is not supported)"
+
+        - key: "key"
+          label: "Key"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 253
+          helpText: "The file hash (MD5/SHA-1), domain, or IPv4 address to classify. Used as the reputation's stable identity for upsert and drift."
+
+    - name: "Classification"
+      icon: "shield"
+      description: "How Cybereason treats a match"
+      fields:
+        - key: "reputation"
+          label: "Reputation"
+          fieldType: "select"
+          required: true
+          defaultValue: "blacklist"
+          options:
+            - label: "Allowlist (whitelist)"
+              value: "whitelist"
+            - label: "Blocklist (blacklist)"
+              value: "blacklist"
+          helpText: "Allowlist trusts the item; blocklist flags it. Manually-set reputations take priority over Cybereason's own detection."
+
+        - key: "preventExecution"
+          label: "Prevent Execution"
+          fieldType: "checkbox"
+          defaultValue: false
+          visibleWhen:
+            field: "keyType"
+            equals: "file"
+          helpText: "Block execution via Application Control. Only applies to a blocklisted file hash — ignored for allowlist entries, domains and IPs."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this reputation is set — recorded for audit"

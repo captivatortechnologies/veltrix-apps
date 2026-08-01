@@ -1,0 +1,112 @@
+id: thehive
+name: TheHive
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage TheHive (open-source Security Incident Response Platform / SOAR) as code.
+  Author case templates and drive them through the Security-as-Code pipeline —
+  validate, deploy, health check, drift detection and rollback — over the TheHive
+  REST API (Bearer API key, self-signed tolerated). Primary target is TheHive 5
+  (StrangeBee, /api/v1); TheHive 4 (/api/case/template) is a flagged alternate.
+category: SOAR
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/thehive
+icon: "🐝"
+
+platform:
+  minVersion: "1.0.0"
+
+# TheHive's brand amber. Assets are placeholders until the official lockup is added.
+branding:
+  primaryColor: "#f9a825"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: case-templates
+      actions: [read, write, delete]
+      description: Manage TheHive case templates (add / edit / delete)
+
+pipeline:
+  configurationTypes:
+    - id: case-templates
+      group: "Incident Response"
+      name: Case Templates
+      description: TheHive case templates — display name, title prefix, severity, TLP/PAP, tags, description and prefilled tasks — applied over the TheHive REST API (Bearer API key)
+      canvasTemplate: config-types/case-templates/canvas.yaml
+      defaultConfig: config-types/case-templates/defaults.yaml
+      handlers:
+        validate: config-types/case-templates/validate
+        deploy: config-types/case-templates/deploy
+        rollback: config-types/case-templates/rollback
+        healthCheck: config-types/case-templates/healthCheck
+        driftDetect: config-types/case-templates/driftDetect
+        getStatus: config-types/case-templates/getStatus
+      targets:
+        componentTypes: [thehive, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/thehive
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the TheHive instance (component) with
+    # the API key (credential), with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies a Connection's endpoint + API key
+# against the TheHive REST API (GET /api/v1/user/current).
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: thehive_port
+    type: number
+    label: TheHive Port
+    description: Port for the TheHive web UI / REST API (443 behind a proxy, or 9000 direct)
+    default: 9000
+    required: false
+  - key: verify_tls
+    type: boolean
+    label: Verify TLS certificate
+    description: >
+      Enforce a valid TLS certificate on the TheHive endpoint. Off by default —
+      TheHive is commonly fronted by a self-signed certificate.
+    default: false
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated

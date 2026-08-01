@@ -1,0 +1,60 @@
+# =============================================================================
+# Canvas Template — Sumo Logic Field Extraction Rules
+#
+# Declares ONE Field Extraction Rule (the item). Users add as many as they need.
+# Field keys must match config-types/field-extraction-rules/validate.ts. Applied
+# via the Sumo Logic Management API (/api/v1/extractionRules).
+#   API: https://www.sumologic.com/help/docs/api/field-extraction-rules/
+# =============================================================================
+
+id: "sumo-logic-field-extraction-rules"
+name: "Field Extraction Rules"
+toolType: "sumo-logic"
+entityType: "field-extraction-rules"
+description: "Manage Sumo Logic Field Extraction Rules — name, scope, parse expression and enabled state — via the Management API"
+
+item:
+  label: "Field Extraction Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Rule"
+      icon: "filter"
+      description: "Rule identity and where it runs"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable rule name shown in Sumo Logic. Used as the rule's stable identity for upsert and drift."
+
+        - key: "scope"
+          label: "Scope"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 1024
+          helpText: "Where the rule runs — a metadata search before the first pipe, e.g. _sourceCategory=prod/nginx"
+
+    - name: "Parsing"
+      icon: "code"
+      description: "What the rule extracts and whether it runs"
+      fields:
+        - key: "parseExpression"
+          label: "Parse Expression"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 8192
+          helpText: "The parse expression describing the fields to extract, e.g. parse \"[client=*]\" as client_ip"
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether Sumo Logic applies this rule at ingest time"

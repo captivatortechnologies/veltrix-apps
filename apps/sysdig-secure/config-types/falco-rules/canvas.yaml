@@ -1,0 +1,120 @@
+# =============================================================================
+# Canvas Template — Sysdig Secure Falco Rules
+#
+# Declares ONE custom Falco (threat-detection) rule (the item). Users add as
+# many as they need. Field keys must match config-types/falco-rules/validate.ts.
+# Applied via the Sysdig Secure REST API (/api/secure/rules).
+# =============================================================================
+
+id: "sysdig-secure-falco-rules"
+name: "Falco Rules"
+toolType: "sysdig-secure"
+entityType: "falco-rules"
+description: "Manage Sysdig Secure custom Falco rules — name, condition, output, priority and source — via the Sysdig Secure REST API (/api/secure/rules)"
+
+item:
+  label: "Falco Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Rule"
+      icon: "shield"
+      description: "Rule identity and classification"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique rule name — the stable identity used for upsert and drift, e.g. Unexpected outbound connection"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this rule detects and why — recorded in Sysdig and for audit"
+
+        - key: "source"
+          label: "Source"
+          fieldType: "select"
+          required: true
+          defaultValue: "syscall"
+          options:
+            - label: "Syscall (workload runtime)"
+              value: "syscall"
+            - label: "Kubernetes Audit"
+              value: "k8s_audit"
+            - label: "AWS CloudTrail"
+              value: "aws_cloudtrail"
+            - label: "GCP Audit Log"
+              value: "gcp_auditlog"
+            - label: "Azure Platform Logs"
+              value: "azure_platformlogs"
+            - label: "Okta"
+              value: "okta"
+            - label: "GitHub"
+              value: "github"
+            - label: "AWS GuardDuty"
+              value: "guardduty"
+          helpText: "The event source the rule's condition runs against"
+
+        - key: "priority"
+          label: "Priority"
+          fieldType: "select"
+          required: true
+          defaultValue: "WARNING"
+          options:
+            - label: "Emergency"
+              value: "EMERGENCY"
+            - label: "Alert"
+              value: "ALERT"
+            - label: "Critical"
+              value: "CRITICAL"
+            - label: "Error"
+              value: "ERROR"
+            - label: "Warning"
+              value: "WARNING"
+            - label: "Notice"
+              value: "NOTICE"
+            - label: "Informational"
+              value: "INFO"
+            - label: "Debug"
+              value: "DEBUG"
+          helpText: "Severity emitted when the rule fires"
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "When on, the rule is present in the custom rule library. When off, this app removes it (Sysdig has no per-rule disable; disabled = absent)."
+
+    - name: "Detection"
+      icon: "code"
+      description: "The Falco condition and alert output"
+      fields:
+        - key: "condition"
+          label: "Condition"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 8000
+          helpText: "Falco condition expression (Sysdig filter syntax), e.g. evt.type=execve and proc.name=nc"
+
+        - key: "output"
+          label: "Output"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 2000
+          helpText: "Alert output template, e.g. Netcat run in container (user=%user.name command=%proc.cmdline)"
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          required: false
+          helpText: "Optional labels for grouping (e.g. mitre_execution, network) — comma or newline separated"

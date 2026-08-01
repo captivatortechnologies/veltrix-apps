@@ -1,0 +1,6 @@
+# Defaults for a new Keycloak client item. The operator fills in the clientId;
+# the rest seed a sensible confidential OIDC client with standard flow enabled.
+protocol: "openid-connect"
+enabled: true
+publicClient: false
+standardFlowEnabled: true

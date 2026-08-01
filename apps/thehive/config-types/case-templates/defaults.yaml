@@ -1,0 +1,6 @@
+# Defaults for a new case-template item. The select fields seed sane TheHive
+# defaults (severity Medium, TLP/PAP AMBER); the operator fills in the name,
+# description and tasks. Keys are FLAT (item form) and must match canvas.yaml.
+severity: "2"
+tlp: "2"
+pap: "2"

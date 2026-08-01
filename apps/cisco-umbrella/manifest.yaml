@@ -1,0 +1,107 @@
+id: cisco-umbrella
+name: Cisco Umbrella
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Cisco Umbrella (Secure Internet Gateway / DNS-layer security) policy
+  configuration as code through the Umbrella API — Destination Lists (allow /
+  block lists of domains, URLs and IPs) — with validation, drift detection and
+  rollback handled by the Veltrix Security-as-Code pipeline. Authenticates with
+  the Umbrella API OAuth2 client-credentials flow (API key + secret) against the
+  fixed base URL https://api.umbrella.com.
+category: NETWORK
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cisco-umbrella
+icon: "☂️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Cisco brand cyan.
+branding:
+  primaryColor: "#00bceb"
+  accentColor: "#0d274d"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: destination-lists
+      actions: [read, write, delete]
+      description: Manage Cisco Umbrella destination lists (allow/block lists of domains, URLs and IPs) via the Umbrella API
+
+pipeline:
+  configurationTypes:
+    - id: destination-lists
+      name: Destination Lists
+      description: >
+        Umbrella destination lists — an allow or block list of domains, URLs and
+        IPs applied over the Umbrella API (/policies/v2/destinationlists). Lists
+        are matched by name and their list id is stored for rename-safety; the
+        list's destinations are synced to exactly what is declared; access
+        (allow/block) and global scope are set at create time (immutable
+        afterward); reconcile only deletes lists this app created.
+      canvasTemplate: config-types/destination-lists/canvas.yaml
+      defaultConfig: config-types/destination-lists/defaults.yaml
+      handlers:
+        validate: config-types/destination-lists/validate
+        deploy: config-types/destination-lists/deploy
+        rollback: config-types/destination-lists/rollback
+        healthCheck: config-types/destination-lists/healthCheck
+        driftDetect: config-types/destination-lists/driftDetect
+        getStatus: config-types/destination-lists/getStatus
+      targets:
+        componentTypes: [cisco-umbrella]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/cisco-umbrella
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: mints an OAuth2 token and reads the
+# destination lists collection against the Umbrella API.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Umbrella API calls.
+    default: 30
+    required: false

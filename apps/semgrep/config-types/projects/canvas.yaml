@@ -1,0 +1,63 @@
+# =============================================================================
+# Canvas Template — Semgrep Project Settings
+#
+# Declares the settings of ONE Semgrep project (the item). Users add as many as
+# they need. The project NAME is the stable identity used to update settings and
+# assert drift. Field keys must match config-types/projects/validate.ts and
+# _shared.ts. Applied over the Semgrep public REST API v1 (Bearer token, base URL
+# https://semgrep.dev/api/v1).
+#
+# IMPORTANT: the project must ALREADY exist in Semgrep — projects are created by
+# connecting a repository and running a scan, NOT via the API. This type updates
+# an existing project's settings in place; it never creates or deletes a project.
+# =============================================================================
+
+id: "semgrep-projects"
+name: "Semgrep Project Settings"
+toolType: "semgrep"
+entityType: "projects"
+description: "Manage the settings of an existing Semgrep project — its primary branch and tag set — via the Semgrep public REST API v1."
+
+item:
+  label: "Project"
+  identityField: "projectName"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Project"
+      icon: "git-branch"
+      description: "Which project, and the branch Semgrep treats as primary"
+      fields:
+        - key: "projectName"
+          label: "Project Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 300
+          helpText: "The Semgrep project name — the repository as a path, e.g. my-org/my-repo. The project must already exist in Semgrep (created by connecting a repo and scanning). Used as the stable identity for updates and drift."
+
+        - key: "primaryBranch"
+          label: "Primary Branch"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 300
+          helpText: "The branch Semgrep treats as primary, as a full ref (e.g. refs/heads/main), or \"None\" to always follow the SCM default branch. Leave blank to leave the primary branch unmanaged."
+
+    - name: "Tags"
+      icon: "tag"
+      description: "Project tags used for grouping and policy scoping"
+      fields:
+        - key: "manageTags"
+          label: "Manage tags declaratively"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "When on, the Tags below become the project's exact tag set — tags not listed are removed, and new tags are created and associated automatically. Turn off to leave this project's tags untouched (e.g. when you only want to set the primary branch)."
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          required: false
+          helpText: "The project's desired tag set. Reconciled onto the project (Semgrep creates any that do not yet exist). Only applied when \"Manage tags declaratively\" is on."

@@ -1,0 +1,87 @@
+# =============================================================================
+# Canvas Template — Keycloak Clients
+#
+# Declares ONE Keycloak client (the item). Users add as many as they need.
+# Field keys must match config-types/clients/validate.ts. Applied via the
+# Keycloak Admin REST API (/admin/realms/{realm}/clients). The clientId is the
+# client's stable identity used for upsert and drift.
+# =============================================================================
+
+id: "keycloak-clients"
+name: "Clients"
+toolType: "keycloak"
+entityType: "clients"
+description: "Manage Keycloak OIDC/SAML clients — clientId, name, protocol, enabled state, public/confidential, standard flow and redirect URIs — via the Keycloak Admin REST API"
+
+item:
+  label: "Client"
+  identityField: "clientId"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "key"
+      description: "Client identity and protocol"
+      fields:
+        - key: "clientId"
+          label: "Client ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[^\\s]+$"
+            maxLength: 255
+          helpText: "The client identifier (e.g. web-app). Unique in the realm; used as the stable identity for upsert and drift."
+
+        - key: "name"
+          label: "Display name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Human-readable name shown in the Keycloak admin console"
+
+        - key: "protocol"
+          label: "Protocol"
+          fieldType: "select"
+          required: true
+          defaultValue: "openid-connect"
+          options:
+            - label: "OpenID Connect"
+              value: "openid-connect"
+            - label: "SAML"
+              value: "saml"
+          helpText: "Client protocol"
+
+    - name: "Access"
+      icon: "settings"
+      description: "How the client authenticates and where it may redirect"
+      fields:
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the client is enabled in Keycloak"
+
+        - key: "publicClient"
+          label: "Public client"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "On = public client (no client secret, e.g. SPA/native). Off = confidential client."
+
+        - key: "standardFlowEnabled"
+          label: "Standard flow (authorization code)"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Enable the OAuth2 authorization code flow for this client"
+
+        - key: "redirectUris"
+          label: "Valid redirect URIs"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 4000
+          helpText: "One redirect URI per line, e.g. https://app.example.com/* — required when standard flow is enabled"

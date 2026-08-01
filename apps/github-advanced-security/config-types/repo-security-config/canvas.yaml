@@ -1,0 +1,84 @@
+# =============================================================================
+# Canvas Template — GitHub Repository Security
+#
+# Declares ONE repository's GitHub Advanced Security posture (the item). Users add
+# as many repositories as they need. Field keys must match
+# config-types/repo-security-config/validate.ts + _shared.ts. Applied over the
+# GitHub REST API:
+#   - advanced_security / secret_scanning / secret_scanning_push_protection →
+#     PATCH /repos/{owner}/{repo} (security_and_analysis)
+#   - dependabot_security_updates → PUT|DELETE /repos/{owner}/{repo}/automated-security-fixes
+#   - code_scanning_default_setup → PATCH /repos/{owner}/{repo}/code-scanning/default-setup
+# =============================================================================
+
+id: "github-repo-security-config"
+name: "Repository Security"
+toolType: "github-advanced-security"
+entityType: "repo-security-config"
+description: "Enable or disable GitHub Advanced Security features per repository via the GitHub REST API"
+
+item:
+  label: "Repository"
+  identityField: "repository"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Repository"
+      icon: "shield"
+      description: "The repository this security posture applies to"
+      fields:
+        - key: "repository"
+          label: "Repository (owner/repo)"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            pattern: "^[^/\\s]+/[^/\\s]+$"
+          helpText: "The repository full name, e.g. octo-org/octo-repo. Used as the stable identity for drift and rollback."
+
+    - name: "Advanced Security"
+      icon: "lock"
+      description: "GitHub Advanced Security features applied on the repository (security_and_analysis)"
+      fields:
+        - key: "advanced_security"
+          label: "GitHub Advanced Security"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Enable GitHub Advanced Security. Required before secret scanning / code scanning can be enabled on a PRIVATE repository (public repos have these for free)."
+
+        - key: "secret_scanning"
+          label: "Secret scanning"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Detect secrets committed to the repository."
+
+        - key: "secret_scanning_push_protection"
+          label: "Secret scanning push protection"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Block pushes that contain supported secrets. Requires secret scanning."
+
+    - name: "Dependabot & Code Scanning"
+      icon: "check-circle"
+      description: "Dependabot security updates and CodeQL default setup"
+      fields:
+        - key: "dependabot_security_updates"
+          label: "Dependabot security updates"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Open automated pull requests to fix vulnerable dependencies (automated security fixes)."
+
+        - key: "code_scanning_default_setup"
+          label: "Code scanning default setup (CodeQL)"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Enable CodeQL default setup. Languages are auto-detected. Requires GitHub Advanced Security on a private repository."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this security posture is configured — recorded for audit."

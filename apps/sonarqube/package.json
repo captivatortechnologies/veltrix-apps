@@ -1,0 +1,15 @@
+{
+  "name": "veltrix-app-sonarqube",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Veltrix app: manage SonarQube quality gates as code over the SonarQube Web API",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@veltrixsecops/app-sdk": "^3.7.0",
+    "fastify": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}

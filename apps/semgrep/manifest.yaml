@@ -1,0 +1,128 @@
+id: semgrep
+name: Semgrep
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Semgrep AppSec Platform configuration as code. Author the settings of
+  your Semgrep projects — the primary branch Semgrep scans and the project tags
+  used for grouping and policy scoping — and drive them through the
+  Security-as-Code pipeline (validate, deploy, health check, drift detection and
+  rollback) over the Semgrep public REST API v1 (Bearer token, fixed base URL
+  https://semgrep.dev/api/v1). Config-as-code only — no database, no
+  infrastructure. NOTE: Semgrep's public API has no endpoint to CREATE a project
+  (projects are created by connecting a repository and running a scan), so this
+  app UPDATES the settings of projects that already exist. The write surface is
+  REAL and documented — see the README.
+category: COMPLIANCE
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/semgrep
+icon: "🔎"
+
+platform:
+  minVersion: "1.0.0"
+
+# Semgrep brand green.
+branding:
+  primaryColor: "#1AA179"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: projects
+      actions: [read, write]
+      description: >
+        Manage the settings of existing Semgrep projects — primary branch and
+        project tags — over the Semgrep public REST API v1. Read is
+        GET /deployments/{slug}/projects; write is PATCH the project and
+        PUT/DELETE its tags.
+
+pipeline:
+  configurationTypes:
+    - id: projects
+      group: "Projects"
+      name: Project Settings
+      description: >
+        Semgrep project settings — the primary branch Semgrep scans
+        (PATCH /deployments/{slug}/projects/{projectName}, field primary_branch)
+        and the project's tag set (reconciled with PUT and DELETE
+        /deployments/{slug}/projects/{projectName}/tags). Identity is the project
+        name (the repository as a path, e.g. my-org/my-repo). The project must
+        already exist in Semgrep — this type updates settings in place and never
+        creates or deletes a project. All writes go over the Semgrep public REST
+        API v1 (Bearer token, base URL https://semgrep.dev/api/v1).
+      canvasTemplate: config-types/projects/canvas.yaml
+      defaultConfig: config-types/projects/defaults.yaml
+      handlers:
+        validate: config-types/projects/validate
+        deploy: config-types/projects/deploy
+        rollback: config-types/projects/rollback
+        healthCheck: config-types/projects/healthCheck
+        driftDetect: config-types/projects/driftDetect
+        getStatus: config-types/projects/getStatus
+      targets:
+        componentTypes: [semgrep-deployment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/semgrep
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the Semgrep deployment (component)
+    # with the API token (credential) used to reach it, with a connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies the API token (and, when set, the
+# deployment slug) against the Semgrep public REST API (GET /api/v1/deployments).
+connectivity:
+  testHandler: handlers/testConnection
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+settings:
+  - key: deployment_slug
+    type: string
+    label: Deployment Slug
+    description: >
+      Your Semgrep deployment slug — the machine-readable tenant identifier used
+      in every project API path. Find it at GET /api/v1/deployments or in the
+      Semgrep AppSec Platform under Settings. Required for deployments.
+    default: ""
+    required: true
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Semgrep API calls.
+    default: 30
+    required: false

@@ -1,0 +1,120 @@
+id: sonarqube
+name: SonarQube
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage SonarQube quality gates as code. Author quality gates — their pass/fail
+  conditions on new-code and overall-code metrics — and drive them through the
+  Security-as-Code pipeline (validate, deploy, health check, drift detection and
+  rollback) over the SonarQube Web API (token authentication, self-signed TLS
+  tolerated). BYOL infrastructure hosting for a SonarQube server is planned for a
+  later release.
+category: COMPLIANCE
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/sonarqube
+icon: "🛡️"
+
+platform:
+  minVersion: "1.0.0"
+
+# SonarQube brand blue. Assets are placeholders until the official lockup is added.
+branding:
+  primaryColor: "#4E9BCD"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: quality-gates
+      actions: [read, write, delete]
+      description: Manage SonarQube quality gates and their conditions (create / edit / set default)
+
+pipeline:
+  configurationTypes:
+    - id: quality-gates
+      group: "Quality Standards"
+      name: Quality Gates
+      description: >
+        SonarQube quality gates — name, default flag and pass/fail conditions
+        (metric / operator / error threshold, e.g. new_coverage LT 80) — applied
+        over the SonarQube Web API (/api/qualitygates)
+      canvasTemplate: config-types/quality-gates/canvas.yaml
+      defaultConfig: config-types/quality-gates/defaults.yaml
+      handlers:
+        validate: config-types/quality-gates/validate
+        deploy: config-types/quality-gates/deploy
+        rollback: config-types/quality-gates/rollback
+        healthCheck: config-types/quality-gates/healthCheck
+        driftDetect: config-types/quality-gates/driftDetect
+        getStatus: config-types/quality-gates/getStatus
+      targets:
+        componentTypes: [sonarqube-server]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/sonarqube
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs a SonarQube server (component) with
+    # the API token used to reach it, with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies a Connection's endpoint + API token
+# against the SonarQube Web API (GET /api/system/status + /api/authentication/validate).
+connectivity:
+  testHandler: handlers/testConnection
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+settings:
+  - key: verify_tls
+    type: boolean
+    label: Verify TLS certificate
+    description: >
+      Enforce a valid TLS certificate on the SonarQube endpoint. Off by default —
+      self-hosted SonarQube servers commonly sit behind a self-signed certificate.
+    default: false
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for SonarQube Web API calls.
+    default: 30
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated

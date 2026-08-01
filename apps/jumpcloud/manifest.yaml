@@ -1,0 +1,95 @@
+id: jumpcloud
+name: JumpCloud
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage JumpCloud directory configuration as code through the JumpCloud REST
+  API. Author User Groups — name, description, email and membership method — and
+  drive them through the Security-as-Code pipeline (validate, deploy, health
+  check, drift detection and rollback) over the JumpCloud API (x-api-key).
+category: IAM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/jumpcloud
+icon: "🟢"
+
+platform:
+  minVersion: "1.0.0"
+
+# JumpCloud brand green.
+branding:
+  primaryColor: "#37b34a"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: user-groups
+      actions: [read, write, delete]
+      description: Manage JumpCloud User Groups (create / edit / delete)
+
+pipeline:
+  configurationTypes:
+    - id: user-groups
+      group: "Directory"
+      name: User Groups
+      description: JumpCloud User Groups — name, description, email and membership method — applied over the JumpCloud API v2 (/usergroups)
+      canvasTemplate: config-types/user-groups/canvas.yaml
+      defaultConfig: config-types/user-groups/defaults.yaml
+      handlers:
+        validate: config-types/user-groups/validate
+        deploy: config-types/user-groups/deploy
+        rollback: config-types/user-groups/rollback
+        healthCheck: config-types/user-groups/healthCheck
+        driftDetect: config-types/user-groups/driftDetect
+        getStatus: config-types/user-groups/getStatus
+      targets:
+        componentTypes: [jumpcloud-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/jumpcloud
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies a Connection's API key (and
+# optional org id) against the JumpCloud API (GET /api/v2/usergroups).
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for JumpCloud API calls.
+    default: 30
+    required: false

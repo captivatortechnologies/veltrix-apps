@@ -1,0 +1,99 @@
+id: sumo-logic
+name: Sumo Logic
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Sumo Logic (cloud SIEM & log analytics) as code. Author Field Extraction
+  Rules and drive them through the Security-as-Code pipeline — validate, deploy,
+  health check, drift detection and rollback — over the Sumo Logic Management API
+  (HTTPS), authenticated with an Access ID / Access Key.
+category: SIEM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/sumo-logic
+icon: "🔎"
+
+platform:
+  minVersion: "1.0.0"
+
+# Sumo Logic brand violet. Placeholder until the official lockup is added.
+branding:
+  primaryColor: "#762EC9"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: field-extraction-rules
+      actions: [read, write, delete]
+      description: Manage Sumo Logic Field Extraction Rules (create / edit / enable / disable / delete)
+
+pipeline:
+  configurationTypes:
+    - id: field-extraction-rules
+      group: "Parsing"
+      name: Field Extraction Rules
+      description: >
+        Sumo Logic Field Extraction Rules — name, scope, parse expression and
+        enabled state — parsed at ingest time and applied over the Management API
+        (/api/v1/extractionRules).
+      canvasTemplate: config-types/field-extraction-rules/canvas.yaml
+      defaultConfig: config-types/field-extraction-rules/defaults.yaml
+      handlers:
+        validate: config-types/field-extraction-rules/validate
+        deploy: config-types/field-extraction-rules/deploy
+        rollback: config-types/field-extraction-rules/rollback
+        healthCheck: config-types/field-extraction-rules/healthCheck
+        driftDetect: config-types/field-extraction-rules/driftDetect
+        getStatus: config-types/field-extraction-rules/getStatus
+      targets:
+        componentTypes: [sumo-logic-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/sumo-logic
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the Sumo Logic org (component) with
+    # the Access ID / Access Key (credential), with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies a Connection's deployment endpoint +
+# Access ID / Access Key against the Sumo Logic Management API
+# (HTTPS GET /api/v1/extractionRules).
+connectivity:
+  testHandler: handlers/testConnection
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated

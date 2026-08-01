@@ -1,0 +1,5 @@
+# Defaults for a new Falco rule item. The operator fills in the name, condition
+# and output; source and priority start on sensible defaults and enabled is on.
+source: syscall
+priority: WARNING
+enabled: true

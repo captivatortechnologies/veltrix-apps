@@ -1,0 +1,65 @@
+# =============================================================================
+# Canvas Template — JumpCloud User Groups
+#
+# Declares ONE JumpCloud User Group (the item). Users add as many as they need.
+# ONE item = ONE User Group, matched on its NAME (the logical identity used for
+# upsert and drift). Field keys must match config-types/user-groups/validate.ts.
+#
+# Applied over the JumpCloud API v2:
+#   GET/POST   /api/v2/usergroups
+#   PUT/DELETE /api/v2/usergroups/{id}
+# Auth is the `x-api-key` header (plus optional `x-org-id` for multi-tenant admins).
+# =============================================================================
+
+id: "jumpcloud-user-groups"
+name: "User Groups"
+toolType: "jumpcloud"
+entityType: "user-groups"
+description: "Define JumpCloud User Groups as code — name, description, email and membership method — through the JumpCloud API v2 (/usergroups)."
+
+item:
+  label: "User Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "User Group"
+      icon: "users"
+      description: "Group identity and attributes"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The User Group's display name. Must be unique within the canvas — this is the stable identity used to find, update and drift-check the group on each deploy."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Optional description shown in the JumpCloud Admin Portal."
+
+        - key: "email"
+          label: "Email"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Optional contact / notification email associated with the group."
+
+        - key: "membershipMethod"
+          label: "Membership Method"
+          fieldType: "select"
+          required: true
+          defaultValue: "STATIC"
+          options:
+            - label: "Static (membership managed by an administrator)"
+              value: "STATIC"
+            - label: "Dynamic (automated — membership derived from a member query)"
+              value: "DYNAMIC_AUTOMATED"
+          helpText: "STATIC means membership is managed by hand. DYNAMIC_AUTOMATED means JumpCloud derives and applies membership from the group's member query — that query must be configured in JumpCloud (this config type does not author it yet)."

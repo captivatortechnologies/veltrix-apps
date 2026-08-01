@@ -1,0 +1,103 @@
+id: github-advanced-security
+name: GitHub Advanced Security
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage GitHub Advanced Security posture as code. Author per-repository security
+  configurations — GitHub Advanced Security, secret scanning, secret scanning push
+  protection, Dependabot security updates and CodeQL code-scanning default setup —
+  and drive them through the Security-as-Code pipeline (validate, deploy, health
+  check, drift detection and rollback) over the GitHub REST API.
+category: COMPLIANCE
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/github-advanced-security
+icon: "🛡️"
+
+platform:
+  minVersion: "1.0.0"
+
+# GitHub's brand blue. Assets are placeholders until an official lockup is added.
+branding:
+  primaryColor: "#1f6feb"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: repo-security
+      actions: [read, write]
+      description: Manage GitHub Advanced Security features per repository
+
+pipeline:
+  configurationTypes:
+    - id: repo-security-config
+      group: "Repository Security"
+      name: Repository Security
+      description: >
+        Per-repository GitHub Advanced Security posture — Advanced Security, secret
+        scanning, push protection, Dependabot security updates and CodeQL default
+        setup — applied over the GitHub REST API.
+      canvasTemplate: config-types/repo-security-config/canvas.yaml
+      defaultConfig: config-types/repo-security-config/defaults.yaml
+      handlers:
+        validate: config-types/repo-security-config/validate
+        deploy: config-types/repo-security-config/deploy
+        rollback: config-types/repo-security-config/rollback
+        healthCheck: config-types/repo-security-config/healthCheck
+        driftDetect: config-types/repo-security-config/driftDetect
+        getStatus: config-types/repo-security-config/getStatus
+      targets:
+        componentTypes: [github-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/github-advanced-security
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the GitHub API endpoint (component)
+    # with a GitHub token (credential), with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies a Connection's token against the
+# GitHub REST API (GET /user).
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: api_base_url
+    type: string
+    label: GitHub API base URL
+    description: >
+      Override the REST API base. Leave blank for GitHub.com (https://api.github.com).
+      For GitHub Enterprise Server, set https://<your-ghes-host>/api/v3.
+    required: false

@@ -1,0 +1,57 @@
+# =============================================================================
+# Canvas Template — SonarQube Quality Gates
+#
+# Declares ONE SonarQube quality gate (the item). Users add as many as they need.
+# Field keys must match config-types/quality-gates/validate.ts. Applied via the
+# SonarQube Web API (/api/qualitygates/create, /create_condition, /show, /list,
+# /set_as_default).
+# =============================================================================
+
+id: "sonarqube-quality-gates"
+name: "Quality Gates"
+toolType: "sonarqube"
+entityType: "quality-gates"
+description: "Manage SonarQube quality gates — name, default flag and pass/fail conditions — via the SonarQube Web API"
+
+item:
+  label: "Quality Gate"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Gate"
+      icon: "shield"
+      description: "Gate identity and default selection"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: "The quality gate name shown in SonarQube, e.g. Veltrix Strict. Used as the gate's identity for upsert and drift."
+
+        - key: "isDefault"
+          label: "Set as default gate"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Make this the organization's default quality gate. Only one gate can be the default — if several are flagged, the last one applied wins."
+
+    - name: "Conditions"
+      icon: "list"
+      description: "Pass/fail conditions, one per line"
+      fields:
+        - key: "conditions"
+          label: "Conditions"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 4000
+          helpText: >
+            One condition per line as "<metric> <LT|GT> <threshold>" — e.g.
+            new_coverage LT 80, new_duplicated_lines_density GT 3,
+            new_reliability_rating GT 1. LT = fails when lower than the threshold,
+            GT = fails when greater than. At most one condition per metric. Lines
+            starting with # are ignored.

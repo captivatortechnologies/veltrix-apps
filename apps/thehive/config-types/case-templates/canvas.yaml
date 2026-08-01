@@ -1,0 +1,128 @@
+# =============================================================================
+# Canvas Template — TheHive Case Templates
+#
+# Declares ONE TheHive case template (the item). Users add as many as they need.
+# Field keys must match config-types/case-templates/validate.ts. Applied via the
+# TheHive REST API (v5: /api/v1/caseTemplate; v4: /api/case/template).
+# =============================================================================
+
+id: "thehive-case-templates"
+name: "Case Templates"
+toolType: "thehive"
+entityType: "case-templates"
+description: "Manage TheHive case templates — display name, title prefix, severity, TLP/PAP, tags, description and prefilled tasks — via the TheHive REST API (Bearer API key)"
+
+item:
+  label: "Case Template"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Template"
+      icon: "file-text"
+      description: "Template identity and presentation"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique template name — the stable identity used for upsert and drift, e.g. Phishing Investigation"
+
+        - key: "displayName"
+          label: "Display Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Human-friendly label shown in TheHive's template picker (defaults to Name when blank)"
+
+        - key: "titlePrefix"
+          label: "Title Prefix"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Prefix prepended to the title of cases created from this template, e.g. [PHISH]"
+
+    - name: "Classification"
+      icon: "shield"
+      description: "Default severity and sharing markings for cases created from this template"
+      fields:
+        - key: "severity"
+          label: "Severity"
+          fieldType: "select"
+          required: true
+          defaultValue: "2"
+          options:
+            - label: "Low (1)"
+              value: "1"
+            - label: "Medium (2)"
+              value: "2"
+            - label: "High (3)"
+              value: "3"
+            - label: "Critical (4)"
+              value: "4"
+          helpText: "Default case severity (1 Low – 4 Critical)"
+
+        - key: "tlp"
+          label: "TLP"
+          fieldType: "select"
+          required: true
+          defaultValue: "2"
+          options:
+            - label: "WHITE (0)"
+              value: "0"
+            - label: "GREEN (1)"
+              value: "1"
+            - label: "AMBER (2)"
+              value: "2"
+            - label: "RED (3)"
+              value: "3"
+          helpText: "Traffic Light Protocol sharing marking (0 WHITE – 3 RED)"
+
+        - key: "pap"
+          label: "PAP"
+          fieldType: "select"
+          required: true
+          defaultValue: "2"
+          options:
+            - label: "WHITE (0)"
+              value: "0"
+            - label: "GREEN (1)"
+              value: "1"
+            - label: "AMBER (2)"
+              value: "2"
+            - label: "RED (3)"
+              value: "3"
+          helpText: "Permissible Actions Protocol marking (0 WHITE – 3 RED)"
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Case tags — one per line or comma-separated (e.g. phishing, email)"
+
+    - name: "Content"
+      icon: "list"
+      description: "Case description and the tasks pre-created on every case"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 5000
+          helpText: "Default case description / summary applied to cases created from this template"
+
+        - key: "tasks"
+          label: "Tasks"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 5000
+          helpText: "Tasks pre-created on every case — one task title per line"

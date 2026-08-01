@@ -1,0 +1,105 @@
+id: sysdig-secure
+name: Sysdig Secure
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Sysdig Secure custom Falco (threat-detection) rules as code. Author
+  runtime security rules — condition, output, priority and source — and drive
+  them through the Security-as-Code pipeline (validate, deploy, health check,
+  drift detection and rollback) over the Sysdig Secure REST API
+  (/api/secure/rules) with a Bearer API token. Sysdig SaaS — no infrastructure
+  to host.
+category: CLOUD
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/sysdig-secure
+icon: "🛡️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Sysdig brand teal-green. Assets are placeholders until the official lockup is added.
+branding:
+  primaryColor: "#00c9a7"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: falco-rules
+      actions: [read, write, delete]
+      description: Manage Sysdig Secure custom Falco rules (create / edit / remove)
+
+pipeline:
+  configurationTypes:
+    - id: falco-rules
+      group: "Threat Detection"
+      name: Falco Rules
+      description: Sysdig Secure custom Falco rules — name, condition, output, priority and source — applied over the Sysdig Secure REST API (/api/secure/rules)
+      canvasTemplate: config-types/falco-rules/canvas.yaml
+      defaultConfig: config-types/falco-rules/defaults.yaml
+      handlers:
+        validate: config-types/falco-rules/validate
+        deploy: config-types/falco-rules/deploy
+        rollback: config-types/falco-rules/rollback
+        healthCheck: config-types/falco-rules/healthCheck
+        driftDetect: config-types/falco-rules/driftDetect
+        getStatus: config-types/falco-rules/getStatus
+      targets:
+        componentTypes: [sysdig-secure]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/sysdig-secure
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the Sysdig tenant (region base URL)
+    # with a Sysdig API token (credential), with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies a Connection's region base URL +
+# API token against the Sysdig Secure REST API (GET /api/secure/rules/groups).
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request timeout (seconds)
+    description: Per-request timeout for calls to the Sysdig Secure REST API.
+    default: 30
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated

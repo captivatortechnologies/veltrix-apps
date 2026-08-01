@@ -1,0 +1,124 @@
+id: keycloak
+name: Keycloak
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Keycloak (open-source Identity and Access Management) as code. Author
+  OIDC/SAML clients and drive them through the Security-as-Code pipeline —
+  validate, deploy, health check, drift detection and rollback — over the
+  Keycloak Admin REST API (HTTPS, self-signed tolerated). Authenticates as an
+  admin service-account client (OAuth2 client-credentials); an admin
+  username/password grant is also supported.
+category: IAM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/keycloak
+icon: "🔐"
+
+platform:
+  minVersion: "1.0.0"
+
+# Keycloak's brand blue. Assets are placeholders until the official lockup is added.
+branding:
+  primaryColor: "#4d4dff"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: clients
+      actions: [read, write, delete]
+      description: Manage Keycloak OIDC/SAML clients (add / edit / enable / disable)
+
+pipeline:
+  configurationTypes:
+    - id: clients
+      group: "Access"
+      name: Clients
+      description: Keycloak OIDC/SAML clients — clientId, name, protocol, enabled, public/confidential, standard flow and redirect URIs — applied over the Keycloak Admin REST API
+      canvasTemplate: config-types/clients/canvas.yaml
+      defaultConfig: config-types/clients/defaults.yaml
+      handlers:
+        validate: config-types/clients/validate
+        deploy: config-types/clients/deploy
+        rollback: config-types/clients/rollback
+        healthCheck: config-types/clients/healthCheck
+        driftDetect: config-types/clients/driftDetect
+        getStatus: config-types/clients/getStatus
+      targets:
+        componentTypes: [keycloak-realm, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/keycloak
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the Keycloak realm (component) with
+    # the admin service-account credential, with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: obtains an admin token and verifies the
+# Connection against the Keycloak Admin REST API (GET /admin/realms/{realm}).
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: realm
+    type: string
+    label: Managed realm
+    description: >
+      The Keycloak realm whose clients this app manages (the {realm} in
+      /admin/realms/{realm}/clients). Defaults to master.
+    default: "master"
+    required: false
+  - key: auth_realm
+    type: string
+    label: Token realm
+    description: >
+      The realm that issues the admin access token — where the admin
+      service-account client (or admin user) lives. Defaults to master; set it to
+      the managed realm if the service-account client is registered there.
+    default: "master"
+    required: false
+  - key: verify_tls
+    type: boolean
+    label: Verify TLS certificate
+    description: >
+      Enforce a valid TLS certificate on the Keycloak endpoint. Off by default —
+      self-hosted Keycloak commonly ships a self-signed certificate.
+    default: false
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated

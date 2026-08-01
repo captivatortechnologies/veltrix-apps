@@ -1,0 +1,107 @@
+id: cybereason
+name: Cybereason
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Cybereason Defense Platform custom reputations as code. Author
+  allowlist / blocklist entries for file hashes, domains and IP addresses and
+  drive them through the Security-as-Code pipeline — validate, deploy, health
+  check, drift detection and rollback — over the Cybereason REST API. Auth is a
+  session-cookie login (username / password → JSESSIONID) reused on every
+  subsequent /rest call.
+category: EDR
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cybereason
+icon: "🛡️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Cybereason's brand crimson. Used as an accent in defined slots only — never as
+# a page-wide theme. Placeholder until the official lockup is added.
+branding:
+  primaryColor: "#B31E30"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: reputations
+      actions: [read, write, delete]
+      description: Manage Cybereason custom reputations (allowlist / blocklist for file hashes, domains and IPs)
+
+pipeline:
+  configurationTypes:
+    - id: reputations
+      group: "Reputations"
+      name: Custom Reputations
+      description: Cybereason custom reputations — allowlist / blocklist entries for file hashes, domains and IPs, applied over the Cybereason REST API (POST /rest/classification/update)
+      canvasTemplate: config-types/reputations/canvas.yaml
+      defaultConfig: config-types/reputations/defaults.yaml
+      handlers:
+        validate: config-types/reputations/validate
+        deploy: config-types/reputations/deploy
+        rollback: config-types/reputations/rollback
+        healthCheck: config-types/reputations/healthCheck
+        driftDetect: config-types/reputations/driftDetect
+        getStatus: config-types/reputations/getStatus
+      targets:
+        componentTypes: [cybereason-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/cybereason
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the Cybereason tenant (component)
+    # with the username/password credential, with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+      order: 1
+
+# Connection-level connectivity test: verifies a Connection's tenant URL +
+# username/password against the Cybereason REST API (session-cookie login).
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: API Request Timeout (seconds)
+    description: Timeout applied to each Cybereason REST API request
+    default: 30
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated
