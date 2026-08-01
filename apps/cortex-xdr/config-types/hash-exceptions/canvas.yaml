@@ -1,0 +1,60 @@
+# =============================================================================
+# Canvas Template — Cortex XDR Hash Exceptions (allow / block list)
+#
+# Declares ONE hash exception (the item). Users add as many as they need. The
+# hash VALUE is the stable identity used for upsert and de-duplication. Field
+# keys must match config-types/hash-exceptions/validate.ts. Applied over the
+# Cortex XDR public REST API (hash_exceptions/allowlist + /blocklist).
+#
+# NOTE: the Cortex XDR public API is ADD-ONLY for hash exceptions — it exposes no
+# endpoint to list or remove them. Drift is therefore not asserted and rollback
+# cannot auto-remove (see the config-type handlers). VERIFY the SHA256 requirement
+# and the endpoint paths against a live Cortex XDR tenant.
+# =============================================================================
+
+id: "cortex-xdr-hash-exceptions"
+name: "Cortex XDR Hash Exceptions"
+toolType: "cortex-xdr"
+entityType: "hash-exceptions"
+description: "Manage Cortex XDR allow-list / block-list file hashes as code via the Cortex XDR public REST API (hash_exceptions/allowlist + /blocklist)."
+
+item:
+  label: "Hash Exception"
+  identityField: "hash"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Hash"
+      icon: "hash"
+      description: "The file hash and which list it belongs to"
+      fields:
+        - key: "hash"
+          label: "SHA256 Hash"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-fA-F0-9]{64}$"
+          helpText: "The file's SHA256 digest (64 hex chars) — the exception's stable identity. VERIFY that your tenant accepts SHA256 for hash exceptions."
+
+        - key: "list_type"
+          label: "List"
+          fieldType: "select"
+          required: true
+          defaultValue: "blocklist"
+          options:
+            - { label: "Block list", value: "blocklist" }
+            - { label: "Allow list", value: "allowlist" }
+          helpText: "Which list to add the hash to. Block-list hashes are prevented from running; allow-list hashes are trusted."
+
+    - name: "Metadata"
+      icon: "settings"
+      description: "Optional context"
+      fields:
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this hash is on the list — sent to Cortex XDR as the exception comment. Hashes that share a list and comment are submitted together."

@@ -1,0 +1,58 @@
+# =============================================================================
+# Canvas Template — OpenCTI Groups (RBAC)
+#
+# Declares ONE OpenCTI group (the item). Users add as many as they need. Field
+# keys must match config-types/groups/validate.ts. Applied via the OpenCTI
+# GraphQL API (groupAdd / groupEdit.fieldPatch).
+# =============================================================================
+
+id: "opencti-groups"
+name: "Groups"
+toolType: "opencti"
+entityType: "groups"
+description: "Manage OpenCTI RBAC groups — name, description and assignment defaults — via the OpenCTI GraphQL API (443)"
+
+item:
+  label: "Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Group"
+      icon: "users"
+      description: "The group's identity and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The group name and the stable identity for upsert/drift, e.g. Analysts."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Human-readable description of what this group is for."
+
+    - name: "Defaults"
+      icon: "settings"
+      description: "How members and markings are assigned to this group"
+      fields:
+        - key: "default_assignation"
+          label: "Default assignment"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Automatically assign new users to this group on creation."
+
+        - key: "auto_new_marking"
+          label: "Auto new marking"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Automatically grant access to newly created marking definitions."

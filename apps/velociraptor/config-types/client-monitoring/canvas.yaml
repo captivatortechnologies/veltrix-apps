@@ -1,0 +1,54 @@
+# =============================================================================
+# Canvas Template — Velociraptor Client Monitoring
+#
+# Declares ONE client event-collection group (the item): the persistent event
+# artifacts a client label group runs. Users add as many groups as they need.
+# Field keys must match config-types/client-monitoring/validate.ts. Applied over
+# the gRPC API (mutual TLS) via set_client_monitoring() against the merged
+# ClientEventTable. The "All" label targets every client (the default group).
+# =============================================================================
+
+id: "velociraptor-client-monitoring"
+name: "Client Monitoring"
+toolType: "velociraptor"
+entityType: "client-monitoring"
+description: "Manage Velociraptor client event-collection rules — the persistent monitoring artifacts a client label group runs — via the gRPC API (set_client_monitoring)"
+
+item:
+  label: "Client Monitoring Group"
+  identityField: "label"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Target"
+      icon: "users"
+      description: "Which clients this event-collection group applies to"
+      fields:
+        - key: "label"
+          label: "Client Label Group"
+          fieldType: "text"
+          required: true
+          defaultValue: "All"
+          validation:
+            maxLength: 255
+          helpText: "The Velociraptor client label group to target, e.g. Servers or Workstations. Use \"All\" (the default) to apply to every client. Used as the stable identity for upsert and drift."
+
+    - name: "Event Artifacts"
+      icon: "activity"
+      description: "The event-collection artifacts this group runs"
+      fields:
+        - key: "artifacts"
+          label: "Event Artifacts"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 20000
+          helpText: "Newline- or comma-separated list of CLIENT_EVENT artifact names, e.g. Windows.Events.ProcessCreation, Generic.Client.Stats. These become the client monitoring table for this label group."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "When off, this group's artifacts are cleared from the monitoring table (the group stays authored so re-enabling restores them)."

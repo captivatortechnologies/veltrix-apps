@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-cortex-xdr",
   "private": true,
-  "version": "0.1.0",
-  "description": "Veltrix app: manage Palo Alto Networks Cortex XDR configuration as code — threat indicators (IOCs) over the Cortex XDR public REST API",
+  "version": "0.2.0",
+  "description": "Veltrix app: manage Palo Alto Networks Cortex XDR configuration as code — threat indicators (IOCs), hash exceptions, endpoint groups and alert exclusions over the Cortex XDR public REST API",
   "scripts": {
     "typecheck": "tsc --noEmit"
   },

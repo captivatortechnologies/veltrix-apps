@@ -1,0 +1,69 @@
+# =============================================================================
+# Canvas Template — Cortex XDR Endpoint Groups
+#
+# Declares ONE endpoint group (the item). Users add as many as they need. The
+# group NAME is the stable identity used for upsert and drift. Field keys must
+# match config-types/endpoint-groups/validate.ts.
+#
+# NOTE on the API surface: LISTING groups is a real Cortex XDR public endpoint
+# (get_endpoint_groups) so drift + health work; CREATING / DELETING groups is NOT
+# documented in the public API — deploy/rollback attempt it best-effort against
+# FLAGGED paths and may be unsupported on your tenant. VERIFY the group_type
+# values, the filter shape and the create/delete paths against a live Cortex XDR
+# tenant.
+# =============================================================================
+
+id: "cortex-xdr-endpoint-groups"
+name: "Cortex XDR Endpoint Groups"
+toolType: "cortex-xdr"
+entityType: "endpoint-groups"
+description: "Define Cortex XDR endpoint groups (static membership or a dynamic filter) as code. Listing is a real public endpoint; create/delete are best-effort (unverified) — see the app README."
+
+item:
+  label: "Endpoint Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Group"
+      icon: "layers"
+      description: "Group identity and membership model"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The group's name — its stable identity for upsert and drift. Unique within this canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "A short description of the group's purpose — recorded for audit."
+
+        - key: "group_type"
+          label: "Group Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "static"
+          options:
+            - { label: "Static (explicit membership)", value: "static" }
+            - { label: "Dynamic (filter-based)", value: "dynamic" }
+          helpText: "Static groups have explicit membership; dynamic groups select endpoints by a filter. VERIFY the accepted values against your Cortex XDR tenant."
+
+    - name: "Membership"
+      icon: "filter"
+      description: "Dynamic membership criteria"
+      fields:
+        - key: "filter"
+          label: "Filter (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 4000
+          helpText: "For DYNAMIC groups, the membership criteria as a JSON object. Leave blank for static groups. VERIFY the exact filter schema against your Cortex XDR tenant."

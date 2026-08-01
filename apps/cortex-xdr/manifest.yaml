@@ -1,13 +1,17 @@
 id: cortex-xdr
 name: Cortex XDR
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Palo Alto Networks Cortex XDR configuration as code. Author threat
-  indicators (IOCs) and drive them through the Security-as-Code pipeline —
+  indicators (IOCs), hash exceptions (allow / block lists), endpoint groups and
+  alert exclusions, and drive them through the Security-as-Code pipeline —
   validate, deploy, health check, drift detection and rollback — over the Cortex
   XDR public REST API (POST { request_data }, x-xdr-auth-id + Authorization
   Standard auth). The connection endpoint is your Cortex XDR tenant API FQDN.
+  NOTE: the Cortex XDR public API is limited for config writes — only IOCs and
+  hash exceptions have confirmed write paths; endpoint-group and alert-exclusion
+  writes are best-effort against unverified endpoints (see the README).
 category: EDR
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cortex-xdr
@@ -29,6 +33,15 @@ permissions:
     - resource: iocs
       actions: [read, write, delete]
       description: Manage Cortex XDR threat indicators (IOCs) — insert / update / delete
+    - resource: hash-exceptions
+      actions: [read, write]
+      description: Manage Cortex XDR hash exceptions — add file hashes to the allow / block list (add-only public API)
+    - resource: endpoint-groups
+      actions: [read, write, delete]
+      description: Manage Cortex XDR endpoint groups — list is public; create / delete are best-effort (unverified)
+    - resource: alert-exclusions
+      actions: [read, write, delete]
+      description: Manage Cortex XDR alert exclusions — no public API documented; deploy is best-effort (speculative)
 
 pipeline:
   configurationTypes:
@@ -48,6 +61,75 @@ pipeline:
         healthCheck: config-types/iocs/healthCheck
         driftDetect: config-types/iocs/driftDetect
         getStatus: config-types/iocs/getStatus
+      targets:
+        componentTypes: [cortex-xdr-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: hash-exceptions
+      group: "Threat Intelligence"
+      name: Hash Exceptions (Allow / Block)
+      description: >
+        Cortex XDR allow-list / block-list file hashes (SHA256) applied over the
+        Cortex XDR public REST API (hash_exceptions/allowlist + /blocklist). This
+        is a CONFIRMED public write path but it is ADD-ONLY — Cortex XDR exposes
+        no endpoint to list or remove hash exceptions, so drift is not asserted
+        and rollback cannot auto-remove (removal is a manual console action).
+      canvasTemplate: config-types/hash-exceptions/canvas.yaml
+      defaultConfig: config-types/hash-exceptions/defaults.yaml
+      handlers:
+        validate: config-types/hash-exceptions/validate
+        deploy: config-types/hash-exceptions/deploy
+        rollback: config-types/hash-exceptions/rollback
+        healthCheck: config-types/hash-exceptions/healthCheck
+        driftDetect: config-types/hash-exceptions/driftDetect
+        getStatus: config-types/hash-exceptions/getStatus
+      targets:
+        componentTypes: [cortex-xdr-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: endpoint-groups
+      group: "Asset Management"
+      name: Endpoint Groups
+      description: >
+        Cortex XDR endpoint groups (static membership or a dynamic filter).
+        Listing groups is a REAL public endpoint (endpoints/get_endpoint_groups)
+        so health + drift work; creating / deleting groups is NOT documented in
+        the public API — deploy / rollback attempt it best-effort against FLAGGED
+        (unverified) endpoints and may be unsupported on a live tenant.
+      canvasTemplate: config-types/endpoint-groups/canvas.yaml
+      defaultConfig: config-types/endpoint-groups/defaults.yaml
+      handlers:
+        validate: config-types/endpoint-groups/validate
+        deploy: config-types/endpoint-groups/deploy
+        rollback: config-types/endpoint-groups/rollback
+        healthCheck: config-types/endpoint-groups/healthCheck
+        driftDetect: config-types/endpoint-groups/driftDetect
+        getStatus: config-types/endpoint-groups/getStatus
+      targets:
+        componentTypes: [cortex-xdr-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: alert-exclusions
+      group: "Detection & Response"
+      name: Alert Exclusions
+      description: >
+        Cortex XDR alert exclusion / suppression rules — name, JSON filter,
+        comment and disabled flag. NOTE: the Cortex XDR public API does NOT
+        document alert-exclusion management (it is a console-only feature), so
+        every endpoint here is SPECULATIVE / FLAGGED and deploy is best-effort —
+        it ships the authoring + pipeline surface ready for a future public API.
+      canvasTemplate: config-types/alert-exclusions/canvas.yaml
+      defaultConfig: config-types/alert-exclusions/defaults.yaml
+      handlers:
+        validate: config-types/alert-exclusions/validate
+        deploy: config-types/alert-exclusions/deploy
+        rollback: config-types/alert-exclusions/rollback
+        healthCheck: config-types/alert-exclusions/healthCheck
+        driftDetect: config-types/alert-exclusions/driftDetect
+        getStatus: config-types/alert-exclusions/getStatus
       targets:
         componentTypes: [cortex-xdr-tenant]
         requiresCredential: true

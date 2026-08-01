@@ -1,0 +1,49 @@
+# =============================================================================
+# Canvas Template — Velociraptor Server Monitoring
+#
+# SINGLETON — declares the server-wide event artifacts the Velociraptor server
+# runs (one item, maxItems 1). Field keys must match
+# config-types/server-monitoring/validate.ts. Applied over the gRPC API (mutual
+# TLS) via set_server_monitoring() against the merged ServerMonitoringTable.
+# =============================================================================
+
+id: "velociraptor-server-monitoring"
+name: "Server Monitoring"
+toolType: "velociraptor"
+entityType: "server-monitoring"
+description: "Manage the Velociraptor server-wide event artifacts (the singleton server monitoring table) via the gRPC API (set_server_monitoring)"
+
+item:
+  label: "Server Monitoring"
+  identityField: "scope"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Server Monitoring"
+      icon: "activity"
+      description: "The server-wide event artifacts"
+      fields:
+        - key: "scope"
+          label: "Scope"
+          fieldType: "text"
+          required: true
+          defaultValue: "server"
+          validation:
+            maxLength: 32
+          helpText: "Fixed scope for the singleton server monitoring table (leave as \"server\")."
+
+        - key: "artifacts"
+          label: "Server Event Artifacts"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 20000
+          helpText: "Newline- or comma-separated list of SERVER_EVENT artifact names, e.g. Server.Monitor.Health, Elastic.Flows.Upload. These become the server monitoring table."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "When off, the server monitoring table is cleared (the artifact list stays authored so re-enabling restores it)."

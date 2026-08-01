@@ -1,0 +1,66 @@
+# =============================================================================
+# Canvas Template — Cortex XDR Alert Exclusions
+#
+# Declares ONE alert exclusion / suppression rule (the item). Users add as many
+# as they need. The rule NAME is the stable identity used for upsert and drift.
+# Field keys must match config-types/alert-exclusions/validate.ts.
+#
+# IMPORTANT — API SURFACE: the Cortex XDR public API does NOT document any
+# endpoint for alert-exclusion management (it is a console-only feature at the
+# time of writing). This config type ships the authoring + pipeline surface so it
+# is ready if/when an API appears, but deploy/rollback/drift are SPECULATIVE and
+# will almost certainly fail against a current tenant. See the app README. VERIFY
+# the entire exclusion schema + endpoints against a live Cortex XDR tenant.
+# =============================================================================
+
+id: "cortex-xdr-alert-exclusions"
+name: "Cortex XDR Alert Exclusions"
+toolType: "cortex-xdr"
+entityType: "alert-exclusions"
+description: "Author Cortex XDR alert exclusion / suppression rules as code. NOTE: no public API is documented for alert exclusions — deploy is best-effort/speculative (see the app README)."
+
+item:
+  label: "Alert Exclusion"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Rule"
+      icon: "filter"
+      description: "Exclusion identity and criteria"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The exclusion rule's name — its stable identity for upsert and drift. Unique within this canvas."
+
+        - key: "filter"
+          label: "Filter (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 4000
+          helpText: "The exclusion criteria as a JSON object (which alerts to suppress). VERIFY the exact filter schema against your Cortex XDR tenant — no public schema is documented."
+
+    - name: "Metadata"
+      icon: "settings"
+      description: "Comment and state"
+      fields:
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this exclusion exists — recorded for audit."
+
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When checked, the exclusion is authored but not active. VERIFY how the tenant represents an inactive exclusion."

@@ -1,0 +1,98 @@
+# =============================================================================
+# Canvas Template — OpenCTI TAXII2 Ingestion Feeds
+#
+# Declares ONE OpenCTI TAXII2 ingestion feed (the item). Users add as many as they
+# need. Field keys must match config-types/ingestion-feeds/validate.ts. Applied via
+# the OpenCTI GraphQL API (ingestionTaxiiAdd / ingestionTaxiiEdit).
+# =============================================================================
+
+id: "opencti-ingestion-feeds"
+name: "Ingestion Feeds (TAXII2)"
+toolType: "opencti"
+entityType: "ingestion-feeds"
+description: "Manage OpenCTI TAXII2 ingestion feeds — endpoint, collection, version and authentication — via the OpenCTI GraphQL API (443)"
+
+item:
+  label: "TAXII2 Feed"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Feed"
+      icon: "download"
+      description: "The TAXII2 endpoint OpenCTI pulls from"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The feed name and the stable identity for upsert/drift, e.g. MITRE ATT&CK."
+
+        - key: "uri"
+          label: "TAXII2 Root URL"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^https?://.+"
+            maxLength: 2048
+          helpText: "The TAXII2 API root URL, e.g. https://cti-taxii.mitre.org/taxii/."
+
+        - key: "collection"
+          label: "Collection"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The TAXII2 collection id to pull from."
+
+        - key: "version"
+          label: "TAXII Version"
+          fieldType: "select"
+          required: true
+          defaultValue: "v21"
+          options:
+            - label: "TAXII 2.1"
+              value: "v21"
+            - label: "TAXII 2.0"
+              value: "v20"
+          helpText: "The TAXII protocol version the server speaks."
+
+    - name: "Authentication"
+      icon: "lock"
+      description: "How OpenCTI authenticates to the TAXII2 server"
+      fields:
+        - key: "authentication_type"
+          label: "Authentication Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "none"
+          options:
+            - label: "None"
+              value: "none"
+            - label: "Basic (username:password)"
+              value: "basic"
+            - label: "Bearer token"
+              value: "bearer"
+            - label: "Client certificate"
+              value: "certificate"
+          helpText: "The auth scheme required by the TAXII2 server."
+
+        - key: "authentication_value"
+          label: "Authentication Value"
+          fieldType: "password"
+          required: false
+          visibleWhen:
+            field: "authentication_type"
+            in: ["basic", "bearer", "certificate"]
+          helpText: "Secret for the chosen scheme (user:pass for Basic, the token for Bearer, or the cert bundle). Stored write-only; not read back."
+
+        - key: "added_after_start"
+          label: "Import From (date)"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2}(:\\d{2})?(\\.\\d+)?Z?)?$"
+          helpText: "Only import objects added on/after this date (ISO-8601, e.g. 2024-01-01). Leave blank to import everything."

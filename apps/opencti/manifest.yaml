@@ -1,6 +1,6 @@
 id: opencti
 name: OpenCTI
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage OpenCTI (open-source cyber threat-intelligence platform) as code. Author
@@ -30,6 +30,15 @@ permissions:
     - resource: marking-definitions
       actions: [read, write, delete]
       description: Manage OpenCTI data-marking definitions (add / edit / delete)
+    - resource: labels
+      actions: [read, write, delete]
+      description: Manage OpenCTI labels (add / edit / delete)
+    - resource: groups
+      actions: [read, write, delete]
+      description: Manage OpenCTI RBAC groups (add / edit / delete)
+    - resource: ingestion-feeds
+      actions: [read, write, delete]
+      description: Manage OpenCTI TAXII2 ingestion feeds (add / edit / delete)
 
 pipeline:
   configurationTypes:
@@ -46,6 +55,60 @@ pipeline:
         healthCheck: config-types/marking-definitions/healthCheck
         driftDetect: config-types/marking-definitions/driftDetect
         getStatus: config-types/marking-definitions/getStatus
+      targets:
+        componentTypes: [opencti-platform, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: labels
+      group: "Data Management"
+      name: Labels
+      description: OpenCTI labels — value and color — applied over the OpenCTI GraphQL API (443)
+      canvasTemplate: config-types/labels/canvas.yaml
+      defaultConfig: config-types/labels/defaults.yaml
+      handlers:
+        validate: config-types/labels/validate
+        deploy: config-types/labels/deploy
+        rollback: config-types/labels/rollback
+        healthCheck: config-types/labels/healthCheck
+        driftDetect: config-types/labels/driftDetect
+        getStatus: config-types/labels/getStatus
+      targets:
+        componentTypes: [opencti-platform, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: groups
+      group: "Access Control"
+      name: Groups
+      description: OpenCTI RBAC groups — name, description and assignment defaults — applied over the OpenCTI GraphQL API (443)
+      canvasTemplate: config-types/groups/canvas.yaml
+      defaultConfig: config-types/groups/defaults.yaml
+      handlers:
+        validate: config-types/groups/validate
+        deploy: config-types/groups/deploy
+        rollback: config-types/groups/rollback
+        healthCheck: config-types/groups/healthCheck
+        driftDetect: config-types/groups/driftDetect
+        getStatus: config-types/groups/getStatus
+      targets:
+        componentTypes: [opencti-platform, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: ingestion-feeds
+      group: "Threat Intelligence"
+      name: Ingestion Feeds (TAXII2)
+      description: OpenCTI TAXII2 ingestion feeds — endpoint, collection, version and authentication — applied over the OpenCTI GraphQL API (443)
+      canvasTemplate: config-types/ingestion-feeds/canvas.yaml
+      defaultConfig: config-types/ingestion-feeds/defaults.yaml
+      handlers:
+        validate: config-types/ingestion-feeds/validate
+        deploy: config-types/ingestion-feeds/deploy
+        rollback: config-types/ingestion-feeds/rollback
+        healthCheck: config-types/ingestion-feeds/healthCheck
+        driftDetect: config-types/ingestion-feeds/driftDetect
+        getStatus: config-types/ingestion-feeds/getStatus
       targets:
         componentTypes: [opencti-platform, standalone]
         requiresCredential: true

@@ -2,6 +2,30 @@
 
 All notable changes to the OpenCTI app are documented here.
 
+## 0.2.0 — 2026-08-01
+
+Three more configuration types, each with the full pipeline (validate / deploy /
+rollback / health-check / drift-detect / status) over the OpenCTI GraphQL API.
+
+- **Labels** config type — add / edit / delete OpenCTI labels (value, color).
+  Upsert by the `value`. GraphQL: `labels` / `labelAdd` / `labelFieldPatch` /
+  `labelDelete`.
+- **Groups** config type — add / edit / delete OpenCTI RBAC groups (name,
+  description, `default_assignation`, `auto_new_marking`). Upsert by `name`.
+  GraphQL: `groups` / `groupAdd` / `groupEdit(id){ fieldPatch }` / `groupDelete`.
+- **Ingestion Feeds (TAXII2)** config type — add / edit / delete OpenCTI TAXII2
+  feeds (name, uri, collection, version, authentication type + write-only value,
+  optional import-from date). Upsert by `name`. GraphQL: `ingestionTaxiis` /
+  `ingestionTaxiiAdd` / `ingestionTaxiiEdit` / `ingestionTaxiiDelete`.
+
+> **Verify against a live OpenCTI instance.** The new operation + field names
+> follow OpenCTI conventions but are unverified — flagged in-code. In particular:
+> the group edit shape (`groupEdit(id){ fieldPatch }` vs a top-level
+> `groupFieldPatch`) and delete (`groupDelete` vs `groupEdit(id){ delete }`); the
+> TAXII list field (`ingestionTaxiis` vs `ingestionTaxiiConnections`) and the
+> `IngestionTaxiiAddInput` field names; the group `auto_new_marking` selection; and
+> the `EditInput` value-as-string-list shape (booleans sent as `"true"`/`"false"`).
+
 ## 0.1.0 — 2026-07-31
 
 Initial release — foundation + first config type.

@@ -10,14 +10,26 @@ infrastructure. It writes only through the Cortex XDR API.
 
 ## What it manages
 
-| Configuration type          | Cortex XDR endpoint                    | Identity (natural key) |
-| --------------------------- | -------------------------------------- | ---------------------- |
-| **Threat Indicators (IOCs)** | `/public_api/v1/indicators/insert_jsons/` | Indicator value        |
+| Configuration type            | Cortex XDR endpoint(s)                                        | Identity        | Write path            |
+| ----------------------------- | ------------------------------------------------------------ | --------------- | --------------------- |
+| **Threat Indicators (IOCs)**  | `indicators/insert_jsons`, `indicators/delete`               | Indicator value | Confirmed             |
+| **Hash Exceptions**           | `hash_exceptions/allowlist`, `hash_exceptions/blocklist`     | SHA256 hash     | Confirmed (add-only)  |
+| **Endpoint Groups**           | `endpoints/get_endpoint_groups` (read) + create/delete       | Group name      | Read real, write flagged |
+| **Alert Exclusions**          | `alerts/*` (all speculative)                                 | Rule name       | Speculative (no public API) |
 
 The IOCs type reconciles by the indicator VALUE: `insert_jsons` upserts by that
 value, so a single bulk call reconciles every item. Rollback deletes anything this
 deployment created and restores anything it updated (best-effort — see
 Limitations).
+
+> **The Cortex XDR public API is genuinely limited for config writes.** Only
+> **IOCs** and **hash exceptions** have a confirmed public write path. **Endpoint
+> groups** can be *listed* via a real endpoint (so drift + health are genuine) but
+> have no documented create/delete API. **Alert exclusions** have **no** public
+> API at all (console-only) — that type ships the authoring + pipeline surface
+> with every endpoint FLAGGED, ready for a future API. The scoring-rules / alert-
+> starring surface was dropped for the same reason (no public write path); hash
+> exceptions were added in its place.
 
 > **Endpoint / field verification.** The exact indicator endpoint paths, request
 > envelopes and field names are marked `VERIFY against live Cortex XDR` in the
@@ -69,10 +81,29 @@ generated key under **Settings > Configurations > API Keys**.
   `A`–`F`. `expiration_date` is an optional Unix epoch timestamp in
   **milliseconds** (leave blank for never). All enum values and the expiration
   units are `VERIFY`-flagged against a live tenant.
+- **Hash Exceptions (allow / block list)** — the SHA256 `hash` is the identity;
+  `list_type` is `allowlist` or `blocklist`; `comment` is optional. Deploy adds
+  hashes via the documented `hash_exceptions/allowlist` / `hash_exceptions/blocklist`
+  endpoints (hashes sharing a list + comment are submitted together). This API is
+  **add-only** — there is no list/remove endpoint — so drift is not asserted and
+  rollback cannot auto-remove (it reports what was added for manual removal).
+- **Endpoint Groups** — the `name` is the identity; `group_type` is `static` or
+  `dynamic`; `filter` is a JSON membership object for dynamic groups. Listing is a
+  real endpoint (`endpoints/get_endpoint_groups`, the health probe) so drift +
+  health work; create/delete are best-effort against FLAGGED, unverified paths.
+- **Alert Exclusions** — the `name` is the identity; `filter` is a required JSON
+  criteria object; `comment` is optional; `disabled` is a flag. **No public API is
+  documented** for alert exclusions — every endpoint is speculative and deploy is
+  expected to fail on a current tenant. All fields and endpoints are `VERIFY`-flagged.
 
 ## Limitations
 
-- **Standard auth only** in v0.1.0 (Advanced HMAC signing is a documented seam).
+- **Standard auth only** (Advanced HMAC signing is a documented seam).
+- **Limited config-write surface.** Cortex XDR's public API confirms write paths
+  only for **IOCs** and **hash exceptions** (add-only). **Endpoint-group** writes
+  and **all alert-exclusion** operations target FLAGGED / unverified endpoints and
+  are best-effort — expect them to fail on a current tenant until Palo Alto Networks
+  exposes (or you verify) the paths.
 - **Rollback / drift reads are best-effort.** Cortex XDR has no simple "list all
   IOCs" endpoint; the app reads via `indicators/get_changes` and matches by
   indicator value. When a read is unavailable or an indicator can't be matched,

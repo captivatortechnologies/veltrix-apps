@@ -1,0 +1,41 @@
+# =============================================================================
+# Canvas Template — OpenCTI Labels
+#
+# Declares ONE OpenCTI label (the item). Users add as many as they need. Field
+# keys must match config-types/labels/validate.ts. Applied via the OpenCTI
+# GraphQL API (labelAdd / labelFieldPatch).
+# =============================================================================
+
+id: "opencti-labels"
+name: "Labels"
+toolType: "opencti"
+entityType: "labels"
+description: "Manage OpenCTI labels — value and color — via the OpenCTI GraphQL API (443)"
+
+item:
+  label: "Label"
+  identityField: "value"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Label"
+      icon: "tag"
+      description: "The label value and how it renders in OpenCTI"
+      fields:
+        - key: "value"
+          label: "Value"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The label text and the stable identity for upsert/drift, e.g. apt or phishing."
+
+        - key: "color"
+          label: "Color"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+            maxLength: 7
+          helpText: "Hex color OpenCTI uses to render the label chip, e.g. #ff9800."

@@ -1,0 +1,50 @@
+# =============================================================================
+# Canvas Template — Velociraptor Users & ACLs
+#
+# Declares ONE Velociraptor GUI user (the item): its name, roles and (optionally)
+# a basic-auth password. Users add as many as they need. Field keys must match
+# config-types/users-acls/validate.ts. Applied over the gRPC API (mutual TLS) via
+# user_create(); the user name is the stable identity for upsert and rollback.
+# =============================================================================
+
+id: "velociraptor-users-acls"
+name: "Users & ACLs"
+toolType: "velociraptor"
+entityType: "users-acls"
+description: "Manage Velociraptor GUI users and their roles — create / update via user_create over the gRPC API (mutual TLS)"
+
+item:
+  label: "User"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "User"
+      icon: "user"
+      description: "The GUI user and its roles"
+      fields:
+        - key: "name"
+          label: "Username"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 254
+          helpText: "The Velociraptor GUI username (or email), e.g. analyst@example.com. Used as the stable identity for upsert and rollback."
+
+        - key: "roles"
+          label: "Roles"
+          fieldType: "text"
+          required: true
+          defaultValue: "reader"
+          validation:
+            maxLength: 500
+          helpText: "Comma-separated roles, e.g. reader, analyst, investigator, administrator. Applied via user_create; unknown roles are warned, not rejected."
+
+        - key: "password"
+          label: "Password"
+          fieldType: "password"
+          required: false
+          validation:
+            maxLength: 512
+          helpText: "Optional basic-auth password. Only needed when NOT using SSO — leave blank for SSO users. Sent to the server on create/update and never read back."

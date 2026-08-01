@@ -147,6 +147,37 @@ export function vqlQuote(value: string): string {
   return `'${String(value).replace(/'/g, "''")}'`
 }
 
+/** Render a VQL array literal of strings, e.g. ['reader', 'analyst']. */
+export function vqlStringArray(values: string[]): string {
+  return `[${values.map(vqlQuote).join(', ')}]`
+}
+
+/**
+ * Split a newline / comma-delimited list into trimmed, de-duplicated, non-empty
+ * entries. Used by the monitoring + users config types to turn a textarea of
+ * artifact / role names into a clean list. Network-free.
+ */
+export function splitList(text: unknown): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const part of String(text ?? '').split(/[\r\n,]+/)) {
+    const value = part.trim()
+    if (value && !seen.has(value)) {
+      seen.add(value)
+      out.push(value)
+    }
+  }
+  return out
+}
+
+/** Coerce a checkbox/select field value to a boolean, tolerant of string/number forms. */
+export function asBool(value: unknown, fallback = false): boolean {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value !== 0
+  if (typeof value === 'string') return /^(true|1|yes|on|enabled)$/i.test(value.trim())
+  return fallback
+}
+
 /**
  * Upsert a custom artifact from its YAML definition.
  * VERIFY: `artifact_set(definition=<yaml>)` adds/updates a custom artifact keyed
