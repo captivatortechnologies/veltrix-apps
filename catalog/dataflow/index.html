@@ -10,21 +10,26 @@
   .card{display:flex;flex-direction:column;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;text-decoration:none;color:inherit;box-shadow:0 8px 24px -14px rgba(15,23,42,.2)}
   .card:hover{border-color:var(--brand)}.ic{font-size:26px}.nm{font-weight:650;font-size:15px}.meta{color:var(--muted);font-size:12px}
 </style></head><body><div class="wrap"><h1>Veltrix Apps — Request Flows</h1>
-<p class="sub">39 apps. Each page traces how a request routes through the system to completion.</p>
+<p class="sub">49 apps. Each page traces how a request routes through the system to completion.</p>
 <div class="grid"><a class="card" href="./carbon-black.html"><span class="ic">🖤</span><span class="nm">VMware Carbon Black</span><span class="meta">EDR · request flows</span></a>
 <a class="card" href="./cisco-duo.html"><span class="ic">🔐</span><span class="nm">Cisco Duo</span><span class="meta">IAM · request flows</span></a>
+<a class="card" href="./cisco-umbrella.html"><span class="ic">☂️</span><span class="nm">Cisco Umbrella</span><span class="meta">NETWORK · request flows</span></a>
 <a class="card" href="./cloudflare.html"><span class="ic">☁️</span><span class="nm">Cloudflare</span><span class="meta">NETWORK · request flows</span></a>
 <a class="card" href="./cortex-xdr.html"><span class="ic">🛰️</span><span class="nm">Cortex XDR</span><span class="meta">EDR · request flows</span></a>
 <a class="card" href="./cortex-xsoar.html"><span class="ic">🤖</span><span class="nm">Cortex XSOAR</span><span class="meta">SOAR · request flows</span></a>
 <a class="card" href="./crowdstrike-edr.html"><span class="ic">🦅</span><span class="nm">CrowdStrike Falcon</span><span class="meta">EDR · request flows</span></a>
 <a class="card" href="./cyberark.html"><span class="ic">🔐</span><span class="nm">CyberArk Privileged Access Manager</span><span class="meta">IAM · request flows</span></a>
+<a class="card" href="./cybereason.html"><span class="ic">🛡️</span><span class="nm">Cybereason</span><span class="meta">EDR · request flows</span></a>
 <a class="card" href="./defender-endpoint.html"><span class="ic">🛡️</span><span class="nm">Microsoft Defender for Endpoint</span><span class="meta">EDR · request flows</span></a>
 <a class="card" href="./elastic-security.html"><span class="ic">🔎</span><span class="nm">Elastic Security</span><span class="meta">SIEM · request flows</span></a>
 <a class="card" href="./fleet.html"><span class="ic">🚀</span><span class="nm">Fleet</span><span class="meta">Endpoint Management · request flows</span></a>
 <a class="card" href="./fortimanager.html"><span class="ic">🧱</span><span class="nm">FortiManager</span><span class="meta">NETWORK · request flows</span></a>
+<a class="card" href="./github-advanced-security.html"><span class="ic">🛡️</span><span class="nm">GitHub Advanced Security</span><span class="meta">COMPLIANCE · request flows</span></a>
 <a class="card" href="./google-secops.html"><span class="ic">🛰️</span><span class="nm">Google SecOps</span><span class="meta">SIEM · request flows</span></a>
 <a class="card" href="./hashicorp-vault.html"><span class="ic">🔐</span><span class="nm">HashiCorp Vault</span><span class="meta">IAM · request flows</span></a>
 <a class="card" href="./ibm-qradar.html"><span class="ic">📊</span><span class="nm">IBM QRadar</span><span class="meta">SIEM · request flows</span></a>
+<a class="card" href="./jumpcloud.html"><span class="ic">🟢</span><span class="nm">JumpCloud</span><span class="meta">IAM · request flows</span></a>
+<a class="card" href="./keycloak.html"><span class="ic">🔐</span><span class="nm">Keycloak</span><span class="meta">IAM · request flows</span></a>
 <a class="card" href="./microsoft-entra-id.html"><span class="ic">🔷</span><span class="nm">Microsoft Entra ID</span><span class="meta">IAM · request flows</span></a>
 <a class="card" href="./microsoft-intune.html"><span class="ic">🖥️</span><span class="nm">Microsoft Intune</span><span class="meta">EDR · request flows</span></a>
 <a class="card" href="./microsoft-sentinel.html"><span class="ic">🛡️</span><span class="nm">Microsoft Sentinel</span><span class="meta">SIEM · request flows</span></a>
@@ -40,12 +45,17 @@
 <a class="card" href="./rapid7.html"><span class="ic">🎯</span><span class="nm">Rapid7 InsightVM</span><span class="meta">COMPLIANCE · request flows</span></a>
 <a class="card" href="./sailpoint.html"><span class="ic">🪪</span><span class="nm">SailPoint</span><span class="meta">IAM · request flows</span></a>
 <a class="card" href="./security-onion.html"><span class="ic">🧅</span><span class="nm">Security Onion</span><span class="meta">SIEM · request flows</span></a>
+<a class="card" href="./semgrep.html"><span class="ic">🔎</span><span class="nm">Semgrep</span><span class="meta">COMPLIANCE · request flows</span></a>
 <a class="card" href="./sentinelone.html"><span class="ic">🛡️</span><span class="nm">SentinelOne</span><span class="meta">EDR · request flows</span></a>
 <a class="card" href="./snyk.html"><span class="ic">🐶</span><span class="nm">Snyk</span><span class="meta">COMPLIANCE · request flows</span></a>
+<a class="card" href="./sonarqube.html"><span class="ic">🛡️</span><span class="nm">SonarQube</span><span class="meta">COMPLIANCE · request flows</span></a>
 <a class="card" href="./splunk-cloud.html"><span class="ic">☁️</span><span class="nm">Splunk Cloud Platform</span><span class="meta">SIEM · request flows</span></a>
 <a class="card" href="./splunk-enterprise.html"><span class="ic">🔍</span><span class="nm">Splunk Enterprise</span><span class="meta">SIEM · request flows</span></a>
 <a class="card" href="./splunk-soar.html"><span class="ic">🤖</span><span class="nm">Splunk SOAR</span><span class="meta">SOAR · request flows</span></a>
+<a class="card" href="./sumo-logic.html"><span class="ic">🔎</span><span class="nm">Sumo Logic</span><span class="meta">SIEM · request flows</span></a>
+<a class="card" href="./sysdig-secure.html"><span class="ic">🛡️</span><span class="nm">Sysdig Secure</span><span class="meta">CLOUD · request flows</span></a>
 <a class="card" href="./tenable-vm.html"><span class="ic">🛡️</span><span class="nm">Tenable Vulnerability Management</span><span class="meta">COMPLIANCE · request flows</span></a>
+<a class="card" href="./thehive.html"><span class="ic">🐝</span><span class="nm">TheHive</span><span class="meta">SOAR · request flows</span></a>
 <a class="card" href="./velociraptor.html"><span class="ic">🦖</span><span class="nm">Velociraptor</span><span class="meta">EDR · request flows</span></a>
 <a class="card" href="./wazuh.html"><span class="ic">🛡️</span><span class="nm">Wazuh</span><span class="meta">SIEM · request flows</span></a>
 <a class="card" href="./wiz.html"><span class="ic">🛡️</span><span class="nm">Wiz</span><span class="meta">CLOUD · request flows</span></a>
