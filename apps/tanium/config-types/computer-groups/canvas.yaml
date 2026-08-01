@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template — Tanium Computer Groups
+#
+# Declares ONE Tanium computer group (the item). Users add as many as they need.
+# Field keys must match config-types/computer-groups/validate.ts. Applied via the
+# Tanium REST v2 API (/api/v2/groups, /api/v2/groups/{id}) on port 443.
+#
+# A filter-based group is `{ name, text }` where `text` is a Tanium filter
+# expression, e.g. `Operating System contains Windows`. An optional structured
+# filter JSON is available for advanced specs — verify its shape against a live
+# Tanium.
+# =============================================================================
+
+id: "tanium-computer-groups"
+name: "Computer Groups"
+toolType: "tanium"
+entityType: "computer-groups"
+description: "Manage Tanium computer groups — name and a filter expression — via the Tanium REST v2 API (443)"
+
+item:
+  label: "Computer Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Group"
+      icon: "users"
+      description: "Group identity and membership filter"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Computer group name shown in Tanium. Used as the stable identity for upsert and drift."
+
+        - key: "filterText"
+          label: "Filter Expression"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "A Tanium filter expression that selects endpoints, e.g. Operating System contains Windows. Maps to the group's text filter."
+
+        - key: "filterJson"
+          label: "Structured Filter (advanced)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 8000
+          helpText: "Optional structured filter as JSON for advanced specs. Leave blank to use the filter expression above. Verify the structured shape against your Tanium."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this computer group is configured — recorded for audit"

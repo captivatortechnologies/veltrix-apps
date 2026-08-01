@@ -1,0 +1,116 @@
+id: orca-security
+name: Orca Security
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Orca Security (agentless CNAPP / CSPM) configuration as code through the
+  Orca REST API. This foundation release covers custom alerts (custom Sonar
+  rules) — an Orca Sonar (DSL) query plus its category, risk score and enabled
+  state — created, updated, drift-checked and rolled back by the Security-as-Code
+  pipeline. Authenticates with an Orca API token against the tenant's regional
+  API endpoint (default https://api.orcasecurity.io).
+category: CLOUD
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/orca-security
+icon: "🐋"
+
+platform:
+  minVersion: "1.0.0"
+
+# Orca Security brand: the Orca teal/aqua.
+branding:
+  primaryColor: "#12B5A5"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: custom-alerts
+      actions: [read, write, delete]
+      description: Manage Orca custom alerts (custom Sonar rules)
+
+pipeline:
+  configurationTypes:
+    - id: custom-alerts
+      group: "Alerts"
+      name: Custom Alerts
+      description: >
+        Orca custom alerts (custom Sonar rules) via /api/sonar/rules — a Sonar
+        (DSL) query, category, risk score and enabled state. Reconciled by the
+        rule id this app assigns and persists per item, so a rule can be renamed
+        without losing its identity.
+      canvasTemplate: config-types/custom-alerts/canvas.yaml
+      defaultConfig: config-types/custom-alerts/defaults.yaml
+      handlers:
+        validate: config-types/custom-alerts/validate
+        deploy: config-types/custom-alerts/deploy
+        rollback: config-types/custom-alerts/rollback
+        healthCheck: config-types/custom-alerts/healthCheck
+        driftDetect: config-types/custom-alerts/driftDetect
+        getStatus: config-types/custom-alerts/getStatus
+      targets:
+        componentTypes: [orca-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/orca-security
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: cloud
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs an Orca tenant (component) with the
+    # API token used to reach it, with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: verifies the API token against the Orca
+# REST API via GET /api/alerts/catalog/category.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: api_endpoint
+    type: string
+    label: API Endpoint
+    description: >
+      The Orca REST API base URL. Default (US tenants):
+      https://api.orcasecurity.io. EU tenants use https://api.eu.orcasecurity.io.
+      A per-connection endpoint (the connection's host) overrides this.
+    default: "https://api.orcasecurity.io"
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Orca API calls.
+    default: 30
+    required: false

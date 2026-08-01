@@ -1,0 +1,149 @@
+# =============================================================================
+# Canvas Template — ServiceNow Business Rules
+#
+# Declares ONE ServiceNow business rule (a sys_script record). Operators add as
+# many as they need. Field keys must match config-types/business-rules/validate.ts
+# and _shared.ts (which map them to the sys_script data-dictionary columns).
+# Applied over the ServiceNow Table API (POST/PATCH /api/now/table/sys_script).
+#
+# Identity is the (name, collection) pair — a business rule name is not globally
+# unique, so the same name on two different tables is two different rules.
+# =============================================================================
+
+id: "servicenow-business-rules"
+name: "Business Rules"
+toolType: "servicenow"
+entityType: "business-rules"
+description: "Manage ServiceNow business rules (sys_script) as code — server-side scripts that run before/after/async/on-query for a table — via the Table API"
+
+item:
+  label: "Business Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Rule"
+      icon: "code"
+      description: "Rule identity and the table it runs on"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable rule name shown in ServiceNow. Identity is this name scoped to the table below."
+
+        - key: "collection"
+          label: "Table"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-z][a-z0-9_]*$"
+            maxLength: 80
+          helpText: "Internal name of the table the rule runs on, e.g. incident, sn_si_incident, task. Stored in the sys_script 'collection' column."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Why this rule exists — recorded for audit."
+
+    - name: "Execution"
+      icon: "settings"
+      description: "When and whether the rule runs"
+      fields:
+        - key: "when"
+          label: "When"
+          fieldType: "select"
+          required: true
+          defaultValue: "before"
+          options:
+            - label: "Before"
+              value: "before"
+            - label: "After"
+              value: "after"
+            - label: "Async"
+              value: "async"
+            - label: "Display"
+              value: "display"
+          helpText: "Business-rule timing relative to the database operation."
+
+        - key: "order"
+          label: "Order"
+          fieldType: "number"
+          required: false
+          defaultValue: 100
+          validation:
+            min: 0
+            max: 100000
+          helpText: "Execution order — lower numbers run first (default 100)."
+
+        - key: "active"
+          label: "Active"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the rule is enabled."
+
+        - key: "advanced"
+          label: "Advanced (run the Script)"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "When on, the Script below runs. This config type manages scripted rules, so leave it on."
+
+    - name: "Triggers"
+      icon: "zap"
+      description: "Which database operations fire the rule"
+      fields:
+        - key: "actionInsert"
+          label: "On Insert"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Run when a record is inserted (sys_script.action_insert)."
+
+        - key: "actionUpdate"
+          label: "On Update"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Run when a record is updated (sys_script.action_update)."
+
+        - key: "actionDelete"
+          label: "On Delete"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Run when a record is deleted (sys_script.action_delete)."
+
+        - key: "actionQuery"
+          label: "On Query"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Run when the table is queried — used by display rules (sys_script.action_query)."
+
+    - name: "Logic"
+      icon: "filter"
+      description: "The condition and script"
+      fields:
+        - key: "filterCondition"
+          label: "When to run (encoded query)"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 4000
+          helpText: "ServiceNow encoded query evaluated before the script, e.g. active=true^priority=1. Leave blank to always run."
+
+        - key: "script"
+          label: "Script"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 100000
+          helpText: "Server-side script body, e.g. (function executeRule(current, previous) { ... })(current, previous);"

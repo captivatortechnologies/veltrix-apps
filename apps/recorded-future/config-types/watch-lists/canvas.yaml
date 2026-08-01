@@ -1,0 +1,78 @@
+# =============================================================================
+# Canvas Template — Recorded Future Watch Lists
+#
+# Declares ONE Recorded Future Watch List (the item). Users add as many as they
+# need. The list NAME is the stable identity used to upsert and detect drift.
+# Field keys must match config-types/watch-lists/validate.ts. Applied over the
+# Recorded Future List API (POST /list/create, /list/{id}/entity/add).
+#
+# VERIFY the entity-resolution semantics (type/name vs. RF entity id) against a
+# live Recorded Future account — see config-types/watch-lists/_shared.ts.
+# =============================================================================
+
+id: "recorded-future-watch-lists"
+name: "Watch Lists"
+toolType: "recorded-future"
+entityType: "watch-lists"
+description: "Manage Recorded Future Watch Lists — name, type and member entities — via the Recorded Future List API (https://api.recordedfuture.com/list)."
+
+item:
+  label: "Watch List"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "List"
+      icon: "list"
+      description: "List identity and type"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The Watch List name shown in the Recorded Future portal. Used as the list's stable identity for upsert and drift."
+
+        - key: "listType"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "ip"
+          options:
+            - { label: "IP Address", value: "ip" }
+            - { label: "Domain", value: "domain" }
+            - { label: "Hash", value: "hash" }
+            - { label: "Vulnerability (CVE)", value: "vulnerability" }
+            - { label: "Entity (RF entity id)", value: "entity" }
+            - { label: "Company", value: "company" }
+            - { label: "Threat Actor", value: "attacker" }
+            - { label: "Executive", value: "executive" }
+            - { label: "Source", value: "source" }
+            - { label: "Text", value: "text" }
+          helpText: "The Recorded Future list type. IP / Domain / Hash / Vulnerability entities auto-resolve from their value; every other type requires Recorded Future entity ids."
+
+    - name: "Entities"
+      icon: "crosshair"
+      description: "Members of the list"
+      fields:
+        - key: "entities"
+          label: "Entities"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: "One entity per line (or comma-separated). For IP / Domain / Hash / Vulnerability lists enter the plain value (e.g. 8.8.8.8, evil.example.com, a SHA-256, CVE-2024-1234). For other list types enter Recorded Future entity ids."
+
+    - name: "Metadata"
+      icon: "settings"
+      description: "Audit note"
+      fields:
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this Watch List is configured — recorded for audit (not sent to Recorded Future)."

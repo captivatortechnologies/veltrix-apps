@@ -1,0 +1,107 @@
+id: akamai
+name: Akamai
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Akamai edge security as code. Author Network Lists (shared sets of IP
+  addresses / CIDR blocks or geographic country codes) and drive them through the
+  Security-as-Code pipeline — validate, deploy, health check, drift detection and
+  rollback — over the Akamai Network Lists API v2, authenticated with EdgeGrid
+  (EG1-HMAC-SHA256) request signing.
+category: NETWORK
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/akamai
+icon: "🌐"
+
+platform:
+  minVersion: "1.0.0"
+
+# Akamai brand blue. Assets are placeholders until the official lockup is added.
+branding:
+  primaryColor: "#0099cc"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: network-lists
+      actions: [read, write, delete]
+      description: Manage Akamai Network Lists (create / update / delete, sync elements)
+
+pipeline:
+  configurationTypes:
+    - id: network-lists
+      group: "Edge Security"
+      name: Network Lists
+      description: >
+        Akamai Network Lists — a named IP/CIDR or GEO list and its elements —
+        applied over the Network Lists API v2 (EdgeGrid-signed, HTTPS 443)
+      canvasTemplate: config-types/network-lists/canvas.yaml
+      defaultConfig: config-types/network-lists/defaults.yaml
+      handlers:
+        validate: config-types/network-lists/validate
+        deploy: config-types/network-lists/deploy
+        rollback: config-types/network-lists/rollback
+        healthCheck: config-types/network-lists/healthCheck
+        driftDetect: config-types/network-lists/driftDetect
+        getStatus: config-types/network-lists/getStatus
+      targets:
+        componentTypes: [akamai]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/akamai
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the Akamai API host (component) with
+    # the EdgeGrid credential, with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies a Connection's host + EdgeGrid
+# credential against the Network Lists API v2
+# (GET /network-list/v2/network-lists?listType=IP&includeElements=false).
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request timeout (seconds)
+    description: How long to wait for the Akamai API before giving up.
+    default: 30
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated

@@ -1,0 +1,118 @@
+id: recorded-future
+name: Recorded Future
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Recorded Future Watch Lists as code. Author entity watch lists — custom
+  and Third-Party lists that power queries, Threat Views and Alerts — and drive
+  them through the Security-as-Code pipeline (validate, deploy, health check,
+  drift detection and rollback) over the Recorded Future List API
+  (https://api.recordedfuture.com, X-RFToken auth). NOTE: the Recorded Future
+  API is largely READ (intelligence lookup / enrichment); the List API is its one
+  genuinely writable configuration surface — see the README.
+category: Threat Intelligence
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/recorded-future
+icon: "🔮"
+
+platform:
+  minVersion: "1.0.0"
+
+# Recorded Future brand red. Placeholder until the official lockup is added.
+branding:
+  primaryColor: "#E4002B"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: watch-lists
+      actions: [read, write, delete]
+      description: >
+        Manage Recorded Future Watch Lists — create lists and add / remove their
+        entities over the List API (POST /list/create, /list/{id}/entity/add,
+        DELETE /list/{id}/entity/remove)
+
+pipeline:
+  configurationTypes:
+    - id: watch-lists
+      group: "Threat Intelligence"
+      name: Watch Lists
+      description: >
+        Recorded Future Watch Lists (custom / Third-Party entity lists) — list
+        name, type and member entities — applied over the Recorded Future List
+        API (https://api.recordedfuture.com/list, X-RFToken).
+      canvasTemplate: config-types/watch-lists/canvas.yaml
+      defaultConfig: config-types/watch-lists/defaults.yaml
+      handlers:
+        validate: config-types/watch-lists/validate
+        deploy: config-types/watch-lists/deploy
+        rollback: config-types/watch-lists/rollback
+        healthCheck: config-types/watch-lists/healthCheck
+        driftDetect: config-types/watch-lists/driftDetect
+        getStatus: config-types/watch-lists/getStatus
+      targets:
+        componentTypes: [recorded-future-cloud]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/recorded-future
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the Recorded Future cloud (component)
+    # with the API token (credential) used to reach it, with a connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies the API token against the
+# Recorded Future List API (POST https://api.recordedfuture.com/list/search).
+connectivity:
+  testHandler: handlers/testConnection
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Recorded Future API calls.
+    default: 30
+    required: false
+  - key: api_base_url
+    type: string
+    label: API Base URL
+    description: >
+      Recorded Future API base URL. Defaults to https://api.recordedfuture.com.
+      Override only for a regional / dedicated cloud.
+    default: https://api.recordedfuture.com
+    required: false

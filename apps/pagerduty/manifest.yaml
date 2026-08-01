@@ -1,0 +1,107 @@
+id: pagerduty
+name: PagerDuty
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage PagerDuty incident-response configuration as code through the PagerDuty
+  REST API v2. This foundation release covers Escalation Policies — name,
+  description, loop count and the escalation rules (delay + user / schedule
+  targets) — driven through the Security-as-Code pipeline: validate, deploy,
+  health check, drift detection and rollback. Auth is a PagerDuty REST API key
+  (Authorization: Token token=…) against the fixed https://api.pagerduty.com base.
+category: SOAR
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/pagerduty
+icon: "📟"
+
+platform:
+  minVersion: "1.0.0"
+
+# PagerDuty's brand green. Emoji icon until the official lockup is added.
+branding:
+  primaryColor: "#06AC38"
+  accentColor: "#25C151"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: escalation-policies
+      actions: [read, write, delete]
+      description: Manage PagerDuty escalation policies (create / edit / delete)
+
+pipeline:
+  configurationTypes:
+    - id: escalation-policies
+      group: "On-Call"
+      name: Escalation Policies
+      description: >
+        PagerDuty escalation policies — name, description, loop count and the
+        escalation rules (delay + user / schedule targets) — applied over the
+        PagerDuty REST API v2 (/escalation_policies). Reconciled by name.
+      canvasTemplate: config-types/escalation-policies/canvas.yaml
+      defaultConfig: config-types/escalation-policies/defaults.yaml
+      handlers:
+        validate: config-types/escalation-policies/validate
+        deploy: config-types/escalation-policies/deploy
+        rollback: config-types/escalation-policies/rollback
+        healthCheck: config-types/escalation-policies/healthCheck
+        driftDetect: config-types/escalation-policies/driftDetect
+        getStatus: config-types/escalation-policies/getStatus
+      targets:
+        componentTypes: [pagerduty-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/pagerduty
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs a PagerDuty account (component) with
+    # the REST API key (credential), with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: verifies the REST API key via GET /abilities
+# against the fixed https://api.pagerduty.com base.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for PagerDuty REST API calls.
+    default: 30
+    required: false

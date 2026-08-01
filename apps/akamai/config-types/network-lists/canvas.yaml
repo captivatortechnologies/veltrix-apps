@@ -1,0 +1,63 @@
+# =============================================================================
+# Canvas Template — Akamai Network Lists
+#
+# Declares ONE Akamai Network List (the item). Users add as many as they need.
+# Field keys must match config-types/network-lists/validate.ts. Applied via the
+# Network Lists API v2 (EdgeGrid-signed, HTTPS 443). The list NAME is the stable
+# identity used for upsert and drift.
+# =============================================================================
+
+id: "akamai-network-lists"
+name: "Network Lists"
+toolType: "akamai"
+entityType: "network-lists"
+description: "Manage Akamai Network Lists — an IP/CIDR or GEO list and its elements — via the Network Lists API v2"
+
+item:
+  label: "Network List"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "List"
+      icon: "list"
+      description: "List identity and type"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: "Human-readable list name shown in Akamai. Used as the list's stable identity for upsert and drift."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "IP"
+          options:
+            - label: "IP (addresses / CIDR blocks)"
+              value: "IP"
+            - label: "GEO (two-letter country codes)"
+              value: "GEO"
+          helpText: "IP for IPv4/IPv6 addresses and CIDR blocks; GEO for ISO 3166 two-letter country codes. The type cannot be changed after creation."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Notes about this list — recorded in Akamai for audit."
+
+    - name: "Elements"
+      icon: "settings"
+      description: "The entries this list contains"
+      fields:
+        - key: "list"
+          label: "Elements"
+          fieldType: "textarea"
+          required: false
+          helpText: "One entry per line (or comma-separated). For IP lists: IPs and CIDR blocks (e.g. 203.0.113.0/24). For GEO lists: two-letter country codes (e.g. US, GB)."

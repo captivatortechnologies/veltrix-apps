@@ -1,0 +1,108 @@
+id: trend-micro-vision-one
+name: Trend Micro Vision One
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Trend Micro Vision One threat intelligence as code. Author the
+  user-defined Suspicious Object List — domains, IPs, URLs, file SHA-1 hashes and
+  sender mail addresses with a block/log scan action, risk level and expiration —
+  and drive it through the Security-as-Code pipeline (validate, deploy, health
+  check, drift detection and rollback) over the Trend Vision One public REST API
+  (v3.0, Bearer token). The connection endpoint is your regional Vision One API
+  host (e.g. api.xdr.trendmicro.com).
+category: EDR
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/trend-micro-vision-one
+icon: "🛡️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Trend Micro brand red.
+branding:
+  primaryColor: "#D71920"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: suspicious-objects
+      actions: [read, write, delete]
+      description: Manage the Trend Vision One user-defined Suspicious Object List (add / update / remove)
+
+pipeline:
+  configurationTypes:
+    - id: suspicious-objects
+      group: "Threat Intelligence"
+      name: Suspicious Objects
+      description: >
+        Trend Vision One user-defined suspicious objects — type (domain / ip / url /
+        fileSha1 / senderMailAddress), value, scan action (block / log), risk level
+        and expiration — applied over the Vision One public REST API
+        (/v3.0/threatintel/suspiciousObjects).
+      canvasTemplate: config-types/suspicious-objects/canvas.yaml
+      defaultConfig: config-types/suspicious-objects/defaults.yaml
+      handlers:
+        validate: config-types/suspicious-objects/validate
+        deploy: config-types/suspicious-objects/deploy
+        rollback: config-types/suspicious-objects/rollback
+        healthCheck: config-types/suspicious-objects/healthCheck
+        driftDetect: config-types/suspicious-objects/driftDetect
+        getStatus: config-types/suspicious-objects/getStatus
+      targets:
+        componentTypes: [trend-vision-one-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/trend-micro-vision-one
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs a Trend Vision One tenant (component)
+    # with the API token credential used to reach it, with a connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies the regional API host + API token
+# against the Vision One public API (GET /v3.0/threatintel/suspiciousObjects?top=1).
+connectivity:
+  testHandler: handlers/testConnection
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Trend Vision One API calls.
+    default: 30
+    required: false

@@ -1,0 +1,112 @@
+id: tanium
+name: Tanium
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Tanium endpoint management as code. Author Tanium computer groups and
+  drive them through the Security-as-Code pipeline — validate, deploy, health
+  check, drift detection and rollback — over the Tanium REST v2 API (HTTPS 443,
+  self-signed tolerated). Authenticates with a Tanium API token or a username +
+  password session login.
+category: Endpoint Management
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/tanium
+icon: "🖥️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Tanium's brand teal. Assets are placeholders until the official lockup is added.
+branding:
+  primaryColor: "#00a39a"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: computer-groups
+      actions: [read, write, delete]
+      description: Manage Tanium computer groups (add / edit / delete)
+
+pipeline:
+  configurationTypes:
+    - id: computer-groups
+      group: "Endpoint Management"
+      name: Computer Groups
+      description: Tanium computer groups — name and a filter expression that selects endpoints — applied over the Tanium REST v2 API (443)
+      canvasTemplate: config-types/computer-groups/canvas.yaml
+      defaultConfig: config-types/computer-groups/defaults.yaml
+      handlers:
+        validate: config-types/computer-groups/validate
+        deploy: config-types/computer-groups/deploy
+        rollback: config-types/computer-groups/rollback
+        healthCheck: config-types/computer-groups/healthCheck
+        driftDetect: config-types/computer-groups/driftDetect
+        getStatus: config-types/computer-groups/getStatus
+      targets:
+        componentTypes: [tanium-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/tanium
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the Tanium server (component) with the
+    # Tanium API token / username+password (credential), with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies a Connection's endpoint + credential
+# against the Tanium REST v2 API (HTTPS 443 /api/v2/system_status).
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: tanium_port
+    type: number
+    label: Tanium HTTPS Port
+    description: HTTPS port for the Tanium Server / Tanium Cloud REST API
+    default: 443
+    required: false
+  - key: verify_tls
+    type: boolean
+    label: Verify TLS certificate
+    description: >
+      Enforce a valid TLS certificate on the Tanium endpoint. Off by default —
+      on-premises Tanium appliances commonly ship a self-signed certificate.
+    default: false
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated

@@ -1,0 +1,112 @@
+id: axonius
+name: Axonius
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Axonius (CAASM — Cyber Asset Attack Surface Management) as code. Author
+  saved queries (reusable asset views — a named AQL filter over the devices or
+  users module plus the columns to show) and drive them through the
+  Security-as-Code pipeline — validate, deploy, health check, drift detection and
+  rollback — over the Axonius REST API (HTTPS, api-key + api-secret headers,
+  self-signed tolerated).
+category: COMPLIANCE
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/axonius
+icon: "🛰️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Axonius brand navy. Placeholder until the official lockup is added.
+branding:
+  primaryColor: "#1b3a7a"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: saved-queries
+      actions: [read, write, delete]
+      description: Manage Axonius saved queries (create / edit / delete asset views for devices and users)
+
+pipeline:
+  configurationTypes:
+    - id: saved-queries
+      group: "Asset Views"
+      name: Saved Queries
+      description: Axonius saved queries — a named AQL filter over the devices or users module plus display columns — applied over the Axonius REST API (443)
+      canvasTemplate: config-types/saved-queries/canvas.yaml
+      defaultConfig: config-types/saved-queries/defaults.yaml
+      handlers:
+        validate: config-types/saved-queries/validate
+        deploy: config-types/saved-queries/deploy
+        rollback: config-types/saved-queries/rollback
+        healthCheck: config-types/saved-queries/healthCheck
+        driftDetect: config-types/saved-queries/driftDetect
+        getStatus: config-types/saved-queries/getStatus
+      targets:
+        componentTypes: [axonius, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/axonius
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the Axonius tenant (component) with
+    # the API key/secret (credential), with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies a Connection's endpoint + API
+# key/secret against the Axonius REST API (HTTPS 443 GET api/settings/meta/about).
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: verify_tls
+    type: boolean
+    label: Verify TLS certificate
+    description: >
+      Enforce a valid TLS certificate on the Axonius endpoint. Off by default —
+      on-prem Axonius deployments commonly ship a self-signed certificate. Turn on
+      for a cloud tenant with a trusted certificate.
+    default: false
+    required: false
+  - key: api_version
+    type: string
+    label: API version segment
+    description: >
+      Optional REST API version segment inserted after /api/ (e.g. "V4.0" → paths
+      become /api/V4.0/...). Leave blank for the unversioned /api/ root used by the
+      Axonius API client. Verify against your tenant.
+    default: ""
+    required: false

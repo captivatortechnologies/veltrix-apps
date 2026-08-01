@@ -1,0 +1,66 @@
+# =============================================================================
+# Canvas Template — PagerDuty Escalation Policies
+#
+# Declares ONE PagerDuty escalation policy (the item). Users add as many as they
+# need. Field keys must match config-types/escalation-policies/_shared.ts. Applied
+# via the PagerDuty REST API v2 (/escalation_policies) at https://api.pagerduty.com.
+#
+# PagerDuty assigns the server id, so identity for reconciliation is the policy
+# `name`. Each policy carries an ordered list of escalation RULES (escalation_rules);
+# each rule has a delay and one or more targets (a user or an on-call schedule).
+# =============================================================================
+
+id: "pagerduty-escalation-policies"
+name: "Escalation Policies"
+toolType: "pagerduty"
+entityType: "escalation-policies"
+description: "Manage PagerDuty escalation policies — name, description, loop count and escalation rules — via the PagerDuty REST API v2 (/escalation_policies). Reconciled by name."
+
+item:
+  label: "Escalation Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Escalation Policy"
+      icon: "bell"
+      description: "Policy identity and escalation rules"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The escalation policy name shown in PagerDuty. Used as the stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1024
+          helpText: "Optional description of what this escalation policy is for."
+
+        - key: "num_loops"
+          label: "Loop Count"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+          validation:
+            min: 0
+            max: 9
+          helpText: "How many times the escalation chain repeats if no one acknowledges (0 = do not loop). PagerDuty recommends at least 2 for production policies."
+
+        - key: "escalation_rules"
+          label: "Escalation Rules (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            Required JSON array of escalation rules, applied in order. Each rule is
+            { "escalation_delay_in_minutes": <minutes>, "targets": [ { "type": "user_reference" | "schedule_reference", "id": "<PagerDuty id>" } ] }.
+            The delay is how long PagerDuty waits for an acknowledgement before moving
+            to the next rule. e.g.
+            [{"escalation_delay_in_minutes":30,"targets":[{"type":"schedule_reference","id":"PWXYZ12"}]},{"escalation_delay_in_minutes":30,"targets":[{"type":"user_reference","id":"PABC123"}]}].
+            Must contain at least one rule, and every rule at least one target.

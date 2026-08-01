@@ -1,0 +1,94 @@
+# =============================================================================
+# Canvas Template — Trend Vision One User-Defined Suspicious Objects
+#
+# Declares ONE Trend Vision One suspicious object (the item). Users add as many as
+# they need. The object VALUE is the stable identity used for upsert and drift.
+# Field keys must match config-types/suspicious-objects/validate.ts. Applied over
+# the Trend Vision One public REST API (/v3.0/threatintel/suspiciousObjects).
+#
+# VERIFY the accepted type / scanAction / riskLevel values and the daysToExpiration
+# units against a live Vision One tenant.
+# =============================================================================
+
+id: "trend-vision-one-suspicious-objects"
+name: "Suspicious Objects"
+toolType: "trend-micro-vision-one"
+entityType: "suspicious-objects"
+description: "Manage the Trend Vision One user-defined Suspicious Object List — type, value, scan action, risk level and expiration — via the Vision One public REST API."
+
+item:
+  label: "Suspicious Object"
+  identityField: "value"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Object"
+      icon: "crosshair"
+      description: "The suspicious object and its type"
+      fields:
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "domain"
+          options:
+            - { label: "Domain", value: "domain" }
+            - { label: "IP Address", value: "ip" }
+            - { label: "URL", value: "url" }
+            - { label: "File SHA-1", value: "fileSha1" }
+            - { label: "Sender Mail Address", value: "senderMailAddress" }
+          helpText: "The object type. VERIFY the exact accepted values against your Vision One tenant."
+
+        - key: "value"
+          label: "Value"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 2000
+          helpText: "The object value — a domain, IP, URL, 40-char file SHA-1, or sender email address. Used as the object's stable identity for upsert and drift."
+
+    - name: "Response"
+      icon: "shield"
+      description: "How Vision One treats a match"
+      fields:
+        - key: "scanAction"
+          label: "Scan Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "block"
+          options:
+            - { label: "Block", value: "block" }
+            - { label: "Log", value: "log" }
+          helpText: "Block actively blocks the object across connected Vision One products; Log detects and records matches without blocking."
+
+        - key: "riskLevel"
+          label: "Risk Level"
+          fieldType: "select"
+          required: true
+          defaultValue: "high"
+          options:
+            - { label: "High", value: "high" }
+            - { label: "Medium", value: "medium" }
+            - { label: "Low", value: "low" }
+          helpText: "The risk level assigned to matches on this object."
+
+    - name: "Metadata"
+      icon: "settings"
+      description: "Description and lifetime"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this object is on the list — recorded for audit."
+
+        - key: "daysToExpiration"
+          label: "Days to Expiration"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+          helpText: "Optional auto-expiry in days. Leave blank to use the tenant default. VERIFY the units against your Vision One tenant."

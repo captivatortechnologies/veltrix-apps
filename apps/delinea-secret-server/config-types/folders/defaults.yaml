@@ -1,0 +1,5 @@
+# Defaults for a new folder item. The operator fills in the folder name (and an
+# optional parent); permission + secret-policy inheritance default to on, matching
+# Secret Server's default for a new folder.
+inheritPermissions: true
+inheritSecretPolicy: true

@@ -1,0 +1,7 @@
+# Defaults for a new triage-rule item. The item starts mostly blank — the
+# operator fills in the description, detection type and (unless whitelisting) the
+# triage category. Scope defaults to all hosts.
+detection_category: "LATERAL MOVEMENT"
+is_whitelist: false
+all_hosts: true
+priority: false

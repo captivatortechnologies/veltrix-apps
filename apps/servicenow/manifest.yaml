@@ -1,0 +1,107 @@
+id: servicenow
+name: ServiceNow
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage ServiceNow configuration as code over the Table API (HTTPS, HTTP Basic
+  auth). v0.1.0 is a focused foundation that manages business rules
+  (sys_script) — server-side scripts that run before/after/async or on query for
+  a given table — through the Security-as-Code pipeline (validate, deploy, health
+  check, drift detection and rollback). ServiceNow is a very large platform;
+  business rules are one clean, security-relevant, writable surface, with more
+  configuration types to follow.
+category: SOAR
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/servicenow
+
+# ServiceNow brand green — placeholder until the official lockup is added.
+icon: "🛎️"
+branding:
+  primaryColor: "#62D84E"
+
+platform:
+  minVersion: "1.0.0"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: business-rules
+      actions: [read, write, delete]
+      description: Manage ServiceNow business rules (sys_script) — create / edit / delete
+
+pipeline:
+  configurationTypes:
+    - id: business-rules
+      group: "Platform Automation"
+      name: Business Rules
+      description: ServiceNow business rules (sys_script) — name, table, when, triggers, condition and server-side script — applied over the Table API
+      canvasTemplate: config-types/business-rules/canvas.yaml
+      defaultConfig: config-types/business-rules/defaults.yaml
+      handlers:
+        validate: config-types/business-rules/validate
+        deploy: config-types/business-rules/deploy
+        rollback: config-types/business-rules/rollback
+        healthCheck: config-types/business-rules/healthCheck
+        driftDetect: config-types/business-rules/driftDetect
+        getStatus: config-types/business-rules/getStatus
+      targets:
+        componentTypes: [servicenow-instance]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/servicenow
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs a ServiceNow instance (component)
+    # with an integration-user credential (username + password), with a per-row
+    # connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies a Connection's instance URL + Basic
+# credential against the Table API (GET /api/now/table/sys_user?sysparm_limit=1).
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request timeout (seconds)
+    description: How long to wait for a ServiceNow Table API request before timing out.
+    default: 30
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated

@@ -1,0 +1,133 @@
+# =============================================================================
+# Canvas Template — Vectra Triage Rules
+#
+# Declares ONE Vectra triage rule (the item). Users add as many as they need.
+# Field keys must match config-types/triage-rules/validate.ts. Applied via the
+# Vectra Detect REST API (/api/v2.5/rules) on port 443.
+#
+# A triage rule either WHITELISTS matching detections (is_whitelist: true) or
+# RE-CLASSIFIES them into a triage_category. `detection_category` + `detection`
+# scope WHICH detections the rule matches; the host/network fields narrow WHERE.
+#
+# FLAG (verify against a live Vectra): the exact `detection_category` enum values
+# and casing, and valid `detection` (detection type) names, are Vectra-defined.
+# Only "LATERAL MOVEMENT" is confirmed from Vectra's official API example.
+# =============================================================================
+
+id: "vectra-triage-rules"
+name: "Triage Rules"
+toolType: "vectra-ai"
+entityType: "triage-rules"
+description: "Manage Vectra triage rules — whitelist or re-classify detections by category, detection type and host/network scope — via the Vectra Detect REST API (v2.5, 443)"
+
+item:
+  label: "Triage Rule"
+  identityField: "description"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Rule"
+      icon: "filter"
+      description: "What the rule matches and how it re-classifies"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable rule name. Used as the rule's stable identity for upsert and drift matching (Vectra rules have no unique name — keep this unique per instance)."
+
+        - key: "detection_category"
+          label: "Detection Category"
+          fieldType: "select"
+          required: true
+          defaultValue: "LATERAL MOVEMENT"
+          options:
+            - label: "Command & Control"
+              value: "COMMAND & CONTROL"
+            - label: "Botnet"
+              value: "BOTNET"
+            - label: "Reconnaissance"
+              value: "RECONNAISSANCE"
+            - label: "Lateral Movement"
+              value: "LATERAL MOVEMENT"
+            - label: "Exfiltration"
+              value: "EXFILTRATION"
+            - label: "Info"
+              value: "INFO"
+          helpText: "The detection category the rule applies to. VERIFY the exact category strings/casing against your Vectra — only LATERAL MOVEMENT is confirmed from Vectra's API docs."
+
+        - key: "detection"
+          label: "Detection Type"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The Vectra detection type name this rule matches, e.g. Hidden HTTP Tunnel. Must match a Vectra detection type name exactly (verify against your Vectra)."
+
+        - key: "triage_category"
+          label: "Triage Category"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "New classification to file matching detections under. Required unless this is a whitelist rule."
+
+        - key: "is_whitelist"
+          label: "Whitelist"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When on, matching detections are whitelisted (suppressed) rather than re-classified — leave Triage Category blank."
+
+    - name: "Scope & Conditions"
+      icon: "target"
+      description: "Which hosts and network endpoints the rule is scoped to"
+      fields:
+        - key: "all_hosts"
+          label: "Apply to all hosts"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "When on, the rule applies to every host. Turn off to scope by specific host IDs and/or source IPs below."
+
+        - key: "host"
+          label: "Host IDs"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Comma-separated Vectra host IDs (numeric), e.g. 3345, 3410. Used only when 'Apply to all hosts' is off."
+
+        - key: "ip"
+          label: "Source IPs / CIDRs"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Comma-separated source IP addresses or CIDR ranges, e.g. 10.1.1.0/24, 10.2.0.5."
+
+        - key: "remote1_ip"
+          label: "Destination IPs / CIDRs"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Comma-separated destination (remote) IPs or CIDR ranges the rule matches on, e.g. 8.8.8.8, 203.0.113.0/24."
+
+        - key: "remote1_proto"
+          label: "Protocols"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Comma-separated protocols the rule matches on, e.g. ssh, tcp, udp."
+
+        - key: "priority"
+          label: "Priority rule"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Mark this rule as a priority filter."
