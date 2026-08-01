@@ -1,0 +1,19 @@
+{
+  "name": "veltrix-app-velociraptor",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Veltrix app: manage Velociraptor (open-source endpoint DFIR / hunting platform) as code — custom VQL artifacts over the Velociraptor gRPC API (mutual TLS)",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.14.0",
+    "@grpc/proto-loader": "^0.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@veltrixsecops/app-sdk": "^3.6.0",
+    "fastify": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}

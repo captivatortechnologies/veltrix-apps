@@ -1,0 +1,107 @@
+id: opencti
+name: OpenCTI
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage OpenCTI (open-source cyber threat-intelligence platform) as code. Author
+  threat-intel configuration — starting with data-marking definitions (TLP / PAP /
+  statement) — and drive it through the Security-as-Code pipeline: validate, deploy,
+  health check, drift detection and rollback, over the OpenCTI GraphQL API (HTTPS,
+  Bearer token, self-signed tolerated).
+category: Threat Intelligence
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/opencti
+icon: "🔭"
+
+platform:
+  minVersion: "1.0.0"
+
+# OpenCTI's brand cyan. Assets are placeholders until the official lockup is added.
+branding:
+  primaryColor: "#0692c4"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: marking-definitions
+      actions: [read, write, delete]
+      description: Manage OpenCTI data-marking definitions (add / edit / delete)
+
+pipeline:
+  configurationTypes:
+    - id: marking-definitions
+      group: "Data Management"
+      name: Marking Definitions
+      description: OpenCTI data-marking definitions — type, definition, color and order — applied over the OpenCTI GraphQL API (443)
+      canvasTemplate: config-types/marking-definitions/canvas.yaml
+      defaultConfig: config-types/marking-definitions/defaults.yaml
+      handlers:
+        validate: config-types/marking-definitions/validate
+        deploy: config-types/marking-definitions/deploy
+        rollback: config-types/marking-definitions/rollback
+        healthCheck: config-types/marking-definitions/healthCheck
+        driftDetect: config-types/marking-definitions/driftDetect
+        getStatus: config-types/marking-definitions/getStatus
+      targets:
+        componentTypes: [opencti-platform, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/opencti
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the OpenCTI platform (component) with
+    # the user's OpenCTI API token (credential), with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies a Connection's endpoint + API token
+# against the OpenCTI GraphQL API (HTTPS, self-signed tolerated).
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: opencti_port
+    type: number
+    label: OpenCTI HTTPS Port
+    description: HTTPS port for the OpenCTI web UI / GraphQL API
+    default: 443
+    required: false
+  - key: verify_tls
+    type: boolean
+    label: Verify TLS certificate
+    description: >
+      Enforce a valid TLS certificate on the OpenCTI endpoint. Off by default —
+      self-hosted OpenCTI instances commonly ship a self-signed certificate.
+    default: false
+    required: false

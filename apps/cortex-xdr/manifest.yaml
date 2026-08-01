@@ -1,0 +1,106 @@
+id: cortex-xdr
+name: Cortex XDR
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Palo Alto Networks Cortex XDR configuration as code. Author threat
+  indicators (IOCs) and drive them through the Security-as-Code pipeline —
+  validate, deploy, health check, drift detection and rollback — over the Cortex
+  XDR public REST API (POST { request_data }, x-xdr-auth-id + Authorization
+  Standard auth). The connection endpoint is your Cortex XDR tenant API FQDN.
+category: EDR
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cortex-xdr
+icon: "🛰️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Palo Alto Networks brand orange.
+branding:
+  primaryColor: "#FA582D"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: iocs
+      actions: [read, write, delete]
+      description: Manage Cortex XDR threat indicators (IOCs) — insert / update / delete
+
+pipeline:
+  configurationTypes:
+    - id: iocs
+      group: "Threat Intelligence"
+      name: Threat Indicators (IOCs)
+      description: >
+        Cortex XDR indicators of compromise — indicator value, type, severity,
+        reputation, reliability and comment — applied over the Cortex XDR public
+        REST API (indicators/insert_jsons).
+      canvasTemplate: config-types/iocs/canvas.yaml
+      defaultConfig: config-types/iocs/defaults.yaml
+      handlers:
+        validate: config-types/iocs/validate
+        deploy: config-types/iocs/deploy
+        rollback: config-types/iocs/rollback
+        healthCheck: config-types/iocs/healthCheck
+        driftDetect: config-types/iocs/driftDetect
+        getStatus: config-types/iocs/getStatus
+      targets:
+        componentTypes: [cortex-xdr-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/cortex-xdr
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs a Cortex XDR tenant (component) with
+    # the API Key ID + API Key credential used to reach it, with a connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies the tenant API FQDN + API Key ID /
+# API Key against the Cortex XDR public API
+# (POST /public_api/v1/endpoints/get_endpoint_groups/).
+connectivity:
+  testHandler: handlers/testConnection
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Cortex XDR API calls.
+    default: 30
+    required: false

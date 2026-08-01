@@ -1,0 +1,69 @@
+# =============================================================================
+# Canvas Template — Velociraptor Custom Artifacts
+#
+# Declares ONE Velociraptor custom VQL artifact (the item). Users add as many as
+# they need. Field keys must match config-types/custom-artifacts/validate.ts.
+# Applied via the gRPC API (mutual TLS) with `artifact_set(definition=<yaml>)`.
+# =============================================================================
+
+id: "velociraptor-custom-artifacts"
+name: "Custom Artifacts"
+toolType: "velociraptor"
+entityType: "custom-artifacts"
+description: "Manage Velociraptor custom VQL artifacts — name, type and the artifact YAML/VQL — via the gRPC API (artifact_set)"
+
+item:
+  label: "Custom Artifact"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Artifact"
+      icon: "file-text"
+      description: "Artifact identity and kind"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z][A-Za-z0-9]*(\\.[A-Za-z][A-Za-z0-9]*)*$"
+            maxLength: 255
+          helpText: "The artifact name, e.g. Custom.Windows.Detection.Foo. Must match the name: inside the definition; used as the stable identity for upsert, drift and delete."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "CLIENT"
+          options:
+            - label: "Client"
+              value: "CLIENT"
+            - label: "Server"
+              value: "SERVER"
+            - label: "Client Event"
+              value: "CLIENT_EVENT"
+            - label: "Server Event"
+              value: "SERVER_EVENT"
+          helpText: "The artifact kind. Should match the type: declared in the definition."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Human-readable summary of what this artifact collects or detects."
+
+    - name: "Definition"
+      icon: "code"
+      description: "The artifact source (YAML + VQL)"
+      fields:
+        - key: "definition"
+          label: "Artifact YAML"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 100000
+          helpText: "The full artifact definition in Velociraptor YAML (name, type, parameters, sources with VQL). This is what artifact_set() stores verbatim."

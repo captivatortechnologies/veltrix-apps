@@ -1,0 +1,112 @@
+# =============================================================================
+# Canvas Template — Cortex XDR Threat Indicators (IOCs)
+#
+# Declares ONE Cortex XDR indicator of compromise (the item). Users add as many
+# as they need. The indicator VALUE is the stable identity used for upsert and
+# drift. Field keys must match config-types/iocs/validate.ts. Applied over the
+# Cortex XDR public REST API (indicators/insert_jsons).
+#
+# VERIFY the exact enum values (type / severity / reputation / reliability) and
+# the expiration_date units against a live Cortex XDR tenant.
+# =============================================================================
+
+id: "cortex-xdr-iocs"
+name: "Cortex XDR Indicators (IOCs)"
+toolType: "cortex-xdr"
+entityType: "iocs"
+description: "Manage Cortex XDR threat indicators (IOCs) — value, type, severity, reputation, reliability and comment — via the Cortex XDR public REST API."
+
+item:
+  label: "Indicator"
+  identityField: "indicator"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Indicator"
+      icon: "crosshair"
+      description: "The indicator value and its type"
+      fields:
+        - key: "indicator"
+          label: "Indicator"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 1000
+          helpText: "The IOC value — a file hash, IP address, domain, path or filename. Used as the indicator's stable identity for upsert and drift."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "HASH"
+          options:
+            - { label: "File Hash", value: "HASH" }
+            - { label: "IP Address", value: "IP" }
+            - { label: "Domain", value: "DOMAIN_NAME" }
+            - { label: "Path", value: "PATH" }
+            - { label: "Filename", value: "FILENAME" }
+          helpText: "The indicator type. VERIFY the exact accepted values against your Cortex XDR tenant."
+
+    - name: "Scoring"
+      icon: "sliders"
+      description: "How Cortex XDR scores and trusts this indicator"
+      fields:
+        - key: "severity"
+          label: "Severity"
+          fieldType: "select"
+          required: true
+          defaultValue: "MEDIUM"
+          options:
+            - { label: "Informational", value: "INFO" }
+            - { label: "Low", value: "LOW" }
+            - { label: "Medium", value: "MEDIUM" }
+            - { label: "High", value: "HIGH" }
+            - { label: "Critical", value: "CRITICAL" }
+          helpText: "Severity assigned to matches on this indicator."
+
+        - key: "reputation"
+          label: "Reputation"
+          fieldType: "select"
+          required: false
+          defaultValue: "BAD"
+          options:
+            - { label: "Good", value: "GOOD" }
+            - { label: "Bad", value: "BAD" }
+            - { label: "Suspicious", value: "SUSPICIOUS" }
+            - { label: "Unknown", value: "UNKNOWN" }
+          helpText: "Reputation classification for this indicator."
+
+        - key: "reliability"
+          label: "Reliability"
+          fieldType: "select"
+          required: false
+          defaultValue: "C"
+          options:
+            - { label: "A — Completely reliable", value: "A" }
+            - { label: "B — Usually reliable", value: "B" }
+            - { label: "C — Fairly reliable", value: "C" }
+            - { label: "D — Not usually reliable", value: "D" }
+            - { label: "E — Unreliable", value: "E" }
+            - { label: "F — Reliability cannot be judged", value: "F" }
+          helpText: "Admiralty-scale source reliability (A–F)."
+
+    - name: "Metadata"
+      icon: "settings"
+      description: "Comment and lifetime"
+      fields:
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this indicator is configured — recorded for audit."
+
+        - key: "expiration_date"
+          label: "Expiration (epoch millis)"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^[0-9]+$"
+          helpText: "Optional expiration as a Unix epoch timestamp in MILLISECONDS. Leave blank for never. VERIFY the units against your Cortex XDR tenant."

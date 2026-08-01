@@ -1,0 +1,69 @@
+# =============================================================================
+# Canvas Template — OpenCTI Marking Definitions
+#
+# Declares ONE OpenCTI marking definition (the item). Users add as many as they
+# need. Field keys must match config-types/marking-definitions/validate.ts.
+# Applied via the OpenCTI GraphQL API (markingDefinitionAdd / markingDefinitionFieldPatch).
+# =============================================================================
+
+id: "opencti-marking-definitions"
+name: "Marking Definitions"
+toolType: "opencti"
+entityType: "marking-definitions"
+description: "Manage OpenCTI data-marking definitions — type, definition, color and order — via the OpenCTI GraphQL API (443)"
+
+item:
+  label: "Marking Definition"
+  identityField: "definition"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Marking"
+      icon: "shield"
+      description: "The marking's type and value"
+      fields:
+        - key: "definition_type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "TLP"
+          options:
+            - label: "TLP (Traffic Light Protocol)"
+              value: "TLP"
+            - label: "PAP (Permissible Actions Protocol)"
+              value: "PAP"
+            - label: "Statement"
+              value: "STATEMENT"
+          helpText: "The marking family. TLP and PAP are the OpenCTI built-ins; STATEMENT is a free-text handling statement."
+
+        - key: "definition"
+          label: "Definition"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The marking value and the stable identity for upsert/drift, e.g. TLP:AMBER or PAP:GREEN."
+
+    - name: "Presentation"
+      icon: "settings"
+      description: "How the marking is displayed and ordered in OpenCTI"
+      fields:
+        - key: "x_opencti_color"
+          label: "Color"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+            maxLength: 7
+          helpText: "Hex color OpenCTI uses to render the marking chip, e.g. #d68100."
+
+        - key: "x_opencti_order"
+          label: "Order"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+          validation:
+            min: 0
+            max: 1000
+          helpText: "Sort/precedence order within the marking type (higher = more restrictive). Defaults to 0."

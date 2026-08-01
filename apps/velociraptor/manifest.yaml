@@ -1,0 +1,111 @@
+id: velociraptor
+name: Velociraptor
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Velociraptor (open-source endpoint DFIR / hunting platform) as code.
+  Author custom VQL artifacts and drive them through the Security-as-Code pipeline
+  — validate, deploy, health check, drift detection and rollback — over the
+  Velociraptor gRPC API (mutual TLS), executing VQL against the server.
+category: EDR
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/velociraptor
+icon: "🦖"
+
+platform:
+  minVersion: "1.0.0"
+
+# Velociraptor's brand teal. Assets are placeholders until the official lockup is added.
+branding:
+  primaryColor: "#0b7285"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: artifacts
+      actions: [read, write, delete]
+      description: Manage Velociraptor custom VQL artifacts (add / edit / delete)
+
+pipeline:
+  configurationTypes:
+    - id: custom-artifacts
+      group: "Artifacts"
+      name: Custom Artifacts
+      description: >
+        Velociraptor custom VQL artifacts — name, type and the artifact YAML/VQL —
+        applied over the gRPC API (mutual TLS) via artifact_set()
+      canvasTemplate: config-types/custom-artifacts/canvas.yaml
+      defaultConfig: config-types/custom-artifacts/defaults.yaml
+      handlers:
+        validate: config-types/custom-artifacts/validate
+        deploy: config-types/custom-artifacts/deploy
+        rollback: config-types/custom-artifacts/rollback
+        healthCheck: config-types/custom-artifacts/healthCheck
+        driftDetect: config-types/custom-artifacts/driftDetect
+        getStatus: config-types/custom-artifacts/getStatus
+      targets:
+        componentTypes: [velociraptor-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/velociraptor
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the Velociraptor server (component)
+    # with the api-client config bundle (credential), with a connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies a Connection's api-client config
+# against the Velociraptor gRPC API by running `SELECT * FROM info()`.
+connectivity:
+  testHandler: handlers/testConnection
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+  onEvent: hooks/onEvent
+  onWebhook: hooks/onWebhook
+
+settings:
+  - key: vql_timeout_seconds
+    type: number
+    label: VQL timeout (seconds)
+    description: How long to wait for a VQL query to stream its rows before giving up.
+    default: 30
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated

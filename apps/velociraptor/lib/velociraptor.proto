@@ -1,0 +1,66 @@
+// =============================================================================
+// Velociraptor gRPC API — MINIMAL proto for the VQL query seam.
+//
+// This is the ONLY swap point for the transport wire contract. Velociraptor's
+// canonical definitions live in its source tree:
+//   - api/proto/api.proto        (service `API`, package `proto`)
+//   - actions/proto/vql.proto    (VQLCollectorArgs / VQLRequest / VQLResponse)
+//
+// >>> VERIFY AGAINST A LIVE VELOCIRAPTOR SERVER <<<
+// The service name (proto.API), the method (Query, server-streaming) and the
+// message shapes below match the public Velociraptor API, BUT the individual
+// FIELD NUMBERS here are best-effort and MUST be reconciled with the canonical
+// actions/proto/vql.proto before production use — a wrong field number
+// serializes silently to the wrong slot. To adopt the real contract, replace
+// this file with Velociraptor's api.proto + its imports; lib/velociraptorApi.ts
+// only depends on: service `API`, rpc `Query(VQLCollectorArgs) returns (stream
+// VQLResponse)`, VQLCollectorArgs.Query[] = { Name, VQL }, and
+// VQLResponse.{Response, Columns}.
+// =============================================================================
+
+syntax = "proto3";
+
+package proto;
+
+// One VQL query with a display name. FIELD NUMBERS: VERIFY (Name=1, VQL=2 per
+// Velociraptor actions proto).
+message VQLRequest {
+  string Name = 1;
+  string VQL = 2;
+}
+
+// An environment binding injected into the VQL scope. FIELD NUMBERS: VERIFY.
+message VQLEnv {
+  string key = 1;
+  string value = 2;
+}
+
+// Arguments to the Query RPC. Only the fields this app sends are declared; the
+// real message has many more. FIELD NUMBERS: VERIFY against actions/proto/vql.proto
+// (Query, env, max_row, max_wait, org_id numbers are best-effort here).
+message VQLCollectorArgs {
+  repeated VQLEnv env = 3;
+  repeated VQLRequest Query = 8;
+  uint64 max_row = 9;
+  float max_wait = 10;
+  string org_id = 22;
+}
+
+// One streamed packet of query results. `Response` is a JSON-encoded array of
+// row objects; `Columns` lists the column order. FIELD NUMBERS: VERIFY.
+message VQLResponse {
+  repeated string Columns = 1;
+  string Response = 2;
+  uint64 total_rows = 3;
+  string query_id = 4;
+  uint64 part = 5;
+  VQLRequest Query = 6;
+  uint64 timestamp = 7;
+  string log = 8;
+}
+
+// The Velociraptor API service. VERIFY: service is `proto.API`; `Query` is a
+// server-streaming RPC that streams VQLResponse packets until the query ends.
+service API {
+  rpc Query(VQLCollectorArgs) returns (stream VQLResponse) {}
+}
