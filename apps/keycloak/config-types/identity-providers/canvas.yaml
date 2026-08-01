@@ -1,0 +1,94 @@
+# =============================================================================
+# Canvas Template — Keycloak Identity Providers
+#
+# Declares ONE identity provider instance (the item). Users add as many as they
+# need. Field keys must match config-types/identity-providers/validate.ts. Applied
+# via the Keycloak Admin REST API (/admin/realms/{realm}/identity-provider/instances).
+# The alias is the stable identity used for upsert and drift AND is the {alias}
+# path segment.
+# =============================================================================
+
+id: "keycloak-identity-providers"
+name: "Identity Providers"
+toolType: "keycloak"
+entityType: "identity-providers"
+description: "Manage Keycloak identity provider instances — alias, display name, provider type, enabled state and provider config (endpoints/clientId/secret) — via the Keycloak Admin REST API"
+
+item:
+  label: "Identity provider"
+  identityField: "alias"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "shield"
+      description: "Provider alias and type"
+      fields:
+        - key: "alias"
+          label: "Alias"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[^\\s]+$"
+            maxLength: 255
+          helpText: "Unique provider alias (e.g. corp-google). Used as the stable identity for upsert and drift, and as the {alias} path segment."
+
+        - key: "displayName"
+          label: "Display name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Human-readable name shown on the Keycloak login page"
+
+        - key: "providerId"
+          label: "Provider type"
+          fieldType: "select"
+          required: true
+          defaultValue: "oidc"
+          options:
+            - label: "OpenID Connect v1.0 (oidc)"
+              value: "oidc"
+            - label: "Keycloak OpenID Connect (keycloak-oidc)"
+              value: "keycloak-oidc"
+            - label: "SAML v2.0 (saml)"
+              value: "saml"
+            - label: "Google"
+              value: "google"
+            - label: "GitHub"
+              value: "github"
+            - label: "GitLab"
+              value: "gitlab"
+            - label: "Microsoft"
+              value: "microsoft"
+            - label: "Facebook"
+              value: "facebook"
+            - label: "LinkedIn (linkedin-openid-connect)"
+              value: "linkedin-openid-connect"
+            - label: "Bitbucket"
+              value: "bitbucket"
+            - label: "PayPal"
+              value: "paypal"
+            - label: "Stack Overflow"
+              value: "stackoverflow"
+            - label: "OpenShift v4"
+              value: "openshift-v4"
+          helpText: "The identity provider type. Additional providerId values exist in Keycloak; the common built-ins are listed here."
+
+    - name: "Configuration"
+      icon: "settings"
+      description: "Enabled state and provider-specific configuration"
+      fields:
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the identity provider is enabled"
+
+        - key: "config"
+          label: "Provider config"
+          fieldType: "keyvalue"
+          required: false
+          helpText: "Provider-specific config as key/value pairs. OIDC: authorizationUrl, tokenUrl, clientId, clientSecret, clientAuthMethod. SAML: singleSignOnServiceUrl, entityId. Social (google/github/…): clientId, clientSecret. Keys containing 'secret' are write-only and not compared for drift."

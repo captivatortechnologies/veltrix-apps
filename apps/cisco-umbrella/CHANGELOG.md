@@ -8,6 +8,45 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.2.0 — 2026-08-01
+
+### Added
+- Shared **Umbrella Deployments API** engine (`lib/deployments.ts`) — bare-array
+  paging + bare-object parsing (the `/deployments/v2/*` surface is *not*
+  enveloped, unlike Policies v2) and a generic upsert-by-identity / rollback /
+  drift engine reused by the three new config types. Each resource is matched by
+  its identity field and its opaque id is stored after deploy for rename-safety;
+  reconcile only deletes resources this app created.
+- **Networks** configuration type (`internal-networks`) — manage Umbrella
+  registered networks (egress IP ranges) as code via `/deployments/v2/networks`
+  (create/get/update/delete). Fields: `name` (identity), `ipAddress`,
+  `prefixLength`, `isDynamic`. Dynamic networks may omit the IP; static networks
+  require a valid IPv4 and a 0–32 prefix. Full pipeline handler set (validate,
+  deploy, rollback, drift, health, status).
+  > **Naming note:** registered under the id `internal-networks` per the app
+  > spec, but it targets the Umbrella **Networks** API — *not*
+  > `/deployments/v2/internalnetworks` (RFC-1918 subnets tied to a
+  > Site/Network/Tunnel). The endpoint + fields (`isDynamic`) are the registered
+  > Networks resource.
+- **Internal Domains** configuration type — manage domains whose DNS bypasses the
+  Umbrella resolvers to the local resolver via `/deployments/v2/internaldomains`.
+  Fields: `domain` (identity), `description`, `includeAllVAs`,
+  `includeAllMobileDevices`. Full pipeline handler set.
+- **Sites** configuration type — manage Umbrella sites (Virtual Appliance
+  location groupings) via `/deployments/v2/sites`. Field: `name` (identity).
+  Reconcile/rollback never delete the default site. Full pipeline handler set.
+- New app permissions: `internal-networks`, `internal-domains`, `sites`
+  (read/write/delete).
+
+> **Verification note:** the Deployments v2 endpoints, their identifier fields
+> (`originId` for networks, `id` for internal domains, `siteId` for sites) and the
+> request/response field shapes follow the Cisco Umbrella API (Cloud Security)
+> Deployments documentation. **FLAGGED as unverified against a live tenant:** the
+> bare-vs-enveloped response shape (handled defensively), the exact casing of
+> `includeAllVAs`/`includeAllMobileDevices` (the legacy Management API used
+> lowercase), and whether the Networks API requires a Cisco-verified IP range
+> before enforcement. Verify against a live Umbrella tenant before production use.
+
 ## 0.1.0 — 2026-08-01
 
 ### Added

@@ -1,0 +1,41 @@
+# =============================================================================
+# Canvas Template — Sumo Logic Custom Fields
+#
+# Declares ONE custom field (the item). Users add as many as they need. Field
+# keys must match config-types/fields/validate.ts. Applied via the Sumo Logic
+# Management API (/api/v1/fields).
+#   API: https://www.sumologic.com/help/docs/api/field-management/
+# =============================================================================
+
+id: "sumo-logic-fields"
+name: "Custom Fields"
+toolType: "sumo-logic"
+entityType: "fields"
+description: "Manage Sumo Logic custom fields — the metadata tags assigned to log data — and their enabled state via the Management API"
+
+item:
+  label: "Custom Field"
+  identityField: "fieldName"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Field"
+      icon: "tag"
+      description: "Field identity and whether it is enabled"
+      fields:
+        - key: "fieldName"
+          label: "Field Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            pattern: "^[A-Za-z0-9_]+$"
+          helpText: "Name of the custom field (letters, numbers and underscores). The stable identity for upsert and drift. Sumo Logic assigns the data type automatically."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether Sumo Logic keeps this field in the schema (Enabled) or stops indexing new values for it (Disabled). New fields are created enabled."

@@ -1,6 +1,6 @@
 id: thehive
 name: TheHive
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage TheHive (open-source Security Incident Response Platform / SOAR) as code.
@@ -30,6 +30,15 @@ permissions:
     - resource: case-templates
       actions: [read, write, delete]
       description: Manage TheHive case templates (add / edit / delete)
+    - resource: custom-fields
+      actions: [read, write, delete]
+      description: Manage TheHive custom fields (add / edit / delete)
+    - resource: observable-types
+      actions: [read, write, delete]
+      description: Manage TheHive observable (datatype) types (add / delete)
+    - resource: users
+      actions: [read, write, delete]
+      description: Manage TheHive users (add / edit / delete)
 
 pipeline:
   configurationTypes:
@@ -46,6 +55,60 @@ pipeline:
         healthCheck: config-types/case-templates/healthCheck
         driftDetect: config-types/case-templates/driftDetect
         getStatus: config-types/case-templates/getStatus
+      targets:
+        componentTypes: [thehive, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: custom-fields
+      group: "Incident Response"
+      name: Custom Fields
+      description: TheHive custom fields — name, display name, group, description, data type (string/integer/float/boolean/date/url), mandatory flag and enumeration options — applied over the TheHive REST API (Bearer API key)
+      canvasTemplate: config-types/custom-fields/canvas.yaml
+      defaultConfig: config-types/custom-fields/defaults.yaml
+      handlers:
+        validate: config-types/custom-fields/validate
+        deploy: config-types/custom-fields/deploy
+        rollback: config-types/custom-fields/rollback
+        healthCheck: config-types/custom-fields/healthCheck
+        driftDetect: config-types/custom-fields/driftDetect
+        getStatus: config-types/custom-fields/getStatus
+      targets:
+        componentTypes: [thehive, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: observable-types
+      group: "Incident Response"
+      name: Observable Types
+      description: TheHive observable (datatype) types — name and file-attachment flag — applied over the TheHive REST API (Bearer API key). Create-only (TheHive has no update endpoint); existing types are left untouched.
+      canvasTemplate: config-types/observable-types/canvas.yaml
+      defaultConfig: config-types/observable-types/defaults.yaml
+      handlers:
+        validate: config-types/observable-types/validate
+        deploy: config-types/observable-types/deploy
+        rollback: config-types/observable-types/rollback
+        healthCheck: config-types/observable-types/healthCheck
+        driftDetect: config-types/observable-types/driftDetect
+        getStatus: config-types/observable-types/getStatus
+      targets:
+        componentTypes: [thehive, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: users
+      group: "Organization"
+      name: Users
+      description: TheHive users — login (identity), display name, email, profile (role) and organisation — applied over the TheHive REST API (Bearer API key). Passwords and API keys are provisioned out of band.
+      canvasTemplate: config-types/users/canvas.yaml
+      defaultConfig: config-types/users/defaults.yaml
+      handlers:
+        validate: config-types/users/validate
+        deploy: config-types/users/deploy
+        rollback: config-types/users/rollback
+        healthCheck: config-types/users/healthCheck
+        driftDetect: config-types/users/driftDetect
+        getStatus: config-types/users/getStatus
       targets:
         componentTypes: [thehive, standalone]
         requiresCredential: true

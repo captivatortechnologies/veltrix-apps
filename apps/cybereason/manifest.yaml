@@ -1,14 +1,14 @@
 id: cybereason
 name: Cybereason
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
-  Manage Cybereason Defense Platform custom reputations as code. Author
-  allowlist / blocklist entries for file hashes, domains and IP addresses and
-  drive them through the Security-as-Code pipeline — validate, deploy, health
-  check, drift detection and rollback — over the Cybereason REST API. Auth is a
-  session-cookie login (username / password → JSESSIONID) reused on every
-  subsequent /rest call.
+  Manage the Cybereason Defense Platform as code. Author custom reputations
+  (allowlist / blocklist for file hashes, domains and IPs), sensor groups and
+  isolation (exception) rules, and drive them through the Security-as-Code
+  pipeline — validate, deploy, health check, drift detection and rollback — over
+  the Cybereason REST API. Auth is a session-cookie login (username / password →
+  JSESSIONID) reused on every subsequent /rest call.
 category: EDR
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cybereason
@@ -32,6 +32,12 @@ permissions:
     - resource: reputations
       actions: [read, write, delete]
       description: Manage Cybereason custom reputations (allowlist / blocklist for file hashes, domains and IPs)
+    - resource: sensor-groups
+      actions: [read, write, delete]
+      description: Manage Cybereason sensor groups — name, description, assigned policy and optional dynamic assignment rule (/rest/groups)
+    - resource: isolation-rules
+      actions: [read, write, delete]
+      description: Manage Cybereason isolation (exception) rules — which traffic is blocked / allowed while a sensor is isolated (/rest/settings/isolation-rule)
 
 pipeline:
   configurationTypes:
@@ -48,6 +54,52 @@ pipeline:
         healthCheck: config-types/reputations/healthCheck
         driftDetect: config-types/reputations/driftDetect
         getStatus: config-types/reputations/getStatus
+      targets:
+        componentTypes: [cybereason-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: sensor-groups
+      group: "Sensor Management"
+      name: Sensor Groups
+      description: >
+        Cybereason sensor groups — name, description, assigned policy and an
+        optional dynamic assignment rule — upserted by name over the Cybereason
+        REST API (GET/POST /rest/groups, PUT/DELETE /rest/groups/{id}). Listing +
+        create/update/delete are all confirmed write paths; the inner shape of the
+        dynamic groupAssignRule is FLAGGED (passed through as opaque JSON).
+      canvasTemplate: config-types/sensor-groups/canvas.yaml
+      defaultConfig: config-types/sensor-groups/defaults.yaml
+      handlers:
+        validate: config-types/sensor-groups/validate
+        deploy: config-types/sensor-groups/deploy
+        rollback: config-types/sensor-groups/rollback
+        healthCheck: config-types/sensor-groups/healthCheck
+        driftDetect: config-types/sensor-groups/driftDetect
+        getStatus: config-types/sensor-groups/getStatus
+      targets:
+        componentTypes: [cybereason-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: isolation-rules
+      group: "Isolation"
+      name: Isolation Rules
+      description: >
+        Cybereason isolation (exception) rules — which traffic is blocked / allowed
+        while a sensor is isolated (IP address, direction, port, blocking) — upserted
+        by the composite identity (ip + direction + port) over the Cybereason REST
+        API (GET/POST/PUT /rest/settings/isolation-rule, POST .../delete). Update
+        carries the live rule's lastUpdated optimistic-concurrency token.
+      canvasTemplate: config-types/isolation-rules/canvas.yaml
+      defaultConfig: config-types/isolation-rules/defaults.yaml
+      handlers:
+        validate: config-types/isolation-rules/validate
+        deploy: config-types/isolation-rules/deploy
+        rollback: config-types/isolation-rules/rollback
+        healthCheck: config-types/isolation-rules/healthCheck
+        driftDetect: config-types/isolation-rules/driftDetect
+        getStatus: config-types/isolation-rules/getStatus
       targets:
         componentTypes: [cybereason-tenant]
         requiresCredential: true

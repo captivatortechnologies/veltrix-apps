@@ -132,6 +132,8 @@ export interface CybereasonSession {
   cookie: string
   get(path: string, headers?: Record<string, string>): Promise<CybereasonResponse>
   postJson(path: string, body: unknown, headers?: Record<string, string>): Promise<CybereasonResponse>
+  putJson(path: string, body: unknown, headers?: Record<string, string>): Promise<CybereasonResponse>
+  del(path: string, headers?: Record<string, string>): Promise<CybereasonResponse>
 }
 
 export class CybereasonAuthError extends Error {}
@@ -200,6 +202,26 @@ export async function createSession(base: string, credential: CredentialRef, tim
           ...(headers ?? {}),
         },
         body: JSON.stringify(body),
+        timeoutMs,
+      })
+    },
+    putJson(path, body, headers) {
+      return cybereasonRequest(`${base}${path}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Cookie: cookieHeader,
+          ...(headers ?? {}),
+        },
+        body: JSON.stringify(body),
+        timeoutMs,
+      })
+    },
+    del(path, headers) {
+      return cybereasonRequest(`${base}${path}`, {
+        method: 'DELETE',
+        headers: { Accept: 'application/json', Cookie: cookieHeader, ...(headers ?? {}) },
         timeoutMs,
       })
     },

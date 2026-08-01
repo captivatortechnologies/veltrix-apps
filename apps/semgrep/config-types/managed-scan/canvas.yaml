@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — Semgrep Managed Scan Settings
+#
+# Declares the Managed Scans configuration of ONE Semgrep project (the item).
+# Managed Scans are Semgrep-HOSTED scans (Semgrep clones and scans the repo on a
+# schedule / on PRs) as opposed to CI-run scans. This type toggles the two
+# documented Managed Scan modes for an EXISTING project via the Semgrep public
+# REST API v1: PATCH /deployments/{slug}/projects/{name}/managed-scan.
+#
+# Identity is the project NAME (the repository as a path). Field keys must match
+# config-types/managed-scan/_shared.ts.
+#
+# FLAGGED (Beta): the Managed Scans API surface is marked [Beta] by Semgrep, and
+# it only applies to deployments that have Managed Scanning enabled for the
+# project. A project not onboarded to Managed Scans may reject the write.
+# =============================================================================
+
+id: "semgrep-managed-scan"
+name: "Semgrep Managed Scan Settings"
+toolType: "semgrep"
+entityType: "managed-scan"
+description: "Toggle Semgrep Managed Scans (hosted full + diff scans) for an existing project via the Semgrep public REST API v1. [Beta] API surface."
+
+item:
+  label: "Managed Scan"
+  identityField: "projectName"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Project"
+      icon: "git-branch"
+      description: "The project whose Managed Scans are configured"
+      fields:
+        - key: "projectName"
+          label: "Project Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 300
+          helpText: "The Semgrep project name — the repository as a path, e.g. my-org/my-repo. The project must already exist in Semgrep and be onboarded to Managed Scans. Used as the stable identity for updates and drift."
+
+    - name: "Managed Scans"
+      icon: "radar"
+      description: "Which Semgrep-hosted scans run for this project. Both are set to the declared state on deploy."
+      fields:
+        - key: "fullScanEnabled"
+          label: "Weekly full scans"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When on, Semgrep runs a scheduled full scan of the whole repository (maps to managed_scan_config.full_scan.enabled)."
+
+        - key: "diffScanEnabled"
+          label: "Diff-aware (PR) scans"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When on, Semgrep runs a diff-aware scan on pull/merge requests, scanning only changed code (maps to managed_scan_config.diff_scan.enabled)."

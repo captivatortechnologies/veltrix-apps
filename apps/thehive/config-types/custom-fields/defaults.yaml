@@ -1,0 +1,6 @@
+# Defaults for a new custom-field item. Seeds a sane TheHive custom field
+# (string type, non-mandatory, default group); the operator fills in the name and
+# any options. Keys are FLAT (item form) and must match canvas.yaml.
+type: "string"
+group: "default"
+mandatory: false

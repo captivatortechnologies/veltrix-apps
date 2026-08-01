@@ -1,0 +1,79 @@
+# =============================================================================
+# Canvas Template — Cisco Umbrella Networks
+#
+# Declares ONE Umbrella registered network (/deployments/v2/networks) — an
+# egress/public IP range Umbrella applies DNS-layer policy to. Users add as many
+# as they need. Networks are addressed by an opaque originId (no lookup-by-name),
+# so the app matches a declared network to a live one by NAME and stores the
+# originId from the deploy for rename-safety. Reconcile deletes networks this app
+# created but no longer declares.
+#
+# NOTE: this config type is registered as "internal-networks" but targets the
+# Umbrella *Networks* API (registered network), NOT /deployments/v2/internalnetworks.
+#
+# Field keys must match what config-types/internal-networks/validate.ts checks.
+# =============================================================================
+
+id: "cisco-umbrella-internal-networks"
+name: "Networks Configuration"
+toolType: "cisco-umbrella"
+entityType: "internal-networks"
+description: "Define Cisco Umbrella registered networks (egress IP ranges) as code through the Umbrella Deployments API."
+
+item:
+  label: "Network"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Network"
+      icon: "globe"
+      description: "Network identity and egress IP"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 50
+          helpText: >
+            The network's name. Must be unique within this canvas — the app
+            matches live Umbrella networks on it (Umbrella has no lookup-by-name,
+            so the originId is stored after deploy for rename-safety).
+
+        - key: "isDynamic"
+          label: "Dynamic IP"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: >
+            Whether this network has a dynamically-assigned egress IP (the
+            Umbrella client reports it). Leave off for a static IP range.
+
+        - key: "ipAddress"
+          label: "IP address"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "isDynamic"
+            equals: false
+          helpText: >
+            The network's public/egress IPv4 address (e.g. 203.0.113.0). Required
+            for a static network. Umbrella verifies the IP range before it is
+            enforced — contact Umbrella Support to verify a new range.
+
+    - name: "Subnet"
+      icon: "filter"
+      description: "The network's prefix length"
+      fields:
+        - key: "prefixLength"
+          label: "Prefix length"
+          fieldType: "number"
+          required: true
+          defaultValue: 32
+          validation:
+            min: 0
+            max: 32
+          helpText: >
+            CIDR prefix length for the network (0–32). Use 32 for a single host.

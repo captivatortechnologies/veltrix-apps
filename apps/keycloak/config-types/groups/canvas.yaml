@@ -1,0 +1,53 @@
+# =============================================================================
+# Canvas Template — Keycloak Groups
+#
+# Declares ONE top-level realm group (the item). Users add as many as they need.
+# Field keys must match config-types/groups/validate.ts. Applied via the Keycloak
+# Admin REST API (/admin/realms/{realm}/groups). The group name is the stable
+# identity used for upsert and drift.
+#
+# Scope: TOP-LEVEL groups only. A top-level group's path is derived server-side
+# (`/{name}`) and is not authored here. Sub-groups (nested children) are deferred.
+# =============================================================================
+
+id: "keycloak-groups"
+name: "Groups"
+toolType: "keycloak"
+entityType: "groups"
+description: "Manage Keycloak top-level realm groups — name, attributes and assigned realm roles — via the Keycloak Admin REST API"
+
+item:
+  label: "Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "users"
+      description: "Group identity"
+      fields:
+        - key: "name"
+          label: "Group name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[^/]+$"
+            maxLength: 255
+          helpText: "The top-level group name (e.g. Engineering). Unique in the realm; used as the stable identity. Its path is derived as /<name>. Use '/' is not allowed — sub-groups are not authored here."
+
+    - name: "Membership"
+      icon: "settings"
+      description: "Attributes and assigned realm roles"
+      fields:
+        - key: "attributes"
+          label: "Attributes"
+          fieldType: "keyvalue"
+          required: false
+          helpText: "Group attributes as key/value pairs. Keycloak stores multi-valued attributes; this config manages a single value per key."
+
+        - key: "realmRoles"
+          label: "Realm roles"
+          fieldType: "tags"
+          required: false
+          helpText: "Realm role names to assign to this group (each must already exist — see the Realm Roles config type). The list is authoritative: roles not listed are unassigned on deploy."

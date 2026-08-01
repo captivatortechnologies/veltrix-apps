@@ -1,0 +1,96 @@
+# =============================================================================
+# Canvas Template — TheHive Custom Fields
+#
+# Declares ONE TheHive custom field (the item). Users add as many as they need.
+# Field keys must match config-types/custom-fields/validate.ts. Applied via the
+# TheHive REST API (v5: /api/v1/customField; v4: /api/customField).
+# =============================================================================
+
+id: "thehive-custom-fields"
+name: "Custom Fields"
+toolType: "thehive"
+entityType: "custom-fields"
+description: "Manage TheHive custom fields — name, display name, group, description, data type, mandatory flag and enumeration options — via the TheHive REST API (Bearer API key)"
+
+item:
+  label: "Custom Field"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Field"
+      icon: "tag"
+      description: "Custom field identity and presentation"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            pattern: "^[A-Za-z0-9][A-Za-z0-9_-]*$"
+          helpText: "Internal reference name — the stable identity used for upsert and drift, e.g. business-impact (letters, digits, - and _)"
+
+        - key: "displayName"
+          label: "Display Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Human-friendly label shown in TheHive (defaults to Name when blank)"
+
+        - key: "group"
+          label: "Group"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "UI grouping the field appears under in TheHive (defaults to 'default')"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "What the field captures — shown as helper text in TheHive"
+
+    - name: "Type"
+      icon: "list"
+      description: "Data type, requirement and (optional) enumeration values"
+      fields:
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "string"
+          options:
+            - label: "String"
+              value: "string"
+            - label: "Integer"
+              value: "integer"
+            - label: "Float"
+              value: "float"
+            - label: "Boolean"
+              value: "boolean"
+            - label: "Date"
+              value: "date"
+            - label: "URL"
+              value: "url"
+          helpText: "Data type the field holds. TheHive 5 has no separate 'enumeration' type — set a base type and add Options below to constrain values."
+
+        - key: "mandatory"
+          label: "Mandatory"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Require a value for this field when a case is created"
+
+        - key: "options"
+          label: "Options"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Optional allowed values (enumeration) — one per line or comma-separated. Ignored for boolean/date."

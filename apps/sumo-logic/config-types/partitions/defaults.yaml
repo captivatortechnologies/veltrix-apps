@@ -1,0 +1,5 @@
+# Defaults for a new partition item — the operator fills in the name and routing
+# expression. A new partition starts non-compliant and uses the account default
+# retention (-1) unless overridden.
+retentionPeriod: -1
+isCompliant: false

@@ -29,12 +29,30 @@ import type { ComponentRef, ConnectivityRef, CredentialRef } from '@veltrixsecop
 
 export const DEFAULT_THEHIVE_PORT = 9000
 
-/** TheHive REST paths per major version. `PRIMARY` is what handlers use. */
+/**
+ * TheHive REST paths per major version. `PRIMARY` is what handlers use.
+ *
+ * NOTE ON THE SEAM: `PRIMARY = THEHIVE_PATHS[API_VERSION]` where API_VERSION is a
+ * `'v5' | 'v4'` union, so TypeScript only exposes keys present on BOTH versions.
+ * Every path a handler reaches for via `PRIMARY.*` must therefore be declared in
+ * v5 AND v4 (v4 values are the flagged legacy alternate — verify against a live
+ * TheHive 4). The v5-only list plumbing (`query`) stays inside the list helpers.
+ */
 export const THEHIVE_PATHS = {
   // TheHive 5 (StrangeBee) — the primary target.
   v5: {
     caseTemplate: '/api/v1/caseTemplate',
     caseTemplateById: (id: string) => `/api/v1/caseTemplate/${encodeURIComponent(id)}`,
+    // Custom fields — CRUD, list is a plain GET on the collection (no query API).
+    customField: '/api/v1/customField',
+    customFieldById: (id: string) => `/api/v1/customField/${encodeURIComponent(id)}`,
+    // Observable types — create/get/delete only (no update endpoint in v5).
+    observableType: '/api/v1/observable/type',
+    observableTypeById: (id: string) => `/api/v1/observable/type/${encodeURIComponent(id)}`,
+    // Users — create/get/update; delete is the /force variant.
+    user: '/api/v1/user',
+    userById: (id: string) => `/api/v1/user/${encodeURIComponent(id)}`,
+    userDelete: (id: string) => `/api/v1/user/${encodeURIComponent(id)}/force`,
     query: '/api/v1/query',
     currentUser: '/api/v1/user/current',
   },
@@ -42,6 +60,14 @@ export const THEHIVE_PATHS = {
   v4: {
     caseTemplate: '/api/case/template',
     caseTemplateById: (id: string) => `/api/case/template/${encodeURIComponent(id)}`,
+    // FLAGGED (unverified against TheHive 4): legacy un-versioned collection paths.
+    customField: '/api/customField',
+    customFieldById: (id: string) => `/api/customField/${encodeURIComponent(id)}`,
+    observableType: '/api/observable/type',
+    observableTypeById: (id: string) => `/api/observable/type/${encodeURIComponent(id)}`,
+    user: '/api/user',
+    userById: (id: string) => `/api/user/${encodeURIComponent(id)}`,
+    userDelete: (id: string) => `/api/user/${encodeURIComponent(id)}`,
     search: '/api/case/template/_search',
     currentUser: '/api/v1/user/current',
   },
@@ -157,4 +183,34 @@ export async function listCaseTemplates<T>(base: string, headers: Record<string,
     return sendJson<T[]>('POST', url, headers, { query: [{ _name: 'listCaseTemplate' }] })
   }
   return sendJson<T[]>('POST', `${base}${THEHIVE_PATHS.v4.search}`, headers, { query: {}, range: 'all' })
+}
+
+/**
+ * v5 list over the query API: POST /api/v1/query { query: [{ _name }] }. The
+ * `name` query param is TheHive's telemetry label (thehive4py sets it too). Kept
+ * here so the version seam and the exact `_name` operations live in one file.
+ */
+function queryListV5<T>(base: string, headers: Record<string, string>, name: string): Promise<T[]> {
+  const url = `${base}${THEHIVE_PATHS.v5.query}?name=${encodeURIComponent(name)}`
+  return sendJson<T[]>('POST', url, headers, { query: [{ _name: name }] })
+}
+
+/**
+ * List custom fields. v5 exposes a plain collection GET (no query API); v4 uses
+ * the legacy un-versioned collection (flagged — verify against a live TheHive 4).
+ */
+export async function listCustomFields<T>(base: string, headers: Record<string, string>): Promise<T[]> {
+  return getJson<T[]>(`${base}${PRIMARY.customField}`, headers)
+}
+
+/** List observable types. v5 → query `listObservableType`; v4 → legacy GET (flagged). */
+export async function listObservableTypes<T>(base: string, headers: Record<string, string>): Promise<T[]> {
+  if (API_VERSION === 'v5') return queryListV5<T>(base, headers, 'listObservableType')
+  return getJson<T[]>(`${base}${THEHIVE_PATHS.v4.observableType}`, headers)
+}
+
+/** List users (current organisation). v5 → query `listUser`; v4 → legacy GET (flagged). */
+export async function listUsers<T>(base: string, headers: Record<string, string>): Promise<T[]> {
+  if (API_VERSION === 'v5') return queryListV5<T>(base, headers, 'listUser')
+  return getJson<T[]>(`${base}${THEHIVE_PATHS.v4.user}`, headers)
 }

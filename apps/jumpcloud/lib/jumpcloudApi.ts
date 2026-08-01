@@ -146,10 +146,16 @@ export class JumpCloudClient {
   }
 }
 
-/** Build a client from a credential and app settings. */
+/**
+ * Build a client from a credential and app settings. Defaults to the v2 base
+ * (where User Groups, System Groups and Policies live); pass `baseUrl:
+ * JUMPCLOUD_API_BASE` for the v1 endpoints (e.g. `/systemusers`, whose list
+ * response is a `{ results, totalCount }` wrapper rather than a bare array).
+ */
 export function buildJumpCloudClient(
   credential: CredentialRef | null,
   settings: Record<string, unknown>,
+  opts: { baseUrl?: string } = {},
 ): { client: JumpCloudClient } | { error: string } {
   const apiKey = resolveApiKey(credential)
   if (!apiKey) return { error: MISSING_CREDENTIAL_MESSAGE }
@@ -158,6 +164,7 @@ export function buildJumpCloudClient(
       apiKey,
       orgId: resolveOrgId(credential),
       timeoutMs: readTimeoutMs(settings),
+      baseUrl: opts.baseUrl,
     }),
   }
 }

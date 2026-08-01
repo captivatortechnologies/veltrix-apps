@@ -1,14 +1,14 @@
 id: keycloak
 name: Keycloak
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Keycloak (open-source Identity and Access Management) as code. Author
-  OIDC/SAML clients and drive them through the Security-as-Code pipeline —
-  validate, deploy, health check, drift detection and rollback — over the
-  Keycloak Admin REST API (HTTPS, self-signed tolerated). Authenticates as an
-  admin service-account client (OAuth2 client-credentials); an admin
-  username/password grant is also supported.
+  OIDC/SAML clients, realm roles, groups and identity providers and drive them
+  through the Security-as-Code pipeline — validate, deploy, health check, drift
+  detection and rollback — over the Keycloak Admin REST API (HTTPS, self-signed
+  tolerated). Authenticates as an admin service-account client (OAuth2
+  client-credentials); an admin username/password grant is also supported.
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/keycloak
@@ -31,6 +31,15 @@ permissions:
     - resource: clients
       actions: [read, write, delete]
       description: Manage Keycloak OIDC/SAML clients (add / edit / enable / disable)
+    - resource: realm-roles
+      actions: [read, write, delete]
+      description: Manage Keycloak realm roles (name, description, composite flag)
+    - resource: groups
+      actions: [read, write, delete]
+      description: Manage Keycloak top-level groups (attributes and assigned realm roles)
+    - resource: identity-providers
+      actions: [read, write, delete]
+      description: Manage Keycloak identity provider instances (OIDC / SAML / social)
 
 pipeline:
   configurationTypes:
@@ -47,6 +56,60 @@ pipeline:
         healthCheck: config-types/clients/healthCheck
         driftDetect: config-types/clients/driftDetect
         getStatus: config-types/clients/getStatus
+      targets:
+        componentTypes: [keycloak-realm, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: realm-roles
+      group: "Access"
+      name: Realm Roles
+      description: Keycloak realm roles — name, description and the composite flag — applied over the Keycloak Admin REST API (/admin/realms/{realm}/roles)
+      canvasTemplate: config-types/realm-roles/canvas.yaml
+      defaultConfig: config-types/realm-roles/defaults.yaml
+      handlers:
+        validate: config-types/realm-roles/validate
+        deploy: config-types/realm-roles/deploy
+        rollback: config-types/realm-roles/rollback
+        healthCheck: config-types/realm-roles/healthCheck
+        driftDetect: config-types/realm-roles/driftDetect
+        getStatus: config-types/realm-roles/getStatus
+      targets:
+        componentTypes: [keycloak-realm, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: groups
+      group: "Access"
+      name: Groups
+      description: Keycloak top-level realm groups — name, attributes and assigned realm roles — applied over the Keycloak Admin REST API (/admin/realms/{realm}/groups). Sub-groups are deferred.
+      canvasTemplate: config-types/groups/canvas.yaml
+      defaultConfig: config-types/groups/defaults.yaml
+      handlers:
+        validate: config-types/groups/validate
+        deploy: config-types/groups/deploy
+        rollback: config-types/groups/rollback
+        healthCheck: config-types/groups/healthCheck
+        driftDetect: config-types/groups/driftDetect
+        getStatus: config-types/groups/getStatus
+      targets:
+        componentTypes: [keycloak-realm, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: identity-providers
+      group: "Federation"
+      name: Identity Providers
+      description: Keycloak identity provider instances — alias, display name, provider type, enabled state and provider config (endpoints/clientId/secret) — applied over the Keycloak Admin REST API (/admin/realms/{realm}/identity-provider/instances)
+      canvasTemplate: config-types/identity-providers/canvas.yaml
+      defaultConfig: config-types/identity-providers/defaults.yaml
+      handlers:
+        validate: config-types/identity-providers/validate
+        deploy: config-types/identity-providers/deploy
+        rollback: config-types/identity-providers/rollback
+        healthCheck: config-types/identity-providers/healthCheck
+        driftDetect: config-types/identity-providers/driftDetect
+        getStatus: config-types/identity-providers/getStatus
       targets:
         componentTypes: [keycloak-realm, standalone]
         requiresCredential: true

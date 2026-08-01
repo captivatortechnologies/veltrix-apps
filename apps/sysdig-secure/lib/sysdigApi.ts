@@ -23,6 +23,16 @@
 //   delete:        DELETE /api/secure/rules/<id>?skipPolicyV2Msg=true
 // (Endpoint paths + rule shape confirmed against the official
 // terraform-provider-sysdig client — verify against a live Sysdig Secure.)
+//
+// Three further object families are managed the same way (v0.2.0), each with a
+// name-keyed upsert. Endpoints confirmed against terraform-provider-sysdig
+// (CRUD by id) AND the official python-sdc-client (the by-name "group" lookup):
+//   runtime policies  → /api/v2/policies            (list-all + id CRUD; no by-name)
+//   falco lists       → /api/secure/falco/lists     (id CRUD) + /groups?name= lookup
+//   falco macros      → /api/secure/falco/macros     (id CRUD) + /groups?name= lookup
+// NOTE these differ from the informal paths in the task brief: policies live at
+// /api/v2/policies (not /api/policies/v2), and lists/macros have their own
+// endpoints (not /api/secure/rules?type=FALCO_LIST|FALCO_MACRO). Verify live.
 // =============================================================================
 
 import type { CredentialRef } from '@veltrixsecops/app-sdk'
@@ -116,6 +126,70 @@ export interface SysdigResponse {
   status: number
   ok: boolean
   body: string
+}
+
+// --- Runtime policy model (mirror of the Sysdig Secure /api/v2/policies JSON) --
+
+/**
+ * A response action carried by a policy. For rule-referencing runtime policies
+ * the meaningful ones are notify-only (empty), STOP, PAUSE and KILL; CAPTURE
+ * additionally needs bucket/file fields, so this app does not emit it.
+ */
+export interface PolicyAction {
+  type: string
+  [key: string]: unknown
+}
+
+/** One Sysdig Secure runtime policy (type "falco" — references rules by name). */
+export interface SysdigPolicy {
+  id?: number
+  name: string
+  description?: string
+  enabled?: boolean
+  /** 0–7, syslog levels (0 = EMERGENCY … 7 = DEBUG); lower = more severe. */
+  severity?: number
+  ruleNames?: string[]
+  actions?: PolicyAction[]
+  scope?: string
+  type?: string
+  version?: number
+  notificationChannelIds?: number[]
+  [key: string]: unknown
+}
+
+// --- Falco list model (mirror of the Sysdig Secure /api/secure/falco/lists JSON)
+
+/** The `items` block of a Falco list — a named set of literals. */
+export interface SysdigListItems {
+  items: string[]
+}
+
+/** One custom Falco list. */
+export interface SysdigList {
+  id?: number
+  version?: number
+  name: string
+  items: SysdigListItems
+  append?: boolean
+  [key: string]: unknown
+}
+
+// --- Falco macro model (mirror of the /api/secure/falco/macros JSON) -----------
+
+/** The `condition` block of a Falco macro — a reusable filter expression. */
+export interface MacroCondition {
+  condition: string
+}
+
+/** One custom Falco macro. */
+export interface SysdigMacro {
+  id?: number
+  version?: number
+  name: string
+  condition: MacroCondition
+  append?: boolean
+  minimumEngineVersion?: number
+  [key: string]: unknown
 }
 
 /** Parse a JSON body, returning null instead of throwing on malformed content. */
@@ -215,6 +289,111 @@ export class SysdigClient {
     // 204 (No Content) and 200 both mean success.
     if (res.status !== 204 && res.status !== 200) {
       throw new Error(`DELETE /api/secure/rules/${id} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    }
+  }
+
+  // --- Runtime policies (/api/v2/policies) ------------------------------------
+  // No by-name endpoint exists — callers list all and match on name.
+
+  async listPolicies(): Promise<SysdigPolicy[]> {
+    const res = await this.request('GET', '/api/v2/policies')
+    if (res.status === 404) return []
+    if (!res.ok) throw new Error(`GET /api/v2/policies → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    const parsed = parseJson<SysdigPolicy[]>(res.body)
+    return Array.isArray(parsed) ? parsed : []
+  }
+
+  async createPolicy(policy: SysdigPolicy): Promise<SysdigPolicy> {
+    const res = await this.request('POST', '/api/v2/policies', { query: { skipPolicyV2Msg: true }, body: policy })
+    if (!res.ok) throw new Error(`POST /api/v2/policies → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    return parseJson<SysdigPolicy>(res.body) ?? policy
+  }
+
+  async updatePolicy(id: number, policy: SysdigPolicy): Promise<SysdigPolicy> {
+    const res = await this.request('PUT', `/api/v2/policies/${encodeURIComponent(String(id))}`, {
+      query: { skipPolicyV2Msg: true },
+      body: policy,
+    })
+    if (!res.ok) throw new Error(`PUT /api/v2/policies/${id} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    return parseJson<SysdigPolicy>(res.body) ?? policy
+  }
+
+  async deletePolicy(id: number): Promise<void> {
+    const res = await this.request('DELETE', `/api/v2/policies/${encodeURIComponent(String(id))}`, {
+      query: { skipPolicyV2Msg: true },
+    })
+    if (res.status !== 204 && res.status !== 200) {
+      throw new Error(`DELETE /api/v2/policies/${id} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    }
+  }
+
+  // --- Falco lists (/api/secure/falco/lists) ----------------------------------
+
+  /** Find custom Falco lists by exact name via the list-group endpoint. */
+  async listFalcoListsByName(name: string): Promise<SysdigList[]> {
+    const res = await this.request('GET', '/api/secure/falco/lists/groups', { query: { name } })
+    if (res.status === 404) return []
+    if (!res.ok) throw new Error(`GET /api/secure/falco/lists/groups → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    const parsed = parseJson<SysdigList[]>(res.body)
+    return Array.isArray(parsed) ? parsed : []
+  }
+
+  async createFalcoList(list: SysdigList): Promise<SysdigList> {
+    const res = await this.request('POST', '/api/secure/falco/lists', { query: { skipPolicyV2Msg: true }, body: list })
+    if (!res.ok) throw new Error(`POST /api/secure/falco/lists → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    return parseJson<SysdigList>(res.body) ?? list
+  }
+
+  async updateFalcoList(id: number, list: SysdigList): Promise<SysdigList> {
+    const res = await this.request('PUT', `/api/secure/falco/lists/${encodeURIComponent(String(id))}`, {
+      query: { skipPolicyV2Msg: true },
+      body: list,
+    })
+    if (!res.ok) throw new Error(`PUT /api/secure/falco/lists/${id} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    return parseJson<SysdigList>(res.body) ?? list
+  }
+
+  async deleteFalcoList(id: number): Promise<void> {
+    const res = await this.request('DELETE', `/api/secure/falco/lists/${encodeURIComponent(String(id))}`, {
+      query: { skipPolicyV2Msg: true },
+    })
+    if (res.status !== 204 && res.status !== 200) {
+      throw new Error(`DELETE /api/secure/falco/lists/${id} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    }
+  }
+
+  // --- Falco macros (/api/secure/falco/macros) --------------------------------
+
+  /** Find custom Falco macros by exact name via the macro-group endpoint. */
+  async listFalcoMacrosByName(name: string): Promise<SysdigMacro[]> {
+    const res = await this.request('GET', '/api/secure/falco/macros/groups', { query: { name } })
+    if (res.status === 404) return []
+    if (!res.ok) throw new Error(`GET /api/secure/falco/macros/groups → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    const parsed = parseJson<SysdigMacro[]>(res.body)
+    return Array.isArray(parsed) ? parsed : []
+  }
+
+  async createFalcoMacro(macro: SysdigMacro): Promise<SysdigMacro> {
+    const res = await this.request('POST', '/api/secure/falco/macros', { query: { skipPolicyV2Msg: true }, body: macro })
+    if (!res.ok) throw new Error(`POST /api/secure/falco/macros → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    return parseJson<SysdigMacro>(res.body) ?? macro
+  }
+
+  async updateFalcoMacro(id: number, macro: SysdigMacro): Promise<SysdigMacro> {
+    const res = await this.request('PUT', `/api/secure/falco/macros/${encodeURIComponent(String(id))}`, {
+      query: { skipPolicyV2Msg: true },
+      body: macro,
+    })
+    if (!res.ok) throw new Error(`PUT /api/secure/falco/macros/${id} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    return parseJson<SysdigMacro>(res.body) ?? macro
+  }
+
+  async deleteFalcoMacro(id: number): Promise<void> {
+    const res = await this.request('DELETE', `/api/secure/falco/macros/${encodeURIComponent(String(id))}`, {
+      query: { skipPolicyV2Msg: true },
+    })
+    if (res.status !== 204 && res.status !== 200) {
+      throw new Error(`DELETE /api/secure/falco/macros/${id} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
     }
   }
 }

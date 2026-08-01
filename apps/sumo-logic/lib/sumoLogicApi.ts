@@ -120,3 +120,37 @@ export async function sendJson<T>(
   if (!res.ok) throw new Error(`${method} ${url} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
   return (res.body ? JSON.parse(res.body) : {}) as T
 }
+
+/** The `{ data: [...], next }` envelope Sumo Logic returns from paged list endpoints. */
+export interface PagedEnvelope<T> {
+  data?: T[]
+  next?: string | null
+}
+
+/**
+ * Read every page of a paged Management API list endpoint (partitions, roles, …)
+ * and return the flattened records. Pages via the `next` continuation token
+ * (`?limit=<n>&token=<next>`), guarded by a page cap so a malformed token can
+ * never loop forever.
+ *   Pagination shape verified against the SumoLogic terraform provider
+ *   (List* helpers follow `resp.next` with `?token=`).
+ */
+export async function listPaged<T>(
+  base: string,
+  resource: string,
+  headers: Record<string, string>,
+  opts: { pageSize?: number; maxPages?: number; timeoutMs?: number } = {},
+): Promise<T[]> {
+  const pageSize = opts.pageSize ?? 1000
+  const maxPages = opts.maxPages ?? 100
+  const out: T[] = []
+  let url = `${base}/${resource}?limit=${pageSize}`
+  for (let page = 0; page < maxPages; page++) {
+    const env = await getJson<PagedEnvelope<T>>(url, headers, opts.timeoutMs)
+    if (Array.isArray(env?.data)) out.push(...env.data)
+    const next = env?.next
+    if (!next) break
+    url = `${base}/${resource}?limit=${pageSize}&token=${encodeURIComponent(next)}`
+  }
+  return out
+}

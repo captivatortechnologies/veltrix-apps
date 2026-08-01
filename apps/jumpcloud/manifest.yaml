@@ -1,12 +1,13 @@
 id: jumpcloud
 name: JumpCloud
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage JumpCloud directory configuration as code through the JumpCloud REST
-  API. Author User Groups — name, description, email and membership method — and
-  drive them through the Security-as-Code pipeline (validate, deploy, health
-  check, drift detection and rollback) over the JumpCloud API (x-api-key).
+  API. Author User Groups, System (device) Groups, Policies and User Group
+  Memberships, and drive them through the Security-as-Code pipeline (validate,
+  deploy, health check, drift detection and rollback) over the JumpCloud API
+  (x-api-key).
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/jumpcloud
@@ -28,6 +29,15 @@ permissions:
     - resource: user-groups
       actions: [read, write, delete]
       description: Manage JumpCloud User Groups (create / edit / delete)
+    - resource: system-groups
+      actions: [read, write, delete]
+      description: Manage JumpCloud System (device) Groups (create / edit / delete)
+    - resource: policies
+      actions: [read, write, delete]
+      description: Manage JumpCloud Policies (create / edit / delete)
+    - resource: group-memberships
+      actions: [read, write, delete]
+      description: Manage JumpCloud User Group memberships (add / remove users)
 
 pipeline:
   configurationTypes:
@@ -44,6 +54,60 @@ pipeline:
         healthCheck: config-types/user-groups/healthCheck
         driftDetect: config-types/user-groups/driftDetect
         getStatus: config-types/user-groups/getStatus
+      targets:
+        componentTypes: [jumpcloud-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: system-groups
+      group: "Directory"
+      name: System Groups
+      description: JumpCloud System (device) Groups — name and description — applied over the JumpCloud API v2 (/systemgroups)
+      canvasTemplate: config-types/system-groups/canvas.yaml
+      defaultConfig: config-types/system-groups/defaults.yaml
+      handlers:
+        validate: config-types/system-groups/validate
+        deploy: config-types/system-groups/deploy
+        rollback: config-types/system-groups/rollback
+        healthCheck: config-types/system-groups/healthCheck
+        driftDetect: config-types/system-groups/driftDetect
+        getStatus: config-types/system-groups/getStatus
+      targets:
+        componentTypes: [jumpcloud-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: policies
+      group: "Policies"
+      name: Policies
+      description: JumpCloud Policies — a Policy Template instance plus its configuration values — applied over the JumpCloud API v2 (/policies)
+      canvasTemplate: config-types/policies/canvas.yaml
+      defaultConfig: config-types/policies/defaults.yaml
+      handlers:
+        validate: config-types/policies/validate
+        deploy: config-types/policies/deploy
+        rollback: config-types/policies/rollback
+        healthCheck: config-types/policies/healthCheck
+        driftDetect: config-types/policies/driftDetect
+        getStatus: config-types/policies/getStatus
+      targets:
+        componentTypes: [jumpcloud-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: group-memberships
+      group: "Directory"
+      name: User Group Memberships
+      description: JumpCloud User Group membership — which users belong to a group, declared by email / username / id — applied over the JumpCloud API v2 (/usergroups/{id}/members)
+      canvasTemplate: config-types/group-memberships/canvas.yaml
+      defaultConfig: config-types/group-memberships/defaults.yaml
+      handlers:
+        validate: config-types/group-memberships/validate
+        deploy: config-types/group-memberships/deploy
+        rollback: config-types/group-memberships/rollback
+        healthCheck: config-types/group-memberships/healthCheck
+        driftDetect: config-types/group-memberships/driftDetect
+        getStatus: config-types/group-memberships/getStatus
       targets:
         componentTypes: [jumpcloud-org]
         requiresCredential: true

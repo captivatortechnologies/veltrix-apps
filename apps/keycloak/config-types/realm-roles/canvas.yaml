@@ -1,0 +1,49 @@
+# =============================================================================
+# Canvas Template — Keycloak Realm Roles
+#
+# Declares ONE realm role (the item). Users add as many as they need. Field keys
+# must match config-types/realm-roles/validate.ts. Applied via the Keycloak Admin
+# REST API (/admin/realms/{realm}/roles). The role name is the stable identity used
+# for upsert and drift AND is the {role-name} path segment.
+# =============================================================================
+
+id: "keycloak-realm-roles"
+name: "Realm Roles"
+toolType: "keycloak"
+entityType: "realm-roles"
+description: "Manage Keycloak realm roles — name, description and the composite flag — via the Keycloak Admin REST API"
+
+item:
+  label: "Realm role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "key"
+      description: "Role identity and description"
+      fields:
+        - key: "name"
+          label: "Role name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[^\\s]+$"
+            maxLength: 255
+          helpText: "The realm role name (e.g. app-admin). Unique in the realm; used as the stable identity for upsert and drift, and as the {role-name} path segment."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Human-readable description shown in the Keycloak admin console"
+
+        - key: "composite"
+          label: "Composite role"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Mark this role as a composite (it aggregates other roles). Note: the composite child roles themselves are managed separately in Keycloak and are not authored here."

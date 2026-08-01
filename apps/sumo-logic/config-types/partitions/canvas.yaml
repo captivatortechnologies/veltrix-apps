@@ -1,0 +1,68 @@
+# =============================================================================
+# Canvas Template — Sumo Logic Partitions
+#
+# Declares ONE index partition (the item). Users add as many as they need.
+# Field keys must match config-types/partitions/validate.ts. Applied via the
+# Sumo Logic Management API (/api/v1/partitions).
+#   API: https://www.sumologic.com/help/docs/api/partition-management/
+# =============================================================================
+
+id: "sumo-logic-partitions"
+name: "Partitions"
+toolType: "sumo-logic"
+entityType: "partitions"
+description: "Manage Sumo Logic index partitions — name, routing expression, retention and data tier — via the Management API"
+
+item:
+  label: "Partition"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Partition"
+      icon: "database"
+      description: "Partition identity and what it holds"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Partition name shown in Sumo Logic. The stable identity for upsert and drift. Immutable — Sumo Logic does not allow renaming or reusing a partition name."
+
+        - key: "routingExpression"
+          label: "Routing Expression"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 8192
+          helpText: "The query that defines which messages this partition holds, e.g. _sourceCategory=prod/nginx. Takes effect going forward once changed."
+
+    - name: "Retention & Tier"
+      icon: "clock"
+      description: "How long data is kept and where it lives"
+      fields:
+        - key: "retentionPeriod"
+          label: "Retention Period (days)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: -1
+          helpText: "Number of days to retain data in the partition. Use -1 (or leave blank) for your account default. Retention on a compliant partition can only be increased."
+
+        - key: "analyticsTier"
+          label: "Data Tier"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 64
+          helpText: "Data tier the partition resides in (immutable after create). Commonly continuous, frequent or infrequent — FLAG: the exact tiers available depend on your account's Data Tiers / Flex entitlement; leave blank for the default tier."
+
+        - key: "isCompliant"
+          label: "Compliant partition"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Mark this a compliant partition (immutable retention). Once compliant, retention can only be increased and the partition cannot be un-marked — set with care."

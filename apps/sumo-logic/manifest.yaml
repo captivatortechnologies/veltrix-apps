@@ -1,12 +1,13 @@
 id: sumo-logic
 name: Sumo Logic
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Sumo Logic (cloud SIEM & log analytics) as code. Author Field Extraction
-  Rules and drive them through the Security-as-Code pipeline — validate, deploy,
-  health check, drift detection and rollback — over the Sumo Logic Management API
-  (HTTPS), authenticated with an Access ID / Access Key.
+  Rules, index Partitions, custom Fields and RBAC Roles and drive them through the
+  Security-as-Code pipeline — validate, deploy, health check, drift detection and
+  rollback — over the Sumo Logic Management API (HTTPS), authenticated with an
+  Access ID / Access Key.
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/sumo-logic
@@ -29,6 +30,15 @@ permissions:
     - resource: field-extraction-rules
       actions: [read, write, delete]
       description: Manage Sumo Logic Field Extraction Rules (create / edit / enable / disable / delete)
+    - resource: partitions
+      actions: [read, write, delete]
+      description: Manage Sumo Logic index Partitions (create / edit routing & retention / decommission)
+    - resource: fields
+      actions: [read, write, delete]
+      description: Manage Sumo Logic custom Fields (create / enable / disable / delete)
+    - resource: roles
+      actions: [read, write, delete]
+      description: Manage Sumo Logic RBAC Roles (create / edit capabilities & search filter / delete)
 
 pipeline:
   configurationTypes:
@@ -48,6 +58,71 @@ pipeline:
         healthCheck: config-types/field-extraction-rules/healthCheck
         driftDetect: config-types/field-extraction-rules/driftDetect
         getStatus: config-types/field-extraction-rules/getStatus
+      targets:
+        componentTypes: [sumo-logic-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: partitions
+      group: "Data Management"
+      name: Partitions
+      description: >
+        Sumo Logic index Partitions — name, routing expression, retention period
+        and data tier — applied over the Management API (/api/v1/partitions).
+        Partitions are decommissioned rather than deleted (their data may be
+        stored nowhere else).
+      canvasTemplate: config-types/partitions/canvas.yaml
+      defaultConfig: config-types/partitions/defaults.yaml
+      handlers:
+        validate: config-types/partitions/validate
+        deploy: config-types/partitions/deploy
+        rollback: config-types/partitions/rollback
+        healthCheck: config-types/partitions/healthCheck
+        driftDetect: config-types/partitions/driftDetect
+        getStatus: config-types/partitions/getStatus
+      targets:
+        componentTypes: [sumo-logic-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: fields
+      group: "Data Management"
+      name: Custom Fields
+      description: >
+        Sumo Logic custom Fields — the metadata tags assigned to log data — and
+        their enabled state, applied over the Management API (/api/v1/fields).
+        A field's on/off status is toggled via the dedicated enable/disable
+        endpoints.
+      canvasTemplate: config-types/fields/canvas.yaml
+      defaultConfig: config-types/fields/defaults.yaml
+      handlers:
+        validate: config-types/fields/validate
+        deploy: config-types/fields/deploy
+        rollback: config-types/fields/rollback
+        healthCheck: config-types/fields/healthCheck
+        driftDetect: config-types/fields/driftDetect
+        getStatus: config-types/fields/getStatus
+      targets:
+        componentTypes: [sumo-logic-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: roles
+      group: "Access Control"
+      name: Roles
+      description: >
+        Sumo Logic RBAC Roles — name, description, search filter (filterPredicate)
+        and capabilities — applied over the Management API (/api/v1/roles). User
+        membership is managed in Sumo Logic and left untouched by this config type.
+      canvasTemplate: config-types/roles/canvas.yaml
+      defaultConfig: config-types/roles/defaults.yaml
+      handlers:
+        validate: config-types/roles/validate
+        deploy: config-types/roles/deploy
+        rollback: config-types/roles/rollback
+        healthCheck: config-types/roles/healthCheck
+        driftDetect: config-types/roles/driftDetect
+        getStatus: config-types/roles/getStatus
       targets:
         componentTypes: [sumo-logic-org, standalone]
         requiresCredential: true

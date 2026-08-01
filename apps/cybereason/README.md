@@ -6,13 +6,15 @@ Security-as-Code pipeline — validate, deploy, health check, drift detection an
 rollback.
 
 - **Category:** EDR
-- **Version:** 0.1.0 (foundation)
+- **Version:** 0.2.0
 
 ## What it manages
 
 | Configuration type | Cybereason API | Notes |
 | --- | --- | --- |
-| **Custom Reputations** | `POST /rest/classification/update`, `GET /rest/classification/download` | Allowlist / blocklist entries for file hashes (MD5 / SHA-1), domains and IPv4 addresses. Optional *prevent execution* (Application Control) on a blocklisted file hash. |
+| **Custom Reputations** | `POST /rest/classification/update`, `GET /rest/classification/download` | Allowlist / blocklist entries for file hashes (MD5 / SHA-1), domains and IPv4 addresses. Optional *prevent execution* (Application Control) on a blocklisted file hash. Identity: the `key`. |
+| **Sensor Groups** | `GET/POST /rest/groups`, `PUT/DELETE /rest/groups/{id}` | Sensor groups (name, description, assigned `policyId`, optional dynamic `groupAssignRule`). Upserted **by name**; delete reassigns sensors to the Unassigned group. Identity: the group `name`. |
+| **Isolation Rules** | `GET/POST/PUT /rest/settings/isolation-rule`, `POST .../delete` | Isolation (exception) rules — which traffic is blocked / allowed while a sensor is isolated (`ipAddressString`, `direction`, `port`, `blocking`). Upserted by the **composite** `ip + direction + port`; update carries the live rule's `lastUpdated` concurrency token. |
 
 ## Authentication
 
@@ -48,11 +50,44 @@ Deploy snapshots the prior verdict of every key (from the reputations CSV) into
 `rollbackData`, so rollback restores the prior verdict or removes a key that had
 no custom reputation before.
 
+## Sensor groups
+
+A sensor group's authoring identity is its **name**. Deploy reads the live groups,
+`PUT`s the matching group by its GUID `id` when the name already exists, or `POST`s
+a new one otherwise (Cybereason returns the new `groupId`). Rollback restores the
+prior body or deletes a group this deploy created, reassigning its sensors to the
+Unassigned group. The dynamic `groupAssignRule` is **FLAGGED** — its inner schema
+is unverified, so it is passed through as opaque JSON and only checked for JSON
+validity.
+
+## Isolation rules
+
+Cybereason assigns each rule a server-side `ruleId`, so the **composite** of
+`ipAddressString + direction + port` is used as the config identity. `blocking:
+true` blocks matching traffic while a sensor is isolated; `false` allows it through
+(an isolation exception). `port` `0` means any port; blank means no port
+restriction. Update requires the rule's current `lastUpdated` (an
+optimistic-concurrency token), so both deploy and rollback read live state before
+writing.
+
 ## Pipeline handlers
 
-`config-types/reputations/` — `validate`, `deploy`, `rollback`, `healthCheck`,
-`driftDetect`, `getStatus`, plus shared helpers in `_shared.ts` and tests in
-`__tests__/`.
+Each configuration type lives in `config-types/<id>/` — `validate`, `deploy`,
+`rollback`, `healthCheck`, `driftDetect`, `getStatus`, plus shared helpers in
+`_shared.ts` and tests in `__tests__/`:
+`reputations`, `sensor-groups`, `isolation-rules`.
+
+## Scope — what is *not* managed (be honest)
+
+**Custom Detection Rules** (custom malop rules) were researched and **dropped**.
+The endpoints exist (`/rest/customRules/decisionFeature/{live,deleted,create,update}`,
+with a `/rest/v2/…` split on newer tenants), but a valid create/update body is a
+nested *Element → Feature → filter* graph that needs correct `elementType` /
+`facetName` / `connectionFeature` values plus `malopDetectionType` /
+`malopActivityType` / `rootCause` enums drawn from separate catalog endpoints. It
+is not a flat, round-trippable config object and is not realistically maintainable
+as declarative code from public sources, so it was left out rather than shipped as
+a misleading best-effort surface.
 
 ## Accuracy notes (verify against a live Cybereason)
 

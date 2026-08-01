@@ -1,14 +1,13 @@
 id: sonarqube
 name: SonarQube
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
-  Manage SonarQube quality gates as code. Author quality gates — their pass/fail
-  conditions on new-code and overall-code metrics — and drive them through the
-  Security-as-Code pipeline (validate, deploy, health check, drift detection and
-  rollback) over the SonarQube Web API (token authentication, self-signed TLS
-  tolerated). BYOL infrastructure hosting for a SonarQube server is planned for a
-  later release.
+  Manage SonarQube as code. Author quality gates, quality profiles, webhooks and
+  permission templates — and drive them through the Security-as-Code pipeline
+  (validate, deploy, health check, drift detection and rollback) over the SonarQube
+  Web API (token authentication, self-signed TLS tolerated). BYOL infrastructure
+  hosting for a SonarQube server is planned for a later release.
 category: COMPLIANCE
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/sonarqube
@@ -31,6 +30,15 @@ permissions:
     - resource: quality-gates
       actions: [read, write, delete]
       description: Manage SonarQube quality gates and their conditions (create / edit / set default)
+    - resource: quality-profiles
+      actions: [read, write, delete]
+      description: Manage SonarQube quality profiles (create / inherit / activate rules / set default)
+    - resource: webhooks
+      actions: [read, write, delete]
+      description: Manage SonarQube global and project webhooks (create / update / delete)
+    - resource: permission-templates
+      actions: [read, write, delete]
+      description: Manage SonarQube permission templates and their group grants (create / edit / delete)
 
 pipeline:
   configurationTypes:
@@ -50,6 +58,69 @@ pipeline:
         healthCheck: config-types/quality-gates/healthCheck
         driftDetect: config-types/quality-gates/driftDetect
         getStatus: config-types/quality-gates/getStatus
+      targets:
+        componentTypes: [sonarqube-server]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: quality-profiles
+      group: "Quality Standards"
+      name: Quality Profiles
+      description: >
+        SonarQube quality profiles — name, language, parent (inheritance), default
+        flag and activated rule keys — applied over the SonarQube Web API
+        (/api/qualityprofiles). Upserted by (name, language) so ids need not be tracked.
+      canvasTemplate: config-types/quality-profiles/canvas.yaml
+      defaultConfig: config-types/quality-profiles/defaults.yaml
+      handlers:
+        validate: config-types/quality-profiles/validate
+        deploy: config-types/quality-profiles/deploy
+        rollback: config-types/quality-profiles/rollback
+        healthCheck: config-types/quality-profiles/healthCheck
+        driftDetect: config-types/quality-profiles/driftDetect
+        getStatus: config-types/quality-profiles/getStatus
+      targets:
+        componentTypes: [sonarqube-server]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: webhooks
+      group: "Integrations"
+      name: Webhooks
+      description: >
+        SonarQube webhooks — name, delivery URL, optional HMAC secret and global or
+        project scope — applied over the SonarQube Web API (/api/webhooks). Upserted
+        by name within a scope.
+      canvasTemplate: config-types/webhooks/canvas.yaml
+      defaultConfig: config-types/webhooks/defaults.yaml
+      handlers:
+        validate: config-types/webhooks/validate
+        deploy: config-types/webhooks/deploy
+        rollback: config-types/webhooks/rollback
+        healthCheck: config-types/webhooks/healthCheck
+        driftDetect: config-types/webhooks/driftDetect
+        getStatus: config-types/webhooks/getStatus
+      targets:
+        componentTypes: [sonarqube-server]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: permission-templates
+      group: "Access & Governance"
+      name: Permission Templates
+      description: >
+        SonarQube permission templates — name, description, project-key pattern and
+        group grants — applied over the SonarQube Web API (/api/permissions/*_template).
+        Upserted by name; only declared groups are reconciled.
+      canvasTemplate: config-types/permission-templates/canvas.yaml
+      defaultConfig: config-types/permission-templates/defaults.yaml
+      handlers:
+        validate: config-types/permission-templates/validate
+        deploy: config-types/permission-templates/deploy
+        rollback: config-types/permission-templates/rollback
+        healthCheck: config-types/permission-templates/healthCheck
+        driftDetect: config-types/permission-templates/driftDetect
+        getStatus: config-types/permission-templates/getStatus
       targets:
         componentTypes: [sonarqube-server]
         requiresCredential: true

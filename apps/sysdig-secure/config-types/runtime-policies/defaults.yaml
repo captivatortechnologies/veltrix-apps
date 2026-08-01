@@ -1,0 +1,6 @@
+# Defaults for a new runtime policy item. The operator fills in the name and the
+# rule names; severity starts at Warning (4), the policy is enabled, and it is
+# notify-only (no response actions) until one is chosen.
+severity: 4
+enabled: true
+actions: []

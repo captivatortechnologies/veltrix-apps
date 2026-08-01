@@ -1,0 +1,188 @@
+# =============================================================================
+# Canvas Template — GitHub Organization Security Configuration
+#
+# Declares ONE org-level code security configuration (the item), identified by
+# (org, name). Users add as many configurations / orgs as they need. Field keys
+# must match config-types/org-security-configuration/_shared.ts. Applied over the
+# GitHub REST API:
+#   - create/update → POST|PATCH /orgs/{org}/code-security/configurations
+#   - attach        → POST /orgs/{org}/code-security/configurations/{id}/attach
+# =============================================================================
+
+id: "github-org-security-configuration"
+name: "Organization Security Configuration"
+toolType: "github-advanced-security"
+entityType: "org-security-configuration"
+description: "Author org-level GitHub code security configurations and attach them to repositories via the GitHub REST API"
+
+item:
+  label: "Configuration"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "building"
+      description: "The organization and configuration name — together the stable identity"
+      fields:
+        - key: "org"
+          label: "Organization"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+            pattern: "^[A-Za-z0-9][A-Za-z0-9-]*$"
+          helpText: "The GitHub organization login, e.g. octo-org."
+
+        - key: "name"
+          label: "Configuration name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The configuration's name. Used as the stable identity for drift and rollback (matched within the organization)."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "A short description of what this configuration enforces."
+
+    - name: "Advanced Security"
+      icon: "lock"
+      description: "GitHub Advanced Security, code scanning and secret scanning settings"
+      fields:
+        - key: "advanced_security"
+          label: "GitHub Advanced Security"
+          fieldType: "select"
+          defaultValue: "disabled"
+          options:
+            - { label: "Enabled", value: "enabled" }
+            - { label: "Disabled", value: "disabled" }
+          helpText: "Enable GitHub Advanced Security. Required before secret scanning / code scanning apply to private repositories."
+
+        - key: "code_scanning_default_setup"
+          label: "Code scanning default setup (CodeQL)"
+          fieldType: "select"
+          defaultValue: "not_set"
+          options:
+            - { label: "Enabled", value: "enabled" }
+            - { label: "Disabled", value: "disabled" }
+            - { label: "Not set (inherit)", value: "not_set" }
+          helpText: "Enable CodeQL default setup on attached repositories."
+
+        - key: "secret_scanning"
+          label: "Secret scanning"
+          fieldType: "select"
+          defaultValue: "not_set"
+          options:
+            - { label: "Enabled", value: "enabled" }
+            - { label: "Disabled", value: "disabled" }
+            - { label: "Not set (inherit)", value: "not_set" }
+          helpText: "Detect secrets committed to attached repositories."
+
+        - key: "secret_scanning_push_protection"
+          label: "Secret scanning push protection"
+          fieldType: "select"
+          defaultValue: "not_set"
+          options:
+            - { label: "Enabled", value: "enabled" }
+            - { label: "Disabled", value: "disabled" }
+            - { label: "Not set (inherit)", value: "not_set" }
+          helpText: "Block pushes that contain supported secrets. Requires secret scanning."
+
+    - name: "Dependency Security"
+      icon: "check-circle"
+      description: "Dependency graph and Dependabot settings"
+      fields:
+        - key: "dependency_graph"
+          label: "Dependency graph"
+          fieldType: "select"
+          defaultValue: "not_set"
+          options:
+            - { label: "Enabled", value: "enabled" }
+            - { label: "Disabled", value: "disabled" }
+            - { label: "Not set (inherit)", value: "not_set" }
+          helpText: "Build the dependency graph — a prerequisite for Dependabot alerts."
+
+        - key: "dependabot_alerts"
+          label: "Dependabot alerts"
+          fieldType: "select"
+          defaultValue: "not_set"
+          options:
+            - { label: "Enabled", value: "enabled" }
+            - { label: "Disabled", value: "disabled" }
+            - { label: "Not set (inherit)", value: "not_set" }
+          helpText: "Alert on vulnerable dependencies. Requires the dependency graph."
+
+        - key: "dependabot_security_updates"
+          label: "Dependabot security updates"
+          fieldType: "select"
+          defaultValue: "not_set"
+          options:
+            - { label: "Enabled", value: "enabled" }
+            - { label: "Disabled", value: "disabled" }
+            - { label: "Not set (inherit)", value: "not_set" }
+          helpText: "Open automated pull requests to fix vulnerable dependencies. Requires Dependabot alerts."
+
+        - key: "private_vulnerability_reporting"
+          label: "Private vulnerability reporting"
+          fieldType: "select"
+          defaultValue: "not_set"
+          options:
+            - { label: "Enabled", value: "enabled" }
+            - { label: "Disabled", value: "disabled" }
+            - { label: "Not set (inherit)", value: "not_set" }
+          helpText: "Let researchers privately report vulnerabilities on attached repositories."
+
+    - name: "Enforcement & Attachment"
+      icon: "shield"
+      description: "How the configuration is enforced and which repositories it applies to"
+      fields:
+        - key: "enforcement"
+          label: "Enforcement"
+          fieldType: "select"
+          defaultValue: "enforced"
+          options:
+            - { label: "Enforced", value: "enforced" }
+            - { label: "Unenforced", value: "unenforced" }
+          helpText: "Whether repositories may override the configuration's settings."
+
+        - key: "attach_scope"
+          label: "Attach to repositories"
+          fieldType: "select"
+          defaultValue: "none"
+          options:
+            - { label: "Do not attach", value: "none" }
+            - { label: "All repositories", value: "all" }
+            - { label: "All without a configuration", value: "all_without_configurations" }
+            - { label: "Public repositories", value: "public" }
+            - { label: "Private or internal", value: "private_or_internal" }
+            - { label: "Selected repositories", value: "selected" }
+          helpText: "Which repositories to attach this configuration to after it is created or updated."
+
+        - key: "selected_repository_ids"
+          label: "Selected repository ids"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "attach_scope", equals: "selected" }
+          validation:
+            maxLength: 2000
+          helpText: "Comma- or space-separated numeric repository ids (used only when attach scope is Selected repositories)."
+
+        - key: "additional_settings"
+          label: "Additional settings"
+          fieldType: "keyvalue"
+          required: false
+          helpText: "Extra configuration properties (GitHub property name → enabled | disabled | not_set), e.g. secret_scanning_validity_checks. Explicit selects above take precedence."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this configuration is defined — recorded for audit."

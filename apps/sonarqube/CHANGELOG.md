@@ -2,6 +2,40 @@
 
 All notable changes to the SonarQube app are documented here.
 
+## 0.2.0 — 2026-08-01
+
+Three new config types, each driven through the full Security-as-Code pipeline
+(validate / deploy / rollback / health-check / drift-detect / status) over the
+SonarQube Web API. Every resource is upserted by NAME (not id/key) for robustness
+across SonarQube versions.
+
+- **Quality Profiles** config type — create profiles and set their language, parent
+  (inheritance), default flag and activated rule keys over `/api/qualityprofiles`
+  (`create`, `change_parent`, `activate_rules`, `set_default`, `search`, plus
+  `delete` / `deactivate_rule` on rollback). Identity is the `(name, language)` pair,
+  so the same name can be reused across languages. Built-in profiles (e.g. Sonar way)
+  are set-default only. Rollback deletes profiles we created and deactivates rules we
+  activated; drift compares parent, default and declared rule activation.
+- **Webhooks** config type — create / update global or project webhooks over
+  `/api/webhooks` (`create`, `update`, `delete`, `list`) with an optional HMAC secret.
+  Upserted by name within a scope (blank project = global). Rollback deletes created
+  webhooks and restores a changed URL.
+- **Permission Templates** config type — create / edit templates and reconcile group
+  grants over `/api/permissions/*_template` (`create_template`, `update_template`,
+  `search_templates`, `add_group_to_template`, `remove_group_from_template`,
+  `template_groups`, `delete_template`). Only the groups you list are managed;
+  undeclared grants are left untouched. Rollback deletes created templates and restores
+  prior description / project-key pattern / declared-group grants.
+
+> **API notes / caveats.** SonarQube never returns a webhook secret (only `hasSecret`),
+> so a secret can be set/updated but is never read back for drift nor restored on
+> rollback. The form-encoder drops blank params, so an empty secret / description /
+> project-key pattern leaves an existing value unchanged rather than clearing it.
+> `qualityprofiles/activate_rules` addresses the profile by KEY (resolved from search)
+> and `rule_key` takes a comma-separated list (rules/search filter semantics). The
+> `permissions/template_groups` response envelope (`{ groups: [{ name, permissions }] }`)
+> and the exact permission-key set should be verified against your SonarQube version.
+
 ## 0.1.0 — 2026-08-01
 
 Initial release — foundation + first config type.

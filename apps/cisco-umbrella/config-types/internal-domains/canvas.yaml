@@ -1,0 +1,65 @@
+# =============================================================================
+# Canvas Template — Cisco Umbrella Internal Domains
+#
+# Declares ONE Umbrella internal domain (/deployments/v2/internaldomains) — a
+# domain whose DNS queries bypass the Umbrella resolvers and route to the local
+# resolver instead (for Virtual Appliances and Roaming Clients). Users add as
+# many as they need. Internal domains are addressed by an opaque id (no
+# lookup-by-name), so the app matches a declared domain to a live one by its
+# domain value and stores the id from the deploy for rename-safety. Reconcile
+# deletes internal domains this app created but no longer declares.
+#
+# Field keys must match what config-types/internal-domains/validate.ts checks.
+# =============================================================================
+
+id: "cisco-umbrella-internal-domains"
+name: "Internal Domains Configuration"
+toolType: "cisco-umbrella"
+entityType: "internal-domains"
+description: "Define Cisco Umbrella internal domains (bypass the Umbrella resolvers to the local resolver) as code through the Umbrella Deployments API."
+
+item:
+  label: "Internal Domain"
+  identityField: "domain"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Domain"
+      icon: "globe"
+      description: "The internal domain and its description"
+      fields:
+        - key: "domain"
+          label: "Domain"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The internal domain (e.g. corp.example.com). A leading "*." wildcard
+            is allowed. DNS queries for this domain bypass the Umbrella resolvers
+            and route to the local resolver. Must be unique within this canvas.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional note describing what this internal domain is for."
+
+    - name: "Scope"
+      icon: "filter"
+      description: "Where the internal domain applies"
+      fields:
+        - key: "includeAllVAs"
+          label: "All Virtual Appliances"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Apply this internal domain to all Umbrella Virtual Appliances."
+
+        - key: "includeAllMobileDevices"
+          label: "All mobile devices"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Apply this internal domain to all Umbrella-managed mobile devices."

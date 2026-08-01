@@ -1,0 +1,64 @@
+# =============================================================================
+# Canvas Template — Cybereason Isolation Rules
+#
+# Declares ONE isolation (exception) rule (the item). Users add as many as they
+# need. The rule's identity for upsert + drift is the COMPOSITE of IP address,
+# direction and port (Cybereason assigns the server-side ruleId). Field keys must
+# match config-types/isolation-rules/validate.ts. Applied via the Cybereason REST
+# API (GET/POST/PUT /rest/settings/isolation-rule, POST .../delete).
+# =============================================================================
+
+id: "cybereason-isolation-rules"
+name: "Isolation Rules"
+toolType: "cybereason"
+entityType: "isolation-rules"
+description: "Manage Cybereason isolation (exception) rules — which traffic is blocked or allowed while a sensor is isolated — via the Cybereason REST API (/rest/settings/isolation-rule)."
+
+item:
+  label: "Isolation Rule"
+  identityField: "ipAddressString"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Target"
+      icon: "crosshair"
+      description: "Which traffic the rule matches"
+      fields:
+        - key: "ipAddressString"
+          label: "IP Address"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 45
+          helpText: "IPv4 address the rule matches. Part of the rule's identity (IP + direction + port) used for upsert and drift."
+
+        - key: "direction"
+          label: "Direction"
+          fieldType: "select"
+          required: true
+          defaultValue: "ALL"
+          options:
+            - { label: "All traffic", value: "ALL" }
+            - { label: "Incoming", value: "INCOMING" }
+            - { label: "Outgoing", value: "OUTGOING" }
+          helpText: "Traffic direction the rule applies to. Part of the rule's identity."
+
+        - key: "port"
+          label: "Port"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+            max: 65535
+          helpText: "Optional TCP/UDP port (0 = any port). Leave blank for no port restriction. Part of the rule's identity."
+
+    - name: "Action"
+      icon: "shield"
+      description: "What happens to matching traffic during isolation"
+      fields:
+        - key: "blocking"
+          label: "Block matching traffic"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "When checked, traffic matching this rule is BLOCKED while the sensor is isolated. Uncheck to ALLOW it through (an isolation exception)."

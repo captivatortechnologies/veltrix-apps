@@ -1,18 +1,19 @@
 id: semgrep
 name: Semgrep
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
-  Manage Semgrep AppSec Platform configuration as code. Author the settings of
-  your Semgrep projects — the primary branch Semgrep scans and the project tags
-  used for grouping and policy scoping — and drive them through the
-  Security-as-Code pipeline (validate, deploy, health check, drift detection and
-  rollback) over the Semgrep public REST API v1 (Bearer token, fixed base URL
+  Manage Semgrep AppSec Platform configuration as code. Author your Semgrep
+  project settings (primary branch + tags), Managed Scans (hosted full/diff scan
+  toggles), and findings triage — and drive them through the Security-as-Code
+  pipeline (validate, deploy, health check, drift detection and rollback) over the
+  Semgrep public REST API v1 (Bearer token, fixed base URL
   https://semgrep.dev/api/v1). Config-as-code only — no database, no
-  infrastructure. NOTE: Semgrep's public API has no endpoint to CREATE a project
-  (projects are created by connecting a repository and running a scan), so this
-  app UPDATES the settings of projects that already exist. The write surface is
-  REAL and documented — see the README.
+  infrastructure. NOTE: Semgrep's public write surface is intentionally LIMITED —
+  there is no create-project API (projects are created by connecting a repo and
+  scanning), Managed Scans is a [Beta] surface, and triage is an imperative bulk
+  action (no server-side triage-rule object). Every write path here is REAL and
+  documented — see the README and CHANGELOG for the honest per-type caveats.
 category: COMPLIANCE
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/semgrep
@@ -38,6 +39,20 @@ permissions:
         project tags — over the Semgrep public REST API v1. Read is
         GET /deployments/{slug}/projects; write is PATCH the project and
         PUT/DELETE its tags.
+    - resource: managed-scan
+      actions: [read, write]
+      description: >
+        Toggle Semgrep Managed Scans (hosted full + diff scans) for an existing
+        project. Read is GET /deployments/{slug}/projects/{name}
+        (managed_scan_config); write is PATCH
+        /deployments/{slug}/projects/{name}/managed-scan. [Beta] Semgrep surface.
+    - resource: triage
+      actions: [read, write]
+      description: >
+        Bulk-triage Semgrep findings to a triage state (ignored/reviewing/…) via
+        POST /deployments/{slug}/triage. Read (best-effort drift) is
+        GET /deployments/{slug}/findings. IMPERATIVE action — Semgrep has no
+        server-side triage-rule object.
 
 pipeline:
   configurationTypes:
@@ -62,6 +77,63 @@ pipeline:
         healthCheck: config-types/projects/healthCheck
         driftDetect: config-types/projects/driftDetect
         getStatus: config-types/projects/getStatus
+      targets:
+        componentTypes: [semgrep-deployment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: managed-scan
+      group: "Projects"
+      name: Managed Scan Settings
+      description: >
+        Toggle Semgrep Managed Scans — Semgrep-HOSTED scans — for an existing
+        project: weekly full scans and diff-aware (PR) scans
+        (PATCH /deployments/{slug}/projects/{projectName}/managed-scan, fields
+        full_scan.enabled / diff_scan.enabled). Identity is the project name. Live
+        state is read back from the project's managed_scan_config for drift and
+        rollback. FLAGGED: Managed Scans is a [Beta] Semgrep API surface and only
+        applies to projects onboarded to Managed Scanning — a project that is not
+        onboarded fails the deploy with a clear message. All writes go over the
+        Semgrep public REST API v1 (Bearer token, base URL
+        https://semgrep.dev/api/v1).
+      canvasTemplate: config-types/managed-scan/canvas.yaml
+      defaultConfig: config-types/managed-scan/defaults.yaml
+      handlers:
+        validate: config-types/managed-scan/validate
+        deploy: config-types/managed-scan/deploy
+        rollback: config-types/managed-scan/rollback
+        healthCheck: config-types/managed-scan/healthCheck
+        driftDetect: config-types/managed-scan/driftDetect
+        getStatus: config-types/managed-scan/getStatus
+      targets:
+        componentTypes: [semgrep-deployment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: triage
+      group: "Findings"
+      name: Findings Triage
+      description: >
+        Bulk-triage Semgrep findings to a triage state
+        (ignored/reviewing/fixing/reopened/provisionally_ignored) via
+        POST /deployments/{slug}/triage. A rule selects findings by type +
+        repositories / rule names / severities and moves those currently in a
+        source status. FLAGGED — IMPERATIVE, not declarative: Semgrep has no
+        triage-rule object, so deploy applies the rule to the findings matching
+        RIGHT NOW; findings are a moving target (re-deploy re-applies). Drift is
+        best-effort (re-queries GET /deployments/{slug}/findings for un-triaged
+        matches); rollback is best-effort (re-triages the exact finding ids back to
+        `reopened`). A narrowing filter is REQUIRED so a rule can never triage an
+        entire deployment. All writes go over the Semgrep public REST API v1.
+      canvasTemplate: config-types/triage/canvas.yaml
+      defaultConfig: config-types/triage/defaults.yaml
+      handlers:
+        validate: config-types/triage/validate
+        deploy: config-types/triage/deploy
+        rollback: config-types/triage/rollback
+        healthCheck: config-types/triage/healthCheck
+        driftDetect: config-types/triage/driftDetect
+        getStatus: config-types/triage/getStatus
       targets:
         componentTypes: [semgrep-deployment]
         requiresCredential: true

@@ -10,15 +10,39 @@ infrastructure. It writes only through the Semgrep API.
 
 ## What it manages
 
-| Configuration type   | Semgrep endpoint(s)                                                                                       | Identity     | Write path |
-| -------------------- | -------------------------------------------------------------------------------------------------------- | ------------ | ---------- |
-| **Project Settings** | `PATCH /deployments/{slug}/projects/{name}` (primary branch); `PUT` / `DELETE .../{name}/tags` (tags) | Project name | **Real**   |
+| Configuration type       | Semgrep endpoint(s)                                                                                   | Identity          | Write path                              |
+| ------------------------ | ---------------------------------------------------------------------------------------------------- | ----------------- | --------------------------------------- |
+| **Project Settings**     | `PATCH /deployments/{slug}/projects/{name}` (primary branch); `PUT` / `DELETE .../{name}/tags` (tags) | Project name      | **Real**                                |
+| **Managed Scan Settings** | `PATCH /deployments/{slug}/projects/{name}/managed-scan` (`full_scan` / `diff_scan`)                 | Project name      | **Real** ([Beta] surface)               |
+| **Findings Triage**      | `POST /deployments/{slug}/triage` (bulk triage)                                                       | Local rule name   | **Real** (imperative — see below)       |
 
-The Project Settings type reconciles by the project **name** (the repository as a
-path, e.g. `my-org/my-repo`). Deploy reads the project for a rollback snapshot,
+The **Project Settings** type reconciles by the project **name** (the repository as
+a path, e.g. `my-org/my-repo`). Deploy reads the project for a rollback snapshot,
 sets its primary branch, and reconciles its tag set to the declared set. Rollback
 restores the prior primary branch and tags; drift compares the declared primary
 branch and tag set against the live project.
+
+The **Managed Scan Settings** type toggles Semgrep **Managed Scans** (Semgrep-hosted
+scanning) — weekly full scans and diff-aware (PR) scans — for an existing project.
+Deploy snapshots the project's `managed_scan_config`, then `PATCH`es the declared
+state; rollback restores the prior flags; drift compares declared vs live. This is a
+clean, fully-reconciled type — but Managed Scans is a **`[Beta]`** Semgrep surface
+and only applies to projects **onboarded to Managed Scanning**.
+
+The **Findings Triage** type is **imperative, not declarative** — Semgrep has **no
+triage-rule object**, only a bulk-triage *action*. Each item is a named rule (a
+finding selection + a desired triage state); deploy applies it via `POST /triage` to
+the findings matching **right now**. Because findings are a moving target, **drift is
+best-effort** (it re-queries `GET /findings` for still-un-triaged matches) and
+**rollback is best-effort** (it re-triages the exact finding ids this deploy changed
+back to `reopened`). A narrowing filter (repositories, rules, or severities) is
+**required** so a rule can never triage an entire deployment.
+
+> **Semgrep's config-as-code is mostly repo-side.** The bulk of Semgrep
+> configuration — the **rules** themselves (`.semgrep.yml`, registry ruleset
+> references) — lives versioned in the scanned repository, not in the platform. This
+> app manages the platform-side settings the public API exposes for a write; it does
+> not invent endpoints Semgrep does not document.
 
 > **The write surface is real — but there is no create-project API.** Semgrep's
 > public API (confirmed from the official OpenAPI spec,
@@ -49,13 +73,16 @@ Semgrep exposes **one hosted** REST API with a **fixed** base URL:
 
 ### Endpoints used
 
-| Purpose                | Method + path                                              |
-| ---------------------- | ---------------------------------------------------------- |
-| Connectivity / health  | `GET /deployments`                                         |
-| Read a project         | `GET /deployments/{slug}/projects/{projectName}`           |
-| Set the primary branch | `PATCH /deployments/{slug}/projects/{projectName}`         |
-| Add tags               | `PUT /deployments/{slug}/projects/{projectName}/tags`      |
-| Remove tags            | `DELETE /deployments/{slug}/projects/{projectName}/tags?tags=…` |
+| Purpose                    | Method + path                                                        |
+| -------------------------- | ------------------------------------------------------------------- |
+| Connectivity / health      | `GET /deployments`                                                  |
+| Read a project             | `GET /deployments/{slug}/projects/{projectName}`                    |
+| Set the primary branch     | `PATCH /deployments/{slug}/projects/{projectName}`                  |
+| Add tags                   | `PUT /deployments/{slug}/projects/{projectName}/tags`               |
+| Remove tags                | `DELETE /deployments/{slug}/projects/{projectName}/tags?tags=…`     |
+| Toggle Managed Scans       | `PATCH /deployments/{slug}/projects/{projectName}/managed-scan`     |
+| Bulk-triage findings       | `POST /deployments/{slug}/triage`                                   |
+| List findings (triage drift) | `GET /deployments/{slug}/findings`                                |
 
 ## Setup
 
@@ -90,11 +117,17 @@ Semgrep exposes **one hosted** REST API with a **fixed** base URL:
 - **Updates existing projects only.** Semgrep has no create-project API, so a
   project must already exist (created by connecting a repo and scanning). Deploying
   to a missing project fails rather than silently doing nothing.
-- **Managed attributes** in this foundation are the **primary branch** and the
-  **tag set**. Managed-scan configuration (`managed_scan_config`, a Beta API
-  surface) and other project attributes are out of scope for v0.1.0.
-- **Drift is best-effort on reads.** A project that cannot be read (transient error
-  or not yet scanned) is skipped rather than raising false drift.
+- **Managed Scans is a `[Beta]` surface** and applies only to projects onboarded to
+  Semgrep Managed Scanning; a project that is not onboarded fails the deploy with a
+  clear message.
+- **Triage is imperative, not declarative.** There is no server-side triage-rule
+  object — deploy applies the rule to the findings matching at that moment. Findings
+  are a moving target, so re-deploy re-applies; **drift and rollback are
+  best-effort** (drift re-queries `GET /findings`; rollback re-opens the exact
+  finding ids the deploy changed). A narrowing filter is required so a rule can never
+  triage a whole deployment.
+- **Drift is best-effort on reads.** A project (or finding set) that cannot be read
+  is skipped rather than raising false drift.
 - Write-only secrets (the API token) are never read back, diffed, or stored in
   rollback data / artifacts / logs.
 - The app writes only through the Semgrep API; it registers no platform-side

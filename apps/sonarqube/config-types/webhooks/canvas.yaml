@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template — SonarQube Webhooks
+#
+# Declares ONE SonarQube webhook (the item). Users add as many as they need.
+# Field keys must match config-types/webhooks/validate.ts. Applied via the SonarQube
+# Web API (/api/webhooks/create, /update, /delete, /list). A blank project = a GLOBAL
+# webhook; a project key scopes the webhook to that project.
+# =============================================================================
+
+id: "sonarqube-webhooks"
+name: "Webhooks"
+toolType: "sonarqube"
+entityType: "webhooks"
+description: "Manage SonarQube webhooks — name, delivery URL, optional HMAC secret and global/project scope — via the SonarQube Web API"
+
+item:
+  label: "Webhook"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Webhook"
+      icon: "link"
+      description: "Delivery target and scope"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: "The webhook name shown in SonarQube, e.g. Veltrix Pipeline. Used as the webhook's identity (within its scope) for upsert and drift."
+
+        - key: "url"
+          label: "URL"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 2000
+          helpText: "The http(s) endpoint SonarQube POSTs analysis results to, e.g. https://ci.example.com/sonar-hook."
+
+        - key: "project"
+          label: "Project key (scope)"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 400
+          helpText: "Leave blank for a global webhook (fires for every project). Set a project key to scope the webhook to a single project."
+
+        - key: "secret"
+          label: "Secret"
+          fieldType: "password"
+          required: false
+          validation:
+            maxLength: 200
+          helpText: >
+            Optional shared secret used to sign the payload (HMAC-SHA256, X-Sonar-Webhook-HMAC-SHA256
+            header). SonarQube never returns a secret, so it can be set or updated but is
+            not read back for drift, and cannot be restored on rollback. Leave blank to
+            leave any existing secret unchanged.

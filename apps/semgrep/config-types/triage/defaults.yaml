@@ -1,0 +1,5 @@
+# Defaults for a new triage rule — Code findings moved from Open to Ignored. The
+# operator must add at least one narrowing filter (repos / rules / severities).
+issueType: "sast"
+fromStatus: "open"
+targetState: "ignored"

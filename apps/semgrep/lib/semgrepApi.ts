@@ -10,8 +10,11 @@
 //   GET   /deployments/{slug}/projects
 //   GET   /deployments/{slug}/projects/{projectName}
 //   PATCH /deployments/{slug}/projects/{projectName}
+//   PATCH /deployments/{slug}/projects/{projectName}/managed-scan
 //   PUT   /deployments/{slug}/projects/{projectName}/tags
 //   DELETE/deployments/{slug}/projects/{projectName}/tags?tags=…
+//   GET   /deployments/{slug}/findings
+//   POST  /deployments/{slug}/triage
 //
 // Auth is a single Semgrep API token sent as a Bearer header on every call:
 //   Authorization: Bearer <token>
@@ -85,6 +88,17 @@ export interface SemgrepDeployment {
   slug?: string
 }
 
+/**
+ * Managed Scans configuration for a project ([Beta] per the OpenAPI spec's
+ * `ManagedScanConfig`). `full_scan.enabled` = weekly full scans; `diff_scan.enabled`
+ * = diff-aware (PR) scans. Returned on the project (GET) and written by the
+ * managed-scan PATCH.
+ */
+export interface SemgrepManagedScanConfig {
+  full_scan?: { enabled?: boolean }
+  diff_scan?: { enabled?: boolean }
+}
+
 /** A Semgrep project as returned by GET .../projects and .../projects/{name}. */
 export interface SemgrepProject {
   id?: number
@@ -95,6 +109,7 @@ export interface SemgrepProject {
   url?: string
   created_at?: string
   latest_scan_at?: string
+  managed_scan_config?: SemgrepManagedScanConfig
   [key: string]: unknown
 }
 
@@ -168,6 +183,39 @@ export class SemgrepClient {
   /** PATCH a project's attributes (primary_branch, tags, …). */
   updateProject(projectName: string, body: Record<string, unknown>): Promise<SemgrepResponse> {
     return this.request('PATCH', `/deployments/${this.deploymentSlug()}/projects/${projectPath(projectName)}`, { body })
+  }
+
+  /**
+   * PATCH a project's Managed Scans configuration ([Beta] endpoint). Body carries
+   * `full_scan` and/or `diff_scan` toggles. Only valid when the deployment has
+   * Semgrep Managed Scanning enabled for the project.
+   */
+  updateManagedScan(
+    projectName: string,
+    body: { full_scan?: { enabled: boolean }; diff_scan?: { enabled: boolean } },
+  ): Promise<SemgrepResponse> {
+    return this.request(
+      'PATCH',
+      `/deployments/${this.deploymentSlug()}/projects/${projectPath(projectName)}/managed-scan`,
+      { body },
+    )
+  }
+
+  /**
+   * GET findings for the deployment, filtered by the given query (issue_type,
+   * status, repos, rules, severities, …). Read-only — used by triage drift.
+   */
+  listFindings(query: Record<string, string | string[] | number | undefined>): Promise<SemgrepResponse> {
+    return this.request('GET', `/deployments/${this.deploymentSlug()}/findings`, { query })
+  }
+
+  /**
+   * POST a bulk triage. `body` selects the findings (by issue_ids or filters) and
+   * declares the new triage state / reason / note. Imperative — there is no
+   * server-side triage-rule object; this applies to the findings that match now.
+   */
+  bulkTriage(body: Record<string, unknown>): Promise<SemgrepResponse> {
+    return this.request('POST', `/deployments/${this.deploymentSlug()}/triage`, { body })
   }
 
   /** PUT tags onto a project (additive — tags not present are created + associated). */
@@ -259,4 +307,50 @@ export function projectFromResponse(res: SemgrepResponse): SemgrepProject | null
   if ('project' in j && j.project && typeof j.project === 'object') return j.project as SemgrepProject
   if ('name' in j || 'id' in j) return j as SemgrepProject
   return null
+}
+
+/** The full-scan / diff-scan enabled flags of a project's Managed Scans config. */
+export interface ManagedScanFlags {
+  fullScan: boolean
+  diffScan: boolean
+}
+
+/** Read the Managed Scans flags off a project (absent config reads as both off). */
+export function managedScanFromProject(project: SemgrepProject | null): ManagedScanFlags {
+  const cfg = project?.managed_scan_config
+  return {
+    fullScan: Boolean(cfg?.full_scan?.enabled),
+    diffScan: Boolean(cfg?.diff_scan?.enabled),
+  }
+}
+
+/** The numeric finding ids from a GET .../findings response body. */
+export function findingIds(res: SemgrepResponse): number[] {
+  const j = res.json as { findings?: Array<{ id?: unknown }> } | null
+  if (!j || !Array.isArray(j.findings)) return []
+  const ids: number[] = []
+  for (const f of j.findings) {
+    const id = typeof f?.id === 'number' ? f.id : Number(f?.id)
+    if (Number.isFinite(id)) ids.push(id)
+  }
+  return ids
+}
+
+/** The number of triaged issues reported by a POST .../triage response. */
+export function triagedCount(res: SemgrepResponse): number {
+  const j = res.json as { num_triaged?: unknown } | null
+  const n = typeof j?.num_triaged === 'number' ? j.num_triaged : Number(j?.num_triaged)
+  return Number.isFinite(n) ? n : 0
+}
+
+/** The list of triaged issue ids reported by a POST .../triage response. */
+export function triagedIssueIds(res: SemgrepResponse): number[] {
+  const j = res.json as { triaged_issues?: unknown[] } | null
+  if (!j || !Array.isArray(j.triaged_issues)) return []
+  const ids: number[] = []
+  for (const raw of j.triaged_issues) {
+    const id = typeof raw === 'number' ? raw : Number(raw)
+    if (Number.isFinite(id)) ids.push(id)
+  }
+  return ids
 }

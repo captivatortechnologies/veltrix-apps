@@ -1,0 +1,51 @@
+# =============================================================================
+# Canvas Template — Sysdig Secure Falco Macros
+#
+# Declares ONE custom Falco macro (the item) — a named, reusable condition
+# fragment referenced from Falco rule and other macro conditions. Field keys
+# must match config-types/falco-macros/validate.ts.
+# Applied via the Sysdig Secure REST API (/api/secure/falco/macros).
+# =============================================================================
+
+id: "sysdig-secure-falco-macros"
+name: "Falco Macros"
+toolType: "sysdig-secure"
+entityType: "falco-macros"
+description: "Manage Sysdig Secure custom Falco macros — named, reusable condition fragments referenced across rules — via the Sysdig Secure REST API (/api/secure/falco/macros)"
+
+item:
+  label: "Falco Macro"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Macro"
+      icon: "code"
+      description: "Macro identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique macro name — the stable identity used for upsert and drift, e.g. outbound_connection"
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "When on, the macro is present in the custom rule library. When off, this app removes it (disabled = absent)."
+
+    - name: "Definition"
+      icon: "code"
+      description: "The reusable condition fragment"
+      fields:
+        - key: "condition"
+          label: "Condition"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 8000
+          helpText: "Falco condition expression (Sysdig filter syntax), e.g. evt.type in (connect, sendto, sendmsg)"

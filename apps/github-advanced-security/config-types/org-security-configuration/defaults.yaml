@@ -1,0 +1,13 @@
+# Defaults for a new configuration item. The operator fills in the organization
+# and a name, then chooses feature settings and (optionally) an attach scope.
+description: ""
+advanced_security: "disabled"
+code_scanning_default_setup: "not_set"
+secret_scanning: "not_set"
+secret_scanning_push_protection: "not_set"
+dependency_graph: "not_set"
+dependabot_alerts: "not_set"
+dependabot_security_updates: "not_set"
+private_vulnerability_reporting: "not_set"
+enforcement: "enforced"
+attach_scope: "none"

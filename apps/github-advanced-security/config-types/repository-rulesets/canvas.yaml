@@ -1,0 +1,113 @@
+# =============================================================================
+# Canvas Template — GitHub Repository Rulesets
+#
+# Declares ONE ruleset (the item) — branch / tag / push protection — for a
+# repository (owner + repository) OR an organization (owner only, repository
+# blank). Identified by name within that scope. Field keys must match
+# config-types/repository-rulesets/_shared.ts. Applied over the GitHub REST API:
+#   - repo scope → POST|PUT /repos/{owner}/{repo}/rulesets[/{id}]
+#   - org  scope → POST|PUT /orgs/{owner}/rulesets[/{id}]
+# The rules / conditions / bypass_actors fields are GitHub's own JSON shapes.
+# =============================================================================
+
+id: "github-repository-rulesets"
+name: "Repository Rulesets"
+toolType: "github-advanced-security"
+entityType: "repository-rulesets"
+description: "Author branch / tag / push protection rulesets for a repository or organization via the GitHub REST API"
+
+item:
+  label: "Ruleset"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 300
+  groups:
+    - name: "Scope"
+      icon: "target"
+      description: "Where the ruleset applies — a repository, or the whole organization"
+      fields:
+        - key: "owner"
+          label: "Owner (organization or user)"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+            pattern: "^[A-Za-z0-9][A-Za-z0-9-]*$"
+          helpText: "The repository owner, or the organization login for an org-level ruleset."
+
+        - key: "repository"
+          label: "Repository"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 100
+          helpText: "The repository name for a repo-level ruleset. Leave blank to create an ORGANIZATION ruleset on the owner."
+
+    - name: "Ruleset"
+      icon: "shield"
+      description: "Name, what the ruleset targets, and how strongly it is enforced"
+      fields:
+        - key: "name"
+          label: "Ruleset name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The ruleset name. Used as the stable identity for drift and rollback (matched within the scope)."
+
+        - key: "target"
+          label: "Target"
+          fieldType: "select"
+          defaultValue: "branch"
+          options:
+            - { label: "Branch", value: "branch" }
+            - { label: "Tag", value: "tag" }
+            - { label: "Push", value: "push" }
+          helpText: "What the ruleset protects."
+
+        - key: "enforcement"
+          label: "Enforcement"
+          fieldType: "select"
+          defaultValue: "active"
+          options:
+            - { label: "Active (enforced)", value: "active" }
+            - { label: "Evaluate (dry-run)", value: "evaluate" }
+            - { label: "Disabled", value: "disabled" }
+          helpText: "Active enforces the rules; Evaluate reports without blocking; Disabled turns the ruleset off."
+
+    - name: "Rules"
+      icon: "code"
+      description: "GitHub's own JSON for the ruleset's rules, conditions and bypass actors"
+      fields:
+        - key: "rules"
+          label: "Rules (JSON array)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: 'A JSON array of rule objects, e.g. [{"type":"pull_request"},{"type":"required_signatures"}]. Empty applies no rules.'
+
+        - key: "conditions"
+          label: "Conditions (JSON object)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 10000
+          helpText: 'A JSON object of targeting conditions, e.g. {"ref_name":{"include":["~DEFAULT_BRANCH"],"exclude":[]}}. Org rulesets also target by repository_name / repository_id.'
+
+        - key: "bypass_actors"
+          label: "Bypass actors (JSON array)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 10000
+          helpText: 'A JSON array of bypass actors, e.g. [{"actor_id":1,"actor_type":"OrganizationAdmin","bypass_mode":"always"}]. Empty means no bypass.'
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this ruleset is defined — recorded for audit."

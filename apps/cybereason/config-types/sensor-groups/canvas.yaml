@@ -1,0 +1,64 @@
+# =============================================================================
+# Canvas Template — Cybereason Sensor Groups
+#
+# Declares ONE sensor group (the item). Users add as many as they need. The group
+# NAME is the stable identity used for upsert and drift. Field keys must match
+# config-types/sensor-groups/validate.ts. Applied via the Cybereason REST API
+# (GET/POST /rest/groups, PUT/DELETE /rest/groups/{id}).
+#
+# FLAGGED: the inner schema of `groupAssignRule` (dynamic auto-assignment) is
+# passed through as opaque JSON — VERIFY it against a live Cybereason tenant.
+# =============================================================================
+
+id: "cybereason-sensor-groups"
+name: "Sensor Groups"
+toolType: "cybereason"
+entityType: "sensor-groups"
+description: "Manage Cybereason sensor groups — name, description, assigned policy and an optional dynamic assignment rule — via the Cybereason REST API (/rest/groups)."
+
+item:
+  label: "Sensor Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Group"
+      icon: "layers"
+      description: "Group identity and assigned policy"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The group's name — its stable identity for upsert and drift. Unique within this canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "A short description of the group's purpose — recorded for audit."
+
+        - key: "policyId"
+          label: "Policy ID"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 64
+          helpText: "GUID of the Cybereason policy to assign to this group's sensors. Leave blank to keep the tenant default. VERIFY the policy id against your tenant."
+
+    - name: "Dynamic Assignment"
+      icon: "filter"
+      description: "Optional auto-assignment rule"
+      fields:
+        - key: "groupAssignRule"
+          label: "Assignment Rule (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 4000
+          helpText: "Optional dynamic assignment rule as a JSON array. FLAGGED: the inner schema is unverified — leave blank for a static group, or paste a rule exported from your Cybereason console."

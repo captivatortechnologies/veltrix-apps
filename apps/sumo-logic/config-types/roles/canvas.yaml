@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — Sumo Logic Roles
+#
+# Declares ONE RBAC role (the item). Users add as many as they need. Field keys
+# must match config-types/roles/validate.ts. Applied via the Sumo Logic
+# Management API (/api/v1/roles).
+#   API: https://www.sumologic.com/help/docs/api/role-management-v2/
+# =============================================================================
+
+id: "sumo-logic-roles"
+name: "Roles"
+toolType: "sumo-logic"
+entityType: "roles"
+description: "Manage Sumo Logic RBAC roles — name, description, search filter and capabilities — via the Management API"
+
+item:
+  label: "Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Role"
+      icon: "shield"
+      description: "Role identity and what it can see"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "Role name shown in Sumo Logic. The stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 1024
+          helpText: "Human-readable description of what the role is for."
+
+        - key: "filterPredicate"
+          label: "Search Filter"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1024
+          helpText: "Search filter limiting which logs the role can access, e.g. _sourceCategory=prod/*. Leave blank for unrestricted access."
+
+    - name: "Capabilities"
+      icon: "key"
+      description: "What members of the role are allowed to do"
+      fields:
+        - key: "capabilities"
+          label: "Capabilities"
+          fieldType: "tags"
+          required: false
+          helpText: "Capability names granted to the role, e.g. viewCollectors, manageContent, searchAuditIndex. FLAG: capability names must match Sumo Logic's exact list (see the Role Capabilities docs) — an unknown name is rejected on deploy. User membership is managed in Sumo Logic, not here."

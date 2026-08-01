@@ -172,6 +172,90 @@ export class GithubClient {
       body,
     )
   }
+
+  // --- Org code security configurations --------------------------------------
+  // https://docs.github.com/en/rest/code-security/configurations
+
+  /** GET /orgs/{org}/code-security/configurations — list the org's configurations. */
+  listCodeSecurityConfigurations(org: string): Promise<GithubResponse> {
+    return this.request('GET', `/orgs/${encodeURIComponent(org)}/code-security/configurations?per_page=100`)
+  }
+
+  /** GET one configuration by its numeric id. */
+  getCodeSecurityConfiguration(org: string, id: number | string): Promise<GithubResponse> {
+    return this.request('GET', `/orgs/${encodeURIComponent(org)}/code-security/configurations/${encodeURIComponent(String(id))}`)
+  }
+
+  /** POST /orgs/{org}/code-security/configurations — create a configuration (`name` required). */
+  createCodeSecurityConfiguration(org: string, body: Record<string, unknown>): Promise<GithubResponse> {
+    return this.request('POST', `/orgs/${encodeURIComponent(org)}/code-security/configurations`, body)
+  }
+
+  /** PATCH a configuration by id (partial update). */
+  updateCodeSecurityConfiguration(org: string, id: number | string, body: Record<string, unknown>): Promise<GithubResponse> {
+    return this.request('PATCH', `/orgs/${encodeURIComponent(org)}/code-security/configurations/${encodeURIComponent(String(id))}`, body)
+  }
+
+  /** DELETE a configuration by id. */
+  deleteCodeSecurityConfiguration(org: string, id: number | string): Promise<GithubResponse> {
+    return this.request('DELETE', `/orgs/${encodeURIComponent(org)}/code-security/configurations/${encodeURIComponent(String(id))}`)
+  }
+
+  /** POST .../{id}/attach — apply a configuration to repositories (`scope` required). */
+  attachCodeSecurityConfiguration(org: string, id: number | string, body: Record<string, unknown>): Promise<GithubResponse> {
+    return this.request('POST', `/orgs/${encodeURIComponent(org)}/code-security/configurations/${encodeURIComponent(String(id))}/attach`, body)
+  }
+
+  // --- Rulesets (repo- or org-level) -----------------------------------------
+  // https://docs.github.com/en/rest/repos/rules and .../orgs/rules
+  // repo is null/empty → org-level ruleset at /orgs/{owner}/rulesets.
+
+  /** Base rulesets path for a scope: /repos/{owner}/{repo}/rulesets or /orgs/{owner}/rulesets. */
+  private rulesetsPath(owner: string, repo: string | null | undefined): string {
+    const scope = (repo ?? '').trim()
+    return scope
+      ? `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(scope)}/rulesets`
+      : `/orgs/${encodeURIComponent(owner)}/rulesets`
+  }
+
+  /** GET all rulesets for a repo or org (summary shape — no full rules). */
+  listRulesets(owner: string, repo: string | null): Promise<GithubResponse> {
+    return this.request('GET', `${this.rulesetsPath(owner, repo)}?per_page=100`)
+  }
+
+  /** GET one ruleset by id (full shape — includes rules, conditions, bypass_actors). */
+  getRuleset(owner: string, repo: string | null, id: number | string): Promise<GithubResponse> {
+    return this.request('GET', `${this.rulesetsPath(owner, repo)}/${encodeURIComponent(String(id))}`)
+  }
+
+  /** POST a new ruleset (`name` + `enforcement` required). */
+  createRuleset(owner: string, repo: string | null, body: Record<string, unknown>): Promise<GithubResponse> {
+    return this.request('POST', this.rulesetsPath(owner, repo), body)
+  }
+
+  /** PUT (full replace) an existing ruleset by id. */
+  updateRuleset(owner: string, repo: string | null, id: number | string, body: Record<string, unknown>): Promise<GithubResponse> {
+    return this.request('PUT', `${this.rulesetsPath(owner, repo)}/${encodeURIComponent(String(id))}`, body)
+  }
+
+  /** DELETE a ruleset by id. */
+  deleteRuleset(owner: string, repo: string | null, id: number | string): Promise<GithubResponse> {
+    return this.request('DELETE', `${this.rulesetsPath(owner, repo)}/${encodeURIComponent(String(id))}`)
+  }
+
+  // --- Dependabot alerts (vulnerability alerts) ------------------------------
+  // https://docs.github.com/en/rest/repos/repos (vulnerability-alerts)
+
+  /** GET the Dependabot-alerts (vulnerability-alerts) state: HTTP 204 = enabled, 404 = disabled. */
+  getVulnerabilityAlerts(owner: string, repo: string): Promise<GithubResponse> {
+    return this.request('GET', `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/vulnerability-alerts`)
+  }
+
+  /** Enable (PUT) or disable (DELETE) Dependabot alerts / the dependency graph. */
+  setVulnerabilityAlerts(owner: string, repo: string, enabled: boolean): Promise<GithubResponse> {
+    const path = `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/vulnerability-alerts`
+    return this.request(enabled ? 'PUT' : 'DELETE', path)
+  }
 }
 
 /** Build a client from a raw endpoint host, a credential and app settings. */

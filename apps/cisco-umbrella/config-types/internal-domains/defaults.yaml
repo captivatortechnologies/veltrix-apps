@@ -1,0 +1,5 @@
+# Defaults for a new internal domain item. A new internal domain applies to all
+# Virtual Appliances by default; the operator fills in the domain. FLAT
+# { fieldKey: value } — an "item" template takes flat defaults.
+includeAllVAs: true
+includeAllMobileDevices: false

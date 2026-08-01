@@ -1,0 +1,41 @@
+# =============================================================================
+# Canvas Template — TheHive Observable Types
+#
+# Declares ONE TheHive observable (datatype) type (the item). Users add as many
+# as they need. Field keys must match config-types/observable-types/validate.ts.
+# Applied via the TheHive REST API (v5: /api/v1/observable/type). TheHive 5 has
+# no update endpoint — deploy creates missing types; existing ones are left as-is.
+# =============================================================================
+
+id: "thehive-observable-types"
+name: "Observable Types"
+toolType: "thehive"
+entityType: "observable-types"
+description: "Manage TheHive observable (datatype) types — name and whether the observable is a file attachment — via the TheHive REST API (Bearer API key). Create-only: existing types are left untouched."
+
+item:
+  label: "Observable Type"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Observable Type"
+      icon: "tag"
+      description: "Type identity and storage kind"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            pattern: "^[A-Za-z0-9][A-Za-z0-9_.-]*$"
+          helpText: "Datatype name — the stable identity, e.g. ip, domain, filename, hash (letters, digits, . - _)"
+
+        - key: "isAttachment"
+          label: "Is Attachment"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether observables of this type are file attachments (e.g. a sample file) rather than string values"

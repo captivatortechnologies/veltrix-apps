@@ -1,0 +1,70 @@
+# =============================================================================
+# Canvas Template — SonarQube Permission Templates
+#
+# Declares ONE SonarQube permission template (the item). Users add as many as they need.
+# Field keys must match config-types/permission-templates/validate.ts. Applied via the
+# SonarQube Web API (/api/permissions/create_template, /update_template, /search_templates,
+# /add_group_to_template, /remove_group_from_template, /template_groups). Only the groups
+# listed are managed — undeclared groups on the template are left untouched.
+# =============================================================================
+
+id: "sonarqube-permission-templates"
+name: "Permission Templates"
+toolType: "sonarqube"
+entityType: "permission-templates"
+description: "Manage SonarQube permission templates — name, description, project-key pattern and group grants — via the SonarQube Web API"
+
+item:
+  label: "Permission Template"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Template"
+      icon: "shield"
+      description: "Template identity and the projects it applies to"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: "The permission template name shown in SonarQube, e.g. Veltrix Default. Used as the template's identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Optional human-readable description of what this template governs."
+
+        - key: "projectKeyPattern"
+          label: "Project key pattern"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: >
+            Optional Java regular expression matched against a new project's key; matching
+            projects have this template applied automatically, e.g. com\.veltrix\..* . Leave
+            blank to apply the template manually.
+
+    - name: "Group permissions"
+      icon: "users"
+      description: "Group grants, one per line (optional)"
+      fields:
+        - key: "groupPermissions"
+          label: "Group permissions"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 4000
+          helpText: >
+            Optional. One line per group as "<groupName>: <permission>[, <permission> ...]" —
+            e.g. sonar-administrators: admin, user or developers: user, codeviewer, scan.
+            Permissions: admin, codeviewer, issueadmin, securityhotspotadmin, scan, user.
+            Only the groups you list are managed (their listed perms are added / removed to
+            match); undeclared groups are left untouched. Lines starting with # are ignored.

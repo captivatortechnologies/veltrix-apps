@@ -19,17 +19,37 @@ over that API:
 
 ## Configuration types
 
-| Type | Surface (TheHive 5, primary) | Status |
-|---|---|---|
-| **Case Templates** | `/api/v1/caseTemplate` (create/update/delete), listed via `POST /api/v1/query` | ✅ v0.1.0 |
+| Type | Surface (TheHive 5, primary) | Identity | Status |
+|---|---|---|---|
+| **Case Templates** | `/api/v1/caseTemplate` (create/update/delete), listed via `POST /api/v1/query` | `name` | ✅ v0.1.0 |
+| **Custom Fields** | `/api/v1/customField` (create `POST`, update `PATCH`, delete `DELETE`, list `GET`) | `name` | ✅ v0.2.0 |
+| **Observable Types** | `/api/v1/observable/type` (create `POST`, delete `DELETE`, list via query `listObservableType`) — **no update endpoint** | `name` | ✅ v0.2.0 |
+| **Users** | `/api/v1/user` (create `POST`, update `PATCH`, delete `DELETE /{id}/force`, list via query `listUser`) | `login` | ✅ v0.2.0 |
 
-The template **name** is the stable identity used to upsert (create vs update)
-and to detect drift; deploy snapshots the prior template body so rollback can
-restore it (or delete a template it created).
+Each type upserts by its **identity** field (create vs update) and detects drift
+against it; deploy snapshots the prior body so rollback can restore it (or delete
+what it created).
 
-Fields authored per template: `name` (identity), `displayName`, `titlePrefix`,
-`severity` (1–4), `tlp` (0–3), `pap` (0–3), `tags`, `description`, and `tasks`
-(one task title per line → prefilled tasks on every case).
+- **Case Templates** — fields: `name` (identity), `displayName`, `titlePrefix`,
+  `severity` (1–4), `tlp` (0–3), `pap` (0–3), `tags`, `description`, and `tasks`
+  (one task title per line → prefilled tasks on every case).
+- **Custom Fields** — fields: `name` (identity), `displayName`, `group`,
+  `description`, `type`, `mandatory`, `options`. `type` is one of
+  `string · integer · float · boolean · date · url`. TheHive 5 has **no separate
+  `enumeration` type** — an enumerated field is a base type carrying an `options`
+  allow-list. Update uses `InputUpdateCustomField`, which omits `name` (a field
+  cannot be renamed in place).
+- **Observable Types** — fields: `name` (identity), `isAttachment`. TheHive 5
+  has **no update endpoint** for observable types, so deploy is
+  **create-if-missing**: an existing type is left untouched (an `isAttachment`
+  mismatch is reported by drift, not corrected) and rollback deletes only the
+  types the deploy created.
+- **Users** — fields: `login` (identity, lower-cased by TheHive), `name`,
+  `email`, `profile` (role — must already exist in TheHive), `organisation`
+  (blank inherits the API key's org). **Passwords and API keys are not managed
+  here** — provision them out of band (credential material must not live in
+  canvas config). Multi-org membership
+  (`PUT /api/v1/user/{id}/organisations`) is out of scope.
 
 ## API dossier
 
@@ -53,7 +73,22 @@ deployment is a one-line switch.
 | Current user | `GET /api/v1/user/current` | `GET /api/v1/user/current` |
 
 **Primary is TheHive 5** (StrangeBee). The v5 `_id` and v4 `id` fields are both
-read via `templateId()`.
+read via each type's `*Id()` helper.
+
+The v0.2.0 config types add matching keys to both sides of the seam
+(`THEHIVE_PATHS.v5` / `.v4` in `lib/thehiveApi.ts`). The TheHive 4 collection
+paths below are the **flagged** legacy alternate — **unverified against a live
+TheHive 4**:
+
+| Type | TheHive 5 (primary) | TheHive 4 (alternate, flagged) |
+|---|---|---|
+| Custom fields | `/api/v1/customField` | `/api/customField` |
+| Observable types | `/api/v1/observable/type` | `/api/observable/type` |
+| Users | `/api/v1/user` (delete `/{id}/force`) | `/api/user` |
+
+List operations use the v5 query API (`POST /api/v1/query` with
+`{ query: [{ _name }] }`) for observable types (`listObservableType`) and users
+(`listUser`); custom fields list via a plain `GET /api/v1/customField`.
 
 Sources: TheHive 5 docs — <https://docs.strangebee.com/thehive/api-docs/> and the
 Case Templates guides under

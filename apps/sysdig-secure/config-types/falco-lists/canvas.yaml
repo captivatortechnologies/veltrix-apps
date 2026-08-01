@@ -1,0 +1,49 @@
+# =============================================================================
+# Canvas Template — Sysdig Secure Falco Lists
+#
+# Declares ONE custom Falco list (the item) — a named set of literals (binaries,
+# ports, images, ...) referenced from Falco rule and macro conditions. Field
+# keys must match config-types/falco-lists/validate.ts.
+# Applied via the Sysdig Secure REST API (/api/secure/falco/lists).
+# =============================================================================
+
+id: "sysdig-secure-falco-lists"
+name: "Falco Lists"
+toolType: "sysdig-secure"
+entityType: "falco-lists"
+description: "Manage Sysdig Secure custom Falco lists — a named set of literals reusable across rules and macros — via the Sysdig Secure REST API (/api/secure/falco/lists)"
+
+item:
+  label: "Falco List"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "List"
+      icon: "list"
+      description: "List identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique list name — the stable identity used for upsert and drift, e.g. authorized_server_binaries"
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "When on, the list is present in the custom rule library. When off, this app removes it (disabled = absent)."
+
+    - name: "Items"
+      icon: "code"
+      description: "The literal values in the list"
+      fields:
+        - key: "items"
+          label: "Items"
+          fieldType: "tags"
+          required: true
+          helpText: "The list entries (e.g. nc, ncat, socat) — comma or newline separated"

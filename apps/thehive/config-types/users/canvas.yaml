@@ -1,0 +1,69 @@
+# =============================================================================
+# Canvas Template — TheHive Users
+#
+# Declares ONE TheHive user (the item) within the organisation the API key
+# belongs to. Users add as many as they need. Field keys must match
+# config-types/users/validate.ts. Applied via the TheHive REST API
+# (v5: /api/v1/user; v4: /api/user). Passwords / API keys are NOT managed here.
+# =============================================================================
+
+id: "thehive-users"
+name: "Users"
+toolType: "thehive"
+entityType: "users"
+description: "Manage TheHive users — login (identity), display name, profile (role) and organisation — via the TheHive REST API (Bearer API key). Passwords and API keys are provisioned out of band, not here."
+
+item:
+  label: "User"
+  identityField: "login"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "user"
+      description: "Who the user is"
+      fields:
+        - key: "login"
+          label: "Login"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique login — the stable identity used for upsert and drift. Often an email; TheHive lower-cases it."
+
+        - key: "name"
+          label: "Full Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Display name shown in TheHive, e.g. Jane Analyst"
+
+        - key: "email"
+          label: "Email"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Contact email (optional)"
+
+    - name: "Access"
+      icon: "shield"
+      description: "Role and organisation membership"
+      fields:
+        - key: "profile"
+          label: "Profile"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "TheHive profile (role) name — e.g. analyst, org-admin, read-only. Must exist in TheHive."
+
+        - key: "organisation"
+          label: "Organisation"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Organisation the user belongs to. Leave blank to use the organisation the API key belongs to."

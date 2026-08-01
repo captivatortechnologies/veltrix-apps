@@ -1,0 +1,72 @@
+# =============================================================================
+# Canvas Template — SonarQube Quality Profiles
+#
+# Declares ONE SonarQube quality profile (the item). Users add as many as they need.
+# Field keys must match config-types/quality-profiles/validate.ts. Applied via the
+# SonarQube Web API (/api/qualityprofiles/create, /change_parent, /activate_rules,
+# /set_default, /search). A profile's identity is the (name, language) pair.
+# =============================================================================
+
+id: "sonarqube-quality-profiles"
+name: "Quality Profiles"
+toolType: "sonarqube"
+entityType: "quality-profiles"
+description: "Manage SonarQube quality profiles — name, language, parent (inheritance), default flag and activated rules — via the SonarQube Web API"
+
+item:
+  label: "Quality Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Profile"
+      icon: "shield"
+      description: "Profile identity, language, inheritance and default selection"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: "The quality profile name shown in SonarQube, e.g. Veltrix Java. Combined with the language, it is the profile's identity for upsert and drift."
+
+        - key: "language"
+          label: "Language"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 40
+          helpText: "The SonarQube language key the profile applies to, e.g. java, js, ts, py, cs, go. A profile name may be reused across different languages."
+
+        - key: "parentName"
+          label: "Parent profile"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 100
+          helpText: "Optional parent profile name to inherit from (same language), e.g. Sonar way. Leave blank for a standalone profile. On rollback the prior parent is restored."
+
+        - key: "isDefault"
+          label: "Set as default profile"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Make this the default quality profile for its language. Only one profile can be default per language — if several are flagged, the last one applied wins."
+
+    - name: "Rules"
+      icon: "list"
+      description: "Rule keys to activate (optional), one per line"
+      fields:
+        - key: "activateRuleKeys"
+          label: "Activate rules"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 8000
+          helpText: >
+            Optional. One rule key per line as "<repository>:<rule>" — e.g. java:S1067,
+            java:S1192. Listed rules are activated in this profile (bulk activate_rules).
+            Leave blank to manage only name / language / parent / default. Lines starting
+            with # are ignored. Rules we activate are deactivated on rollback.

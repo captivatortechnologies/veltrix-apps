@@ -1,14 +1,13 @@
 id: sysdig-secure
 name: Sysdig Secure
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
-  Manage Sysdig Secure custom Falco (threat-detection) rules as code. Author
-  runtime security rules — condition, output, priority and source — and drive
-  them through the Security-as-Code pipeline (validate, deploy, health check,
-  drift detection and rollback) over the Sysdig Secure REST API
-  (/api/secure/rules) with a Bearer API token. Sysdig SaaS — no infrastructure
-  to host.
+  Manage Sysdig Secure threat-detection as code — custom Falco rules, lists and
+  macros plus the runtime policies that reference them. Author each and drive it
+  through the Security-as-Code pipeline (validate, deploy, health check, drift
+  detection and rollback) over the Sysdig Secure REST API with a Bearer API
+  token. Sysdig SaaS — no infrastructure to host.
 category: CLOUD
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/sysdig-secure
@@ -31,6 +30,15 @@ permissions:
     - resource: falco-rules
       actions: [read, write, delete]
       description: Manage Sysdig Secure custom Falco rules (create / edit / remove)
+    - resource: runtime-policies
+      actions: [read, write, delete]
+      description: Manage Sysdig Secure runtime policies (create / edit / remove)
+    - resource: falco-lists
+      actions: [read, write, delete]
+      description: Manage Sysdig Secure custom Falco lists (create / edit / remove)
+    - resource: falco-macros
+      actions: [read, write, delete]
+      description: Manage Sysdig Secure custom Falco macros (create / edit / remove)
 
 pipeline:
   configurationTypes:
@@ -47,6 +55,60 @@ pipeline:
         healthCheck: config-types/falco-rules/healthCheck
         driftDetect: config-types/falco-rules/driftDetect
         getStatus: config-types/falco-rules/getStatus
+      targets:
+        componentTypes: [sysdig-secure]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: runtime-policies
+      group: "Threat Detection"
+      name: Runtime Policies
+      description: Sysdig Secure runtime policies — the rules they reference, severity, response actions and scope — applied over the Sysdig Secure REST API (/api/v2/policies)
+      canvasTemplate: config-types/runtime-policies/canvas.yaml
+      defaultConfig: config-types/runtime-policies/defaults.yaml
+      handlers:
+        validate: config-types/runtime-policies/validate
+        deploy: config-types/runtime-policies/deploy
+        rollback: config-types/runtime-policies/rollback
+        healthCheck: config-types/runtime-policies/healthCheck
+        driftDetect: config-types/runtime-policies/driftDetect
+        getStatus: config-types/runtime-policies/getStatus
+      targets:
+        componentTypes: [sysdig-secure]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: falco-lists
+      group: "Threat Detection"
+      name: Falco Lists
+      description: Sysdig Secure custom Falco lists — a named set of literals reusable across rules and macros — applied over the Sysdig Secure REST API (/api/secure/falco/lists)
+      canvasTemplate: config-types/falco-lists/canvas.yaml
+      defaultConfig: config-types/falco-lists/defaults.yaml
+      handlers:
+        validate: config-types/falco-lists/validate
+        deploy: config-types/falco-lists/deploy
+        rollback: config-types/falco-lists/rollback
+        healthCheck: config-types/falco-lists/healthCheck
+        driftDetect: config-types/falco-lists/driftDetect
+        getStatus: config-types/falco-lists/getStatus
+      targets:
+        componentTypes: [sysdig-secure]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: falco-macros
+      group: "Threat Detection"
+      name: Falco Macros
+      description: Sysdig Secure custom Falco macros — named, reusable condition fragments referenced across rules — applied over the Sysdig Secure REST API (/api/secure/falco/macros)
+      canvasTemplate: config-types/falco-macros/canvas.yaml
+      defaultConfig: config-types/falco-macros/defaults.yaml
+      handlers:
+        validate: config-types/falco-macros/validate
+        deploy: config-types/falco-macros/deploy
+        rollback: config-types/falco-macros/rollback
+        healthCheck: config-types/falco-macros/healthCheck
+        driftDetect: config-types/falco-macros/driftDetect
+        getStatus: config-types/falco-macros/getStatus
       targets:
         componentTypes: [sysdig-secure]
         requiresCredential: true

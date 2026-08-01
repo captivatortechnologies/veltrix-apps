@@ -1,0 +1,60 @@
+# =============================================================================
+# Canvas Template — GitHub Dependabot Configuration
+#
+# Declares ONE repository's Dependabot posture (the item) — Dependabot alerts and
+# Dependabot security updates. Users add as many repositories as they need. Field
+# keys must match config-types/dependabot-config/_shared.ts. Applied over the
+# GitHub REST API:
+#   - vulnerability_alerts → PUT|DELETE /repos/{owner}/{repo}/vulnerability-alerts
+#   - security_updates     → PUT|DELETE /repos/{owner}/{repo}/automated-security-fixes
+# =============================================================================
+
+id: "github-dependabot-config"
+name: "Dependabot Configuration"
+toolType: "github-advanced-security"
+entityType: "dependabot-config"
+description: "Enable or disable Dependabot alerts and security updates per repository via the GitHub REST API"
+
+item:
+  label: "Repository"
+  identityField: "repository"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Repository"
+      icon: "shield"
+      description: "The repository this Dependabot posture applies to"
+      fields:
+        - key: "repository"
+          label: "Repository (owner/repo)"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            pattern: "^[^/\\s]+/[^/\\s]+$"
+          helpText: "The repository full name, e.g. octo-org/octo-repo. Used as the stable identity for drift and rollback."
+
+    - name: "Dependabot"
+      icon: "check-circle"
+      description: "Dependabot alerts and security updates"
+      fields:
+        - key: "vulnerability_alerts"
+          label: "Dependabot alerts"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Alert on vulnerable dependencies. Enabling this also enables the dependency graph."
+
+        - key: "security_updates"
+          label: "Dependabot security updates"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Open automated pull requests to fix vulnerable dependencies. Requires Dependabot alerts."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this Dependabot posture is configured — recorded for audit."

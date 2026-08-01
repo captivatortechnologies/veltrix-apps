@@ -1,0 +1,104 @@
+# =============================================================================
+# Canvas Template — Sysdig Secure Runtime Policies
+#
+# Declares ONE runtime security policy (the item). A policy references custom
+# Falco rules by name and sets the severity + response actions applied when any
+# referenced rule fires. Field keys must match
+# config-types/runtime-policies/validate.ts.
+# Applied via the Sysdig Secure REST API (/api/v2/policies).
+# =============================================================================
+
+id: "sysdig-secure-runtime-policies"
+name: "Runtime Policies"
+toolType: "sysdig-secure"
+entityType: "runtime-policies"
+description: "Manage Sysdig Secure runtime policies — the rules they reference, severity, response actions and scope — via the Sysdig Secure REST API (/api/v2/policies)"
+
+item:
+  label: "Runtime Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Policy identity and classification"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique policy name — the stable identity used for upsert and drift, e.g. Suspicious runtime activity"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this policy governs and why — recorded in Sysdig and for audit"
+
+        - key: "severity"
+          label: "Severity"
+          fieldType: "select"
+          required: true
+          defaultValue: 4
+          options:
+            - label: "Emergency (0)"
+              value: 0
+            - label: "Alert (1)"
+              value: 1
+            - label: "Critical (2)"
+              value: 2
+            - label: "Error (3)"
+              value: 3
+            - label: "Warning (4)"
+              value: 4
+            - label: "Notice (5)"
+              value: 5
+            - label: "Informational (6)"
+              value: 6
+            - label: "Debug (7)"
+              value: 7
+          helpText: "Severity recorded on events this policy raises (Sysdig's 0–7 scale; 0 is most severe)"
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "When on, the policy is active in Sysdig. When off, this app removes it (disabled = absent)."
+
+    - name: "Rules & Response"
+      icon: "code"
+      description: "The rules the policy references and how Sysdig responds"
+      fields:
+        - key: "ruleNames"
+          label: "Rule Names"
+          fieldType: "tags"
+          required: true
+          helpText: "Names of the Falco rules this policy evaluates — comma or newline separated (must exist in Sysdig)"
+
+        - key: "actions"
+          label: "Response Actions"
+          fieldType: "multiselect"
+          required: false
+          defaultValue: []
+          options:
+            - label: "Stop container"
+              value: "stop"
+            - label: "Pause container"
+              value: "pause"
+            - label: "Kill container"
+              value: "kill"
+          helpText: "Response applied when a referenced rule fires. Leave empty for notify-only."
+
+        - key: "scope"
+          label: "Scope"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Optional scope expression limiting where the policy applies, e.g. container.image.repository = myrepo/app"

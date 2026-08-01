@@ -1,0 +1,5 @@
+# Defaults for a new network item. A new network starts static (non-dynamic)
+# with a single-host /32 prefix; the operator fills in the name and IP address.
+# FLAT { fieldKey: value } — an "item" template takes flat defaults.
+isDynamic: false
+prefixLength: 32

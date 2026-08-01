@@ -1,0 +1,129 @@
+# =============================================================================
+# Canvas Template — Semgrep Findings Triage
+#
+# Declares ONE triage RULE (the item): a named selection of findings and the
+# triage state they should be moved to, applied via the Semgrep public REST API
+# v1 — POST /deployments/{slug}/triage (bulk triage).
+#
+# FLAGGED — this is IMPERATIVE, not declarative:
+#   * Semgrep has NO triage-rule object. Deploy applies the rule to the findings
+#     that match RIGHT NOW; there is nothing on the server to reconcile.
+#   * Findings are a moving target — new scans surface new findings, so a triage
+#     does not automatically apply to future findings; re-deploy re-applies.
+#   * Drift is best-effort (re-queries GET /findings for un-triaged matches).
+#   * Rollback is best-effort (re-triages the exact finding ids back to `reopened`).
+#
+# A narrowing filter (repos, rules or severities) is REQUIRED so a rule can never
+# triage an entire deployment. Field keys must match config-types/triage/_shared.ts.
+# =============================================================================
+
+id: "semgrep-triage"
+name: "Semgrep Findings Triage"
+toolType: "semgrep"
+entityType: "triage"
+description: "Bulk-triage Semgrep findings as code via POST /deployments/{slug}/triage. IMPERATIVE action (no triage-rule resource) — deploy applies to findings matching now; drift + rollback are best-effort."
+
+item:
+  label: "Triage Rule"
+  identityField: "ruleName"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Rule"
+      icon: "filter"
+      description: "A name for this triage rule and which findings it selects"
+      fields:
+        - key: "ruleName"
+          label: "Rule Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 120
+          helpText: "A local name for this triage rule (e.g. 'ignore-test-fixtures'). Used only as the identity in this canvas — Semgrep has no server-side triage-rule object."
+
+        - key: "issueType"
+          label: "Finding Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "sast"
+          options:
+            - { label: "Code (SAST)", value: "sast" }
+            - { label: "Supply Chain (SCA)", value: "sca" }
+            - { label: "Secrets", value: "secrets" }
+          helpText: "Which kind of findings this rule triages (required by the Semgrep API)."
+
+        - key: "fromStatus"
+          label: "Move findings currently in status"
+          fieldType: "select"
+          required: false
+          defaultValue: "open"
+          options:
+            - { label: "Open", value: "open" }
+            - { label: "Reviewing", value: "reviewing" }
+            - { label: "Fixing", value: "fixing" }
+          helpText: "The current status of the findings to select. Defaults to Open."
+
+    - name: "Selection filters"
+      icon: "search"
+      description: "At least one narrowing filter is required so a rule never triages an entire deployment"
+      fields:
+        - key: "repos"
+          label: "Repositories"
+          fieldType: "tags"
+          required: false
+          helpText: "Repository (project) names to include, e.g. my-org/my-repo. One of repositories / rules / severities is required."
+
+        - key: "rules"
+          label: "Rule names"
+          fieldType: "tags"
+          required: false
+          helpText: "Semgrep rule names to include (applies to Code/SAST findings), e.g. javascript.lang.security.audit.xss. One of repositories / rules / severities is required."
+
+        - key: "severities"
+          label: "Severities"
+          fieldType: "multiselect"
+          required: false
+          options:
+            - { label: "Low", value: "low" }
+            - { label: "Medium", value: "medium" }
+            - { label: "High", value: "high" }
+            - { label: "Critical", value: "critical" }
+          helpText: "Severities to include. One of repositories / rules / severities is required."
+
+    - name: "Triage action"
+      icon: "check-circle"
+      description: "The state the selected findings are moved to"
+      fields:
+        - key: "targetState"
+          label: "New triage state"
+          fieldType: "select"
+          required: true
+          defaultValue: "ignored"
+          options:
+            - { label: "Ignored", value: "ignored" }
+            - { label: "Provisionally ignored", value: "provisionally_ignored" }
+            - { label: "Reviewing", value: "reviewing" }
+            - { label: "Fixing", value: "fixing" }
+            - { label: "Reopened", value: "reopened" }
+          helpText: "The triage state to move the selected findings to (new_triage_state)."
+
+        - key: "triageReason"
+          label: "Ignore reason"
+          fieldType: "select"
+          required: false
+          visibleWhen: { field: "targetState", equals: "ignored" }
+          options:
+            - { label: "Acceptable risk", value: "acceptable_risk" }
+            - { label: "False positive", value: "false_positive" }
+            - { label: "No time to fix", value: "no_time" }
+            - { label: "Duplicate", value: "duplicate" }
+          helpText: "Why the findings are ignored (new_triage_reason). Only valid when the new state is Ignored."
+
+        - key: "note"
+          label: "Note"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 3000
+          helpText: "An optional note attached to every triaged finding (new_note, max 3000 characters)."

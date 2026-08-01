@@ -1,0 +1,72 @@
+# =============================================================================
+# Canvas Template — JumpCloud Policies
+#
+# Declares ONE JumpCloud Policy (the item). ONE item = ONE Policy, matched on its
+# NAME (the logical identity used for upsert and drift). Field keys must match
+# config-types/policies/validate.ts.
+#
+# Policies are TEMPLATE-BASED: each is an instance of a Policy Template
+# (GET /api/v2/policytemplates) whose configurable fields are supplied as `values`.
+# The Template Id and the `values` config-field ids are specific to your JumpCloud
+# tenant — copy them from the Admin Console or the Policy Templates API.
+#
+# Applied over the JumpCloud API v2:
+#   GET/POST   /api/v2/policies
+#   PUT/DELETE /api/v2/policies/{id}
+# Auth is the `x-api-key` header (plus optional `x-org-id` for multi-tenant admins).
+# =============================================================================
+
+id: "jumpcloud-policies"
+name: "Policies"
+toolType: "jumpcloud"
+entityType: "policies"
+description: "Define JumpCloud Policies as code — an instance of a Policy Template plus its configuration values — through the JumpCloud API v2 (/policies)."
+
+item:
+  label: "Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Policy identity and template"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The Policy's display name. Must be unique within the canvas — this is the stable identity used to find, update and drift-check the policy on each deploy."
+
+        - key: "templateId"
+          label: "Policy Template Id"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 64
+          helpText: "The ObjectId of the Policy Template this policy instantiates. Find it in the JumpCloud Admin Console or via GET /api/v2/policytemplates. Required to create the policy; a policy's template cannot be changed after creation."
+
+        - key: "active"
+          label: "Active"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the policy is active once deployed. Sent best-effort — verify your JumpCloud tenant accepts an activation flag on the policy write API."
+
+    - name: "Values"
+      icon: "code"
+      description: "Template configuration values"
+      fields:
+        - key: "values"
+          label: "Values (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >-
+            A JSON array of the template's configuration values, e.g.
+            [{"configFieldID":"<id>","configFieldName":"<name>","value":"<value>"}].
+            The config-field ids are specific to the chosen template in your tenant
+            (read them from GET /api/v2/policytemplates/{id}). Leave empty to take
+            the template defaults.

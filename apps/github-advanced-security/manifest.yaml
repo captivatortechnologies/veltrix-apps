@@ -1,13 +1,14 @@
 id: github-advanced-security
 name: GitHub Advanced Security
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage GitHub Advanced Security posture as code. Author per-repository security
-  configurations — GitHub Advanced Security, secret scanning, secret scanning push
-  protection, Dependabot security updates and CodeQL code-scanning default setup —
-  and drive them through the Security-as-Code pipeline (validate, deploy, health
-  check, drift detection and rollback) over the GitHub REST API.
+  configurations, organization-level code security configurations, branch/tag/push
+  protection rulesets and Dependabot alerts / security updates — GitHub Advanced
+  Security, secret scanning, secret scanning push protection, CodeQL default setup
+  and more — and drive them through the Security-as-Code pipeline (validate, deploy,
+  health check, drift detection and rollback) over the GitHub REST API.
 category: COMPLIANCE
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/github-advanced-security
@@ -30,6 +31,15 @@ permissions:
     - resource: repo-security
       actions: [read, write]
       description: Manage GitHub Advanced Security features per repository
+    - resource: org-security
+      actions: [read, write]
+      description: Manage organization-level GitHub code security configurations
+    - resource: rulesets
+      actions: [read, write]
+      description: Manage repository and organization branch/tag/push protection rulesets
+    - resource: dependabot
+      actions: [read, write]
+      description: Manage Dependabot alerts and security updates per repository
 
 pipeline:
   configurationTypes:
@@ -49,6 +59,70 @@ pipeline:
         healthCheck: config-types/repo-security-config/healthCheck
         driftDetect: config-types/repo-security-config/driftDetect
         getStatus: config-types/repo-security-config/getStatus
+      targets:
+        componentTypes: [github-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: org-security-configuration
+      group: "Organization Security"
+      name: Organization Security Configuration
+      description: >
+        Organization-level GitHub code security configurations — Advanced Security,
+        code scanning, secret scanning, dependency graph, Dependabot and private
+        vulnerability reporting — with enforcement, applied and attached to
+        repositories over the GitHub REST API.
+      canvasTemplate: config-types/org-security-configuration/canvas.yaml
+      defaultConfig: config-types/org-security-configuration/defaults.yaml
+      handlers:
+        validate: config-types/org-security-configuration/validate
+        deploy: config-types/org-security-configuration/deploy
+        rollback: config-types/org-security-configuration/rollback
+        healthCheck: config-types/org-security-configuration/healthCheck
+        driftDetect: config-types/org-security-configuration/driftDetect
+        getStatus: config-types/org-security-configuration/getStatus
+      targets:
+        componentTypes: [github-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: repository-rulesets
+      group: "Repository Protection"
+      name: Repository Rulesets
+      description: >
+        Branch / tag / push protection rulesets for a repository or organization —
+        name, target, enforcement and GitHub's own rules / conditions / bypass
+        actors — applied over the GitHub REST API.
+      canvasTemplate: config-types/repository-rulesets/canvas.yaml
+      defaultConfig: config-types/repository-rulesets/defaults.yaml
+      handlers:
+        validate: config-types/repository-rulesets/validate
+        deploy: config-types/repository-rulesets/deploy
+        rollback: config-types/repository-rulesets/rollback
+        healthCheck: config-types/repository-rulesets/healthCheck
+        driftDetect: config-types/repository-rulesets/driftDetect
+        getStatus: config-types/repository-rulesets/getStatus
+      targets:
+        componentTypes: [github-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: dependabot-config
+      group: "Dependency Security"
+      name: Dependabot Configuration
+      description: >
+        Per-repository Dependabot posture — Dependabot alerts (vulnerability alerts
+        + dependency graph) and Dependabot security updates — applied over the
+        GitHub REST API.
+      canvasTemplate: config-types/dependabot-config/canvas.yaml
+      defaultConfig: config-types/dependabot-config/defaults.yaml
+      handlers:
+        validate: config-types/dependabot-config/validate
+        deploy: config-types/dependabot-config/deploy
+        rollback: config-types/dependabot-config/rollback
+        healthCheck: config-types/dependabot-config/healthCheck
+        driftDetect: config-types/dependabot-config/driftDetect
+        getStatus: config-types/dependabot-config/getStatus
       targets:
         componentTypes: [github-org]
         requiresCredential: true

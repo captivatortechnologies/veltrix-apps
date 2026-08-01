@@ -1,0 +1,8 @@
+# Defaults for a new ruleset item. The operator fills in the owner (+ optional
+# repository) and a name, then the target, enforcement and rules JSON.
+repository: ""
+target: "branch"
+enforcement: "active"
+rules: ""
+conditions: ""
+bypass_actors: ""

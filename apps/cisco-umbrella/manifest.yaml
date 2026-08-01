@@ -1,14 +1,15 @@
 id: cisco-umbrella
 name: Cisco Umbrella
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
-  Manage Cisco Umbrella (Secure Internet Gateway / DNS-layer security) policy
+  Manage Cisco Umbrella (Secure Internet Gateway / DNS-layer security)
   configuration as code through the Umbrella API — Destination Lists (allow /
-  block lists of domains, URLs and IPs) — with validation, drift detection and
-  rollback handled by the Veltrix Security-as-Code pipeline. Authenticates with
-  the Umbrella API OAuth2 client-credentials flow (API key + secret) against the
-  fixed base URL https://api.umbrella.com.
+  block lists of domains, URLs and IPs), Networks, Internal Domains and Sites —
+  with validation, drift detection and rollback handled by the Veltrix
+  Security-as-Code pipeline. Authenticates with the Umbrella API OAuth2
+  client-credentials flow (API key + secret) against the fixed base URL
+  https://api.umbrella.com.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cisco-umbrella
@@ -31,6 +32,15 @@ permissions:
     - resource: destination-lists
       actions: [read, write, delete]
       description: Manage Cisco Umbrella destination lists (allow/block lists of domains, URLs and IPs) via the Umbrella API
+    - resource: internal-networks
+      actions: [read, write, delete]
+      description: Manage Cisco Umbrella registered networks (egress IP ranges) via the Umbrella Deployments API
+    - resource: internal-domains
+      actions: [read, write, delete]
+      description: Manage Cisco Umbrella internal domains (local-resolver bypass) via the Umbrella Deployments API
+    - resource: sites
+      actions: [read, write, delete]
+      description: Manage Cisco Umbrella sites (location groupings for Virtual Appliances) via the Umbrella Deployments API
 
 pipeline:
   configurationTypes:
@@ -52,6 +62,75 @@ pipeline:
         healthCheck: config-types/destination-lists/healthCheck
         driftDetect: config-types/destination-lists/driftDetect
         getStatus: config-types/destination-lists/getStatus
+      targets:
+        componentTypes: [cisco-umbrella]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: internal-networks
+      name: Networks
+      description: >
+        Umbrella registered networks — egress/public IP ranges Umbrella applies
+        DNS-layer policy to, managed over the Umbrella Deployments API
+        (/deployments/v2/networks). Networks are matched by name and their
+        originId is stored for rename-safety; each is upserted (create/update) to
+        exactly what is declared; reconcile only deletes networks this app
+        created. NOTE: registered under the id "internal-networks" but targets the
+        Umbrella *Networks* API (not /deployments/v2/internalnetworks).
+      canvasTemplate: config-types/internal-networks/canvas.yaml
+      defaultConfig: config-types/internal-networks/defaults.yaml
+      handlers:
+        validate: config-types/internal-networks/validate
+        deploy: config-types/internal-networks/deploy
+        rollback: config-types/internal-networks/rollback
+        healthCheck: config-types/internal-networks/healthCheck
+        driftDetect: config-types/internal-networks/driftDetect
+        getStatus: config-types/internal-networks/getStatus
+      targets:
+        componentTypes: [cisco-umbrella]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: internal-domains
+      name: Internal Domains
+      description: >
+        Umbrella internal domains — domains whose DNS queries bypass the Umbrella
+        resolvers and route to the local resolver (for Virtual Appliances and
+        Roaming Clients), managed over the Umbrella Deployments API
+        (/deployments/v2/internaldomains). Domains are matched by their domain
+        value and the id is stored for rename-safety; each is upserted to exactly
+        what is declared; reconcile only deletes internal domains this app created.
+      canvasTemplate: config-types/internal-domains/canvas.yaml
+      defaultConfig: config-types/internal-domains/defaults.yaml
+      handlers:
+        validate: config-types/internal-domains/validate
+        deploy: config-types/internal-domains/deploy
+        rollback: config-types/internal-domains/rollback
+        healthCheck: config-types/internal-domains/healthCheck
+        driftDetect: config-types/internal-domains/driftDetect
+        getStatus: config-types/internal-domains/getStatus
+      targets:
+        componentTypes: [cisco-umbrella]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: sites
+      name: Sites
+      description: >
+        Umbrella sites — physical location groupings for deployed Umbrella Virtual
+        Appliances, managed over the Umbrella Deployments API
+        (/deployments/v2/sites). Sites are matched by name and their siteId is
+        stored for rename-safety; each is upserted to exactly what is declared;
+        reconcile only deletes sites this app created, and never the default site.
+      canvasTemplate: config-types/sites/canvas.yaml
+      defaultConfig: config-types/sites/defaults.yaml
+      handlers:
+        validate: config-types/sites/validate
+        deploy: config-types/sites/deploy
+        rollback: config-types/sites/rollback
+        healthCheck: config-types/sites/healthCheck
+        driftDetect: config-types/sites/driftDetect
+        getStatus: config-types/sites/getStatus
       targets:
         componentTypes: [cisco-umbrella]
         requiresCredential: true

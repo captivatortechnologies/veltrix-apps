@@ -12,8 +12,12 @@ rollback — over the GitHub REST API.
 
 ## What it manages
 
-One configuration type, **Repository Security** (`repo-security-config`). Each item
-is a repository (`owner/repo`) with the desired on/off state of five features:
+Four configuration types, each with the full Security-as-Code pipeline.
+
+### Repository Security (`repo-security-config`)
+
+Each item is a repository (`owner/repo`) with the desired on/off state of five
+features:
 
 | Field | GitHub endpoint |
 | --- | --- |
@@ -26,6 +30,47 @@ is a repository (`owner/repo`) with the desired on/off state of five features:
 Drift and rollback read the current state from `GET /repos/{owner}/{repo}`,
 `GET /repos/{owner}/{repo}/automated-security-fixes` and
 `GET /repos/{owner}/{repo}/code-scanning/default-setup`.
+
+### Organization Security Configuration (`org-security-configuration`)
+
+Each item is an org-level code security configuration, identified by `(org, name)`.
+Feature settings (`advanced_security`, `secret_scanning`, `code_scanning_default_setup`,
+`dependency_graph`, `dependabot_alerts`, `dependabot_security_updates`,
+`private_vulnerability_reporting`, …) are `enabled` / `disabled` / `not_set`, plus
+`enforcement` (`enforced` / `unenforced`).
+
+| Operation | GitHub endpoint |
+| --- | --- |
+| List / match by name | `GET /orgs/{org}/code-security/configurations` |
+| Create | `POST /orgs/{org}/code-security/configurations` |
+| Update (changed fields only) | `PATCH /orgs/{org}/code-security/configurations/{id}` |
+| Delete (rollback of a create) | `DELETE /orgs/{org}/code-security/configurations/{id}` |
+| Attach to repositories | `POST /orgs/{org}/code-security/configurations/{id}/attach` |
+
+### Repository Rulesets (`repository-rulesets`)
+
+Each item is a branch / tag / push protection ruleset for a repository (`owner` +
+`repository`) or an organization (`owner` only, `repository` blank), identified by
+`name` within scope. `rules`, `conditions` and `bypass_actors` are authored as
+GitHub's own JSON.
+
+| Operation | GitHub endpoint |
+| --- | --- |
+| List / match by name | `GET /repos/{owner}/{repo}/rulesets` or `/orgs/{org}/rulesets` |
+| Read full (rollback capture) | `GET .../rulesets/{id}` |
+| Create | `POST .../rulesets` |
+| Update (full replace) | `PUT .../rulesets/{id}` |
+| Delete (reconcile / rollback of a create) | `DELETE .../rulesets/{id}` |
+
+### Dependabot Configuration (`dependabot-config`)
+
+Each item is a repository (`owner/repo`) with the desired state of Dependabot
+alerts and security updates.
+
+| Field | GitHub endpoint |
+| --- | --- |
+| `vulnerability_alerts` | `PUT` / `DELETE /repos/{owner}/{repo}/vulnerability-alerts` (GET → `204` enabled / `404` disabled) |
+| `security_updates` | `PUT` / `DELETE /repos/{owner}/{repo}/automated-security-fixes` (GET → `{ enabled, paused }`) |
 
 ## Authentication
 

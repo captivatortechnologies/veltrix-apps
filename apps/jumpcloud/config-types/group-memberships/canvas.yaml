@@ -1,0 +1,53 @@
+# =============================================================================
+# Canvas Template — JumpCloud User Group Memberships
+#
+# Declares the USER MEMBERSHIP of an existing JumpCloud User Group. ONE item =
+# ONE target group, matched on its NAME (the logical identity). The group itself
+# must already exist (author it with the "User Groups" config type or in the
+# Admin Console); this config type only manages who belongs to it. Field keys
+# must match config-types/group-memberships/validate.ts.
+#
+# Applied over the JumpCloud API v2:
+#   GET  /api/v2/usergroups/{id}/members     (list current members)
+#   POST /api/v2/usergroups/{id}/members     ({ op: add|remove, type: user, id })
+# Members are resolved to user ids via the JumpCloud v1 API (GET /api/systemusers).
+# Auth is the `x-api-key` header (plus optional `x-org-id` for multi-tenant admins).
+# =============================================================================
+
+id: "jumpcloud-group-memberships"
+name: "User Group Memberships"
+toolType: "jumpcloud"
+entityType: "group-memberships"
+description: "Manage which users belong to a JumpCloud User Group as code — declared by email, username or user id — through the JumpCloud API v2 (/usergroups/{id}/members)."
+
+item:
+  label: "Group Membership"
+  identityField: "groupName"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Membership"
+      icon: "users"
+      description: "Target group and its members"
+      fields:
+        - key: "groupName"
+          label: "User Group Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The name of the existing User Group whose membership this item manages. Must be unique within the canvas — it is the stable identity used to find the group and drift-check its membership."
+
+        - key: "members"
+          label: "Members"
+          fieldType: "tags"
+          required: false
+          helpText: "The users that should belong to the group. Each entry may be an email, a username, or a raw 24-character JumpCloud user id. Emails and usernames are resolved against the org's users on deploy."
+
+        - key: "exclusive"
+          label: "Manage membership exclusively"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When enabled, this canvas owns the group's FULL membership — any live member not listed above is removed on deploy. When disabled (default), membership is additive: listed users are added and existing extra members are left in place."
