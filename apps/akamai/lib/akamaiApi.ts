@@ -24,6 +24,9 @@ import type { CredentialRef } from '@veltrixsecops/app-sdk'
 /** Network Lists API v2 collection path. */
 export const NETWORK_LISTS_PATH = '/network-list/v2/network-lists'
 
+/** Client Lists API v1 collection path (the newer replacement for Network Lists). */
+export const CLIENT_LISTS_PATH = '/client-list/v1/lists'
+
 /** Akamai signs at most the first 128 KB of a POST body (the reference `max_body`). */
 const MAX_SIGN_BODY_BYTES = 131072
 

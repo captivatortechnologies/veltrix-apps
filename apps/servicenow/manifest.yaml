@@ -1,15 +1,15 @@
 id: servicenow
 name: ServiceNow
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage ServiceNow configuration as code over the Table API (HTTPS, HTTP Basic
-  auth). v0.1.0 is a focused foundation that manages business rules
-  (sys_script) — server-side scripts that run before/after/async or on query for
-  a given table — through the Security-as-Code pipeline (validate, deploy, health
-  check, drift detection and rollback). ServiceNow is a very large platform;
-  business rules are one clean, security-relevant, writable surface, with more
-  configuration types to follow.
+  auth) through the Security-as-Code pipeline (validate, deploy, health check,
+  drift detection and rollback). v0.2.0 manages four clean, security-relevant,
+  writable surfaces — business rules (sys_script), UI policies (sys_ui_policy),
+  script includes (sys_script_include) and scheduled jobs (sysauto_script) —
+  each upserted by a natural key. ServiceNow is a very large platform; these are
+  a focused, high-signal set of configuration types, with more to follow.
 category: SOAR
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/servicenow
@@ -32,6 +32,15 @@ permissions:
     - resource: business-rules
       actions: [read, write, delete]
       description: Manage ServiceNow business rules (sys_script) — create / edit / delete
+    - resource: ui-policies
+      actions: [read, write, delete]
+      description: Manage ServiceNow UI policies (sys_ui_policy) — create / edit / delete
+    - resource: script-includes
+      actions: [read, write, delete]
+      description: Manage ServiceNow script includes (sys_script_include) — create / edit / delete
+    - resource: scheduled-jobs
+      actions: [read, write, delete]
+      description: Manage ServiceNow scheduled jobs (sysauto_script) — create / edit / delete
 
 pipeline:
   configurationTypes:
@@ -48,6 +57,60 @@ pipeline:
         healthCheck: config-types/business-rules/healthCheck
         driftDetect: config-types/business-rules/driftDetect
         getStatus: config-types/business-rules/getStatus
+      targets:
+        componentTypes: [servicenow-instance]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: ui-policies
+      group: "Forms & UI"
+      name: UI Policies
+      description: ServiceNow UI policies (sys_ui_policy) — client-side form behavior (show/hide, mandatory, read-only) for a table, driven by a condition — applied over the Table API
+      canvasTemplate: config-types/ui-policies/canvas.yaml
+      defaultConfig: config-types/ui-policies/defaults.yaml
+      handlers:
+        validate: config-types/ui-policies/validate
+        deploy: config-types/ui-policies/deploy
+        rollback: config-types/ui-policies/rollback
+        healthCheck: config-types/ui-policies/healthCheck
+        driftDetect: config-types/ui-policies/driftDetect
+        getStatus: config-types/ui-policies/getStatus
+      targets:
+        componentTypes: [servicenow-instance]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: script-includes
+      group: "Platform Automation"
+      name: Script Includes
+      description: ServiceNow script includes (sys_script_include) — reusable server-side classes/functions callable from business rules, scheduled scripts and (when client-callable) GlideAjax — applied over the Table API
+      canvasTemplate: config-types/script-includes/canvas.yaml
+      defaultConfig: config-types/script-includes/defaults.yaml
+      handlers:
+        validate: config-types/script-includes/validate
+        deploy: config-types/script-includes/deploy
+        rollback: config-types/script-includes/rollback
+        healthCheck: config-types/script-includes/healthCheck
+        driftDetect: config-types/script-includes/driftDetect
+        getStatus: config-types/script-includes/getStatus
+      targets:
+        componentTypes: [servicenow-instance]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: scheduled-jobs
+      group: "Platform Automation"
+      name: Scheduled Jobs
+      description: ServiceNow scheduled jobs (sysauto_script) — server-side scripts that run on a schedule, optionally as a specific user and gated by a condition — applied over the Table API
+      canvasTemplate: config-types/scheduled-jobs/canvas.yaml
+      defaultConfig: config-types/scheduled-jobs/defaults.yaml
+      handlers:
+        validate: config-types/scheduled-jobs/validate
+        deploy: config-types/scheduled-jobs/deploy
+        rollback: config-types/scheduled-jobs/rollback
+        healthCheck: config-types/scheduled-jobs/healthCheck
+        driftDetect: config-types/scheduled-jobs/driftDetect
+        getStatus: config-types/scheduled-jobs/getStatus
       targets:
         componentTypes: [servicenow-instance]
         requiresCredential: true

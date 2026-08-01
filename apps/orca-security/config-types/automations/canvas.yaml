@@ -1,0 +1,86 @@
+# =============================================================================
+# Canvas Template — Orca Automations
+#
+# Declares ONE Orca automation — the item. Users add as many as they need.
+# Automations are created / updated through the Orca REST API
+# (POST /api/automations, PUT /api/automations/{id}) and reconciled by the
+# automation id this app assigns and persists per item (see deploy.ts) so an
+# automation can be renamed without losing its identity. Because Orca exposes an
+# automations list endpoint, a first deploy also matches by name.
+#
+# An automation matches alerts with a Sonar query and runs one or more actions
+# (notify, ticket, remediate, ...). The Sonar query and the action list are
+# complex tool-defined structures — the official Orca provider itself takes the
+# Sonar query as raw JSON — so they are authored here as JSON, matching the API.
+#
+# Field keys must match config-types/automations/validate.ts + _shared.ts.
+# =============================================================================
+
+id: "orca-automations"
+name: "Automations"
+toolType: "orca-security"
+entityType: "automations"
+description: "Define Orca automations as code through the Orca REST API. Each automation matches alerts with a Sonar query and runs one or more actions."
+
+item:
+  label: "Automation"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Automation"
+      icon: "workflow"
+      description: "Name, state and scope"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The automation name — its logical identity. Shown in Orca."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Optional description of what the automation does."
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          required: true
+          defaultValue: "enabled"
+          options:
+            - { label: "Enabled", value: "enabled" }
+            - { label: "Disabled", value: "disabled" }
+          helpText: "Whether the automation is active."
+
+        - key: "businessUnits"
+          label: "Business Unit IDs"
+          fieldType: "tags"
+          required: false
+          helpText: "Optional business unit (filter) IDs to scope the automation to. Leave empty to apply org-wide."
+
+    - name: "Rule"
+      icon: "code"
+      description: "The Sonar query and the actions it triggers (JSON)"
+      fields:
+        - key: "sonarQuery"
+          label: "Sonar Query (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 20000
+          helpText: 'The Sonar query object as JSON, e.g. {"models":["Alert"],"type":"object_set","with":{...}}. Copy the sonar_query structure from the Orca API/UI.'
+
+        - key: "actions"
+          label: "Actions (JSON array)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 20000
+          helpText: 'The action list as a JSON array, e.g. [{"type":1,"data":{...}}]. Each action''s numeric "type" code is Orca-internal — copy it from an existing automation.'

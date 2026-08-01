@@ -1,0 +1,88 @@
+# =============================================================================
+# Canvas Template — ServiceNow Script Includes
+#
+# Declares ONE ServiceNow script include (a sys_script_include record).
+# Operators add as many as they need. Field keys must match
+# config-types/script-includes/_shared.ts and validate.ts (which map them to the
+# sys_script_include columns). Applied over the ServiceNow Table API
+# (POST/PATCH /api/now/table/sys_script_include).
+#
+# Identity is `name` — a script include's name is its server-side API entry
+# point and the natural key an operator controls.
+# =============================================================================
+
+id: "servicenow-script-includes"
+name: "Script Includes"
+toolType: "servicenow"
+entityType: "script-includes"
+description: "Manage ServiceNow script includes (sys_script_include) as code — reusable server-side classes/functions callable from business rules, scheduled scripts and (when client-callable) GlideAjax — via the Table API"
+
+item:
+  label: "Script Include"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "code"
+      description: "The script include's name and purpose"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z][A-Za-z0-9_]*$"
+            maxLength: 255
+          helpText: "Must match the class or function the script defines, e.g. IncidentUtils. ServiceNow derives the read-only api_name (scope.name) from this — this app does not write api_name."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this script include does — recorded for audit."
+
+    - name: "Access"
+      icon: "settings"
+      description: "Who can call it and whether it is enabled"
+      fields:
+        - key: "active"
+          label: "Active"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the script include is enabled."
+
+        - key: "clientCallable"
+          label: "Client callable"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Allow client scripts to call it via GlideAjax (sys_script_include.client_callable). Leave off unless the client needs it."
+
+        - key: "access"
+          label: "Accessible from"
+          fieldType: "select"
+          required: false
+          defaultValue: "package_private"
+          options:
+            - label: "This application scope only (package_private)"
+              value: "package_private"
+            - label: "All application scopes (public)"
+              value: "public"
+          helpText: "Which application scopes can call it (sys_script_include.access). Default to package_private; use public only when other scoped apps need access."
+
+    - name: "Script"
+      icon: "filter"
+      description: "The server-side script body"
+      fields:
+        - key: "script"
+          label: "Script"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 100000
+          helpText: "Server-side script — the class/function definition, e.g. var IncidentUtils = Class.create(); IncidentUtils.prototype = { ... };"

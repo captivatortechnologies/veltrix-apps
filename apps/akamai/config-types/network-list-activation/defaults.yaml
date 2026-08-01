@@ -1,0 +1,4 @@
+# Defaults for a new activation item — the operator supplies the list name.
+# `network` seeds to STAGING (matches the canvas field default): activate and
+# verify on staging before promoting to production.
+network: "STAGING"

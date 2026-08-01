@@ -1,0 +1,65 @@
+# =============================================================================
+# Canvas Template — Axonius Tags
+#
+# Declares ONE Axonius tag rule (the item). Users add as many as they need. A tag
+# rule applies a named label to every device/user asset matching an AQL filter.
+# Field keys must match config-types/tags/validate.ts. Applied via the Axonius
+# REST API (api/<module>/labels) on 443.
+# =============================================================================
+
+id: "axonius-tags"
+name: "Tags"
+toolType: "axonius"
+entityType: "tags"
+description: "Manage Axonius asset tags — apply a named label to every device or user matching an AQL filter — via the Axonius REST API (443)"
+
+item:
+  label: "Tag"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Tag"
+      icon: "tag"
+      description: "The label and the asset module it applies to"
+      fields:
+        - key: "name"
+          label: "Tag Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The label applied to matching assets. Used as the stable identity for upsert and drift."
+
+        - key: "entity"
+          label: "Asset Module"
+          fieldType: "select"
+          required: true
+          defaultValue: "devices"
+          options:
+            - label: "Devices"
+              value: "devices"
+            - label: "Users"
+              value: "users"
+          helpText: "Which Axonius asset module the tag applies to"
+
+    - name: "Selection"
+      icon: "filter"
+      description: "Which assets receive the tag"
+      fields:
+        - key: "filter"
+          label: "AQL Filter"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 8000
+          helpText: 'Axonius Query Language filter selecting the assets to tag, e.g. (specific_data.data.os.type == "Windows"). Required — an empty filter would tag every asset.'
+
+        - key: "expiration"
+          label: "Expiration (YYYY-MM-DD)"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+          helpText: "Optional expiration date for an expirable tag, e.g. 2026-12-31. Leave blank for a permanent tag."

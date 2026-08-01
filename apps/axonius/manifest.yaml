@@ -1,14 +1,16 @@
 id: axonius
 name: Axonius
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Axonius (CAASM — Cyber Asset Attack Surface Management) as code. Author
   saved queries (reusable asset views — a named AQL filter over the devices or
-  users module plus the columns to show) and drive them through the
-  Security-as-Code pipeline — validate, deploy, health check, drift detection and
-  rollback — over the Axonius REST API (HTTPS, api-key + api-secret headers,
-  self-signed tolerated).
+  users module plus the columns to show), enforcement sets (named action policies
+  drawn from the Axonius action library plus their triggers) and asset tags (labels
+  applied to every device or user matching an AQL filter), and drive them all
+  through the Security-as-Code pipeline — validate, deploy, health check, drift
+  detection and rollback — over the Axonius REST API (HTTPS, api-key + api-secret
+  headers, self-signed tolerated).
 category: COMPLIANCE
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/axonius
@@ -31,6 +33,12 @@ permissions:
     - resource: saved-queries
       actions: [read, write, delete]
       description: Manage Axonius saved queries (create / edit / delete asset views for devices and users)
+    - resource: enforcement-sets
+      actions: [read, write, delete]
+      description: Manage Axonius enforcement sets (create / edit / delete action policies and their triggers)
+    - resource: tags
+      actions: [read, write, delete]
+      description: Manage Axonius asset tags (apply / remove labels on devices and users matching an AQL filter)
 
 pipeline:
   configurationTypes:
@@ -47,6 +55,42 @@ pipeline:
         healthCheck: config-types/saved-queries/healthCheck
         driftDetect: config-types/saved-queries/driftDetect
         getStatus: config-types/saved-queries/getStatus
+      targets:
+        componentTypes: [axonius, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: enforcement-sets
+      group: "Enforcement"
+      name: Enforcement Sets
+      description: Axonius enforcement sets — a named policy with a main action from the action library plus optional triggers — applied over the Axonius REST API (443)
+      canvasTemplate: config-types/enforcement-sets/canvas.yaml
+      defaultConfig: config-types/enforcement-sets/defaults.yaml
+      handlers:
+        validate: config-types/enforcement-sets/validate
+        deploy: config-types/enforcement-sets/deploy
+        rollback: config-types/enforcement-sets/rollback
+        healthCheck: config-types/enforcement-sets/healthCheck
+        driftDetect: config-types/enforcement-sets/driftDetect
+        getStatus: config-types/enforcement-sets/getStatus
+      targets:
+        componentTypes: [axonius, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: tags
+      group: "Asset Labels"
+      name: Tags
+      description: Axonius asset tags — apply a named label to every device or user matching an AQL filter — over the Axonius REST API (443)
+      canvasTemplate: config-types/tags/canvas.yaml
+      defaultConfig: config-types/tags/defaults.yaml
+      handlers:
+        validate: config-types/tags/validate
+        deploy: config-types/tags/deploy
+        rollback: config-types/tags/rollback
+        healthCheck: config-types/tags/healthCheck
+        driftDetect: config-types/tags/driftDetect
+        getStatus: config-types/tags/getStatus
       targets:
         componentTypes: [axonius, standalone]
         requiresCredential: true

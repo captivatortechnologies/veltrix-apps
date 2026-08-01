@@ -1,0 +1,63 @@
+# =============================================================================
+# Canvas Template — Trend Vision One Suspicious Object Exception List
+#
+# Declares ONE Trend Vision One exception object (the safe / allow list entry).
+# Objects on the exception list are prevented from being added to the Suspicious
+# Object List. Users add as many entries as they need. The object VALUE is the
+# stable identity used for upsert and drift. Field keys must match
+# config-types/exception-list/validate.ts. Applied over the Trend Vision One
+# public REST API (/v3.0/threatintel/suspiciousObjectExceptions).
+#
+# VERIFY the accepted type values against a live Vision One tenant.
+# =============================================================================
+
+id: "trend-vision-one-exception-list"
+name: "Exception List"
+toolType: "trend-micro-vision-one"
+entityType: "exception-list"
+description: "Manage the Trend Vision One Suspicious Object Exception List (safe / allow list) — type, value and description — via the Vision One public REST API. Exceptions keep matching objects off the Suspicious Object List."
+
+item:
+  label: "Exception Object"
+  identityField: "value"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Object"
+      icon: "shield-check"
+      description: "The object to exclude and its type"
+      fields:
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "domain"
+          options:
+            - { label: "Domain", value: "domain" }
+            - { label: "IP Address", value: "ip" }
+            - { label: "URL", value: "url" }
+            - { label: "File SHA-1", value: "fileSha1" }
+            - { label: "File SHA-256", value: "fileSha256" }
+            - { label: "Sender Mail Address", value: "senderMailAddress" }
+          helpText: "The object type. VERIFY the exact accepted values against your Vision One tenant."
+
+        - key: "value"
+          label: "Value"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 2000
+          helpText: "The object value — a domain, IP, URL, 40-char file SHA-1, 64-char file SHA-256, or sender email address. Used as the object's stable identity for upsert and drift."
+
+    - name: "Metadata"
+      icon: "settings"
+      description: "Why this object is excluded"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this object is on the exception list — recorded for audit."

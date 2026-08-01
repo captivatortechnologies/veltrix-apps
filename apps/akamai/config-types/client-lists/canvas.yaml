@@ -1,0 +1,98 @@
+# =============================================================================
+# Canvas Template — Akamai Client Lists
+#
+# Declares ONE Akamai Client List (the item) — the newer replacement for Network
+# Lists, supporting IP/GEO plus ASN, TLS fingerprints, file hashes, user IDs,
+# domains and header name/value pairs. Users add as many as they need. Applied
+# over the Client Lists API v1 (EdgeGrid-signed, HTTPS 443). The list NAME is the
+# stable identity used for upsert and drift.
+#
+# NOTE: this manages list CONTENT (create / update details / sync items). Client
+# list ACTIVATION (STAGING/PRODUCTION) is a separate step — see the CHANGELOG.
+# Field keys must match config-types/client-lists/validate.ts.
+# =============================================================================
+
+id: "akamai-client-lists"
+name: "Client Lists"
+toolType: "akamai"
+entityType: "client-lists"
+description: "Manage Akamai Client Lists — a typed list and its entries — via the Client Lists API v1 (EdgeGrid-signed)"
+
+item:
+  label: "Client List"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "List"
+      icon: "list"
+      description: "List identity, type and placement"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable list name. Used as the list's stable identity for upsert and drift."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "IP"
+          options:
+            - label: "IP (addresses / CIDR blocks)"
+              value: "IP"
+            - label: "GEO (two-letter country codes)"
+              value: "GEO"
+            - label: "ASN (autonomous system numbers)"
+              value: "ASN"
+            - label: "TLS fingerprint"
+              value: "TLS_FINGERPRINT"
+            - label: "File hash"
+              value: "FILE_HASH"
+            - label: "User ID"
+              value: "USER_ID"
+            - label: "Domain"
+              value: "DOMAIN"
+            - label: "Request header name/value"
+              value: "REQUEST_HEADER_NAME_VALUE"
+          helpText: "The kind of entries this list holds. The type is fixed once the list is created and cannot be changed."
+
+        - key: "contractId"
+          label: "Contract ID"
+          fieldType: "text"
+          required: true
+          helpText: "The Akamai contract the list is created under (e.g. 1-ABC123). Required to create a new list."
+
+        - key: "groupId"
+          label: "Group ID"
+          fieldType: "number"
+          required: true
+          validation:
+            min: 1
+          helpText: "The Akamai group the list is created under (numeric). Required to create a new list."
+
+        - key: "notes"
+          label: "Notes"
+          fieldType: "textarea"
+          required: false
+          helpText: "Notes about this list — recorded in Akamai for audit."
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          required: false
+          helpText: "Up to 5 tags (≤256 characters each) to help filter and sort lists. One tag per entry."
+
+    - name: "Entries"
+      icon: "settings"
+      description: "The entries this list contains"
+      fields:
+        - key: "items"
+          label: "Entries"
+          fieldType: "textarea"
+          required: false
+          helpText: "One entry value per line (or comma-separated). Format depends on the list type — IPs/CIDRs for IP, two-letter codes for GEO, AS numbers for ASN, hashes for FILE_HASH, etc."

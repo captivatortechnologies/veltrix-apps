@@ -1,11 +1,11 @@
 id: vectra-ai
 name: Vectra AI
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
-  Manage Vectra AI (Network Detection & Response) as code. Author triage rules —
-  filters that whitelist or re-classify detections by category, detection type and
-  host/network scope — and drive them through the Security-as-Code pipeline
+  Manage Vectra AI (Network Detection & Response) as code. Author triage rules,
+  groups and proxies — the scoping and tuning surfaces that shape how Vectra
+  classifies detections — and drive them through the Security-as-Code pipeline
   (validate, deploy, health check, drift detection, rollback) over the Vectra
   Detect REST API (v2.5, token auth).
 category: NETWORK
@@ -30,6 +30,12 @@ permissions:
     - resource: triage-rules
       actions: [read, write, delete]
       description: Manage Vectra triage rules (create / edit / delete filters)
+    - resource: groups
+      actions: [read, write, delete]
+      description: Manage Vectra groups (named sets of hosts / IPs / domains / accounts)
+    - resource: proxies
+      actions: [read, write, delete]
+      description: Manage Vectra proxy IPs (internal addresses treated as proxies)
 
 pipeline:
   configurationTypes:
@@ -49,6 +55,48 @@ pipeline:
         healthCheck: config-types/triage-rules/healthCheck
         driftDetect: config-types/triage-rules/driftDetect
         getStatus: config-types/triage-rules/getStatus
+      targets:
+        componentTypes: [vectra-brain, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: groups
+      group: "Scoping"
+      name: Groups
+      description: >
+        Vectra groups — named sets of hosts, IPs, domains or accounts used to scope
+        detection tuning and reporting — applied over the Vectra Detect REST API
+        (v2.5, 443). Upsert by group name; static membership is managed.
+      canvasTemplate: config-types/groups/canvas.yaml
+      defaultConfig: config-types/groups/defaults.yaml
+      handlers:
+        validate: config-types/groups/validate
+        deploy: config-types/groups/deploy
+        rollback: config-types/groups/rollback
+        healthCheck: config-types/groups/healthCheck
+        driftDetect: config-types/groups/driftDetect
+        getStatus: config-types/groups/getStatus
+      targets:
+        componentTypes: [vectra-brain, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: proxies
+      group: "Scoping"
+      name: Proxies
+      description: >
+        Vectra proxy IPs — internal addresses Vectra treats as proxies so detections
+        are attributed to the real client behind them — applied over the Vectra
+        Detect REST API (v2.5, 443). Upsert by proxy address.
+      canvasTemplate: config-types/proxies/canvas.yaml
+      defaultConfig: config-types/proxies/defaults.yaml
+      handlers:
+        validate: config-types/proxies/validate
+        deploy: config-types/proxies/deploy
+        rollback: config-types/proxies/rollback
+        healthCheck: config-types/proxies/healthCheck
+        driftDetect: config-types/proxies/driftDetect
+        getStatus: config-types/proxies/getStatus
       targets:
         componentTypes: [vectra-brain, standalone]
         requiresCredential: true

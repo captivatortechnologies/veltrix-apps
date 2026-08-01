@@ -1,14 +1,14 @@
 id: pagerduty
 name: PagerDuty
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage PagerDuty incident-response configuration as code through the PagerDuty
-  REST API v2. This foundation release covers Escalation Policies — name,
-  description, loop count and the escalation rules (delay + user / schedule
-  targets) — driven through the Security-as-Code pipeline: validate, deploy,
-  health check, drift detection and rollback. Auth is a PagerDuty REST API key
-  (Authorization: Token token=…) against the fixed https://api.pagerduty.com base.
+  REST API v2. Covers Escalation Policies, Services, on-call Schedules and Teams —
+  each driven through the Security-as-Code pipeline: validate, deploy (upsert by
+  name), health check, drift detection and rollback. Auth is a PagerDuty REST API
+  key (Authorization: Token token=…) against the fixed https://api.pagerduty.com
+  base.
 category: SOAR
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/pagerduty
@@ -31,6 +31,15 @@ permissions:
     - resource: escalation-policies
       actions: [read, write, delete]
       description: Manage PagerDuty escalation policies (create / edit / delete)
+    - resource: services
+      actions: [read, write, delete]
+      description: Manage PagerDuty services (create / edit / delete)
+    - resource: schedules
+      actions: [read, write, delete]
+      description: Manage PagerDuty on-call schedules (create / edit / delete)
+    - resource: teams
+      actions: [read, write, delete]
+      description: Manage PagerDuty teams (create / edit / delete)
 
 pipeline:
   configurationTypes:
@@ -50,6 +59,69 @@ pipeline:
         healthCheck: config-types/escalation-policies/healthCheck
         driftDetect: config-types/escalation-policies/driftDetect
         getStatus: config-types/escalation-policies/getStatus
+      targets:
+        componentTypes: [pagerduty-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: services
+      group: "Incident Management"
+      name: Services
+      description: >
+        PagerDuty services — name, description, the escalation policy that backs
+        them (referenced by name and resolved to an id), auto-resolve / ack
+        timeouts and alert-creation mode — applied over the PagerDuty REST API v2
+        (/services). Reconciled by name.
+      canvasTemplate: config-types/services/canvas.yaml
+      defaultConfig: config-types/services/defaults.yaml
+      handlers:
+        validate: config-types/services/validate
+        deploy: config-types/services/deploy
+        rollback: config-types/services/rollback
+        healthCheck: config-types/services/healthCheck
+        driftDetect: config-types/services/driftDetect
+        getStatus: config-types/services/getStatus
+      targets:
+        componentTypes: [pagerduty-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: schedules
+      group: "On-Call"
+      name: Schedules
+      description: >
+        PagerDuty on-call schedules — name, IANA time zone and rotation layers
+        (start, rotation anchor + turn length and the users who rotate) — applied
+        over the PagerDuty REST API v2 (/schedules). Reconciled by name.
+      canvasTemplate: config-types/schedules/canvas.yaml
+      defaultConfig: config-types/schedules/defaults.yaml
+      handlers:
+        validate: config-types/schedules/validate
+        deploy: config-types/schedules/deploy
+        rollback: config-types/schedules/rollback
+        healthCheck: config-types/schedules/healthCheck
+        driftDetect: config-types/schedules/driftDetect
+        getStatus: config-types/schedules/getStatus
+      targets:
+        componentTypes: [pagerduty-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: teams
+      group: "Incident Management"
+      name: Teams
+      description: >
+        PagerDuty teams — name and description — applied over the PagerDuty REST
+        API v2 (/teams). Reconciled by name.
+      canvasTemplate: config-types/teams/canvas.yaml
+      defaultConfig: config-types/teams/defaults.yaml
+      handlers:
+        validate: config-types/teams/validate
+        deploy: config-types/teams/deploy
+        rollback: config-types/teams/rollback
+        healthCheck: config-types/teams/healthCheck
+        driftDetect: config-types/teams/driftDetect
+        getStatus: config-types/teams/getStatus
       targets:
         componentTypes: [pagerduty-account]
         requiresCredential: true

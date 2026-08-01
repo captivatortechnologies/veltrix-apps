@@ -1,0 +1,4 @@
+# Defaults for a new scheduled-job item. Intentionally minimal — the field-level
+# defaultValues in canvas.yaml seed the common settings (active on,
+# run_type=daily, conditional off). The operator fills in the name, time and
+# script.

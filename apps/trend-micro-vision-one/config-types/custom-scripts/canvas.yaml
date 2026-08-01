@@ -1,0 +1,72 @@
+# =============================================================================
+# Canvas Template — Trend Vision One Custom Scripts
+#
+# Declares ONE Trend Vision One custom response script (an entry in the Response
+# Management custom-script library). Users add as many scripts as they need. The
+# FILE NAME is the stable identity used for upsert and drift. Field keys must
+# match config-types/custom-scripts/validate.ts. Applied over the Trend Vision One
+# public REST API (/v3.0/response/customScripts).
+#
+# Vision One accepts PowerShell (.ps1) and Bash (.sh) scripts; the file must use
+# UTF-8 encoding. VERIFY the accepted file types + extensions against your tenant.
+# =============================================================================
+
+id: "trend-vision-one-custom-scripts"
+name: "Custom Scripts"
+toolType: "trend-micro-vision-one"
+entityType: "custom-scripts"
+description: "Manage the Trend Vision One Response Management custom-script library — file name, type (PowerShell / Bash), contents and description — via the Vision One public REST API. Scripts are upserted by file name."
+
+item:
+  label: "Custom Script"
+  identityField: "fileName"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Script"
+      icon: "terminal"
+      description: "The script file and its type"
+      fields:
+        - key: "fileName"
+          label: "File Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            pattern: "^[^\\\\/:*?\"<>|]+\\.(ps1|sh)$"
+          helpText: "The script file name including its extension — .ps1 for PowerShell, .sh for Bash. Used as the script's stable identity for upsert and drift."
+
+        - key: "fileType"
+          label: "File Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "powershell"
+          options:
+            - { label: "PowerShell (.ps1)", value: "powershell" }
+            - { label: "Bash (.sh)", value: "bash" }
+          helpText: "The script type. Must match the file name extension (.ps1 -> PowerShell, .sh -> Bash)."
+
+    - name: "Contents"
+      icon: "code"
+      description: "The script body (UTF-8)"
+      fields:
+        - key: "scriptContent"
+          label: "Script Content"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 100000
+          helpText: "Plain-text contents of the script (UTF-8). Uploaded verbatim to the Vision One custom-script library."
+
+    - name: "Metadata"
+      icon: "settings"
+      description: "Description"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "What the script does — recorded in the Vision One console for audit."

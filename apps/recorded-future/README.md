@@ -28,11 +28,24 @@ Cortex XDR and Semgrep apps, whose vendor APIs are similarly read-heavy.)
 | Configuration type | Recorded Future endpoint(s)                                                     | Identity  | Write path |
 | ------------------ | ------------------------------------------------------------------------------- | --------- | ---------- |
 | **Watch Lists**    | `POST /list/create`, `POST /list/{id}/entity/add`, `DELETE /list/{id}/entity/remove` (+ `POST /list/search`, `GET /list/{id}/entities` for reconcile) | List name | **Confirmed** |
+| **Watch List Entity Tags** | `POST /list/{id}/entity/tags` (replace full set) (+ `POST /list/search`, `GET /list/{id}/entitiesWithTags` for reconcile) | List + entity | **Confirmed** |
 
-Deploy reconciles by the list **name**: it reuses an existing list (found via
-`/list/search`) or creates one via `/list/create`, then **adds** every declared
-entity that is not already a member. It is **additive** — entities present in
-Recorded Future but not declared here are left in place (deploy does not prune).
+**Watch Lists** deploy reconciles by the list **name**: it reuses an existing list
+(found via `/list/search`) or creates one via `/list/create`, then **adds** every
+declared entity that is not already a member. It is **additive** — entities present
+in Recorded Future but not declared here are left in place (deploy does not prune).
+
+**Watch List Entity Tags** manages the tags on entities of a **company-type** list
+(a Third-Parties Watch List). Each item declares the **complete** tag set for one
+entity; deploy resolves the list, reads the entity's current tags and **replaces**
+them with exactly the declared set (`/list/{id}/entity/tags` is authoritative). It
+is therefore a **full-set upsert** — drift is exact set-equality, and rollback
+restores the entity's prior tag set exactly (a clean, leftover-free undo). Tags are
+a **fixed Recorded Future vocabulary** and are capped at **9 per entity**. Beyond
+this the rest of Recorded Future's API remains read/triage-only — see the
+CHANGELOG's honest breakdown of what is and isn't writable (alerting rules and
+detection rules are read-only; playbook alerts are triage-only; the Sandbox YARA
+CRUD lives on a separate host + `Bearer` auth and is deferred).
 
 ## API & authentication
 
@@ -52,7 +65,9 @@ cloud, overridable via the `api_base_url` setting or the connection endpoint).
   - `GET  /list/{id}/entities` — JSON array of members (no pagination)
   - `POST /list/{id}/entity/add` — `{ entity: { id } | { type, name }, context? }`
   - `DELETE /list/{id}/entity/remove` — `{ entity }`
-  - Confirmed: <https://docs.recordedfuture.com/reference/lists-create> (+ `lists-search`, `lists-status`, `lists-add-entity`, `lists-entities` siblings)
+  - `GET  /list/{id}/entitiesWithTags` — JSON array of members with their tags (`{ entity, tags: [{ id, name }], … }`)
+  - `POST /list/{id}/entity/tags` — `{ entity, tags: [ … ] }` → **replaces** the entity's full tag set (company-type lists only, max 9 tags)
+  - Confirmed: <https://docs.recordedfuture.com/reference/lists-create> (+ `lists-search`, `lists-status`, `lists-add-entity`, `lists-entities`, `lists-replace-entity-tags`, `lists-entities-with-tags`, `lists-available-tags` siblings)
 - **Connectivity test / health probe:** `POST /list/search { limit: 1 }` — a
   lightweight authenticated call that proves the token is valid **and** List-API
   entitled. Bad / unentitled tokens surface as **HTTP 401 / 403**.
@@ -71,6 +86,15 @@ cloud, overridable via the `api_base_url` setting or the connection endpoint).
   `CyberVulnerability`; other entities must be resolved to an RF id first
   (via Entity Match). The entity-resolution mapping is `VERIFY`-flagged in
   `config-types/watch-lists/_shared.ts`.
+- **Entity tags** (Watch List Entity Tags type) — the `tags` field is the entity's
+  **complete** tag set (deploy replaces all existing tags with exactly these). Tags
+  are a **fixed** Recorded Future vocabulary (e.g. `tier1`, `critical`, `gdpr`,
+  `pci_dss`, `pii`, `financial`, `subsidiary`), applied **only to company-type
+  lists**, capped at **9 per entity**. The known-tag list is a best-effort snapshot
+  (`config-types/entity-tags/_shared.ts`, `VERIFY`-flagged): an unrecognised but
+  well-formed tag is only **warned** about, letting the API be the final authority.
+  `matchBy` selects whether the entity value is an RF entity **id** or a **company
+  name** (`{ id }` vs `{ type: "Company", name }`).
 - **`comment`** is a local audit note; it is **not** sent to Recorded Future.
 
 ## Limitations

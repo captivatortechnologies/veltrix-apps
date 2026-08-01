@@ -1,0 +1,43 @@
+# =============================================================================
+# Canvas Template — PagerDuty Teams
+#
+# Declares ONE PagerDuty team (the item). Users add as many as they need. Field
+# keys must match config-types/teams/_shared.ts. Applied via the PagerDuty REST
+# API v2 (/teams) at https://api.pagerduty.com.
+#
+# PagerDuty assigns the server id, so identity for reconciliation is the team
+# `name`. This config type manages a team's identity — name + description.
+# =============================================================================
+
+id: "pagerduty-teams"
+name: "Teams"
+toolType: "pagerduty"
+entityType: "teams"
+description: "Manage PagerDuty teams — name and description — via the PagerDuty REST API v2 (/teams). Reconciled by name."
+
+item:
+  label: "Team"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Team"
+      icon: "users"
+      description: "Team identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The team name shown in PagerDuty. Used as the stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1024
+          helpText: "Optional description of what this team is responsible for."

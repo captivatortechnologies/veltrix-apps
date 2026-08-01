@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-orca-security",
   "private": true,
-  "version": "0.1.0",
-  "description": "Veltrix app: manage Orca Security (agentless CNAPP / CSPM) configuration as code — custom alerts (custom Sonar rules) — through the Orca REST API",
+  "version": "0.2.0",
+  "description": "Veltrix app: manage Orca Security (agentless CNAPP / CSPM) configuration as code — custom alerts, business units, automations and discovery views — through the Orca REST API",
   "scripts": { "typecheck": "tsc --noEmit" },
   "devDependencies": {
     "@types/node": "^20.0.0",

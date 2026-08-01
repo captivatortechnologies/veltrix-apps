@@ -1,0 +1,117 @@
+# =============================================================================
+# Canvas Template — Orca Business Units (filters)
+#
+# Declares ONE Orca business unit — the item. Users add as many as they need.
+# Business units are created / updated through the Orca REST API
+# (POST /api/filters, PUT /api/filters/{id}) and reconciled by the filter id
+# this app assigns and persists per item (see deploy.ts) so a unit can be
+# renamed without losing its identity.
+#
+# A business unit scopes findings to a set of resources selected by ONE filter
+# type (Orca does not allow mixing filter types within one unit). Leave the
+# scope filter set to "Org-wide" for a global business unit.
+#
+# Field keys must match config-types/business-units/validate.ts + _shared.ts.
+# =============================================================================
+
+id: "orca-business-units"
+name: "Business Units"
+toolType: "orca-security"
+entityType: "business-units"
+description: "Define Orca business units (filters) as code through the Orca REST API. Each unit scopes findings to a set of resources selected by one filter type, with optional ownership metadata."
+
+item:
+  label: "Business Unit"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Business Unit"
+      icon: "building"
+      description: "Name and ownership metadata"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The business unit name — its logical identity. Shown in Orca."
+
+        - key: "businessCriticality"
+          label: "Business Criticality"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - { label: "Not set", value: "" }
+            - { label: "Low", value: "low" }
+            - { label: "Medium", value: "medium" }
+            - { label: "High", value: "high" }
+            - { label: "Critical", value: "critical" }
+          helpText: "Optional criticality of the resources this unit represents."
+
+        - key: "ownerTeam"
+          label: "Owner Team"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Optional owning team or department for the business unit."
+
+        - key: "application"
+          label: "Application"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Optional application or product line the business unit represents."
+
+        - key: "contactEmails"
+          label: "Contact Emails"
+          fieldType: "tags"
+          required: false
+          helpText: "Up to 2 contact emails associated with the business unit."
+
+        - key: "deploymentStages"
+          label: "Deployment Stages"
+          fieldType: "tags"
+          required: false
+          helpText: "Up to 2 deployment stages associated with the business unit (e.g. prod, staging)."
+
+    - name: "Scope"
+      icon: "filter"
+      description: "The single filter that selects the unit's resources"
+      fields:
+        - key: "filterType"
+          label: "Scope Filter"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - { label: "Org-wide (no filter)", value: "" }
+            - { label: "Cloud providers", value: "cloud_providers" }
+            - { label: "Cloud accounts (vendor IDs)", value: "cloud_vendor_id" }
+            - { label: "Custom tags", value: "custom_tags" }
+            - { label: "Cloud tags / labels", value: "cloud_tags" }
+            - { label: "Cloud account tags", value: "cloud_account_tags" }
+          helpText: "How this unit selects resources. A unit uses exactly one filter type; leave as Org-wide for a global unit."
+
+        - key: "filterValues"
+          label: "Filter Values"
+          fieldType: "tags"
+          required: false
+          visibleWhen:
+            field: "filterType"
+            in: ["cloud_providers", "cloud_vendor_id", "custom_tags", "cloud_tags", "cloud_account_tags"]
+          helpText: "The values for the chosen filter. Cloud providers: alicloud, aws, azure, gcp, oci, shiftleft. Tag filters: key and value separated by a vertical bar (key|value)."
+
+        - key: "global"
+          label: "Org-wide business unit"
+          fieldType: "checkbox"
+          defaultValue: false
+          visibleWhen:
+            field: "filterType"
+            equals: ""
+          helpText: "Mark this unit as explicitly org-wide (applies to all resources). Only relevant when no scope filter is chosen."

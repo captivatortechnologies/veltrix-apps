@@ -1,0 +1,128 @@
+# =============================================================================
+# Canvas Template — ServiceNow UI Policies
+#
+# Declares ONE ServiceNow UI policy (a sys_ui_policy record). Operators add as
+# many as they need. Field keys must match config-types/ui-policies/_shared.ts
+# and validate.ts (which map them to the sys_ui_policy columns). Applied over
+# the ServiceNow Table API (POST/PATCH /api/now/table/sys_ui_policy).
+#
+# Identity is the (short_description, table) pair — a short description is not
+# globally unique, so the same name on two different tables is two policies.
+# =============================================================================
+
+id: "servicenow-ui-policies"
+name: "UI Policies"
+toolType: "servicenow"
+entityType: "ui-policies"
+description: "Manage ServiceNow UI policies (sys_ui_policy) as code — client-side form behavior (show/hide, mandatory, read-only) for a table, driven by a condition — via the Table API"
+
+item:
+  label: "UI Policy"
+  identityField: "shortDescription"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "layout"
+      description: "What the policy is and the table it applies to"
+      fields:
+        - key: "shortDescription"
+          label: "Short description"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable name shown in ServiceNow. Identity is this description scoped to the table below."
+
+        - key: "table"
+          label: "Table"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-z][a-z0-9_]*$"
+            maxLength: 80
+          helpText: "Internal name of the table the policy applies to, e.g. incident, sn_si_incident, task. Stored in the sys_ui_policy 'table' column."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Why this policy exists — recorded for audit."
+
+    - name: "Behavior"
+      icon: "settings"
+      description: "When and where the policy runs"
+      fields:
+        - key: "uiType"
+          label: "UI type"
+          fieldType: "select"
+          required: false
+          defaultValue: "10"
+          options:
+            - label: "All"
+              value: "10"
+            - label: "Desktop"
+              value: "0"
+            - label: "Mobile / Service Portal"
+              value: "1"
+          helpText: "Which interfaces the policy runs in (sys_ui_policy.ui_type). Stored values are ServiceNow integers — verify against your instance if customized."
+
+        - key: "active"
+          label: "Active"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the policy is enabled."
+
+        - key: "global"
+          label: "Global"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Apply the policy on all views of the table (sys_ui_policy.global)."
+
+        - key: "onLoad"
+          label: "On load"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Run as soon as the form loads, not only when a dependent field changes (sys_ui_policy.on_load)."
+
+        - key: "reverseIfFalse"
+          label: "Reverse if false"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Undo the policy actions when the condition is false (sys_ui_policy.reverse_if_false)."
+
+        - key: "runScripts"
+          label: "Run scripts"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Allow the advanced true/false scripts to run (sys_ui_policy.run_scripts)."
+
+        - key: "order"
+          label: "Order"
+          fieldType: "number"
+          required: false
+          defaultValue: 100
+          validation:
+            min: 0
+            max: 100000
+          helpText: "Execution order — lower numbers run first (default 100)."
+
+    - name: "Conditions"
+      icon: "filter"
+      description: "When the policy applies"
+      fields:
+        - key: "conditions"
+          label: "Conditions (encoded query)"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 4000
+          helpText: "ServiceNow encoded query the policy is evaluated against, e.g. priority=1^state=2. Leave blank to always apply. Stored in the sys_ui_policy 'conditions' column."

@@ -1,9 +1,9 @@
 # Tanium
 
 Manage [Tanium](https://www.tanium.com/) endpoint management as code. Author
-Tanium **computer groups** and drive them through the Veltrix Security-as-Code
-pipeline — validate, deploy, health check, drift detection and rollback — over
-the **Tanium REST v2 API**.
+Tanium **computer groups**, **saved questions** and **packages** and drive them
+through the Veltrix Security-as-Code pipeline — validate, deploy, health check,
+drift detection and rollback — over the **Tanium REST v2 API**.
 
 - **Category:** Endpoint Management
 - **Transport:** HTTPS (443), base `https://<server>/api/v2`, self-signed
@@ -14,6 +14,8 @@ the **Tanium REST v2 API**.
 | Configuration type | What it does | API |
 | --- | --- | --- |
 | **Computer Groups** | Create / edit / delete Tanium computer groups — a `name` plus a filter expression (`text`) such as `Operating System contains Windows`, or an optional structured-filter JSON. Upsert by name. | `GET/POST /api/v2/groups`, `PUT/DELETE /api/v2/groups/{id}` |
+| **Saved Questions** | Create / edit / delete Tanium saved questions — a `name` plus a question. Provide the question text (sent as `question.question_text` for the server to parse) or a pre-parsed Question ID (`question.id`). Upsert by name. | `GET/POST /api/v2/saved_questions`, `GET .../by-name/{name}`, `DELETE .../{id}` |
+| **Packages** | Create / edit / delete Tanium packages — a `name` plus the `command` the Tanium Client runs, with optional `display_name`, command timeout and `expire_seconds`. Upsert by name. | `GET/POST /api/v2/packages`, `GET .../by-name/{name}`, `DELETE .../{id}` |
 
 ## Authentication
 
@@ -54,12 +56,30 @@ production use:
   not confirmed here — verify before relying on it.
 - **Response envelope.** Responses are treated as possibly wrapped in
   `{ data: ... }`; both wrapped and bare forms are handled.
+- **Delete + recreate for saved questions and packages.** REST v2 exposes no
+  confirmed in-place update for these objects (Cortex XSOAR `Tanium_v2` and
+  Splunk SOAR `taniumrest` only create, read and delete them), so an existing
+  object is **replaced**: `DELETE .../{id}` then `POST`. This churns the object
+  id — a saved question referenced by a dashboard, or a package referenced by a
+  saved action, may need re-pointing. Verify update semantics for your workflow.
+- **Saved-question inline text.** The verified create path references a
+  **pre-parsed** question by id (`{ name, question: { id } }`; XSOAR
+  `tn-create-saved-question` takes a question-id). Passing the question text
+  inline (`{ name, question: { question_text } }`) and letting the server parse
+  it is a convenience that the public integrations do not exercise — some builds
+  require the pre-parse step (`POST /api/v2/parse_question` → `POST /api/v2/questions`).
+  Use the **Question ID** field to take the verified by-id path.
+- **Package `command_timeout_seconds`.** Only `name` + `command` are exercised by
+  the public integrations. The optional command timeout maps to
+  `command_timeout_seconds`; some builds name it `command_timeout`. It is sent
+  only when supplied, so a name mismatch affects opt-in use only — verify the
+  field name against your Tanium.
 
 ## Roadmap
 
-- Newer **Tanium API Gateway (GraphQL)** path — noted but not implemented; v0.1.0
-  targets REST v2.
-- Additional configuration types (packages, saved questions, action groups).
+- Newer **Tanium API Gateway (GraphQL)** path — noted but not implemented; the
+  app targets REST v2.
+- Additional configuration types (saved actions, action groups, sensors).
 
 ## Notes
 

@@ -1,0 +1,82 @@
+# =============================================================================
+# Canvas Template — Axonius Enforcement Sets
+#
+# Declares ONE Axonius enforcement set (the item). Users add as many as they need.
+# An enforcement set is a named policy: a "main" action drawn from the Axonius
+# action library (an action_name + a per-action config) plus optional triggers.
+# Field keys must match config-types/enforcement-sets/validate.ts. Applied via the
+# Axonius REST API (api/enforcements) on 443.
+# =============================================================================
+
+id: "axonius-enforcement-sets"
+name: "Enforcement Sets"
+toolType: "axonius"
+entityType: "enforcement-sets"
+description: "Manage Axonius enforcement sets — a named policy with a main action from the action library plus optional triggers — via the Axonius REST API (443)"
+
+item:
+  label: "Enforcement Set"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Set"
+      icon: "shield"
+      description: "Identity of the enforcement set"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Enforcement set name shown in Axonius. Used as the stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Optional description recorded on the enforcement set for audit"
+
+    - name: "Main Action"
+      icon: "zap"
+      description: "The primary action Axonius runs — drawn from the action library"
+      fields:
+        - key: "action_name"
+          label: "Action Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The Axonius action-library identifier for the main action, e.g. create_notification, tag, send_email. Must match an action available on your tenant."
+
+        - key: "action_label"
+          label: "Action Display Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Display name for the main action instance. Leave blank to reuse the set name."
+
+        - key: "config"
+          label: "Action Config (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 8000
+          helpText: 'JSON object of the main action config, e.g. {"description": "…"}. Fields depend on the action type — see the Axonius action library. Leave blank for an empty config.'
+
+    - name: "Triggers"
+      icon: "clock"
+      description: "When the set runs (optional — blank means on-demand only)"
+      fields:
+        - key: "triggers"
+          label: "Triggers (JSON array)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 8000
+          helpText: 'JSON array of Axonius trigger objects (view + schedule). Leave blank to run the set only on demand. Verify the trigger shape against your tenant.'

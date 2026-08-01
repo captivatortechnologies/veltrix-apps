@@ -2,6 +2,32 @@
 
 All notable changes to the PagerDuty Veltrix app are documented here.
 
+## 0.2.0 — 2026-08-01
+
+Three new configuration types, each with the full pipeline (validate, deploy —
+upsert by name, health check, drift detection and rollback) over the PagerDuty
+REST API v2.
+
+- **Services** configuration type (`services`, `/services`): author a service's
+  name, description, the escalation policy that backs it (referenced by NAME and
+  resolved to an `escalation_policy_reference` at deploy), `auto_resolve_timeout`
+  / `acknowledgement_timeout` (seconds) and `alert_creation` mode
+  (`create_incidents` / `create_alerts_and_incidents`). Note: PagerDuty has
+  deprecated `alert_creation` (all services are migrating to alerts and
+  incidents); it is surfaced for parity with existing services.
+- **Schedules** configuration type (`schedules`, `/schedules`): author an on-call
+  schedule's name, IANA `time_zone` (required) and `schedule_layers` (rotation
+  layers with `start`, `rotation_virtual_start`, `rotation_turn_length_seconds`
+  and the ordered `users` who rotate). Drift compares presence, time zone and the
+  layer count — it does not deep-diff the server-expanded rotation.
+- **Teams** configuration type (`teams`, `/teams`): author a team's name and
+  description.
+- Deploy now reads the account first (list-then-write) so every write is an
+  idempotent upsert keyed on the resource name, and records prior state so a
+  rollback deletes created resources and restores updated ones.
+- Registered all three in `manifest.pipeline.configurationTypes` with matching
+  `services` / `schedules` / `teams` app permissions (read / write / delete).
+
 ## 0.1.0 — 2026-08-01
 
 Foundation release.

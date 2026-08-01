@@ -1,0 +1,63 @@
+# =============================================================================
+# Canvas Template — Tanium Saved Questions
+#
+# Declares ONE Tanium saved question (the item). Users add as many as they need.
+# Field keys must match config-types/saved-questions/validate.ts. Applied via the
+# Tanium REST v2 API (/api/v2/saved_questions, .../by-name/{name}, .../{id}) on
+# port 443.
+#
+# A saved question pairs a `name` with a question. Provide the question TEXT
+# (e.g. `Get Computer Name and IP Address from all machines`) OR, for the
+# verified by-id path, a pre-parsed Question ID. Update = delete + recreate
+# (REST v2 exposes no confirmed in-place update for saved questions).
+# =============================================================================
+
+id: "tanium-saved-questions"
+name: "Saved Questions"
+toolType: "tanium"
+entityType: "saved-questions"
+description: "Manage Tanium saved questions — a name and a question — via the Tanium REST v2 API (443)"
+
+item:
+  label: "Saved Question"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Question"
+      icon: "help-circle"
+      description: "Saved-question identity and the question it asks"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Saved question name shown in Tanium. Used as the stable identity for upsert and drift."
+
+        - key: "questionText"
+          label: "Question Text"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 4000
+          helpText: "The Tanium question to save, e.g. Get Computer Name and IP Address from all machines. Sent inline for the server to parse. Verify inline parsing against your Tanium — some builds require a pre-parsed Question ID."
+
+        - key: "questionId"
+          label: "Question ID (advanced)"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^[0-9]*$"
+            maxLength: 20
+          helpText: "Optional id of an already-parsed question. When set, it takes the verified by-id path and the Question Text above is ignored."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this saved question is configured — recorded for audit"

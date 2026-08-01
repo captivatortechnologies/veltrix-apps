@@ -1,15 +1,15 @@
 id: recorded-future
 name: Recorded Future
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Recorded Future Watch Lists as code. Author entity watch lists — custom
-  and Third-Party lists that power queries, Threat Views and Alerts — and drive
-  them through the Security-as-Code pipeline (validate, deploy, health check,
-  drift detection and rollback) over the Recorded Future List API
-  (https://api.recordedfuture.com, X-RFToken auth). NOTE: the Recorded Future
-  API is largely READ (intelligence lookup / enrichment); the List API is its one
-  genuinely writable configuration surface — see the README.
+  and Third-Party lists that power queries, Threat Views and Alerts — plus the
+  tags on their entities, and drive them through the Security-as-Code pipeline
+  (validate, deploy, health check, drift detection and rollback) over the Recorded
+  Future List API (https://api.recordedfuture.com, X-RFToken auth). NOTE: the
+  Recorded Future API is largely READ (intelligence lookup / enrichment); the List
+  API is its one genuinely writable configuration surface — see the README.
 category: Threat Intelligence
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/recorded-future
@@ -34,6 +34,13 @@ permissions:
         Manage Recorded Future Watch Lists — create lists and add / remove their
         entities over the List API (POST /list/create, /list/{id}/entity/add,
         DELETE /list/{id}/entity/remove)
+    - resource: entity-tags
+      actions: [read, write]
+      description: >
+        Manage the tags on entities of a company-type Recorded Future list
+        (Third-Parties Watch List) over the List API — read current tags
+        (GET /list/{id}/entitiesWithTags) and replace the full set
+        (POST /list/{id}/entity/tags)
 
 pipeline:
   configurationTypes:
@@ -53,6 +60,28 @@ pipeline:
         healthCheck: config-types/watch-lists/healthCheck
         driftDetect: config-types/watch-lists/driftDetect
         getStatus: config-types/watch-lists/getStatus
+      targets:
+        componentTypes: [recorded-future-cloud]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: entity-tags
+      group: "Threat Intelligence"
+      name: Watch List Entity Tags
+      description: >
+        Tags on the entities of a company-type Recorded Future list (Third-Parties
+        Watch List) — the full tag set per entity — applied over the Recorded
+        Future List API "Replace Entity Tags" endpoint
+        (POST https://api.recordedfuture.com/list/{id}/entity/tags, X-RFToken).
+      canvasTemplate: config-types/entity-tags/canvas.yaml
+      defaultConfig: config-types/entity-tags/defaults.yaml
+      handlers:
+        validate: config-types/entity-tags/validate
+        deploy: config-types/entity-tags/deploy
+        rollback: config-types/entity-tags/rollback
+        healthCheck: config-types/entity-tags/healthCheck
+        driftDetect: config-types/entity-tags/driftDetect
+        getStatus: config-types/entity-tags/getStatus
       targets:
         componentTypes: [recorded-future-cloud]
         requiresCredential: true

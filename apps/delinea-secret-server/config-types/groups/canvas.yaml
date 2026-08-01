@@ -1,0 +1,54 @@
+# =============================================================================
+# Canvas Template — Delinea Secret Server Groups
+#
+# Declares ONE Secret Server (local) group (the item). Users add as many as they
+# need. Field keys must match config-types/groups/_shared.ts + validate.ts.
+# Applied via the Secret Server REST API (/api/v1/groups). A group is reconciled
+# by its name, so groupName is the identity.
+#
+# Scope: local Secret Server groups. A group synchronized from Directory Services
+# is managed in the directory, not here.
+# =============================================================================
+
+id: "delinea-groups"
+name: "Groups"
+toolType: "delinea-secret-server"
+entityType: "groups"
+description: "Manage Delinea Secret Server local groups — name and enabled state — via the Secret Server REST API (/api/v1/groups)"
+
+item:
+  label: "Group"
+  identityField: "groupName"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Group"
+      icon: "users"
+      description: "Group identity and state"
+      fields:
+        - key: "groupName"
+          label: "Group Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The group name shown in Secret Server. Reconciled by name (upsert + drift). Scope: local groups."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the group is active. Turn off to disable a group without deleting it (group deletion is not managed by this app)."
+
+    - name: "Audit"
+      icon: "book"
+      description: "Change record"
+      fields:
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this group is configured — recorded for audit."

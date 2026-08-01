@@ -1,14 +1,14 @@
 id: orca-security
 name: Orca Security
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Orca Security (agentless CNAPP / CSPM) configuration as code through the
-  Orca REST API. This foundation release covers custom alerts (custom Sonar
-  rules) — an Orca Sonar (DSL) query plus its category, risk score and enabled
-  state — created, updated, drift-checked and rolled back by the Security-as-Code
-  pipeline. Authenticates with an Orca API token against the tenant's regional
-  API endpoint (default https://api.orcasecurity.io).
+  Orca REST API. Covers custom alerts (custom Sonar rules), business units
+  (filters), automations and discovery views — created, updated, drift-checked
+  and rolled back by the Security-as-Code pipeline. Authenticates with an Orca
+  API token against the tenant's regional API endpoint (default
+  https://api.orcasecurity.io).
 category: CLOUD
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/orca-security
@@ -30,6 +30,15 @@ permissions:
     - resource: custom-alerts
       actions: [read, write, delete]
       description: Manage Orca custom alerts (custom Sonar rules)
+    - resource: business-units
+      actions: [read, write, delete]
+      description: Manage Orca business units (filters)
+    - resource: automations
+      actions: [read, write, delete]
+      description: Manage Orca automations
+    - resource: discovery-views
+      actions: [read, write, delete]
+      description: Manage Orca discovery views (saved inventory queries)
 
 pipeline:
   configurationTypes:
@@ -50,6 +59,74 @@ pipeline:
         healthCheck: config-types/custom-alerts/healthCheck
         driftDetect: config-types/custom-alerts/driftDetect
         getStatus: config-types/custom-alerts/getStatus
+      targets:
+        componentTypes: [orca-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: business-units
+      group: "Organization"
+      name: Business Units
+      description: >
+        Orca business units (filters) via /api/filters — a named scope that
+        selects resources by one filter type (cloud providers, accounts, cloud
+        tags, account tags or custom tags) plus ownership metadata. Reconciled by
+        the filter id this app assigns and persists per item, so a unit can be
+        renamed without losing its identity.
+      canvasTemplate: config-types/business-units/canvas.yaml
+      defaultConfig: config-types/business-units/defaults.yaml
+      handlers:
+        validate: config-types/business-units/validate
+        deploy: config-types/business-units/deploy
+        rollback: config-types/business-units/rollback
+        healthCheck: config-types/business-units/healthCheck
+        driftDetect: config-types/business-units/driftDetect
+        getStatus: config-types/business-units/getStatus
+      targets:
+        componentTypes: [orca-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: automations
+      group: "Automation"
+      name: Automations
+      description: >
+        Orca automations via /api/automations — a Sonar query that matches alerts
+        plus a JSON action list (notify, ticket, remediate). Reconciled by the
+        automation id this app assigns and persists per item; because Orca exposes
+        an automations list endpoint, a first deploy also matches by name so an
+        existing automation is updated rather than duplicated.
+      canvasTemplate: config-types/automations/canvas.yaml
+      defaultConfig: config-types/automations/defaults.yaml
+      handlers:
+        validate: config-types/automations/validate
+        deploy: config-types/automations/deploy
+        rollback: config-types/automations/rollback
+        healthCheck: config-types/automations/healthCheck
+        driftDetect: config-types/automations/driftDetect
+        getStatus: config-types/automations/getStatus
+      targets:
+        componentTypes: [orca-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: discovery-views
+      group: "Discovery"
+      name: Discovery Views
+      description: >
+        Orca discovery views (saved inventory queries) via /api/user_preferences —
+        a Discovery query (query2) optionally shared org-wide. Reconciled by the
+        preference id this app assigns and persists per item, so a view can be
+        renamed without losing its identity.
+      canvasTemplate: config-types/discovery-views/canvas.yaml
+      defaultConfig: config-types/discovery-views/defaults.yaml
+      handlers:
+        validate: config-types/discovery-views/validate
+        deploy: config-types/discovery-views/deploy
+        rollback: config-types/discovery-views/rollback
+        healthCheck: config-types/discovery-views/healthCheck
+        driftDetect: config-types/discovery-views/driftDetect
+        getStatus: config-types/discovery-views/getStatus
       targets:
         componentTypes: [orca-tenant]
         requiresCredential: true

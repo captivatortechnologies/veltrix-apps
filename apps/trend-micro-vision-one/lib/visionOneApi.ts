@@ -66,6 +66,8 @@ export interface VisionOneResponse {
   ok: boolean
   json: unknown
   body: string
+  /** Response headers, lowercased keys. Vision One returns created-resource ids on `location`. */
+  headers: Record<string, string>
 }
 
 export class VisionOneClient {
@@ -83,6 +85,24 @@ export class VisionOneClient {
     return { Authorization: `Bearer ${this.token}` }
   }
 
+  /** Read + parse a fetch Response into the shared VisionOneResponse shape. */
+  private async finish(res: Response): Promise<VisionOneResponse> {
+    const text = await res.text()
+    let json: unknown = null
+    if (text) {
+      try {
+        json = JSON.parse(text)
+      } catch {
+        json = null
+      }
+    }
+    const headers: Record<string, string> = {}
+    res.headers.forEach((value, key) => {
+      headers[key.toLowerCase()] = value
+    })
+    return { status: res.status, ok: res.status >= 200 && res.status < 300, json, body: text, headers }
+  }
+
   private async request(method: string, path: string, body?: unknown): Promise<VisionOneResponse> {
     const headers: Record<string, string> = { ...this.authHeaders(), Accept: 'application/json' }
     if (body !== undefined) headers['Content-Type'] = 'application/json'
@@ -96,16 +116,7 @@ export class VisionOneClient {
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: controller.signal,
       })
-      const text = await res.text()
-      let json: unknown = null
-      if (text) {
-        try {
-          json = JSON.parse(text)
-        } catch {
-          json = null
-        }
-      }
-      return { status: res.status, ok: res.status >= 200 && res.status < 300, json, body: text }
+      return this.finish(res)
     } finally {
       clearTimeout(timer)
     }
@@ -119,6 +130,45 @@ export class VisionOneClient {
   /** POST a JSON `body` to a public-API `path`. Never throws on a non-2xx status. */
   async post(path: string, body: unknown): Promise<VisionOneResponse> {
     return this.request('POST', path, body)
+  }
+
+  /** DELETE a public-API `path` (e.g. `/response/customScripts/{id}`). Never throws on a non-2xx status. */
+  async del(path: string): Promise<VisionOneResponse> {
+    return this.request('DELETE', path)
+  }
+
+  /**
+   * POST a `multipart/form-data` body — Vision One's custom-script upload/update
+   * (`/response/customScripts`) takes the metadata as form fields and the script
+   * as a file part. The multipart boundary is set by fetch from the FormData, so
+   * Content-Type is deliberately NOT set here. Never throws on a non-2xx status.
+   */
+  async postMultipart(
+    path: string,
+    fields: Record<string, string>,
+    file: { field: string; filename: string; content: string; contentType?: string },
+  ): Promise<VisionOneResponse> {
+    const form = new FormData()
+    for (const [key, value] of Object.entries(fields)) form.append(key, value)
+    form.append(
+      file.field,
+      new Blob([file.content], { type: file.contentType ?? 'text/plain' }),
+      file.filename,
+    )
+
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs)
+    try {
+      const res = await fetch(`${this.baseUrl}${API_VERSION_PATH}${path}`, {
+        method: 'POST',
+        headers: { ...this.authHeaders(), Accept: 'application/json' },
+        body: form,
+        signal: controller.signal,
+      })
+      return this.finish(res)
+    } finally {
+      clearTimeout(timer)
+    }
   }
 
   /**

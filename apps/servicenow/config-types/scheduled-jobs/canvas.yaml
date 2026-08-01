@@ -1,0 +1,138 @@
+# =============================================================================
+# Canvas Template — ServiceNow Scheduled Jobs
+#
+# Declares ONE ServiceNow scheduled script execution (a sysauto_script record).
+# Operators add as many as they need. Field keys must match
+# config-types/scheduled-jobs/_shared.ts and validate.ts (which map them to the
+# sysauto_script columns). Applied over the ServiceNow Table API
+# (POST/PATCH /api/now/table/sysauto_script).
+#
+# Identity is `name` — the natural key an operator controls. The scheduling
+# (run_*) columns follow the sysauto convention; see README to verify exact
+# names and accepted run_type values against your instance.
+# =============================================================================
+
+id: "servicenow-scheduled-jobs"
+name: "Scheduled Jobs"
+toolType: "servicenow"
+entityType: "scheduled-jobs"
+description: "Manage ServiceNow scheduled jobs (sysauto_script) as code — server-side scripts that run on a schedule, optionally as a specific user and gated by a condition — via the Table API"
+
+item:
+  label: "Scheduled Job"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Job"
+      icon: "settings"
+      description: "Job identity and whether it is enabled"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable job name shown in ServiceNow. Identity for this config type."
+
+        - key: "active"
+          label: "Active"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the scheduled job is enabled."
+
+        - key: "runAs"
+          label: "Run as (user sys_id)"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 32
+          helpText: "sys_id of the user the script runs as (sysauto_script.run_as). Leave blank to run as the default scheduler user."
+
+    - name: "Schedule"
+      icon: "settings"
+      description: "When the job runs"
+      fields:
+        - key: "runType"
+          label: "Run"
+          fieldType: "select"
+          required: false
+          defaultValue: "daily"
+          options:
+            - label: "Daily"
+              value: "daily"
+            - label: "Weekly"
+              value: "weekly"
+            - label: "Monthly"
+              value: "monthly"
+            - label: "Periodically"
+              value: "periodically"
+            - label: "Once"
+              value: "once"
+            - label: "On demand"
+              value: "on_demand"
+          helpText: "Schedule frequency (sysauto_script.run_type). ServiceNow supports additional values (e.g. business-calendar) — verify against your instance."
+
+        - key: "runTime"
+          label: "Time (HH:MM:SS)"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$"
+            maxLength: 8
+          helpText: "Time of day to run for daily / weekly / monthly (sysauto_script.run_time)."
+
+        - key: "runStart"
+          label: "Start (date/time)"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 40
+          helpText: "First eligible run for once / periodically, e.g. 2026-01-01 02:00:00 (sysauto_script.run_start)."
+
+        - key: "runDayofweek"
+          label: "Day of week (1-7)"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^[1-7]$"
+            maxLength: 1
+          helpText: "Day of week for a weekly job (1 = Monday … 7 = Sunday). Stored in sysauto_script.run_dayofweek."
+
+        - key: "runPeriod"
+          label: "Interval (date/time duration)"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 40
+          helpText: "Repeat interval for a periodically job as a GlideDuration date-time, e.g. 1970-01-01 00:30:00 for every 30 minutes (sysauto_script.run_period)."
+
+    - name: "Script"
+      icon: "filter"
+      description: "The condition and script"
+      fields:
+        - key: "conditional"
+          label: "Conditional"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When on, the Condition below must evaluate truthy for the script to run (sysauto_script.conditional)."
+
+        - key: "condition"
+          label: "Condition (script)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 4000
+          helpText: "Server-side condition evaluated each run when Conditional is on, e.g. gs.getProperty('maintenance') != 'true'."
+
+        - key: "script"
+          label: "Script"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 100000
+          helpText: "Server-side script body run on the schedule, e.g. (function() { /* ... */ })();"

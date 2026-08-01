@@ -1,0 +1,6 @@
+# Defaults for a new service item. The item starts mostly blank; the operator fills
+# in the name and the escalation policy it should use. Only alert_creation carries a
+# sensible default (matching PagerDuty's own default). Values here are a FLAT map
+# keyed by the canvas field keys (name, description, escalation_policy,
+# auto_resolve_timeout, acknowledgement_timeout, alert_creation).
+alert_creation: "create_alerts_and_incidents"

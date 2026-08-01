@@ -1,0 +1,66 @@
+# =============================================================================
+# Canvas Template — Akamai Network List Activation
+#
+# Declares ONE activation target (the item): a network list (by name) promoted
+# onto STAGING or PRODUCTION. Users add as many as they need — e.g. the same
+# list twice to activate it on both environments. Deploy TRIGGERS the activation
+# (POST .../environments/{env}/activate) and is idempotent: a list already live
+# at its current syncPoint is skipped.
+#
+# Field keys must match config-types/network-list-activation/validate.ts. The
+# (networkListName + network) pair is the real identity; identityField is the
+# list name (a single field), so the same list may appear once per environment.
+# =============================================================================
+
+id: "akamai-network-list-activation"
+name: "Network List Activation"
+toolType: "akamai"
+entityType: "network-list-activation"
+description: "Activate an Akamai Network List onto STAGING or PRODUCTION via the Network Lists API v2 (EdgeGrid-signed)"
+
+item:
+  label: "Activation"
+  identityField: "networkListName"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Target"
+      icon: "shield"
+      description: "Which network list to activate, and where"
+      fields:
+        - key: "networkListName"
+          label: "Network list name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: "Name of the Network List to activate (its stable identity, shared with the Network Lists config type). The list must already exist."
+
+        - key: "network"
+          label: "Environment"
+          fieldType: "select"
+          required: true
+          defaultValue: "STAGING"
+          options:
+            - label: "Staging"
+              value: "STAGING"
+            - label: "Production"
+              value: "PRODUCTION"
+          helpText: "STAGING for pre-production verification, PRODUCTION to go live. Activate STAGING first; fast activation typically completes in under 10 minutes."
+
+    - name: "Notification"
+      icon: "settings"
+      description: "Optional activation metadata"
+      fields:
+        - key: "comments"
+          label: "Comments"
+          fieldType: "textarea"
+          required: false
+          helpText: "Descriptive text recorded on the activation (Akamai's activationComments). Note the change or ticket reference here."
+
+        - key: "notificationRecipients"
+          label: "Notification recipients"
+          fieldType: "tags"
+          required: false
+          helpText: "Control Center user email addresses to notify when activation completes. One address per tag."

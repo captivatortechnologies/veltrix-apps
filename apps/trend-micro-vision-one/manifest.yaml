@@ -1,15 +1,15 @@
 id: trend-micro-vision-one
 name: Trend Micro Vision One
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
-  Manage Trend Micro Vision One threat intelligence as code. Author the
-  user-defined Suspicious Object List — domains, IPs, URLs, file SHA-1 hashes and
-  sender mail addresses with a block/log scan action, risk level and expiration —
-  and drive it through the Security-as-Code pipeline (validate, deploy, health
-  check, drift detection and rollback) over the Trend Vision One public REST API
-  (v3.0, Bearer token). The connection endpoint is your regional Vision One API
-  host (e.g. api.xdr.trendmicro.com).
+  Manage Trend Micro Vision One threat intelligence and response configuration as
+  code. Author the user-defined Suspicious Object List, its Exception (safe / allow)
+  List and the Response Management custom-script library, and drive them through the
+  Security-as-Code pipeline (validate, deploy, health check, drift detection and
+  rollback) over the Trend Vision One public REST API (v3.0, Bearer token). The
+  connection endpoint is your regional Vision One API host (e.g.
+  api.xdr.trendmicro.com).
 category: EDR
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/trend-micro-vision-one
@@ -31,6 +31,12 @@ permissions:
     - resource: suspicious-objects
       actions: [read, write, delete]
       description: Manage the Trend Vision One user-defined Suspicious Object List (add / update / remove)
+    - resource: exception-list
+      actions: [read, write, delete]
+      description: Manage the Trend Vision One Suspicious Object Exception List — the safe / allow list (add / update / remove)
+    - resource: custom-scripts
+      actions: [read, write, delete]
+      description: Manage the Trend Vision One Response Management custom-script library (add / update / remove)
 
 pipeline:
   configurationTypes:
@@ -51,6 +57,50 @@ pipeline:
         healthCheck: config-types/suspicious-objects/healthCheck
         driftDetect: config-types/suspicious-objects/driftDetect
         getStatus: config-types/suspicious-objects/getStatus
+      targets:
+        componentTypes: [trend-vision-one-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: exception-list
+      group: "Threat Intelligence"
+      name: Exception List
+      description: >
+        Trend Vision One Suspicious Object Exception List — the safe / allow list.
+        Type (domain / ip / url / fileSha1 / fileSha256 / senderMailAddress), value
+        and description, applied over the Vision One public REST API
+        (/v3.0/threatintel/suspiciousObjectExceptions). Exceptions keep matching
+        objects off the Suspicious Object List.
+      canvasTemplate: config-types/exception-list/canvas.yaml
+      defaultConfig: config-types/exception-list/defaults.yaml
+      handlers:
+        validate: config-types/exception-list/validate
+        deploy: config-types/exception-list/deploy
+        rollback: config-types/exception-list/rollback
+        healthCheck: config-types/exception-list/healthCheck
+        driftDetect: config-types/exception-list/driftDetect
+        getStatus: config-types/exception-list/getStatus
+      targets:
+        componentTypes: [trend-vision-one-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: custom-scripts
+      group: "Response Management"
+      name: Custom Scripts
+      description: >
+        Trend Vision One Response Management custom-script library — file name, type
+        (PowerShell / Bash), contents and description, upserted by file name over the
+        Vision One public REST API (/v3.0/response/customScripts, multipart upload).
+      canvasTemplate: config-types/custom-scripts/canvas.yaml
+      defaultConfig: config-types/custom-scripts/defaults.yaml
+      handlers:
+        validate: config-types/custom-scripts/validate
+        deploy: config-types/custom-scripts/deploy
+        rollback: config-types/custom-scripts/rollback
+        healthCheck: config-types/custom-scripts/healthCheck
+        driftDetect: config-types/custom-scripts/driftDetect
+        getStatus: config-types/custom-scripts/getStatus
       targets:
         componentTypes: [trend-vision-one-tenant]
         requiresCredential: true

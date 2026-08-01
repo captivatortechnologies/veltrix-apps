@@ -2,6 +2,33 @@
 
 All notable changes to the Tanium app are documented here.
 
+## 0.2.0 — 2026-08-01
+
+Two new configuration types over the Tanium REST v2 API.
+
+- **Saved Questions** config type — add / edit / delete Tanium saved questions
+  (`/api/v2/saved_questions`). A saved question pairs a name with a question:
+  supply the question text (sent inline for the server to parse) or a pre-parsed
+  Question ID (the verified `{ name, question: { id } }` path). Full pipeline:
+  validate / deploy (upsert by name) / rollback / health-check / drift-detect
+  (question text) / status.
+- **Packages** config type — add / edit / delete Tanium packages
+  (`/api/v2/packages`). A package is a name plus the `command` the Tanium Client
+  runs, with optional display name, command timeout and expiry. Full pipeline:
+  validate / deploy (upsert by name) / rollback / health-check / drift-detect
+  (command + timeout) / status.
+- **Shared REST v2 seam** — `lib/taniumRestEntity.ts` centralises the common
+  named-object verbs (list, by-name, by-id, create, delete) and the upsert /
+  rollback engine; `lib/taniumHealth.ts` and `lib/taniumStatus.ts` share the
+  health check and deployment status across config types.
+
+> **Verify against a live Tanium.** These objects expose no confirmed in-place
+> update in REST v2, so an existing one is replaced by **delete + recreate**
+> (which churns the object id). Saved-question inline `question.question_text`
+> parsing and the package `command_timeout_seconds` field name are REST v2
+> conventions the public integrations do not exercise — see README "Verify
+> against a live Tanium".
+
 ## 0.1.0 — 2026-08-01
 
 Initial release — foundation + first config type.

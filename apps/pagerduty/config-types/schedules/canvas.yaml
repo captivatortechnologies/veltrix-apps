@@ -1,0 +1,58 @@
+# =============================================================================
+# Canvas Template — PagerDuty Schedules
+#
+# Declares ONE PagerDuty on-call schedule (the item). Users add as many as they
+# need. Field keys must match config-types/schedules/_shared.ts. Applied via the
+# PagerDuty REST API v2 (/schedules) at https://api.pagerduty.com.
+#
+# PagerDuty assigns the server id, so identity for reconciliation is the schedule
+# `name`. A schedule has an IANA time_zone (required) and one or more
+# schedule_layers describing the rotation (start, rotation anchor + turn length,
+# and the ordered users who rotate through it).
+# =============================================================================
+
+id: "pagerduty-schedules"
+name: "Schedules"
+toolType: "pagerduty"
+entityType: "schedules"
+description: "Manage PagerDuty on-call schedules — name, time zone and rotation layers — via the PagerDuty REST API v2 (/schedules). Reconciled by name."
+
+item:
+  label: "Schedule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Schedule"
+      icon: "calendar"
+      description: "Schedule identity, time zone and rotation layers"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The schedule name shown in PagerDuty. Used as the stable identity for upsert and drift."
+
+        - key: "time_zone"
+          label: "Time Zone (IANA)"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 64
+          helpText: "The schedule's time zone as an IANA name, e.g. \"America/New_York\" or \"Etc/UTC\". Required by PagerDuty to create a schedule."
+
+        - key: "schedule_layers"
+          label: "Schedule Layers (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            Required JSON array of rotation layers, applied bottom-up. Each layer is
+            { "start": "<ISO 8601>", "rotation_virtual_start": "<ISO 8601>", "rotation_turn_length_seconds": <seconds>,
+            "users": [ { "user": { "id": "<PagerDuty user id>", "type": "user_reference" } } ] }.
+            rotation_turn_length_seconds sets how long each person is on call (e.g. 86400 = daily,
+            604800 = weekly). Optional per-layer "name", "end" and "restrictions" are passed through. e.g.
+            [{"start":"2026-01-01T00:00:00Z","rotation_virtual_start":"2026-01-01T00:00:00Z","rotation_turn_length_seconds":604800,"users":[{"user":{"id":"PABC123","type":"user_reference"}}]}].
+            Must contain at least one layer, and every layer at least one user.

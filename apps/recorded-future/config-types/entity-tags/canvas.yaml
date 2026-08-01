@@ -1,0 +1,81 @@
+# =============================================================================
+# Canvas Template — Recorded Future Watch List Entity Tags
+#
+# Declares ONE tagging target (the item): the FULL tag set for a single entity on
+# a company-type Recorded Future list (a Third-Parties Watch List). Users add as
+# many as they need. Applied over the List API "Replace Entity Tags" endpoint,
+# which sets the COMPLETE tag set on the entity (POST /list/{id}/entity/tags).
+#
+# The entity reference (id or company name) is the item's stable identity used to
+# upsert and detect drift. Field keys must match
+# config-types/entity-tags/validate.ts.
+#
+# VERIFY the entity-resolution semantics ({ id } vs { type: "Company", name }) and
+# the tag vocabulary against a live Recorded Future account — see
+# config-types/entity-tags/_shared.ts.
+# =============================================================================
+
+id: "recorded-future-entity-tags"
+name: "Watch List Entity Tags"
+toolType: "recorded-future"
+entityType: "entity-tags"
+description: "Manage the tags on entities of a Recorded Future company-type list (Third-Parties Watch List) as code — a full-replace tag set per entity — via the Recorded Future List API (POST /list/{id}/entity/tags)."
+
+item:
+  label: "Entity Tagging"
+  identityField: "entityRef"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Target"
+      icon: "crosshair"
+      description: "The list and entity to tag"
+      fields:
+        - key: "listName"
+          label: "List Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The company-type Recorded Future list (Third-Parties Watch List) that holds the entity. Tags are only supported on company-type lists."
+
+        - key: "entityRef"
+          label: "Entity"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The entity to tag: its Recorded Future entity id (e.g. CK2WP) — preferred — or the exact company name as it appears on the list. Used as this item's identity for upsert and drift."
+
+        - key: "matchBy"
+          label: "Match Entity By"
+          fieldType: "select"
+          required: true
+          defaultValue: "id"
+          options:
+            - { label: "Recorded Future entity id", value: "id" }
+            - { label: "Company name", value: "name" }
+          helpText: "How to interpret the Entity value. 'id' sends { id }; 'name' resolves it as a Company by { type: \"Company\", name }."
+
+    - name: "Tags"
+      icon: "tag"
+      description: "The complete tag set for this entity"
+      fields:
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          required: false
+          helpText: "The COMPLETE set of tags for this entity — deploy REPLACES all existing tags with exactly these (max 9). Recorded Future tags are a fixed vocabulary (e.g. tier1, critical, gdpr, pci_dss, pii, financial, subsidiary). Leaving this empty clears all tags on the entity."
+
+    - name: "Metadata"
+      icon: "settings"
+      description: "Audit note"
+      fields:
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why these tags are configured — recorded for audit (not sent to Recorded Future)."

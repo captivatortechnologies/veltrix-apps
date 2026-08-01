@@ -1,0 +1,82 @@
+# =============================================================================
+# Canvas Template — Vectra Groups
+#
+# Declares ONE Vectra group (the item). Users add as many as they need. Field keys
+# must match config-types/groups/validate.ts. Applied via the Vectra Detect REST
+# API (/api/v2.5/groups) on port 443.
+#
+# Groups scope detection tuning and reporting — a named set of hosts, IPs, domains
+# or accounts. The group `type` decides what `members` mean:
+#   host    → numeric Vectra host IDs
+#   ip      → IP addresses or CIDR ranges
+#   domain  → domain names
+#   account → account UIDs
+#
+# FLAG (verify against a live Vectra): the official v2 API validates group type as
+# one of host / domain / ip. "account" groups exist in the product but are NOT in
+# that validation list — verify account-group creation before relying on it. A
+# group's `type` is set at create time only (the v2 PATCH body carries name /
+# description / members). Dynamic regex membership (`rules`) is out of scope for
+# this config type — only static members are managed.
+# =============================================================================
+
+id: "vectra-groups"
+name: "Groups"
+toolType: "vectra-ai"
+entityType: "groups"
+description: "Manage Vectra groups — named sets of hosts, IPs, domains or accounts used to scope detection tuning — via the Vectra Detect REST API (v2.5, 443)"
+
+item:
+  label: "Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Group"
+      icon: "users"
+      description: "Identity and kind of the group"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Group name. Used as the group's stable identity for upsert and drift matching — keep it unique per Vectra instance."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "host"
+          options:
+            - label: "Host"
+              value: "host"
+            - label: "IP"
+              value: "ip"
+            - label: "Domain"
+              value: "domain"
+            - label: "Account"
+              value: "account"
+          helpText: "What the members are. host / ip / domain are confirmed by Vectra's v2 API; VERIFY 'account' against your Vectra. Type is set at create time only and cannot be changed on an existing group."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Optional human-readable description of what the group represents."
+
+    - name: "Membership"
+      icon: "list"
+      description: "Static members of the group"
+      fields:
+        - key: "members"
+          label: "Members"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 8000
+          helpText: "Comma- or newline-separated members. Their meaning follows the group type: host → numeric host IDs (e.g. 3345, 3410); ip → IPs/CIDRs (e.g. 10.1.1.0/24); domain → domains (e.g. evil.example.com); account → account UIDs. Dynamic regex rules are not managed here."

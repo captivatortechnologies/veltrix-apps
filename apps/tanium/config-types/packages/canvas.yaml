@@ -1,0 +1,76 @@
+# =============================================================================
+# Canvas Template — Tanium Packages
+#
+# Declares ONE Tanium package (the item). Users add as many as they need. Field
+# keys must match config-types/packages/validate.ts. Applied via the Tanium REST
+# v2 API (/api/v2/packages, .../by-name/{name}, .../{id}) on port 443.
+#
+# A package is a `name` plus a `command` line the Tanium Client runs, with optional
+# display name, command timeout and expiry. Update = delete + recreate (REST v2
+# exposes no confirmed in-place update for packages).
+# =============================================================================
+
+id: "tanium-packages"
+name: "Packages"
+toolType: "tanium"
+entityType: "packages"
+description: "Manage Tanium packages — a name and a command the Tanium Client runs — via the Tanium REST v2 API (443)"
+
+item:
+  label: "Package"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Package"
+      icon: "package"
+      description: "Package identity and the command it runs"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Package name shown in Tanium. Used as the stable identity for upsert and drift."
+
+        - key: "command"
+          label: "Command"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 4000
+          helpText: "The command line the Tanium Client runs, e.g. cmd /c dir. Maps to the package's command field."
+
+        - key: "displayName"
+          label: "Display Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Optional friendly display name for the package. Maps to display_name."
+
+        - key: "commandTimeout"
+          label: "Command Timeout (seconds)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+          helpText: "Optional seconds the command may run before it is stopped. Maps to command_timeout_seconds (some builds name it command_timeout — verify against your Tanium)."
+
+        - key: "expireSeconds"
+          label: "Expire (seconds)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+          helpText: "Optional seconds after which the package action expires. Maps to expire_seconds."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this package is configured — recorded for audit"

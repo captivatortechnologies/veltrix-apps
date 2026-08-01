@@ -254,3 +254,55 @@ export function secretServerErrorMessage(res: SecretServerResponse): string {
   if (parsed?.message) return parsed.errorCode ? `${parsed.message} (${parsed.errorCode})` : parsed.message
   return res.body ? res.body.slice(0, 300) : `HTTP ${res.status}`
 }
+
+// --- Shared list helpers ------------------------------------------------------
+// Secret Server list endpoints return a paginated `{ records, total }` envelope
+// (some return a bare array). These generic helpers are reused across config
+// types (groups, secret-policies) so the envelope parsing + skip/take paging
+// lives in exactly one place.
+
+/** Normalize a checkbox / yes-no / 1-0 value to a boolean. */
+export function normalizeBool(value: unknown): boolean {
+  if (typeof value === 'boolean') return value
+  const s = String(value ?? '').trim().toLowerCase()
+  return s === 'true' || s === '1' || s === 'yes'
+}
+
+/** Parse a Secret Server list response — a `{ records, total }` envelope or a bare array. */
+export function recordsFromResponse<T = Record<string, unknown>>(body: string): { records: T[]; total?: number } {
+  const parsed = parseJson<unknown>(body)
+  if (Array.isArray(parsed)) return { records: parsed as T[] }
+  if (parsed && typeof parsed === 'object') {
+    const obj = parsed as { records?: unknown; total?: unknown }
+    if (Array.isArray(obj.records)) {
+      return { records: obj.records as T[], total: typeof obj.total === 'number' ? obj.total : undefined }
+    }
+  }
+  return { records: [] }
+}
+
+/**
+ * GET every page of a Secret Server list endpoint, concatenating `records`.
+ * Pages via skip/take (take capped at 100 by the API). Throws on a non-OK
+ * response. NOTE: the skip/take + `{ records, total }` envelope follows the
+ * documented Secret Server v1 REST list convention; verify against a live
+ * instance.
+ */
+export async function listAllRecords<T = Record<string, unknown>>(
+  client: SecretServerClient,
+  apiPath: string,
+  query: Record<string, string | number | boolean | undefined> = {},
+): Promise<T[]> {
+  const out: T[] = []
+  const take = 100
+  let skip = 0
+  for (let page = 0; page < 100; page++) {
+    const res = await client.request('GET', apiPath, { query: { ...query, take, skip } })
+    if (!res.ok) throw new Error(`Failed to list ${apiPath}: ${secretServerErrorMessage(res)}`)
+    const { records, total } = recordsFromResponse<T>(res.body)
+    out.push(...records)
+    skip += records.length
+    if (records.length < take || (total !== undefined && skip >= total)) break
+  }
+  return out
+}

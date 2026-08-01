@@ -1,0 +1,76 @@
+# =============================================================================
+# Canvas Template — Orca Discovery Views (saved user preferences)
+#
+# Declares ONE Orca discovery view — the item. Users add as many as they need.
+# Views are created / updated through the Orca REST API
+# (POST /api/user_preferences, PUT /api/user_preferences/{id}) and reconciled by
+# the preference id this app assigns and persists per item (see deploy.ts) so a
+# view can be renamed without losing its identity.
+#
+# A discovery view saves a Discovery (inventory) query so a team can re-run it.
+# The query is authored here as JSON (the `query2` structure), matching the API.
+# Set "Share with organization" so the view is visible to the whole org rather
+# than only the API-token user.
+#
+# Field keys must match config-types/discovery-views/validate.ts + _shared.ts.
+# =============================================================================
+
+id: "orca-discovery-views"
+name: "Discovery Views"
+toolType: "orca-security"
+entityType: "discovery-views"
+description: "Define Orca discovery views (saved inventory queries) as code through the Orca REST API. Each view stores a Discovery query, optionally shared org-wide."
+
+item:
+  label: "Discovery View"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Discovery View"
+      icon: "search"
+      description: "Name, type and sharing"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The discovery view name — its logical identity. Shown in Orca."
+
+        - key: "viewType"
+          label: "View Type"
+          fieldType: "text"
+          required: false
+          defaultValue: "discovery"
+          validation:
+            maxLength: 64
+          helpText: "The Orca view type. Default: discovery. Other view types are unverified for this write path."
+
+        - key: "organizationLevel"
+          label: "Share with organization"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "When on, the view is visible to the whole org. When off, it is a personal view owned by the API-token user and may not appear in other users' UI."
+
+    - name: "Query"
+      icon: "code"
+      description: "The Discovery query and optional display parameters (JSON)"
+      fields:
+        - key: "query"
+          label: "Discovery Query (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 20000
+          helpText: 'The Discovery query object as JSON (the query2 structure). Copy it from the Orca Discovery UI / API.'
+
+        - key: "extraParams"
+          label: "Extra Params (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: 'Optional display parameters as a JSON object (e.g. selected columns, grouping). Leave blank for the view defaults.'

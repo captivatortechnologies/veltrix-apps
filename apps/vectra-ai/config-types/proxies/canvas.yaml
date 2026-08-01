@@ -1,0 +1,48 @@
+# =============================================================================
+# Canvas Template — Vectra Proxies
+#
+# Declares ONE Vectra proxy (the item). Users add as many as they need. Field keys
+# must match config-types/proxies/validate.ts. Applied via the Vectra Detect REST
+# API (/api/v2.5/proxies) on port 443.
+#
+# Registering an internal IP as a proxy tells Vectra to attribute detections to the
+# real client behind the proxy rather than to the proxy host itself. `considerProxy`
+# toggles that attribution behaviour for the address.
+#
+# FLAG (verify against a live Vectra): the create/update body wraps the fields under
+# `{ proxy: { address, considerProxy } }`; the list-response envelope shape is read
+# defensively (`proxies` or DRF `results`, flattened or nested). Verify against your
+# Vectra brain.
+# =============================================================================
+
+id: "vectra-proxies"
+name: "Proxies"
+toolType: "vectra-ai"
+entityType: "proxies"
+description: "Manage Vectra proxy IPs — internal addresses Vectra treats as proxies so detections are attributed to the real client behind them — via the Vectra Detect REST API (v2.5, 443)"
+
+item:
+  label: "Proxy"
+  identityField: "address"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Proxy"
+      icon: "server"
+      description: "The internal proxy address and how Vectra treats it"
+      fields:
+        - key: "address"
+          label: "Address"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 64
+          helpText: "Internal IP address (or CIDR) of the proxy. Used as the proxy's stable identity for upsert and drift matching — keep it unique per Vectra instance."
+
+        - key: "considerProxy"
+          label: "Consider as proxy"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "When on, Vectra treats this address as a proxy and attributes detections to the real client behind it. Turn off to register the address but suspend proxy attribution."

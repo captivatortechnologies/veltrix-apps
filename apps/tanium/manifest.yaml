@@ -1,13 +1,13 @@
 id: tanium
 name: Tanium
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
-  Manage Tanium endpoint management as code. Author Tanium computer groups and
-  drive them through the Security-as-Code pipeline — validate, deploy, health
-  check, drift detection and rollback — over the Tanium REST v2 API (HTTPS 443,
-  self-signed tolerated). Authenticates with a Tanium API token or a username +
-  password session login.
+  Manage Tanium endpoint management as code. Author Tanium computer groups, saved
+  questions and packages and drive them through the Security-as-Code pipeline —
+  validate, deploy, health check, drift detection and rollback — over the Tanium
+  REST v2 API (HTTPS 443, self-signed tolerated). Authenticates with a Tanium API
+  token or a username + password session login.
 category: Endpoint Management
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/tanium
@@ -30,6 +30,12 @@ permissions:
     - resource: computer-groups
       actions: [read, write, delete]
       description: Manage Tanium computer groups (add / edit / delete)
+    - resource: saved-questions
+      actions: [read, write, delete]
+      description: Manage Tanium saved questions (add / edit / delete)
+    - resource: packages
+      actions: [read, write, delete]
+      description: Manage Tanium packages (add / edit / delete)
 
 pipeline:
   configurationTypes:
@@ -46,6 +52,42 @@ pipeline:
         healthCheck: config-types/computer-groups/healthCheck
         driftDetect: config-types/computer-groups/driftDetect
         getStatus: config-types/computer-groups/getStatus
+      targets:
+        componentTypes: [tanium-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: saved-questions
+      group: "Endpoint Management"
+      name: Saved Questions
+      description: Tanium saved questions — a name and a question (text or a pre-parsed question id) — applied over the Tanium REST v2 API (443)
+      canvasTemplate: config-types/saved-questions/canvas.yaml
+      defaultConfig: config-types/saved-questions/defaults.yaml
+      handlers:
+        validate: config-types/saved-questions/validate
+        deploy: config-types/saved-questions/deploy
+        rollback: config-types/saved-questions/rollback
+        healthCheck: config-types/saved-questions/healthCheck
+        driftDetect: config-types/saved-questions/driftDetect
+        getStatus: config-types/saved-questions/getStatus
+      targets:
+        componentTypes: [tanium-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: packages
+      group: "Endpoint Management"
+      name: Packages
+      description: Tanium packages — a name and a command the Tanium Client runs, with optional display name / timeout / expiry — applied over the Tanium REST v2 API (443)
+      canvasTemplate: config-types/packages/canvas.yaml
+      defaultConfig: config-types/packages/defaults.yaml
+      handlers:
+        validate: config-types/packages/validate
+        deploy: config-types/packages/deploy
+        rollback: config-types/packages/rollback
+        healthCheck: config-types/packages/healthCheck
+        driftDetect: config-types/packages/driftDetect
+        getStatus: config-types/packages/getStatus
       targets:
         componentTypes: [tanium-server, standalone]
         requiresCredential: true

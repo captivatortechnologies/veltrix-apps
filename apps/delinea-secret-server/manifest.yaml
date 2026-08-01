@@ -1,14 +1,14 @@
 id: delinea-secret-server
 name: Delinea Secret Server
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Delinea Secret Server (Privileged Access Management) configuration as
-  code through the Secret Server REST API. Author folders as code and drive them
-  through the Security-as-Code pipeline — validate, deploy, health check, drift
-  detection and rollback — over HTTPS (OAuth2 password-grant bearer token,
-  self-signed tolerated). Works against on-prem (<host>/SecretServer) and cloud
-  (<tenant>.secretservercloud.com) instances.
+  code through the Secret Server REST API. Author folders, secret policies and
+  groups as code and drive them through the Security-as-Code pipeline — validate,
+  deploy, health check, drift detection and rollback — over HTTPS (OAuth2
+  password-grant bearer token, self-signed tolerated). Works against on-prem
+  (<host>/SecretServer) and cloud (<tenant>.secretservercloud.com) instances.
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/delinea-secret-server
@@ -30,6 +30,12 @@ permissions:
     - resource: folders
       actions: [read, write, delete]
       description: Manage Delinea Secret Server folders (create / update)
+    - resource: secret-policies
+      actions: [read, write, delete]
+      description: Manage Delinea Secret Server secret policies (create / update)
+    - resource: groups
+      actions: [read, write, delete]
+      description: Manage Delinea Secret Server local groups (create / update)
 
 pipeline:
   configurationTypes:
@@ -45,6 +51,40 @@ pipeline:
         healthCheck: config-types/folders/healthCheck
         driftDetect: config-types/folders/driftDetect
         getStatus: config-types/folders/getStatus
+      targets:
+        componentTypes: [delinea-secret-server]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: secret-policies
+      name: Secret Policies
+      description: Secret Server secret policies (/api/v1/secret-policy) — policy name, description and active state; reconciled by name (upsert by name, PATCH grid-update)
+      canvasTemplate: config-types/secret-policies/canvas.yaml
+      defaultConfig: config-types/secret-policies/defaults.yaml
+      handlers:
+        validate: config-types/secret-policies/validate
+        deploy: config-types/secret-policies/deploy
+        rollback: config-types/secret-policies/rollback
+        healthCheck: config-types/secret-policies/healthCheck
+        driftDetect: config-types/secret-policies/driftDetect
+        getStatus: config-types/secret-policies/getStatus
+      targets:
+        componentTypes: [delinea-secret-server]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: groups
+      name: Groups
+      description: Secret Server local groups (/api/v1/groups) — group name and enabled state; reconciled by name (create verified, PUT update flagged for live verification)
+      canvasTemplate: config-types/groups/canvas.yaml
+      defaultConfig: config-types/groups/defaults.yaml
+      handlers:
+        validate: config-types/groups/validate
+        deploy: config-types/groups/deploy
+        rollback: config-types/groups/rollback
+        healthCheck: config-types/groups/healthCheck
+        driftDetect: config-types/groups/driftDetect
+        getStatus: config-types/groups/getStatus
       targets:
         componentTypes: [delinea-secret-server]
         requiresCredential: true
