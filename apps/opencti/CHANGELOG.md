@@ -2,6 +2,40 @@
 
 All notable changes to the OpenCTI app are documented here.
 
+## 0.3.0 — 2026-08-01
+
+BYOL infrastructure hosting — provision and manage a dedicated OpenCTI stack
+(bring-your-own-license) from an **Infrastructure** console, then run its
+lifecycle. Adapted from the MISP BYOL subsystem, but **node_tiers-native**: the
+per-tier node counts + placement are stored ONLY in a `node_tiers` JSONB column
+(no legacy indexer/search-head columns).
+
+- **Three user-scalable node tiers** — Platform nodes (OpenCTI GraphQL/web),
+  Ingest workers, and Search nodes (Elasticsearch / OpenSearch). A distributed
+  search tier requires ≥3 nodes for a real cluster (enforced server-side); the
+  platform tier is ALB-fronted (OpenCTI web/GraphQL on 4000).
+- **Fixed supporting services** added to every distributed plan automatically —
+  Redis (cache / sessions / stream), RabbitMQ (worker broker) and MinIO / S3
+  object storage — plus the foundation (network, load balancer, DNS, TLS,
+  secrets).
+- **Declarative `infra/spec.ts`** — composes the same generic OpenTofu modules as
+  the other BYOL apps by declaring OpenCTI's ports/roles + an S3 object-storage
+  bucket. No tool-specific HCL.
+- **`/byol` routes** — list / get / create / update / delete / plan / deploy /
+  destroy / start-stop-restart / resources / deployments, plus usage metering
+  (`/byol/usage`, `/byol/usage/collect`). Terraform-style plan diff, canonical
+  tenant/cost tags and a per-stack subnet reservation on deploy.
+- **App-owned schema** (`opencti_`-prefixed) — infrastructure + resource plan +
+  deployment runs/steps (migration 002) and the state-event + daily usage ledger
+  for node-hours billing (migration 003).
+- **Permissions** — new `byol` (read/write/delete) and `usage` (read/write) app
+  resources.
+
+> Stack sizing / ports are a reasonable default — **verify against current
+> OpenCTI deployment guidance** (docs.opencti.io) before treating them as
+> production-grade. The ALB health-check path (`/`) and the search-tier minimum
+> (≥3) are flagged in-code.
+
 ## 0.2.0 — 2026-08-01
 
 Three more configuration types, each with the full pipeline (validate / deploy /

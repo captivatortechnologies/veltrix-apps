@@ -2,6 +2,33 @@
 
 All notable changes to the Velociraptor app are documented here.
 
+## 0.3.0 — 2026-08-01
+
+BYOL infrastructure hosting for the Velociraptor server stack.
+
+- **BYOL infrastructure** — provision and manage a dedicated Velociraptor server
+  (bring-your-own-license) from an **Infrastructure** page (wraps the SDK
+  `ByolInfrastructureManager`): define the topology, deploy to a Veltrix-hosted or
+  your own cloud account (BYOC), then run its lifecycle (plan → deploy → destroy,
+  start/stop/restart) from the deployment console.
+- **node_tiers-native topology** — two user-scalable tiers stored generically in a
+  `node_tiers` JSONB column (`[{key,count,placement}]`), no legacy count columns:
+  - **Frontend nodes** (`velociraptor-server`) — the Velociraptor server (GUI 8889
+    + frontend 8000 + gRPC API 8001), ALB-fronted and horizontally scalable.
+  - **Datastore nodes (MinIO)** (`datastore`) — the shared S3/MinIO file+datastore
+    backend every frontend reads/writes.
+  Plus the fixed foundation (network, load balancer, DNS, TLS, secrets) — see
+  `infra/spec.ts` and `lib/byolTopology.ts`.
+- **App-owned provisioning + metering** — `/byol` routes derive a Terraform-style
+  resource plan from the stack topology, persist it, track deployment runs + steps,
+  and emit provisioning events for downstream workers; a lifecycle state log feeds
+  daily node-hours usage metering (`/byol/usage`). Tables are `velociraptor_`-owned
+  (migrations `002`/`003`).
+
+> The Velociraptor ports (GUI 8889 / frontend 8000 / gRPC API 8001), the GUI
+> health-check path, and the MinIO datastore sizing are reasonable defaults —
+> verify them against a live Velociraptor deployment before production use.
+
 ## 0.2.0 — 2026-08-01
 
 Three new config types, all driven over the same gRPC/mTLS VQL seam.

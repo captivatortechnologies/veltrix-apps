@@ -1,13 +1,14 @@
 id: velociraptor
 name: Velociraptor
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Velociraptor (open-source endpoint DFIR / hunting platform) as code.
   Author custom VQL artifacts, client + server event monitoring, and GUI users /
   roles, and drive them through the Security-as-Code pipeline — validate, deploy,
   health check, drift detection and rollback — over the Velociraptor gRPC API
-  (mutual TLS), executing VQL against the server.
+  (mutual TLS), executing VQL against the server, with BYOL infrastructure
+  provisioning for the Velociraptor stack (frontends + shared MinIO datastore).
 category: EDR
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/velociraptor
@@ -36,6 +37,16 @@ permissions:
     - resource: users
       actions: [read, write, delete]
       description: Manage Velociraptor GUI users and their roles
+    - resource: byol
+      actions: [read, write, delete]
+      description: Manage BYOL Velociraptor stack infrastructure
+    - resource: usage
+      actions: [read, write]
+      description: Read BYOL infrastructure usage metering
+
+database:
+  migrations: migrations
+  tablePrefix: velociraptor_
 
 pipeline:
   configurationTypes:
@@ -145,6 +156,14 @@ client:
       label: Setup Guide
       icon: book
       nav: sidebar
+    # BYOL stack infrastructure — Config nav group. Wraps the SDK
+    # <ByolInfrastructureManager> over this app's app-owned /byol routes.
+    - path: /byol
+      component: BYOLPage
+      label: Infrastructure
+      icon: server
+      nav: sidebar
+      group: config
     # Connections — Settings nav group. Pairs the Velociraptor server (component)
     # with the api-client config bundle (credential), with a connectivity test.
     - path: /connections

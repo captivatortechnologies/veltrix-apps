@@ -2,7 +2,7 @@
 
 > How a request is routed through the system — from the moment you act to when it reaches completion. **Auto-generated** from `manifest.yaml` (regenerate via `scripts/dataflow/generate.mjs`).
 
-**App:** `velociraptor` · **Category:** EDR · **Version:** 0.2.0  
+**App:** `velociraptor` · **Category:** EDR · **Version:** 0.3.0  
 **Operations:** Deploy a configuration · Detect drift · Roll back · Test connection  
 Talks to **Velociraptor API** · credentials via the Credential Vault (`ctx.resolveConnection`) · reachable over `ctx.remote`.
 

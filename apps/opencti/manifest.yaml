@@ -1,13 +1,15 @@
 id: opencti
 name: OpenCTI
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage OpenCTI (open-source cyber threat-intelligence platform) as code. Author
-  threat-intel configuration — starting with data-marking definitions (TLP / PAP /
-  statement) — and drive it through the Security-as-Code pipeline: validate, deploy,
-  health check, drift detection and rollback, over the OpenCTI GraphQL API (HTTPS,
-  Bearer token, self-signed tolerated).
+  threat-intel configuration — data-marking definitions (TLP / PAP / statement),
+  labels, RBAC groups and TAXII2 ingestion feeds — and drive it through the
+  Security-as-Code pipeline: validate, deploy, health check, drift detection and
+  rollback, over the OpenCTI GraphQL API (HTTPS, Bearer token, self-signed
+  tolerated), with BYOL infrastructure provisioning for the OpenCTI stack
+  (platform + workers + Elasticsearch + Redis + RabbitMQ + object storage).
 category: Threat Intelligence
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/opencti
@@ -39,6 +41,16 @@ permissions:
     - resource: ingestion-feeds
       actions: [read, write, delete]
       description: Manage OpenCTI TAXII2 ingestion feeds (add / edit / delete)
+    - resource: byol
+      actions: [read, write, delete]
+      description: Manage BYOL OpenCTI stack infrastructure
+    - resource: usage
+      actions: [read, write]
+      description: Read BYOL infrastructure usage metering
+
+database:
+  migrations: migrations
+  tablePrefix: opencti_
 
 pipeline:
   configurationTypes:
@@ -139,6 +151,14 @@ client:
       label: Setup Guide
       icon: book
       nav: sidebar
+    # BYOL stack infrastructure — Config nav group. Wraps the SDK
+    # <ByolInfrastructureManager> over this app's app-owned /byol routes.
+    - path: /byol
+      component: BYOLPage
+      label: Infrastructure
+      icon: server
+      nav: sidebar
+      group: config
     # Connections — Settings nav group. Pairs the OpenCTI platform (component) with
     # the user's OpenCTI API token (credential), with a per-row connectivity test.
     - path: /connections

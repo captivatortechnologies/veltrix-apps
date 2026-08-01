@@ -40,6 +40,28 @@ The artifact name is the stable identity used to upsert (add vs update) and to
 detect drift; deploy snapshots the prior definition YAML so rollback can restore
 it (or delete an artifact it created).
 
+## BYOL infrastructure
+
+The **Infrastructure** page (wraps the SDK `ByolInfrastructureManager`) provisions
+and manages a dedicated Velociraptor server stack (bring-your-own-license) over
+this app's app-owned `/byol` routes. The stack is **node_tiers-native**: two
+user-scalable tiers are stored generically in a `node_tiers` JSONB column
+(`[{key,count,placement}]`), with no legacy count columns.
+
+| Tier (key) | Component kind | Role |
+|---|---|---|
+| **Frontend nodes** (`frontend`) | `velociraptor-server` | Velociraptor server: GUI (8889) + frontend (8000) + gRPC API (8001), ALB-fronted, scales horizontally |
+| **Datastore nodes (MinIO)** (`datastore`) | `datastore` | Shared S3/MinIO file+datastore backend every frontend reads/writes |
+
+`infra/spec.ts` declares the stack (the two roles above plus an all-in-one
+`standalone`) as a declarative `InfraSpec` composed from the generic OpenTofu
+modules — no tool-specific HCL. `lib/byolTopology.ts` derives the resource plan
+by tier key; `lib/byolInput.ts` validates the per-tier minimums; the app-owned
+tables (`velociraptor_byol_*`, migrations `002`/`003`) persist the record,
+resource plan, deployment runs and daily node-hours usage. The generic
+provisioning worker runs `infra/bringup/velociraptor-setup.mjs` after `tofu
+apply`, gating readiness on the Velociraptor GUI + frontend.
+
 ## Transport seam
 
 The gRPC/proto transport is isolated in `lib/velociraptorApi.ts` behind a small,
