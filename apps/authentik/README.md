@@ -4,11 +4,13 @@ Manage [authentik](https://goauthentik.io) (open-source Identity Provider) as
 code. Author authentik **Applications**, **OAuth2/OpenID Providers**,
 **Groups** and **Flows** in the Configuration Canvas and drive them through the
 Security-as-Code pipeline (validate → deploy → health check → drift detection →
-rollback) over the **authentik REST API**.
+rollback) over the **authentik REST API** — and optionally have Veltrix host the
+authentik stack itself via **BYOL infrastructure provisioning**.
 
 - **Category:** IAM
 - **Component type:** `authentik-server` (also accepts `standalone`)
 - **Config types:** `applications`, `oauth2-providers`, `groups`, `flows`
+- **BYOL:** Server + Worker node tiers, PostgreSQL (no Redis — see below)
 
 ## How it connects
 
@@ -234,6 +236,93 @@ top of it.
   https://api.goauthentik.io/reference/flows-instances-list,
   flows-instances-create, flows-instances-retrieve,
   flows-instances-partial-update, flows-instances-destroy
+
+## BYOL infrastructure hosting
+
+Beyond configuring an existing authentik instance, this app can provision and
+manage a dedicated authentik stack end to end (bring-your-own-license): define
+a topology, deploy to a Veltrix-hosted or your own cloud account, then manage
+its lifecycle from the **Infrastructure** page (Settings nav group). This
+follows the same node_tiers-native BYOL model as `apps/greenbone` and
+`apps/keycloak` — an app-owned `/byol` route surface + DB tables, wrapping the
+SDK's `<ByolInfrastructureManager>` for the console UI.
+
+### Topology
+
+authentik ships **one container image** that runs as either role via its
+startup command:
+
+| Tier | Kind | Role | Ports |
+| --- | --- | --- | --- |
+| **Server** (scalable, min 1) | `authentik-server` | Web/API — the ALB target; runs `command: server` | 9000 HTTP (ALB target), 9443 HTTPS (direct/admin) |
+| **Worker** (scalable, min 1) | `authentik-worker` | Background tasks (scheduled jobs, outpost sync, flow stages); runs `command: worker` | none exposed |
+| PostgreSQL (fixed, single) | `postgres` | authentik's database | 5432 (peer-only) |
+
+A single-node deployment collapses everything to one all-in-one `standalone`
+box. Multi-site placement (per availability zone or per region) is available
+on the Server and Worker tiers in a distributed deployment.
+
+### ⚠ No Redis — verified, not an oversight
+
+Earlier authentik releases needed Redis for caching, the task broker, the
+embedded outpost's session store and WebSocket connections. **authentik 2025.10
+removed this dependency entirely:**
+
+> "In previous versions, authentik used Redis for caching, tasks, the embedded
+> proxy outpost's session store, and WebSocket connections. Since 2025.8, tasks
+> were migrated to use Postgres. With this release we've also migrated
+> caching, the embedded outpost, and WebSocket to Postgres, fully removing the
+> need for Redis."
+> — [authentik 2025.10 release notes](https://docs.goauthentik.io/releases/2025.10/), "Breaking changes"
+
+Corroborated directly against the CURRENT official
+[`docker-compose.yml`](https://docs.goauthentik.io/compose.yml) (tag
+`2026.5.6` at research time) and the official
+[Helm chart's `values.yaml`](https://raw.githubusercontent.com/goauthentik/helm/main/charts/authentik/values.yaml)
+— neither references Redis anywhere; both wire `server` and `worker` to
+PostgreSQL only. This topology was built to match, not a template shape that
+predates the removal.
+
+### Ports & health checks (cited)
+
+- **9000 (HTTP)** / **9443 (HTTPS)** — authentik's internal listener ports.
+  ("By default, authentik listens internally on port 9000 for HTTP and 9443
+  for HTTPS." —
+  [docs.goauthentik.io/docs/install-config/install/docker-compose](https://docs.goauthentik.io/docs/install-config/install/docker-compose))
+- **`GET /-/health/live/`** and **`GET /-/health/ready/`** on port 9000 — the
+  server's liveness/readiness endpoints (verified against the official Helm
+  chart's `values.yaml`, `server.livenessProbe`/`readinessProbe`, `httpGet`
+  port `"http"` = 9000). The load balancer's health check uses
+  `/-/health/live/`.
+- The **worker** exposes no HTTP port at all in the reference deployments —
+  its own k8s liveness/readiness probes run `exec: [ak, healthcheck]`, not an
+  HTTP call.
+- Same image, different command — confirmed directly in the official
+  `docker-compose.yml`: both the `server` and `worker` services use
+  `image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}` and differ only in
+  `command: server` / `command: worker`; both `depends_on` PostgreSQL.
+
+**Flagged as reasonable defaults to verify**, not confirmed by authentik's own
+docs: exact per-tier instance sizing, and terminating public TLS at the load
+balancer and forwarding HTTP to port 9000 internally (vs. forwarding straight
+to the server's native HTTPS on 9443). Verify against your scale and TLS
+posture before treating this as production-grade.
+
+### Provisioning + usage foundation
+
+- `authentik_byol_infrastructure` — the stack record (topology, deployment
+  target, `node_tiers` JSONB).
+- `authentik_byol_resource` — one row per planned resource (network, LB,
+  server/worker nodes, PostgreSQL, …), keyed by a stable `plan_key`.
+- `authentik_byol_deployment` / `authentik_byol_deployment_step` — deploy/destroy
+  runs and their ordered Activity-timeline steps.
+- `authentik_byol_state_event` / `authentik_byol_usage` — an append-only
+  lifecycle log and the daily node-hours usage ledger it derives (foundation
+  for usage-based billing).
+
+None of this touches the existing REST API configuration seam
+(`lib/authentikApi.ts`) — BYOL infrastructure and configuration-as-code are
+independent concerns that happen to target the same instance once deployed.
 
 ## Development
 

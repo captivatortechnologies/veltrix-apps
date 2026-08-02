@@ -1,6 +1,6 @@
 id: authentik
 name: authentik
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage authentik (open-source Identity Provider) as code. Author authentik
@@ -9,7 +9,9 @@ description: >
   detection, rollback) over the authentik REST API (HTTPS, self-signed
   tolerated), authenticated with a static API token. Applications bind to a
   Provider (now authorable as OAuth2/OpenID Providers) via policy-based access
-  control.
+  control. Now with BYOL infrastructure provisioning for the authentik stack
+  (server + worker nodes and PostgreSQL — authentik removed its Redis
+  dependency in the 2025.10 release).
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/authentik
@@ -41,6 +43,16 @@ permissions:
     - resource: flows
       actions: [read, write, delete]
       description: Manage authentik Flows (create / edit / delete)
+    - resource: byol
+      actions: [read, write, delete]
+      description: Manage BYOL authentik stack infrastructure
+    - resource: usage
+      actions: [read, write]
+      description: Read BYOL infrastructure usage metering
+
+database:
+  migrations: migrations
+  tablePrefix: authentik_
 
 pipeline:
   configurationTypes:
@@ -141,6 +153,14 @@ client:
       label: Setup Guide
       icon: book
       nav: sidebar
+    # BYOL stack infrastructure — Settings nav group. Wraps the SDK
+    # <ByolInfrastructureManager> over this app's app-owned /byol routes.
+    - path: /byol
+      component: BYOLPage
+      label: Infrastructure
+      icon: server
+      nav: sidebar
+      group: settings
     # Connections — Settings nav group. Pairs the authentik instance (component)
     # with the static API token credential, with a per-row connectivity test.
     - path: /connections

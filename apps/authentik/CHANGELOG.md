@@ -3,6 +3,72 @@
 All notable changes to the authentik app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 0.3.0 — 2026-08-02
+
+BYOL infrastructure hosting for the authentik stack — the app now owns
+end-to-end stack provisioning alongside REST API configuration authoring,
+mirroring the node_tiers-native BYOL model (structurally replicated from
+`apps/greenbone`).
+
+- **Infrastructure console** — a new "Infrastructure" page (SDK
+  `<ByolInfrastructureManager>` over the app-owned `/byol` routes, Settings nav
+  group) to define a stack's topology, deploy it to a Veltrix-hosted or your
+  own cloud account (BYOC), preview a Terraform-style plan, and manage its
+  lifecycle (start / stop / restart / destroy).
+- **node_tiers-native topology** — two user-scalable node tiers, **Server
+  nodes** (authentik server — web/API, the ALB target, min 1) and **Worker
+  nodes** (authentik worker — background tasks, min 1), persisted ONLY in a
+  `node_tiers` JSONB column (no legacy count columns). Both tiers run the
+  **same container image**; only the startup command differs (`server` vs
+  `worker`). The server adds the fixed supporting service — **PostgreSQL**
+  (authentik's database) — plus the foundation (network, load balancer, DNS,
+  TLS, secrets) automatically. A single-node deployment collapses to one
+  all-in-one box.
+- **Declarative InfraSpec** (`infra/spec.ts`) — authentik server on internal
+  HTTP 9000 (ALB target, TLS terminated at the load balancer) + HTTPS 9443
+  (direct/admin), PostgreSQL 5432 as a peer/self rule, WAF on, no object
+  storage. Composes the SAME generic OpenTofu modules as every other BYOL app
+  purely by declaring data.
+- **Provisioning + usage foundation** — resource plan, deployment runs +
+  ordered steps, a lifecycle state-event log and a daily node-hours usage
+  ledger, in two `authentik_`-prefixed migrations (`002_authentik_byol.sql`,
+  `003_authentik_byol_usage.sql`). The existing REST API configuration seam
+  (`lib/authentikApi.ts`) is untouched.
+
+> **⚠ Researched deviation from the initial brief — no Redis.** The task
+> template (mirroring `apps/greenbone`'s manager/scanner + PostgreSQL + Redis
+> shape) called for a PostgreSQL + Redis data tier. Verification against
+> official authentik sources found this to be **outdated for current
+> authentik**: the 2025.10 release notes state "In previous versions,
+> authentik used Redis for caching, tasks, the embedded proxy outpost's
+> session store, and WebSocket connections. Since 2025.8, tasks were migrated
+> to use Postgres. With this release we've also migrated caching, the embedded
+> outpost, and WebSocket to Postgres, fully removing the need for Redis."
+> (https://docs.goauthentik.io/releases/2025.10/ — "Breaking changes"). This is
+> corroborated by the CURRENT official `docker-compose.yml`
+> (https://docs.goauthentik.io/compose.yml, tag `2026.5.6` at research time)
+> and the official Helm chart's `values.yaml`
+> (https://raw.githubusercontent.com/goauthentik/helm/main/charts/authentik/values.yaml)
+> — neither references Redis anywhere. The topology was built WITHOUT Redis
+> accordingly, rather than modeled to match a template shape that no longer
+> reflects authentik's real architecture. See `lib/byolTopology.ts` for the
+> full citation trail.
+>
+> Also verified: authentik's `server` and `worker` run from the **same**
+> container image (`ghcr.io/goauthentik/server`), differing only by startup
+> command (`server` vs `worker`) — confirmed via the official
+> `docker-compose.yml`. Health checks use `GET /-/health/live/` and
+> `GET /-/health/ready/` on the server's HTTP port (9000) — confirmed via the
+> official Helm chart's `values.yaml` (`server.livenessProbe`/`readinessProbe`).
+> The worker exposes no ports (its own k8s probes use `exec: [ak, healthcheck]`,
+> not HTTP).
+>
+> **Flagged as reasonable defaults to verify**: exact compute/instance sizing
+> per tier, and the ALB→9000(HTTP)/termination-at-LB choice vs. forwarding
+> straight to the server's native HTTPS (9443) — both are conventional but not
+> mandated by authentik's own docs; verify against your scale and TLS posture
+> before treating this as production-grade.
+
 ## 0.2.0 — 2026-08-02
 
 Three new configuration types, plus a sidebar `group` on every configuration
