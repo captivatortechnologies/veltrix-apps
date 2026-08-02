@@ -1,0 +1,174 @@
+# =============================================================================
+# Canvas Template — Rubrik SLA Domains
+#
+# Declares ONE SLA Domain (the item) — Rubrik's backup policy object. Users add
+# as many as they need. An SLA Domain's logical identity is its NAME (Rubrik
+# assigns the id on creation), so the item's identityField is `name` and
+# config-types/sla-domains/validate.ts enforces name uniqueness across the canvas.
+#
+# Backup cadence is expressed as snapshot FREQUENCIES per time unit (hourly /
+# daily / weekly / monthly), each with how often a snapshot is taken and how long
+# it is retained. A tier with a zero frequency or retention is treated as "off".
+# At least one tier must be configured. Applied over the Rubrik CDM v2 REST API
+# (POST/PATCH /api/v2/sla_domain).
+#
+# Field keys must match config-types/sla-domains/validate.ts and _shared.ts.
+# =============================================================================
+
+id: "rubrik-sla-domains"
+name: "SLA Domains"
+toolType: "rubrik"
+entityType: "sla-domains"
+description: "Manage Rubrik SLA Domains (backup policies) — snapshot frequencies and retention — via the Rubrik CDM v2 REST API"
+
+item:
+  label: "SLA Domain"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "SLA Domain"
+      icon: "shield"
+      description: "Policy identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The SLA Domain name shown in Rubrik, e.g. Gold. This is the policy's logical identity (Rubrik assigns the id)."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this policy exists — recorded for audit."
+
+    - name: "Hourly"
+      icon: "clock"
+      description: "Hourly snapshots (0 to disable this tier)"
+      fields:
+        - key: "hourlyFrequency"
+          label: "Take a snapshot every N hours"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+          validation:
+            min: 0
+            max: 23
+          helpText: "How often an hourly snapshot is taken. 0 disables the hourly tier."
+
+        - key: "hourlyRetention"
+          label: "Retain hourly snapshots (days)"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+          validation:
+            min: 0
+          helpText: "How long hourly snapshots are kept. Verify the retention unit against a live Rubrik CDM."
+
+    - name: "Daily"
+      icon: "calendar"
+      description: "Daily snapshots (0 to disable this tier)"
+      fields:
+        - key: "dailyFrequency"
+          label: "Take a snapshot every N days"
+          fieldType: "number"
+          required: false
+          defaultValue: 1
+          validation:
+            min: 0
+          helpText: "How often a daily snapshot is taken. 0 disables the daily tier."
+
+        - key: "dailyRetention"
+          label: "Retain daily snapshots (days)"
+          fieldType: "number"
+          required: false
+          defaultValue: 30
+          validation:
+            min: 0
+          helpText: "How long daily snapshots are kept."
+
+    - name: "Weekly"
+      icon: "calendar"
+      description: "Weekly snapshots (0 to disable this tier)"
+      fields:
+        - key: "weeklyFrequency"
+          label: "Take a snapshot every N weeks"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+          validation:
+            min: 0
+          helpText: "How often a weekly snapshot is taken. 0 disables the weekly tier."
+
+        - key: "weeklyRetention"
+          label: "Retain weekly snapshots (weeks)"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+          validation:
+            min: 0
+          helpText: "How long weekly snapshots are kept."
+
+        - key: "weeklyDayOfWeek"
+          label: "Weekly anchor day"
+          fieldType: "select"
+          required: false
+          defaultValue: "Sunday"
+          options:
+            - label: "Monday"
+              value: "Monday"
+            - label: "Tuesday"
+              value: "Tuesday"
+            - label: "Wednesday"
+              value: "Wednesday"
+            - label: "Thursday"
+              value: "Thursday"
+            - label: "Friday"
+              value: "Friday"
+            - label: "Saturday"
+              value: "Saturday"
+            - label: "Sunday"
+              value: "Sunday"
+          helpText: "Day of the week the weekly snapshot is taken."
+
+    - name: "Monthly"
+      icon: "calendar"
+      description: "Monthly snapshots (0 to disable this tier)"
+      fields:
+        - key: "monthlyFrequency"
+          label: "Take a snapshot every N months"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+          validation:
+            min: 0
+          helpText: "How often a monthly snapshot is taken. 0 disables the monthly tier."
+
+        - key: "monthlyRetention"
+          label: "Retain monthly snapshots (months)"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+          validation:
+            min: 0
+          helpText: "How long monthly snapshots are kept."
+
+        - key: "monthlyDayOfMonth"
+          label: "Monthly anchor day"
+          fieldType: "select"
+          required: false
+          defaultValue: "LastDay"
+          options:
+            - label: "First day of month"
+              value: "FirstDay"
+            - label: "Fifteenth"
+              value: "Fifteenth"
+            - label: "Last day of month"
+              value: "LastDay"
+          helpText: "Day of the month the monthly snapshot is taken."

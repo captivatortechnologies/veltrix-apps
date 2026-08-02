@@ -1,0 +1,13 @@
+# Defaults for a new SLA Domain item. A sensible daily-only starting policy — the
+# operator names it and adjusts the tiers. Flat mapping of field key -> default
+# (the canvas template uses the "item" form).
+dailyFrequency: 1
+dailyRetention: 30
+hourlyFrequency: 0
+hourlyRetention: 0
+weeklyFrequency: 0
+weeklyRetention: 0
+weeklyDayOfWeek: "Sunday"
+monthlyFrequency: 0
+monthlyRetention: 0
+monthlyDayOfMonth: "LastDay"

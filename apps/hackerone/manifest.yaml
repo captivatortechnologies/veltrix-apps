@@ -1,0 +1,114 @@
+id: hackerone
+name: HackerOne
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage HackerOne program asset scope as code. Author a program's Structured
+  Scopes — the assets in scope for its bug-bounty / vulnerability-disclosure
+  program (asset type, identifier, bounty / submission eligibility, max severity
+  and tester instruction) — and drive them through the Security-as-Code pipeline
+  (validate, deploy, health check, drift detection and rollback) over the
+  HackerOne API (https://api.hackerone.com/v1, HTTP Basic auth, JSON:API). The
+  target program is selected per scope by its handle and resolved to its id via
+  GET /me/programs. No BYOL / no database — HackerOne is a pure SaaS API.
+category: COMPLIANCE
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/hackerone
+icon: "🐛"
+
+platform:
+  minVersion: "1.0.0"
+
+# HackerOne brand: near-black slate. Placeholder until the official lockup is added.
+branding:
+  primaryColor: "#242A31"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: structured-scopes
+      actions: [read, write, delete]
+      description: >
+        Manage HackerOne program Structured Scopes — create / update the assets in
+        scope for a program and archive scopes this app created — over the
+        HackerOne API (GET/POST/PUT /programs/{id}/structured_scopes)
+
+pipeline:
+  configurationTypes:
+    - id: structured-scopes
+      group: "Program Scope"
+      name: Structured Scopes
+      description: >
+        HackerOne program Structured Scopes — asset type, identifier, bounty /
+        submission eligibility, max severity and tester instruction — applied over
+        the HackerOne API (https://api.hackerone.com/v1). The program is chosen per
+        scope by handle and resolved to its id via GET /me/programs; scopes are
+        upserted by asset identifier within that program.
+      canvasTemplate: config-types/structured-scopes/canvas.yaml
+      defaultConfig: config-types/structured-scopes/defaults.yaml
+      handlers:
+        validate: config-types/structured-scopes/validate
+        deploy: config-types/structured-scopes/deploy
+        rollback: config-types/structured-scopes/rollback
+        healthCheck: config-types/structured-scopes/healthCheck
+        driftDetect: config-types/structured-scopes/driftDetect
+        getStatus: config-types/structured-scopes/getStatus
+      targets:
+        componentTypes: [hackerone-program]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/hackerone
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the HackerOne API (component, fixed
+    # host api.hackerone.com) with the API identifier + token (credential) used to
+    # reach it, with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies the API identifier + token against
+# the HackerOne API (GET https://api.hackerone.com/v1/me/programs).
+connectivity:
+  testHandler: handlers/testConnection
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for HackerOne API calls.
+    default: 30
+    required: false

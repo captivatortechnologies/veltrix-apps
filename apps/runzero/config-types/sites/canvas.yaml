@@ -1,0 +1,50 @@
+# =============================================================================
+# Canvas Template — runZero Sites
+#
+# Declares ONE runZero Site (the item). Users add as many as they need. Field
+# keys must match config-types/sites/validate.ts and _shared.ts. Applied via the
+# runZero console REST API (/org/sites) — PUT to create, PATCH /org/sites/{id} to
+# update — using an Organization API key (Bearer auth).
+# =============================================================================
+
+id: "runzero-sites"
+name: "Sites"
+toolType: "runzero"
+entityType: "sites"
+description: "Manage runZero Sites — name, description and default scan scope (subnets) — via the runZero console REST API (/org/sites)"
+
+item:
+  label: "Site"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Site"
+      icon: "globe"
+      description: "Site identity and default scan scope"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Site name shown in runZero. Used as the stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this site is — helps identify its purpose in the console."
+
+        - key: "subnets"
+          label: "Scan Scope (Subnets)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Default scan scope for this site — CIDRs or hosts, one per line (commas
+            also accepted), e.g. 10.0.0.0/24 or 192.168.1.1. Sent to the runZero API
+            as the site's `scope`. Leave blank to create a site with no default scope.

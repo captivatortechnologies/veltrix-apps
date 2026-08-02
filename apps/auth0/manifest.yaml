@@ -1,0 +1,97 @@
+id: auth0
+name: Auth0
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Auth0 (Okta-owned enterprise identity platform) as code. Author Auth0
+  Applications (Clients) and drive them through the Security-as-Code pipeline —
+  validate, deploy, health check, drift detection and rollback — over the Auth0
+  Management API v2 (HTTPS), authenticated with a Machine-to-Machine
+  client-credentials access token.
+category: IAM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/auth0
+icon: "🔐"
+
+platform:
+  minVersion: "1.0.0"
+
+# Auth0 brand orange. Assets are placeholders until the official lockup is added.
+branding:
+  primaryColor: "#EB5424"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: clients
+      actions: [read, write, delete]
+      description: Manage Auth0 Applications / Clients (create / edit / delete)
+
+pipeline:
+  configurationTypes:
+    - id: clients
+      group: "Applications"
+      name: Applications (Clients)
+      description: Auth0 Applications (Clients) — name, application type, callback / logout / web-origin URLs and token endpoint auth method — applied over the Auth0 Management API v2
+      canvasTemplate: config-types/clients/canvas.yaml
+      defaultConfig: config-types/clients/defaults.yaml
+      handlers:
+        validate: config-types/clients/validate
+        deploy: config-types/clients/deploy
+        rollback: config-types/clients/rollback
+        healthCheck: config-types/clients/healthCheck
+        driftDetect: config-types/clients/driftDetect
+        getStatus: config-types/clients/getStatus
+      targets:
+        componentTypes: [auth0-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/auth0
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the Auth0 tenant (component) with the
+    # Machine-to-Machine client-credential (Client ID + Client Secret), with a
+    # per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: mints a Management API access token via the
+# client-credentials grant and calls GET /api/v2/clients?per_page=1.
+connectivity:
+  testHandler: handlers/testConnection
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated

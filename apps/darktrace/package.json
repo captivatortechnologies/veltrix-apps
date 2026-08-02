@@ -1,0 +1,15 @@
+{
+  "name": "veltrix-app-darktrace",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Veltrix app: manage a Darktrace NDR deployment's intel feed as code — watched domains/IPs/hostnames over the Darktrace REST API (DSA-signed)",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@veltrixsecops/app-sdk": "^3.6.0",
+    "fastify": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}

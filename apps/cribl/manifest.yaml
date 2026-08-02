@@ -1,0 +1,128 @@
+id: cribl
+name: Cribl
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Cribl Stream (telemetry / observability data pipeline) as code. Author
+  pipelines — an id plus a chain of Functions (conf JSON) — and drive them through
+  the Security-as-Code pipeline (validate, deploy, health check, drift detection
+  and rollback) over the Cribl REST API. Worker-group / Edge-fleet aware
+  (/api/v1/m/<group>/pipelines), on-prem (username + password login → Bearer) or
+  Cribl.Cloud (Bearer token), self-signed TLS tolerated.
+category: SIEM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cribl
+icon: "🐐"
+
+platform:
+  minVersion: "1.0.0"
+
+# Cribl's brand magenta. Placeholder until the official lockup is added.
+branding:
+  primaryColor: "#E6007E"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: pipelines
+      actions: [read, write, delete]
+      description: Manage Cribl Stream pipelines (create / edit / delete)
+
+pipeline:
+  configurationTypes:
+    - id: pipelines
+      group: "Data Pipelines"
+      name: Pipelines
+      description: >
+        Cribl Stream pipelines — an id and a chain of Functions (conf JSON) —
+        applied over the Cribl REST API (/api/v1[/m/<group>]/pipelines). The
+        pipeline id is the stable identity used to upsert (create vs update) and
+        to detect drift.
+      canvasTemplate: config-types/pipelines/canvas.yaml
+      defaultConfig: config-types/pipelines/defaults.yaml
+      handlers:
+        validate: config-types/pipelines/validate
+        deploy: config-types/pipelines/deploy
+        rollback: config-types/pipelines/rollback
+        healthCheck: config-types/pipelines/healthCheck
+        driftDetect: config-types/pipelines/driftDetect
+        getStatus: config-types/pipelines/getStatus
+      targets:
+        componentTypes: [cribl-leader, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/cribl
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the Cribl Leader (component) with the
+    # login/token credential, with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies a Connection's endpoint + credential
+# against the Cribl REST API (obtain a Bearer, then GET /api/v1/system/info).
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: cribl_api_port
+    type: number
+    label: Cribl API Port
+    description: >
+      Port for the Cribl Leader REST API / UI. On-prem Leaders default to 9000;
+      Cribl.Cloud is served on 443.
+    default: 9000
+    required: false
+  - key: default_worker_group
+    type: string
+    label: Default Worker Group / Fleet
+    description: >
+      Worker Group (or Edge Fleet) to target when a pipeline does not set its own.
+      A single-Group license always uses "default". Leave blank for a
+      single-instance (non-distributed) deployment.
+    default: "default"
+    required: false
+  - key: verify_tls
+    type: boolean
+    label: Verify TLS certificate
+    description: >
+      Enforce a valid TLS certificate on the Cribl endpoint. Off by default —
+      on-prem Cribl commonly ships a self-signed certificate.
+    default: false
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated

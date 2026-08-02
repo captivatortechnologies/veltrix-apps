@@ -1,0 +1,115 @@
+id: graylog
+name: Graylog
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Graylog (open-source SIEM / log management) as code. Author message
+  streams and drive them through the Security-as-Code pipeline — validate, deploy,
+  health check, drift detection and rollback — over the Graylog REST API (HTTP
+  Basic auth, X-Requested-By CSRF guard, self-signed TLS tolerated).
+category: SIEM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/graylog
+icon: "📊"
+
+platform:
+  minVersion: "1.0.0"
+
+# Graylog's brand orange. Assets are placeholders until the official lockup is added.
+branding:
+  primaryColor: "#f37f26"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: streams
+      actions: [read, write, delete]
+      description: Manage Graylog message streams (create / edit / resume / pause / delete)
+
+pipeline:
+  configurationTypes:
+    - id: streams
+      group: "Streams"
+      name: Streams
+      description: Graylog message streams — title, description, matching type and rules — applied over the Graylog REST API (/api/streams)
+      canvasTemplate: config-types/streams/canvas.yaml
+      defaultConfig: config-types/streams/defaults.yaml
+      handlers:
+        validate: config-types/streams/validate
+        deploy: config-types/streams/deploy
+        rollback: config-types/streams/rollback
+        healthCheck: config-types/streams/healthCheck
+        driftDetect: config-types/streams/driftDetect
+        getStatus: config-types/streams/getStatus
+      targets:
+        componentTypes: [graylog, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/graylog
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the Graylog node (component) with a
+    # Graylog credential (user/password or access token), with a per-row test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies a Connection's endpoint + credential
+# against the Graylog REST API (GET /api/system, HTTP Basic, self-signed tolerated).
+connectivity:
+  testHandler: handlers/testConnection
+
+hooks:
+  onInstall: hooks/onInstall
+  onEvent: hooks/onEvent
+
+settings:
+  - key: graylog_port
+    type: number
+    label: Graylog REST port
+    description: Port the Graylog REST API listens on (default 9000; use 443 behind a TLS reverse proxy)
+    default: 9000
+    required: false
+  - key: verify_tls
+    type: boolean
+    label: Verify TLS certificate
+    description: >
+      Enforce a valid TLS certificate on the Graylog endpoint. Off by default —
+      self-hosted Graylog commonly sits behind a self-signed certificate.
+    default: false
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated

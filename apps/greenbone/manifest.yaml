@@ -1,0 +1,108 @@
+id: greenbone
+name: Greenbone
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Greenbone / OpenVAS vulnerability scanning as code. Author scan Targets
+  and drive them through the Security-as-Code pipeline — validate, deploy, health
+  check, drift detection and rollback — over the Greenbone Management Protocol
+  (GMP): XML over a TLS socket (default port 9390), NOT REST. BYOL infrastructure
+  hosting for the Greenbone stack is planned for a later release.
+category: COMPLIANCE
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/greenbone
+icon: "🛡️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Greenbone brand green — placeholder until the official lockup is added; verify
+# the exact brand hex.
+branding:
+  primaryColor: "#66b512"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: targets
+      actions: [read, write, delete]
+      description: Manage Greenbone scan targets (create / edit / delete)
+
+pipeline:
+  configurationTypes:
+    - id: targets
+      group: "Scanning"
+      name: Scan Targets
+      description: Greenbone scan targets — name, hosts (CIDRs/IPs/hostnames), exclude hosts and port list — applied over GMP (XML over TLS, 9390)
+      canvasTemplate: config-types/targets/canvas.yaml
+      defaultConfig: config-types/targets/defaults.yaml
+      handlers:
+        validate: config-types/targets/validate
+        deploy: config-types/targets/deploy
+        rollback: config-types/targets/rollback
+        healthCheck: config-types/targets/healthCheck
+        driftDetect: config-types/targets/driftDetect
+        getStatus: config-types/targets/getStatus
+      targets:
+        componentTypes: [greenbone, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/greenbone
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the Greenbone manager (component)
+    # with the GMP username/password (credential), with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: opens a GMP-over-TLS socket to gvmd,
+# authenticates the stored username/password, and reads <get_version/>.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: gmp_port
+    type: number
+    label: GMP TLS Port
+    description: TLS port gvmd listens on for GMP (classic default 9390)
+    default: 9390
+    required: false
+  - key: verify_tls
+    type: boolean
+    label: Verify TLS certificate
+    description: >
+      Enforce a valid TLS certificate on the gvmd GMP endpoint. Off by default —
+      gvmd commonly ships a self-signed certificate.
+    default: false
+    required: false

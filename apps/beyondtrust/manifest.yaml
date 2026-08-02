@@ -1,0 +1,115 @@
+id: beyondtrust
+name: BeyondTrust
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage BeyondTrust Password Safe (privileged access management) as code. Author
+  Password Safe functional accounts and drive them through the Security-as-Code
+  pipeline — validate, deploy, health check, drift detection and rollback — over
+  the BeyondInsight / Password Safe REST API (PS-Auth session, HTTPS, self-signed
+  tolerated).
+category: IAM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/beyondtrust
+icon: "🔐"
+
+platform:
+  minVersion: "1.0.0"
+
+# BeyondTrust brand orange. Placeholder until the official lockup is added.
+branding:
+  primaryColor: "#f26a1b"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: functional-accounts
+      actions: [read, write, delete]
+      description: Manage Password Safe functional accounts (create / list / delete)
+
+pipeline:
+  configurationTypes:
+    - id: functional-accounts
+      group: "Password Safe"
+      name: Functional Accounts
+      description: >
+        Password Safe functional accounts — the service accounts Password Safe uses
+        to manage systems (platform, account name, domain, elevation) — applied over
+        the BeyondInsight REST API (PS-Auth session).
+      canvasTemplate: config-types/functional-accounts/canvas.yaml
+      defaultConfig: config-types/functional-accounts/defaults.yaml
+      handlers:
+        validate: config-types/functional-accounts/validate
+        deploy: config-types/functional-accounts/deploy
+        rollback: config-types/functional-accounts/rollback
+        healthCheck: config-types/functional-accounts/healthCheck
+        driftDetect: config-types/functional-accounts/driftDetect
+        getStatus: config-types/functional-accounts/getStatus
+      targets:
+        componentTypes: [beyondtrust-passwordsafe, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/beyondtrust
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the Password Safe host (component)
+    # with the API key + run-as user (credential), with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies a Connection's host + API key + run-as
+# user against the BeyondInsight REST API (POST /Auth/SignAppIn, HTTPS 443).
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: ps_port
+    type: number
+    label: Password Safe HTTPS Port
+    description: HTTPS port for the BeyondInsight / Password Safe web API
+    default: 443
+    required: false
+  - key: verify_tls
+    type: boolean
+    label: Verify TLS certificate
+    description: >
+      Enforce a valid TLS certificate on the Password Safe endpoint. Off by default —
+      on-premises BeyondInsight commonly ships a self-signed certificate.
+    default: false
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated

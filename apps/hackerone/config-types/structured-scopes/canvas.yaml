@@ -1,0 +1,115 @@
+# =============================================================================
+# Canvas Template — HackerOne Structured Scopes
+#
+# Declares ONE structured scope (the item) — one asset in a program's scope.
+# Users add as many as they need. Each scope names the PROGRAM it belongs to by
+# handle (program_handle); the deploy handler resolves the handle to its program
+# id via GET /me/programs and upserts the scope by asset_identifier within that
+# program. Field keys must match config-types/structured-scopes/validate.ts.
+# Applied over the HackerOne API (https://api.hackerone.com/v1).
+#
+# FLAGGED — the program-level create/update/archive structured-scope endpoints
+# were removed from the HackerOne docs on 2026-04-07 (assets are now managed via
+# organization asset management endpoints). Verify the write path against live
+# HackerOne — see config-types/structured-scopes/deploy.ts.
+# =============================================================================
+
+id: "hackerone-structured-scopes"
+name: "Structured Scopes"
+toolType: "hackerone"
+entityType: "structured-scopes"
+description: "Manage HackerOne program Structured Scopes — asset type, identifier, bounty / submission eligibility, max severity and tester instruction — via the HackerOne API (https://api.hackerone.com/v1)."
+
+item:
+  label: "Structured Scope"
+  identityField: "asset_identifier"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Program & Asset"
+      icon: "target"
+      description: "The program this asset belongs to and the asset itself"
+      fields:
+        - key: "program_handle"
+          label: "Program Handle"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The HackerOne program handle this scope belongs to (the slug in hackerone.com/<handle>). Resolved to the program id via GET /me/programs."
+
+        - key: "asset_identifier"
+          label: "Asset Identifier"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 1000
+          helpText: "The asset value — e.g. api.example.com (URL), *.example.com (WILDCARD), 10.0.0.0/24 (CIDR), a Google Play / App Store id. The scope's stable identity for upsert and drift within the program."
+
+        - key: "asset_type"
+          label: "Asset Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "URL"
+          options:
+            - { label: "URL", value: "URL" }
+            - { label: "CIDR (IP range)", value: "CIDR" }
+            - { label: "Domain", value: "DOMAIN" }
+            - { label: "Wildcard domain", value: "WILDCARD" }
+            - { label: "Android: Google Play", value: "GOOGLE_PLAY_APP_ID" }
+            - { label: "Android: .apk", value: "OTHER_APK" }
+            - { label: "iOS: App Store", value: "APPLE_STORE_APP_ID" }
+            - { label: "iOS: TestFlight", value: "TESTFLIGHT" }
+            - { label: "iOS: .ipa", value: "OTHER_IPA" }
+            - { label: "Windows: Microsoft Store", value: "WINDOWS_APP_STORE_APP_ID" }
+            - { label: "Source code", value: "SOURCE_CODE" }
+            - { label: "Downloadable executables", value: "DOWNLOADABLE_EXECUTABLES" }
+            - { label: "Hardware / IoT", value: "HARDWARE" }
+            - { label: "AI model", value: "AI_MODEL" }
+            - { label: "Smart contract", value: "SMART_CONTRACT" }
+            - { label: "Other", value: "OTHER" }
+          helpText: "The HackerOne asset type. The exact machine value set can vary by API revision — verify against live HackerOne if a type is rejected."
+
+    - name: "Eligibility & Severity"
+      icon: "shield"
+      description: "How this asset participates in the program"
+      fields:
+        - key: "eligible_for_submission"
+          label: "Eligible for submission"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether researchers may submit reports against this asset (the asset is in scope)."
+
+        - key: "eligible_for_bounty"
+          label: "Eligible for bounty"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether valid reports against this asset are eligible for a monetary bounty."
+
+        - key: "max_severity"
+          label: "Max Severity"
+          fieldType: "select"
+          required: true
+          defaultValue: "critical"
+          options:
+            - { label: "None", value: "none" }
+            - { label: "Low", value: "low" }
+            - { label: "Medium", value: "medium" }
+            - { label: "High", value: "high" }
+            - { label: "Critical", value: "critical" }
+          helpText: "The maximum severity a report against this asset can be rated."
+
+    - name: "Instruction"
+      icon: "book"
+      description: "Guidance shown to researchers"
+      fields:
+        - key: "instruction"
+          label: "Instruction"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 5000
+          helpText: "Optional tester guidance for this asset, shown on the program's scope page."

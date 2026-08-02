@@ -1,0 +1,8 @@
+# Defaults for a new pipeline item. The worker group defaults to "default"; the
+# operator fills in the id and the conf JSON (a Function chain). Kept minimal so a
+# new item starts from a valid, empty pipeline.
+worker_group: "default"
+conf: |
+  {
+    "functions": []
+  }

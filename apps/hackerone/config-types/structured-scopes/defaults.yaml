@@ -1,0 +1,8 @@
+# Defaults for a new structured-scope item. A new scope starts eligible for
+# submission at critical max severity; the operator fills in the program handle,
+# asset identifier and asset type. Keys are FLAT (item form) and must match the
+# canvas field keys.
+eligible_for_submission: true
+eligible_for_bounty: false
+asset_type: "URL"
+max_severity: "critical"

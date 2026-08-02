@@ -1,0 +1,80 @@
+# =============================================================================
+# Canvas Template — Graylog Streams
+#
+# Declares ONE Graylog message stream (the item). Users add as many as they need.
+# Field keys must match config-types/streams/validate.ts. Applied via the Graylog
+# REST API (POST/PUT /api/streams, /api/streams/{id}).
+# =============================================================================
+
+id: "graylog-streams"
+name: "Streams"
+toolType: "graylog"
+entityType: "streams"
+description: "Manage Graylog message streams — title, description, matching type and rules — via the Graylog REST API (/api/streams)"
+
+item:
+  label: "Stream"
+  identityField: "title"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Stream"
+      icon: "filter"
+      description: "Stream identity and routing"
+      fields:
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable stream name shown in Graylog. Used as the stream's stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this stream is for — recorded on the stream in Graylog."
+
+        - key: "matching_type"
+          label: "Matching Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "AND"
+          options:
+            - label: "Match ALL rules (AND)"
+              value: "AND"
+            - label: "Match ANY rule (OR)"
+              value: "OR"
+          helpText: "Whether a message must match all rules (AND) or at least one (OR) to enter the stream."
+
+        - key: "remove_matches_from_default_stream"
+          label: "Remove matches from Default Stream"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When on, messages routed into this stream are removed from the built-in 'All messages' stream."
+
+        - key: "index_set_id"
+          label: "Index Set ID"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 64
+          helpText: "Index set the stream writes to. Leave blank to use the instance's default index set (resolved at deploy time)."
+
+    - name: "Rules"
+      icon: "code"
+      description: "Stream routing rules (JSON)"
+      fields:
+        - key: "rules"
+          label: "Rules (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            JSON array of rule objects: field, type, value, inverted. type is an integer —
+            1 exact, 2 regex, 3 greater, 4 smaller, 5 field presence, 6 contains, 7 always
+            match, 8 match input. e.g. [{"field":"source","type":1,"value":"firewall","inverted":false}]

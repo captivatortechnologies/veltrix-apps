@@ -1,0 +1,93 @@
+# =============================================================================
+# Canvas Template — Imperva Cloud WAF ACL Rules
+#
+# Declares ONE Imperva site security / ACL rule (the item). Users add as many as
+# they need. Field keys must match config-types/acl-rules/validate.ts. Applied via
+# the Cloud WAF (Incapsula) management API v1 (POST /sites/incapRules/*, HTTPS
+# 443). The rule NAME is the stable identity used for upsert and drift, scoped to
+# its Site ID.
+# =============================================================================
+
+id: "imperva-acl-rules"
+name: "ACL Rules"
+toolType: "imperva"
+entityType: "acl-rules"
+description: "Manage Imperva Cloud WAF site security / ACL rules — block, alert or challenge by client IP, geography or URL — via the Cloud WAF (Incapsula) API v1"
+
+item:
+  label: "ACL Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Target"
+      icon: "globe"
+      description: "The site this rule protects"
+      fields:
+        - key: "siteId"
+          label: "Site ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[0-9]+$"
+            maxLength: 20
+          helpText: "The numeric Imperva Cloud WAF site ID this rule applies to (from the site's Overview page or the sites list API). The rule name is unique within this site."
+
+    - name: "Rule"
+      icon: "shield"
+      description: "Rule identity and action"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable rule name shown in Imperva. Used as the rule's stable identity for upsert and drift (within the Site ID)."
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "RULE_ACTION_BLOCK"
+          options:
+            - label: "Block request"
+              value: "RULE_ACTION_BLOCK"
+            - label: "Alert only (log, do not block)"
+              value: "RULE_ACTION_ALERT"
+            - label: "Block session (user)"
+              value: "RULE_ACTION_BLOCK_USER"
+            - label: "Block IP"
+              value: "RULE_ACTION_BLOCK_IP"
+            - label: "Require cookie support"
+              value: "RULE_ACTION_RETRY"
+            - label: "Require JavaScript support"
+              value: "RULE_ACTION_INTRUSIVE_HTML"
+            - label: "CAPTCHA challenge"
+              value: "RULE_ACTION_CAPTCHA"
+          helpText: "What Imperva does when the filter matches. Block/Block IP/Block session deny traffic; Alert only logs; Require cookie/JS and CAPTCHA challenge the client."
+
+        - key: "filter"
+          label: "Filter"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: 'The Imperva rule filter expression — the ACL condition. Examples: ClientIP == "203.0.113.7"  |  CountryCode == "CN"  |  Full-URL contains "/admin". Leave empty to always run the action.'
+
+    - name: "State"
+      icon: "settings"
+      description: "Whether the rule is active"
+      fields:
+        - key: "enabled"
+          label: "State"
+          fieldType: "select"
+          required: true
+          defaultValue: "enabled"
+          options:
+            - label: "Enabled"
+              value: "enabled"
+            - label: "Disabled"
+              value: "disabled"
+          helpText: "Whether Imperva enforces this rule (enabled) or leaves it off (disabled)."

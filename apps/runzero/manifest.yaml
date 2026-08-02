@@ -1,0 +1,101 @@
+id: runzero
+name: runZero
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage runZero (asset discovery / attack-surface / network inventory) as code.
+  Author runZero Sites — the scan-scope containers assets are grouped under — and
+  drive them through the Security-as-Code pipeline: validate, deploy, health
+  check, drift detection and rollback, over the runZero console REST API
+  (Organization API key, Bearer auth, https://console.runzero.com/api/v1.0).
+category: COMPLIANCE
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/runzero
+icon: "🛰️"
+
+platform:
+  minVersion: "1.0.0"
+
+# runZero brand: near-black with the signature runZero red accent.
+branding:
+  primaryColor: "#111111"
+  accentColor: "#E4002B"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: sites
+      actions: [read, write, delete]
+      description: Manage runZero Sites (create / edit / delete) and their scan scope
+
+pipeline:
+  configurationTypes:
+    - id: sites
+      group: "Inventory"
+      name: Sites
+      description: >
+        runZero Sites — name, description and default scan scope (subnets/CIDRs) —
+        applied over the runZero console REST API (/org/sites)
+      canvasTemplate: config-types/sites/canvas.yaml
+      defaultConfig: config-types/sites/defaults.yaml
+      handlers:
+        validate: config-types/sites/validate
+        deploy: config-types/sites/deploy
+        rollback: config-types/sites/rollback
+        healthCheck: config-types/sites/healthCheck
+        driftDetect: config-types/sites/driftDetect
+        getStatus: config-types/sites/getStatus
+      targets:
+        componentTypes: [runzero-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/runzero
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the runZero organization (component)
+    # with its Organization API key (credential), with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies a Connection's endpoint + API key
+# against the runZero console API (GET /org/sites).
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for runZero console API calls.
+    default: 15
+    required: false

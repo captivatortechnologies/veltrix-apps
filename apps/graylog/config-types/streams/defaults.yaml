@@ -1,0 +1,6 @@
+# Defaults for a new stream item. The operator fills in the title and rules; the
+# routing defaults (AND matching, keep in the default stream, empty rule set) seed
+# a sensible starting point. Flat mapping of field key → default (item form).
+matching_type: "AND"
+remove_matches_from_default_stream: false
+rules: "[]"

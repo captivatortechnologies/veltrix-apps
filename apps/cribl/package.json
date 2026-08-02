@@ -1,0 +1,15 @@
+{
+  "name": "veltrix-app-cribl",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Veltrix app: manage Cribl Stream (telemetry data pipeline) as code — pipelines over the Cribl REST API",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@veltrixsecops/app-sdk": "^3.6.0",
+    "fastify": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}

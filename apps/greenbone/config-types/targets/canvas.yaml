@@ -1,0 +1,70 @@
+# =============================================================================
+# Canvas Template — Greenbone Scan Targets
+#
+# Declares ONE Greenbone scan target (the item). Users add as many as they need.
+# A target is a named set of hosts plus the port list to scan. Field keys must
+# match config-types/targets/validate.ts. Applied over GMP (XML over a TLS
+# socket, default port 9390) via create_target / modify_target / delete_target.
+# =============================================================================
+
+id: "greenbone-targets"
+name: "Scan Targets"
+toolType: "greenbone"
+entityType: "targets"
+description: "Manage Greenbone scan targets — name, hosts (CIDRs/IPs/hostnames) and port list — over GMP (XML over TLS, 9390)"
+
+item:
+  label: "Scan Target"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Target"
+      icon: "target"
+      description: "Target identity and hosts"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable target name shown in Greenbone, e.g. Production Web Servers. Used as the stable identity for upsert and drift."
+
+        - key: "hosts"
+          label: "Hosts"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 4000
+          helpText: "Hosts to scan — CIDRs, IPs or hostnames, separated by commas, spaces or new lines. e.g. 10.0.0.0/24, 192.168.1.10, host.example.com"
+
+        - key: "excludeHosts"
+          label: "Exclude Hosts"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 4000
+          helpText: "Optional hosts to exclude from the range above, same formats (CIDRs / IPs / hostnames)."
+
+    - name: "Scan"
+      icon: "settings"
+      description: "How the target is scanned"
+      fields:
+        - key: "portListId"
+          label: "Port List"
+          fieldType: "text"
+          required: true
+          defaultValue: "33d0cd82-57c6-11e1-8ed1-406186ea4fc5"
+          validation:
+            pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          helpText: "UUID of the GMP port list to scan. Default 33d0cd82-…-4fc5 = 'All IANA assigned TCP'. Others: All IANA TCP+UDP 4a4717fe-…-4fc5, All TCP + Nmap top-100 UDP 730ef368-…-4fc5, OpenVAS Default c7e03b6c-…-4fc5."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this target is configured — recorded in Greenbone for audit."

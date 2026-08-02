@@ -1,0 +1,109 @@
+id: imperva
+name: Imperva
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Imperva Cloud WAF (formerly Incapsula) edge security as code. Author
+  site security / ACL rules — block, alert or challenge traffic by client IP,
+  geography or URL — and drive them through the Security-as-Code pipeline:
+  validate, deploy, health check, drift detection and rollback. Rules are applied
+  over the legacy Cloud WAF management API (Incapsula) v1
+  (https://my.imperva.com/api/prov/v1), authenticated with an API ID + API key.
+category: NETWORK
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/imperva
+icon: "🛡️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Imperva brand red. Assets are placeholders until the official lockup is added.
+branding:
+  primaryColor: "#ff5c39"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: acl-rules
+      actions: [read, write, delete]
+      description: Manage Imperva Cloud WAF site security / ACL rules (add / edit / delete, per site)
+
+pipeline:
+  configurationTypes:
+    - id: acl-rules
+      group: "Edge Security"
+      name: ACL Rules
+      description: >
+        Imperva Cloud WAF site security / ACL rules — block, alert or challenge
+        traffic by client IP, geography or URL — applied over the Cloud WAF
+        (Incapsula) management API v1 (POST /sites/incapRules/*, HTTPS 443).
+        Upsert by rule name within a site.
+      canvasTemplate: config-types/acl-rules/canvas.yaml
+      defaultConfig: config-types/acl-rules/defaults.yaml
+      handlers:
+        validate: config-types/acl-rules/validate
+        deploy: config-types/acl-rules/deploy
+        rollback: config-types/acl-rules/rollback
+        healthCheck: config-types/acl-rules/healthCheck
+        driftDetect: config-types/acl-rules/driftDetect
+        getStatus: config-types/acl-rules/getStatus
+      targets:
+        componentTypes: [imperva]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/imperva
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the Imperva API endpoint (component)
+    # with the API ID / API key credential, with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies a Connection's API ID + API key
+# against the Cloud WAF (Incapsula) management API v1 (POST /account).
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request timeout (seconds)
+    description: How long to wait for the Imperva API before giving up.
+    default: 30
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated

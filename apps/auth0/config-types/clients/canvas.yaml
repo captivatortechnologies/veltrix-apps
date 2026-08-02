@@ -1,0 +1,92 @@
+# =============================================================================
+# Canvas Template — Auth0 Applications (Clients)
+#
+# Declares ONE Auth0 Application / Client (the item). Operators add as many as
+# they need. Field keys must match config-types/clients/validate.ts and
+# _shared.ts. Applied via the Auth0 Management API v2 (GET/POST /clients,
+# PATCH/DELETE /clients/{client_id}). The Management API keys clients on the
+# server-assigned client_id, so this config type upserts by client NAME.
+# =============================================================================
+
+id: "auth0-clients"
+name: "Applications (Clients)"
+toolType: "auth0"
+entityType: "clients"
+description: "Manage Auth0 Applications (Clients) — name, application type, callback / logout / web-origin URLs and token endpoint auth method — via the Auth0 Management API v2"
+
+item:
+  label: "Application"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Application"
+      icon: "shield"
+      description: "Application identity and type"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 140
+          helpText: "Human-readable application name shown in Auth0. Used as the stable identity for upsert and drift (the Management API keys on client_id). Cannot contain < or >."
+
+        - key: "app_type"
+          label: "Application Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "spa"
+          options:
+            - label: "Single Page Application (SPA)"
+              value: "spa"
+            - label: "Native"
+              value: "native"
+            - label: "Regular Web Application"
+              value: "regular_web"
+            - label: "Machine to Machine (non-interactive)"
+              value: "non_interactive"
+          helpText: "How Auth0 classifies the application. Drives the recommended grant types and token endpoint auth method."
+
+    - name: "URLs"
+      icon: "link"
+      description: "Allowed callback, logout and web-origin URLs"
+      fields:
+        - key: "callbacks"
+          label: "Allowed Callback URLs"
+          fieldType: "textarea"
+          required: false
+          helpText: "URLs Auth0 may redirect to after authentication, one per line (or comma-separated). Must be absolute http(s) URLs."
+
+        - key: "allowed_logout_urls"
+          label: "Allowed Logout URLs"
+          fieldType: "textarea"
+          required: false
+          helpText: "URLs Auth0 may redirect to after logout, one per line (or comma-separated). Must be absolute http(s) URLs."
+
+        - key: "web_origins"
+          label: "Allowed Web Origins"
+          fieldType: "textarea"
+          required: false
+          helpText: "Origins allowed to make cross-origin calls (scheme://host[:port]), one per line (or comma-separated)."
+
+    - name: "Security"
+      icon: "settings"
+      description: "Token endpoint authentication"
+      fields:
+        - key: "token_endpoint_auth_method"
+          label: "Token Endpoint Auth Method"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - label: "Auth0 default (by application type)"
+              value: ""
+            - label: "None (public client — SPA / native)"
+              value: "none"
+            - label: "POST (client_secret_post)"
+              value: "client_secret_post"
+            - label: "Basic (client_secret_basic)"
+              value: "client_secret_basic"
+          helpText: "How the client authenticates at the token endpoint. Leave on the Auth0 default unless you need a specific method."

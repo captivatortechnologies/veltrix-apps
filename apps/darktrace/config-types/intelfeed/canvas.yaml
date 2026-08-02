@@ -1,0 +1,77 @@
+# =============================================================================
+# Canvas Template — Darktrace Watched Domains (Intel Feed)
+#
+# Declares ONE watched entry (the item). Operators add as many as they need. Field
+# keys must match config-types/intelfeed/validate.ts. Applied via the Darktrace
+# REST API (GET/POST /intelfeed) on the instance HTTPS port (443), DSA-signed.
+# =============================================================================
+
+id: "darktrace-intelfeed"
+name: "Watched Domains"
+toolType: "darktrace"
+entityType: "intelfeed"
+description: "Manage Darktrace intel-feed watched entries — domain / IP / hostname, source list, description, expiry and Antigena — via the Darktrace REST API (443)"
+
+item:
+  label: "Watched Entry"
+  identityField: "entry"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Indicator"
+      icon: "shield"
+      description: "The domain, IP or hostname to watch"
+      fields:
+        - key: "entry"
+          label: "Entry"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9._:*-]+$"
+            maxLength: 512
+          helpText: "A domain (evil.com), IP (198.51.100.9) or hostname to watch. This is the entry's stable identity for add / remove / drift."
+
+        - key: "hostname"
+          label: "Treat as hostname"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "On: the entry is matched as a hostname rather than a domain. Off (default): matched as a domain/IP."
+
+    - name: "Classification"
+      icon: "tag"
+      description: "How Darktrace groups and reports the entry"
+      fields:
+        - key: "source"
+          label: "Source (watched list)"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 64
+          helpText: "The named watched-list source this entry belongs to (max 64 chars). Auto-created by Darktrace if new, e.g. Veltrix-Managed."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 256
+          helpText: "Context for the entry — why it is watched (max 256 chars). Recorded for audit / investigation."
+
+    - name: "Response"
+      icon: "zap"
+      description: "Expiry and automated response"
+      fields:
+        - key: "expiry"
+          label: "Expiry"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 64
+          helpText: "When the entry expires (e.g. an ISO8601 time, or a Darktrace duration like '1 week'). Blank = never expires. Verify the accepted format against your Darktrace."
+
+        - key: "iagn"
+          label: "Enable Antigena (iagn)"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "On: allow Darktrace/Antigena Network to take autonomous response actions against connections to this entry."

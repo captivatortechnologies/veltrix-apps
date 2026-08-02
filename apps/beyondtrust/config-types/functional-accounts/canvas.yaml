@@ -1,0 +1,91 @@
+# =============================================================================
+# Canvas Template — Password Safe Functional Accounts
+#
+# Declares ONE Password Safe functional account (the item). Users add as many as
+# they need. Field keys must match config-types/functional-accounts/validate.ts.
+# Applied via the BeyondInsight REST API (POST/DELETE /FunctionalAccounts) inside
+# a PS-Auth session.
+# =============================================================================
+
+id: "beyondtrust-functional-accounts"
+name: "Functional Accounts"
+toolType: "beyondtrust"
+entityType: "functional-accounts"
+description: "Manage Password Safe functional accounts — platform, account name, domain and elevation — via the BeyondInsight REST API"
+
+item:
+  label: "Functional Account"
+  identityField: "accountName"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Account"
+      icon: "user"
+      description: "Identity of the functional (service) account"
+      fields:
+        - key: "platformId"
+          label: "Platform ID"
+          fieldType: "number"
+          required: true
+          validation:
+            min: 1
+          helpText: "Password Safe Platform ID the account belongs to (GET /Platforms). e.g. 1 = Windows, 4 = Linux."
+
+        - key: "accountName"
+          label: "Account Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 245
+          helpText: "Account name WITHOUT the domain, e.g. svc-backup. Together with platform + domain this is the account's identity."
+
+        - key: "domainName"
+          label: "Domain Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 50
+          helpText: "Domain of the account when the platform supports it, e.g. corp.example.com. Leave blank for local accounts."
+
+        - key: "password"
+          label: "Password"
+          fieldType: "password"
+          required: false
+          helpText: "Secret the functional account authenticates with. Sent only on create and never read back. Leave blank to set it later in Password Safe."
+
+    - name: "Presentation"
+      icon: "settings"
+      description: "How the account is labelled and elevated"
+      fields:
+        - key: "displayName"
+          label: "Display Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 100
+          helpText: "Alias shown in Password Safe. Defaults to the account name when blank."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Why this functional account exists — recorded for audit."
+
+        - key: "elevationCommand"
+          label: "Elevation Command"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - label: "None"
+              value: ""
+            - label: "sudo"
+              value: "sudo"
+            - label: "pbrun"
+              value: "pbrun"
+            - label: "pmrun"
+              value: "pmrun"
+          helpText: "SSH elevation command for Unix/Linux platforms. None for platforms that don't elevate."
