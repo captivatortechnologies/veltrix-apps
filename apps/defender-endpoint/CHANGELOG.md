@@ -3,6 +3,14 @@
 All notable changes to the Microsoft Defender for Endpoint app are documented
 here. This project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.3.1 — 2026-08-02
+
+Grouped the six configuration types in the Configurations sidebar.
+
+- **Config sidebar groups** — Custom Indicators (file / network / cert),
+  Detection Rules, and Device Management (machine tags / device values).
+  Organization-only — no change to any deploy/rollback/drift behavior.
+
 ## 1.3.0 — 2026-07-28
 
 ### Added

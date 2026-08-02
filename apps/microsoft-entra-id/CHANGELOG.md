@@ -8,6 +8,18 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.7.1 — 2026-08-02
+
+Grouped the 42 configuration types in the Configurations sidebar into ten
+sub-sections mirroring the Entra admin center, so the app is navigable instead
+of one flat list.
+
+- **Config sidebar groups** — each configuration type now declares a `group`:
+  Conditional Access · Directory · Tokens & Claims · Roles & PIM ·
+  Tenant Settings · Authentication Methods · Applications & Service Principals ·
+  External Identities · Custom Security Attributes · Identity Governance.
+  Organization-only — no change to any deploy/rollback/drift behavior.
+
 ## 0.7.0 — 2026-07-28
 
 ### Added

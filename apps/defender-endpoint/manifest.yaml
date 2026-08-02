@@ -1,6 +1,6 @@
 id: defender-endpoint
 name: Microsoft Defender for Endpoint
-version: "1.3.0"
+version: "1.3.1"
 vendor: Veltrix
 description: >
   Manage Microsoft Defender for Endpoint threat intelligence as code. Covers file,
@@ -53,6 +53,7 @@ permissions:
 pipeline:
   configurationTypes:
     - id: mde-file-indicators
+      group: "Custom Indicators"
       name: Defender File Indicators
       description: File-hash indicators (SHA-256 / SHA-1 / MD5) via /api/indicators; reconciled by (type, value)
       canvasTemplate: config-types/mde-file-indicators/canvas.yaml
@@ -70,6 +71,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: mde-network-indicators
+      group: "Custom Indicators"
       name: Defender Network Indicators
       description: Network indicators (IP / domain / URL) via /api/indicators; IPs are single addresses (no CIDR)
       canvasTemplate: config-types/mde-network-indicators/canvas.yaml
@@ -87,6 +89,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: mde-cert-indicators
+      group: "Custom Indicators"
       name: Defender Certificate Indicators
       description: Certificate indicators (SHA-1 thumbprints) via /api/indicators; reconciled by (type, value)
       canvasTemplate: config-types/mde-cert-indicators/canvas.yaml
@@ -104,6 +107,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: mde-detection-rules
+      group: "Detection Rules"
       name: Defender Custom Detection Rules (Preview)
       description: Scheduled KQL custom detection rules via the Microsoft Graph beta API. PREVIEW — commercial cloud only, needs the Graph CustomDetection.ReadWrite.All permission
       canvasTemplate: config-types/mde-detection-rules/canvas.yaml
@@ -121,6 +125,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: mde-machine-tags
+      group: "Device Management"
       name: Defender Machine Tags
       description: Device (machine) tags via POST /api/machines/{id}/tags; reconciled per (device, tag) and non-destructive. Needs the Machine.ReadWrite.All application permission
       canvasTemplate: config-types/mde-machine-tags/canvas.yaml
@@ -138,6 +143,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: mde-device-values
+      group: "Device Management"
       name: Defender Device Value
       description: Device business criticality (Normal / Low / High) via PATCH /api/machines/{id}; a single-valued property reconciled per device with previous-value rollback. Needs the Machine.ReadWrite.All application permission
       canvasTemplate: config-types/mde-device-values/canvas.yaml

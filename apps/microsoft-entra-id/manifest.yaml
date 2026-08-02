@@ -1,6 +1,6 @@
 id: microsoft-entra-id
 name: Microsoft Entra ID
-version: "0.7.0"
+version: "0.7.1"
 vendor: Veltrix
 description: >
   Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the
@@ -166,6 +166,7 @@ permissions:
 pipeline:
   configurationTypes:
     - id: conditional-access-policies
+      group: "Conditional Access"
       name: Conditional Access Policies
       description: Conditional Access policies — user/group + cloud-app targeting and grant controls (report-only by default)
       canvasTemplate: config-types/conditional-access-policies/canvas.yaml
@@ -183,6 +184,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: named-locations
+      group: "Conditional Access"
       name: Named Locations
       description: Conditional Access named locations — IP (trusted CIDR ranges) and country/region
       canvasTemplate: config-types/named-locations/canvas.yaml
@@ -200,6 +202,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: groups
+      group: "Directory"
       name: Security Groups
       description: Assigned security groups — name, description and mail nickname (mail / M365 / dynamic groups protected)
       canvasTemplate: config-types/groups/canvas.yaml
@@ -217,6 +220,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: administrative-units
+      group: "Directory"
       name: Administrative Units
       description: Administrative units — name, description and visibility (membership not managed)
       canvasTemplate: config-types/administrative-units/canvas.yaml
@@ -234,6 +238,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: authentication-strength-policies
+      group: "Conditional Access"
       name: Authentication Strengths
       description: Custom Conditional Access authentication strengths — allowed authentication method combinations (built-in strengths protected)
       canvasTemplate: config-types/authentication-strength-policies/canvas.yaml
@@ -251,6 +256,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: token-lifetime-policies
+      group: "Tokens & Claims"
       name: Token Lifetime Policies
       description: Token lifetime policies — access / ID token lifetimes via a JSON definition
       canvasTemplate: config-types/token-lifetime-policies/canvas.yaml
@@ -268,6 +274,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: claims-mapping-policies
+      group: "Tokens & Claims"
       name: Claims Mapping Policies
       description: Claims mapping policies — token claims customization via a JSON definition
       canvasTemplate: config-types/claims-mapping-policies/canvas.yaml
@@ -285,6 +292,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: directory-role-definitions
+      group: "Roles & PIM"
       name: Custom Role Definitions
       description: Custom directory roles — allowed resource actions (built-in roles protected)
       canvasTemplate: config-types/directory-role-definitions/canvas.yaml
@@ -302,6 +310,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: authentication-context-class-references
+      group: "Conditional Access"
       name: Authentication Contexts
       description: Conditional Access authentication contexts (c1..c25) referenced by policies and the acrs claim
       canvasTemplate: config-types/authentication-context-class-references/canvas.yaml
@@ -319,6 +328,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: authorization-policy
+      group: "Tenant Settings"
       name: Tenant Authorization Policy
       description: Tenant authorization policy — default user/guest/consent controls (tenant-wide singleton)
       canvasTemplate: config-types/authorization-policy/canvas.yaml
@@ -336,6 +346,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: identity-security-defaults
+      group: "Conditional Access"
       name: Security Defaults
       description: Security defaults enforcement policy — isEnabled (tenant-wide singleton, mutually exclusive with Conditional Access)
       canvasTemplate: config-types/identity-security-defaults/canvas.yaml
@@ -353,6 +364,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: token-issuance-policies
+      group: "Tokens & Claims"
       name: Token Issuance Policies
       description: SAML token issuance policies — signing algorithm / token version via a JSON definition
       canvasTemplate: config-types/token-issuance-policies/canvas.yaml
@@ -370,6 +382,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: home-realm-discovery-policies
+      group: "Tokens & Claims"
       name: Home Realm Discovery Policies
       description: Home realm discovery policies — accelerated / federated sign-in via a JSON definition
       canvasTemplate: config-types/home-realm-discovery-policies/canvas.yaml
@@ -387,6 +400,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: activity-based-timeout-policies
+      group: "Authentication Methods"
       name: Activity-Based Timeout Policies
       description: Activity-based (idle) timeout policies — idle web-session sign-out via a JSON definition
       canvasTemplate: config-types/activity-based-timeout-policies/canvas.yaml
@@ -404,6 +418,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: admin-consent-request-policy
+      group: "Tenant Settings"
       name: Admin Consent Request Policy
       description: Admin consent request workflow policy — enablement, reviewers, reminders (tenant-wide singleton, full-replace PUT)
       canvasTemplate: config-types/admin-consent-request-policy/canvas.yaml
@@ -421,6 +436,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: app-management-policies
+      group: "Applications & Service Principals"
       name: App Management Policies
       description: Application management (credential restriction) policies — password / key hygiene via JSON restrictions
       canvasTemplate: config-types/app-management-policies/canvas.yaml
@@ -438,6 +454,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: authentication-methods-policy
+      group: "Authentication Methods"
       name: Authentication Methods
       description: Enablement (state) of Entra authentication methods (FIDO2, Authenticator, SMS, TAP, email, certificate, OATH, voice)
       canvasTemplate: config-types/authentication-methods-policy/canvas.yaml
@@ -455,6 +472,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: cross-tenant-access-partners
+      group: "External Identities"
       name: Cross-Tenant Access Partners
       description: Cross-tenant access (B2B) partner configurations — collaboration / direct connect / trust via JSON settings
       canvasTemplate: config-types/cross-tenant-access-partners/canvas.yaml
@@ -472,6 +490,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: permission-grant-policies
+      group: "Applications & Service Principals"
       name: Permission Grant Policies
       description: App consent (permission grant) policies and their include / exclude condition sets (microsoft-* built-ins protected)
       canvasTemplate: config-types/permission-grant-policies/canvas.yaml
@@ -489,6 +508,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: feature-rollout-policies
+      group: "Directory"
       name: Feature Rollout Policies
       description: Staged feature rollout policies — cloud MFA, seamless SSO, certificate-based auth (group targeting not managed)
       canvasTemplate: config-types/feature-rollout-policies/canvas.yaml
@@ -506,6 +526,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: group-settings
+      group: "Directory"
       name: Group Settings
       description: Tenant/group directory settings — guest owners, group naming, classifications via groupSettingTemplate values
       canvasTemplate: config-types/group-settings/canvas.yaml
@@ -523,6 +544,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: custom-security-attribute-sets
+      group: "Custom Security Attributes"
       name: Custom Security Attribute Sets
       description: Custom security attribute sets — containers for attribute definitions (sets cannot be deleted)
       canvasTemplate: config-types/custom-security-attribute-sets/canvas.yaml
@@ -540,6 +562,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: custom-security-attribute-definitions
+      group: "Custom Security Attributes"
       name: Custom Security Attribute Definitions
       description: Custom security attribute definitions — typed attributes within a set (deactivated via status, never deleted)
       canvasTemplate: config-types/custom-security-attribute-definitions/canvas.yaml
@@ -557,6 +580,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: entitlement-access-package-catalogs
+      group: "Identity Governance"
       name: Access Package Catalogs
       description: Entitlement management access package catalogs — containers for access packages (built-in General protected)
       canvasTemplate: config-types/entitlement-access-package-catalogs/canvas.yaml
@@ -574,6 +598,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: authentication-flows-policy
+      group: "Authentication Methods"
       name: Authentication Flows Policy
       description: Authentication flows policy — self-service sign-up toggle (tenant-wide singleton)
       canvasTemplate: config-types/authentication-flows-policy/canvas.yaml
@@ -591,6 +616,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: external-identity-providers
+      group: "External Identities"
       name: External Identity Providers
       description: External (social) identity providers for B2B guest sign-in (Google, Facebook, GitHub, ...)
       canvasTemplate: config-types/external-identity-providers/canvas.yaml
@@ -608,6 +634,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: oauth2-permission-grants
+      group: "Applications & Service Principals"
       name: Delegated Permission Grants
       description: Delegated permission grants — admin-consented OAuth2 scopes keyed by client + resource + consent
       canvasTemplate: config-types/oauth2-permission-grants/canvas.yaml
@@ -625,6 +652,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: user-flow-attributes
+      group: "External Identities"
       name: User Flow Attributes
       description: Custom user flow attributes — self-service sign-up profile fields (custom only)
       canvasTemplate: config-types/user-flow-attributes/canvas.yaml
@@ -642,6 +670,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: b2x-user-flows
+      group: "External Identities"
       name: Self-Service Sign-Up Flows
       description: Self-service sign-up user flows (b2xIdentityUserFlow; create/delete only)
       canvasTemplate: config-types/b2x-user-flows/canvas.yaml
@@ -659,6 +688,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: entitlement-connected-organizations
+      group: "Identity Governance"
       name: Connected Organizations
       description: Entitlement management connected organizations (external partner directories/domains)
       canvasTemplate: config-types/entitlement-connected-organizations/canvas.yaml
@@ -676,6 +706,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: entitlement-access-packages
+      group: "Identity Governance"
       name: Access Packages
       description: Entitlement management access packages (bundles of access within a catalog)
       canvasTemplate: config-types/entitlement-access-packages/canvas.yaml
@@ -693,6 +724,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: entitlement-assignment-policies
+      group: "Identity Governance"
       name: Assignment Policies
       description: Access package assignment policies — targeting, approval and expiration
       canvasTemplate: config-types/entitlement-assignment-policies/canvas.yaml
@@ -710,6 +742,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: access-review-definitions
+      group: "Identity Governance"
       name: Access Review Definitions
       description: Access review schedule definitions — recurring reviews of group/role/access-package membership
       canvasTemplate: config-types/access-review-definitions/canvas.yaml
@@ -727,6 +760,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: lifecycle-workflows
+      group: "Identity Governance"
       name: Lifecycle Workflows
       description: Lifecycle workflows — joiner / mover / leaver automation (requires Entra ID Governance)
       canvasTemplate: config-types/lifecycle-workflows/canvas.yaml
@@ -744,6 +778,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: organizational-branding
+      group: "Tenant Settings"
       name: Organizational Branding
       description: Company branding default sign-in page text, colors and footer links (scalar-bounded singleton; images/CSS not managed)
       canvasTemplate: config-types/organizational-branding/canvas.yaml
@@ -761,6 +796,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: pim-role-management-policies
+      group: "Roles & PIM"
       name: PIM Role Policies
       description: PIM role activation requirements (MFA / justification / ticketing / approval / max duration) for Directory-scope roles
       canvasTemplate: config-types/pim-role-management-policies/canvas.yaml
@@ -778,6 +814,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: directory-role-assignments
+      group: "Roles & PIM"
       name: Directory Role Assignments
       description: Active/permanent directory role assignments via /roleManagement/directory/roleAssignments. unifiedRoleAssignment has no PATCH, so a changed assignment is reconciled by delete + recreate.
       canvasTemplate: config-types/directory-role-assignments/canvas.yaml
@@ -794,6 +831,7 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: false
     - id: pim-role-eligibility
+      group: "Roles & PIM"
       name: PIM Role Eligibility
       description: PIM eligible role assignments via /roleManagement/directory/roleEligibilityScheduleRequests (adminAssign/adminUpdate/adminRemove requests; drift diffs the derived roleEligibilitySchedules).
       canvasTemplate: config-types/pim-role-eligibility/canvas.yaml
@@ -810,6 +848,7 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: false
     - id: applications
+      group: "Applications & Service Principals"
       name: App Registrations
       description: Application registrations via /applications (upsert by uniqueName) — sign-in audience, redirect URIs, app roles, required resource access / API permissions.
       canvasTemplate: config-types/applications/canvas.yaml
@@ -826,6 +865,7 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: false
     - id: service-principals
+      group: "Applications & Service Principals"
       name: Service Principals
       description: Service principals / enterprise apps via /servicePrincipals — accountEnabled, preferred SSO mode, app-role-assignment-required, homepage, notification emails and tags. Reconciled by appId. (appRoleAssignedTo entitlements and oauth2PermissionGrants are managed by their own types, not here.)
       canvasTemplate: config-types/service-principals/canvas.yaml
@@ -842,6 +882,7 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: false
     - id: terms-of-use-agreements
+      group: "Identity Governance"
       name: Terms of Use Agreements
       description: Terms of use agreements via /identityGovernance/termsOfUse/agreements — acceptance requirements, expiration schedule, PDF file localizations.
       canvasTemplate: config-types/terms-of-use-agreements/canvas.yaml
@@ -858,6 +899,7 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: false
     - id: cross-tenant-access-default
+      group: "External Identities"
       name: Cross-Tenant Access Default
       description: The tenant-wide cross-tenant access DEFAULT policy via /policies/crossTenantAccessPolicy/default — B2B inbound/outbound + inbound trust settings (singleton; update-only).
       canvasTemplate: config-types/cross-tenant-access-default/canvas.yaml
