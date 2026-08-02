@@ -54,6 +54,18 @@ test('validate accepts a good singleton', async () => {
   assert.equal(res.errors.length, 0)
 })
 
+test('validate rejects a malformed server event artifact name', async () => {
+  const res = await validate(ctxOf([{ ...good, artifacts: 'Server.Monitor.Health, not valid!' }]))
+  assert.equal(res.valid, false)
+  assert.ok(res.errors.some((e) => e.code === 'INVALID_ARTIFACT_NAME'))
+})
+
+test('validate checks artifact name format even when disabled', async () => {
+  const res = await validate(ctxOf([{ ...good, artifacts: 'bad name', enabled: false }]))
+  assert.equal(res.valid, false)
+  assert.ok(res.errors.some((e) => e.code === 'INVALID_ARTIFACT_NAME'))
+})
+
 // --- value shaping ------------------------------------------------------------
 
 test('buildServerMonitoring sets the artifact list when enabled', () => {

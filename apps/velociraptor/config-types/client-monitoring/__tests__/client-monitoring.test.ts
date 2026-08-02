@@ -51,6 +51,18 @@ test('validate warns on a duplicate label (case-insensitive)', async () => {
   assert.ok(res.warnings.some((w) => w.code === 'DUPLICATE_LABEL'))
 })
 
+test('validate rejects a malformed event artifact name', async () => {
+  const res = await validate(ctxOf([{ label: 'Servers', artifacts: 'Windows.Events.ProcessCreation, bad name!', enabled: true }]))
+  assert.equal(res.valid, false)
+  assert.ok(res.errors.some((e) => e.code === 'INVALID_ARTIFACT_NAME'))
+})
+
+test('validate checks artifact name format even when the group is disabled', async () => {
+  const res = await validate(ctxOf([{ label: 'Servers', artifacts: 'not valid!', enabled: false }]))
+  assert.equal(res.valid, false)
+  assert.ok(res.errors.some((e) => e.code === 'INVALID_ARTIFACT_NAME'))
+})
+
 // --- helpers ------------------------------------------------------------------
 
 test('splitList splits on commas and newlines, dedupes, trims', () => {

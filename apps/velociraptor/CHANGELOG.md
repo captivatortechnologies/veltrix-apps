@@ -2,6 +2,46 @@
 
 All notable changes to the Velociraptor app are documented here.
 
+## 0.3.1 — 2026-08-01
+
+Hardened config validation: custom artifacts are now parsed as real YAML and
+checked against Velociraptor's artifact schema, instead of a regex sanity check.
+
+- **Custom Artifacts — real YAML parse + schema validation** — the definition
+  YAML is now parsed with the `yaml` package (YAML 1.2) and checked structurally
+  (`validateArtifactDefinition`, in `_shared.ts`):
+  - a YAML **syntax error** is now a hard validation error, caught before deploy
+    (previously invisible to the regex sanity check — the biggest gap this closes)
+  - the root must be a **mapping**, not a scalar or a list
+  - `name:` is required, a string, and dotted-alphanumeric — cross-checked against
+    the item's `name` field (mismatch is a warning; the server keys on the
+    definition's name)
+  - `type:`, if present, must be one of `CLIENT` / `SERVER` / `CLIENT_EVENT` /
+    `SERVER_EVENT` / `NOTEBOOK` / `INTERNAL` (case-insensitive) — cross-checked
+    against the item's `type` field (mismatch is a warning)
+  - `sources:`, if present, must be a non-empty list; each source a mapping with a
+    non-empty `query` string, or a non-empty `queries` list of strings
+  - `parameters:`, if present, must be a list of mappings, each with a string `name`
+  - when there is no `sources:` and no top-level `query:`, a (non-blocking)
+    warning notes the artifact collects nothing
+  - deep VQL compilation of the sources' queries remains authoritative on the
+    server, at `artifact_set()` — this only catches YAML-syntax and shape problems
+    before that point
+- **Client Monitoring / Server Monitoring — artifact-name format check** — every
+  event-artifact name in the artifacts list (enabled or not) must match
+  Velociraptor's dotted artifact-name format; a malformed name is now a validation
+  error (`INVALID_ARTIFACT_NAME`) instead of being silently sent to the server.
+  The name-format check is centralised in a new `lib/artifactName.ts`, shared by
+  custom-artifacts, client-monitoring and server-monitoring.
+- **Users & ACLs — minimum password length** — an authored basic-auth password
+  shorter than 8 characters is now rejected (`WEAK_PASSWORD`); SSO users leaving
+  the password blank are unaffected. Usernames are left as freeform (plain names,
+  emails, or SSO subject identifiers), matching Velociraptor's own leniency.
+- **New dependency** — `yaml` (`^2.9.0`), a zero-transitive-dependency YAML 1.2
+  parser, vendored the same way `@grpc/grpc-js` already is (declared in
+  `dependencies` + present in `node_modules`, since config-type handlers are
+  `require()`'d rather than esbuild-bundled).
+
 ## 0.3.0 — 2026-08-01
 
 BYOL infrastructure hosting for the Velociraptor server stack.

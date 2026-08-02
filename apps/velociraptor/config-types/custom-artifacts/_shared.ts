@@ -2,9 +2,15 @@
 // (deploy + rollback + drift + health). VQL runs over the gRPC API (mutual TLS);
 // see lib/velociraptorApi.ts for the transport seam.
 //
+// The artifact definition YAML is parsed + schema-checked here (validateArtifactDefinition,
+// via the `yaml` package) — a syntax error or a malformed name/type/sources/parameters
+// shape is now caught at validate time. Deep VQL compilation of the sources' queries is
+// still authoritative on the server, at artifact_set() time.
+//
 // VERIFY against a live Velociraptor server: artifact_set / artifact_delete /
 // artifact_definitions column shapes (flagged in lib/velociraptorApi.ts).
 
+import { parse as parseYaml } from 'yaml'
 import type { ComponentRef, ConnectivityRef, CredentialRef } from '@veltrixsecops/app-sdk'
 import {
   createVelociraptorClient,
@@ -13,9 +19,16 @@ import {
   type VelociraptorClient,
   type VqlRow,
 } from '../../lib/velociraptorApi'
+import { validArtifactName } from '../../lib/artifactName'
 
-/** Valid Velociraptor artifact types (also NOTEBOOK/INTERNAL exist; not authored here). */
+/** Valid types for the authored item's `type` field (also NOTEBOOK/INTERNAL exist
+ *  as artifact kinds, but are not authored as a canvas item here). */
 export const ARTIFACT_TYPES = new Set(['CLIENT', 'SERVER', 'CLIENT_EVENT', 'SERVER_EVENT'])
+
+/** Every valid Velociraptor artifact `type:`, as it may legitimately appear
+ *  inside a definition's YAML (broader than ARTIFACT_TYPES, which is only the
+ *  authored item-type selector). */
+export const ARTIFACT_YAML_TYPES = new Set(['CLIENT', 'SERVER', 'CLIENT_EVENT', 'SERVER_EVENT', 'NOTEBOOK', 'INTERNAL'])
 
 /** One artifact definition row as returned by artifact_definitions(). VERIFY columns. */
 export interface Artifact {
@@ -48,30 +61,154 @@ export async function buildClient(
   return createVelociraptorClient(config, { timeoutMs: vqlTimeoutMs(settings) })
 }
 
-/** The top-level `name:` declared inside an artifact definition YAML, if any. */
-export function extractYamlName(definition: string): string | null {
-  const match = /^name\s*:\s*["']?([^"'\r\n#]+)["']?\s*$/m.exec(definition)
-  return match ? match[1].trim() : null
+/** Result of parsing + schema-checking an artifact definition YAML. */
+export interface ArtifactDefinitionCheck {
+  /** False when the definition is unusable: a YAML syntax error, a non-mapping
+   *  root, or a malformed name/type/sources/parameters shape. */
+  ok: boolean
+  /** Present when ok is false — the reason, for the INVALID_DEFINITION error. */
+  reason?: string
+  /** The definition's own top-level `name:`, once far enough to read it. */
+  name: string | null
+  /** The definition's own top-level `type:` (upper-cased), once far enough to read it. */
+  type: string | null
+  /** Soft issues that do not block deploy, e.g. "this artifact collects nothing". */
+  warnings: string[]
 }
 
-/** The top-level `type:` declared inside an artifact definition YAML, if any. */
-export function extractYamlType(definition: string): string | null {
-  const match = /^type\s*:\s*["']?([A-Za-z_]+)["']?\s*$/m.exec(definition)
-  return match ? match[1].trim().toUpperCase() : null
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 /**
- * Lightweight structural sanity for an artifact definition (no YAML dependency at
- * runtime): must be non-empty, must declare a top-level `name:`, and must not use
- * hard tabs for indentation (YAML forbids tabs). Deep schema validation is left to
- * the server, which rejects a malformed artifact at artifact_set time.
+ * Parse an artifact definition as real YAML (via the `yaml` package, YAML 1.2)
+ * and check it against Velociraptor's artifact schema shape:
+ *   - the document must parse (a syntax error is a hard failure)
+ *   - the root must be a mapping (not a scalar or a list)
+ *   - `name:` is required, a string, and dotted-alphanumeric (ARTIFACT_NAME_RE)
+ *   - `type:`, if present, must be one of ARTIFACT_YAML_TYPES
+ *   - `sources:`, if present, must be a non-empty list; each source a mapping
+ *     with a non-empty `query` string, or a non-empty `queries` list of strings
+ *   - `parameters:`, if present, must be a list of mappings each with a string `name`
+ *   - when there is no `sources:` and no top-level `query:`, a (non-blocking)
+ *     warning notes the artifact collects nothing
+ *
+ * This replaces the former regex-based structural sanity check — a YAML syntax
+ * error is now caught here, before deploy, instead of surfacing opaquely at
+ * artifact_set() time. Deep VQL compilation of the sources' queries remains
+ * authoritative on the server, at artifact_set().
  */
-export function looksLikeArtifactYaml(definition: string): { ok: boolean; reason?: string } {
+export function validateArtifactDefinition(definition: string): ArtifactDefinitionCheck {
+  const warnings: string[] = []
   const text = definition ?? ''
-  if (!text.trim()) return { ok: false, reason: 'definition is empty' }
-  if (/^\t/m.test(text)) return { ok: false, reason: 'definition uses tab indentation (YAML requires spaces)' }
-  if (!extractYamlName(text)) return { ok: false, reason: 'definition has no top-level "name:" key' }
-  return { ok: true }
+  if (!text.trim()) return { ok: false, reason: 'definition is empty', name: null, type: null, warnings }
+
+  let doc: unknown
+  try {
+    doc = parseYaml(text)
+  } catch (error) {
+    const message = error instanceof Error ? error.message.split('\n')[0] : String(error)
+    return { ok: false, reason: `YAML syntax error — ${message}`, name: null, type: null, warnings }
+  }
+
+  if (!isPlainObject(doc)) {
+    return {
+      ok: false,
+      reason: 'definition must be a YAML mapping with top-level name:/type:/sources: keys, not a list or scalar',
+      name: null,
+      type: null,
+      warnings,
+    }
+  }
+
+  const rawName = doc['name']
+  if (typeof rawName !== 'string' || !rawName.trim()) {
+    return { ok: false, reason: 'definition has no top-level "name:" key', name: null, type: null, warnings }
+  }
+  const name = rawName.trim()
+  if (!validArtifactName(name)) {
+    return {
+      ok: false,
+      reason: `definition name "${name}" must be dotted alphanumeric, e.g. Custom.Windows.Detection.Foo`,
+      name,
+      type: null,
+      warnings,
+    }
+  }
+
+  let type: string | null = null
+  if (doc['type'] !== undefined) {
+    const rawType = doc['type']
+    if (typeof rawType !== 'string' || !rawType.trim()) {
+      return { ok: false, reason: 'definition "type:" must be a string', name, type: null, warnings }
+    }
+    type = rawType.trim().toUpperCase()
+    if (!ARTIFACT_YAML_TYPES.has(type)) {
+      return {
+        ok: false,
+        reason: `definition type "${rawType}" must be one of ${[...ARTIFACT_YAML_TYPES].join(', ')}`,
+        name,
+        type,
+        warnings,
+      }
+    }
+  }
+
+  let hasSources = false
+  if (doc['sources'] !== undefined) {
+    const sources = doc['sources']
+    if (!Array.isArray(sources) || sources.length === 0) {
+      return { ok: false, reason: 'definition "sources:" must be a non-empty list', name, type, warnings }
+    }
+    for (let i = 0; i < sources.length; i++) {
+      const source = sources[i]
+      if (!isPlainObject(source)) {
+        return { ok: false, reason: `definition sources[${i}] must be a mapping`, name, type, warnings }
+      }
+      const query = source['query']
+      const queries = source['queries']
+      const hasQuery = typeof query === 'string' && query.trim().length > 0
+      const hasQueries =
+        Array.isArray(queries) && queries.length > 0 && queries.every((q) => typeof q === 'string' && q.trim().length > 0)
+      if (!hasQuery && !hasQueries) {
+        return {
+          ok: false,
+          reason: `definition sources[${i}] must have a non-empty "query" or a non-empty "queries" list of strings`,
+          name,
+          type,
+          warnings,
+        }
+      }
+    }
+    hasSources = true
+  }
+
+  const topLevelQuery = doc['query']
+  const hasTopLevelQuery = typeof topLevelQuery === 'string' && topLevelQuery.trim().length > 0
+  if (!hasSources && !hasTopLevelQuery) {
+    warnings.push('definition declares no "sources:" (and no top-level "query:") — this artifact collects nothing')
+  }
+
+  if (doc['parameters'] !== undefined) {
+    const parameters = doc['parameters']
+    if (!Array.isArray(parameters)) {
+      return { ok: false, reason: 'definition "parameters:" must be a list', name, type, warnings }
+    }
+    for (let i = 0; i < parameters.length; i++) {
+      const param = parameters[i]
+      if (!isPlainObject(param) || typeof param['name'] !== 'string' || !(param['name'] as string).trim()) {
+        return {
+          ok: false,
+          reason: `definition parameters[${i}] must be a mapping with a string "name"`,
+          name,
+          type,
+          warnings,
+        }
+      }
+    }
+  }
+
+  return { ok: true, name, type, warnings }
 }
 
 /** Normalize a definition for equality comparison (line-ending + trailing whitespace only). */

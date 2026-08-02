@@ -1,11 +1,15 @@
 import type { PipelineContext, ValidationResult, ValidationError, ValidationWarning } from '@veltrixsecops/app-sdk'
 import { splitList, asBool } from '../../lib/velociraptorApi'
 import { ALL_CLIENTS_LABEL } from './_shared'
+import { validArtifactName } from '../../lib/artifactName'
 
 /**
  * Validate client-monitoring groups: each needs a label (identity) and, when
  * enabled, at least one event artifact. Static — no target access required. The
  * label is the upsert identity, so a duplicate label is flagged (last one wins).
+ * Every artifact name (enabled or not — a disabled group's list is kept authored
+ * so re-enabling restores it) must match Velociraptor's dotted artifact-name
+ * format; a malformed name is rejected rather than silently sent to the server.
  */
 export default async function validate(ctx: PipelineContext): Promise<ValidationResult> {
   const errors: ValidationError[] = []
@@ -35,6 +39,16 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
         message: `Enabled label group "${label}" needs at least one event artifact.`,
         code: 'EMPTY_ARTIFACTS',
       })
+    }
+
+    for (const artifactName of artifacts) {
+      if (!validArtifactName(artifactName)) {
+        errors.push({
+          field: `items[${i}].artifacts`,
+          message: `Event artifact name "${artifactName}" in group "${label}" must be dotted alphanumeric, e.g. Windows.Events.ProcessCreation.`,
+          code: 'INVALID_ARTIFACT_NAME',
+        })
+      }
     }
   })
 

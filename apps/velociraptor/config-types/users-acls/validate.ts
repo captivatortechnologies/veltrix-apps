@@ -1,11 +1,18 @@
 import type { PipelineContext, ValidationResult, ValidationError, ValidationWarning } from '@veltrixsecops/app-sdk'
 import { KNOWN_ROLES, parseRoles } from './_shared'
 
+/** Minimum length for an authored basic-auth password (NIST SP 800-63B floor for
+ *  user-chosen secrets). Velociraptor usernames are freeform (plain names, emails,
+ *  or SSO subject identifiers — see the canvas helpText), so no name-format
+ *  regex is applied beyond the existing non-empty check. */
+const MIN_PASSWORD_LENGTH = 8
+
 /**
  * Validate users-acls items: each needs a name (identity) and at least one role.
  * Static — no target access required. The name is the upsert identity, so a
  * duplicate name is flagged (last one wins). Roles outside the well-known set are
- * warned (not rejected) — the role set can vary by deployment.
+ * warned (not rejected) — the role set can vary by deployment. An authored
+ * basic-auth password shorter than MIN_PASSWORD_LENGTH is rejected.
  */
 export default async function validate(ctx: PipelineContext): Promise<ValidationResult> {
   const errors: ValidationError[] = []
@@ -20,6 +27,7 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
   items.forEach((item, i) => {
     const name = String(item.fields.name ?? '').trim()
     const roles = parseRoles(item.fields.roles)
+    const password = String(item.fields.password ?? '')
 
     if (!name) {
       errors.push({ field: `items[${i}].name`, message: 'Username is required.', code: 'EMPTY_NAME' })
@@ -43,6 +51,14 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
           code: 'UNKNOWN_ROLE',
         })
       }
+    }
+
+    if (password && password.length < MIN_PASSWORD_LENGTH) {
+      errors.push({
+        field: `items[${i}].password`,
+        message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters (got ${password.length}).`,
+        code: 'WEAK_PASSWORD',
+      })
     }
   })
 

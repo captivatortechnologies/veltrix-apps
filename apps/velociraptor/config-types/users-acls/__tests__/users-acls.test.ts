@@ -56,6 +56,23 @@ test('validate accepts a good user', async () => {
   assert.equal(res.errors.length, 0)
 })
 
+test('validate rejects an authored password shorter than the minimum length', async () => {
+  const res = await validate(ctxOf([{ ...good, password: 'short1' }]))
+  assert.equal(res.valid, false)
+  assert.ok(res.errors.some((e) => e.code === 'WEAK_PASSWORD'))
+})
+
+test('validate accepts an authored password at or above the minimum length', async () => {
+  const res = await validate(ctxOf([{ ...good, password: 'longenoughpw' }]))
+  assert.equal(res.valid, true)
+  assert.equal(res.errors.some((e) => e.code === 'WEAK_PASSWORD'), false)
+})
+
+test('validate does not require a password (SSO users leave it blank)', async () => {
+  const res = await validate(ctxOf([{ ...good, password: '' }]))
+  assert.equal(res.errors.some((e) => e.code === 'WEAK_PASSWORD'), false)
+})
+
 // --- helpers ------------------------------------------------------------------
 
 test('parseRoles splits CSV roles', () => {

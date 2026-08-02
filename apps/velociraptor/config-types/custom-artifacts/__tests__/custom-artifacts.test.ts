@@ -2,9 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import validate from '../validate'
 import {
-  extractYamlName,
-  extractYamlType,
-  looksLikeArtifactYaml,
+  validateArtifactDefinition,
   normalizeDefinition,
   findArtifact,
 } from '../_shared'
@@ -71,6 +69,86 @@ test('validate rejects a definition indented with tabs', async () => {
   assert.ok(res.errors.some((e) => e.code === 'INVALID_DEFINITION'))
 })
 
+test('validate rejects a definition with malformed YAML syntax', async () => {
+  const res = await validate(ctxOf([{ ...good, definition: 'name: Custom.Foo\n  bad indent: [1,2' }]))
+  assert.equal(res.valid, false)
+  const err = res.errors.find((e) => e.code === 'INVALID_DEFINITION')
+  assert.ok(err)
+  assert.match(err!.message, /YAML syntax error/)
+})
+
+test('validate rejects a definition whose root is a list, not a mapping', async () => {
+  const res = await validate(ctxOf([{ ...good, definition: '- name: Custom.Foo\n- type: CLIENT' }]))
+  assert.equal(res.valid, false)
+  assert.ok(res.errors.some((e) => e.code === 'INVALID_DEFINITION'))
+})
+
+test('validate rejects a definition with a badly-formatted name', async () => {
+  const res = await validate(ctxOf([{ ...good, name: 'bad!name', definition: 'name: bad!name\nsources:\n  - query: SELECT 1' }]))
+  assert.equal(res.valid, false)
+  // Both the item-level name check and the definition-level name check fire.
+  assert.ok(res.errors.some((e) => e.code === 'INVALID_NAME'))
+  assert.ok(res.errors.some((e) => e.code === 'INVALID_DEFINITION'))
+})
+
+test('validate rejects a definition whose type: is not a recognized artifact type', async () => {
+  const res = await validate(ctxOf([{ ...good, definition: 'name: Custom.Windows.Detection.Foo\ntype: HUNT\nsources:\n  - query: SELECT 1' }]))
+  assert.equal(res.valid, false)
+  const err = res.errors.find((e) => e.code === 'INVALID_DEFINITION')
+  assert.ok(err)
+  assert.match(err!.message, /must be one of/)
+})
+
+test('validate accepts a definition type: of NOTEBOOK or INTERNAL (not offered on the item, but valid in YAML)', async () => {
+  const res = await validate(ctxOf([{ ...good, definition: 'name: Custom.Windows.Detection.Foo\ntype: NOTEBOOK\nsources:\n  - query: SELECT 1' }]))
+  assert.equal(res.errors.some((e) => e.code === 'INVALID_DEFINITION'), false)
+})
+
+test('validate rejects a source with neither query nor queries', async () => {
+  const res = await validate(ctxOf([{ ...good, definition: 'name: Custom.Windows.Detection.Foo\ntype: CLIENT\nsources:\n  - name: Main' }]))
+  assert.equal(res.valid, false)
+  const err = res.errors.find((e) => e.code === 'INVALID_DEFINITION')
+  assert.ok(err)
+  assert.match(err!.message, /non-empty "query" or a non-empty "queries"/)
+})
+
+test('validate rejects an explicitly empty sources: list', async () => {
+  const res = await validate(ctxOf([{ ...good, definition: 'name: Custom.Windows.Detection.Foo\ntype: CLIENT\nsources: []' }]))
+  assert.equal(res.valid, false)
+  assert.ok(res.errors.some((e) => e.code === 'INVALID_DEFINITION'))
+})
+
+test('validate accepts a source using queries: (list form)', async () => {
+  const res = await validate(ctxOf([{ ...good, definition: 'name: Custom.Windows.Detection.Foo\ntype: CLIENT\nsources:\n  - queries:\n      - SELECT 1\n      - SELECT 2' }]))
+  assert.equal(res.errors.some((e) => e.code === 'INVALID_DEFINITION'), false)
+})
+
+test('validate warns when a definition has no sources: and no top-level query:', async () => {
+  const res = await validate(ctxOf([{ ...good, definition: 'name: Custom.Windows.Detection.Foo\ntype: CLIENT' }]))
+  assert.equal(res.valid, true)
+  assert.ok(res.warnings.some((w) => w.code === 'COLLECTS_NOTHING' && /collects nothing/.test(w.message)))
+})
+
+test('validate does not warn about empty sources when a top-level query: is present', async () => {
+  const res = await validate(ctxOf([{ ...good, definition: 'name: Custom.Windows.Detection.Foo\ntype: CLIENT\nquery: SELECT 1' }]))
+  assert.equal(res.warnings.some((w) => w.code === 'COLLECTS_NOTHING'), false)
+})
+
+test('validate rejects a malformed parameters: entry', async () => {
+  const definition = 'name: Custom.Windows.Detection.Foo\ntype: CLIENT\nsources:\n  - query: SELECT 1\nparameters:\n  - default: x'
+  const res = await validate(ctxOf([{ ...good, definition }]))
+  assert.equal(res.valid, false)
+  const err = res.errors.find((e) => e.code === 'INVALID_DEFINITION')
+  assert.ok(err)
+  assert.match(err!.message, /parameters\[0\]/)
+})
+
+test('validate accepts well-formed parameters:', async () => {
+  const definition = 'name: Custom.Windows.Detection.Foo\ntype: CLIENT\nsources:\n  - query: SELECT 1\nparameters:\n  - name: Foo\n    default: bar'
+  const res = await validate(ctxOf([{ ...good, definition }]))
+  assert.equal(res.errors.some((e) => e.code === 'INVALID_DEFINITION'), false)
+})
+
 test('validate warns on a name/definition mismatch', async () => {
   const res = await validate(ctxOf([{ ...good, name: 'Custom.Other.Name' }]))
   assert.equal(res.valid, true)
@@ -106,17 +184,35 @@ test('validate errors when there are no items', async () => {
 
 // --- _shared helpers ----------------------------------------------------------
 
-test('extractYamlName / extractYamlType read the top-level keys', () => {
-  assert.equal(extractYamlName(goodDefinition), 'Custom.Windows.Detection.Foo')
-  assert.equal(extractYamlType(goodDefinition), 'CLIENT')
-  assert.equal(extractYamlName('sources: []'), null)
+test('validateArtifactDefinition reads the name/type of a good definition', () => {
+  const check = validateArtifactDefinition(goodDefinition)
+  assert.equal(check.ok, true)
+  assert.equal(check.name, 'Custom.Windows.Detection.Foo')
+  assert.equal(check.type, 'CLIENT')
+  assert.deepEqual(check.warnings, [])
 })
 
-test('looksLikeArtifactYaml enforces basic sanity', () => {
-  assert.equal(looksLikeArtifactYaml(goodDefinition).ok, true)
-  assert.equal(looksLikeArtifactYaml('').ok, false)
-  assert.equal(looksLikeArtifactYaml('type: CLIENT').ok, false)
-  assert.equal(looksLikeArtifactYaml('name: X\n\tbad: 1').ok, false)
+test('validateArtifactDefinition rejects empty, non-mapping, and no-name definitions', () => {
+  assert.equal(validateArtifactDefinition('').ok, false)
+  assert.equal(validateArtifactDefinition('just a scalar string').ok, false)
+  assert.equal(validateArtifactDefinition('- a\n- b').ok, false)
+  assert.equal(validateArtifactDefinition('sources: []').ok, false)
+})
+
+test('validateArtifactDefinition rejects a YAML syntax error', () => {
+  const check = validateArtifactDefinition('name: Custom.Foo\n  bad indent: [1,2')
+  assert.equal(check.ok, false)
+  assert.match(check.reason ?? '', /YAML syntax error/)
+})
+
+test('validateArtifactDefinition rejects tab indentation (invalid YAML)', () => {
+  assert.equal(validateArtifactDefinition('name: X\n\tbad: 1').ok, false)
+})
+
+test('validateArtifactDefinition warns, but does not fail, when the definition collects nothing', () => {
+  const check = validateArtifactDefinition('name: Custom.Foo')
+  assert.equal(check.ok, true)
+  assert.ok(check.warnings.some((w) => /collects nothing/.test(w)))
 })
 
 test('normalizeDefinition ignores trailing whitespace and line endings', () => {
