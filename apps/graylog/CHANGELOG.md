@@ -2,6 +2,39 @@
 
 All notable changes to the Graylog app are documented here.
 
+## 0.3.0 — 2026-08-01
+
+BYOL infrastructure hosting — provision and manage a dedicated Graylog stack
+(bring-your-own-license) from an **Infrastructure** console, then run its
+lifecycle. **node_tiers-native**: the per-tier node counts + placement are stored
+ONLY in a `node_tiers` JSONB column (no legacy indexer/search-head columns).
+
+- **Two user-scalable node tiers** — Graylog nodes (web UI + REST API) and
+  OpenSearch nodes (data/search). A distributed OpenSearch tier requires ≥3 nodes
+  for a real cluster (enforced server-side); the Graylog tier is ALB-fronted
+  (Graylog web/REST on 9000, health via `/api/system/lbstatus`).
+- **Fixed supporting service** added to every distributed plan automatically —
+  a single MongoDB metadata / configuration store — plus the foundation (network,
+  load balancer, DNS, TLS, secrets). A single-node deployment collapses to one
+  all-in-one box (Graylog + OpenSearch + MongoDB).
+- **Declarative `infra/spec.ts`** — composes the same generic OpenTofu modules as
+  the other BYOL apps by declaring Graylog's ports/roles (9000 web/REST, 9200/9300
+  OpenSearch, 27017 MongoDB). No tool-specific HCL and no object-storage bucket.
+- **`/byol` routes** — list / get / create / update / delete / plan / deploy /
+  destroy / start-stop-restart / resources / deployments, plus usage metering
+  (`/byol/usage`, `/byol/usage/collect`). Terraform-style plan diff, canonical
+  tenant/cost tags and a per-stack subnet reservation on deploy.
+- **App-owned schema** (`graylog_`-prefixed) — infrastructure + resource plan +
+  deployment runs/steps (migration 002) and the state-event + daily usage ledger
+  for node-hours billing (migration 003).
+- **Permissions** — new `byol` (read/write/delete) and `usage` (read/write) app
+  resources.
+
+> Stack sizing / ports are a reasonable default — **verify against current Graylog
+> deployment guidance** (docs.graylog.org) before treating them as production-grade.
+> The ALB health-check path (`/api/system/lbstatus`) and the OpenSearch-tier
+> minimum (≥3) are flagged in-code.
+
 ## 0.2.0 — 2026-08-01
 
 Three new config types (wave 2) — all upsert by title, with validate / deploy /

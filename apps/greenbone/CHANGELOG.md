@@ -2,6 +2,34 @@
 
 All notable changes to the Greenbone app are documented here.
 
+## 0.3.0 — 2026-08-01
+
+BYOL infrastructure hosting for the Greenbone / OpenVAS stack — the app now owns
+end-to-end stack provisioning alongside GMP configuration authoring, mirroring
+the node_tiers-native BYOL model.
+
+- **Infrastructure console** — a new "Infrastructure" page (SDK
+  `<ByolInfrastructureManager>` over the app-owned `/byol` routes) to define a
+  stack's topology, deploy it to a Veltrix-hosted or your own cloud account
+  (BYOC), preview a Terraform-style plan, and manage its lifecycle
+  (start / stop / restart / destroy).
+- **node_tiers-native topology** — two user-scalable node tiers, **Manager
+  nodes** (gvmd + GSA web, the ALB target, min 1) and **Scanner nodes**
+  (openvas-scanner, min 1), persisted ONLY in a `node_tiers` JSONB column (no
+  legacy count columns). The server adds the fixed supporting services —
+  **PostgreSQL** (gvmd database) and **Redis** (scanner key-value store) — plus
+  the foundation (network, load balancer, DNS, TLS, secrets) automatically. A
+  single-node deployment collapses to one all-in-one box.
+- **Declarative InfraSpec** (`infra/spec.ts`) — GSA web on HTTPS 443 behind the
+  ALB, GMP 9390 + PostgreSQL 5432 + Redis 6379 as peer/self rules, WAF on, no
+  object storage. Composes the SAME generic OpenTofu modules as every other BYOL
+  app purely by declaring data.
+- **Provisioning + usage foundation** — resource plan, deployment runs + ordered
+  steps, a lifecycle state-event log and a daily node-hours usage ledger, in two
+  `greenbone_`-prefixed migrations (`002_greenbone_byol.sql`,
+  `003_greenbone_byol_usage.sql`). The existing GMP configuration seam
+  (`lib/greenboneApi.ts`) is untouched.
+
 ## 0.2.0 — 2026-08-01
 
 Three more config types, all driven through the same GMP-over-TLS seam

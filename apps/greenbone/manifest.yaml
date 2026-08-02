@@ -1,13 +1,14 @@
 id: greenbone
 name: Greenbone
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Greenbone / OpenVAS vulnerability scanning as code. Author scan Targets
   and drive them through the Security-as-Code pipeline — validate, deploy, health
   check, drift detection and rollback — over the Greenbone Management Protocol
-  (GMP): XML over a TLS socket (default port 9390), NOT REST. BYOL infrastructure
-  hosting for the Greenbone stack is planned for a later release.
+  (GMP): XML over a TLS socket (default port 9390), NOT REST. Now with BYOL
+  infrastructure provisioning for the Greenbone stack (gvmd + GSA manager,
+  openvas-scanner nodes, PostgreSQL and Redis).
 category: COMPLIANCE
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/greenbone
@@ -40,6 +41,16 @@ permissions:
     - resource: scan-tasks
       actions: [read, write, delete]
       description: Manage Greenbone scan tasks (create / edit / delete)
+    - resource: byol
+      actions: [read, write, delete]
+      description: Manage BYOL Greenbone stack infrastructure
+    - resource: usage
+      actions: [read, write]
+      description: Read BYOL infrastructure usage metering
+
+database:
+  migrations: migrations
+  tablePrefix: greenbone_
 
 pipeline:
   configurationTypes:
@@ -140,6 +151,14 @@ client:
       label: Setup Guide
       icon: book
       nav: sidebar
+    # BYOL stack infrastructure — Config nav group. Wraps the SDK
+    # <ByolInfrastructureManager> over this app's app-owned /byol routes.
+    - path: /byol
+      component: BYOLPage
+      label: Infrastructure
+      icon: server
+      nav: sidebar
+      group: config
     # Connections — Settings nav group. Pairs the Greenbone manager (component)
     # with the GMP username/password (credential), with a per-row connectivity test.
     - path: /connections

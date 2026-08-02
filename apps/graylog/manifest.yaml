@@ -1,13 +1,14 @@
 id: graylog
 name: Graylog
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Graylog (open-source SIEM / log management) as code. Author message
   streams, inputs, processing pipeline rules and index sets, and drive them through
   the Security-as-Code pipeline — validate, deploy, health check, drift detection
   and rollback — over the Graylog REST API (HTTP Basic auth, X-Requested-By CSRF
-  guard, self-signed TLS tolerated).
+  guard, self-signed TLS tolerated), with BYOL infrastructure provisioning for the
+  Graylog stack (Graylog server + OpenSearch + MongoDB).
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/graylog
@@ -39,6 +40,16 @@ permissions:
     - resource: index-sets
       actions: [read, write, delete]
       description: Manage Graylog index sets (create / edit / delete)
+    - resource: byol
+      actions: [read, write, delete]
+      description: Manage BYOL Graylog stack infrastructure
+    - resource: usage
+      actions: [read, write]
+      description: Read BYOL infrastructure usage metering
+
+database:
+  migrations: migrations
+  tablePrefix: graylog_
 
 pipeline:
   configurationTypes:
@@ -139,6 +150,14 @@ client:
       label: Setup Guide
       icon: book
       nav: sidebar
+    # BYOL stack infrastructure — Config nav group. Wraps the SDK
+    # <ByolInfrastructureManager> over this app's app-owned /byol routes.
+    - path: /byol
+      component: BYOLPage
+      label: Infrastructure
+      icon: server
+      nav: sidebar
+      group: config
     # Connections — Settings nav group. Pairs the Graylog node (component) with a
     # Graylog credential (user/password or access token), with a per-row test.
     - path: /connections
