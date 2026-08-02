@@ -1,6 +1,6 @@
 id: pfsense
 name: pfSense
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage pfSense firewall configuration as code. pfSense CE ships NO REST API
@@ -9,11 +9,13 @@ description: >
   pfsense-api; https://github.com/pfrest/pfSense-pkg-RESTAPI, docs at
   https://pfrest.org/), which MUST be installed on the pfSense box first
   (System > Package Manager > Available Packages > search "RESTAPI") before
-  this app can reach it — see the Setup Guide. Covers firewall aliases
-  (host / network / port groups referenced by rules and NAT) over the
-  package's v2 API (/api/v2/firewall/alias(es)), with a single "apply pending
-  changes" step (/api/v2/firewall/apply) per deploy — with validation, drift
-  detection and rollback handled by the Security-as-Code pipeline.
+  this app can reach it — see the Setup Guide. Covers firewall aliases (host /
+  network / port groups), firewall (filter) rules, NAT port forwards and
+  virtual IPs over the package's v2 API, with pending changes applied once
+  per deploy (aliases/rules/port-forwards share /api/v2/firewall/apply;
+  virtual IPs use their own /api/v2/firewall/virtual_ip/apply) — with
+  validation, drift detection and rollback handled by the Security-as-Code
+  pipeline.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/pfsense
@@ -36,6 +38,15 @@ permissions:
     - resource: firewall-aliases
       actions: [read, write, delete]
       description: Manage pfSense firewall aliases (host / network / port groups) via the pfSense REST API package (/api/v2/firewall/alias)
+    - resource: firewall-rules
+      actions: [read, write, delete]
+      description: Manage pfSense firewall (filter) rules via the pfSense REST API package (/api/v2/firewall/rule)
+    - resource: nat-port-forwards
+      actions: [read, write, delete]
+      description: Manage pfSense NAT port-forward rules via the pfSense REST API package (/api/v2/firewall/nat/port_forward)
+    - resource: virtual-ips
+      actions: [read, write, delete]
+      description: Manage pfSense virtual IPs (IP Alias / Proxy ARP / CARP / Other) via the pfSense REST API package (/api/v2/firewall/virtual_ip)
 
 pipeline:
   configurationTypes:
@@ -57,6 +68,78 @@ pipeline:
         healthCheck: config-types/firewall-aliases/healthCheck
         driftDetect: config-types/firewall-aliases/driftDetect
         getStatus: config-types/firewall-aliases/getStatus
+      targets:
+        componentTypes: [pfsense]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewall-rules
+      group: "Firewall"
+      name: Firewall Rules
+      description: >
+        Firewall (filter) rules against /api/v2/firewall/rule(s), with
+        pending changes applied once per deploy via /api/v2/firewall/apply.
+        pfSense rules have no name field, so identity is tracked per canvas
+        item (not by description) across deploys. Order is evaluated
+        top-to-bottom; an optional explicit position maps to the REST API
+        package's generic `placement` field — see README.md for the full
+        ordering model and its caveats.
+      canvasTemplate: config-types/firewall-rules/canvas.yaml
+      defaultConfig: config-types/firewall-rules/defaults.yaml
+      handlers:
+        validate: config-types/firewall-rules/validate
+        deploy: config-types/firewall-rules/deploy
+        rollback: config-types/firewall-rules/rollback
+        healthCheck: config-types/firewall-rules/healthCheck
+        driftDetect: config-types/firewall-rules/driftDetect
+        getStatus: config-types/firewall-rules/getStatus
+      targets:
+        componentTypes: [pfsense]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: nat-port-forwards
+      group: "NAT"
+      name: NAT Port Forwards
+      description: >
+        NAT port-forward rules against /api/v2/firewall/nat/port_forward(s),
+        with pending changes applied once per deploy via
+        /api/v2/firewall/apply. Like firewall rules, port forwards have no
+        name field, so identity is tracked per canvas item; an optional
+        explicit position controls evaluation order the same way.
+      canvasTemplate: config-types/nat-port-forwards/canvas.yaml
+      defaultConfig: config-types/nat-port-forwards/defaults.yaml
+      handlers:
+        validate: config-types/nat-port-forwards/validate
+        deploy: config-types/nat-port-forwards/deploy
+        rollback: config-types/nat-port-forwards/rollback
+        healthCheck: config-types/nat-port-forwards/healthCheck
+        driftDetect: config-types/nat-port-forwards/driftDetect
+        getStatus: config-types/nat-port-forwards/getStatus
+      targets:
+        componentTypes: [pfsense]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: virtual-ips
+      group: "Firewall"
+      name: Virtual IPs
+      description: >
+        Virtual IPs (IP Alias / Proxy ARP / CARP / Other) against
+        /api/v2/firewall/virtual_ip(s); identity is the VIP's own unique
+        address (subnet), matching firewall-aliases' name-keyed pattern.
+        Pending changes are applied once per deploy via the
+        virtual-IP-specific /api/v2/firewall/virtual_ip/apply — a SEPARATE
+        endpoint from the one aliases/rules/port-forwards share.
+      canvasTemplate: config-types/virtual-ips/canvas.yaml
+      defaultConfig: config-types/virtual-ips/defaults.yaml
+      handlers:
+        validate: config-types/virtual-ips/validate
+        deploy: config-types/virtual-ips/deploy
+        rollback: config-types/virtual-ips/rollback
+        healthCheck: config-types/virtual-ips/healthCheck
+        driftDetect: config-types/virtual-ips/driftDetect
+        getStatus: config-types/virtual-ips/getStatus
       targets:
         componentTypes: [pfsense]
         requiresCredential: true

@@ -1,0 +1,15 @@
+# Defaults for a new OPNsense source NAT (outbound) rule item.
+#
+# A FLAT map keyed by the canvas field keys, mirroring each field's own
+# defaultValue. description/target are left blank for a deliberate choice.
+enabled: true
+nonat: false
+sequence: 1
+interface: lan
+ipprotocol: inet
+protocol: any
+source_net: any
+destination_net: any
+staticnatport: false
+endpoint_independent: false
+log: false

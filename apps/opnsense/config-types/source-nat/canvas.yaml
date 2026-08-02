@@ -1,0 +1,161 @@
+# =============================================================================
+# Canvas Template — OPNsense Source NAT (Outbound NAT)
+#
+# *** REQUIRES OPNsense 24.1 "Savvy Shark" (Jan 2024) OR LATER *** — same
+# Firewall Automation import as firewall-rules. See
+# lib/opnsenseApi.ts's SOURCE_NAT_MODULE doc for the full citation trail.
+#
+# *** MODE GATE *** — these rules only take effect on the wire when OPNsense's
+# Outbound NAT mode (System-wide, NOT set here) is Hybrid or Manual. In the
+# default "Automatic" mode (or "Disabled"), declared rules stage and apply
+# successfully but have ZERO real effect — OPNsense generates its own
+# automatic rules instead. See README.md and healthCheck's snat_mode check.
+#
+# Declares ONE outbound NAT rule — the item. Like firewall-rules,
+# `snatrules.rule` has NO name field, so identity is the CANVAS ITEM's own id
+# — see config-types/source-nat/_shared.ts. UNLIKE firewall-rules,
+# source/destination/target here are SINGLE values, not lists.
+#
+# Field keys must match config-types/source-nat/_shared.ts.
+# =============================================================================
+
+id: "opnsense-source-nat"
+name: "OPNsense Source NAT (Outbound) Configuration"
+toolType: "opnsense"
+entityType: "source-nat"
+description: "Define OPNsense outbound (source) NAT rules (addRule / setRule against /api/firewall/source_nat) as code. Requires OPNsense 24.1+ AND Outbound NAT mode set to Hybrid or Manual. Every deploy stages its changes then applies them with one apply call."
+
+item:
+  label: "Rule"
+  identityField: "description"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Match"
+      icon: "shield"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: "A human label for this rule. Required by this app for identification — not enforced by OPNsense itself."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "nonat"
+          label: "No NAT (exclude from translation)"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, matching traffic is EXCLUDED from outbound NAT instead of translated — Target/Target Port are ignored."
+
+        - key: "sequence"
+          label: "Position"
+          fieldType: "number"
+          required: true
+          defaultValue: 1
+          helpText: "Relative evaluation order among outbound NAT rules (1-999999). Use well-spaced values (10, 20, 30, ...)."
+
+    - name: "Interface & Protocol"
+      icon: "network"
+      fields:
+        - key: "interface"
+          label: "Interface"
+          fieldType: "text"
+          required: true
+          defaultValue: "lan"
+          helpText: "A single interface identifier (e.g. lan) — unlike firewall-rules, this is not a list."
+
+        - key: "ipprotocol"
+          label: "IP Version"
+          fieldType: "select"
+          required: true
+          defaultValue: "inet"
+          options:
+            - label: "IPv4"
+              value: "inet"
+            - label: "IPv6"
+              value: "inet6"
+
+        - key: "protocol"
+          label: "Protocol"
+          fieldType: "text"
+          required: false
+          defaultValue: "any"
+          helpText: "e.g. any, TCP, UDP, TCP/UDP, ICMP."
+
+    - name: "Source & Destination"
+      icon: "list"
+      fields:
+        - key: "source_net"
+          label: "Source"
+          fieldType: "text"
+          required: false
+          defaultValue: "any"
+          helpText: "A single host, network (CIDR), or alias name."
+
+        - key: "source_not"
+          label: "Invert source match"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "source_port"
+          label: "Source Port"
+          fieldType: "text"
+          required: false
+
+        - key: "destination_net"
+          label: "Destination"
+          fieldType: "text"
+          required: false
+          defaultValue: "any"
+          helpText: "A single host, network (CIDR), or alias name."
+
+        - key: "destination_not"
+          label: "Invert destination match"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "destination_port"
+          label: "Destination Port"
+          fieldType: "text"
+          required: false
+
+    - name: "Translation"
+      icon: "settings"
+      fields:
+        - key: "target"
+          label: "Target"
+          fieldType: "text"
+          required: false
+          helpText: "The translated source address/alias. Leave blank to use the interface's own address."
+
+        - key: "target_port"
+          label: "Target Port"
+          fieldType: "text"
+          required: false
+          helpText: "Leave blank to keep the original source port."
+
+        - key: "staticnatport"
+          label: "Static Port (do not translate the port)"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "endpoint_independent"
+          label: "Endpoint-Independent Mapping"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "log"
+          label: "Log matches"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "categories"
+          label: "Categories"
+          fieldType: "tags"
+          required: false
+          helpText: "Category NAMES declared in a firewall-categories canvas — resolved to their live uuid at deploy time."

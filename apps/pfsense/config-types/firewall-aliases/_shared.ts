@@ -8,6 +8,22 @@
 
 import type { CanvasItemSnapshot } from '@veltrixsecops/app-sdk'
 import type { FirewallAlias } from '../../lib/pfsenseApi'
+import {
+  isValidIpv4,
+  isValidIpv6,
+  isValidIp,
+  isValidCidr,
+  isValidFqdn,
+  looksLikeToken,
+  isPortToken,
+  isPortRangeToken,
+} from '../lib/pfsenseShared'
+
+// Re-exported so existing importers of this module (validate.ts, tests) keep
+// working unchanged — the primitives themselves now live in
+// config-types/lib/pfsenseShared.ts, shared with every other pfSense config
+// type (firewall-rules, nat-port-forwards, virtual-ips).
+export { isValidIpv4, isValidIpv6, isValidIp, isValidCidr, isValidFqdn, isPortToken, isPortRangeToken }
 
 /** `maximum_length: 31` on FirewallAlias::$name (RESTAPI/Models/FirewallAlias.inc). */
 export const MAX_NAME_LENGTH = 31
@@ -170,66 +186,9 @@ export function validateAliasName(name: string): NameValidation {
   return { valid: true }
 }
 
-/** IPv4 dotted-quad, no CIDR. */
-const IPV4_RE = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/
-export function isValidIpv4(value: string): boolean {
-  const m = IPV4_RE.exec(value)
-  return !!m && [1, 2, 3, 4].every((i) => Number(m[i]) <= 255)
-}
-
-/** A pragmatic (not exhaustively RFC 4291) IPv6 matcher — full and "::"-compressed forms. */
-const IPV6_RE =
-  /^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|::(ffff(:0{1,4})?:)?((25[0-5]|(2[0-4]|1?[0-9])?[0-9])\.){3}(25[0-5]|(2[0-4]|1?[0-9])?[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1?[0-9])?[0-9])\.){3}(25[0-5]|(2[0-4]|1?[0-9])?[0-9]))$/
-export function isValidIpv6(value: string): boolean {
-  return IPV6_RE.test(value)
-}
-
-export function isValidIp(value: string): boolean {
-  return isValidIpv4(value) || isValidIpv6(value)
-}
-
-export function isValidCidr(value: string): boolean {
-  const idx = value.lastIndexOf('/')
-  if (idx < 0) return false
-  const addr = value.slice(0, idx)
-  const prefixStr = value.slice(idx + 1)
-  if (!/^\d{1,3}$/.test(prefixStr)) return false
-  const prefix = Number(prefixStr)
-  if (isValidIpv4(addr)) return prefix <= 32
-  if (isValidIpv6(addr)) return prefix <= 128
-  return false
-}
-
-/** RFC 1123-ish hostname/FQDN — labels of alnum/hyphen, no leading/trailing hyphen. */
-const FQDN_RE = /^(?=.{1,253}$)(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$/
-export function isValidFqdn(value: string): boolean {
-  return FQDN_RE.test(value)
-}
-
-/** A bare alias-name-shaped token — used to (optimistically) accept a nested-alias reference. */
+/** A bare alias-name-shaped token (max 31 chars, matching FirewallAlias.name's own length cap) — used to (optimistically) accept a nested-alias reference. */
 export function looksLikeAliasName(value: string): boolean {
-  return NAME_CHARSET_RE.test(value) && value.length <= MAX_NAME_LENGTH && !ALL_DIGITS_RE.test(value)
-}
-
-/**
- * `is_port()` (src/etc/inc/util.inc): a bare numeric port 1-65535, OR a
- * service name resolvable via getservbyname() — this client cannot replicate
- * the live /etc/services lookup, so any alias-name-shaped token (which
- * subsumes short lowercase service names like "http") is accepted
- * optimistically; the REST API package is authoritative.
- */
-export function isPortToken(value: string): boolean {
-  if (/^\d{1,5}$/.test(value)) {
-    const n = Number(value)
-    return n >= 1 && n <= 65535
-  }
-  return looksLikeAliasName(value)
-}
-
-/** `is_portrange()` (src/etc/inc/util.inc): "<port>:<port>", COLON-delimited (not a hyphen). */
-export function isPortRangeToken(value: string): boolean {
-  const parts = value.split(':')
-  return parts.length === 2 && parts.every(isPortToken)
+  return looksLikeToken(value, MAX_NAME_LENGTH)
 }
 
 /** Validate one `address` entry against the alias `type`, mirroring FirewallAlias::validate_address(). */

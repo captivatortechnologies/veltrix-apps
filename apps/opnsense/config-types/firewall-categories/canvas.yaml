@@ -1,0 +1,43 @@
+# =============================================================================
+# Canvas Template — OPNsense Firewall Categories
+#
+# Declares ONE OPNsense firewall category — the item. Categories are pure
+# metadata tags (no live pf effect) referenced by NAME from firewall-aliases,
+# firewall-rules and source-nat for grouping/color-coding. Identity is the
+# category NAME; deploy lists every configured category (searchItem) and uses
+# addItem (create) / setItem (update) to reconcile. There is no apply step —
+# staging IS the whole deploy.
+#
+# Field keys must match config-types/firewall-categories/_shared.ts.
+# =============================================================================
+
+id: "opnsense-firewall-categories"
+name: "OPNsense Firewall Category Configuration"
+toolType: "opnsense"
+entityType: "firewall-categories"
+description: "Define OPNsense firewall categories (addItem / setItem against /api/firewall/category) as code. Reconciled by name; categories have no live pf effect so there is no apply step."
+
+item:
+  label: "Category"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "tag"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The category's name — its identity. Must be unique within this
+            canvas and must not contain a comma (categories are stored as a
+            comma-separated list wherever they are referenced).
+
+        - key: "color"
+          label: "Color"
+          fieldType: "text"
+          required: false
+          helpText: "Optional 6-hex-digit color shown in the OPNsense UI, e.g. FF8800. Leave blank for none."

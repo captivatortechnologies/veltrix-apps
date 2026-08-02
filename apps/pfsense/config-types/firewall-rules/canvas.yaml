@@ -1,0 +1,186 @@
+# =============================================================================
+# Canvas Template — pfSense Firewall Rules
+#
+# Declares ONE firewall rule — the item. Users add as many as they need.
+# Field keys must match config-types/firewall-rules/_shared.ts. Applied via
+# the pfSense REST API package (POST/PATCH/DELETE /api/v2/firewall/rule),
+# with pending changes applied once per deploy (/api/v2/firewall/apply).
+#
+# IDENTITY: pfSense rules have no name field — this app tracks identity by
+# the canvas item itself (recorded in rollbackData across deploys), NOT by
+# `descr`. `descr` is still recommended for human/audit readability.
+#
+# ORDERING: rules are evaluated top-to-bottom. Leave `position` blank for a
+# safe default (new rules append at the end; existing rules are left exactly
+# where they are). Set it to reorder — see the field's own help text and
+# lib/pfsenseApi.ts's module doc for the full citation and caveats.
+# =============================================================================
+
+id: "pfsense-firewall-rules"
+name: "Firewall Rules"
+toolType: "pfsense"
+entityType: "firewall-rules"
+description: "Manage pfSense firewall (filter) rules via the pfSense REST API package (/api/v2/firewall/rule). Identity is tracked per canvas item (rules have no name field); order is controlled by an optional explicit position."
+
+item:
+  label: "Firewall Rule"
+  # Rules have no name field (see _shared.ts's module doc) — deploy.ts
+  # derives the real identity from the canvas item's own platform-assigned
+  # id, tracked via rollbackData. `descr` is only the display label here.
+  identityField: "descr"
+  identityDerived: true
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Match"
+      icon: "filter"
+      description: "What traffic this rule matches"
+      fields:
+        - key: "type"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "pass"
+          options:
+            - { label: "Pass", value: "pass" }
+            - { label: "Block", value: "block" }
+            - { label: "Reject", value: "reject" }
+          helpText: "The action to take against traffic that matches this rule."
+
+        - key: "interface"
+          label: "Interface(s)"
+          fieldType: "tags"
+          required: true
+          helpText: >
+            The interface(s) packets must originate from to match this rule
+            (e.g. "wan", "lan", an interface group name, or "any"). Exactly
+            ONE interface is allowed unless "Floating rule" below is enabled.
+
+        - key: "floating"
+          label: "Floating rule"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: >
+            Floating rules can match multiple interfaces and control their
+            own direction/quick behavior. IMMUTABLE once created — changing
+            this after creation requires deleting and recreating the rule.
+
+        - key: "ipprotocol"
+          label: "IP Protocol"
+          fieldType: "select"
+          required: true
+          defaultValue: "inet"
+          options:
+            - { label: "IPv4", value: "inet" }
+            - { label: "IPv6", value: "inet6" }
+            - { label: "IPv4+IPv6", value: "inet46" }
+          helpText: "The IP version(s) this rule applies to."
+
+        - key: "protocol"
+          label: "Protocol"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - { label: "Any", value: "" }
+            - { label: "TCP", value: "tcp" }
+            - { label: "UDP", value: "udp" }
+            - { label: "TCP/UDP", value: "tcp/udp" }
+            - { label: "ICMP", value: "icmp" }
+            - { label: "ESP", value: "esp" }
+            - { label: "AH", value: "ah" }
+            - { label: "GRE", value: "gre" }
+            - { label: "IPv6", value: "ipv6" }
+            - { label: "IGMP", value: "igmp" }
+            - { label: "PIM", value: "pim" }
+            - { label: "OSPF", value: "ospf" }
+            - { label: "CARP", value: "carp" }
+            - { label: "PFSYNC", value: "pfsync" }
+          helpText: "Leave as \"Any\" to match every protocol. Source/destination ports only apply for TCP, UDP or TCP/UDP."
+
+        - key: "source"
+          label: "Source"
+          fieldType: "text"
+          required: true
+          helpText: >
+            An IP address, subnet CIDR, existing alias name, "any", "(self)",
+            "l2tp", "pppoe", or an interface name (optionally suffixed
+            ":ip"). Prefix with "!" to invert (except "any").
+
+        - key: "source_port"
+          label: "Source Port"
+          fieldType: "text"
+          required: false
+          helpText: "A port, port range (colon-delimited, e.g. 8000:8100), or port alias. Only used when Protocol is TCP/UDP/TCP-UDP; leave blank for any port."
+
+        - key: "destination"
+          label: "Destination"
+          fieldType: "text"
+          required: true
+          helpText: "Same value shapes as Source, above."
+
+        - key: "destination_port"
+          label: "Destination Port"
+          fieldType: "text"
+          required: false
+          helpText: "Same value shapes as Source Port, above."
+
+    - name: "Behavior"
+      icon: "settings"
+      description: "How this rule behaves"
+      fields:
+        - key: "descr"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1024
+          helpText: "Recorded on the rule in pfSense. Strongly recommended even though it is not this app's identity key (see the config type's description) — it is the easiest way to recognize a rule in the pfSense GUI and in drift/audit output."
+
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "log"
+          label: "Log matching traffic"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "statetype"
+          label: "State Type"
+          fieldType: "select"
+          defaultValue: "keep state"
+          options:
+            - { label: "Keep State", value: "keep state" }
+            - { label: "Sloppy State", value: "sloppy state" }
+            - { label: "Synproxy State", value: "synproxy state" }
+            - { label: "None", value: "none" }
+
+        - key: "direction"
+          label: "Direction (floating only)"
+          fieldType: "select"
+          defaultValue: "any"
+          options:
+            - { label: "Any", value: "any" }
+            - { label: "In", value: "in" }
+            - { label: "Out", value: "out" }
+          helpText: "Only applies when \"Floating rule\" is enabled."
+
+        - key: "quick"
+          label: "Quick (floating only)"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Apply this rule's action immediately on match instead of continuing evaluation. Only applies when \"Floating rule\" is enabled."
+
+        - key: "position"
+          label: "Position (advanced)"
+          fieldType: "number"
+          required: false
+          helpText: >
+            OPTIONAL 0-based index into pfSense's COMPLETE rule list (every
+            interface + floating rules together, not just this rule's own
+            interface) — leave blank unless you specifically need to force
+            this rule ahead of/behind other rules NOT managed by this app.
+            Leaving it blank never reorders an existing rule.

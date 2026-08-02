@@ -61,9 +61,12 @@ References:
 
 ## Configuration types
 
-| Type | Surface | Status |
-|---|---|---|
-| **Firewall Aliases** | `/api/v2/firewall/alias(es)` + `/api/v2/firewall/apply` | ✅ v0.1.0 |
+| Type | Surface | Identity | Status |
+|---|---|---|---|
+| **Firewall Aliases** | `/api/v2/firewall/alias(es)` + `/api/v2/firewall/apply` | `name` (unique) | ✅ v0.1.0 |
+| **Firewall Rules** | `/api/v2/firewall/rule(s)` + `/api/v2/firewall/apply` | canvas item id | ✅ v0.2.0 |
+| **NAT Port Forwards** | `/api/v2/firewall/nat/port_forward(s)` + `/api/v2/firewall/apply` | canvas item id | ✅ v0.2.0 |
+| **Virtual IPs** | `/api/v2/firewall/virtual_ip(s)` + `/api/v2/firewall/virtual_ip/apply` | `subnet` (unique) | ✅ v0.2.0 |
 
 A firewall alias is pfSense's named host/network/port group, referenced by
 firewall rules and NAT — verified against
@@ -106,18 +109,116 @@ distinct, independently valid pfSense aliases (the name charset check is
 case-preserving), unlike some other apps in this codebase that fold case for
 object identity. See `_shared.ts`'s `aliasKey` doc.
 
+### Firewall Rules and NAT Port Forwards — identity, since there's no name field
+
+Verified against `RESTAPI/Models/FirewallRule.inc` and
+`RESTAPI/Models/PortForward.inc`: **neither Model declares a unique or
+name-like field** — `descr` is free-text, not `unique: true`. Matching
+live objects by `descr` the way aliases match by `name` would be unsafe (two
+rules can legitimately share, or lack, a description). Instead, both config
+types track identity by the **canvas item's own stable id**, recorded in
+`rollbackData` across deploys — the pattern the SDK's own
+`DeploymentSummary.rollbackData` doc describes for exactly this situation
+("the external ids it assigned per canvas item ... instead of by name"). A
+practical consequence: renaming/re-describing a rule in the canvas updates
+the SAME live rule in place (matched by its tracked id), rather than being
+mistaken for a totally different rule the way a name change would be for
+aliases. `descr` is still strongly recommended for GUI/audit readability —
+it just isn't the identity key.
+
+### Ordering — `position` / `placement`, and its real limits
+
+Verified against `RESTAPI/Core/Model.inc`'s generic `set_placement()`: **any**
+`many`-enabled resource in this package (aliases, rules, port forwards,
+virtual IPs alike) accepts an optional `placement` field (a 0-based array
+index) on create/update — it splices the object out of its current position
+and re-inserts it at `placement`, exactly like pfSense's own GUI drag-and-drop
+reordering. There is **no** "insert after id X" convenience — it is a raw
+index, and for firewall rules / NAT port forwards that index is **global**
+across the box's ENTIRE rule list (every interface plus floating rules
+together, not just the rule's own interface).
+
+This app exposes it as an optional `position` field on **Firewall Rules**
+and **NAT Port Forwards** (rule evaluation order matters for both), passed
+straight through as `placement`:
+
+- Left **blank** (the default): a new rule is appended at the end, and an
+  existing rule is left exactly where it already is. Nothing is silently
+  reordered.
+- Set explicitly: the rule is moved/inserted at that global index —
+  **including ahead of or behind rules this app does not manage.**
+
+**FLAGGED, not glossed over**: this app deliberately does **not** try to
+auto-derive `placement` from the canvas's own item order. Doing so naively
+(`placement = index among this canvas's items`) would assign absolute
+positions `0, 1, 2, ...` and could silently shuffle whatever unrelated rules
+already occupy those slots. Doing it *safely* — preserving relative order
+among only the rules THIS canvas declares, correctly, even as unmanaged
+rules are added/removed by someone else between deploys — is a harder
+problem than a single `placement` write per item can solve, and v0.2.0 does
+not attempt it. Use the explicit `position` field when you need precise
+control; leave it blank otherwise.
+
+The `tracker` field on `FirewallRule` is unrelated to ordering — it is a
+read-only, auto-generated unix-time tracking id (used to pair a NAT port
+forward with its associated filter rule), not a position value.
+
+### Virtual IPs — a SEPARATE apply endpoint
+
+Verified against `RESTAPI/Models/VirtualIP.inc` / `VirtualIPApply.inc`:
+virtual IPs are cleanly writable over the same CRUD conventions as every
+other resource here, but they are **not** part of the shared apply
+endpoint's subsystem list (`FirewallApply::FIREWALL_SUBSYSTEMS = ['aliases',
+'natconf', 'filter', 'shaper']` — no `'vip'`). They have their **own** apply
+endpoint, `POST /api/v2/firewall/virtual_ip/apply` (backed by
+`VirtualIPApplyDispatcher`, not `FirewallApplyDispatcher`). Calling the
+general `/api/v2/firewall/apply` does **not** apply pending virtual-IP
+changes — this app calls the correct endpoint for each resource
+automatically, so no action is needed, but it is a real, easy-to-miss
+distinction if you're extending this app or the API package's Swagger docs
+directly.
+
+CARP mode's `password` field (the shared VHID group secret) is treated as
+write-only in spirit: it is never diffed by drift detection and is not
+guaranteed to be echoed back verbatim by a restored rollback.
+
+### FLAG — FirewallRule's own dirty-tracking gap
+
+Verified: `FirewallRule.inc` never calls pfSense's native
+`mark_subsystem_dirty('filter')` (no `$this->subsystem` assignment
+anywhere in the class, unlike `PortForward.inc`, which sets
+`subsystem = 'natconf'`). This means `GET /api/v2/firewall/apply`'s
+`pending_subsystems` status **may under-report** a pending rule change. It
+does not affect correctness here — this app always calls
+`POST /api/v2/firewall/apply` unconditionally after a write rather than
+relying on that status, and `FirewallApplyDispatcher::_process()` (verified)
+calls `filter_configure()`/`filter_configure_sync()` **unconditionally**,
+regenerating the live ruleset from config regardless of any dirty flag.
+
 ## Notes
 
 - **Port ranges use a colon, not a hyphen** (`8000:8100`, per pfSense's own
   `is_portrange()`) — a common mistake when porting rules from other
   firewalls.
-- Client-side `address` validation for `host`/`network` types optimistically
-  accepts any alias-name-shaped token as a possible **nested alias**
-  reference (and, for `port`, as a possible service name pfSense could
-  resolve via `getservbyname()`) — this app cannot verify a live nested
-  alias or `/etc/services` entry exists from a schema-only validate step;
-  the REST API package is authoritative and will reject an unresolvable
-  reference at deploy time.
+- Client-side address validation (aliases' `address`, and firewall-rules'/
+  NAT-port-forwards' `source`/`destination`/`target`) optimistically accepts
+  any alias- or interface-name-shaped token as a possible live reference this
+  app cannot verify without a connection (nested alias, service name,
+  interface, or a NAT target's alias) — the REST API package is authoritative
+  and will reject an unresolvable reference at deploy time. The one
+  deliberate exception: a NAT port forward's `target` field explicitly
+  rejects the literal keywords `any`/`(self)`/`l2tp`/`pppoe` even though they
+  share that same generic token shape, because the underlying `SpecialNetworkField`
+  disables all four (`allow_any`/`allow_self`/`allow_l2tp`/`allow_pppoe:
+  false`) and typing one there is overwhelmingly more likely to be a mistake
+  (carried over from a rule's source/destination field, where they ARE valid)
+  than an actual alias coincidentally named `l2tp` — see
+  `config-types/lib/pfsenseShared.ts`'s `isValidNatTarget` doc.
+- Low-level validation primitives (IP/CIDR/FQDN matchers, port/port-range
+  checks, filter-address and NAT-target shape checks) live in
+  `config-types/lib/pfsenseShared.ts`, shared by every config type — not
+  duplicated per type — mirroring this codebase's Check Point
+  `config-types/lib/checkpointShared.ts`.
 - TLS verification is off by default (self-signed) and configurable via the
   `verify_tls` setting.
 

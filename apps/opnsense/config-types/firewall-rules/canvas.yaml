@@ -1,0 +1,194 @@
+# =============================================================================
+# Canvas Template — OPNsense Firewall Rules
+#
+# *** REQUIRES OPNsense 24.1 "Savvy Shark" (Jan 2024) OR LATER *** — the
+# Firewall Automation filter API (/api/firewall/filter/*) shipped in core
+# starting with 24.1 (formerly a separate "os-firewall" plugin). On an
+# un-upgraded pre-24.1 box every call below 404s. See
+# lib/opnsenseApi.ts's FILTER_MODULE doc for the full citation trail.
+#
+# Declares ONE OPNsense filter rule — the item. A pf rule has NO name field,
+# so identity is the CANVAS ITEM's own id, tracked against the OPNsense
+# `uuid` addRule/setRule assign — see config-types/firewall-rules/_shared.ts.
+# `description` is required BY THIS APP (not by OPNsense) purely so every
+# rule has a human label; it is not used for matching.
+#
+# Ordering: `sequence` only orders rules WITHIN the automatically-computed
+# floating / interface-group / single-interface bucket a rule falls into
+# based on its Interface(s) — see _shared.ts's module doc and README.md.
+#
+# Field keys must match config-types/firewall-rules/_shared.ts.
+# =============================================================================
+
+id: "opnsense-firewall-rules"
+name: "OPNsense Firewall Rule Configuration"
+toolType: "opnsense"
+entityType: "firewall-rules"
+description: "Define OPNsense firewall (pf) rules (addRule / setRule against /api/firewall/filter) as code. Requires OPNsense 24.1+. Every deploy stages its changes then applies them with one apply call."
+
+item:
+  label: "Rule"
+  identityField: "description"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Match"
+      icon: "shield"
+      description: "What this rule does and when it applies"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: "A human label for this rule. Required by this app for identification — not enforced by OPNsense itself."
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "pass"
+          options:
+            - label: "Pass"
+              value: "pass"
+            - label: "Block"
+              value: "block"
+            - label: "Reject"
+              value: "reject"
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "quick"
+          label: "Quick (stop on first match)"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "pf's standard \"quick\" behavior — the first matching rule wins. Off means later rules can still override this one."
+
+        - key: "sequence"
+          label: "Position"
+          fieldType: "number"
+          required: true
+          defaultValue: 1
+          helpText: "Relative order within this rule's floating/interface-group/single-interface bucket (1-999999). Use well-spaced values (10, 20, 30, ...) for easy future insertion — see README.md."
+
+    - name: "Interface & Direction"
+      icon: "network"
+      fields:
+        - key: "interface"
+          label: "Interface(s)"
+          fieldType: "tags"
+          required: false
+          helpText: "Interface identifiers (e.g. wan, lan, opt1). Leave empty, or select more than one, for a floating rule (evaluated before single-interface rules)."
+
+        - key: "interfacenot"
+          label: "Invert interface match"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Match every interface EXCEPT the ones listed above."
+
+        - key: "direction"
+          label: "Direction"
+          fieldType: "select"
+          required: true
+          defaultValue: "in"
+          options:
+            - label: "In"
+              value: "in"
+            - label: "Out"
+              value: "out"
+            - label: "Both"
+              value: "any"
+
+    - name: "Protocol"
+      icon: "code"
+      fields:
+        - key: "ipprotocol"
+          label: "IP Version"
+          fieldType: "select"
+          required: true
+          defaultValue: "inet"
+          options:
+            - label: "IPv4"
+              value: "inet"
+            - label: "IPv6"
+              value: "inet6"
+
+        - key: "protocol"
+          label: "Protocol"
+          fieldType: "text"
+          required: false
+          defaultValue: "any"
+          helpText: "e.g. any, TCP, UDP, TCP/UDP, ICMP. Passed through as-is; OPNsense's own protocol list is the source of truth for the exact accepted value."
+
+    - name: "Source & Destination"
+      icon: "list"
+      fields:
+        - key: "source_net"
+          label: "Source"
+          fieldType: "tags"
+          required: false
+          defaultValue: ["any"]
+          helpText: "Hosts, networks (CIDR), or alias names. Defaults to \"any\"."
+
+        - key: "source_not"
+          label: "Invert source match"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "source_port"
+          label: "Source Port"
+          fieldType: "text"
+          required: false
+          helpText: "A port number, well-known service name, alias, or range. Leave blank for any port."
+
+        - key: "destination_net"
+          label: "Destination"
+          fieldType: "tags"
+          required: false
+          defaultValue: ["any"]
+          helpText: "Hosts, networks (CIDR), or alias names. Defaults to \"any\"."
+
+        - key: "destination_not"
+          label: "Invert destination match"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "destination_port"
+          label: "Destination Port"
+          fieldType: "text"
+          required: false
+          helpText: "A port number, well-known service name, alias, or range. Leave blank for any port."
+
+    - name: "Advanced"
+      icon: "settings"
+      fields:
+        - key: "statetype"
+          label: "State Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "keep"
+          options:
+            - label: "Keep state"
+              value: "keep"
+            - label: "Sloppy state"
+              value: "sloppy"
+            - label: "Modulate state"
+              value: "modulate"
+            - label: "Synproxy state"
+              value: "synproxy"
+            - label: "No state"
+              value: "none"
+
+        - key: "log"
+          label: "Log matches"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "categories"
+          label: "Categories"
+          fieldType: "tags"
+          required: false
+          helpText: "Category NAMES declared in a firewall-categories canvas — resolved to their live uuid at deploy time."

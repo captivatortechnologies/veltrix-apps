@@ -1,0 +1,11 @@
+# Defaults for a new firewall rule item. Only the safe, common defaults are
+# seeded — source/destination/interface are left for the operator to fill in.
+type: pass
+floating: false
+ipprotocol: inet
+protocol: ""
+disabled: false
+log: false
+statetype: "keep state"
+direction: any
+quick: false

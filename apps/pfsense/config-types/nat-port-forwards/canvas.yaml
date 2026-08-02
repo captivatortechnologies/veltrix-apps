@@ -1,0 +1,174 @@
+# =============================================================================
+# Canvas Template — pfSense NAT Port Forwards
+#
+# Declares ONE NAT port-forward rule — the item. Users add as many as they
+# need. Field keys must match config-types/nat-port-forwards/_shared.ts.
+# Applied via the pfSense REST API package
+# (POST/PATCH/DELETE /api/v2/firewall/nat/port_forward), with pending
+# changes applied once per deploy (/api/v2/firewall/apply).
+#
+# IDENTITY: pfSense port forwards have no name field — this app tracks
+# identity by the canvas item itself (recorded in rollbackData across
+# deploys), NOT by `descr`. `descr` is still recommended for readability.
+#
+# ORDERING: like firewall rules, port forwards are evaluated top-to-bottom.
+# Leave `position` blank for a safe default — see the field's help text.
+# =============================================================================
+
+id: "pfsense-nat-port-forwards"
+name: "NAT Port Forwards"
+toolType: "pfsense"
+entityType: "nat-port-forwards"
+description: "Manage pfSense NAT port-forward rules via the pfSense REST API package (/api/v2/firewall/nat/port_forward). Identity is tracked per canvas item (port forwards have no name field); order is controlled by an optional explicit position."
+
+item:
+  label: "NAT Port Forward"
+  # Port forwards have no name field (see _shared.ts's module doc) — deploy.ts
+  # derives the real identity from the canvas item's own platform-assigned
+  # id, tracked via rollbackData. `descr` is only the display label here.
+  identityField: "descr"
+  identityDerived: true
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Match"
+      icon: "filter"
+      description: "What traffic this rule matches"
+      fields:
+        - key: "interface"
+          label: "Interface"
+          fieldType: "text"
+          required: true
+          helpText: "The single interface this port forward applies to (e.g. \"wan\"), or an interface group name."
+
+        - key: "ipprotocol"
+          label: "IP Protocol"
+          fieldType: "select"
+          required: false
+          defaultValue: "inet"
+          options:
+            - { label: "IPv4", value: "inet" }
+            - { label: "IPv6", value: "inet6" }
+            - { label: "IPv4+IPv6", value: "inet46" }
+
+        - key: "protocol"
+          label: "Protocol"
+          fieldType: "select"
+          required: true
+          defaultValue: "tcp"
+          options:
+            - { label: "Any", value: "any" }
+            - { label: "TCP", value: "tcp" }
+            - { label: "UDP", value: "udp" }
+            - { label: "TCP/UDP", value: "tcp/udp" }
+            - { label: "ICMP", value: "icmp" }
+            - { label: "ESP", value: "esp" }
+            - { label: "AH", value: "ah" }
+            - { label: "GRE", value: "gre" }
+            - { label: "IPv6", value: "ipv6" }
+            - { label: "IGMP", value: "igmp" }
+            - { label: "PIM", value: "pim" }
+            - { label: "OSPF", value: "ospf" }
+
+        - key: "source"
+          label: "Source"
+          fieldType: "text"
+          required: true
+          defaultValue: "any"
+          helpText: "An IP address, subnet CIDR, existing alias name, \"any\", \"(self)\", \"l2tp\", \"pppoe\", or an interface name (optionally suffixed \":ip\"). Prefix with \"!\" to invert (except \"any\")."
+
+        - key: "source_port"
+          label: "Source Port"
+          fieldType: "text"
+          required: false
+          helpText: "A port, port range (colon-delimited), or port alias. Only used when Protocol is TCP/UDP/TCP-UDP; leave blank for any."
+
+        - key: "destination"
+          label: "Destination"
+          fieldType: "text"
+          required: true
+          helpText: "Same value shapes as Source, above — typically the WAN interface's own address, e.g. \"wan\" or \"wan:ip\"."
+
+        - key: "destination_port"
+          label: "Destination Port"
+          fieldType: "text"
+          required: false
+          helpText: "The externally-facing port, port range, or port alias. Only used when Protocol is TCP/UDP/TCP-UDP."
+
+    - name: "Target"
+      icon: "arrow-right"
+      description: "Where matching traffic is redirected"
+      fields:
+        - key: "target"
+          label: "Target"
+          fieldType: "text"
+          required: true
+          helpText: "The internal host's IP address, an existing alias, or an interface's \":ip\" modifier. NOT a bare interface name, subnet, or \"any\" — those are not accepted for a NAT target."
+
+        - key: "local_port"
+          label: "Local Port"
+          fieldType: "text"
+          required: true
+          helpText: "The port on the internal host to forward to. In most cases this must match Destination Port (or its first value, if a range)."
+
+        - key: "associated_rule_id"
+          label: "Associated Firewall Rule"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - { label: "Require a separate firewall rule (default)", value: "" }
+            - { label: "Auto-create a matching pass rule", value: "new" }
+            - { label: "Pass automatically, no firewall rule", value: "pass" }
+          helpText: "Controls whether pfSense auto-manages a paired \"pass\" firewall rule for this port forward."
+
+    - name: "Behavior"
+      icon: "settings"
+      description: "How this rule behaves"
+      fields:
+        - key: "descr"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1024
+          helpText: "Recorded on the rule in pfSense. Strongly recommended for readability even though it is not this app's identity key."
+
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "nordr"
+          label: "No Redirect"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Disables redirection for traffic matching this rule (useful to exempt specific traffic from an otherwise broader rule)."
+
+        - key: "nosync"
+          label: "No Sync"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Prevents this rule from being synced to non-primary CARP members."
+
+        - key: "natreflection"
+          label: "NAT Reflection"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - { label: "System default", value: "" }
+            - { label: "Enable", value: "enable" }
+            - { label: "Disable", value: "disable" }
+            - { label: "Pure NAT", value: "purenat" }
+
+        - key: "position"
+          label: "Position (advanced)"
+          fieldType: "number"
+          required: false
+          helpText: >
+            OPTIONAL 0-based index into pfSense's COMPLETE NAT rule list —
+            leave blank unless you specifically need to force this rule
+            ahead of/behind other rules NOT managed by this app. Leaving it
+            blank never reorders an existing rule.

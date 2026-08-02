@@ -1,17 +1,18 @@
 id: opnsense
 name: OPNsense
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage OPNsense open-source firewall configuration as code through the
-  OPNsense REST API (/api/<module>/<controller>/<command>) — starting with
-  firewall aliases (host/network/port/URL-table/GeoIP/MAC/ASN/network-group/
-  dynamic-IPv6-host lists) — with validation, drift detection and rollback
-  handled by the Security-as-Code pipeline. OPNsense's own model stages every
+  OPNsense REST API (/api/<module>/<controller>/<command>) — firewall aliases,
+  firewall categories, firewall (pf) rules and outbound source NAT rules —
+  with validation, drift detection and rollback handled by the
+  Security-as-Code pipeline. OPNsense's own model stages every
   create/update/delete into the pending configuration; nothing takes effect on
-  the firewall until an explicit "reconfigure" (apply) call reloads the pf
-  filter and alias tables, so every deploy/rollback stages its changes first,
-  then applies them once as one unit.
+  the firewall until an explicit apply/reconfigure call reloads the pf
+  ruleset and alias tables, so every deploy/rollback stages its changes first,
+  then applies them once as one unit. Firewall rules and source NAT require
+  OPNsense 24.1 "Savvy Shark" (Jan 2024) or later — see README.md.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/opnsense
@@ -36,6 +37,24 @@ permissions:
       description: >
         Manage OPNsense firewall aliases (addItem / setItem / delItem against
         /api/firewall/alias) and apply them (reconfigure) on the firewall
+    - resource: firewall-categories
+      actions: [read, write, delete]
+      description: >
+        Manage OPNsense firewall categories (addItem / setItem / delItem
+        against /api/firewall/category) — pure metadata tags, no apply step
+    - resource: firewall-rules
+      actions: [read, write, delete]
+      description: >
+        Manage OPNsense firewall (pf) rules (addRule / setRule / delRule
+        against /api/firewall/filter) and apply them on the firewall.
+        Requires OPNsense 24.1+.
+    - resource: source-nat
+      actions: [read, write, delete]
+      description: >
+        Manage OPNsense outbound (source) NAT rules (addRule / setRule /
+        delRule against /api/firewall/source_nat) and apply them on the
+        firewall. Requires OPNsense 24.1+ and Outbound NAT mode set to
+        Hybrid or Manual to take effect.
 
 pipeline:
   configurationTypes:
@@ -61,6 +80,83 @@ pipeline:
         healthCheck: config-types/firewall-aliases/healthCheck
         driftDetect: config-types/firewall-aliases/driftDetect
         getStatus: config-types/firewall-aliases/getStatus
+      targets:
+        componentTypes: [opnsense-firewall]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewall-categories
+      name: Firewall Categories
+      group: "Firewall"
+      description: >
+        Pure metadata tags (addItem / setItem / delItem against
+        /api/firewall/category), identified by name, referenced from
+        aliases/rules/NAT for grouping and color-coding. No live pf effect —
+        no apply step. System-managed categories (auto: "1") are never
+        touched by this app.
+      canvasTemplate: config-types/firewall-categories/canvas.yaml
+      defaultConfig: config-types/firewall-categories/defaults.yaml
+      handlers:
+        validate: config-types/firewall-categories/validate
+        deploy: config-types/firewall-categories/deploy
+        rollback: config-types/firewall-categories/rollback
+        healthCheck: config-types/firewall-categories/healthCheck
+        driftDetect: config-types/firewall-categories/driftDetect
+        getStatus: config-types/firewall-categories/getStatus
+      targets:
+        componentTypes: [opnsense-firewall]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewall-rules
+      name: Firewall Rules
+      group: "Firewall"
+      description: >
+        *** Requires OPNsense 24.1 "Savvy Shark" (Jan 2024) or later *** — the
+        Firewall Automation filter API shipped in core starting with 24.1
+        (formerly a separate "os-firewall" plugin); every call 404s on an
+        un-upgraded pre-24.1 box. Pf rules (addRule / setRule / delRule
+        against /api/firewall/filter), identified by the canvas item's own id
+        (pf rules have no name field) tracked across deploys. Ordering is
+        honest: `sequence` only orders rules within the automatically-computed
+        floating/interface-group/single-interface bucket a rule falls into —
+        see README.md. Every deploy that touches a rule finishes with one
+        /api/firewall/filter/apply call, reloading the pf ruleset.
+      canvasTemplate: config-types/firewall-rules/canvas.yaml
+      defaultConfig: config-types/firewall-rules/defaults.yaml
+      handlers:
+        validate: config-types/firewall-rules/validate
+        deploy: config-types/firewall-rules/deploy
+        rollback: config-types/firewall-rules/rollback
+        healthCheck: config-types/firewall-rules/healthCheck
+        driftDetect: config-types/firewall-rules/driftDetect
+        getStatus: config-types/firewall-rules/getStatus
+      targets:
+        componentTypes: [opnsense-firewall]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: source-nat
+      name: Source NAT (Outbound)
+      group: "NAT"
+      description: >
+        *** Requires OPNsense 24.1+ (same Firewall Automation import as
+        Firewall Rules) AND Outbound NAT mode set to Hybrid or Manual to take
+        effect *** — in the default Automatic mode, declared rules stage and
+        apply successfully but have ZERO real effect. Outbound NAT rules
+        (addRule / setRule / delRule against /api/firewall/source_nat),
+        identified by the canvas item's own id (no name field). Every deploy
+        that touches a rule finishes with one /api/firewall/source_nat/apply
+        call — the SAME underlying pf reload Firewall Rules' apply runs.
+      canvasTemplate: config-types/source-nat/canvas.yaml
+      defaultConfig: config-types/source-nat/defaults.yaml
+      handlers:
+        validate: config-types/source-nat/validate
+        deploy: config-types/source-nat/deploy
+        rollback: config-types/source-nat/rollback
+        healthCheck: config-types/source-nat/healthCheck
+        driftDetect: config-types/source-nat/driftDetect
+        getStatus: config-types/source-nat/getStatus
       targets:
         componentTypes: [opnsense-firewall]
         requiresCredential: true

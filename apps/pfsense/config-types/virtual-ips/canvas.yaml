@@ -1,0 +1,134 @@
+# =============================================================================
+# Canvas Template — pfSense Virtual IPs
+#
+# Declares ONE virtual IP — the item. Users add as many as they need. Field
+# keys must match config-types/virtual-ips/_shared.ts. Applied via the
+# pfSense REST API package (POST/PATCH/DELETE /api/v2/firewall/virtual_ip).
+#
+# APPLY: virtual IPs have their OWN apply endpoint
+# (/api/v2/firewall/virtual_ip/apply) — SEPARATE from the shared
+# /api/v2/firewall/apply used by aliases/rules/port forwards. This app calls
+# the correct one automatically; no action needed here.
+#
+# IDENTITY: the `subnet` (the VIP's own address) is unique per pfSense's own
+# model and is this app's identity for upsert/drift — same pattern as
+# firewall-aliases' `name`.
+# =============================================================================
+
+id: "pfsense-virtual-ips"
+name: "Virtual IPs"
+toolType: "pfsense"
+entityType: "virtual-ips"
+description: "Manage pfSense virtual IPs (IP Alias / Proxy ARP / CARP / Other) via the pfSense REST API package (/api/v2/firewall/virtual_ip). Identity is the VIP's own address (subnet), which pfSense itself requires to be unique."
+
+item:
+  label: "Virtual IP"
+  identityField: "subnet"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "globe"
+      description: "Mode, interface and address"
+      fields:
+        - key: "mode"
+          label: "Mode"
+          fieldType: "select"
+          required: true
+          defaultValue: "ipalias"
+          options:
+            - { label: "IP Alias", value: "ipalias" }
+            - { label: "Proxy ARP", value: "proxyarp" }
+            - { label: "CARP", value: "carp" }
+            - { label: "Other", value: "other" }
+          helpText: "The virtual IP mode. CARP requires a shared VHID group; IP Alias is the common single-firewall case."
+
+        - key: "interface"
+          label: "Interface"
+          fieldType: "text"
+          required: true
+          helpText: "The interface this virtual IP applies to (e.g. \"wan\"), or a CARP interface."
+
+        - key: "type"
+          label: "Scope"
+          fieldType: "select"
+          required: false
+          defaultValue: "single"
+          options:
+            - { label: "Single address", value: "single" }
+            - { label: "Network (block)", value: "network" }
+          helpText: "\"Network\" is only valid for Proxy ARP and Other modes — it expands into every address in the block (see Subnet Bits)."
+
+        - key: "subnet"
+          label: "Subnet (Address)"
+          fieldType: "text"
+          required: true
+          helpText: "The IPv4 or IPv6 address for this virtual IP. Must be unique — pfSense itself enforces this and this app uses it as the VIP's identity."
+
+        - key: "subnet_bits"
+          label: "Subnet Bits"
+          fieldType: "number"
+          required: true
+          defaultValue: 32
+          helpText: "For Proxy ARP/Other with a Network scope, this specifies the block size (e.g. 24 for a /24). Otherwise this is the subnet mask (32 for a single IPv4 address, 128 for a single IPv6 address)."
+
+        - key: "descr"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1024
+
+    - name: "Proxy ARP / Other"
+      icon: "settings"
+      description: "Only applies when Mode is Proxy ARP or Other"
+      fields:
+        - key: "noexpand"
+          label: "No Expand"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Disable expansion of this entry into individual IPs on NAT lists (e.g. a /24 would otherwise expand to 256 entries)."
+
+    - name: "CARP"
+      icon: "shield"
+      description: "Only applies when Mode is CARP"
+      fields:
+        - key: "vhid"
+          label: "VHID Group"
+          fieldType: "number"
+          required: false
+          helpText: "The VHID group (1-255) shared by every CARP member for this virtual IP. Required for CARP mode."
+
+        - key: "advbase"
+          label: "Advertisement Base"
+          fieldType: "number"
+          defaultValue: 1
+          helpText: "The base advertisement frequency (1-254) this machine will use."
+
+        - key: "advskew"
+          label: "Advertisement Skew"
+          fieldType: "number"
+          defaultValue: 0
+          helpText: "The advertisement frequency skew (0-254) this machine will use — a higher skew makes this machine less likely to be the CARP master."
+
+        - key: "password"
+          label: "VHID Group Password"
+          fieldType: "password"
+          required: false
+          helpText: "The shared secret for this VHID group — every CARP member must use the same password. Required for CARP mode."
+
+        - key: "carp_mode"
+          label: "CARP Mode"
+          fieldType: "select"
+          defaultValue: "mcast"
+          options:
+            - { label: "Multicast", value: "mcast" }
+            - { label: "Unicast", value: "ucast" }
+          helpText: "Unicast (and its peer address below) is exclusive to pfSense Plus — harmless on CE."
+
+        - key: "carp_peer"
+          label: "CARP Peer (unicast only)"
+          fieldType: "text"
+          required: false
+          helpText: "The IP address of the CARP peer. Only used when CARP Mode is Unicast. Plus-only."

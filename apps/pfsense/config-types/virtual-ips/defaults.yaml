@@ -1,0 +1,9 @@
+# Defaults for a new virtual IP item. Only the safe, common defaults are
+# seeded — interface/subnet are left for the operator to fill in.
+mode: ipalias
+type: single
+subnet_bits: 32
+noexpand: false
+advbase: 1
+advskew: 0
+carp_mode: mcast

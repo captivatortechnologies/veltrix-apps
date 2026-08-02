@@ -50,7 +50,8 @@ export default function OverviewPage() {
           which must be installed on the firewall first (see the Setup Guide). Create a configuration in
           the Configuration Canvas and deploy it through the pipeline — validate, deploy, health check,
           drift detection and rollback are all handled per configuration type. Pending changes are applied
-          in one batch per deploy via the package's <code>/firewall/apply</code> endpoint.
+          in one batch per deploy via the package's <code>/firewall/apply</code> endpoint (virtual IPs use
+          their own separate <code>/firewall/virtual_ip/apply</code> endpoint).
         </p>
 
         <h3>Configuration Types</h3>

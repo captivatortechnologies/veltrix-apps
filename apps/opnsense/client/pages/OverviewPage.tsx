@@ -48,8 +48,9 @@ export default function OverviewPage() {
           Manages OPNsense open-source firewall configuration as code through its REST API. Create a
           configuration in the Configuration Canvas and deploy it through the pipeline — validate, deploy,
           health check, drift detection and rollback are all handled per configuration type. Every deploy
-          that touches an alias stages every add/update/remove first, then applies them all together with
-          one <code>reconfigure</code> call — nothing reaches the running firewall until that step runs.
+          stages every add/update/remove first, then applies them all together with one apply/reconfigure
+          call — nothing reaches the running firewall until that step runs. Firewall Rules and Source NAT
+          require OPNsense 24.1 or later; see Setup Guide for details.
         </p>
 
         <h3>Configuration Types</h3>

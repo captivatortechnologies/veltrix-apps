@@ -1,0 +1,11 @@
+# Defaults for a new NAT port-forward item. `source` defaults to "any" (the
+# common case for an inbound port forward); target/local_port are left for
+# the operator to fill in.
+ipprotocol: inet
+protocol: tcp
+source: any
+disabled: false
+nordr: false
+nosync: false
+natreflection: ""
+associated_rule_id: ""

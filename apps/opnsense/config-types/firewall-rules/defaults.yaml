@@ -1,0 +1,15 @@
+# Defaults for a new OPNsense filter rule item.
+#
+# A FLAT map keyed by the canvas field keys, mirroring each field's own
+# defaultValue. description/interface are left blank for a deliberate choice.
+action: pass
+enabled: true
+quick: true
+sequence: 1
+direction: in
+ipprotocol: inet
+protocol: any
+source_net: ["any"]
+destination_net: ["any"]
+statetype: keep
+log: false

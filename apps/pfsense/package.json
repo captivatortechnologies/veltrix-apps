@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-pfsense",
   "private": true,
-  "version": "0.1.0",
-  "description": "Veltrix app: manage pfSense firewall configuration as code — firewall aliases — through the third-party pfSense REST API package (pfSense-pkg-RESTAPI)",
+  "version": "0.2.0",
+  "description": "Veltrix app: manage pfSense firewall configuration as code — firewall aliases, firewall rules, NAT port forwards and virtual IPs — through the third-party pfSense REST API package (pfSense-pkg-RESTAPI)",
   "scripts": {
     "typecheck": "tsc --noEmit"
   },

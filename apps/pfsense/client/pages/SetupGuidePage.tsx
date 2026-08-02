@@ -1,7 +1,7 @@
 import React from 'react'
 import { Badge, Card, CardBody, Tabs } from '@veltrixsecops/app-sdk/ui'
 
-const MANAGES = ['Firewall aliases']
+const MANAGES = ['Firewall aliases', 'Firewall rules', 'NAT port forwards', 'Virtual IPs']
 
 /**
  * Step-by-step connection guide, rendered with the platform design-system

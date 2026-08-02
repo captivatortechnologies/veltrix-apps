@@ -51,6 +51,71 @@
 // installs a CA-signed one — tolerated by default via a dedicated node:https
 // Agent gated by the `verify_tls` setting, same posture as this codebase's
 // other self-hosted-appliance clients (Check Point, Cisco ISE).
+//
+// v0.2.0 adds three more resources sharing this same client, each verified
+// the same way (PHP source, not prose):
+//   - firewall-rules   /api/v2/firewall/rule(s)              — RESTAPI/Models/FirewallRule.inc
+//   - nat-port-forwards /api/v2/firewall/nat/port_forward(s)  — RESTAPI/Models/PortForward.inc
+//   - virtual-ips      /api/v2/firewall/virtual_ip(s)         — RESTAPI/Models/VirtualIP.inc
+//
+// ORDERING (rules and NAT port forwards are evaluated top-to-bottom):
+// verified against RESTAPI/Core/Model.inc's generic `set_placement()` — ANY
+// `many`-enabled Model with a `config_path` (aliases, rules, port forwards,
+// virtual IPs alike) accepts an optional `placement` field (a 0-based index)
+// in its create/update request body (RESTAPI/Core/Endpoint.inc reads
+// `$request_data['placement']` on POST and PATCH). Setting it removes the
+// object from its current array index and re-inserts it at `placement`,
+// shifting everything after it down by one — same mechanic pfSense's own GUI
+// drag-and-drop reordering uses. There is NO separate "move" endpoint or
+// "insert after id X" convenience — it is a raw array-splice by absolute
+// index, and for FirewallRule/PortForward that index is GLOBAL across the
+// box's ENTIRE `filter/rule` / `nat/rule` array (not scoped to one
+// interface). This app exposes it as an OPTIONAL `position` canvas field,
+// passed straight through as `placement` — left blank, a new rule/port
+// forward is simply appended at the end and an existing one is left exactly
+// where it already is (no silent reordering). It deliberately does NOT try
+// to auto-derive placement from canvas item order: doing so naively would
+// assign absolute positions 0,1,2... and could shuffle rules this app does
+// not own that already occupy those slots, and doing it safely (relative to
+// other DECLARED rules only, accounting for unmanaged rules interleaved by
+// someone else between deploys) is a harder problem this v0.2.0 does not
+// attempt — FLAGGED as a known limitation, not silently glossed over.
+//
+// The `tracker` field on FirewallRule is UNRELATED to ordering — it is a
+// read-only, auto-generated unix-time-based tracking id (used to associate a
+// NAT port forward with its paired filter rule), not a position value.
+//
+// FLAG — FirewallRule never calls pfSense's own `mark_subsystem_dirty('filter')`
+// (verified: no `$this->subsystem` assignment anywhere in FirewallRule.inc,
+// unlike PortForward.inc which sets `subsystem = 'natconf'`). This means
+// `GET /api/v2/firewall/apply`'s `pending_subsystems` list may under-report
+// pending rule changes. It does not affect correctness here: this app always
+// calls `POST /api/v2/firewall/apply` unconditionally after any write rather
+// than relying on that status, and `FirewallApplyDispatcher::_process()`
+// (verified) calls `filter_configure()`/`filter_configure_sync()`
+// UNCONDITIONALLY — it reloads the live ruleset from config regardless of any
+// dirty flag.
+//
+// FLAG — Virtual IPs are NOT part of the shared apply endpoint's subsystem
+// list (`FirewallApply::FIREWALL_SUBSYSTEMS = ['aliases','natconf','filter',
+// 'shaper']` — no `'vip'`). They have their OWN, separate apply endpoint,
+// `/api/v2/firewall/virtual_ip/apply` (verified: RESTAPI/Models/VirtualIP.inc
+// calls `VirtualIPApplyDispatcher`, not `FirewallApplyDispatcher`) — calling
+// the general `/api/v2/firewall/apply` does NOT apply pending virtual IP
+// changes. This client calls the correct one for each resource.
+//
+// Identity for reconciliation differs per resource by necessity, not
+// preference — see each config type's `_shared.ts` module doc:
+//   - firewall-aliases:   `name` (StringField unique:true) — natural key.
+//   - virtual-ips:        `subnet` (StringField unique:true) — natural key.
+//   - firewall-rules,
+//     nat-port-forwards:  NEITHER Model declares any unique/name-like field
+//     (FirewallRule.inc / PortForward.inc verified — `descr` is free-text,
+//     not unique). This app therefore tracks identity via the CANVAS ITEM's
+//     own stable id, recorded in rollbackData across deploys — the pattern
+//     the SDK's own `DeploymentSummary.rollbackData` doc describes ("the
+//     external ids it assigned per canvas item — so the next deploy can
+//     match existing objects by stable id ... instead of by name").
 // =============================================================================
 
 import { Agent, request as httpsRequest } from 'node:https'
@@ -248,6 +313,144 @@ export interface PfsenseApplyStatus {
   pending_subsystems: string[]
 }
 
+/** VirtualIPApply's response shape has no `pending_subsystems` (verified: RESTAPI/Models/VirtualIPApply.inc declares only `applied`). */
+export interface PfsenseVipApplyStatus {
+  applied: boolean
+}
+
+/**
+ * One firewall rule — a deliberately-scoped SUBSET of FirewallRule.inc's ~30
+ * fields (verified against the full Model source). Covers the core
+ * match/action fields every rule needs; DROPS the advanced traffic-shaping
+ * and scheduling knobs (dscp, tag, tcp_flags_*, gateway, sched, dnpipe,
+ * pdnpipe, defaultqueue, ackqueue, icmptype) as out of scope for v0.2.0 —
+ * flagged rather than half-implemented. `tracker`/`created_*`/`updated_*`/
+ * `associated_rule_id` are server-managed and never written.
+ */
+export interface FirewallRule {
+  id?: number | string
+  type: 'pass' | 'block' | 'reject'
+  /** `many:true` on the API side but capped to ONE entry unless `floating` is true (verified: validate_interface()). */
+  interface: string[]
+  ipprotocol: 'inet' | 'inet6' | 'inet46'
+  /** `null` (or omitted) means "any protocol" — matches the API's own `allow_null` default. */
+  protocol?: string | null
+  source: string
+  source_port?: string | null
+  destination: string
+  destination_port?: string | null
+  descr?: string
+  disabled?: boolean
+  log?: boolean
+  /** Immutable after creation (StringField editable:false) — never PATCHed, see updateFirewallRule. */
+  floating?: boolean
+  /** Only meaningful when `floating` is true. */
+  quick?: boolean
+  /** Only meaningful when `floating` is true. */
+  direction?: 'any' | 'in' | 'out'
+  statetype?: 'keep state' | 'sloppy state' | 'synproxy state' | 'none'
+}
+
+/**
+ * One NAT port forward — verified against RESTAPI/Models/PortForward.inc.
+ * `associated_rule_id` controls whether/how a paired "pass" firewall rule is
+ * auto-managed by pfSense itself: `''` (default) requires a separate rule,
+ * `'new'` auto-creates one, `'pass'` passes matching traffic with no rule at
+ * all, or an existing rule's `associated_rule_id` links to it directly.
+ */
+export interface PortForward {
+  id?: number | string
+  interface: string
+  ipprotocol?: 'inet' | 'inet6' | 'inet46'
+  protocol: string
+  source: string
+  source_port?: string | null
+  destination: string
+  destination_port?: string | null
+  target: string
+  local_port: string
+  disabled?: boolean
+  nordr?: boolean
+  nosync?: boolean
+  descr?: string
+  natreflection?: 'enable' | 'disable' | 'purenat' | null
+  associated_rule_id?: string
+}
+
+/**
+ * One virtual IP — verified against RESTAPI/Models/VirtualIP.inc. `password`
+ * is CARP-only and sensitive (the shared VHID group secret); `carp_mode`/
+ * `carp_peer` are Plus-only per the package's own help text (harmless no-ops
+ * on CE). `carp_status`/`uniqid` are read-only/system-generated and never written.
+ */
+export interface VirtualIP {
+  id?: number | string
+  mode: 'ipalias' | 'proxyarp' | 'carp' | 'other'
+  interface: string
+  type?: 'single' | 'network'
+  subnet: string
+  subnet_bits: number
+  descr?: string
+  noexpand?: boolean
+  vhid?: number
+  advbase?: number
+  advskew?: number
+  password?: string
+  carp_mode?: 'mcast' | 'ucast'
+  carp_peer?: string
+}
+
+/** A generic CRUD surface for one `many`-enabled REST API package resource, shared by every resource this client exposes. */
+interface PfsenseCrudOps<T> {
+  list(): Promise<T[]>
+  create(body: Record<string, unknown>, opts?: { placement?: number }): Promise<T>
+  update(id: number | string, body: Record<string, unknown>, opts?: { placement?: number }): Promise<void>
+  remove(id: number | string): Promise<void>
+}
+
+type CallFn = <T = unknown>(method: string, path: string, body?: Record<string, unknown>) => Promise<PfsenseResult<T>>
+
+/**
+ * Build a CRUD surface for one resource's singular (`GET/POST/PATCH/DELETE`)
+ * and plural (`GET`, listing) endpoints. Every resource in this package
+ * follows the identical create/update/delete/list + envelope conventions
+ * (verified across FirewallAlias, FirewallRule, PortForward and VirtualIP's
+ * Endpoint classes) — only the URL segments and each resource's own field
+ * set differ, so this is the ONE implementation every resource-specific
+ * method below delegates to (DRY, mirrors this codebase's Cisco ISE ERS
+ * client's `buildErsResourceClient`).
+ */
+function buildCrudOps<T extends { id?: number | string }>(call: CallFn, singularPath: string, pluralPath: string, resourceLabel: string): PfsenseCrudOps<T> {
+  return {
+    async list() {
+      const res = await call<T[]>('GET', `${pluralPath}?limit=0`)
+      if (!res.ok) throw new Error(`GET ${pluralPath} -> HTTP ${res.status}: ${pfsenseErrorMessage(res)}`)
+      return Array.isArray(res.envelope?.data) ? (res.envelope!.data as T[]) : []
+    },
+    async create(body, opts) {
+      const payload = opts?.placement !== undefined ? { ...body, placement: opts.placement } : body
+      const res = await call<T>('POST', singularPath, payload)
+      if (!res.ok) throw new Error(`POST ${singularPath} -> HTTP ${res.status}: ${pfsenseErrorMessage(res)}`)
+      const created = res.envelope?.data
+      if (!created || created.id === undefined) {
+        throw new Error(`Created a ${resourceLabel} but the REST API package did not return its id`)
+      }
+      return created
+    },
+    async update(id, body, opts) {
+      const payload = opts?.placement !== undefined ? { id, ...body, placement: opts.placement } : { id, ...body }
+      const res = await call('PATCH', singularPath, payload)
+      if (!res.ok) throw new Error(`PATCH ${singularPath} (id=${id}) -> HTTP ${res.status}: ${pfsenseErrorMessage(res)}`)
+    },
+    async remove(id) {
+      const res = await call('DELETE', singularPath, { id })
+      if (!res.ok && res.status !== 404) {
+        throw new Error(`DELETE ${singularPath} (id=${id}) -> HTTP ${res.status}: ${pfsenseErrorMessage(res)}`)
+      }
+    },
+  }
+}
+
 export interface PfsenseClient {
   /** Mint a JWT if this client is in JWT mode; a no-op for API-key mode. Idempotent. */
   authenticate(): Promise<{ error: string | null }>
@@ -265,6 +468,37 @@ export interface PfsenseClient {
   getApplyStatus(): Promise<PfsenseApplyStatus>
   /** POST /api/v2/firewall/apply — apply ALL pending firewall changes (aliases/nat/filter/shaper). */
   applyChanges(): Promise<void>
+
+  /** GET /api/v2/firewall/rules — every rule, full representation. */
+  listFirewallRules(): Promise<FirewallRule[]>
+  /** POST /api/v2/firewall/rule. `opts.placement` — see this file's module doc on ordering. Does NOT apply. */
+  createFirewallRule(body: Omit<FirewallRule, 'id'>, opts?: { placement?: number }): Promise<FirewallRule>
+  /** PATCH /api/v2/firewall/rule. `floating` must be omitted — it cannot change. */
+  updateFirewallRule(id: number | string, body: Omit<FirewallRule, 'id' | 'floating'>, opts?: { placement?: number }): Promise<void>
+  /** DELETE /api/v2/firewall/rule. */
+  deleteFirewallRule(id: number | string): Promise<void>
+
+  /** GET /api/v2/firewall/nat/port_forwards — every port forward, full representation. */
+  listPortForwards(): Promise<PortForward[]>
+  /** POST /api/v2/firewall/nat/port_forward. `opts.placement` — see this file's module doc on ordering. Does NOT apply. */
+  createPortForward(body: Omit<PortForward, 'id'>, opts?: { placement?: number }): Promise<PortForward>
+  /** PATCH /api/v2/firewall/nat/port_forward. */
+  updatePortForward(id: number | string, body: Omit<PortForward, 'id'>, opts?: { placement?: number }): Promise<void>
+  /** DELETE /api/v2/firewall/nat/port_forward. */
+  deletePortForward(id: number | string): Promise<void>
+
+  /** GET /api/v2/firewall/virtual_ips — every virtual IP, full representation. */
+  listVirtualIps(): Promise<VirtualIP[]>
+  /** POST /api/v2/firewall/virtual_ip. Does NOT apply — call applyVirtualIpChanges() once after a batch. */
+  createVirtualIp(body: Omit<VirtualIP, 'id'>): Promise<VirtualIP>
+  /** PATCH /api/v2/firewall/virtual_ip. */
+  updateVirtualIp(id: number | string, body: Omit<VirtualIP, 'id'>): Promise<void>
+  /** DELETE /api/v2/firewall/virtual_ip. */
+  deleteVirtualIp(id: number | string): Promise<void>
+  /** GET /api/v2/firewall/virtual_ip/apply — pending virtual-IP status. SEPARATE from getApplyStatus(). */
+  getVirtualIpApplyStatus(): Promise<PfsenseVipApplyStatus>
+  /** POST /api/v2/firewall/virtual_ip/apply — apply pending virtual-IP changes. SEPARATE from applyChanges(). */
+  applyVirtualIpChanges(): Promise<void>
 }
 
 /** Build a client bound to one pfSense connection (host/port/base path + credential). */
@@ -309,6 +543,11 @@ export function buildPfsenseClient(
     }) as Promise<PfsenseResult<T>>
   }
 
+  const aliasOps = buildCrudOps<FirewallAlias>(call, '/firewall/alias', '/firewall/aliases', 'alias')
+  const ruleOps = buildCrudOps<FirewallRule>(call, '/firewall/rule', '/firewall/rules', 'firewall rule')
+  const portForwardOps = buildCrudOps<PortForward>(call, '/firewall/nat/port_forward', '/firewall/nat/port_forwards', 'NAT port forward')
+  const virtualIpOps = buildCrudOps<VirtualIP>(call, '/firewall/virtual_ip', '/firewall/virtual_ips', 'virtual IP')
+
   const client: PfsenseClient = {
     async authenticate() {
       if (cred.kind === 'api_key') return { error: null }
@@ -331,33 +570,10 @@ export function buildPfsenseClient(
       return call('GET', '/system/version')
     },
 
-    async listAliases() {
-      const res = await call<FirewallAlias[]>('GET', '/firewall/aliases?limit=0')
-      if (!res.ok) throw new Error(`GET /firewall/aliases -> HTTP ${res.status}: ${pfsenseErrorMessage(res)}`)
-      return Array.isArray(res.envelope?.data) ? (res.envelope!.data as FirewallAlias[]) : []
-    },
-
-    async createAlias(body) {
-      const res = await call<FirewallAlias>('POST', '/firewall/alias', body as unknown as Record<string, unknown>)
-      if (!res.ok) throw new Error(`POST /firewall/alias "${body.name}" -> HTTP ${res.status}: ${pfsenseErrorMessage(res)}`)
-      const created = res.envelope?.data
-      if (!created || created.id === undefined) {
-        throw new Error(`Created alias "${body.name}" but the REST API package did not return its id`)
-      }
-      return created
-    },
-
-    async updateAlias(id, body) {
-      const res = await call('PATCH', '/firewall/alias', { id, ...body })
-      if (!res.ok) throw new Error(`PATCH /firewall/alias (id=${id}) -> HTTP ${res.status}: ${pfsenseErrorMessage(res)}`)
-    },
-
-    async deleteAlias(id) {
-      const res = await call('DELETE', '/firewall/alias', { id })
-      if (!res.ok && res.status !== 404) {
-        throw new Error(`DELETE /firewall/alias (id=${id}) -> HTTP ${res.status}: ${pfsenseErrorMessage(res)}`)
-      }
-    },
+    listAliases: () => aliasOps.list(),
+    createAlias: (body) => aliasOps.create(body),
+    updateAlias: (id, body) => aliasOps.update(id, body),
+    deleteAlias: (id) => aliasOps.remove(id),
 
     async getApplyStatus() {
       const res = await call<PfsenseApplyStatus>('GET', '/firewall/apply')
@@ -368,6 +584,32 @@ export function buildPfsenseClient(
     async applyChanges() {
       const res = await call('POST', '/firewall/apply')
       if (!res.ok) throw new Error(`POST /firewall/apply -> HTTP ${res.status}: ${pfsenseErrorMessage(res)}`)
+    },
+
+    listFirewallRules: () => ruleOps.list(),
+    createFirewallRule: (body, opts) => ruleOps.create(body, opts),
+    updateFirewallRule: (id, body, opts) => ruleOps.update(id, body, opts),
+    deleteFirewallRule: (id) => ruleOps.remove(id),
+
+    listPortForwards: () => portForwardOps.list(),
+    createPortForward: (body, opts) => portForwardOps.create(body, opts),
+    updatePortForward: (id, body, opts) => portForwardOps.update(id, body, opts),
+    deletePortForward: (id) => portForwardOps.remove(id),
+
+    listVirtualIps: () => virtualIpOps.list(),
+    createVirtualIp: (body) => virtualIpOps.create(body),
+    updateVirtualIp: (id, body) => virtualIpOps.update(id, body),
+    deleteVirtualIp: (id) => virtualIpOps.remove(id),
+
+    async getVirtualIpApplyStatus() {
+      const res = await call<PfsenseVipApplyStatus>('GET', '/firewall/virtual_ip/apply')
+      if (!res.ok) throw new Error(`GET /firewall/virtual_ip/apply -> HTTP ${res.status}: ${pfsenseErrorMessage(res)}`)
+      return (res.envelope?.data as PfsenseVipApplyStatus | undefined) ?? { applied: true }
+    },
+
+    async applyVirtualIpChanges() {
+      const res = await call('POST', '/firewall/virtual_ip/apply')
+      if (!res.ok) throw new Error(`POST /firewall/virtual_ip/apply -> HTTP ${res.status}: ${pfsenseErrorMessage(res)}`)
     },
   }
 

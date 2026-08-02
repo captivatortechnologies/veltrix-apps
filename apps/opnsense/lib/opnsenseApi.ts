@@ -1,6 +1,7 @@
 // =============================================================================
 // OPNsense REST API client — HTTP Basic (API key + secret) transport with
-// self-signed-TLS handling, plus the firewall/alias resource helpers.
+// self-signed-TLS handling, plus the firewall alias / category / filter-rule /
+// source-NAT resource helpers.
 //
 // Base URL: https://<host>[:port]/api/<module>/<controller>/<command>[/<param>...]
 //   Reference: https://docs.opnsense.org/development/api.html
@@ -242,11 +243,93 @@ export function buildOpnsenseClient(
   }
 }
 
+// --- Generic mutable-model resource (addXxx/setXxx/delXxx/searchXxx) ----------
+//
+// Every OPNsense "mutable model" controller shares the exact same CRUD
+// envelope — verified against ApiMutableModelControllerBase.php's
+// addBase/setBase/delBase/searchBase (github.com/opnsense/core,
+// src/opnsense/mvc/app/controllers/OPNsense/Base/ApiMutableModelControllerBase.php)
+// — only the URL's action-verb naming differs per controller:
+//   - Alias / Category use the base class's own default names: addItem /
+//     setItem / delItem / searchItem.
+//   - Filter / SourceNat (FilterController / SourceNatController, both
+//     extending FilterBaseController) define their OWN action names on top of
+//     the SAME addBase/setBase/delBase methods: addRule / setRule / delRule /
+//     searchRule.
+// This factory captures the shared shape ONCE; each resource below only
+// supplies its module path, its body's wrapper key, and — when it isn't
+// "Item" — its verb set. Response shapes, verified:
+//   add:    { result: "saved", uuid } | { result: "failed", validations }
+//   set:    { result: "saved" }       | { result: "failed", validations }
+//   delete: { result: "deleted" } | { result: "not found" } | (thrown, e.g. "in use")
+//   search: { rows: [...], rowCount, total, current }
+
+export interface ModelRecord {
+  uuid: string
+  [key: string]: unknown
+}
+
+interface MutateResponse {
+  result?: string
+  uuid?: string
+  validations?: Record<string, unknown>
+}
+
+interface ModelVerbs {
+  search: string
+  add: string
+  set: string
+  del: string
+}
+
+const ITEM_VERBS: ModelVerbs = { search: 'searchItem', add: 'addItem', set: 'setItem', del: 'delItem' }
+const RULE_VERBS: ModelVerbs = { search: 'searchRule', add: 'addRule', set: 'setRule', del: 'delRule' }
+
+export interface ModelResource<TLive extends ModelRecord, TBody extends object> {
+  /** List every configured record — flat field values. See each resource's own doc for its exact page-size default. */
+  search(): Promise<TLive[]>
+  /** Create a record; returns the new uuid. */
+  add(body: TBody): Promise<string>
+  /** Update a record by uuid. setBase() only overwrites the SUPPLIED keys (a merge) — always send every managed field. */
+  set(uuid: string, body: TBody): Promise<void>
+  /** Delete a record by uuid. Some resources reject this (e.g. "still in use") — surfaced as a thrown Error. */
+  remove(uuid: string): Promise<void>
+}
+
+function buildModelResource<TLive extends ModelRecord, TBody extends object>(
+  client: OpnsenseClient,
+  module: readonly string[],
+  wrapperKey: string,
+  verbs: ModelVerbs = ITEM_VERBS,
+): ModelResource<TLive, TBody> {
+  return {
+    async search() {
+      const res = await client.request<{ rows?: TLive[] }>('GET', [...module, verbs.search])
+      if (!res.ok) throw new Error(`${verbs.search} failed: ${opnsenseErrorMessage(res)}`)
+      return res.data?.rows ?? []
+    },
+    async add(body) {
+      const res = await client.request<MutateResponse>('POST', [...module, verbs.add], { [wrapperKey]: body })
+      if (res.data?.result === 'saved' && res.data.uuid) return res.data.uuid
+      throw new Error(`${verbs.add} failed: ${opnsenseErrorMessage(res)}`)
+    },
+    async set(uuid, body) {
+      const res = await client.request<MutateResponse>('POST', [...module, verbs.set, uuid], { [wrapperKey]: body })
+      if (res.data?.result === 'saved') return
+      throw new Error(`${verbs.set} "${uuid}" failed: ${opnsenseErrorMessage(res)}`)
+    },
+    async remove(uuid) {
+      const res = await client.request<MutateResponse>('POST', [...module, verbs.del, uuid])
+      if (res.data?.result === 'deleted' || res.data?.result === 'not found') return
+      throw new Error(`${verbs.del} "${uuid}" failed: ${opnsenseErrorMessage(res)}`)
+    },
+  }
+}
+
 // --- Firewall Alias resource (api/firewall/alias/*) ---------------------------
 //
 // Verified against OPNsense core's own source (github.com/opnsense/core):
 //   controller: src/opnsense/mvc/app/controllers/OPNsense/Firewall/Api/AliasController.php
-//   base CRUD:  src/opnsense/mvc/app/controllers/OPNsense/Base/ApiMutableModelControllerBase.php
 //   model:      src/opnsense/mvc/app/models/OPNsense/Firewall/Alias.xml
 //   grid list:  src/opnsense/mvc/app/library/OPNsense/Base/UIModelGrid.php
 //
@@ -270,7 +353,8 @@ export const ALIAS_MODULE = ['firewall', 'alias'] as const
  * AliasContentField's `private $separatorchar = "\n"`) and the Multiple
  * option field `proto` — must be sent as ONE STRING, never an array. This
  * client only ever builds alias bodies as Record<string, string> to make
- * that mistake structurally impossible.
+ * that mistake structurally impossible. The same rule applies to EVERY other
+ * resource below (categories, filter rules, source NAT rules).
  */
 export interface AliasBody {
   enabled: string // "1" | "0"
@@ -284,8 +368,7 @@ export interface AliasBody {
 }
 
 /** A firewall alias exactly as `searchItem` returns it — flat field values (UIModelGrid::fetch). */
-export interface LiveAlias {
-  uuid: string
+export interface LiveAlias extends ModelRecord {
   enabled?: string
   name?: string
   type?: string
@@ -294,14 +377,10 @@ export interface LiveAlias {
   proto?: string
   interface?: string
   updatefreq?: string
-  [key: string]: unknown
 }
 
-interface SearchItemResponse {
-  rows?: LiveAlias[]
-  rowCount?: number
-  total?: number
-  current?: number
+function aliasResource(client: OpnsenseClient): ModelResource<LiveAlias, AliasBody> {
+  return buildModelResource<LiveAlias, AliasBody>(client, ALIAS_MODULE, 'alias')
 }
 
 /**
@@ -311,36 +390,18 @@ interface SearchItemResponse {
  * with no query params already returns the complete set: no pagination loop
  * needed, unlike a tool whose list endpoint hard-caps a page size.
  */
-export async function searchAliases(client: OpnsenseClient): Promise<LiveAlias[]> {
-  const res = await client.request<SearchItemResponse>('GET', [...ALIAS_MODULE, 'searchItem'])
-  if (!res.ok) throw new Error(`searchItem failed: ${opnsenseErrorMessage(res)}`)
-  return res.data?.rows ?? []
-}
-
-interface MutateResponse {
-  result?: string
-  uuid?: string
-  validations?: Record<string, unknown>
+export function searchAliases(client: OpnsenseClient): Promise<LiveAlias[]> {
+  return aliasResource(client).search()
 }
 
 /** `POST /api/firewall/alias/addItem` — body `{ alias: {...} }`. Returns the new uuid. */
-export async function addAlias(client: OpnsenseClient, body: AliasBody): Promise<string> {
-  const res = await client.request<MutateResponse>('POST', [...ALIAS_MODULE, 'addItem'], { alias: body })
-  if (res.data?.result === 'saved' && res.data.uuid) return res.data.uuid
-  throw new Error(`addItem "${body.name}" was not saved: ${opnsenseErrorMessage(res)}`)
+export function addAlias(client: OpnsenseClient, body: AliasBody): Promise<string> {
+  return aliasResource(client).add(body)
 }
 
-/**
- * `POST /api/firewall/alias/setItem/<uuid>` — body `{ alias: {...} }`. Note:
- * setBase() only overwrites the keys present in the body (a merge against the
- * existing node, not a full replace) — this client always sends every
- * managed field (AliasBody has none optional) so a value the canvas cleared
- * is genuinely cleared, not left stale.
- */
-export async function setAlias(client: OpnsenseClient, uuid: string, body: AliasBody): Promise<void> {
-  const res = await client.request<MutateResponse>('POST', [...ALIAS_MODULE, 'setItem', uuid], { alias: body })
-  if (res.data?.result === 'saved') return
-  throw new Error(`setItem "${uuid}" (${body.name}) failed: ${opnsenseErrorMessage(res)}`)
+/** `POST /api/firewall/alias/setItem/<uuid>` — body `{ alias: {...} }`. */
+export function setAlias(client: OpnsenseClient, uuid: string, body: AliasBody): Promise<void> {
+  return aliasResource(client).set(uuid, body)
 }
 
 /**
@@ -349,10 +410,8 @@ export async function setAlias(client: OpnsenseClient, uuid: string, body: Alias
  * a firewall/NAT rule still references this one by name — that failure
  * surfaces here as a thrown Error whose message names the blocker.
  */
-export async function deleteAlias(client: OpnsenseClient, uuid: string): Promise<void> {
-  const res = await client.request<MutateResponse>('POST', [...ALIAS_MODULE, 'delItem', uuid])
-  if (res.data?.result === 'deleted' || res.data?.result === 'not found') return
-  throw new Error(`delItem "${uuid}" failed: ${opnsenseErrorMessage(res)}`)
+export function deleteAlias(client: OpnsenseClient, uuid: string): Promise<void> {
+  return aliasResource(client).remove(uuid)
 }
 
 /**
@@ -360,12 +419,333 @@ export async function deleteAlias(client: OpnsenseClient, uuid: string): Promise
  * module doc above. Every deploy/rollback that staged at least one
  * add/set/delItem call MUST call this once, after every stage call, before
  * reporting success — otherwise the staged changes sit in the pending
- * configuration and never reach the running pf ruleset.
+ * configuration and never reach the running pf ruleset. Verified success
+ * shape: AliasController::reconfigureAction always returns the literal
+ * `{"status":"ok"}` on success (never a passthrough value), unlike the
+ * Filter/SourceNat apply step below.
  */
 export async function reconfigureAliases(client: OpnsenseClient): Promise<void> {
   const res = await client.request<{ status?: string }>('POST', [...ALIAS_MODULE, 'reconfigure'])
   if (res.data?.status === 'ok') return
   throw new Error(`reconfigure failed — staged alias changes were NOT applied: ${opnsenseErrorMessage(res)}`)
+}
+
+// --- Firewall Category resource (api/firewall/category/*) --------------------
+//
+// Verified: src/opnsense/mvc/app/controllers/OPNsense/Firewall/Api/CategoryController.php
+// + src/opnsense/mvc/app/models/OPNsense/Firewall/Category.xml. Categories are
+// pure metadata TAGS referenced by name from aliases, filter rules and source
+// NAT rules for grouping/color-coding — they have NO live effect on pf, so
+// there is no apply/reconfigure step for this resource at all (confirmed: no
+// such action exists on CategoryController). This is the oldest of the four
+// resources here — the model landed in core back in January 2021 (issue
+// #4587), long before any OPNsense version this app would plausibly target,
+// so — unlike firewall-rules/source-nat below — there is no meaningful
+// version-floor to flag.
+
+export const CATEGORY_MODULE = ['firewall', 'category'] as const
+
+export interface CategoryBody {
+  name: string
+  color: string // 6 hex digits (e.g. "FF8800"), or "" for none
+}
+
+/**
+ * `auto` marks a small set of SYSTEM-managed categories (e.g. an "Anti-Lockout"
+ * category some Destination NAT versions auto-create) — verified present as a
+ * plain BooleanField on the model. This app never creates, edits or deletes a
+ * category whose live `auto` is "1", the same way this codebase's Cisco ISE
+ * app leaves ISE's system-defined identity groups alone.
+ */
+export interface LiveCategory extends ModelRecord {
+  name?: string
+  color?: string
+  auto?: string
+}
+
+function categoryResource(client: OpnsenseClient): ModelResource<LiveCategory, CategoryBody> {
+  return buildModelResource<LiveCategory, CategoryBody>(client, CATEGORY_MODULE, 'category')
+}
+
+/** `GET|POST /api/firewall/category/searchItem` — same `rowCount: -1` ("all results") default as aliases. */
+export function searchCategories(client: OpnsenseClient): Promise<LiveCategory[]> {
+  return categoryResource(client).search()
+}
+
+/** `POST /api/firewall/category/addItem` — body `{ category: {...} }`. Returns the new uuid. */
+export function addCategory(client: OpnsenseClient, body: CategoryBody): Promise<string> {
+  return categoryResource(client).add(body)
+}
+
+/** `POST /api/firewall/category/setItem/<uuid>` — body `{ category: {...} }`. */
+export function setCategory(client: OpnsenseClient, uuid: string, body: CategoryBody): Promise<void> {
+  return categoryResource(client).set(uuid, body)
+}
+
+/**
+ * `POST /api/firewall/category/delItem/<uuid>`. CategoryController::delItemAction
+ * checks `Category::isUsed()` first and throws ("Category in use") if any
+ * alias/rule/NAT entry still references it — surfaced as a thrown Error.
+ */
+export function deleteCategory(client: OpnsenseClient, uuid: string): Promise<void> {
+  return categoryResource(client).remove(uuid)
+}
+
+// --- Firewall Filter Rule resource (api/firewall/filter/*) --------------------
+//
+// *** REQUIRES OPNsense 24.1 "Savvy Shark" (released January 30, 2024) OR
+// LATER. *** Verified two independent ways:
+//   1. The official changelog (github.com/opnsense/changelog,
+//      community/24.1/24.1): "firewall: add automation category for filter
+//      rules and source NAT using MVC/API, formerly known as os-firewall
+//      plugin" and "plugins: os-firewall moved to core".
+//   2. The core commit that introduced these controllers (github.com/
+//      opnsense/core, commit 8e299d3e, 2024-01-07, "import net/os-firewall
+//      from plugins", https://github.com/opnsense/core/issues/6390) — which
+//      added FilterController.php, FilterBaseController.php AND
+//      SourceNatController.php in the SAME commit.
+// Before 24.1 this functionality existed ONLY as a separately-installed
+// "os-firewall" plugin (not guaranteed present, not core) — on an un-upgraded
+// pre-24.1 box, every endpoint below returns 404, not a validation error.
+//
+// Verified: src/opnsense/mvc/app/controllers/OPNsense/Firewall/Api/
+// FilterController.php + FilterBaseController.php, and the shared model
+// src/opnsense/mvc/app/models/OPNsense/Firewall/Filter.xml (mount
+// //OPNsense/Firewall/Filter — the SAME model file backs filter rules
+// (`rules.rule`), source NAT (`snatrules.rule`), NPTv6 (`npt.rule`) and
+// 1:1 NAT (`onetoone.rule`); this app only manages the first two).
+
+export const FILTER_MODULE = ['firewall', 'filter'] as const
+
+/**
+ * Ordering — verified against FilterRuleContainerField::getPriority() /
+ * FilterRuleField::actionPostLoadingEvent() (src/opnsense/mvc/app/models/
+ * OPNsense/Firewall/FieldTypes/FilterRuleField.php), which run on EVERY
+ * model load: `prio_group` is a VOLATILE, SERVER-COMPUTED bucket derived
+ * purely from `interface` + `interfacenot` (floating: 0 or 2+ interfaces, or
+ * interfacenot set; a single OPNsense interface-GROUP; a single ordinary
+ * interface; or "invalid" when the named interface doesn't exist) — this app
+ * never sends `prio_group` or `sort_order`, only `sequence`. Rules are then
+ * sorted `sort_order = "{prio_group}.0{sequence:06d}"`, so `sequence` only
+ * orders rules WITHIN the SAME bucket — a floating rule with sequence 1
+ * always evaluates before EVERY single-interface rule regardless of that
+ * rule's own sequence, because floating's bucket (200000) sorts before a
+ * plain interface rule's bucket (400000). This app does not attempt to
+ * replicate the UI's drag-and-drop gap-renumbering (moveRuleBefore) — declare
+ * well-spaced `sequence` values (e.g. 10, 20, 30) for easy future insertion.
+ */
+export interface FilterRuleBody {
+  enabled: string
+  statetype: string
+  sequence: string
+  action: string
+  quick: string
+  interfacenot: string
+  interface: string // comma-joined (Multiple=Y) — "" = floating (no interface restriction)
+  direction: string
+  ipprotocol: string
+  protocol: string
+  source_net: string // comma-joined (Multiple=Y)
+  source_not: string
+  source_port: string
+  destination_net: string // comma-joined (Multiple=Y)
+  destination_not: string
+  destination_port: string
+  log: string
+  categories: string // comma-joined category UUIDs
+  description: string
+}
+
+export interface LiveFilterRule extends ModelRecord {
+  enabled?: string
+  action?: string
+  interface?: string
+  interfacenot?: string
+  direction?: string
+  ipprotocol?: string
+  protocol?: string
+  source_net?: string
+  source_not?: string
+  source_port?: string
+  destination_net?: string
+  destination_not?: string
+  destination_port?: string
+  log?: string
+  categories?: string
+  statetype?: string
+  sequence?: string
+  sort_order?: string
+  prio_group?: string
+  description?: string
+}
+
+function filterRuleResource(client: OpnsenseClient): ModelResource<LiveFilterRule, FilterRuleBody> {
+  return buildModelResource<LiveFilterRule, FilterRuleBody>(client, FILTER_MODULE, 'rule', RULE_VERBS)
+}
+
+/**
+ * `GET|POST /api/firewall/filter/searchRule`. UNLIKE alias/category's
+ * `searchItem` (UIModelGrid, `rowCount: -1` = literally unlimited),
+ * `searchRule` runs over `ApiControllerBase::searchRecordsetBase()`, whose own
+ * default is `rowCount: 9999` (NOT -1) when the param is omitted — verified
+ * in ApiControllerBase.php. A bare call therefore returns up to 9999 rules in
+ * one page: functionally "everything" for any realistic ruleset, but not
+ * literally unbounded the way alias/category search is. Flagged, not faked.
+ */
+export function searchFilterRules(client: OpnsenseClient): Promise<LiveFilterRule[]> {
+  return filterRuleResource(client).search()
+}
+
+/** `POST /api/firewall/filter/addRule` — body `{ rule: {...} }`. Returns the new uuid. */
+export function addFilterRule(client: OpnsenseClient, body: FilterRuleBody): Promise<string> {
+  return filterRuleResource(client).add(body)
+}
+
+/** `POST /api/firewall/filter/setRule/<uuid>` — body `{ rule: {...} }`. */
+export function setFilterRule(client: OpnsenseClient, uuid: string, body: FilterRuleBody): Promise<void> {
+  return filterRuleResource(client).set(uuid, body)
+}
+
+/** `POST /api/firewall/filter/delRule/<uuid>`. */
+export function deleteFilterRule(client: OpnsenseClient, uuid: string): Promise<void> {
+  return filterRuleResource(client).remove(uuid)
+}
+
+/**
+ * `POST /api/firewall/<module>/apply` — the APPLY step for BOTH filter rules
+ * and source NAT rules. FilterBaseController::applyAction() runs
+ * `filter reload skip_alias` — a full pf ruleset reload — and returns
+ * `{"status": <raw configdRun output>}`. SourceNatController extends
+ * FilterBaseController and does NOT override applyAction, so
+ * `/api/firewall/source_nat/apply` runs the EXACT SAME backend command;
+ * applying either module's changes effectively applies both (rules and NAT
+ * share one pf.conf reload) — this app still calls its own module's `apply`
+ * from each config type's deploy/rollback so each stays correct in isolation.
+ * FLAGGED: only `"error"` (returned when the request isn't a POST, which this
+ * client never sends) is a PINNED failure literal in the source read for this
+ * app — the SUCCESS value is whatever `configdRun('filter reload skip_alias')`
+ * prints, not a fixed "ok" the way alias's reconfigure is. This helper treats
+ * any non-"error", non-empty status as success and surfaces the raw value.
+ */
+export async function applyFilterModule(client: OpnsenseClient, module: readonly string[]): Promise<string> {
+  const res = await client.request<{ status?: string }>('POST', [...module, 'apply'])
+  if (res.ok && res.data?.status && res.data.status !== 'error') return res.data.status
+  throw new Error(`apply failed — staged changes were NOT applied: ${opnsenseErrorMessage(res)}`)
+}
+
+// --- Firewall Source NAT (outbound NAT) resource (api/firewall/source_nat/*) --
+//
+// *** Same OPNsense 24.1+ requirement as firewall-filter above *** —
+// SourceNatController.php was added in the SAME commit (8e299d3e) as
+// FilterController.php/FilterBaseController.php. Verified:
+// src/opnsense/mvc/app/controllers/OPNsense/Firewall/Api/SourceNatController.php
+// (`snatrules.rule` in the SAME shared Filter.xml model as filter rules).
+//
+// Outbound NAT MODE gate — verified in Filter.xml's `general.snat_mode`
+// (OptionValues: automatic / hybrid / advanced / disabled, default
+// "automatic") and SourceNatController::searchRuleAction()'s own mode switch:
+// manual `snatrules.rule` entries are only ever evaluated by pf when the mode
+// is "hybrid" or "advanced" ("manual"). In "automatic" (the OPNsense DEFAULT)
+// or "disabled" mode, this app's rules stage into config.xml and `apply`
+// happily reloads the ruleset, but the rules have ZERO effect — OPNsense
+// generates its own automatic outbound rules instead. This app does not
+// change `snat_mode` itself (a global setting outside this config type's
+// scope) — see `getSourceNatMode` below, surfaced as a healthCheck warning.
+
+export const SOURCE_NAT_MODULE = ['firewall', 'source_nat'] as const
+
+export interface SourceNatRuleBody {
+  enabled: string
+  nonat: string
+  sequence: string
+  interface: string // single value (no Multiple flag on this model's interface field)
+  ipprotocol: string
+  protocol: string
+  source_net: string // single value
+  source_not: string
+  source_port: string
+  destination_net: string // single value
+  destination_not: string
+  destination_port: string
+  target: string // blank = the interface's own address
+  target_port: string
+  staticnatport: string
+  log: string
+  categories: string // comma-joined category UUIDs
+  'endpoint-independent': string
+  description: string
+}
+
+export interface LiveSourceNatRule extends ModelRecord {
+  enabled?: string
+  nonat?: string
+  interface?: string
+  ipprotocol?: string
+  protocol?: string
+  source_net?: string
+  source_not?: string
+  source_port?: string
+  destination_net?: string
+  destination_not?: string
+  destination_port?: string
+  target?: string
+  target_port?: string
+  staticnatport?: string
+  log?: string
+  categories?: string
+  sequence?: string
+  description?: string
+  /** True for OPNsense's own synthetic automatic-mode rows (never returned for manual rules this app owns). */
+  is_automatic?: boolean
+}
+
+function sourceNatRuleResource(client: OpnsenseClient): ModelResource<LiveSourceNatRule, SourceNatRuleBody> {
+  return buildModelResource<LiveSourceNatRule, SourceNatRuleBody>(client, SOURCE_NAT_MODULE, 'rule', RULE_VERBS)
+}
+
+/** `GET|POST /api/firewall/source_nat/searchRule` — same `rowCount: 9999` default caveat as filter rules. */
+export function searchSourceNatRules(client: OpnsenseClient): Promise<LiveSourceNatRule[]> {
+  return sourceNatRuleResource(client).search()
+}
+
+/** `POST /api/firewall/source_nat/addRule` — body `{ rule: {...} }`. Returns the new uuid. */
+export function addSourceNatRule(client: OpnsenseClient, body: SourceNatRuleBody): Promise<string> {
+  return sourceNatRuleResource(client).add(body)
+}
+
+/** `POST /api/firewall/source_nat/setRule/<uuid>` — body `{ rule: {...} }`. */
+export function setSourceNatRule(client: OpnsenseClient, uuid: string, body: SourceNatRuleBody): Promise<void> {
+  return sourceNatRuleResource(client).set(uuid, body)
+}
+
+/** `POST /api/firewall/source_nat/delRule/<uuid>`. */
+export function deleteSourceNatRule(client: OpnsenseClient, uuid: string): Promise<void> {
+  return sourceNatRuleResource(client).remove(uuid)
+}
+
+/**
+ * The current outbound-NAT mode (`general.snat_mode` on the shared Filter
+ * model — see the module doc above). BEST-EFFORT: `GET
+ * /api/firewall/source_nat/get` (SourceNatController::getAction, inherited
+ * from ApiMutableModelControllerBase::getAction/getModelNodes) returns OPTION
+ * fields in their full FORM representation — `{ optionKey: { selected: "1"|1,
+ * ... }, ... }` — the same shape this app already relies on for Alias
+ * `content` in firewall-aliases. That shape is well-established for OPTION
+ * fields generally, but has not been exercised against a live box for THIS
+ * specific field, so a parse miss degrades to `null` (callers skip the mode
+ * warning) instead of throwing.
+ */
+export async function getSourceNatMode(client: OpnsenseClient): Promise<string | null> {
+  const res = await client.request<{ filter?: { general?: { snat_mode?: unknown } } }>('GET', [...SOURCE_NAT_MODULE, 'get'])
+  const raw = res.data?.filter?.general?.snat_mode
+  if (typeof raw === 'string') return raw || null
+  if (raw && typeof raw === 'object') {
+    for (const [key, opt] of Object.entries(raw as Record<string, unknown>)) {
+      const selected = (opt as { selected?: unknown } | null)?.selected
+      if (selected === 1 || selected === '1' || selected === true) return key
+    }
+  }
+  return null
 }
 
 // --- Connectivity probe (api/core/firmware/status) -----------------------------
