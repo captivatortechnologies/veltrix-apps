@@ -1,0 +1,85 @@
+# =============================================================================
+# Canvas Template — pfSense Firewall Aliases
+#
+# Declares ONE firewall alias — the item. Users add as many as they need.
+# Field keys must match config-types/firewall-aliases/_shared.ts. Applied via
+# the pfSense REST API package (POST/PATCH/DELETE /api/v2/firewall/alias),
+# with pending changes applied once per deploy (/api/v2/firewall/apply).
+#
+# An alias's `name` is its identity — reconciliation upserts/deletes by name —
+# and is IMMUTABLE once created in pfSense (renaming means delete + recreate).
+# `address`/`detail` are positional: the Nth detail describes the Nth address.
+# =============================================================================
+
+id: "pfsense-firewall-aliases"
+name: "Firewall Aliases"
+toolType: "pfsense"
+entityType: "firewall-aliases"
+description: "Manage pfSense firewall aliases (host / network / port groups referenced by rules and NAT) via the pfSense REST API package (/api/v2/firewall/alias)"
+
+item:
+  label: "Firewall Alias"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "tag"
+      description: "Alias name, type and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 31
+          helpText: >
+            Letters, numbers and underscores only, 31 characters or fewer, not
+            purely numeric or underscores. Used as the stable identity for
+            upsert and drift, and is IMMUTABLE once created — renaming means
+            deleting the old alias and creating a new one.
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "host"
+          options:
+            - { label: "Host (IPs / FQDNs)", value: "host" }
+            - { label: "Network (CIDRs / FQDNs)", value: "network" }
+            - { label: "Port (ports / ranges)", value: "port" }
+          helpText: "Determines what kind of values `Addresses` may contain."
+
+        - key: "descr"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1024
+          helpText: "What this alias is for — recorded on the alias in pfSense."
+
+    - name: "Members"
+      icon: "list"
+      description: "The alias's entries"
+      fields:
+        - key: "address"
+          label: "Addresses"
+          fieldType: "tags"
+          required: false
+          helpText: >
+            One entry per value. For Host: IPv4/IPv6 addresses or FQDNs. For
+            Network: CIDR subnets or FQDNs. For Port: a port number (e.g.
+            8080) or range (colon-delimited, e.g. 8000:8100). Any entry may
+            also reference another alias's name (nesting). Leaving this empty
+            creates a placeholder alias with no members.
+
+        - key: "detail"
+          label: "Descriptions (optional, one per address)"
+          fieldType: "tags"
+          required: false
+          helpText: >
+            Optional per-entry descriptions, in the SAME ORDER as `Addresses`
+            — the first description here describes the first address, and so
+            on. Fewer descriptions than addresses is fine (pfSense fills in
+            the rest); more than addresses is rejected.

@@ -1,0 +1,131 @@
+# =============================================================================
+# Canvas Template — OPNsense Firewall Aliases
+#
+# Declares ONE OPNsense firewall alias — the item. Users add as many as they
+# need. An alias's identity is its NAME; deploy lists every configured alias
+# (searchItem), matches on the name, and uses addItem (create) / setItem
+# (update) to reconcile each declared alias. Aliases this app created but no
+# longer declares are removed (delItem). Every deploy that touches an alias
+# finishes with one reconfigure call — that is the step that actually reloads
+# the pf filter/alias tables; addItem/setItem/delItem alone only stage the
+# change into the pending configuration.
+#
+# Field keys must match config-types/firewall-aliases/_shared.ts.
+# =============================================================================
+
+id: "opnsense-firewall-aliases"
+name: "OPNsense Firewall Alias Configuration"
+toolType: "opnsense"
+entityType: "firewall-aliases"
+description: "Define OPNsense firewall aliases (addItem / setItem against /api/firewall/alias) as code. Reconciled by alias name; every deploy stages its changes then applies them with one reconfigure call."
+
+item:
+  label: "Alias"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "tag"
+      description: "Name, type and enabled state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The alias's name — its identity on the firewall. Must start with a
+            letter or a single underscore, be 32 characters or fewer, and
+            contain only letters, digits and underscores. Unique within this
+            canvas; deploy matches live aliases on it.
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "host"
+          options:
+            - label: "Host(s)"
+              value: "host"
+            - label: "Network(s)"
+              value: "network"
+            - label: "Port(s)"
+              value: "port"
+            - label: "URL (IPs)"
+              value: "url"
+            - label: "URL Table (IPs)"
+              value: "urltable"
+            - label: "URL Table in JSON format (IPs)"
+              value: "urljson"
+            - label: "GeoIP"
+              value: "geoip"
+            - label: "Network group"
+              value: "networkgroup"
+            - label: "MAC address"
+              value: "mac"
+            - label: "BGP ASN"
+              value: "asn"
+            - label: "Dynamic IPv6 Host"
+              value: "dynipv6host"
+          helpText: >
+            What kind of entries Content holds. OpenVPN group aliases
+            (authgroup) are not supported — see README.md.
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Disabled aliases are kept on the firewall but excluded from the pf tables."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional note stored on the alias."
+
+    - name: "Content"
+      icon: "list"
+      description: "The entries this alias resolves to"
+      fields:
+        - key: "content"
+          label: "Content"
+          fieldType: "tags"
+          required: true
+          helpText: >
+            One entry per chip — hosts/IPs/ranges, networks (CIDR), ports,
+            country codes, MAC addresses, ASNs, other alias names, or a URL,
+            depending on Type. Stored on OPNsense as newline-separated entries.
+
+        - key: "proto"
+          label: "Protocol"
+          fieldType: "multiselect"
+          required: false
+          options:
+            - label: "IPv4"
+              value: "IPv4"
+            - label: "IPv6"
+              value: "IPv6"
+          helpText: "Optional — restrict a GeoIP/ASN alias to one address family. Leave empty for both."
+
+    - name: "Advanced"
+      icon: "settings"
+      description: "Fields only some alias types use"
+      fields:
+        - key: "interface"
+          label: "Interface"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "type"
+            equals: "dynipv6host"
+          helpText: "Required for Dynamic IPv6 Host aliases — the interface (e.g. wan) to track."
+
+        - key: "updatefreq"
+          label: "Update Frequency (days)"
+          fieldType: "number"
+          required: false
+          visibleWhen:
+            field: "type"
+            in: ["url", "urltable", "urljson"]
+          helpText: "How often, in days, a URL / URL Table alias's contents are re-fetched."

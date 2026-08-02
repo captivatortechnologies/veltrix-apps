@@ -1,0 +1,146 @@
+id: pfsense
+name: pfSense
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage pfSense firewall configuration as code. pfSense CE ships NO REST API
+  of its own — this app talks to the widely-used third-party "pfSense REST
+  API" package (pfSense-pkg-RESTAPI, formerly known as jaredhendrickson13/
+  pfsense-api; https://github.com/pfrest/pfSense-pkg-RESTAPI, docs at
+  https://pfrest.org/), which MUST be installed on the pfSense box first
+  (System > Package Manager > Available Packages > search "RESTAPI") before
+  this app can reach it — see the Setup Guide. Covers firewall aliases
+  (host / network / port groups referenced by rules and NAT) over the
+  package's v2 API (/api/v2/firewall/alias(es)), with a single "apply pending
+  changes" step (/api/v2/firewall/apply) per deploy — with validation, drift
+  detection and rollback handled by the Security-as-Code pipeline.
+category: NETWORK
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/pfsense
+icon: "🚦"
+
+platform:
+  minVersion: "1.0.0"
+
+# pfSense/Netgate brand: signature orange with a dark navy accent.
+branding:
+  primaryColor: "#EA7125"
+  accentColor: "#03314B"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: firewall-aliases
+      actions: [read, write, delete]
+      description: Manage pfSense firewall aliases (host / network / port groups) via the pfSense REST API package (/api/v2/firewall/alias)
+
+pipeline:
+  configurationTypes:
+    - id: firewall-aliases
+      group: "Firewall"
+      name: Firewall Aliases
+      description: >
+        Host, network or port aliases — name-keyed, upserted against
+        /api/v2/firewall/alias(es) — with pending changes applied once per
+        deploy via /api/v2/firewall/apply. An alias's name is immutable once
+        created (the REST API package rejects renames); reconciliation
+        creates/updates/removes aliases by name.
+      canvasTemplate: config-types/firewall-aliases/canvas.yaml
+      defaultConfig: config-types/firewall-aliases/defaults.yaml
+      handlers:
+        validate: config-types/firewall-aliases/validate
+        deploy: config-types/firewall-aliases/deploy
+        rollback: config-types/firewall-aliases/rollback
+        healthCheck: config-types/firewall-aliases/healthCheck
+        driftDetect: config-types/firewall-aliases/driftDetect
+        getStatus: config-types/firewall-aliases/getStatus
+      targets:
+        componentTypes: [pfsense]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/pfsense
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs a pfSense firewall (component)
+    # with the REST API package credential (API key or webConfigurator
+    # username/password for JWT) used to reach it, with a per-row
+    # connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: GET /api/v2/system/version against the
+# REST API package, self-signed tolerated per the verify_tls setting.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: verify_tls
+    type: boolean
+    label: Verify TLS certificate
+    description: >
+      Enforce a valid TLS certificate on the pfSense webConfigurator / REST
+      API endpoint. Off by default — pfSense ships a self-signed certificate
+      until an administrator installs a CA-signed one.
+    default: false
+    required: false
+  - key: port
+    type: number
+    label: HTTPS Port
+    description: >
+      The pfSense webConfigurator HTTPS port the REST API package answers on
+      (the package shares the webConfigurator's port and TLS listener).
+    default: 443
+    required: false
+  - key: api_base_path
+    type: select
+    label: REST API Base Path
+    description: >
+      The REST API package's versioned base path. This app is built and
+      tested against v2 (/api/v2) — the package's current stable version at
+      the time of writing. Left here for forward compatibility only; changing
+      it is untested.
+    default: "/api/v2"
+    required: false
+    options:
+      - { label: "v2 (current, tested)", value: "/api/v2" }
+      - { label: "v1 (legacy, untested)", value: "/api/v1" }
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for REST API package calls.
+    default: 30
+    required: false
