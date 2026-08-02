@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-08-02T04:06:56.330Z",
+  "generatedAt": "2026-08-02T15:15:57.262Z",
   "apps": [
     {
       "appId": "akamai",
@@ -286,7 +286,7 @@
     {
       "appId": "defender-endpoint",
       "name": "Microsoft Defender for Endpoint",
-      "version": "1.3.0",
+      "version": "1.3.1",
       "vendor": "Veltrix",
       "description": "Manage Microsoft Defender for Endpoint threat intelligence as code. Covers file, network and certificate indicators (IoCs) via the Defender /api/indicators API, plus custom detection rules (PREVIEW) via the Microsoft Graph beta API — with validation, drift detection and rollback handled by the Security-as-Code pipeline. Auth is an Azure AD app registration (OAuth2 client credentials); the component hostname is the Defender API host (api.security.microsoft.com) and the tenant is set via the Tenant ID app setting.",
       "category": "EDR",
@@ -296,12 +296,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/defender-endpoint",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/defender-endpoint-v1.3.0/defender-endpoint.zip",
-      "sha256": "ca247bc776b6239e493af0bb91eabefa8e1835d6f69ecec63e82c71bad616470",
-      "sizeBytes": 147934,
-      "publishedAt": "2026-07-29T19:37:52.222Z",
-      "releaseNotes": "## 1.3.0 — 2026-07-28\n\n### Added\n- **Device value config type (`mde-device-values`).** Manage a device's\n  **business criticality** — `Normal` / `Low` / `High` — as code. This is the\n  `deviceValue` property that weights a device in Defender Vulnerability\n  Management exposure scoring. Each item declares one device (by its stable\n  40-hex Defender device id, or by computer name) and the criticality it should\n  carry; the value is reconciled per device via `PATCH /api/machines/{id}`.\n  - Unlike tags (a non-destructive set), `deviceValue` is a **single-valued**\n    property, so deploy captures the previous value per device and rollback\n    restores it exactly. Only one item may own a given device's value; the\n    validator rejects a device declared twice.\n  - A device referenced by **computer name** is resolved with an OData `$filter`\n    on `computerDnsName` and may match more than one device; the value applies to\n    every match. A device referenced by **id** is a single `GET /api/machines/{id}`.\n  - A referenced device that no longer resolves (never onboarded, or aged out of\n    the retention window) is recorded and skipped rather than failing the deploy;\n    drift reports it as **critical** and a changed live value as a **warning**.\n  - Shares the `Machine.ReadWrite.All` application permission already used by the\n    machine-tags type (same Update-machine endpoint).",
-      "releasedAt": "2026-07-28T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/defender-endpoint-v1.3.1/defender-endpoint.zip",
+      "sha256": "e1565a288c75e160959dd880d78fd21f66f43a1006ae2162a1860a5376a3b9c9",
+      "sizeBytes": 148082,
+      "publishedAt": "2026-08-02T15:15:57.212Z",
+      "releaseNotes": "## 1.3.1 — 2026-08-02\n\nGrouped the six configuration types in the Configurations sidebar.\n\n- **Config sidebar groups** — Custom Indicators (file / network / cert),\n  Detection Rules, and Device Management (machine tags / device values).\n  Organization-only — no change to any deploy/rollback/drift behavior.",
+      "releasedAt": "2026-08-02T00:00:00.000Z"
     },
     {
       "appId": "delinea-secret-server",
@@ -565,7 +565,7 @@
     {
       "appId": "microsoft-entra-id",
       "name": "Microsoft Entra ID",
-      "version": "0.7.0",
+      "version": "0.7.1",
       "vendor": "Veltrix",
       "description": "Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the Microsoft Graph API. Covers Conditional Access, named locations, security groups, administrative units, custom roles and authentication strengths/contexts; the tenant authorization, security-defaults, authentication-methods, authentication-flows, admin-consent-request, permission-grant, cross-tenant access, app-management, token-issuance / lifetime / claims-mapping, home-realm-discovery, activity-timeout and feature-rollout policies; group directory settings, custom security attributes, external identity providers, delegated permission grants, user-flow attributes and self-service sign-up flows; and identity governance (entitlement catalogs, access packages, assignment policies, connected organizations, access reviews, lifecycle workflows and PIM role activation policies); plus company branding — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
@@ -574,12 +574,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-entra-id",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-entra-id-v0.7.0/microsoft-entra-id.zip",
-      "sha256": "16c5990fa8f1b400be892b8a38b47ff31a7e395dfd36ee8502c1e1990ee02848",
-      "sizeBytes": 776966,
-      "publishedAt": "2026-07-29T19:37:52.235Z",
-      "releaseNotes": "## 0.7.0 — 2026-07-28\n\n### Added\n- **Six new configuration types** covering the identity objects that policies act upon:\n  - **Directory Role Assignments** — active/permanent privileged role holders\n    (`/roleManagement/directory/roleAssignments`; no PATCH → delete + recreate on change).\n  - **PIM Role Eligibility** — eligible role assignments via\n    `roleEligibilityScheduleRequests` (request-based; drift diffs derived schedules).\n  - **App Registrations** — `/applications` (upsert by uniqueName; redirect URIs,\n    app roles, required resource access).\n  - **Service Principals** — `/servicePrincipals` (SSO, app role assignments).\n  - **Terms of Use Agreements** — `/identityGovernance/termsOfUse/agreements`.\n  - **Cross-Tenant Access Default** — the tenant-wide default policy singleton\n    (completes the existing per-partner coverage).",
-      "releasedAt": "2026-07-28T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-entra-id-v0.7.1/microsoft-entra-id.zip",
+      "sha256": "48e1ca4432d1637f5fba30988256fd4cecf75be29da34c9c27d55427781ac6ad",
+      "sizeBytes": 777420,
+      "publishedAt": "2026-08-02T15:15:57.225Z",
+      "releaseNotes": "## 0.7.1 — 2026-08-02\n\nGrouped the 42 configuration types in the Configurations sidebar into ten\nsub-sections mirroring the Entra admin center, so the app is navigable instead\nof one flat list.\n\n- **Config sidebar groups** — each configuration type now declares a `group`:\n  Conditional Access · Directory · Tokens & Claims · Roles & PIM ·\n  Tenant Settings · Authentication Methods · Applications & Service Principals ·\n  External Identities · Custom Security Attributes · Identity Governance.\n  Organization-only — no change to any deploy/rollback/drift behavior.",
+      "releasedAt": "2026-08-02T00:00:00.000Z"
     },
     {
       "appId": "microsoft-intune",
