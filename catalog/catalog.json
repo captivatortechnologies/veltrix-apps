@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-08-02T03:14:56.774Z",
+  "generatedAt": "2026-08-02T04:06:56.330Z",
   "apps": [
     {
       "appId": "akamai",
@@ -1225,7 +1225,7 @@
     {
       "appId": "velociraptor",
       "name": "Velociraptor",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "vendor": "Veltrix",
       "description": "Manage Velociraptor (open-source endpoint DFIR / hunting platform) as code. Author custom VQL artifacts, client + server event monitoring, and GUI users / roles, and drive them through the Security-as-Code pipeline — validate, deploy, health check, drift detection and rollback — over the Velociraptor gRPC API (mutual TLS), executing VQL against the server, with BYOL infrastructure provisioning for the Velociraptor stack (frontends + shared MinIO datastore).",
       "category": "EDR",
@@ -1233,11 +1233,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/velociraptor",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/velociraptor-v0.3.0/velociraptor.zip",
-      "sha256": "2e9b757b04dcf016e0645d9d58d09c2e28a3bcd658ed5a293ee2864a52c84f5e",
-      "sizeBytes": 223932,
-      "publishedAt": "2026-08-01T16:27:39.042Z",
-      "releaseNotes": "## 0.3.0 — 2026-08-01\n\nBYOL infrastructure hosting for the Velociraptor server stack.\n\n- **BYOL infrastructure** — provision and manage a dedicated Velociraptor server\n  (bring-your-own-license) from an **Infrastructure** page (wraps the SDK\n  `ByolInfrastructureManager`): define the topology, deploy to a Veltrix-hosted or\n  your own cloud account (BYOC), then run its lifecycle (plan → deploy → destroy,\n  start/stop/restart) from the deployment console.\n- **node_tiers-native topology** — two user-scalable tiers stored generically in a\n  `node_tiers` JSONB column (`[{key,count,placement}]`), no legacy count columns:\n  - **Frontend nodes** (`velociraptor-server`) — the Velociraptor server (GUI 8889\n    + frontend 8000 + gRPC API 8001), ALB-fronted and horizontally scalable.\n  - **Datastore nodes (MinIO)** (`datastore`) — the shared S3/MinIO file+datastore\n    backend every frontend reads/writes.\n  Plus the fixed foundation (network, load balancer, DNS, TLS, secrets) — see\n  `infra/spec.ts` and `lib/byolTopology.ts`.\n- **App-owned provisioning + metering** — `/byol` routes derive a Terraform-style\n  resource plan from the stack topology, persist it, track deployment runs + steps,\n  and emit provisioning events for downstream workers; a lifecycle state log feeds\n  daily node-hours usage metering (`/byol/usage`). Tables are `velociraptor_`-owned\n  (migrations `002`/`003`).\n\n> The Velociraptor ports (GUI 8889 / frontend 8000 / gRPC API 8001), the GUI\n> health-check path, and the MinIO datastore sizing are reasonable defaults —\n> verify them against a live Velociraptor deployment before production use.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/velociraptor-v0.3.1/velociraptor.zip",
+      "sha256": "1895212bc90815c1d7adc9886ef8fc7224eed2cc3541516ff61a90280ff084b9",
+      "sizeBytes": 232868,
+      "publishedAt": "2026-08-02T04:06:56.320Z",
+      "releaseNotes": "## 0.3.1 — 2026-08-01\n\nHardened config validation: custom artifacts are now parsed as real YAML and\nchecked against Velociraptor's artifact schema, instead of a regex sanity check.\n\n- **Custom Artifacts — real YAML parse + schema validation** — the definition\n  YAML is now parsed with the `yaml` package (YAML 1.2) and checked structurally\n  (`validateArtifactDefinition`, in `_shared.ts`):\n  - a YAML **syntax error** is now a hard validation error, caught before deploy\n    (previously invisible to the regex sanity check — the biggest gap this closes)\n  - the root must be a **mapping**, not a scalar or a list\n  - `name:` is required, a string, and dotted-alphanumeric — cross-checked against\n    the item's `name` field (mismatch is a warning; the server keys on the\n    definition's name)\n  - `type:`, if present, must be one of `CLIENT` / `SERVER` / `CLIENT_EVENT` /\n    `SERVER_EVENT` / `NOTEBOOK` / `INTERNAL` (case-insensitive) — cross-checked\n    against the item's `type` field (mismatch is a warning)\n  - `sources:`, if present, must be a non-empty list; each source a mapping with a\n    non-empty `query` string, or a non-empty `queries` list of strings\n  - `parameters:`, if present, must be a list of mappings, each with a string `name`\n  - when there is no `sources:` and no top-level `query:`, a (non-blocking)\n    warning notes the artifact collects nothing\n  - deep VQL compilation of the sources' queries remains authoritative on the\n    server, at `artifact_set()` — this only catches YAML-syntax and shape problems\n    before that point\n- **Client Monitoring / Server Monitoring — artifact-name format check** — every\n  event-artifact name in the artifacts list (enabled or not) must match\n  Velociraptor's dotted artifact-name format; a malformed name is now a validation\n  error (`INVALID_ARTIFACT_NAME`) instead of being silently sent to the server.\n  The name-format check is centralised in a new `lib/artifactName.ts`, shared by\n  custom-artifacts, client-monitoring and server-monitoring.\n- **Users & ACLs — minimum password length** — an authored basic-auth password\n  shorter than 8 characters is now rejected (`WEAK_PASSWORD`); SSO users leaving\n  the password blank are unaffected. Usernames are left as freeform (plain names,\n  emails, or SSO subject identifiers), matching Velociraptor's own leniency.\n- **New dependency** — `yaml` (`^2.9.0`), a zero-transitive-dependency YAML 1.2\n  parser, vendored the same way `@grpc/grpc-js` already is (declared in\n  `dependencies` + present in `node_modules`, since config-type handlers are\n  `require()`'d rather than esbuild-bundled).",
       "releasedAt": "2026-08-01T00:00:00.000Z"
     },
     {
