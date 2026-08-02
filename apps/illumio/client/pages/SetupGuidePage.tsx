@@ -106,9 +106,12 @@ export default function SetupGuidePage() {
               single authenticated call.
             </p>
             <p>
-              Then author a Labels configuration in the Configuration Canvas and deploy it through the
-              pipeline. Labels are matched by their <strong>(key, value)</strong> pair — the identity in the PCE
-              — and created where missing; reconcile only removes labels this app created.
+              Then author a configuration in the Configuration Canvas and deploy it through the pipeline.
+              Labels are matched by their <strong>(key, value)</strong> pair; IP lists, services and rulesets are
+              matched by <strong>name</strong>. IP lists, services and rulesets are drafted then automatically{' '}
+              <strong>provisioned</strong> into the active policy in the same deploy — create the labels, IP
+              lists and services a ruleset references first, since rulesets resolve those references by name
+              and fail closed if any is missing.
             </p>
           </CardBody>
         </Card>

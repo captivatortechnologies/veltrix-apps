@@ -1,0 +1,6 @@
+# Defaults for a new Security Monitoring Suppression item.
+#
+# Intentionally minimal: the per-field defaultValue in canvas.yaml already
+# seeds enabled. Any values here would be a FLAT map keyed by the canvas
+# field keys (name, description, enabled, rule_query, suppression_query,
+# data_exclusion_query, tags, start_date, expiration_date).

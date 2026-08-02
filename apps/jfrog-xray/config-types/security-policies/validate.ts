@@ -1,6 +1,7 @@
 import type { PipelineContext, ValidationError, ValidationResult, ValidationWarning } from '@veltrixsecops/app-sdk'
-import { looksLikeEmail, parseJsonArray, parseJsonObject } from '../../lib/fields'
-import { extractPolicySpecs, MIN_SEVERITIES, policyKey, type PolicySpec } from './_shared'
+import { parseJsonArray, parseJsonObject } from '../../lib/fields'
+import { describePolicyNameError, policyKey, validatePolicyActionFields } from '../../lib/xrayPolicies'
+import { extractPolicySpecs, MIN_SEVERITIES, type PolicySpec } from './_shared'
 
 /**
  * Validate JFrog Xray security-policy items. Static — no target access required.
@@ -47,13 +48,9 @@ function validatePolicyIdentity(spec: PolicySpec, prefix: string, errors: Valida
   } else {
     // The name is the URL path segment for every read/write/delete call —
     // a slash would silently address the wrong (nested) path.
-    if (/[/\\]/.test(spec.name)) {
-      errors.push({
-        field: `${prefix}.name`,
-        message: `Policy name "${spec.name}" must not contain "/" or "\\" — it is used directly in the API URL.`,
-        code: 'INVALID_NAME',
-      })
-    }
+    const nameError = describePolicyNameError(spec.name)
+    if (nameError) errors.push({ field: `${prefix}.name`, message: nameError, code: 'INVALID_NAME' })
+
     const key = policyKey(spec.name)
     if (seen.has(key)) {
       errors.push({ field: `${prefix}.name`, message: `Duplicate policy name "${spec.name}" — each name may only be declared once.`, code: 'DUPLICATE_NAME' })
@@ -111,38 +108,11 @@ function validateCriteriaFlags(spec: PolicySpec, prefix: string, errors: Validat
   }
 }
 
+/** Shared with license-policies via lib/xrayPolicies.ts — the actions schema is identical across policy types. */
 function validateActionFields(spec: PolicySpec, prefix: string, errors: ValidationError[], warnings: ValidationWarning[]): void {
-  if (
-    spec.buildFailureGracePeriodDays !== undefined &&
-    (!Number.isInteger(spec.buildFailureGracePeriodDays) || spec.buildFailureGracePeriodDays < 0)
-  ) {
-    errors.push({
-      field: `${prefix}.build_failure_grace_period_days`,
-      message: 'Build failure grace period must be a non-negative whole number of days.',
-      code: 'INVALID_GRACE_PERIOD',
-    })
-  }
-  if (spec.buildFailureGracePeriodDays !== undefined && !spec.failBuild) {
-    warnings.push({
-      field: `${prefix}.build_failure_grace_period_days`,
-      message: 'A build failure grace period has no effect unless "Fail build" is enabled.',
-      code: 'GRACE_PERIOD_WITHOUT_FAIL_BUILD',
-    })
-  }
-
-  spec.mails.forEach((mail, mi) => {
-    if (!looksLikeEmail(mail)) {
-      errors.push({ field: `${prefix}.mails[${mi}]`, message: `"${mail}" does not look like an email address.`, code: 'INVALID_EMAIL' })
-    }
-  })
-
-  if (spec.createTicketEnabled) {
-    warnings.push({
-      field: `${prefix}.create_ticket_enabled`,
-      message: 'Ticket creation requires a Jira integration already configured in Xray (Administration > Integrations).',
-      code: 'TICKET_REQUIRES_JIRA',
-    })
-  }
+  const result = validatePolicyActionFields(spec)
+  result.errors.forEach((issue) => errors.push({ field: `${prefix}.${issue.fieldSuffix}`, message: issue.message, code: issue.code }))
+  result.warnings.forEach((issue) => warnings.push({ field: `${prefix}.${issue.fieldSuffix}`, message: issue.message, code: issue.code }))
 }
 
 function validateJsonEscapeHatches(spec: PolicySpec, prefix: string, errors: ValidationError[]): void {

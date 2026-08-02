@@ -3,6 +3,56 @@
 All notable changes to the Jamf app are documented here. This project adheres
 to [Semantic Versioning](https://semver.org/).
 
+## 0.2.0 — 2026-08-02
+
+### Added
+- **Categories (`categories`).** Manage Jamf Pro categories — name and Self
+  Service ordering priority — as code through the modern Jamf Pro API
+  (`GET/POST/PUT/DELETE /v1/categories`), reconciled by category name. Same
+  create/update/rollback/drift shape as Scripts. `group: "Content"`.
+- **Smart Computer Groups (`smart-computer-groups`).** Manage Jamf Pro smart
+  computer groups — name and criteria — as code through the **legacy Classic
+  API** (XML, `/JSSResource/computergroups`, since the modern API exposes only
+  a read-only mirror for this resource), reconciled by group name. Criteria
+  are declared as JSON (freeform criterion name/search-type — Jamf Pro's own
+  UI derives valid search types from the chosen inventory attribute; there is
+  no API to look that mapping up generically, so an invalid combination
+  surfaces as a deploy-time error from Jamf Pro itself). Rollback restores the
+  exact prior group XML byte-for-byte. `group: "Scoping"`.
+- **Policies (`policies`).** Manage Jamf Pro policies — name, enabled state,
+  the six trigger booleans, frequency, computer-group scope (by name),
+  scripts (by name) and packages (by name) — as code through the **legacy
+  Classic API** (XML, `/JSSResource/policies`). Every other policy section
+  (Self Service, maintenance, disk encryption, printers, dock items, user
+  interaction, …) is deliberately **out of scope and never touched**: an
+  update fetches the policy's current full XML and merges only the managed
+  sections into it, rather than replacing the whole document, so admin
+  configuration made through the Jamf Pro UI is never silently wiped. A
+  referenced computer group / script / package name that does not resolve to
+  a live object fails that policy's deploy with a clear error. Rollback
+  restores the exact prior full policy XML byte-for-byte. `group: "Policies"`.
+- **Classic API (XML) support** (`lib/jamfApi.ts`, `lib/jamfClassicXml.ts`):
+  `JamfClient.classicRequest` reuses the same cached Bearer token as the
+  modern API (Jamf Pro's own docs: the token "functions as a Bearer token for
+  all other Jamf Pro API endpoints"; Jamf Pro 10.35+ documents Bearer support
+  for the Classic API specifically), falling back to HTTP Basic auth on a
+  `401` since a handful of individual Classic reference pages still list only
+  Basic per operation. `lib/jamfClassicXml.ts` hand-rolls a minimal,
+  dependency-free XML parser/serializer scoped to the fixed Classic schemas
+  this app reads and writes (no npm dependency available).
+- `scripts` now carries `group: "Content"` alongside the three new types'
+  groups (`Content` / `Scoping` / `Policies`) in the Configuration sidebar.
+
+### Scope
+- Configuration Profiles remain out of scope — a materially larger Classic
+  API surface (payload-encoded `.mobileconfig` XML), planned for a future
+  wave.
+- The Classic API's Bearer-token support is well-documented at the product
+  level but not independently re-verified against every individual endpoint's
+  published OpenAPI metadata this session (see README § Classic API (XML)
+  handling) — `classicRequest`'s Basic-auth fallback makes this a resilience
+  detail rather than a correctness risk.
+
 ## 0.1.0 — 2026-08-02
 
 ### Added

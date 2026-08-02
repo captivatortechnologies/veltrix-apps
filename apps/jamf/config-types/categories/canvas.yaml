@@ -1,0 +1,39 @@
+# =============================================================================
+# Canvas Template — Jamf Pro Categories
+#
+# Declares ONE Jamf Pro category — the item. Users add as many as they need.
+# Categories are created/updated through the modern Jamf Pro API
+# (POST/PUT /v1/categories) and identified for reconciliation by their `name`.
+#
+# Field keys must match config-types/categories/validate.ts.
+# =============================================================================
+
+id: "jamf-categories"
+name: "Jamf Pro Category Configuration"
+toolType: "jamf"
+entityType: "categories"
+description: "Declare Jamf Pro categories as code through the modern Jamf Pro API (GET/POST/PUT/DELETE /v1/categories). Reconciled by category name; missing categories are created and existing ones are updated to the declared priority."
+
+item:
+  label: "Category"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Category"
+      icon: "folder"
+      description: "Name and Self Service ordering"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The category's display name — its logical identity for reconciliation. Referenced by name from Scripts and Policies."
+
+        - key: "priority"
+          label: "Priority"
+          fieldType: "number"
+          required: true
+          defaultValue: 5
+          helpText: "Ordering priority (a non-negative whole number). Jamf Pro uses this to order categories in Self Service."

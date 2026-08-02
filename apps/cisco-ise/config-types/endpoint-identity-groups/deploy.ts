@@ -1,13 +1,13 @@
 import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
 import {
   ersBase,
-  buildEndpointIdentityGroupsClient,
+  buildErsResourceClient,
   readIseSettings,
   hasUsableCredential,
   MISSING_CREDENTIAL_MESSAGE,
   type EndPointGroup,
 } from '../../lib/iseApi'
-import { extractSpecs } from './_shared'
+import { extractSpecs, toEndPointGroupBody } from './_shared'
 
 /**
  * Deploy endpoint identity groups over the ERS API:
@@ -39,7 +39,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
 
   const settings = readIseSettings(ctx.settings)
   const base = ersBase(component, connectivity, connectivityProvider)
-  const client = buildEndpointIdentityGroupsClient(base, credential, settings)
+  const client = buildErsResourceClient<EndPointGroup>(base, 'endpointgroup', 'EndPointGroup', credential, settings)
 
   const previous: RollbackEntry[] = []
   const applied: string[] = []
@@ -52,10 +52,10 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       const existing = await client.findByName(spec.name)
       if (existing) {
         const prior = await client.getById(existing.id)
-        await client.update(existing.id, spec)
+        await client.update(existing.id, toEndPointGroupBody(spec))
         previous.push({ name: spec.name, id: existing.id, group: prior })
       } else {
-        const newId = await client.create(spec)
+        const newId = await client.create(toEndPointGroupBody(spec))
         previous.push({ name: spec.name, id: newId, group: null })
       }
       applied.push(spec.name)

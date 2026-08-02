@@ -1,0 +1,80 @@
+# =============================================================================
+# Canvas Template — Illumio Core Services
+#
+# Declares ONE service (the item), name-keyed like this app's other draft
+# security-policy objects. Services live under the PCE's DRAFT policy
+# (/orgs/{org}/sec_policy/draft/services); deploy provisions the change so it
+# takes effect in the active policy. Field keys must match
+# config-types/services/validate.ts.
+#
+# service_ports is a JSON array (same "textarea holding structured JSON"
+# pattern as ip-lists' ip_ranges/fqdns) — each entry is
+# { proto, port?, toPort?, icmpType?, icmpCode? } with proto-dependent rules
+# enforced in validate.ts (TCP/UDP take port/toPort; ICMP/ICMPv6 take
+# icmpType/icmpCode; any other proto stands alone). Windows services /
+# Windows egress services are NOT supported in this release — see README.
+# =============================================================================
+
+id: "illumio-services"
+name: "Service Configuration"
+toolType: "illumio"
+entityType: "services"
+description: "Define Illumio Core services (named TCP/UDP/ICMP port definitions) as code through the Illumio REST API v2, provisioned into the active policy."
+
+item:
+  label: "Service"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Service"
+      icon: "shield"
+      description: "Name and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The service name — its identity in this canvas (Illumio service names do not need to be unique, but deploy matches on it). Must be unique within this canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the service."
+
+    - name: "Ports"
+      icon: "list"
+      description: "Service port definitions — at least one is required"
+      fields:
+        - key: "servicePortsJson"
+          label: "Service ports (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 8000
+          helpText: >
+            A JSON array of port definitions, e.g.
+            [{"proto":6,"port":443},{"proto":17,"port":500,"toPort":600}].
+            proto is the IANA protocol number (6=TCP, 17=UDP, 1=ICMP, 58=ICMPv6,
+            -1=all). port/toPort apply only to TCP/UDP; icmpType/icmpCode apply
+            only to ICMP/ICMPv6; other protocols (e.g. 47 for GRE) use proto alone.
+
+    - name: "Integration metadata"
+      icon: "link"
+      description: "Optional external-system linkage, carried through unchanged on every deploy"
+      fields:
+        - key: "externalDataSet"
+          label: "External data set"
+          fieldType: "text"
+          required: false
+          helpText: "Optional: the external system this service originates from (external_data_set)."
+
+        - key: "externalDataReference"
+          label: "External data reference"
+          fieldType: "text"
+          required: false
+          helpText: "Optional: this service's unique identifier within that external system (external_data_reference)."

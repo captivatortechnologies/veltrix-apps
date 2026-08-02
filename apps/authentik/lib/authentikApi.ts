@@ -256,3 +256,26 @@ export async function listAll<T>(
   }
   return results
 }
+
+/**
+ * Find a single resource by exact NAME match via the `name` query-string filter
+ * (authentik's `QueryName` list parameter) — for resources whose API path key is
+ * a server-assigned id/uuid rather than a user-declared identity (e.g. OAuth2/
+ * OpenID Providers, Groups), so there is no direct retrieve-by-identity endpoint
+ * the way Applications/Flows have (`.../{slug}/`). The `name` filter narrows
+ * server-side; this still verifies exact equality client-side and returns the
+ * first match, since authentik does not enforce name-uniqueness on every
+ * resource. Returns `null` when nothing matches.
+ */
+export async function findByName<T extends { name?: string }>(
+  listUrl: string,
+  token: string,
+  name: string,
+  opts: RequestOpts = {},
+): Promise<T | null> {
+  const target = name.trim()
+  if (!target) return null
+  const url = appendQuery(listUrl, { name: target })
+  const candidates = await listAll<T>(url, token, { ...opts, pageSize: 100, maxPages: 5 })
+  return candidates.find((c) => (c.name ?? '').trim() === target) ?? null
+}

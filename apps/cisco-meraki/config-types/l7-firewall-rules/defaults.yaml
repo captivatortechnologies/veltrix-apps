@@ -1,0 +1,13 @@
+# Defaults for a new L7 firewall ruleset item. Seeded with a single
+# illustrative "deny host" rule so a new item starts from valid, well-formed
+# JSON — replace network_id and the rule(s) with the real network and policy.
+network_id: ""
+comment: ""
+rules: |
+  [
+    {
+      "policy": "deny",
+      "type": "host",
+      "value": "example-blocked-host.com"
+    }
+  ]

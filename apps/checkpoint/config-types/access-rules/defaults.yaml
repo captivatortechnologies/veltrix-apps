@@ -1,0 +1,10 @@
+# Defaults for a new Check Point access-rule item.
+#
+# A FLAT map keyed by the canvas field keys. Security-conscious defaults: a
+# new rule defaults to Drop (not Accept) so opening traffic is a deliberate
+# choice, defaults to Log so it is never silently unaudited, and appends at
+# the bottom of the layer so a new rule never disturbs existing precedence.
+enabled: true
+action: Drop
+track: Log
+position: bottom

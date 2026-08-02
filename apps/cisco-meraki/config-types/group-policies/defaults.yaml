@@ -1,0 +1,11 @@
+# Defaults for a new group policy item. Seeded with a minimal bandwidth-limit
+# example so a new item starts from valid, well-formed JSON.
+network_id: ""
+name: ""
+policy: |
+  {
+    "bandwidth": {
+      "settings": "custom",
+      "bandwidthLimits": { "limitUp": 1000000, "limitDown": 1000000 }
+    }
+  }

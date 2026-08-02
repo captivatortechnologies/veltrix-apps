@@ -1,0 +1,69 @@
+# =============================================================================
+# Canvas Template — authentik Groups
+#
+# Declares ONE authentik Group (the item). Operators add as many as they need.
+# Field keys must match config-types/groups/validate.ts and _shared.ts. Applied
+# via the authentik Core REST API (GET/POST /core/groups/, GET/PATCH/DELETE
+# /core/groups/{group_uuid}/).
+#
+# IDENTITY: a group's API path key is a server-assigned UUID, not its name —
+# like OAuth2/OpenID Providers, this config type upserts by NAME (list `?name=`
+# → exact match → PATCH/POST).
+#
+# Group MEMBERSHIP (`users`) and RBAC `roles` are NOT authored here — both are
+# left untouched by every request this config type sends.
+# =============================================================================
+
+id: "authentik-groups"
+name: "Groups"
+toolType: "authentik"
+entityType: "groups"
+description: "Manage authentik Groups — name, superuser flag, an optional parent group and custom attributes — via the authentik Core REST API"
+
+item:
+  label: "Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "key"
+      description: "Group identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The group's display name. This is the stable identity used for upsert and drift (groups have no user-declared path key)."
+
+    - name: "Access"
+      icon: "shield"
+      description: "Elevated privileges"
+      fields:
+        - key: "is_superuser"
+          label: "Superuser group"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "CAUTION: every user added to this group becomes an authentik superuser. Group membership itself is managed in authentik, not by this app."
+
+    - name: "Hierarchy"
+      icon: "link"
+      description: "Optional parent group"
+      fields:
+        - key: "parent"
+          label: "Parent Group (UUID, optional)"
+          fieldType: "text"
+          required: false
+          helpText: "The UUID pk of an existing parent group, for permission inheritance. Leave blank for a top-level group. authentik supports multiple parents (`parents[]`); this config type authors a single parent for v0.2.0."
+
+    - name: "Attributes"
+      icon: "settings"
+      description: "Custom key/value attributes"
+      fields:
+        - key: "attributes"
+          label: "Attributes"
+          fieldType: "keyvalue"
+          required: false
+          helpText: "Optional custom attributes attached to the group (e.g. flags read by policies or property mappings)."

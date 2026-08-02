@@ -1,0 +1,89 @@
+# =============================================================================
+# Canvas Template — Datadog Log Pipelines
+#
+# Declares ONE Log Management pipeline (the item). Operators add as many as
+# they need. Reconciled by pipeline `name` (case-insensitive) against
+# GET /api/v1/logs/config/pipelines. Datadog-managed INTEGRATION pipelines
+# (is_read_only=true, e.g. the built-in "nginx"/"apache" pipelines) are
+# PROTECTED — config-types/log-pipelines/deploy.ts refuses to modify a live
+# pipeline matching a declared name that turns out to be read-only.
+#
+# NOT MANAGED: pipeline ORDER (a separate GET/PUT
+# /api/v1/logs/config/pipeline-order singleton) — out of scope for this
+# release. A new pipeline is appended by Datadog; reorder it manually in
+# Logs > Pipelines if it needs to run ahead of an existing one.
+#
+# Processors are authored as a JSON array. Only the common envelope
+# (type / name / is_enabled) is validated — see _shared.ts for why the 17
+# type-specific processor schemas are not individually modeled.
+#
+# Field keys must match config-types/log-pipelines/_shared.ts.
+# API reference: https://docs.datadoghq.com/api/latest/logs-pipelines/
+# =============================================================================
+
+id: "datadog-log-pipelines"
+name: "Log Pipeline"
+toolType: "datadog"
+entityType: "log-pipelines"
+description: "Define Datadog Log Management pipelines as code through the Logs Pipelines API (/api/v1/logs/config/pipelines). Reconciled by pipeline name; Datadog-managed integration pipelines are protected."
+
+item:
+  label: "Log Pipeline"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Pipeline"
+      icon: "git-branch"
+      description: "Identity, filter and lifecycle"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The pipeline name — this app's logical identity for the pipeline (matched case-insensitively against Datadog's live pipelines on every deploy)."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          helpText: "Optional description shown in the Datadog UI."
+
+        - key: "is_enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the pipeline is active."
+
+        - key: "filter_query"
+          label: "Filter Query"
+          fieldType: "text"
+          required: false
+          helpText: 'Log search query selecting which logs this pipeline processes, e.g. source:nginx. Leave blank to match every log that reaches this pipeline.'
+
+    - name: "Processors"
+      icon: "code"
+      description: "The ordered processor list, as JSON"
+      fields:
+        - key: "processors"
+          label: "Processors (JSON array)"
+          fieldType: "textarea"
+          required: true
+          defaultValue: "[]"
+          helpText: >
+            A JSON array of processor objects, applied in order. Each needs a
+            "type" — one of grok-parser, date-remapper, status-remapper,
+            service-remapper, message-remapper, attribute-remapper, url-parser,
+            user-agent-parser, category-processor, arithmetic-processor,
+            string-builder-processor, pipeline, geo-ip-parser, lookup-processor,
+            trace-id-remapper, span-id-remapper, array-processor — plus an
+            optional "name" and "is_enabled" (default true). Each type's own
+            fields (e.g. a grok-parser's "grok" rules, a date-remapper's
+            "sources") are authored per Datadog's processor reference
+            (https://docs.datadoghq.com/logs/log_configuration/processors/) —
+            this app validates the common envelope only and passes the rest
+            through to Datadog's API. Example:
+            [{"type":"date-remapper","name":"Define log date","sources":["timestamp"],"is_enabled":true}].

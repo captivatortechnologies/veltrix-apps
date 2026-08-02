@@ -21,18 +21,37 @@
 // username/password, which works against every supported Jamf Pro version —
 // and is left as a documented follow-up (see README).
 //
-// The API itself is a REST/JSON API rooted at https://<host>/api, versioned
-// per-resource (this app only uses /v1). Handlers run in-process, so this
-// uses fetch with an AbortController timeout, never throws on an HTTP error
+// The modern API is a REST/JSON API rooted at https://<host>/api, versioned
+// per-resource (this app uses /v1). Handlers run in-process, so this uses
+// fetch with an AbortController timeout, never throws on an HTTP error
 // status, and retries once on a 401 (the cached token may have been
 // invalidated server-side) and on a 429 (Jamf does not document a rate limit,
 // but a defensive backoff is harmless). Every parse/auth/response helper
 // returns a NON-UNION { data, error } (or a fully-populated record) so
 // callers narrow without help from the compiler or the platform's handler
 // loader.
+//
+// --- Classic API (wave 2) ----------------------------------------------------
+//
+// Some Jamf Pro resources (computer groups, policies) are still Classic-API
+// only — an older XML API rooted at https://<host>/JSSResource, e.g.
+// https://developer.jamf.com/jamf-pro/reference/findcomputergroups and
+// https://developer.jamf.com/jamf-pro/reference/findpoliciesbyid. `classicRequest`
+// reuses the SAME cached Bearer token as the modern API: Jamf Pro's own
+// `/v1/auth/token` doc states the token "functions as a Bearer token for all
+// other Jamf Pro API endpoints", and Jamf Pro 10.35+ is documented (Bearer
+// Token Authentication for Classic API) to accept it on Classic endpoints too.
+// A handful of individual Classic reference pages in the current developer
+// portal still list only "Basic Authentication" per operation — most likely
+// stale/incomplete OpenAPI metadata rather than an actual runtime
+// restriction — so `classicRequest` tries Bearer first and falls back to
+// Basic auth (the credential's own username/password) on a 401, exactly once.
+// This makes the client correct regardless of which claim holds on a given
+// tenant, without fabricating a single unverified assumption as fact.
 // =============================================================================
 
 import type { CredentialRef } from '@veltrixsecops/app-sdk'
+import { classicErrorMessage } from './jamfClassicXml'
 
 /** The subset of a component/connection target this client needs — permissive so a
  *  handler's live `ComponentRef` or a testConnection's lighter shape both satisfy it. */
@@ -96,8 +115,8 @@ export function resolveJamfCredentials(credential: CredentialRef | null): JamfCr
 
 export const MISSING_CREDENTIAL_MESSAGE =
   'No Jamf Pro credential — create an API-only account in Jamf Pro (Settings > System > User Accounts & Groups) ' +
-  'with a privilege set granting Read/Create/Update/Delete Scripts, then store its username in the credential ' +
-  '"username" field and its password in the "password" field.'
+  'with a privilege set granting Read/Create/Update/Delete for Scripts, Categories, Smart Computer Groups and ' +
+  'Policies, then store its username in the credential "username" field and its password in the "password" field.'
 
 export const MISSING_ENDPOINT_MESSAGE =
   'No Jamf Pro server configured — register a "jamf-pro-server" component whose hostname is your Jamf Pro server ' +
@@ -142,15 +161,26 @@ export interface JamfSearchResults<T> {
   results?: T[]
 }
 
+/** The outcome of one Classic API (XML) call. NON-UNION, mirroring {@link JamfApiResponse}. */
+export interface JamfClassicResponse {
+  status: number
+  body: string
+  error: string | null
+}
+
+type ClassicAuth = { kind: 'bearer'; token: string } | { kind: 'basic' }
+
 export class JamfClient {
   private readonly apiBase: string
+  private readonly classicBase: string
   private readonly username: string
   private readonly password: string
   private readonly timeoutMs: number
   private cachedToken: CachedToken | null = null
 
-  constructor(opts: { apiBase: string; creds: JamfCredentials; timeoutMs: number }) {
+  constructor(opts: { apiBase: string; classicBase: string; creds: JamfCredentials; timeoutMs: number }) {
     this.apiBase = opts.apiBase
+    this.classicBase = opts.classicBase
     this.username = opts.creds.username
     this.password = opts.creds.password
     this.timeoutMs = opts.timeoutMs
@@ -158,6 +188,10 @@ export class JamfClient {
 
   get baseUrl(): string {
     return this.apiBase
+  }
+
+  get classicBaseUrl(): string {
+    return this.classicBase
   }
 
   /**
@@ -265,6 +299,71 @@ export class JamfClient {
     return { nodes, error: null }
   }
 
+  /**
+   * Execute one Classic API (XML) call. Tries the cached Bearer token first;
+   * on a 401 (or when no token could be acquired at all), falls back to plain
+   * HTTP Basic auth exactly once — see the file header for why both paths
+   * exist. Retries a 429 with backoff, same as {@link request}. Never throws
+   * on an HTTP error status; `body` is the raw response text (XML, or an
+   * error page) so callers parse it with `lib/jamfClassicXml.ts`.
+   */
+  async classicRequest(
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+    path: string,
+    bodyXml?: string,
+  ): Promise<JamfClassicResponse> {
+    const auth = await this.acquireToken()
+    if (auth.token) {
+      const viaBearer = await this.classicRequestOnce(method, path, bodyXml, { kind: 'bearer', token: auth.token }, 0)
+      if (viaBearer.status !== 401) return viaBearer
+    }
+    return this.classicRequestOnce(method, path, bodyXml, { kind: 'basic' }, 0)
+  }
+
+  private async classicRequestOnce(
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+    path: string,
+    bodyXml: string | undefined,
+    auth: ClassicAuth,
+    rateLimitAttempts: number,
+  ): Promise<JamfClassicResponse> {
+    const url = `${this.classicBase}${path}`
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs)
+    try {
+      const authorization =
+        auth.kind === 'bearer'
+          ? `Bearer ${auth.token}`
+          : `Basic ${Buffer.from(`${this.username}:${this.password}`, 'utf8').toString('base64')}`
+      const res = await fetch(url, {
+        method,
+        headers: {
+          Authorization: authorization,
+          Accept: 'application/xml',
+          ...(bodyXml !== undefined ? { 'Content-Type': 'application/xml' } : {}),
+        },
+        body: bodyXml,
+        signal: controller.signal,
+      })
+      const text = await res.text()
+
+      if (res.status === 429 && rateLimitAttempts < MAX_RATE_LIMIT_RETRIES) {
+        clearTimeout(timer)
+        await sleep(RATE_LIMIT_BACKOFF_MS)
+        return this.classicRequestOnce(method, path, bodyXml, auth, rateLimitAttempts + 1)
+      }
+
+      if (res.status < 200 || res.status >= 300) {
+        return { status: res.status, body: text, error: classicErrorMessage(res.status, text) }
+      }
+      return { status: res.status, body: text, error: null }
+    } catch (err) {
+      return { status: 0, body: '', error: err instanceof Error ? err.message : `${method} ${path} failed` }
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
   /** Acquire (and cache) a Bearer token via Basic auth. NON-UNION result. */
   private async acquireToken(): Promise<{ token: string | null; error: string | null }> {
     if (this.cachedToken && this.cachedToken.expiresAtMs > Date.now()) {
@@ -306,12 +405,11 @@ export class JamfClient {
 // --- Client construction -----------------------------------------------------
 
 /**
- * Reduce a component hostname + port to the Jamf Pro API base URL
- * (`https://<host>[:<port>]/api`). Strips a protocol/path if present; keeps a
- * non-default port for on-prem installs (e.g. `:8443`), unlike a SaaS-only
- * tenant host.
+ * Reduce a component hostname + port to a bare `<host>[:<port>]` — no scheme,
+ * no path. Strips a protocol/path if present; keeps a non-default port for
+ * on-prem installs (e.g. `:8443`), unlike a SaaS-only tenant host.
  */
-export function buildApiBase(hostname: string | undefined, port: string | undefined): string | null {
+function normalizeHostPort(hostname: string | undefined, port: string | undefined): string | null {
   let host = (hostname ?? '').trim()
   if (!host) return null
   host = host
@@ -320,8 +418,19 @@ export function buildApiBase(hostname: string | undefined, port: string | undefi
     .replace(/:\d+$/, '')
   if (!host) return null
   const p = (port ?? '').trim()
-  const suffix = p && p !== DEFAULT_HTTPS_PORT ? `:${p}` : ''
-  return `https://${host}${suffix}/api`
+  return p && p !== DEFAULT_HTTPS_PORT ? `${host}:${p}` : host
+}
+
+/** The modern Jamf Pro API base URL (`https://<host>[:<port>]/api`). */
+export function buildApiBase(hostname: string | undefined, port: string | undefined): string | null {
+  const hostPort = normalizeHostPort(hostname, port)
+  return hostPort ? `https://${hostPort}/api` : null
+}
+
+/** The Classic API base URL (`https://<host>[:<port>]/JSSResource`) — see the file header. */
+export function buildClassicBase(hostname: string | undefined, port: string | undefined): string | null {
+  const hostPort = normalizeHostPort(hostname, port)
+  return hostPort ? `https://${hostPort}/JSSResource` : null
 }
 
 /** Build a client from a deploy-target component, a credential and settings. */
@@ -334,11 +443,12 @@ export function buildJamfClient(
   if (!creds) return { error: MISSING_CREDENTIAL_MESSAGE }
 
   const apiBase = buildApiBase(component?.hostname ?? undefined, component?.port ?? undefined)
-  if (!apiBase) return { error: MISSING_ENDPOINT_MESSAGE }
+  const classicBase = buildClassicBase(component?.hostname ?? undefined, component?.port ?? undefined)
+  if (!apiBase || !classicBase) return { error: MISSING_ENDPOINT_MESSAGE }
 
   const resolved = readJamfSettings(settings)
   return {
-    client: new JamfClient({ apiBase, creds, timeoutMs: resolved.timeoutMs }),
+    client: new JamfClient({ apiBase, classicBase, creds, timeoutMs: resolved.timeoutMs }),
     apiBase,
   }
 }

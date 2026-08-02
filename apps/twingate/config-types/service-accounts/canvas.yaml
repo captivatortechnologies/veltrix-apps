@@ -1,0 +1,36 @@
+# =============================================================================
+# Canvas Template — Twingate Service Accounts
+#
+# Declares ONE Twingate Service Account — a non-human identity Resources can
+# grant access to. Users add as many as they need. Service Accounts are
+# created/updated through the GraphQL serviceAccountCreate / serviceAccountUpdate
+# mutations and identified for reconciliation by `name` — the only field
+# Twingate exposes as mutable. Keys are managed directly in Twingate (out of
+# scope — see config-types/service-accounts/_shared.ts).
+#
+# Field keys must match config-types/service-accounts/_shared.ts
+# (extractServiceAccountSpecs).
+# =============================================================================
+
+id: "service-accounts"
+name: "Twingate Service Account"
+toolType: "twingate"
+entityType: "service-accounts"
+description: "Define Twingate Service Accounts as code through the GraphQL API. Reconciled by name. Service Account KEYS are managed directly in Twingate — out of scope here."
+
+item:
+  label: "Service Account"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Service Account"
+      icon: "id-badge"
+      description: "Identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The Service Account name — its logical identity among this tenant's service accounts. Generate its key(s) directly in Twingate (Settings > Service Accounts) after it is deployed."

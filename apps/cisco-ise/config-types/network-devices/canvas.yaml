@@ -1,0 +1,84 @@
+# =============================================================================
+# Canvas Template — Cisco ISE Network Devices
+#
+# Declares ONE network device (a NAS/AAA client — switch, WLC, VPN concentrator,
+# ...) — the item. Users add as many as they need. Field keys must match
+# config-types/network-devices/_shared.ts. Applied via the ISE ERS API
+# (POST/PUT/DELETE /ers/config/networkdevice).
+#
+# IPv4 only in this release — ISE also supports IPv6 device addresses, not
+# implemented here. TACACS+ and SNMP settings are likewise out of scope; see the
+# app README for the full list of what this config type intentionally drops.
+# =============================================================================
+
+id: "cisco-ise-network-devices"
+name: "Network Devices"
+toolType: "cisco-ise"
+entityType: "network-devices"
+description: "Manage Cisco ISE network devices (NAS/AAA clients) — IP address(es), NDG membership and RADIUS shared secret — via the ERS API (/ers/config/networkdevice)"
+
+item:
+  label: "Network Device"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Device"
+      icon: "server"
+      description: "Device identity and IP address(es)"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The network device name in ISE. Used as the stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this device is — recorded on the device in ISE."
+
+        - key: "ip_addresses"
+          label: "IP Addresses (address -> mask bits)"
+          fieldType: "keyvalue"
+          required: true
+          helpText: >
+            IPv4 address(es) this device authenticates from, each keyed by address
+            with its subnet mask BITS as the value, e.g. key "10.1.1.1", value "32"
+            for a single host, or "10.1.1.0" / "24" for a subnet. At least one is
+            required — ERS rejects a device with no IP.
+
+    - name: "Policy"
+      icon: "layers"
+      description: "Network Device Group membership"
+      fields:
+        - key: "device_groups"
+          label: "Network Device Groups"
+          fieldType: "tags"
+          required: false
+          defaultValue: ["Location#All Locations", "Device Type#All Device Types"]
+          helpText: >
+            Full "#"-path Network Device Group names this device belongs to (see
+            the Network Device Groups config type). ISE requires a device to
+            belong to a Location and a Device Type group; left at the defaults if
+            not customized.
+
+    - name: "RADIUS"
+      icon: "lock"
+      description: "RADIUS shared secret (optional — leave blank for TACACS+-only or unauthenticated devices)"
+      fields:
+        - key: "radius_shared_secret"
+          label: "RADIUS Shared Secret"
+          fieldType: "password"
+          required: false
+          helpText: >
+            ⚠ WRITE-ONLY secret — ISE never returns it, so it cannot be diffed,
+            logged, or captured for rollback. Sent to ISE only when this field is
+            non-blank; leaving it blank on an existing device does NOT clear its
+            current secret. To rotate a secret, enter the new value here.

@@ -1,15 +1,16 @@
 id: cisco-ise
 name: Cisco ISE
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Cisco Identity Services Engine (ISE) — network access control (NAC) —
   configuration as code through the ISE External RESTful Services (ERS) API.
-  Covers endpoint identity groups (custom groups used to classify endpoints for
-  authorization policy) — with validation, drift detection and rollback handled
-  by the Security-as-Code pipeline. Authenticates as an ISE administrator (the
-  ERS-Admin or ERS-Operator group) via HTTP Basic auth against the PAN/admin
-  node's dedicated ERS port (9060).
+  Covers endpoint identity groups, network device groups (NDGs), network
+  devices (NAS/AAA clients) and standard authorization profiles — with
+  validation, drift detection and rollback handled by the Security-as-Code
+  pipeline. Authenticates as an ISE administrator (the ERS-Admin or
+  ERS-Operator group) via HTTP Basic auth against the PAN/admin node's
+  dedicated ERS port (9060).
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cisco-ise
@@ -32,6 +33,15 @@ permissions:
     - resource: endpoint-identity-groups
       actions: [read, write, delete]
       description: Manage Cisco ISE endpoint identity groups (non-system-defined) via the ERS API
+    - resource: network-device-groups
+      actions: [read, write, delete]
+      description: Manage Cisco ISE Network Device Groups (NDG hierarchies) via the ERS API
+    - resource: network-devices
+      actions: [read, write, delete]
+      description: Manage Cisco ISE network devices (NAS/AAA clients) via the ERS API
+    - resource: authorization-profiles
+      actions: [read, write, delete]
+      description: Manage Cisco ISE standard (SWITCH) authorization profiles via the ERS API
 
 pipeline:
   configurationTypes:
@@ -52,6 +62,73 @@ pipeline:
         healthCheck: config-types/endpoint-identity-groups/healthCheck
         driftDetect: config-types/endpoint-identity-groups/driftDetect
         getStatus: config-types/endpoint-identity-groups/getStatus
+      targets:
+        componentTypes: [cisco-ise]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: network-device-groups
+      group: "Network Devices"
+      name: Network Device Groups
+      description: >
+        Network Device Group (NDG) hierarchies — name-keyed by the full
+        "#"-path from the NDG root — applied over the ERS API
+        (/ers/config/networkdevicegroup). The root category (`othername`) is
+        always derived from the name, never authored separately.
+      canvasTemplate: config-types/network-device-groups/canvas.yaml
+      defaultConfig: config-types/network-device-groups/defaults.yaml
+      handlers:
+        validate: config-types/network-device-groups/validate
+        deploy: config-types/network-device-groups/deploy
+        rollback: config-types/network-device-groups/rollback
+        healthCheck: config-types/network-device-groups/healthCheck
+        driftDetect: config-types/network-device-groups/driftDetect
+        getStatus: config-types/network-device-groups/getStatus
+      targets:
+        componentTypes: [cisco-ise]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: network-devices
+      group: "Network Devices"
+      name: Network Devices
+      description: >
+        Network devices (NAS/AAA clients) — name-keyed, with IPv4 address(es),
+        Network Device Group membership and an optional RADIUS shared secret —
+        applied over the ERS API (/ers/config/networkdevice). The shared
+        secret is write-only: ISE never returns it, so it is never diffed or
+        captured for rollback.
+      canvasTemplate: config-types/network-devices/canvas.yaml
+      defaultConfig: config-types/network-devices/defaults.yaml
+      handlers:
+        validate: config-types/network-devices/validate
+        deploy: config-types/network-devices/deploy
+        rollback: config-types/network-devices/rollback
+        healthCheck: config-types/network-devices/healthCheck
+        driftDetect: config-types/network-devices/driftDetect
+        getStatus: config-types/network-devices/getStatus
+      targets:
+        componentTypes: [cisco-ise]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: authorization-profiles
+      group: "Policy Elements"
+      name: Authorization Profiles
+      description: >
+        Standard (SWITCH) authorization profiles — access type, VLAN, DACL/ACL
+        and RADIUS advanced attributes — name-keyed, applied over the ERS API
+        (/ers/config/authorizationprofile). TrustSec and TACACS+ profile types
+        are out of scope.
+      canvasTemplate: config-types/authorization-profiles/canvas.yaml
+      defaultConfig: config-types/authorization-profiles/defaults.yaml
+      handlers:
+        validate: config-types/authorization-profiles/validate
+        deploy: config-types/authorization-profiles/deploy
+        rollback: config-types/authorization-profiles/rollback
+        healthCheck: config-types/authorization-profiles/healthCheck
+        driftDetect: config-types/authorization-profiles/driftDetect
+        getStatus: config-types/authorization-profiles/getStatus
       targets:
         componentTypes: [cisco-ise]
         requiresCredential: true

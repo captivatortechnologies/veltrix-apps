@@ -1,0 +1,9 @@
+# Defaults for a new watch item.
+#
+# Intentionally empty: the platform starts a new item blank and the field-level
+# `defaultValue`s in canvas.yaml (active: true, resource_scope: "all-repos",
+# create_ticket_enabled: false) already give a sensible starting point. Any
+# values here would be a FLAT map keyed by the canvas field keys (name,
+# description, active, resource_scope, repository_name, bin_mgr_id,
+# package_type_filters, security_policy_names, license_policy_names,
+# watch_recipients, create_ticket_enabled, ticket_profile, resources_json).

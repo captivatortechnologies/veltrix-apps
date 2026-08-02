@@ -1,0 +1,92 @@
+# =============================================================================
+# Canvas Template — Datadog Security Monitoring Suppressions
+#
+# Declares ONE suppression rule (the item). Operators add as many as they
+# need. A suppression rule silences signals from matching detection rules
+# (via `rule_query`) that also match `suppression_query`, WITHOUT disabling
+# the underlying rule — e.g. quiet known-noisy staging environments.
+#
+# Reconciled by rule `name` (case-insensitive) against
+# GET /api/v2/security_monitoring/configuration/suppressions (a JSON:API
+# resource). A live suppression that is not `editable` is PROTECTED — never
+# modified by this app.
+#
+# Field keys must match config-types/security-monitoring-suppressions/_shared.ts.
+# API reference: https://docs.datadoghq.com/api/latest/security-monitoring/
+# =============================================================================
+
+id: "datadog-security-monitoring-suppressions"
+name: "Security Monitoring Suppression"
+toolType: "datadog"
+entityType: "security-monitoring-suppressions"
+description: "Define Datadog Security Monitoring suppression rules as code through the Suppression Rules API (/api/v2/security_monitoring/configuration/suppressions). Reconciled by rule name."
+
+item:
+  label: "Suppression Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Rule"
+      icon: "eye-off"
+      description: "Identity, target and lifecycle"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The suppression rule name — this app's logical identity for the rule (matched case-insensitively against Datadog's live suppressions on every deploy)."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          helpText: "Optional description shown in the Datadog UI."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the suppression is active."
+
+        - key: "rule_query"
+          label: "Rule Query"
+          fieldType: "textarea"
+          required: true
+          helpText: 'Detection rule search syntax selecting which Security Monitoring Rules this suppression applies to, e.g. type:log_detection source:cloudtrail.'
+
+        - key: "suppression_query"
+          label: "Suppression Query"
+          fieldType: "textarea"
+          required: false
+          helpText: 'Signal Explorer search syntax selecting which signals to suppress, e.g. env:staging status:low. Leave blank to suppress every signal the rule query matches.'
+
+        - key: "data_exclusion_query"
+          label: "Data Exclusion Query (optional)"
+          fieldType: "textarea"
+          required: false
+          helpText: 'Excludes matching INPUT data (logs, Agent events, …) from rule evaluation entirely, e.g. source:cloudtrail account_id:123456789012. Distinct from Suppression Query, which filters already-generated signals.'
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          helpText: "Tags attached to this suppression rule."
+
+    - name: "Schedule"
+      icon: "clock"
+      description: "Optional activation window (Unix milliseconds)"
+      fields:
+        - key: "start_date"
+          label: "Start Date (Unix ms, optional)"
+          fieldType: "number"
+          required: false
+          helpText: "Unix millisecond timestamp when the suppression becomes active. Leave blank to activate immediately."
+
+        - key: "expiration_date"
+          label: "Expiration Date (Unix ms, optional)"
+          fieldType: "number"
+          required: false
+          helpText: "Unix millisecond timestamp when the suppression stops applying. Leave blank for no expiration."

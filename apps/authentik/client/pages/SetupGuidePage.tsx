@@ -1,7 +1,7 @@
 import React from 'react'
 import { Badge, Card, CardBody, Tabs } from '@veltrixsecops/app-sdk/ui'
 
-const MANAGES = ['Applications']
+const MANAGES = ['Applications', 'OAuth2/OpenID Providers', 'Groups', 'Flows']
 
 /**
  * Step-by-step connection guide for authentik, rendered with the platform
@@ -64,15 +64,32 @@ export default function SetupGuidePage() {
         <Card variant="bordered" padding="md">
           <CardBody>
             <p>
-              Open the <strong>Configuration Canvas</strong>, pick the authentik <strong>Applications</strong>{' '}
-              configuration type, author your applications (name, slug, an optional bound provider pk,
-              policy engine mode, UI group and display metadata), and deploy through the pipeline.
-              Applications are upserted by slug; drift detection and rollback are handled per type.
+              Open the <strong>Configuration Canvas</strong> and pick one of authentik's four configuration
+              types. Each is upserted by its own identity and gets drift detection + rollback:
             </p>
+            <ul>
+              <li>
+                <strong>Applications</strong> (by slug) — name, slug, an optional bound Provider pk, policy
+                engine mode, UI group and display metadata.
+              </li>
+              <li>
+                <strong>OAuth2/OpenID Providers</strong> (by name) — client type/id, an authorization and
+                invalidation flow (by Flow UUID), redirect URIs and scope mappings. Deploy one of these
+                first, then paste its pk into an Application's <strong>Provider</strong> field to bind them.
+              </li>
+              <li>
+                <strong>Groups</strong> (by name) — the superuser flag, an optional parent group and custom
+                attributes. Group membership and RBAC roles are managed directly in authentik.
+              </li>
+              <li>
+                <strong>Flows</strong> (by slug) — title, designation and the required authentication level.
+                A deployed flow's UUID can be pasted into a Provider's Authorization/Invalidation Flow
+                fields.
+              </li>
+            </ul>
             <p>
-              A bound <strong>Provider</strong> (OAuth2/OIDC, SAML, proxy, LDAP, …) must already exist in
-              authentik — reference it by its numeric pk. Managing Providers as code is planned as a
-              separate configuration type in a later release.
+              Provider/flow references are authored as plain UUIDs (no live picker yet) — copy them from
+              authentik's admin interface or from this app's own deploy artifacts.
             </p>
           </CardBody>
         </Card>

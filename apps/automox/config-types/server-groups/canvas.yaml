@@ -1,0 +1,107 @@
+# =============================================================================
+# Canvas Template — Automox Server Groups
+#
+# Declares ONE Automox Server Group (the item), matched on its NAME (the
+# logical identity used for upsert and drift). Field keys must match
+# config-types/server-groups/_shared.ts (extractServerGroupSpecs).
+#
+# Applied over the Automox Console API, org-scoped via the `o` query parameter:
+#   GET/POST   /servergroups?o=<organizationId>
+#   GET/PUT/DELETE /servergroups/{id}?o=<organizationId>
+# Auth is `Authorization: Bearer <api key>`. Unlike /policies, POST
+# /servergroups returns the full created object (200), including its id.
+# =============================================================================
+
+id: "automox-server-groups"
+name: "Server Group"
+toolType: "automox"
+entityType: "server-groups"
+description: "Define Automox Server Groups as code through the Automox Console API (/servergroups)."
+
+item:
+  label: "Server Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Server Group"
+      icon: "folder"
+      description: "Identity and hierarchy"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The group's display name. Must be unique within this canvas — this is the stable identity used to find, update and drift-check the group on each deploy."
+
+        - key: "parent_server_group_id"
+          label: "Parent Server Group ID"
+          fieldType: "number"
+          required: true
+          helpText: >-
+            Required by Automox for EVERY group, including top-level ones — use
+            your organization's "Default Group" id to make this a top-level
+            group. Find it via the Automox Console (System Management) or
+            GET /servergroups. This app does not auto-discover it.
+
+        - key: "refresh_interval"
+          label: "Refresh Interval (minutes)"
+          fieldType: "number"
+          required: true
+          defaultValue: 1440
+          validation:
+            min: 360
+            max: 1440
+          helpText: "How often devices in this group check in (scan). Automox range: 360-1440 minutes (6-24 hours)."
+
+        - key: "ui_color"
+          label: "UI Color"
+          fieldType: "text"
+          validation:
+            pattern: "^#[0-9A-Fa-f]{6}$"
+          helpText: "Optional highlight color for the group in the Automox Console, e.g. \"#0072CE\". Leave blank for no override."
+
+        - key: "notes"
+          label: "Notes"
+          fieldType: "textarea"
+          helpText: "Free-text notes shown while editing the group in the Automox Console."
+
+    - name: "Policy Enforcement"
+      icon: "shield-check"
+      description: "OS update / WSUS overrides and linked policies"
+      fields:
+        - key: "enable_os_auto_update"
+          label: "OS Automatic Updates"
+          fieldType: "select"
+          defaultValue: "keep"
+          options:
+            - { label: "Keep Each Device's Setting", value: "keep" }
+            - { label: "Enable", value: "enable" }
+            - { label: "Disable", value: "disable" }
+          helpText: "Enforce (or leave alone) the OS's own automatic-update setting for devices in this group."
+
+        - key: "enable_wsus"
+          label: "WSUS"
+          fieldType: "select"
+          defaultValue: "keep"
+          options:
+            - { label: "Keep Each Device's Setting", value: "keep" }
+            - { label: "Force WSUS", value: "enable" }
+            - { label: "Force Windows Update", value: "disable" }
+          helpText: "Force Windows devices in this group to use WSUS or Windows Update, or leave each device's own setting alone."
+
+        - key: "wsus_server"
+          label: "WSUS Server"
+          fieldType: "text"
+          visibleWhen:
+            field: "enable_wsus"
+            equals: "enable"
+          helpText: "Required when WSUS is set to \"Force WSUS\". Format: https://myserver.com:8530."
+
+        - key: "policies"
+          label: "Linked Policy IDs"
+          fieldType: "tags"
+          helpText: "Automox Policy ids to link to this group (numeric ids — see the Policies / Worklets config types, or the Automox Console). Leave empty to link none."

@@ -1,0 +1,142 @@
+# =============================================================================
+# Canvas Template — JFrog Xray Watches
+#
+# Declares ONE Xray Watch (the item). Users add as many as they need. A Watch
+# is what makes a policy actually take effect — it scopes a set of resources
+# (repositories, builds, release bundles, …) and binds one or more policies to
+# them by name. Created/updated through POST/PUT /xray/api/v2/watches[/{name}]
+# and identified for reconciliation by its `name`.
+#
+# The common case — one repository (or the whole "all repos" scope) bound to
+# security and/or license policies this app manages — is typed. A JSON escape
+# valve (`resources_json`) covers builds, release bundles, projects, git
+# repositories, or multiple resources at once.
+#
+# Field keys must match config-types/watches/_shared.ts.
+# =============================================================================
+
+id: "jfrog-xray-watches"
+name: "Xray Watch"
+toolType: "jfrog-xray"
+entityType: "watches"
+description: "Define JFrog Xray watches as code through the Xray REST API v2. A watch scopes resources (repositories, builds, release bundles, …) and assigns policies to them by name — this is what makes a policy actually take effect."
+
+item:
+  label: "Watch"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Watch"
+      icon: "eye"
+      description: "Identity and state"
+      fields:
+        - key: "name"
+          label: "Watch Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The watch's logical identity in Xray — also the URL path segment for reads/updates/deletes, so avoid \"/\" or \"\\\"."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Xray console."
+
+        - key: "active"
+          label: "Active"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the watch is evaluated. An inactive watch is kept but does nothing."
+
+    - name: "Scope"
+      icon: "target"
+      description: "What this watch monitors"
+      fields:
+        - key: "resource_scope"
+          label: "Resource Scope"
+          fieldType: "select"
+          required: true
+          defaultValue: "all-repos"
+          options:
+            - { label: "All repositories", value: "all-repos" }
+            - { label: "One repository", value: "repository" }
+          helpText: "For builds, release bundles, projects, git repositories, or multiple repositories, use the Advanced JSON below instead."
+
+        - key: "repository_name"
+          label: "Repository Name"
+          fieldType: "text"
+          visibleWhen:
+            field: "resource_scope"
+            equals: "repository"
+          helpText: "The exact repository key in Artifactory, e.g. libs-release-local."
+
+        - key: "bin_mgr_id"
+          label: "Artifactory Server ID"
+          fieldType: "text"
+          visibleWhen:
+            field: "resource_scope"
+            equals: "repository"
+          helpText: 'Leave blank for the default single-instance JFrog Platform ("default"). Set this to a named Artifactory server ID only in a multi-instance / HA topology.'
+
+        - key: "package_type_filters"
+          label: "Package Type Filters"
+          fieldType: "tags"
+          helpText: 'Restrict the scope to specific package types, e.g. "Docker", "npm", "Maven" (Xray''s package-type names). Leave empty to match every package type in scope.'
+
+    - name: "Assigned Policies"
+      icon: "shield"
+      description: "Which policies apply to this scope"
+      fields:
+        - key: "security_policy_names"
+          label: "Security Policy Names"
+          fieldType: "tags"
+          helpText: "Names of Security Policies (this app's security-policies config type, or created directly in Xray) to bind to this watch's scope."
+
+        - key: "license_policy_names"
+          label: "License Policy Names"
+          fieldType: "tags"
+          helpText: "Names of License Policies (this app's license-policies config type, or created directly in Xray) to bind to this watch's scope."
+
+    - name: "Notifications"
+      icon: "bell"
+      description: "Who gets told beyond a bound policy's own recipients"
+      fields:
+        - key: "watch_recipients"
+          label: "Watch Recipients"
+          fieldType: "tags"
+          helpText: "Email addresses notified when a bound policy's rule matches within this watch's scope."
+
+        - key: "create_ticket_enabled"
+          label: "Create a ticket"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Requires a Jira integration already configured in Xray (Administration > Integrations)."
+
+        - key: "ticket_profile"
+          label: "Ticket Profile"
+          fieldType: "text"
+          visibleWhen:
+            field: "create_ticket_enabled"
+            equals: true
+          helpText: "The name of the Jira ticket-creation profile configured in Xray."
+
+    - name: "Advanced (JSON)"
+      icon: "code"
+      description: "Escape valve for resource scopes the typed fields don't cover"
+      fields:
+        - key: "resources_json"
+          label: "Additional Resources (JSON)"
+          fieldType: "textarea"
+          validation:
+            maxLength: 8000
+          helpText: >
+            Extra resource objects APPENDED to this watch's scope beyond the
+            repository/all-repos choice above — a JSON array, e.g.
+            [{"type":"build","name":"release-pipeline"}] or
+            [{"type":"releaseBundle","name":"my-bundle"}]. Valid "type" values:
+            repository, build, releaseBundle, releaseBundleV2, all-repos,
+            all-builds, all-releaseBundles, all-releaseBundlesV2, all-projects,
+            project, gitRepository.

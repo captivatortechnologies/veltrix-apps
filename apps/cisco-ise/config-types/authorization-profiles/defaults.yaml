@@ -1,0 +1,10 @@
+# Defaults for a new authorization profile item. Mirrors ISE's own UI defaults
+# (Access-Accept, tunnel tag 1) so a profile is sensible without the operator
+# having to know RADIUS attribute internals up front.
+description: ""
+access_type: "ACCESS_ACCEPT"
+vlan_tag: 1
+dacl_name: ""
+acl: ""
+airespace_acl: ""
+advanced_attributes: "[]"

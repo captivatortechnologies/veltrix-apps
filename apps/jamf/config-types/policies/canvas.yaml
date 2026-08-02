@@ -1,0 +1,122 @@
+# =============================================================================
+# Canvas Template — Jamf Pro Policies
+#
+# Declares ONE Jamf Pro policy — the item. Users add as many as they need.
+# Policies are still CLASSIC-API only (XML, https://<host>/JSSResource/policies)
+# — see config-types/policies/validate.ts for exactly which fields this config
+# type manages (general.name/enabled/triggers/frequency, scope, scripts,
+# packages) and which it deliberately leaves untouched (self_service,
+# maintenance, disk_encryption, printers, dock_items, …).
+#
+# Scope computer groups, scripts and packages are referenced BY NAME and must
+# already exist in Jamf Pro (computer groups: this app's own
+# smart-computer-groups config type, or created directly; scripts: this app's
+# scripts config type; packages: uploaded binaries, not managed by this app).
+#
+# NOTE: Jamf Pro does not enforce unique policy names server-side — this
+# canvas rejects duplicate names among the policies YOU declare, but if the
+# live tenant already has more than one policy sharing a name (created
+# outside Veltrix), the first one Jamf Pro returns is treated as the match.
+#
+# Field keys must match config-types/policies/validate.ts.
+# =============================================================================
+
+id: "jamf-policies"
+name: "Jamf Pro Policy Configuration"
+toolType: "jamf"
+entityType: "policies"
+description: "Declare Jamf Pro policies as code through the Classic API (XML, /JSSResource/policies) — name, enabled state, triggers, frequency, computer-group scope, scripts and packages. Reconciled by policy name; every other policy section (Self Service, maintenance, disk encryption, …) is left untouched."
+
+item:
+  label: "Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 300
+  groups:
+    - name: "Policy"
+      icon: "flag"
+      description: "Name, state and run frequency"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The policy's display name in Jamf Pro — its logical identity for reconciliation."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the policy is active."
+
+        - key: "frequency"
+          label: "Frequency"
+          fieldType: "select"
+          required: true
+          defaultValue: "Once per computer"
+          options:
+            - { label: "Once per computer", value: "Once per computer" }
+            - { label: "Once per user per computer", value: "Once per user per computer" }
+            - { label: "Once per user", value: "Once per user" }
+            - { label: "Once every day", value: "Once every day" }
+            - { label: "Once every week", value: "Once every week" }
+            - { label: "Once every month", value: "Once every month" }
+            - { label: "Ongoing", value: "Ongoing" }
+          helpText: "How often the policy runs on a computer it targets."
+
+    - name: "Triggers"
+      icon: "zap"
+      description: "What causes the policy to check in and run"
+      fields:
+        - key: "triggers"
+          label: "Triggers"
+          fieldType: "multiselect"
+          options:
+            - { label: "Recurring Check-in", value: "trigger_checkin" }
+            - { label: "Enrollment Complete", value: "trigger_enrollment_complete" }
+            - { label: "Login", value: "trigger_login" }
+            - { label: "Logout", value: "trigger_logout" }
+            - { label: "Network State Change", value: "trigger_network_state_changed" }
+            - { label: "Startup", value: "trigger_startup" }
+          helpText: "Leave empty for a policy triggered only manually or via the Jamf Pro API/Self Service."
+
+    - name: "Scope"
+      icon: "target"
+      description: "Which computers the policy targets"
+      fields:
+        - key: "all_computers"
+          label: "All Computers"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Scope the policy to every computer in Jamf Pro. Overrides the computer-group scope below when enabled."
+
+        - key: "computer_group_names"
+          label: "Scoped Computer Group Names"
+          fieldType: "tags"
+          helpText: "Smart or static computer group names to scope the policy to (must already exist in Jamf Pro). Ignored when All Computers is enabled."
+
+        - key: "exclusion_computer_group_names"
+          label: "Excluded Computer Group Names"
+          fieldType: "tags"
+          helpText: "Computer group names to exclude from the scope above (must already exist in Jamf Pro)."
+
+    - name: "Content"
+      icon: "package"
+      description: "Scripts and packages the policy runs/installs"
+      fields:
+        - key: "scripts_json"
+          label: "Scripts (JSON)"
+          fieldType: "textarea"
+          helpText: >-
+            A JSON array of scripts to run, each referencing an EXISTING Jamf Pro script by name:
+            [{"name":"<script name>","priority":"Before"|"After"}]. The script must already exist
+            (e.g. via this app's Scripts config type). Leave empty for no scripts.
+
+        - key: "packages_json"
+          label: "Packages (JSON)"
+          fieldType: "textarea"
+          helpText: >-
+            A JSON array of packages to deploy, each referencing an EXISTING Jamf Pro package by name:
+            [{"name":"<package name>","action":"Install"|"Cache"|"Install Cached"}]. The package binary
+            must already be uploaded to Jamf Pro (not managed by this app). Leave empty for no packages.

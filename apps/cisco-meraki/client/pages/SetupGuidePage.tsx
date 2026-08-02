@@ -1,7 +1,12 @@
 import React from 'react'
 import { Badge, Card, CardBody, Tabs } from '@veltrixsecops/app-sdk/ui'
 
-const MANAGES = ['MX L3 (outbound) firewall rules']
+const MANAGES = [
+  'MX L3 (outbound) firewall rules',
+  'MX L7 (application-layer) firewall rules',
+  'Group policies',
+  'Appliance VLANs',
+]
 
 /**
  * Step-by-step connection guide, rendered with the platform design-system
@@ -65,9 +70,28 @@ export default function SetupGuidePage() {
               (e.g. your organization's name) — it is never used as a network address.
             </p>
             <p>
-              Each <strong>L3 Firewall Rules</strong> canvas item targets one Meraki <strong>network</strong>{' '}
-              by its <code>network_id</code> (e.g. <code>L_646829496481099008</code>) — find it in the
-              dashboard URL for that network, or via <code>GET /organizations/&#123;organizationId&#125;/networks</code>.
+              Every config type's canvas item targets one Meraki <strong>network</strong> by its{' '}
+              <code>network_id</code> (e.g. <code>L_646829496481099008</code>) — find it in the dashboard URL
+              for that network, or via <code>GET /organizations/&#123;organizationId&#125;/networks</code>.
+            </p>
+          </CardBody>
+        </Card>
+      ),
+    },
+    {
+      key: 'per-type-notes',
+      label: '4. Per-type notes',
+      content: (
+        <Card variant="bordered" padding="md">
+          <CardBody>
+            <p>
+              <strong>Group Policies</strong> reconcile by name (Meraki assigns the id); the schema beyond
+              name is authored as one JSON block.
+            </p>
+            <p>
+              <strong>Appliance VLANs</strong> reconcile by a VLAN id you choose (1-4094), and require VLANs
+              to already be <strong>enabled</strong> on the network (Security &amp; SD-WAN &gt; Addressing
+              &amp; VLANs) — this app checks that but does not enable it for you.
             </p>
           </CardBody>
         </Card>

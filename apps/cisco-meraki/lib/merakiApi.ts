@@ -28,10 +28,25 @@
 //   https://developer.cisco.com/meraki/api-v1/get-organizations/
 //   https://developer.cisco.com/meraki/api-v1/get-network-appliance-firewall-l-3-firewall-rules/
 //   https://developer.cisco.com/meraki/api-v1/update-network-appliance-firewall-l-3-firewall-rules/
+//   https://developer.cisco.com/meraki/api-v1/get-network-appliance-firewall-l-7-firewall-rules/
+//   https://developer.cisco.com/meraki/api-v1/update-network-appliance-firewall-l-7-firewall-rules/
+//   https://developer.cisco.com/meraki/api-v1/get-network-group-policies/
+//   https://developer.cisco.com/meraki/api-v1/create-network-group-policy/
+//   https://developer.cisco.com/meraki/api-v1/update-network-group-policy/
+//   https://developer.cisco.com/meraki/api-v1/delete-network-group-policy/
+//   https://developer.cisco.com/meraki/api-v1/get-network-appliance-vlans/
+//   https://developer.cisco.com/meraki/api-v1/get-network-appliance-vlans-settings/
+//   https://developer.cisco.com/meraki/api-v1/update-network-appliance-vlans-settings/
+//   https://developer.cisco.com/meraki/api-v1/create-network-appliance-vlan/
+//   https://developer.cisco.com/meraki/api-v1/update-network-appliance-vlan/
+//   https://developer.cisco.com/meraki/api-v1/delete-network-appliance-vlan/
 // =============================================================================
 
 import type { CredentialRef } from '@veltrixsecops/app-sdk'
 import type { MerakiL3FirewallRule } from '../config-types/l3-firewall-rules/_shared'
+import type { MerakiL7FirewallRule } from '../config-types/l7-firewall-rules/_shared'
+import type { MerakiGroupPolicy } from '../config-types/group-policies/_shared'
+import type { MerakiVlan } from '../config-types/appliance-vlans/_shared'
 
 export const BASE_URL = 'https://api.meraki.com/api/v1'
 
@@ -229,4 +244,173 @@ export async function putL3FirewallRules(
   }
   const parsed = parseJson<MerakiL3FirewallRuleset>(res.body)
   return { rules: Array.isArray(parsed?.rules) ? (parsed!.rules as MerakiL3FirewallRule[]) : body.rules }
+}
+
+// --- MX L7 (application-layer) firewall rules --------------------------------
+
+export interface MerakiL7FirewallRuleset {
+  rules: MerakiL7FirewallRule[]
+}
+
+/**
+ * GET /networks/{networkId}/appliance/firewall/l7FirewallRules — the ordered
+ * L7 (application-layer) rules for the network. Every rule's `policy` is
+ * `"deny"` (Meraki L7 has no allow rule — it only blocks on top of the
+ * default-allow L3 posture). Throws on error.
+ */
+export async function getL7FirewallRules(client: MerakiClient, networkId: string): Promise<MerakiL7FirewallRuleset> {
+  const res = await client.request('GET', `/networks/${encodeURIComponent(networkId)}/appliance/firewall/l7FirewallRules`)
+  if (!res.ok) {
+    throw new Error(`Failed to read L7 firewall rules for network "${networkId}": ${merakiErrorMessage(res)}`)
+  }
+  const parsed = parseJson<MerakiL7FirewallRuleset>(res.body)
+  return { rules: Array.isArray(parsed?.rules) ? (parsed!.rules as MerakiL7FirewallRule[]) : [] }
+}
+
+/**
+ * PUT /networks/{networkId}/appliance/firewall/l7FirewallRules — WHOLE-LIST
+ * REPLACE of the ordered L7 ruleset. Unlike L3, there is no companion
+ * "syslogDefaultRule"-style scalar; the response is always just
+ * `{ rules: [...] }`. Throws on error.
+ */
+export async function putL7FirewallRules(
+  client: MerakiClient,
+  networkId: string,
+  rules: MerakiL7FirewallRule[],
+): Promise<MerakiL7FirewallRuleset> {
+  const res = await client.request(
+    'PUT',
+    `/networks/${encodeURIComponent(networkId)}/appliance/firewall/l7FirewallRules`,
+    { body: { rules } },
+  )
+  if (!res.ok) {
+    throw new Error(`Failed to update L7 firewall rules for network "${networkId}": ${merakiErrorMessage(res)}`)
+  }
+  const parsed = parseJson<MerakiL7FirewallRuleset>(res.body)
+  return { rules: Array.isArray(parsed?.rules) ? (parsed!.rules as MerakiL7FirewallRule[]) : rules }
+}
+
+// --- Group policies (per-object CRUD, reconciled by name) --------------------
+
+/** GET /networks/{networkId}/groupPolicies — every group policy in the network. Throws on error. */
+export async function listGroupPolicies(client: MerakiClient, networkId: string): Promise<MerakiGroupPolicy[]> {
+  const res = await client.request('GET', `/networks/${encodeURIComponent(networkId)}/groupPolicies`)
+  if (!res.ok) throw new Error(`Failed to list group policies for network "${networkId}": ${merakiErrorMessage(res)}`)
+  const parsed = parseJson<MerakiGroupPolicy[]>(res.body)
+  return Array.isArray(parsed) ? parsed : []
+}
+
+/** POST /networks/{networkId}/groupPolicies — create; returns the created policy (with its `groupPolicyId`). Throws on error. */
+export async function createGroupPolicy(
+  client: MerakiClient,
+  networkId: string,
+  body: Record<string, unknown>,
+): Promise<MerakiGroupPolicy> {
+  const res = await client.request('POST', `/networks/${encodeURIComponent(networkId)}/groupPolicies`, { body })
+  if (!res.ok) throw new Error(`Failed to create group policy in network "${networkId}": ${merakiErrorMessage(res)}`)
+  const parsed = parseJson<MerakiGroupPolicy>(res.body)
+  if (!parsed?.groupPolicyId) throw new Error(`Group policy was created in network "${networkId}" but the API returned no groupPolicyId`)
+  return parsed
+}
+
+/** PUT /networks/{networkId}/groupPolicies/{groupPolicyId} — update. Throws on error. */
+export async function updateGroupPolicy(
+  client: MerakiClient,
+  networkId: string,
+  groupPolicyId: string,
+  body: Record<string, unknown>,
+): Promise<MerakiGroupPolicy> {
+  const res = await client.request(
+    'PUT',
+    `/networks/${encodeURIComponent(networkId)}/groupPolicies/${encodeURIComponent(groupPolicyId)}`,
+    { body },
+  )
+  if (!res.ok) {
+    throw new Error(`Failed to update group policy "${groupPolicyId}" in network "${networkId}": ${merakiErrorMessage(res)}`)
+  }
+  const parsed = parseJson<MerakiGroupPolicy>(res.body)
+  return parsed ?? { ...body, groupPolicyId }
+}
+
+/**
+ * DELETE /networks/{networkId}/groupPolicies/{groupPolicyId}. The API also
+ * accepts an optional `force` query parameter to delete a policy that still
+ * has clients assigned to it — NOT used here (unverified default behavior
+ * without it; deliberately conservative so a rollback/redeploy never silently
+ * forces a deletion Meraki would otherwise refuse). Throws on error.
+ */
+export async function deleteGroupPolicy(client: MerakiClient, networkId: string, groupPolicyId: string): Promise<void> {
+  const res = await client.request(
+    'DELETE',
+    `/networks/${encodeURIComponent(networkId)}/groupPolicies/${encodeURIComponent(groupPolicyId)}`,
+  )
+  if (!res.ok) {
+    throw new Error(`Failed to delete group policy "${groupPolicyId}" in network "${networkId}": ${merakiErrorMessage(res)}`)
+  }
+}
+
+// --- Appliance VLANs (per-object CRUD, user-supplied id) ---------------------
+
+/**
+ * GET /networks/{networkId}/appliance/vlans/settings — `{ vlansEnabled }`.
+ * VLANs must be enabled on a network before any per-VLAN CRUD below will
+ * succeed (an MX ships in single-LAN mode by default). Throws on error.
+ */
+export async function getVlansEnabled(client: MerakiClient, networkId: string): Promise<boolean> {
+  const res = await client.request('GET', `/networks/${encodeURIComponent(networkId)}/appliance/vlans/settings`)
+  if (!res.ok) throw new Error(`Failed to read VLAN settings for network "${networkId}": ${merakiErrorMessage(res)}`)
+  const parsed = parseJson<{ vlansEnabled?: boolean }>(res.body)
+  return parsed?.vlansEnabled === true
+}
+
+/** PUT /networks/{networkId}/appliance/vlans/settings — enable/disable VLANs on the network. Throws on error. */
+export async function setVlansEnabled(client: MerakiClient, networkId: string, vlansEnabled: boolean): Promise<void> {
+  const res = await client.request('PUT', `/networks/${encodeURIComponent(networkId)}/appliance/vlans/settings`, {
+    body: { vlansEnabled },
+  })
+  if (!res.ok) {
+    throw new Error(`Failed to ${vlansEnabled ? 'enable' : 'disable'} VLANs for network "${networkId}": ${merakiErrorMessage(res)}`)
+  }
+}
+
+/** GET /networks/{networkId}/appliance/vlans — every VLAN in the network. Throws on error. */
+export async function listVlans(client: MerakiClient, networkId: string): Promise<MerakiVlan[]> {
+  const res = await client.request('GET', `/networks/${encodeURIComponent(networkId)}/appliance/vlans`)
+  if (!res.ok) throw new Error(`Failed to list VLANs for network "${networkId}": ${merakiErrorMessage(res)}`)
+  const parsed = parseJson<MerakiVlan[]>(res.body)
+  return Array.isArray(parsed) ? parsed : []
+}
+
+/** POST /networks/{networkId}/appliance/vlans — create; `body.id` is the caller-chosen VLAN id (1-4094). Throws on error. */
+export async function createVlan(client: MerakiClient, networkId: string, body: Record<string, unknown>): Promise<MerakiVlan> {
+  const res = await client.request('POST', `/networks/${encodeURIComponent(networkId)}/appliance/vlans`, { body })
+  if (!res.ok) throw new Error(`Failed to create VLAN in network "${networkId}": ${merakiErrorMessage(res)}`)
+  const parsed = parseJson<MerakiVlan>(res.body)
+  return parsed ?? (body as unknown as MerakiVlan)
+}
+
+/** PUT /networks/{networkId}/appliance/vlans/{vlanId} — update. Throws on error. */
+export async function updateVlan(
+  client: MerakiClient,
+  networkId: string,
+  vlanId: string,
+  body: Record<string, unknown>,
+): Promise<MerakiVlan> {
+  const res = await client.request(
+    'PUT',
+    `/networks/${encodeURIComponent(networkId)}/appliance/vlans/${encodeURIComponent(vlanId)}`,
+    { body },
+  )
+  if (!res.ok) throw new Error(`Failed to update VLAN "${vlanId}" in network "${networkId}": ${merakiErrorMessage(res)}`)
+  const parsed = parseJson<MerakiVlan>(res.body)
+  return parsed ?? { ...(body as object), id: vlanId }
+}
+
+/** DELETE /networks/{networkId}/appliance/vlans/{vlanId}. Meraki refuses to delete the network's last remaining VLAN while VLANs are enabled (unverified in current docs — surfaces as a 400 from the API). Throws on error. */
+export async function deleteVlan(client: MerakiClient, networkId: string, vlanId: string): Promise<void> {
+  const res = await client.request(
+    'DELETE',
+    `/networks/${encodeURIComponent(networkId)}/appliance/vlans/${encodeURIComponent(vlanId)}`,
+  )
+  if (!res.ok) throw new Error(`Failed to delete VLAN "${vlanId}" in network "${networkId}": ${merakiErrorMessage(res)}`)
 }

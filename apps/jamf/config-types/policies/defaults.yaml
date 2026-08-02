@@ -1,0 +1,8 @@
+# Defaults for a new Jamf Pro policy item.
+#
+# Intentionally empty: the platform starts a new item blank (the "Enabled"
+# and "Frequency" fields' own defaultValue, set in canvas.yaml, already seed
+# new items) and users manage their own default value sets from there. Any
+# values here would be a FLAT map keyed by the canvas field keys (name,
+# enabled, frequency, triggers, all_computers, computer_group_names,
+# exclusion_computer_group_names, scripts_json, packages_json).

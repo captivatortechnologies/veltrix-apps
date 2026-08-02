@@ -1,0 +1,51 @@
+# =============================================================================
+# Canvas Template — Twingate Groups
+#
+# Declares ONE Twingate Group — grants its members access to the Resources
+# assigned to it. Users add as many as they need. Groups are created/updated
+# through the GraphQL groupCreate / groupUpdate mutations and identified for
+# reconciliation by `name`, matched ONLY among MANUAL groups — a same-named
+# SYNCED (IdP) or SYSTEM (Twingate built-in) group is never modified.
+#
+# User membership is deliberately out of scope here (see README "Scope") —
+# only Resource access is managed.
+#
+# Field keys must match config-types/groups/_shared.ts (extractGroupSpecs).
+# =============================================================================
+
+id: "groups"
+name: "Twingate Group"
+toolType: "twingate"
+entityType: "groups"
+description: "Define Twingate Groups (MANUAL groups only) as code through the GraphQL API. Reconciled by group name; Resource access is resolved by name against the live tenant."
+
+item:
+  label: "Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Group"
+      icon: "users"
+      description: "Identity and state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The Group name — its logical identity among this tenant's MANUAL groups. SYNCED (IdP) and SYSTEM (built-in) groups are never matched or modified."
+
+        - key: "is_active"
+          label: "Active"
+          fieldType: "checkbox"
+          defaultValue: true
+
+    - name: "Access"
+      icon: "server"
+      description: "Which Resources this Group can reach"
+      fields:
+        - key: "resource_names"
+          label: "Resources"
+          fieldType: "tags"
+          helpText: "Twingate Resources (by name) this Group is granted access to. This list REPLACES the group's Resource access on every deploy — leave empty for no Resource access."

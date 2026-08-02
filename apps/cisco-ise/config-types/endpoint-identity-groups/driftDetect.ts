@@ -1,5 +1,5 @@
 import type { DriftContext, DriftResult, DriftDiff } from '@veltrixsecops/app-sdk'
-import { ersBase, buildEndpointIdentityGroupsClient, readIseSettings, hasUsableCredential } from '../../lib/iseApi'
+import { ersBase, buildErsResourceClient, readIseSettings, hasUsableCredential, type EndPointGroup } from '../../lib/iseApi'
 import { extractSpecs } from './_shared'
 
 /**
@@ -18,7 +18,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
 
   const settings = readIseSettings(ctx.settings)
   const base = ersBase(component, connectivity, connectivityProvider)
-  const client = buildEndpointIdentityGroupsClient(base, credential, settings)
+  const client = buildErsResourceClient<EndPointGroup>(base, 'endpointgroup', 'EndPointGroup', credential, settings)
 
   for (const item of items) {
     const spec = extractSpecs([item])[0]

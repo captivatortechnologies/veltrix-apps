@@ -1,0 +1,115 @@
+# =============================================================================
+# Canvas Template — JFrog Xray Ignore Rules
+#
+# Declares ONE Xray ignore rule (the item). Users add as many as they need. An
+# ignore rule suppresses violations matching its filters — e.g. a specific CVE
+# on a specific watch — optionally until an expiry date.
+#
+# UNLIKE security-policies / license-policies / watches, Xray's ignore_rules
+# API has NO update endpoint (only create + delete — verified against the
+# official reference; see config-types/ignore-rules/deploy.ts header) and the
+# server assigns an opaque `id` on create — there is no user-chosen name. So
+# this item has NO `identityField`: reconciliation keys off the CANVAS ITEM'S
+# OWN stable id (`item.id`, always assigned by the platform), matched against
+# the Xray rule id recorded in the last deployment's rollbackData. Changing a
+# rule's content deletes the old rule and creates a new one (see deploy.ts).
+#
+# `notes` is required by Xray and doubles as the operator-facing label shown
+# for this item in the UI.
+#
+# Field keys must match config-types/ignore-rules/_shared.ts.
+# =============================================================================
+
+id: "jfrog-xray-ignore-rules"
+name: "Xray Ignore Rule"
+toolType: "jfrog-xray"
+entityType: "ignore-rules"
+description: "Define JFrog Xray ignore rules as code through the Xray REST API v1. Suppresses violations matching CVE/vulnerability/license/scope filters, optionally until an expiry date. Ignore rules are immutable in Xray — a changed rule is recreated (deleted + created)."
+
+item:
+  label: "Ignore Rule"
+  identityField: "notes"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Rule"
+      icon: "eye-off"
+      description: "Why this rule exists"
+      fields:
+        - key: "notes"
+          label: "Notes"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 2000
+          helpText: "A note explaining why this rule exists — required by Xray, and this rule's identity in the canvas."
+
+        - key: "expires_at"
+          label: "Expires At"
+          fieldType: "text"
+          helpText: 'Optional expiry timestamp in RFC 3339 format, e.g. "2027-06-29T00:00:00Z". Must be in the future. Leave blank for a rule that never expires.'
+
+    - name: "Objective Filters"
+      icon: "filter"
+      description: "What to ignore — at least one is required"
+      fields:
+        - key: "vulnerability_ids"
+          label: "Vulnerability / Xray IDs"
+          fieldType: "tags"
+          helpText: 'Xray vulnerability identifiers (e.g. "XRAY-12345"), or the single value "any" to match every vulnerability.'
+
+        - key: "cve_ids"
+          label: "CVE IDs"
+          fieldType: "tags"
+          helpText: 'CVE identifiers (e.g. "CVE-2016-2168"), or the single value "any" to match every CVE.'
+
+        - key: "license_names"
+          label: "License Names"
+          fieldType: "tags"
+          helpText: 'License names (e.g. "GPL-3.0-only"), or the single value "any" to match every license.'
+
+    - name: "Scope Filters"
+      icon: "target"
+      description: "Narrow WHERE the objective filters above apply (optional)"
+      fields:
+        - key: "watch_names"
+          label: "Watch Names"
+          fieldType: "tags"
+          helpText: "Limit this rule to violations raised within these watches."
+
+        - key: "policy_names"
+          label: "Policy Names"
+          fieldType: "tags"
+          helpText: "Limit this rule to violations raised by these policies."
+
+        - key: "component_names"
+          label: "Component Names"
+          fieldType: "tags"
+          helpText: 'Package-URL-style component names, e.g. "npm://lodash" (version-agnostic). For a specific version, use the Advanced JSON below.'
+
+        - key: "git_repository_names"
+          label: "Git Repository Names"
+          fieldType: "tags"
+          helpText: "JFrog Advanced Security Git-repository scanning only."
+
+        - key: "docker_layer_shas"
+          label: "Docker Layer SHAs"
+          fieldType: "tags"
+          helpText: 'SHA256 digests of Docker layers to ignore, e.g. "sha256:...".'
+
+    - name: "Advanced (JSON)"
+      icon: "code"
+      description: "Escape valve for anything the fields above don't cover"
+      fields:
+        - key: "additional_filters_json"
+          label: "Additional Filters (JSON)"
+          fieldType: "textarea"
+          validation:
+            maxLength: 4000
+          helpText: >
+            Extra keys merged into `ignore_filters` — e.g. a component/artifact/
+            build WITH a version ({"components":[{"name":"npm://lodash","version":"4.17.0"}]}),
+            "operational_risk", "exposures", "projects", "artifacts", "builds", or
+            "release-bundles". The typed fields above win on a key collision (they
+            REPLACE the same key entirely, not merge per-element).

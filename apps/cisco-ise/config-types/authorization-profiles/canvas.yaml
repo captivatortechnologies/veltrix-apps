@@ -1,0 +1,118 @@
+# =============================================================================
+# Canvas Template — Cisco ISE Authorization Profiles
+#
+# Declares ONE authorization profile (the item). Users add as many as they
+# need. Field keys must match config-types/authorization-profiles/_shared.ts.
+# Applied via the ISE ERS API (POST/PUT/DELETE /ers/config/authorizationprofile).
+#
+# This config type manages only STANDARD ("SWITCH") authorization profiles —
+# the common case (VLAN assignment, DACL, ACL, RADIUS attributes). TrustSec and
+# TACACS+ profile types, IPv6 ACL variants, MAC Security policy, web
+# redirection (portal) and periodic re-authentication are intentionally out of
+# scope — see the app README for the full list.
+# =============================================================================
+
+id: "cisco-ise-authorization-profiles"
+name: "Authorization Profiles"
+toolType: "cisco-ise"
+entityType: "authorization-profiles"
+description: "Manage Cisco ISE standard (SWITCH) authorization profiles — access type, VLAN, DACL/ACL and RADIUS attributes — via the ERS API (/ers/config/authorizationprofile)"
+
+item:
+  label: "Authorization Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Profile"
+      icon: "shield"
+      description: "Profile identity and RADIUS access decision"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The authorization profile name in ISE. Used as the stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this profile grants — recorded on the profile in ISE."
+
+        - key: "access_type"
+          label: "Access Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "ACCESS_ACCEPT"
+          options:
+            - label: "Access-Accept"
+              value: "ACCESS_ACCEPT"
+            - label: "Access-Reject"
+              value: "ACCESS_REJECT"
+          helpText: "The RADIUS access decision this profile returns."
+
+    - name: "Network Access"
+      icon: "network"
+      description: "VLAN assignment and ACLs"
+      fields:
+        - key: "vlan_name"
+          label: "VLAN Name / ID"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "VLAN name or numeric id to assign via RADIUS Tunnel-Private-Group-ID. Leave blank for no VLAN assignment."
+
+        - key: "vlan_tag"
+          label: "VLAN Tag"
+          fieldType: "number"
+          required: false
+          defaultValue: 1
+          validation:
+            min: 0
+            max: 31
+          helpText: "RADIUS tunnel tag (RFC 2868), 0-31. Only meaningful when a VLAN Name/ID is set; ISE's own UI defaults this to 1."
+
+        - key: "dacl_name"
+          label: "Downloadable ACL (DACL) Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Name of an existing ISE Downloadable ACL to push (e.g. PERMIT_ALL_IPV4_TRAFFIC). Leave blank for none."
+
+        - key: "acl"
+          label: "Filter-Id ACL Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Name of a numbered/named ACL already configured on the network device, pushed via the RADIUS Filter-Id attribute. Independent of the DACL above."
+
+        - key: "airespace_acl"
+          label: "Airespace (WLC) ACL Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Name of an ACL configured on a Cisco WLC (Airespace), for wireless authorization. Leave blank for none."
+
+    - name: "Advanced Attributes"
+      icon: "code"
+      description: "Additional RADIUS/vendor attributes (JSON)"
+      fields:
+        - key: "advanced_attributes"
+          label: "Advanced Attributes (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            JSON array of additional RADIUS/vendor attributes:
+            [{"leftHandSideDictionaryAttribute":"Radius:Session-Timeout","rightHandSideAttributeValue":"3600"}].
+            The left-hand side is a "Dictionary:Attribute" pair (e.g. Radius:*,
+            Cisco:cisco-av-pair); the right-hand side is the literal value.

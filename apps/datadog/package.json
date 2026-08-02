@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-datadog",
   "private": true,
-  "version": "0.1.0",
-  "description": "Veltrix app: manage Datadog Security Monitoring detection rules as code via the Security Monitoring Rules API (/api/v2/security_monitoring/rules)",
+  "version": "0.2.0",
+  "description": "Veltrix app: manage Datadog as code — Security Monitoring rules + suppressions, Log Management pipelines, and Monitors — via the Datadog REST API",
   "scripts": {
     "typecheck": "tsc --noEmit"
   },

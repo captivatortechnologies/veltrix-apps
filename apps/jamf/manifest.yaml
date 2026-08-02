@@ -1,17 +1,18 @@
 id: jamf
 name: Jamf
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Jamf Pro (Apple MDM / endpoint management) configuration as code
-  through the modern Jamf Pro API. Covers Scripts (the shell/zsh payloads
-  policies run at a Before / After / At Reboot priority) — reconciled by
-  script name — with validation, drift detection and rollback handled by the
-  Security-as-Code pipeline. Authenticates as a Jamf Pro API-only account
-  (username/password exchanged for a short-lived Bearer token) against the
-  tenant's Jamf Pro server. Policies, Smart Groups and Configuration Profiles
-  live on the legacy Classic (XML) API and are intentionally out of scope for
-  this first release.
+  through both the modern Jamf Pro API and the legacy Classic (XML) API.
+  Covers Scripts and Categories (modern JSON API) and Smart Computer Groups
+  and Policies (Classic XML API — computer groups and policies are not yet
+  exposed for write on the modern API) — each reconciled by name, with
+  validation, drift detection and rollback handled by the Security-as-Code
+  pipeline. Authenticates as a Jamf Pro API-only account (username/password
+  exchanged for a short-lived Bearer token) against the tenant's Jamf Pro
+  server; the same Bearer token is reused for Classic API calls, with a
+  Basic-auth fallback. Configuration Profiles remain out of scope.
 category: Endpoint Management
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/jamf
@@ -37,6 +38,15 @@ permissions:
     - resource: scripts
       actions: [read, write, delete]
       description: Manage Jamf Pro scripts (shell/zsh payloads run by policies)
+    - resource: categories
+      actions: [read, write, delete]
+      description: Manage Jamf Pro categories (Self Service ordering, referenced by Scripts and Policies)
+    - resource: smart-computer-groups
+      actions: [read, write, delete]
+      description: Manage Jamf Pro smart computer groups (Classic API)
+    - resource: policies
+      actions: [read, write, delete]
+      description: Manage Jamf Pro policies — name/enabled/triggers/frequency, scope, scripts and packages (Classic API)
 
 pipeline:
   configurationTypes:
@@ -59,6 +69,74 @@ pipeline:
         healthCheck: config-types/scripts/healthCheck
         driftDetect: config-types/scripts/driftDetect
         getStatus: config-types/scripts/getStatus
+      targets:
+        componentTypes: [jamf-pro-server]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: categories
+      group: "Content"
+      name: Categories
+      description: >
+        Jamf Pro categories — name and Self Service ordering priority — via
+        the modern Jamf Pro API (GET/POST/PUT/DELETE /v1/categories).
+        Reconciled by category name; referenced by name from Scripts and
+        Policies.
+      canvasTemplate: config-types/categories/canvas.yaml
+      defaultConfig: config-types/categories/defaults.yaml
+      handlers:
+        validate: config-types/categories/validate
+        deploy: config-types/categories/deploy
+        rollback: config-types/categories/rollback
+        healthCheck: config-types/categories/healthCheck
+        driftDetect: config-types/categories/driftDetect
+        getStatus: config-types/categories/getStatus
+      targets:
+        componentTypes: [jamf-pro-server]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: smart-computer-groups
+      group: "Scoping"
+      name: Smart Computer Groups
+      description: >
+        Jamf Pro smart computer groups — name and criteria — via the legacy
+        Classic API (XML, /JSSResource/computergroups). Smart groups are not
+        yet exposed for write on the modern Jamf Pro API. Reconciled by group
+        name; referenced by name from a Policy's scope.
+      canvasTemplate: config-types/smart-computer-groups/canvas.yaml
+      defaultConfig: config-types/smart-computer-groups/defaults.yaml
+      handlers:
+        validate: config-types/smart-computer-groups/validate
+        deploy: config-types/smart-computer-groups/deploy
+        rollback: config-types/smart-computer-groups/rollback
+        healthCheck: config-types/smart-computer-groups/healthCheck
+        driftDetect: config-types/smart-computer-groups/driftDetect
+        getStatus: config-types/smart-computer-groups/getStatus
+      targets:
+        componentTypes: [jamf-pro-server]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: policies
+      group: "Policies"
+      name: Policies
+      description: >
+        Jamf Pro policies — name, enabled state, triggers, frequency,
+        computer-group scope, scripts and packages — via the legacy Classic
+        API (XML, /JSSResource/policies). Policies are not yet exposed for
+        write on the modern Jamf Pro API. Reconciled by policy name; every
+        other policy section (Self Service, maintenance, disk encryption, …)
+        is left untouched — see config-types/policies/validate.ts.
+      canvasTemplate: config-types/policies/canvas.yaml
+      defaultConfig: config-types/policies/defaults.yaml
+      handlers:
+        validate: config-types/policies/validate
+        deploy: config-types/policies/deploy
+        rollback: config-types/policies/rollback
+        healthCheck: config-types/policies/healthCheck
+        driftDetect: config-types/policies/driftDetect
+        getStatus: config-types/policies/getStatus
       targets:
         componentTypes: [jamf-pro-server]
         requiresCredential: true

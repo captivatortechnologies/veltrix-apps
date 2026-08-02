@@ -1,0 +1,78 @@
+# =============================================================================
+# Canvas Template — Check Point Network (Subnet) Objects
+#
+# Declares ONE Check Point network object — the item. Users add as many as
+# they need. A network's identity is its NAME; deploy lists the management
+# database (show-networks), matches on the name, and uses add-network
+# (create) / set-network (update) to reconcile each declared network.
+# Networks this app created but no longer declares are removed
+# (delete-network). Every deploy publishes the session's changes, or
+# discards them on any error.
+#
+# Field keys must match config-types/network-objects/validate.ts.
+# =============================================================================
+
+id: "checkpoint-network-objects"
+name: "Check Point Network Object Configuration"
+toolType: "checkpoint"
+entityType: "network-objects"
+description: "Define Check Point Management API network (subnet) objects (add-network / set-network) as code. Reconciled by object name; a session-wide publish commits every change together, or discards them all on any error."
+
+item:
+  label: "Network Object"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "globe"
+      description: "Object name and subnet"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The network object's name — its identity in the Check Point
+            management database. Must be unique within this canvas; deploy
+            matches live objects on it.
+
+        - key: "subnetCidr"
+          label: "IPv4 Subnet (CIDR)"
+          fieldType: "text"
+          required: false
+          helpText: "An IPv4 subnet in CIDR form, e.g. 10.0.100.0/24. At least one of IPv4 / IPv6 subnet is required."
+
+        - key: "subnet6Cidr"
+          label: "IPv6 Subnet (CIDR)"
+          fieldType: "text"
+          required: false
+          helpText: "An IPv6 subnet in CIDR form, e.g. 2001:db8::/32. At least one of IPv4 / IPv6 subnet is required."
+
+    - name: "Metadata"
+      icon: "tag"
+      description: "Optional comments, color and tags"
+      fields:
+        - key: "comments"
+          label: "Comments"
+          fieldType: "textarea"
+          required: false
+          helpText: "Optional description stored on the object."
+
+        - key: "color"
+          label: "Color"
+          fieldType: "text"
+          required: false
+          defaultValue: "black"
+          helpText: >
+            Object color shown in SmartConsole, e.g. black, red, blue, green,
+            orange — see the object's color picker in SmartConsole for the
+            full list. Passed through as-is; Check Point rejects an unknown
+            color name at deploy time.
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          required: false
+          helpText: "Optional tag names applied to the object (created automatically if they don't already exist)."

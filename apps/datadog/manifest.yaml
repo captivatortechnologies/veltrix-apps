@@ -1,11 +1,11 @@
 id: datadog
 name: Datadog
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
-  Manage Datadog Security Monitoring detection rules as code through the
-  Datadog Security Monitoring Rules API (/api/v2/security_monitoring/rules) —
-  with validation, drift detection and rollback handled by the Veltrix
+  Manage Datadog as code: Security Monitoring detection rules and suppression
+  rules, Log Management pipelines, and Monitors — through the Datadog REST
+  API — with validation, drift detection and rollback handled by the Veltrix
   Security-as-Code pipeline. Authenticates with a Datadog API key +
   Application key pair against the organization's Datadog site
   (datadoghq.com, datadoghq.eu, us3/us5.datadoghq.com, ap1/ap2.datadoghq.com,
@@ -32,6 +32,15 @@ permissions:
     - resource: security-monitoring-rules
       actions: [read, write, delete]
       description: Manage Datadog Security Monitoring detection rules via the Security Monitoring Rules API
+    - resource: security-monitoring-suppressions
+      actions: [read, write, delete]
+      description: Manage Datadog Security Monitoring suppression rules via the Suppression Rules API
+    - resource: log-pipelines
+      actions: [read, write, delete]
+      description: Manage Datadog Log Management pipelines via the Logs Pipelines API
+    - resource: monitors
+      actions: [read, write, delete]
+      description: Manage Datadog Monitors via the Monitors API
 
 pipeline:
   configurationTypes:
@@ -54,6 +63,79 @@ pipeline:
         healthCheck: config-types/security-monitoring-rules/healthCheck
         driftDetect: config-types/security-monitoring-rules/driftDetect
         getStatus: config-types/security-monitoring-rules/getStatus
+      targets:
+        componentTypes: [datadog-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: security-monitoring-suppressions
+      group: "Detection"
+      name: Security Monitoring Suppressions
+      description: >
+        Datadog Security Monitoring suppression rules — silence signals from
+        matching detection rules without disabling them — via
+        GET/POST/PATCH/DELETE
+        /api/v2/security_monitoring/configuration/suppressions (a JSON:API
+        resource). Reconciled by rule name; PATCH is a partial update, but
+        this app always sends every managed attribute so each deploy fully
+        replaces the declared state.
+      canvasTemplate: config-types/security-monitoring-suppressions/canvas.yaml
+      defaultConfig: config-types/security-monitoring-suppressions/defaults.yaml
+      handlers:
+        validate: config-types/security-monitoring-suppressions/validate
+        deploy: config-types/security-monitoring-suppressions/deploy
+        rollback: config-types/security-monitoring-suppressions/rollback
+        healthCheck: config-types/security-monitoring-suppressions/healthCheck
+        driftDetect: config-types/security-monitoring-suppressions/driftDetect
+        getStatus: config-types/security-monitoring-suppressions/getStatus
+      targets:
+        componentTypes: [datadog-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: log-pipelines
+      group: "Log Management"
+      name: Log Pipelines
+      description: >
+        Datadog Log Management pipelines — an ordered set of processors
+        (grok parsers, remappers, enrichers, …) applied to matching logs —
+        via GET/POST/PUT/DELETE /api/v1/logs/config/pipelines[/{pipeline_id}].
+        Reconciled by pipeline name. Datadog-managed integration pipelines
+        (is_read_only) are protected and never modified. Does NOT manage
+        pipeline order (a separate GET/PUT
+        /api/v1/logs/config/pipeline-order singleton) — out of scope for this
+        release; new pipelines are appended by Datadog and may need manual
+        reordering.
+      canvasTemplate: config-types/log-pipelines/canvas.yaml
+      defaultConfig: config-types/log-pipelines/defaults.yaml
+      handlers:
+        validate: config-types/log-pipelines/validate
+        deploy: config-types/log-pipelines/deploy
+        rollback: config-types/log-pipelines/rollback
+        healthCheck: config-types/log-pipelines/healthCheck
+        driftDetect: config-types/log-pipelines/driftDetect
+        getStatus: config-types/log-pipelines/getStatus
+      targets:
+        componentTypes: [datadog-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: monitors
+      group: "Monitors"
+      name: Monitors
+      description: >
+        Datadog Monitors — metric/log/APM/… alerting rules — via
+        GET/POST/PUT/DELETE /api/v1/monitor[/{monitor_id}]. Reconciled by
+        monitor name.
+      canvasTemplate: config-types/monitors/canvas.yaml
+      defaultConfig: config-types/monitors/defaults.yaml
+      handlers:
+        validate: config-types/monitors/validate
+        deploy: config-types/monitors/deploy
+        rollback: config-types/monitors/rollback
+        healthCheck: config-types/monitors/healthCheck
+        driftDetect: config-types/monitors/driftDetect
+        getStatus: config-types/monitors/getStatus
       targets:
         componentTypes: [datadog-org]
         requiresCredential: true

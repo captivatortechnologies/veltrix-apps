@@ -1,0 +1,5 @@
+# Defaults for a new Worklet item. Intentionally minimal: the canvas fields
+# already declare their own defaultValue (worklet_type: custom, os_family:
+# Windows, schedule_time: "00:00", auto_reboot/notify_reboot_user: true,
+# etc.) — anything set here would be a FLAT map keyed by the canvas field keys
+# (see config-types/worklets/canvas.yaml), applied when a user adds a new item.

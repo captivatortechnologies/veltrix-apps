@@ -1,0 +1,86 @@
+# =============================================================================
+# Canvas Template — Check Point TCP/UDP Service Objects
+#
+# Declares ONE Check Point service object — the item. Users add as many as
+# they need. A service's identity is its NAME, matched WITHIN the declared
+# protocol's namespace (TCP and UDP are entirely separate command families —
+# add-service-tcp / show-services-tcp vs add-service-udp / show-services-udp).
+# Missing services are created, existing ones are updated to the declared
+# spec, and services this app created but no longer declares are removed.
+#
+# Field keys must match config-types/service-objects/validate.ts.
+# =============================================================================
+
+id: "checkpoint-service-objects"
+name: "Check Point Service Object Configuration"
+toolType: "checkpoint"
+entityType: "service-objects"
+description: "Define Check Point Management API TCP/UDP service objects (add-service-tcp / add-service-udp and their set-/delete- counterparts) as code. Reconciled by object name within the declared protocol; a session-wide publish commits every change together, or discards them all on any error."
+
+item:
+  label: "Service Object"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "plug"
+      description: "Object name, protocol and port"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The service object's name — its identity in the Check Point
+            management database, matched within the declared protocol's
+            namespace. Must be unique within this canvas.
+
+        - key: "protocol"
+          label: "Protocol"
+          fieldType: "select"
+          required: true
+          defaultValue: "tcp"
+          options:
+            - { label: "TCP", value: "tcp" }
+            - { label: "UDP", value: "udp" }
+          helpText: "TCP and UDP services are managed through separate Management API commands."
+
+        - key: "port"
+          label: "Port"
+          fieldType: "text"
+          required: true
+          helpText: "A port (443), a range (8000-8010), or a comma list (80,443,8080-8090)."
+
+        - key: "sourcePort"
+          label: "Source Port"
+          fieldType: "text"
+          required: false
+          helpText: "Optional — restrict the connection's source port using the same format as Port."
+
+    - name: "Metadata"
+      icon: "tag"
+      description: "Optional comments, color and tags"
+      fields:
+        - key: "comments"
+          label: "Comments"
+          fieldType: "textarea"
+          required: false
+          helpText: "Optional description stored on the object."
+
+        - key: "color"
+          label: "Color"
+          fieldType: "text"
+          required: false
+          defaultValue: "black"
+          helpText: >
+            Object color shown in SmartConsole — see the object's color
+            picker in SmartConsole for the full list. Passed through as-is;
+            Check Point rejects an unknown color name at deploy time.
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          required: false
+          helpText: "Optional tag names applied to the object (created automatically if they don't already exist)."

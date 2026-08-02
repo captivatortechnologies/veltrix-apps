@@ -1,5 +1,12 @@
 import type { HealthCheckContext, HealthCheckResult, HealthCheck } from '@veltrixsecops/app-sdk'
-import { ersBase, buildEndpointIdentityGroupsClient, readIseSettings, hasUsableCredential, MISSING_CREDENTIAL_MESSAGE } from '../../lib/iseApi'
+import {
+  ersBase,
+  buildErsResourceClient,
+  readIseSettings,
+  hasUsableCredential,
+  MISSING_CREDENTIAL_MESSAGE,
+  type EndPointGroup,
+} from '../../lib/iseApi'
 
 /**
  * Health for this config type = ERS answers on the ISE PAN/admin node with the
@@ -17,7 +24,7 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
 
   const settings = readIseSettings(ctx.settings)
   const base = ersBase(component, connectivity, connectivityProvider)
-  const client = buildEndpointIdentityGroupsClient(base, credential, settings)
+  const client = buildErsResourceClient<EndPointGroup>(base, 'endpointgroup', 'EndPointGroup', credential, settings)
 
   const started = Date.now()
   try {

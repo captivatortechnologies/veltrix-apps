@@ -18,19 +18,22 @@
 // Dashboard API v1
 // (https://developer.cisco.com/meraki/api-v1/update-network-appliance-firewall-l-3-firewall-rules/).
 // Verify against a live Meraki organization.
+//
+// Network-id validation and order/key-sensitive JSON comparison are shared with
+// every other Meraki config type (l7-firewall-rules, group-policies,
+// appliance-vlans) — see lib/merakiCommon.ts. Re-exported here so every
+// existing local import stays unchanged.
 // =============================================================================
 
 import type { CanvasSnapshot } from '@veltrixsecops/app-sdk'
+import { NETWORK_ID_RE, canonicalJson, looksLikeKnownNetworkId, networkIdKey, readBool } from '../../lib/merakiCommon'
+
+export { NETWORK_ID_RE, canonicalJson, looksLikeKnownNetworkId, networkIdKey, readBool }
 
 /** Rule field values accepted by `l3FirewallRules.policy`. */
 export const POLICIES = ['allow', 'deny'] as const
 /** Rule field values accepted by `l3FirewallRules.protocol`. */
 export const PROTOCOLS = ['any', 'icmp', 'icmp6', 'tcp', 'udp'] as const
-
-/** Meraki network ids are opaque tokens (letters, digits, underscore, hyphen). */
-export const NETWORK_ID_RE = /^[A-Za-z0-9_-]+$/
-/** Every network id observed in the wild starts with one of these prefixes. */
-const KNOWN_ID_PREFIX_RE = /^(L|N)_/
 
 /** One rule in the ordered ruleset (the shape `l3FirewallRules.rules[]` uses both ways). */
 export interface MerakiL3FirewallRule {
@@ -110,42 +113,6 @@ export function buildRulesBody(
   syslogDefaultRule?: boolean,
 ): { rules: MerakiL3FirewallRule[]; syslogDefaultRule?: boolean } {
   return syslogDefaultRule === undefined ? { rules } : { rules, syslogDefaultRule }
-}
-
-/** The network's logical identity: its `network_id`, trimmed. */
-export function networkIdKey(id: string): string {
-  return id.trim()
-}
-
-/** Parse a checkbox/boolean-ish canvas value, falling back when absent. */
-export function readBool(value: unknown, fallback: boolean): boolean {
-  if (typeof value === 'boolean') return value
-  if (value === 'true') return true
-  if (value === 'false') return false
-  return fallback
-}
-
-/** Stable, key-sorted JSON of a value — for ORDER-SENSITIVE drift comparison (arrays keep order). */
-export function canonicalJson(value: unknown): string {
-  const seen = new WeakSet<object>()
-  const sort = (v: unknown): unknown => {
-    if (v === null || typeof v !== 'object') return v
-    if (seen.has(v as object)) return null
-    seen.add(v as object)
-    if (Array.isArray(v)) return v.map(sort)
-    return Object.keys(v as Record<string, unknown>)
-      .sort()
-      .reduce<Record<string, unknown>>((acc, k) => {
-        acc[k] = sort((v as Record<string, unknown>)[k])
-        return acc
-      }, {})
-  }
-  return JSON.stringify(sort(value))
-}
-
-/** Does this network id look like a known Meraki id shape ("L_..." / "N_...")? Advisory only. */
-export function looksLikeKnownNetworkId(id: string): boolean {
-  return KNOWN_ID_PREFIX_RE.test(id)
 }
 
 // --- Spec extraction shared by deploy / rollback / healthCheck / drift -------

@@ -1,7 +1,7 @@
 import React from 'react'
 import { Badge, Card, CardBody, Tabs } from '@veltrixsecops/app-sdk/ui'
 
-const MANAGES = ['Network host objects']
+const MANAGES = ['Network hosts', 'Network objects', 'Service objects', 'Access rules']
 
 /**
  * Step-by-step connection guide, rendered with the platform design-system

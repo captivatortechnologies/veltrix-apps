@@ -1,29 +1,15 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import validate from '../validate'
-import {
-  extractPolicySpecs,
-  dayNamesToBitmask,
-  buildPatchConfiguration,
-  buildConfiguration,
-  buildPolicyBody,
-  parseDeviceFilters,
-  parseConfigurationJson,
-  findPolicyByName,
-  policyKey,
-  priorFieldsOf,
-  readBool,
-  strList,
-  intList,
-  type AutomoxPolicy,
-  type PolicySpec,
-} from '../_shared'
+import { extractPolicySpecs, buildPatchConfiguration, buildPolicyBody, type PolicySpec } from '../_shared'
+import { dayNamesToBitmask, findPolicyByName, policyKey, priorFieldsOf, parseDeviceFilters, type AutomoxPolicy } from '../../lib/automoxPolicies'
+import { readBool, strList, intList } from '../../lib/canvasValues'
 import type { CanvasSnapshot, PipelineContext } from '@veltrixsecops/app-sdk'
 
 /**
  * The deploy/rollback/health/drift handlers talk to the Automox Console API
  * via fetch, which is impractical to mock here. Tests focus on validate.ts
- * and the pure _shared helpers (network-free).
+ * and the pure _shared / lib helpers (network-free).
  */
 function canvasOf(list: Array<Record<string, unknown>>): CanvasSnapshot {
   const items = list.map((fields, i) => ({ id: `i${i}`, name: String(fields.name ?? i), fields }))
@@ -36,7 +22,6 @@ function ctxOf(list: Array<Record<string, unknown>>): PipelineContext {
 
 const goodPatch = {
   name: 'Patch All - Windows',
-  policy_type_name: 'patch',
   schedule_days: ['monday', 'wednesday', 'friday'],
   schedule_time: '02:00',
   server_groups: ['1001', '1002'],
@@ -59,12 +44,6 @@ test('validate accepts a well-formed Patch All policy', async () => {
   const res = await validate(ctxOf([goodPatch]))
   assert.equal(res.valid, true)
   assert.equal(res.errors.length, 0)
-})
-
-test('validate rejects an unsupported policy type', async () => {
-  const res = await validate(ctxOf([{ ...goodPatch, policy_type_name: 'bogus' }]))
-  assert.equal(res.valid, false)
-  assert.ok(res.errors.some((e) => e.code === 'INVALID_POLICY_TYPE'))
 })
 
 test('validate rejects a malformed schedule time', async () => {
@@ -112,18 +91,6 @@ test('validate rejects malformed device_filters_json', async () => {
   assert.ok(res.errors.some((e) => e.code === 'INVALID_DEVICE_FILTERS'))
 })
 
-test('validate warns on empty configuration_json for a required_software policy', async () => {
-  const res = await validate(ctxOf([{ name: 'Install Chrome', policy_type_name: 'required_software' }]))
-  assert.equal(res.valid, true)
-  assert.ok(res.warnings.some((w) => w.code === 'EMPTY_CONFIGURATION'))
-})
-
-test('validate rejects malformed configuration_json for a custom policy', async () => {
-  const res = await validate(ctxOf([{ name: 'Worklet', policy_type_name: 'custom', configuration_json: '[1,2]' }]))
-  assert.equal(res.valid, false)
-  assert.ok(res.errors.some((e) => e.code === 'INVALID_CONFIGURATION'))
-})
-
 test('validate rejects a duplicate name (case-insensitive)', async () => {
   const res = await validate(ctxOf([goodPatch, { ...goodPatch, name: 'patch all - windows' }]))
   assert.equal(res.valid, false)
@@ -136,7 +103,7 @@ test('validate requires scheduled_timezone when use_scheduled_timezone is set', 
   assert.ok(res.errors.some((e) => e.field.includes('scheduled_timezone')))
 })
 
-// --- _shared helpers ------------------------------------------------------------
+// --- lib/automoxPolicies + lib/canvasValues -----------------------------------
 
 test('dayNamesToBitmask matches Automox verified bit values', () => {
   assert.equal(dayNamesToBitmask(['sunday']), 128)
@@ -150,7 +117,6 @@ test('dayNamesToBitmask matches Automox verified bit values', () => {
 test('extractPolicySpecs trims fields, defaults schedule_time and reads lists', () => {
   const spec = specOf({ name: '  Patch  ', schedule_time: '', server_groups: '1,2, 3' })
   assert.equal(spec.name, 'Patch')
-  assert.equal(spec.policyTypeName, 'patch')
   assert.equal(spec.scheduleTime, '00:00')
   assert.deepEqual(spec.serverGroups, [1, 2, 3])
 })
@@ -187,24 +153,13 @@ test('buildPatchConfiguration requires filters for a Filter/Include rule', () =>
   assert.ok(built.error)
 })
 
-test('buildConfiguration passes through parsed JSON for required_software', () => {
-  const built = buildConfiguration(
-    specOf({
-      name: 'Install Chrome',
-      policy_type_name: 'required_software',
-      configuration_json: JSON.stringify({ os_family: 'Windows', package_name: 'Chrome' }),
-    }),
-  )
-  assert.equal(built.error, undefined)
-  assert.deepEqual(built.configuration, { os_family: 'Windows', package_name: 'Chrome' })
-})
-
 test('buildPolicyBody auto-fills weeks/months to "all" when scheduled and left blank', () => {
   const built = buildPolicyBody(specOf(goodPatch), 9999)
   assert.equal(built.error, undefined)
   assert.equal(built.body.schedule_weeks_of_month, 62)
   assert.equal(built.body.schedule_months, 8190)
   assert.equal(built.body.organization_id, 9999)
+  assert.equal(built.body.policy_type_name, 'patch')
 })
 
 test('buildPolicyBody leaves weeks/months at 0 when unscheduled', () => {
@@ -232,20 +187,17 @@ test('parseDeviceFilters validates field/op/value shape', () => {
   assert.equal(ok.filters[0].field, 'tag')
 })
 
-test('parseConfigurationJson requires a JSON object', () => {
-  assert.deepEqual(parseConfigurationJson('').value, {})
-  assert.ok(parseConfigurationJson('[1,2]').error)
-  assert.ok(parseConfigurationJson('not json').error)
-  assert.deepEqual(parseConfigurationJson('{"a":1}').value, { a: 1 })
-})
-
-test('findPolicyByName matches case-insensitively', () => {
+test('findPolicyByName matches case-insensitively and honors expectedType', () => {
   const policies: AutomoxPolicy[] = [
-    { id: 1, name: 'Patch All - Windows' },
-    { id: 2, name: 'Install Chrome' },
+    { id: 1, name: 'Patch All - Windows', policy_type_name: 'patch' },
+    { id: 2, name: 'Install Chrome', policy_type_name: 'required_software' },
   ]
   assert.equal(findPolicyByName(policies, 'patch all - windows')?.id, 1)
   assert.equal(findPolicyByName(policies, 'missing'), null)
+  // A same-named policy of a DIFFERENT type must not match when expectedType is given —
+  // this is what keeps `policies` (patch) and `worklets` from colliding.
+  assert.equal(findPolicyByName(policies, 'Install Chrome', 'patch'), null)
+  assert.equal(findPolicyByName(policies, 'Install Chrome', 'required_software')?.id, 2)
 })
 
 test('policyKey trims and lowercases', () => {

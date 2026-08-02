@@ -1,14 +1,14 @@
 # =============================================================================
-# Canvas Template — Automox Policies
+# Canvas Template — Automox Policies (patch)
 #
-# Declares ONE Automox Policy (the item). ONE item = ONE Policy, matched on its
-# NAME (the logical identity used for upsert and drift). Field keys must match
-# config-types/policies/_shared.ts (extractPolicySpecs).
+# Declares ONE Automox patch Policy (the item). ONE item = ONE Policy, matched
+# on its NAME (the logical identity used for upsert and drift). Field keys
+# must match config-types/policies/_shared.ts (extractPolicySpecs).
 #
-# A Policy is one of three types (policy_type_name): patch, required_software
-# or custom (Worklet). The Patch shape is modeled in full below (the common
-# case). Required Software / Custom policies take a raw Configuration (JSON)
-# object — FLAGGED, their schemas are out of scope for v0.1.0 (see README.md).
+# This config type always writes `policy_type_name: "patch"`. Required
+# Software and Custom (Worklet) policies are a SEPARATE config type
+# (config-types/worklets) — see its canvas.yaml — so the two never race to
+# reconcile the same underlying /policies object by name.
 #
 # Applied over the Automox Console API, org-scoped via the `o` query parameter:
 #   GET/POST   /policies?o=<organizationId>
@@ -20,7 +20,7 @@ id: "automox-policies"
 name: "Policy"
 toolType: "automox"
 entityType: "policies"
-description: "Define Automox Policies as code — patch, required software or custom (Worklet) — through the Automox Console API (/policies)."
+description: "Define Automox patch Policies as code through the Automox Console API (/policies)."
 
 item:
   label: "Policy"
@@ -31,7 +31,7 @@ item:
   groups:
     - name: "Policy"
       icon: "shield"
-      description: "Identity and policy type"
+      description: "Identity"
       fields:
         - key: "name"
           label: "Name"
@@ -41,17 +41,6 @@ item:
             maxLength: 255
           helpText: "The Policy's display name. Must be unique within the canvas — this is the stable identity used to find, update and drift-check the policy on each deploy."
 
-        - key: "policy_type_name"
-          label: "Policy Type"
-          fieldType: "select"
-          required: true
-          defaultValue: "patch"
-          options:
-            - { label: "Patch", value: "patch" }
-            - { label: "Required Software", value: "required_software" }
-            - { label: "Custom (Worklet)", value: "custom" }
-          helpText: "Patch policies are modeled in full below. Required Software and Custom (Worklet) policies take a raw Configuration (JSON) object — see the Setup Guide."
-
         - key: "notes"
           label: "Notes"
           fieldType: "textarea"
@@ -60,7 +49,7 @@ item:
         - key: "server_groups"
           label: "Server Group IDs"
           fieldType: "tags"
-          helpText: "Automox Server Group ids this policy applies to (numeric ids from the Automox Console). Leave empty to leave the policy unassigned to any group."
+          helpText: "Automox Server Group ids this policy applies to (numeric ids — see the Server Groups config type, or the Automox Console). Leave empty to leave the policy unassigned to any group."
 
     - name: "Schedule"
       icon: "calendar"
@@ -113,15 +102,12 @@ item:
 
     - name: "Patch Policy"
       icon: "shield-check"
-      description: "Patch-type configuration (policy_type_name = patch)"
+      description: "What the policy patches and how"
       fields:
         - key: "patch_rule"
           label: "Patch Rule"
           fieldType: "select"
           defaultValue: "all"
-          visibleWhen:
-            field: "policy_type_name"
-            equals: "patch"
           options:
             - { label: "Patch All", value: "all" }
             - { label: "Patch All Except / Patch Only / Patch by Severity (Filter)", value: "filter" }
@@ -170,85 +156,48 @@ item:
           label: "Auto Patch"
           fieldType: "checkbox"
           defaultValue: true
-          visibleWhen:
-            field: "policy_type_name"
-            equals: "patch"
           helpText: "Automatically execute the policy on its schedule."
 
         - key: "auto_reboot"
           label: "Auto Reboot"
           fieldType: "checkbox"
           defaultValue: true
-          visibleWhen:
-            field: "policy_type_name"
-            equals: "patch"
           helpText: "Automatically reboot devices when a patch requires it."
 
         - key: "notify_user"
           label: "Notify User"
           fieldType: "checkbox"
           defaultValue: true
-          visibleWhen:
-            field: "policy_type_name"
-            equals: "patch"
           helpText: "Show the end user a notification before patching."
 
         - key: "notify_reboot_user"
           label: "Notify User Before Reboot"
           fieldType: "checkbox"
           defaultValue: true
-          visibleWhen:
-            field: "policy_type_name"
-            equals: "patch"
           helpText: "Show a notification 15 minutes before a reboot that follows patching."
 
         - key: "include_optional"
           label: "Include Optional Patches"
           fieldType: "checkbox"
           defaultValue: false
-          visibleWhen:
-            field: "policy_type_name"
-            equals: "patch"
           helpText: "Include optional Windows patches in this policy."
 
         - key: "missed_patch_window"
           label: "Missed Patch Window"
           fieldType: "checkbox"
           defaultValue: false
-          visibleWhen:
-            field: "policy_type_name"
-            equals: "patch"
           helpText: "Run the policy as soon as possible if a device missed its scheduled window."
 
     - name: "Device Targeting"
       icon: "filter"
-      description: "Optional device-level targeting (patch policies only)"
+      description: "Optional device-level targeting"
       fields:
         - key: "device_filters_json"
           label: "Device Filters (JSON)"
           fieldType: "textarea"
-          visibleWhen:
-            field: "policy_type_name"
-            equals: "patch"
           helpText: >-
             Optional JSON array of device targeting clauses, e.g.
             [{"field":"tag","op":"in","value":["Windows","Win10"]}]. field: tag |
             hostname | ip_addr | os_family | os_version_id | organizational_unit.
             op: in | not_in | like_any | not_like_any. Leave empty for no
             device-level targeting.
-
-    - name: "Other Policy Types (Advanced)"
-      icon: "code"
-      description: "Raw configuration for Required Software / Custom (Worklet) policies"
-      fields:
-        - key: "configuration_json"
-          label: "Configuration (JSON)"
-          fieldType: "textarea"
-          visibleWhen:
-            field: "policy_type_name"
-            in: ["required_software", "custom"]
-          helpText: >-
-            Required Software example: {"os_family":"Windows","package_name":"NotePad++",
-            "package_version":"7.8.4","installation_code":".\\npp.7.8.4.Installer.x64.exe /S"}.
-            Custom (Worklet) policies require a Worklet-specific shape not modeled by this
-            app yet — author those fields directly in this JSON object. See the Setup Guide.

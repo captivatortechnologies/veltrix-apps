@@ -1,0 +1,161 @@
+# =============================================================================
+# Canvas Template — Cisco Meraki Appliance VLANs
+#
+# A VLAN's id is CALLER-CHOSEN (1-4094), not server-assigned, so this is an
+# upsert-by-id resource (list, find by id, update or create) — the same shape
+# Cribl's Sources/Destinations use. Only the well-known scalar fields are
+# typed; the long tail (fixedIpAssignments, reservedIpRanges, dhcpOptions,
+# mandatoryDhcp, ipv6, sgt, vrf, uplinks, templateVlanType, cidr, mask) is
+# authored as one JSON blob (`advanced`). Field keys must match
+# config-types/appliance-vlans/validate.ts. Applied via the Meraki Dashboard
+# API v1 (POST/PUT/DELETE /networks/{networkId}/appliance/vlans[/{vlanId}]).
+#
+# IMPORTANT: VLANs must be ENABLED on the network before any of this works —
+# see README "Known limitations". This app does not flip that switch for you.
+# =============================================================================
+
+id: "cisco-meraki-appliance-vlans"
+name: "Appliance VLAN"
+toolType: "cisco-meraki"
+entityType: "appliance-vlans"
+description: "Manage Cisco Meraki MX appliance VLANs as code — id, name, addressing and DHCP settings, reconciled by VLAN id per network via the Meraki Dashboard API. Requires VLANs to already be enabled on the network."
+
+item:
+  label: "VLAN"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Network"
+      icon: "network"
+      description: "The Meraki network this VLAN belongs to"
+      fields:
+        - key: "network_id"
+          label: "Meraki Network ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_-]+$"
+            maxLength: 64
+          helpText: "The Meraki Dashboard network id (e.g. L_646829496481099008 or N_646829496481099008). VLANs must already be enabled on this network (Security & SD-WAN > Addressing & VLANs) — this app does not enable them for you."
+
+    - name: "VLAN"
+      icon: "hash"
+      description: "VLAN id, name and the group policy applied to it"
+      fields:
+        - key: "id"
+          label: "VLAN ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[0-9]{1,4}$"
+            maxLength: 4
+          helpText: "The VLAN id — an integer from 1 to 4094, chosen by you (Meraki does not auto-assign it). This is the stable identity used to upsert and detect drift."
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The VLAN's display name."
+
+        - key: "group_policy_id"
+          label: "Group Policy ID"
+          fieldType: "text"
+          required: false
+          helpText: "Optional numeric groupPolicyId to apply to clients on this VLAN (see the Group Policies config type)."
+
+    - name: "Addressing"
+      icon: "globe"
+      description: "Subnet and appliance IP"
+      fields:
+        - key: "subnet"
+          label: "Subnet"
+          fieldType: "text"
+          required: false
+          helpText: "The VLAN's subnet in CIDR notation, e.g. 192.168.1.0/24."
+
+        - key: "appliance_ip"
+          label: "Appliance IP"
+          fieldType: "text"
+          required: false
+          helpText: "The MX's IP address on this VLAN, e.g. 192.168.1.1."
+
+        - key: "vpn_nat_subnet"
+          label: "VPN NAT Subnet"
+          fieldType: "text"
+          required: false
+          helpText: "Optional NAT translation subnet used for this VLAN over site-to-site VPN."
+
+    - name: "DHCP"
+      icon: "server"
+      description: "DHCP handling for clients on this VLAN"
+      fields:
+        - key: "dhcp_handling"
+          label: "DHCP Handling"
+          fieldType: "select"
+          required: false
+          defaultValue: "Run a DHCP server"
+          options:
+            - { label: "Run a DHCP server", value: "Run a DHCP server" }
+            - { label: "Relay DHCP to another server", value: "Relay DHCP to another server" }
+            - { label: "Do not respond to DHCP requests", value: "Do not respond to DHCP requests" }
+          helpText: "How the MX handles DHCP for this VLAN."
+
+        - key: "dhcp_lease_time"
+          label: "DHCP Lease Time"
+          fieldType: "select"
+          required: false
+          defaultValue: "1 day"
+          options:
+            - { label: "30 minutes", value: "30 minutes" }
+            - { label: "1 hour", value: "1 hour" }
+            - { label: "4 hours", value: "4 hours" }
+            - { label: "12 hours", value: "12 hours" }
+            - { label: "1 day", value: "1 day" }
+            - { label: "1 week", value: "1 week" }
+          helpText: 'Only meaningful when DHCP Handling is "Run a DHCP server".'
+
+        - key: "dns_nameservers"
+          label: "DNS Nameservers"
+          fieldType: "textarea"
+          required: false
+          helpText: 'Either a keyword ("google_dns", "opendns", "upstream_dns") or a newline-separated list of nameserver IPs. Exact accepted keyword set is not independently verified by this app — see README.'
+
+        - key: "dhcp_relay_server_ips"
+          label: "DHCP Relay Server IPs"
+          fieldType: "tags"
+          required: false
+          helpText: 'Only used when DHCP Handling is "Relay DHCP to another server" — the upstream DHCP server IP(s).'
+
+        - key: "dhcp_boot_options_enabled"
+          label: "Enable DHCP Boot Options"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Enable PXE-boot options (next server + boot filename) for this VLAN's DHCP."
+
+        - key: "dhcp_boot_next_server"
+          label: "DHCP Boot Next Server"
+          fieldType: "text"
+          required: false
+          helpText: "PXE boot next-server IP. Only used when Enable DHCP Boot Options is on."
+
+        - key: "dhcp_boot_filename"
+          label: "DHCP Boot Filename"
+          fieldType: "text"
+          required: false
+          helpText: "PXE boot filename. Only used when Enable DHCP Boot Options is on."
+
+    - name: "Advanced"
+      icon: "code"
+      description: "Everything else, as JSON — merged in; the typed fields above always win on a key collision"
+      fields:
+        - key: "advanced"
+          label: "Advanced Settings (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 50000
+          helpText: "Optional JSON object for anything not covered above: fixedIpAssignments, reservedIpRanges, dhcpOptions, mandatoryDhcp, ipv6, sgt, vrf, uplinks, templateVlanType, cidr, mask. Leave blank ({}) if not needed."

@@ -46,7 +46,7 @@ export default function OverviewPage() {
       <CardBody>
         <p>
           Manages JFrog Xray (software composition analysis / supply-chain security) configuration as
-          code through the Xray REST API v2. Create a configuration in the Configuration Canvas and
+          code through the Xray REST API. Create a configuration in the Configuration Canvas and
           deploy it through the pipeline — validate, deploy, health check, drift detection and rollback
           are all handled per configuration type. The app authenticates with a JFrog Platform Access
           Token (Bearer) against your JFrog Platform host.

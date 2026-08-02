@@ -1,0 +1,62 @@
+# =============================================================================
+# Canvas Template — Cisco Meraki Group Policies
+#
+# A group policy is a PER-OBJECT resource, unlike the firewall-rules config
+# types: Meraki assigns each policy a server-side `groupPolicyId`, and a
+# network can hold many. Reconciled by NAME within a network (list, match by
+# name, update or create) — see config-types/group-policies/_shared.ts.
+#
+# The schema (scheduling, bandwidth, firewallAndTrafficShaping, content
+# filtering, splash auth, VLAN tagging, Bonjour forwarding) is large and
+# deeply nested, so — following Cribl's Sources/Destinations precedent —
+# `name` is a typed field and everything else is authored as one JSON blob
+# (`policy`), sent as `{ name, ...policy }`. Field keys must match
+# config-types/group-policies/validate.ts. Applied via the Meraki Dashboard
+# API v1 (POST/PUT/DELETE /networks/{networkId}/groupPolicies[/{groupPolicyId}]).
+# =============================================================================
+
+id: "cisco-meraki-group-policies"
+name: "Group Policy"
+toolType: "cisco-meraki"
+entityType: "group-policies"
+description: "Manage Cisco Meraki group policies as code — bandwidth, firewall/traffic-shaping, content filtering, splash auth, VLAN tagging and Bonjour forwarding — reconciled by name per network via the Meraki Dashboard API."
+
+item:
+  label: "Group Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Network"
+      icon: "network"
+      description: "The Meraki network this group policy belongs to"
+      fields:
+        - key: "network_id"
+          label: "Meraki Network ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_-]+$"
+            maxLength: 64
+          helpText: "The Meraki Dashboard network id (e.g. L_646829496481099008 or N_646829496481099008) this group policy belongs to."
+
+    - name: "Group Policy"
+      icon: "shield"
+      description: "Identity and the full policy body"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The group policy's name — its logical identity within the network. Meraki assigns the numeric groupPolicyId on create."
+
+        - key: "policy"
+          label: "Policy (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 200000
+          helpText: 'The rest of the group policy as a JSON object — any of scheduling, bandwidth, firewallAndTrafficShaping (incl. l3FirewallRules / l7FirewallRules / trafficShapingRules), contentFiltering, splashAuthSettings, vlanTagging, bonjourForwarding. Leave blank ({}) for a minimal named-only policy. "name" and "groupPolicyId" here are ignored — identity comes from the fields above.'

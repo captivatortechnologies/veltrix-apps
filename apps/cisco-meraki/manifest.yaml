@@ -1,27 +1,32 @@
 # =============================================================================
 # Cisco Meraki (Veltrix app) — Manifest
 #
-# v0.1.0 ships the first NETWORK configuration type: MX L3 (outbound) Firewall
-# Rules. Meraki stores the whole ruleset for a network as ONE ordered list (the
-# platform never exposes create/delete of an individual rule — only a full
-# whole-list replace), so this config type is modeled as an ordered SINGLETON
-# per network, the same shape as Cribl's Routes config type: one canvas item =
-# one network's ruleset, identified by its `network_id`.
+# v0.1.0 shipped the first NETWORK configuration type: MX L3 (outbound)
+# Firewall Rules — an ordered SINGLETON per network (the same shape as Cribl's
+# Routes config type). v0.2.0 adds three more:
+#   - l7-firewall-rules — the same ordered-singleton shape as L3.
+#   - group-policies    — a PER-OBJECT resource, reconciled by name per
+#                          network (Meraki assigns the groupPolicyId).
+#   - appliance-vlans   — a PER-OBJECT resource, reconciled by the caller-
+#                          chosen VLAN id per network (Meraki assigns nothing).
+# All four share lib/merakiApi.ts (Bearer auth + 429/Retry-After backoff) and
+# lib/merakiCommon.ts (network-id validation, order/key-sensitive JSON diff).
 # =============================================================================
 
 id: cisco-meraki
 name: Cisco Meraki
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Cisco Meraki Dashboard network security configuration as code through
   the Meraki Dashboard API v1. Ships MX L3 (outbound) Firewall Rules
-  (l3-firewall-rules) — the ordered ruleset evaluated top-to-bottom before the
-  network's implicit final "Default rule" (allow any/any) — applied as a
-  whole-list replace via PUT /networks/{networkId}/appliance/firewall/l3FirewallRules,
-  with validation, drift detection and rollback handled by the
-  Security-as-Code pipeline. Authenticates with a Meraki Dashboard API key
-  (Authorization: Bearer) against the fixed api.meraki.com base.
+  (l3-firewall-rules) and MX L7 (application-layer) Firewall Rules
+  (l7-firewall-rules) — both ordered rulesets applied as a whole-list replace —
+  plus Group Policies (group-policies) and Appliance VLANs (appliance-vlans),
+  both per-object resources reconciled by name / VLAN id per network, with
+  validation, drift detection and rollback handled by the Security-as-Code
+  pipeline. Authenticates with a Meraki Dashboard API key (Authorization:
+  Bearer) against the fixed api.meraki.com base.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cisco-meraki
@@ -46,6 +51,15 @@ permissions:
     - resource: l3-firewall-rules
       actions: [read, write, delete]
       description: Manage Meraki MX L3 (outbound) firewall rules per network
+    - resource: l7-firewall-rules
+      actions: [read, write, delete]
+      description: Manage Meraki MX L7 (application-layer) firewall rules per network
+    - resource: group-policies
+      actions: [read, write, delete]
+      description: Manage Meraki group policies (bandwidth, firewall/traffic-shaping, content filtering, VLAN tagging, Bonjour forwarding) per network
+    - resource: appliance-vlans
+      actions: [read, write, delete]
+      description: Manage Meraki MX appliance VLANs (addressing, DHCP) per network
 
 pipeline:
   configurationTypes:
@@ -70,6 +84,79 @@ pipeline:
         healthCheck: config-types/l3-firewall-rules/healthCheck
         driftDetect: config-types/l3-firewall-rules/driftDetect
         getStatus: config-types/l3-firewall-rules/getStatus
+      targets:
+        componentTypes: [meraki-organization]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: l7-firewall-rules
+      group: "Appliance · Firewall"
+      name: L7 Firewall Rules
+      description: >
+        The MX L7 (application-layer) firewall ruleset for one Meraki
+        network — an ordered list of "deny" rules (application, application
+        category, host, port, IP range or country) evaluated top-to-bottom on
+        top of the L3 posture, applied as a whole-list replace via PUT
+        /networks/{networkId}/appliance/firewall/l7FirewallRules. One canvas
+        item manages one network's L7 ruleset, identified by its
+        `network_id`.
+      canvasTemplate: config-types/l7-firewall-rules/canvas.yaml
+      defaultConfig: config-types/l7-firewall-rules/defaults.yaml
+      handlers:
+        validate: config-types/l7-firewall-rules/validate
+        deploy: config-types/l7-firewall-rules/deploy
+        rollback: config-types/l7-firewall-rules/rollback
+        healthCheck: config-types/l7-firewall-rules/healthCheck
+        driftDetect: config-types/l7-firewall-rules/driftDetect
+        getStatus: config-types/l7-firewall-rules/getStatus
+      targets:
+        componentTypes: [meraki-organization]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: group-policies
+      group: "Network"
+      name: Group Policies
+      description: >
+        Cisco Meraki group policies — bandwidth limits, firewall/traffic-
+        shaping rules, content filtering, splash auth, VLAN tagging and
+        Bonjour forwarding — reconciled by name within each network via
+        POST/PUT/DELETE /networks/{networkId}/groupPolicies[/{groupPolicyId}].
+        Meraki assigns the groupPolicyId on create; the canvas `name` field is
+        the stable identity used to upsert and detect drift.
+      canvasTemplate: config-types/group-policies/canvas.yaml
+      defaultConfig: config-types/group-policies/defaults.yaml
+      handlers:
+        validate: config-types/group-policies/validate
+        deploy: config-types/group-policies/deploy
+        rollback: config-types/group-policies/rollback
+        healthCheck: config-types/group-policies/healthCheck
+        driftDetect: config-types/group-policies/driftDetect
+        getStatus: config-types/group-policies/getStatus
+      targets:
+        componentTypes: [meraki-organization]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: appliance-vlans
+      group: "Network"
+      name: Appliance VLANs
+      description: >
+        Cisco Meraki MX appliance VLANs — id, name, addressing and DHCP
+        settings — reconciled by the caller-chosen VLAN id (1-4094) within
+        each network via POST/PUT/DELETE
+        /networks/{networkId}/appliance/vlans[/{vlanId}]. Requires VLANs to
+        already be enabled on the network (this app checks but does not
+        enable them for you).
+      canvasTemplate: config-types/appliance-vlans/canvas.yaml
+      defaultConfig: config-types/appliance-vlans/defaults.yaml
+      handlers:
+        validate: config-types/appliance-vlans/validate
+        deploy: config-types/appliance-vlans/deploy
+        rollback: config-types/appliance-vlans/rollback
+        healthCheck: config-types/appliance-vlans/healthCheck
+        driftDetect: config-types/appliance-vlans/driftDetect
+        getStatus: config-types/appliance-vlans/getStatus
       targets:
         componentTypes: [meraki-organization]
         requiresCredential: true

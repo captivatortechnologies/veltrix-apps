@@ -7,10 +7,11 @@ import {
   buildIseUrl,
   ersBase,
   summariesFromSearchResult,
-  unwrapEndPointGroup,
+  unwrapErsResource,
   idFromLocationHeader,
   ersErrorMessage,
   parseJson,
+  ndgRootFromName,
   DEFAULT_ERS_PORT,
 } from '../iseApi'
 import type { ComponentRef, CredentialRef } from '@veltrixsecops/app-sdk'
@@ -92,10 +93,17 @@ test('summariesFromSearchResult tolerates a missing resources array', () => {
   assert.deepEqual(summariesFromSearchResult(null), [])
 })
 
-test('unwrapEndPointGroup unwraps the single-resource envelope', () => {
+test('unwrapErsResource unwraps a single-resource envelope by wrapper key', () => {
   const envelope = { EndPointGroup: { id: '1', name: 'Contractors', description: 'temp staff', systemDefined: false } }
-  assert.equal(unwrapEndPointGroup(envelope)?.name, 'Contractors')
-  assert.equal(unwrapEndPointGroup(null), null)
+  assert.equal(unwrapErsResource<{ name: string }>(envelope, 'EndPointGroup')?.name, 'Contractors')
+  assert.equal(unwrapErsResource(envelope, 'NetworkDevice'), null)
+  assert.equal(unwrapErsResource(null, 'EndPointGroup'), null)
+})
+
+test('ndgRootFromName derives the NDG root category from a "#"-path name', () => {
+  assert.equal(ndgRootFromName('Location#All Locations#SF'), 'Location')
+  assert.equal(ndgRootFromName('Device Type#All Device Types'), 'Device Type')
+  assert.equal(ndgRootFromName('NoHash'), 'NoHash')
 })
 
 test('idFromLocationHeader extracts the trailing id segment', () => {

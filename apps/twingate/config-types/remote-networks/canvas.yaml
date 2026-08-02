@@ -1,0 +1,63 @@
+# =============================================================================
+# Canvas Template — Twingate Remote Networks
+#
+# Declares ONE Twingate Remote Network — the routing boundary a Connector (and
+# the Resources it exposes) belongs to. Users add as many as they need.
+# Remote Networks are created/updated through the GraphQL remoteNetworkCreate /
+# remoteNetworkUpdate mutations and identified for reconciliation by `name`.
+#
+# Field keys must match config-types/remote-networks/_shared.ts
+# (extractRemoteNetworkSpecs).
+# =============================================================================
+
+id: "remote-networks"
+name: "Twingate Remote Network"
+toolType: "twingate"
+entityType: "remote-networks"
+description: "Define Twingate Remote Networks as code through the GraphQL API. Reconciled by network name."
+
+item:
+  label: "Remote Network"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Remote Network"
+      icon: "map-pin"
+      description: "Identity, location and state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The Remote Network name — its logical identity among this tenant's networks."
+
+        - key: "location"
+          label: "Location"
+          fieldType: "select"
+          required: true
+          defaultValue: "OTHER"
+          options:
+            - { label: "Other", value: "OTHER" }
+            - { label: "AWS", value: "AWS" }
+            - { label: "Azure", value: "AZURE" }
+            - { label: "Google Cloud", value: "GOOGLE_CLOUD" }
+            - { label: "On-premise", value: "ON_PREMISE" }
+          helpText: "Where this network's Connector(s) run — informational, shown in the Twingate Admin Console."
+
+        - key: "network_type"
+          label: "Network Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "REGULAR"
+          options:
+            - { label: "Regular", value: "REGULAR" }
+            - { label: "Exit (Internet Security)", value: "EXIT" }
+          helpText: "Regular routes traffic to this network's Resources. Exit routes general internet traffic through its Connector(s)."
+
+        - key: "is_active"
+          label: "Active"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether this Remote Network is active."

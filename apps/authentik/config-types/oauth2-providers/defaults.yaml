@@ -1,0 +1,4 @@
+# Defaults for a new OAuth2/OpenID provider item — intentionally minimal; the
+# operator fills in the name, flow UUIDs and redirect URIs. Seeds authentik's
+# own default client type (matches other apps' item defaults).
+client_type: "confidential"

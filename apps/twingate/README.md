@@ -7,11 +7,14 @@ detect → rollback).
 
 ## What it manages
 
-| Configuration type | Twingate object | GraphQL operations |
-| --- | --- | --- |
-| **Resources** (`resources`) | Resources (private apps/hosts/subnets, protocols and Group access) | `resources` (list), `resource` (read), `resourceCreate`, `resourceUpdate`, `resourceDelete` |
+| Configuration type | Sidebar group | Twingate object | GraphQL operations |
+| --- | --- | --- | --- |
+| **Resources** (`resources`) | Network | Resources (private apps/hosts/subnets, protocols and Group access) | `resources` (list), `resource` (read), `resourceCreate`, `resourceUpdate`, `resourceDelete` |
+| **Remote Networks** (`remote-networks`) | Network | Remote Networks (name, location, network type) | `remoteNetworks` (list), `remoteNetworkCreate`, `remoteNetworkUpdate`, `remoteNetworkDelete` |
+| **Groups** (`groups`) | Access | Groups (`MANUAL` only — name, active state, Resource access) | `groups` (list), `groupCreate`, `groupUpdate`, `groupDelete` |
+| **Service Accounts** (`service-accounts`) | Access | Service Accounts (name only) | `serviceAccounts` (list), `serviceAccountCreate`, `serviceAccountUpdate`, `serviceAccountDelete` |
 
-Resources reconcile by **name** and target a `twingate-network` component.
+Every type reconciles by **name** and targets a `twingate-network` component.
 
 ### Resources
 
@@ -29,18 +32,50 @@ Remote Network's Connector(s). Each declares:
 An updated resource's prior full state (address, remote network, protocols,
 alias, visibility flags, group access) is captured for rollback.
 
-### Scope (v0.1.0)
+### Remote Networks
 
-Twingate has specialized resource kinds (SSH, Kubernetes, Web App) with their
-own `sshResourceCreate` / `kubernetesResourceCreate` / `webAppResourceCreate`
-mutations, and additional fields on the base mutation this app does not yet
-manage: `securityPolicyId`, `tags`, `accessPolicy`/`approvalMode`/
-`approverGroupIds` (Access Policies aren't yet a Veltrix config type), and
-`serviceAccountIds` access (Service Accounts aren't yet a Veltrix config
-type). These are deliberately **out of scope** for this version rather than
-guessed at — see the citations in `config-types/resources/_shared.ts`. Remote
-Networks and Groups are referenced by name but are not themselves managed as
-code here; create them directly in Twingate first.
+A Remote Network is the routing boundary a Connector (and the Resources it
+exposes) belongs to. RemoteNetwork is a concrete GraphQL type (unlike
+Resource, no inline-fragment indirection), and its managed state
+(`name`/`location`/`network_type`/`is_active`) is small enough that the list
+query alone carries everything a deploy needs.
+
+### Groups
+
+A Group grants its members access to the Resources assigned to it. Twingate
+itself sets a group's `type` — `MANUAL` (created via the API/console),
+`SYNCED` (from a connected IdP) or `SYSTEM` (Twingate built-ins, e.g.
+"Everyone"). This app reconciles by name **only among `MANUAL` groups**; a
+same-named `SYNCED`/`SYSTEM` group is never modified — deploy aborts with a
+clear error, and drift reports it as critical, rather than silently skipping
+or duplicating it. `resource_names` grants Resource access
+(full-replacement); **user membership is out of scope** (see below).
+
+### Service Accounts
+
+A Service Account is a non-human identity. Its only mutable field is `name`;
+everything else (its **keys**, and granting it access to Resources via
+`serviceAccountIds`) is out of scope — see "Scope" below.
+
+### Scope
+
+Deliberately **out of scope** for this app version rather than guessed at
+(see the citations in each config type's `_shared.ts`):
+
+- **Specialized resource kinds.** Twingate has SSH, Kubernetes and Web App
+  resource kinds with their own `sshResourceCreate` /
+  `kubernetesResourceCreate` / `webAppResourceCreate` mutations — only the
+  base (`NetworkResource`) kind is managed here.
+- **Resource fields beyond the base spec.** `securityPolicyId`, `tags`,
+  `accessPolicy`/`approvalMode`/`approverGroupIds` (Access Policies aren't yet
+  a Veltrix config type) and `serviceAccountIds` access.
+- **Group user membership.** Groups are usually populated by IdP sync or
+  direct invitation, not Infrastructure-as-Code; only Resource access
+  (`resource_names`) is managed.
+- **Service Account keys.** A key is a downloadable credential generated
+  once, with no readable value to diff against a declared spec — manage keys
+  directly in Twingate (Settings > Service Accounts).
+- **Security Policies.** Referenced nowhere yet — not a Veltrix config type.
 
 ### Design notes
 
@@ -54,11 +89,17 @@ code here; create them directly in Twingate first.
   (rather than silently creating the resource without the intended access, or
   guessing an id) — fix the name or create the missing object in Twingate,
   then re-deploy.
-- **Business-level mutation failures.** Twingate's resource mutations return
-  `{ ok: Boolean!, error: String, entity }` — a request can be
+- **Business-level mutation failures.** Every Twingate mutation used by this
+  app returns `{ ok: Boolean!, error: String, entity }` — a request can be
   transport-successful yet still fail with `ok: false` (e.g. a duplicate
-  resource name). This app checks `ok`/`error` on every mutation, not just the
+  name). Every config type checks `ok`/`error` on every mutation, not just the
   GraphQL transport status.
+- **Each config type is self-contained.** `_shared.ts`, GraphQL documents and
+  small helpers (name-key normalization, `assertMutationOk`, …) are
+  duplicated per config type rather than shared across them — consistent with
+  how other Veltrix apps (e.g. Wiz) keep each configuration type
+  independently maintainable. Only `lib/twingateApi.ts` (the GraphQL
+  transport itself) is shared across all four.
 
 ## Authentication
 
@@ -93,12 +134,16 @@ returns HTTP 429 when exceeded. This app retries a 429 with a short backoff
 - https://www.twingate.com/docs/api-overview — endpoint URL pattern, `X-API-KEY`
   auth, request/response shape, rate limits
 - https://www.twingate.com/docs/api — `resourceCreate`/`resourceUpdate`/
-  `resourceDelete` input + payload fields, the `Resource` type's field list,
-  the `resources`/`remoteNetworks`/`groups` query shapes
+  `resourceDelete`, `remoteNetworkCreate`/`Update`/`Delete`, `groupCreate`/
+  `Update`/`Delete` and `serviceAccountCreate`/`Update`/`Delete` input +
+  payload fields, and the `resources`/`remoteNetworks`/`groups`/
+  `serviceAccounts` query shapes
 - https://github.com/Twingate/terraform-provider-twingate — Twingate-maintained,
   tested Go GraphQL client; used to confirm the `... on NetworkResource` inline
-  fragment mechanics and the `ProtocolPolicy` enum values (`ALLOW_ALL` /
-  `RESTRICTED` / `DENY_ALL`)
+  fragment mechanics, the `ProtocolPolicy` enum values (`ALLOW_ALL` /
+  `RESTRICTED` / `DENY_ALL`), the `Location` enum (`AWS`/`AZURE`/
+  `GOOGLE_CLOUD`/`ON_PREMISE`/`OTHER`), the `RemoteNetworkType` enum
+  (`REGULAR`/`EXIT`) and the Group `type` constants (`MANUAL`/`SYNCED`/`SYSTEM`)
 
 ## Development
 

@@ -1,15 +1,15 @@
 id: jfrog-xray
 name: JFrog Xray
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage JFrog Xray (software composition analysis / supply-chain security)
-  configuration as code through the Xray REST API v2. Covers security
-  policies — severity or CVSS-based vulnerability gates with build/release
-  blocking, notification and ticketing actions — reconciled by policy name,
-  with validation, drift detection and rollback handled by the
-  Security-as-Code pipeline. Authenticates with a JFrog Platform Access Token
-  (Bearer).
+  configuration as code through the Xray REST API. Covers security policies
+  (severity/CVSS gates), license policies (allowed/banned OSS licenses),
+  watches (the scope + policy binding that makes a policy actually take
+  effect) and ignore rules (violation suppression) — with validation, drift
+  detection and rollback handled by the Security-as-Code pipeline.
+  Authenticates with a JFrog Platform Access Token (Bearer).
 category: COMPLIANCE
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/jfrog-xray
@@ -34,6 +34,15 @@ permissions:
     - resource: security-policies
       actions: [read, write, delete]
       description: Manage JFrog Xray security policies (create / edit / delete)
+    - resource: license-policies
+      actions: [read, write, delete]
+      description: Manage JFrog Xray license policies (create / edit / delete)
+    - resource: watches
+      actions: [read, write, delete]
+      description: Manage JFrog Xray watches — the scope + policy binding that makes a policy take effect
+    - resource: ignore-rules
+      actions: [read, write, delete]
+      description: Manage JFrog Xray ignore rules (create / delete — Xray has no update endpoint)
 
 pipeline:
   configurationTypes:
@@ -54,6 +63,77 @@ pipeline:
         healthCheck: config-types/security-policies/healthCheck
         driftDetect: config-types/security-policies/driftDetect
         getStatus: config-types/security-policies/getStatus
+      targets:
+        componentTypes: [jfrog-xray-instance]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: license-policies
+      group: "Policies"
+      name: License Policies
+      description: >
+        JFrog Xray license policies — allowed/banned OSS licenses and
+        unknown-license handling per rule, with build/release-blocking,
+        notification and ticketing actions — applied over the SAME
+        Xray REST API v2 endpoint as security-policies
+        (/xray/api/v2/policies, a policy of type "license"). Upserts by
+        policy name.
+      canvasTemplate: config-types/license-policies/canvas.yaml
+      defaultConfig: config-types/license-policies/defaults.yaml
+      handlers:
+        validate: config-types/license-policies/validate
+        deploy: config-types/license-policies/deploy
+        rollback: config-types/license-policies/rollback
+        healthCheck: config-types/license-policies/healthCheck
+        driftDetect: config-types/license-policies/driftDetect
+        getStatus: config-types/license-policies/getStatus
+      targets:
+        componentTypes: [jfrog-xray-instance]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: watches
+      group: "Watches"
+      name: Watches
+      description: >
+        JFrog Xray watches — the resource scope (all repositories, one
+        repository, or an advanced JSON scope covering builds/release
+        bundles/projects/git repos) and the security/license policies bound
+        to it — applied over the Xray REST API v2
+        (/xray/api/v2/watches). This is what makes a policy actually take
+        effect. Upserts by watch name.
+      canvasTemplate: config-types/watches/canvas.yaml
+      defaultConfig: config-types/watches/defaults.yaml
+      handlers:
+        validate: config-types/watches/validate
+        deploy: config-types/watches/deploy
+        rollback: config-types/watches/rollback
+        healthCheck: config-types/watches/healthCheck
+        driftDetect: config-types/watches/driftDetect
+        getStatus: config-types/watches/getStatus
+      targets:
+        componentTypes: [jfrog-xray-instance]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ignore-rules
+      group: "Ignore Rules"
+      name: Ignore Rules
+      description: >
+        JFrog Xray ignore rules — suppress violations matching CVE/
+        vulnerability/license/scope filters, optionally until an expiry date
+        — applied over the Xray REST API v1 (/xray/api/v1/ignore_rules).
+        Xray assigns no user-chosen name and exposes NO update endpoint for
+        this object (create + delete only); a changed rule is recreated.
+      canvasTemplate: config-types/ignore-rules/canvas.yaml
+      defaultConfig: config-types/ignore-rules/defaults.yaml
+      handlers:
+        validate: config-types/ignore-rules/validate
+        deploy: config-types/ignore-rules/deploy
+        rollback: config-types/ignore-rules/rollback
+        healthCheck: config-types/ignore-rules/healthCheck
+        driftDetect: config-types/ignore-rules/driftDetect
+        getStatus: config-types/ignore-rules/getStatus
       targets:
         componentTypes: [jfrog-xray-instance]
         requiresCredential: true

@@ -1,0 +1,7 @@
+# Defaults for a new network device item. `device_groups` mirrors ISE's own
+# default classification (the "All Locations" / "All Device Types" roots) so a
+# device is always valid without the operator having to know the NDG hierarchy
+# up front. `name` and `ip_addresses` are left for the operator to fill in.
+description: ""
+device_groups: ["Location#All Locations", "Device Type#All Device Types"]
+radius_shared_secret: ""

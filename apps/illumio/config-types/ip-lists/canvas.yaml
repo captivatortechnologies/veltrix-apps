@@ -1,0 +1,89 @@
+# =============================================================================
+# Canvas Template — Illumio Core IP Lists
+#
+# Declares ONE IP list (the item), name-keyed like this app's other draft
+# security-policy objects. IP lists live under the PCE's DRAFT policy
+# (/orgs/{org}/sec_policy/draft/ip_lists); deploy provisions the change so it
+# takes effect in the active policy. Field keys must match
+# config-types/ip-lists/validate.ts.
+#
+# ip_ranges / fqdns are each a JSON array (the "textarea holding structured
+# JSON" pattern used elsewhere in this app suite, e.g. Tanium's computer-group
+# filterJson) — the PCE's ip_ranges/fqdns members are structured objects
+# (from_ip/to_ip/description/exclusion, fqdn/description) that don't fit a flat
+# canvas field. At least one of the two must be non-empty.
+# =============================================================================
+
+id: "illumio-ip-lists"
+name: "IP List Configuration"
+toolType: "illumio"
+entityType: "ip-lists"
+description: "Define Illumio Core IP lists (named IP/CIDR ranges and FQDNs) as code through the Illumio REST API v2, provisioned into the active policy."
+
+item:
+  label: "IP List"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "IP List"
+      icon: "globe"
+      description: "Name and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The IP list name — its identity in the PCE. Must be unique within this canvas; deploy matches live IP lists on it."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the IP list."
+
+    - name: "Members"
+      icon: "list"
+      description: "IP ranges and/or FQDNs — at least one is required"
+      fields:
+        - key: "ipRangesJson"
+          label: "IP ranges (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 8000
+          helpText: >
+            A JSON array of IP ranges, e.g.
+            [{"fromIp":"10.0.0.0/8"},{"fromIp":"192.168.1.1","toIp":"192.168.1.50"}].
+            Each entry: fromIp (required — an IPv4 address or CIDR), toIp
+            (optional, for a range), description (optional), exclusion
+            (optional boolean — a strict subset of the inclusive ranges above it).
+
+        - key: "fqdnsJson"
+          label: "FQDNs (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 8000
+          helpText: >
+            A JSON array of FQDNs, e.g. [{"fqdn":"*.example.com"}]. Each entry:
+            fqdn (required — hostname, IP, or URI), description (optional).
+
+    - name: "Integration metadata"
+      icon: "link"
+      description: "Optional external-system linkage, carried through unchanged on every deploy"
+      fields:
+        - key: "externalDataSet"
+          label: "External data set"
+          fieldType: "text"
+          required: false
+          helpText: "Optional: the external system this IP list originates from (external_data_set)."
+
+        - key: "externalDataReference"
+          label: "External data reference"
+          fieldType: "text"
+          required: false
+          helpText: "Optional: this IP list's unique identifier within that external system (external_data_reference)."

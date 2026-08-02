@@ -2,6 +2,56 @@
 
 All notable changes to the Cisco ISE app are documented here.
 
+## 0.2.0 — 2026-08-02
+
+Three new config types (wave 2) — all name-keyed upsert, all built on a new
+generic `lib/iseApi.ts` ERS resource client (`buildErsResourceClient`) shared
+across every config type, including a refactor of v0.1.0's Endpoint Identity
+Groups onto the same generic client (no behavior change). Every config type
+now declares a sidebar `group`.
+
+- **Network Device Groups** config type — create / edit / delete ISE Network
+  Device Group (NDG) hierarchies over `/ers/config/networkdevicegroup`. The
+  `name` is the full `#`-path from the NDG root (e.g. `Location#All
+  Locations#SanJose`); the root-category field `othername` is always derived
+  from `name`, never authored separately. Group: "Network Devices".
+  **Correction**: verified against the community `pyise-ers` ERS client
+  (exercised against real ISE) that the real field is `othername`, not
+  `ndgtype` as originally scoped.
+- **Network Devices** config type — create / edit / delete network devices
+  (NAS/AAA clients) over `/ers/config/networkdevice`: name, IPv4 address(es)
+  with mask, NDG membership (defaulted to ISE's own `Location`/`Device Type`
+  root requirement), and an optional RADIUS shared secret. Group: "Network
+  Devices". ⚠ The shared secret is write-only — never read back, diffed,
+  logged, or captured for rollback; a device whose secret was rotated cannot
+  have the prior secret restored by rollback (only its non-secret fields are).
+  IPv6, TACACS+ and SNMP settings are out of scope.
+- **Authorization Profiles** config type — create / edit / delete standard
+  ("SWITCH") authorization profiles over `/ers/config/authorizationprofile`:
+  access type, VLAN (`nameID` + RFC 2868 tunnel tag `tagID`), DACL, Filter-Id
+  ACL, Airespace/WLC ACL, and JSON-authored advanced RADIUS attributes. Group:
+  "Policy Elements". TrustSec/TACACS+ profile types, IPv6 ACL variants,
+  `macSecPolicy`, `webRedirection`, `reauth` and several vendor-specific
+  fields are out of scope (flagged in the README, not faked).
+- **`lib/iseApi.ts`** — added `buildErsResourceClient<T>`, the one generic
+  ERS CRUD transport (list / findByName / getById / create / update / remove /
+  probe) every config type's resource-specific client now specializes, plus
+  the `NetworkDeviceGroup`, `NetworkDevice` and `AuthorizationProfile` field
+  types and `ndgRootFromName`.
+
+> API verification: `networkdevicegroup` and `networkdevice` field shapes were
+> verified against the community `pyise-ers` ERS client
+> (github.com/falkowich/pyise-ers, pyiseers/pyiseers.py — `add_device_group` /
+> `update_device_group` / `get_device` / `add_device`), which is actively
+> exercised against real ISE deployments. `authorizationprofile`'s field shape
+> was verified against the official Cisco ISE Ansible collection
+> (github.com/CiscoISE/ansible-ise, plugins/modules/authorization_profile.py),
+> generated from Cisco's own ERS/OpenAPI definitions. All three share the same
+> `SearchResult` / single-resource-envelope / `Location`-header /
+> `ERSResponse.messages` conventions already verified for endpoint groups in
+> 0.1.0. **Verify against a live ISE node** before treating an edge case as
+> final.
+
 ## 0.1.0 — 2026-08-02
 
 Initial release — foundation + first config type.

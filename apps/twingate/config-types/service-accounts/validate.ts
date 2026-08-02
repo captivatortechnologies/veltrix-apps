@@ -1,0 +1,43 @@
+import type { PipelineContext, ValidationResult } from '@veltrixsecops/app-sdk'
+import { extractServiceAccountSpecs, serviceAccountKey } from './_shared'
+
+/**
+ * Validate Twingate Service Account configurations: name is required and
+ * must be unique across the canvas (case-insensitive). Purely static: no
+ * live Twingate calls.
+ */
+export default async function validate(ctx: PipelineContext): Promise<ValidationResult> {
+  const errors: ValidationResult['errors'] = []
+  const warnings: ValidationResult['warnings'] = []
+
+  const items = ctx.canvas.items ?? ctx.canvas.sections ?? []
+  if (items.length === 0) {
+    errors.push({ field: 'items', message: 'Canvas has no configuration items', code: 'empty_canvas' })
+    return { valid: false, errors, warnings }
+  }
+
+  const specs = extractServiceAccountSpecs(ctx.canvas)
+  const seen = new Set<string>()
+
+  for (const spec of specs) {
+    const prefix = spec.itemName
+
+    if (!spec.name) {
+      errors.push({ field: `${prefix}.name`, message: 'Service Account name is required', code: 'required' })
+    }
+
+    if (spec.name) {
+      const key = serviceAccountKey(spec.name)
+      if (seen.has(key)) {
+        errors.push({
+          field: `${prefix}.name`,
+          message: `Duplicate Service Account "${spec.name}" — each name may only be declared once`,
+          code: 'duplicate_service_account',
+        })
+      }
+      seen.add(key)
+    }
+  }
+
+  return { valid: errors.length === 0, errors, warnings }
+}

@@ -1,0 +1,104 @@
+# =============================================================================
+# Canvas Template — authentik OAuth2/OpenID Providers
+#
+# Declares ONE authentik OAuth2/OpenID Provider (the item). Operators add as
+# many as they need. Field keys must match
+# config-types/oauth2-providers/validate.ts and _shared.ts. Applied via the
+# authentik Core REST API (GET/POST /providers/oauth2/, GET/PATCH/DELETE
+# /providers/oauth2/{id}/).
+#
+# IDENTITY: a provider's API path key is a server-assigned integer `id`, not a
+# user-declared value — unlike Applications/Flows, this config type upserts by
+# NAME (list `?name=` → exact match → PATCH/POST).
+#
+# The generated client SECRET is never read, sent or captured by this config
+# type — authentik generates/rotates it and it is treated as a write-only value
+# (rotate it in authentik to obtain a usable value).
+#
+# Flow references (authorization_flow / invalidation_flow) are authored as the
+# target Flow's UUID `pk` — NOT its slug — matching authentik's own foreign-key
+# representation. Find a flow's pk in authentik's admin interface (its detail
+# page URL), or from this app's own "Flows" configuration type after it has
+# been deployed once. Live resolution from a flow's slug is not done here.
+# =============================================================================
+
+id: "authentik-oauth2-providers"
+name: "OAuth2/OpenID Providers"
+toolType: "authentik"
+entityType: "oauth2-providers"
+description: "Manage authentik OAuth2/OpenID Providers — name, flows, client type/id, signing key, redirect URIs and scope mappings — via the authentik Core REST API"
+
+item:
+  label: "Provider"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "key"
+      description: "Provider identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The provider's display name in authentik. This is the stable identity used for upsert and drift (providers have no user-declared path key, unlike Applications' slug)."
+
+    - name: "Flows"
+      icon: "link"
+      description: "authorization and invalidation flows (by Flow UUID pk)"
+      fields:
+        - key: "authorization_flow"
+          label: "Authorization Flow (UUID)"
+          fieldType: "text"
+          required: true
+          helpText: "The UUID pk of the Flow used when authorizing this provider (e.g. the default-provider-authorization-explicit-consent flow). Required by authentik."
+
+        - key: "invalidation_flow"
+          label: "Invalidation Flow (UUID)"
+          fieldType: "text"
+          required: true
+          helpText: "The UUID pk of the Flow used to end the session for this provider (e.g. the default-provider-invalidation-flow flow). Required by authentik."
+
+    - name: "Client"
+      icon: "settings"
+      description: "OAuth2 client configuration"
+      fields:
+        - key: "client_type"
+          label: "Client Type"
+          fieldType: "select"
+          required: false
+          defaultValue: "confidential"
+          options:
+            - { label: "Confidential (can keep a client secret)", value: "confidential" }
+            - { label: "Public (cannot keep a secret — SPA/native/PKCE)", value: "public" }
+          helpText: "Confidential clients receive a client secret; public clients do not."
+
+        - key: "client_id"
+          label: "Client ID"
+          fieldType: "text"
+          required: false
+          helpText: "Leave blank to let authentik auto-generate one on creation. Once set, this config type will keep it as declared; blank means \"leave the existing value alone.\""
+
+        - key: "signing_key"
+          label: "Signing Key (UUID, optional)"
+          fieldType: "text"
+          required: false
+          helpText: "The UUID pk of an existing Certificate-Key pair used to sign tokens. Leave blank for authentik's default. Certificate-Key pair management is not covered by this app."
+
+    - name: "Access"
+      icon: "shield"
+      description: "Redirect URIs and scope (property) mappings"
+      fields:
+        - key: "redirect_uris"
+          label: "Redirect URIs"
+          fieldType: "textarea"
+          required: true
+          helpText: "One absolute redirect URI per line. Authored as authentik's \"strict\" matching, \"authorization\"-type entries — regex matching and logout-type redirect entries are not available in this configuration type yet."
+
+        - key: "property_mappings"
+          label: "Scope / Property Mappings (UUIDs)"
+          fieldType: "tags"
+          required: false
+          helpText: "Optional list of existing Scope Mapping UUIDs to attach. Leave empty to leave the provider's current mappings untouched on update (an empty list is never sent to clear them)."

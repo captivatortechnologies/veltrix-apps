@@ -45,11 +45,13 @@ export default function OverviewPage() {
     <Card>
       <CardBody>
         <p>
-          Manages Jamf Pro (Apple MDM / endpoint management) configuration as code through the modern Jamf Pro
-          API. Create a configuration in the Configuration Canvas and deploy it through the pipeline — validate,
-          deploy, health check, drift detection and rollback are all handled per configuration type. The app
-          authenticates as a Jamf Pro API-only account (username/password exchanged for a short-lived Bearer
-          token) against your Jamf Pro server.
+          Manages Jamf Pro (Apple MDM / endpoint management) configuration as code through both the modern Jamf
+          Pro API (Scripts, Categories) and the legacy Classic API (Smart Computer Groups, Policies — not yet
+          exposed for write on the modern API). Create a configuration in the Configuration Canvas and deploy it
+          through the pipeline — validate, deploy, health check, drift detection and rollback are all handled per
+          configuration type. The app authenticates as a Jamf Pro API-only account (username/password exchanged
+          for a short-lived Bearer token) against your Jamf Pro server; the same Bearer token is reused for
+          Classic API calls.
         </p>
 
         <h3>Configuration Types</h3>

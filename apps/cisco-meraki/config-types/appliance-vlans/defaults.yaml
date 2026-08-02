@@ -1,0 +1,18 @@
+# Defaults for a new VLAN item. Seeded with a plausible example — replace
+# network_id, id, name and the addressing with the real values. VLANs must
+# already be enabled on the target network.
+network_id: ""
+id: "10"
+name: "New VLAN"
+group_policy_id: ""
+subnet: "192.168.10.0/24"
+appliance_ip: "192.168.10.1"
+vpn_nat_subnet: ""
+dhcp_handling: "Run a DHCP server"
+dhcp_lease_time: "1 day"
+dns_nameservers: ""
+dhcp_relay_server_ips: []
+dhcp_boot_options_enabled: false
+dhcp_boot_next_server: ""
+dhcp_boot_filename: ""
+advanced: ""

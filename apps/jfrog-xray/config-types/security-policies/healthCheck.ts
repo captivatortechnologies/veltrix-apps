@@ -1,7 +1,7 @@
 import type { HealthCheckContext, HealthCheckResult } from '@veltrixsecops/app-sdk'
 import { buildXrayClient } from '../../lib/xrayApi'
-import { POLICIES_PATH } from './deploy'
-import { extractPolicySpecs, findPolicy, type XraySecurityPolicy } from './_shared'
+import { listPolicies } from '../../lib/xrayPolicies'
+import { extractPolicySpecs, findPolicy, type XraySecurityCriteria, type XraySecurityPolicy } from './_shared'
 
 /**
  * Health check for the security-policies configuration:
@@ -23,7 +23,7 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
   const started = Date.now()
   let live: XraySecurityPolicy[] | null = null
   try {
-    live = await client.getJson<XraySecurityPolicy[]>(POLICIES_PATH)
+    live = await listPolicies<XraySecurityCriteria>(client)
     checks.push({ name: 'xray_reachable', passed: true, message: `Xray reachable at ${host}`, latencyMs: Date.now() - started })
   } catch (error) {
     checks.push({

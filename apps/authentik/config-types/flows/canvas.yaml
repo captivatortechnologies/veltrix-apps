@@ -1,0 +1,85 @@
+# =============================================================================
+# Canvas Template — authentik Flows
+#
+# Declares ONE authentik Flow (the item). Operators add as many as they need.
+# Field keys must match config-types/flows/validate.ts and _shared.ts. Applied
+# via the authentik Flows REST API (GET/POST /flows/instances/, GET/PATCH/
+# DELETE /flows/instances/{slug}/). The slug is authentik's own path identity
+# for the resource — the same direct-retrieve-by-identity pattern as the
+# Applications configuration type.
+#
+# A deployed flow's UUID `pk` (visible in this app's deploy artifacts, or in
+# authentik's admin interface) can then be referenced by the "OAuth2/OpenID
+# Providers" configuration type's Authorization/Invalidation Flow fields.
+# =============================================================================
+
+id: "authentik-flows"
+name: "Flows"
+toolType: "authentik"
+entityType: "flows"
+description: "Manage authentik Flows — name, slug, title, designation and authentication requirement — via the authentik Flows REST API"
+
+item:
+  label: "Flow"
+  identityField: "slug"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "key"
+      description: "Flow identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The flow's internal name, shown in the authentik admin interface."
+
+        - key: "slug"
+          label: "Slug"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[-a-zA-Z0-9_]+$"
+          helpText: "Visible in the URL. Letters, numbers, hyphens and underscores only. This is the stable identity used for upsert and drift."
+
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: true
+          helpText: "Shown as the page title while the flow executes."
+
+    - name: "Behavior"
+      icon: "settings"
+      description: "What the flow is used for and who may run it"
+      fields:
+        - key: "designation"
+          label: "Designation"
+          fieldType: "select"
+          required: true
+          options:
+            - { label: "Authentication", value: "authentication" }
+            - { label: "Authorization", value: "authorization" }
+            - { label: "Invalidation", value: "invalidation" }
+            - { label: "Enrollment", value: "enrollment" }
+            - { label: "Unenrollment", value: "unenrollment" }
+            - { label: "Recovery", value: "recovery" }
+            - { label: "Stage Configuration", value: "stage_configuration" }
+          helpText: "What this flow is used for, e.g. the Authentication designation is what an un-authenticated user is redirected to."
+
+        - key: "authentication"
+          label: "Required Authentication"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - { label: "authentik default", value: "" }
+            - { label: "None", value: "none" }
+            - { label: "Require authenticated", value: "require_authenticated" }
+            - { label: "Require unauthenticated", value: "require_unauthenticated" }
+            - { label: "Require superuser", value: "require_superuser" }
+            - { label: "Require redirect", value: "require_redirect" }
+            - { label: "Require outpost", value: "require_outpost" }
+            - { label: "Require token", value: "require_token" }
+          helpText: "The level of authentication/authorization required to access (run) this flow. Leave on the authentik default unless this flow has special access requirements."

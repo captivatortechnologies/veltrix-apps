@@ -1,12 +1,11 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildXrayClient } from '../../lib/xrayApi'
-import { POLICIES_PATH, policyPath } from './deploy'
+import { diffPolicyActions, getPolicyByName, listPolicies } from '../../lib/xrayPolicies'
 import {
   buildAdditionalRules,
   buildPrimaryRule,
   extractPolicySpecs,
   findPolicy,
-  type XraySecurityActions,
   type XraySecurityCriteria,
   type XraySecurityPolicy,
   type XraySecurityRule,
@@ -36,7 +35,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
 
   let live: XraySecurityPolicy[]
   try {
-    live = await client.getJson<XraySecurityPolicy[]>(POLICIES_PATH)
+    live = await listPolicies<XraySecurityCriteria>(client)
   } catch {
     return { hasDrift: false, diffs }
   }
@@ -51,7 +50,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
 
     let full: XraySecurityPolicy
     try {
-      full = await client.getJson<XraySecurityPolicy>(policyPath(spec.name))
+      full = await getPolicyByName<XraySecurityCriteria>(client, spec.name)
     } catch {
       continue
     }
@@ -88,7 +87,9 @@ function diffRule(label: string, desired: XraySecurityRule, live: XraySecurityRu
     return
   }
   diffCriteria(label, desired.criteria, live.criteria ?? {}, diffs)
-  diffActions(label, desired.actions, live.actions ?? {}, diffs)
+  diffPolicyActions(label, desired.actions, live.actions ?? {}, (field, expected, actual, severity) => {
+    diffs.push({ field, expected, actual, severity })
+  })
 }
 
 function diffCriteria(label: string, desired: XraySecurityCriteria, live: XraySecurityCriteria, diffs: DriftDiff[]): void {
@@ -108,28 +109,13 @@ function diffCriteria(label: string, desired: XraySecurityCriteria, live: XraySe
       })
     }
   }
-  diffBool(`${label}.malicious_package`, desired.malicious_package, live.malicious_package, diffs)
-  diffBool(`${label}.applicable_cves_only`, desired.applicable_cves_only, live.applicable_cves_only, diffs)
-  diffBool(`${label}.fix_version_dependant`, desired.fix_version_dependant, live.fix_version_dependant, diffs)
-}
-
-function diffActions(label: string, desired: XraySecurityActions, live: XraySecurityActions, diffs: DriftDiff[]): void {
-  diffBool(`${label}.fail_build`, desired.fail_build, live.fail_build, diffs)
-  diffBool(`${label}.block_release_bundle_distribution`, desired.block_release_bundle_distribution, live.block_release_bundle_distribution, diffs)
-  diffBool(`${label}.block_release_bundle_promotion`, desired.block_release_bundle_promotion, live.block_release_bundle_promotion, diffs)
-  diffBool(`${label}.notify_watch_recipients`, desired.notify_watch_recipients, live.notify_watch_recipients, diffs)
-  diffBool(`${label}.notify_deployer`, desired.notify_deployer, live.notify_deployer, diffs)
-  diffBool(`${label}.create_ticket_enabled`, desired.create_ticket_enabled, live.create_ticket_enabled, diffs)
-  diffBool(`${label}.fail_pull_request`, desired.fail_pull_request, live.fail_pull_request, diffs)
-
-  const desiredBlock = desired.block_download ?? {}
-  const liveBlock = live.block_download ?? {}
-  diffBool(`${label}.block_download.active`, desiredBlock.active, liveBlock.active, diffs)
-  diffBool(`${label}.block_download.unscanned`, desiredBlock.unscanned, liveBlock.unscanned, diffs)
+  diffCriteriaBool(`${label}.malicious_package`, desired.malicious_package, live.malicious_package, diffs)
+  diffCriteriaBool(`${label}.applicable_cves_only`, desired.applicable_cves_only, live.applicable_cves_only, diffs)
+  diffCriteriaBool(`${label}.fix_version_dependant`, desired.fix_version_dependant, live.fix_version_dependant, diffs)
 }
 
 /** Compare two optional booleans, treating `undefined` as `false` (Xray omits false-valued flags). */
-function diffBool(field: string, desired: boolean | undefined, actual: boolean | undefined, diffs: DriftDiff[]): void {
+function diffCriteriaBool(field: string, desired: boolean | undefined, actual: boolean | undefined, diffs: DriftDiff[]): void {
   const want = desired ?? false
   const have = actual ?? false
   if (want !== have) {

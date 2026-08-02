@@ -8,10 +8,14 @@
 # is authentik's own path identity for the resource, so this config type
 # upserts by SLUG.
 #
-# Provider linkage (deferred): `provider` references an EXISTING authentik
-# Provider by its numeric pk. This config type does not create or manage
-# Providers — that is a separate config type planned for a later wave. Leave it
-# blank for an application with no bound provider (e.g. a launcher-only tile).
+# Provider linkage: `provider` references an EXISTING authentik Provider by its
+# numeric pk. This config type does not create Providers itself — deploy an
+# item in the sibling "OAuth2/OpenID Providers" configuration type first (its
+# artifacts/status expose the created provider's pk), then paste that pk here.
+# Leave it blank for an application with no bound provider (e.g. a
+# launcher-only tile). Other provider kinds (SAML, proxy, LDAP, …) are not yet
+# authored by this app — reference an existing one created directly in
+# authentik by its pk in the meantime.
 # =============================================================================
 
 id: "authentik-applications"
@@ -53,7 +57,7 @@ item:
           label: "Provider (pk)"
           fieldType: "number"
           required: false
-          helpText: "The numeric primary key of an EXISTING authentik Provider to bind to this application (Admin interface > Applications > Providers, or the provider's detail page URL). Leave blank for no bound provider. Providers are not created or managed by this app yet — that ships as its own configuration type in a later release."
+          helpText: "The numeric primary key of an EXISTING authentik Provider to bind to this application. Deploy a provider first (e.g. this app's own \"OAuth2/OpenID Providers\" configuration type, or one created directly in authentik) and paste its pk here. Leave blank for no bound provider."
 
     - name: "Access"
       icon: "shield"

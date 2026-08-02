@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-cisco-meraki",
   "private": true,
-  "version": "0.1.0",
-  "description": "Veltrix app: manage Cisco Meraki Dashboard network security configuration as code — MX L3 (outbound) firewall rules — through the Meraki Dashboard API v1",
+  "version": "0.2.0",
+  "description": "Veltrix app: manage Cisco Meraki Dashboard network security configuration as code — MX L3/L7 firewall rules, group policies and appliance VLANs — through the Meraki Dashboard API v1",
   "scripts": { "typecheck": "tsc --noEmit" },
   "devDependencies": {
     "@types/jest": "^29.5.14",

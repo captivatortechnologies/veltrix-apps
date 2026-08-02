@@ -1,7 +1,7 @@
 import type { RollbackContext, RollbackResult } from '@veltrixsecops/app-sdk'
 import { buildXrayClient, xrayErrorMessage } from '../../lib/xrayApi'
-import { policyPath, type PolicyRollbackEntry } from './deploy'
-import type { XraySecurityPolicy } from './_shared'
+import { deletePolicy, putPolicy, restorablePolicyBody, type PolicyRollbackEntry } from '../../lib/xrayPolicies'
+import type { XraySecurityCriteria } from './_shared'
 
 /**
  * Roll back Xray security policies using the state captured during deploy:
@@ -20,7 +20,7 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
   }
   const { client } = built
 
-  const previous = (ctx.rollbackData as { previous?: PolicyRollbackEntry[] } | null)?.previous
+  const previous = (ctx.rollbackData as { previous?: PolicyRollbackEntry<XraySecurityCriteria>[] } | null)?.previous
   if (!previous || previous.length === 0) {
     return { success: false, message: 'No previous state available for rollback' }
   }
@@ -30,12 +30,12 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
   try {
     for (const entry of [...previous].reverse()) {
       if (!entry.existed) {
-        const res = await client.deleteResource(policyPath(entry.name))
+        const res = await deletePolicy(client, entry.name)
         if (!res.ok && res.status !== 404) {
           throw new Error(`Failed to delete policy "${entry.name}": ${xrayErrorMessage(res)}`)
         }
       } else if (entry.prior) {
-        await client.putJson(policyPath(entry.name), restorableBody(entry.prior))
+        await putPolicy(client, entry.name, restorablePolicyBody(entry.prior))
       }
       reverted.push(entry.name)
     }
@@ -47,10 +47,4 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
       message: `Rollback failed after ${reverted.length} of ${previous.length}: ${error instanceof Error ? error.message : 'Unknown error'}`,
     }
   }
-}
-
-/** Strip the read-only fields Xray populates on GET before replaying a body on PUT. */
-function restorableBody(prior: XraySecurityPolicy): Omit<XraySecurityPolicy, 'author' | 'created' | 'modified' | 'watches'> {
-  const { author, created, modified, watches, ...rest } = prior
-  return rest
 }

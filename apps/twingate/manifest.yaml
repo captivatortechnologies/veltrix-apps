@@ -1,15 +1,18 @@
 id: twingate
 name: Twingate
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Twingate (ZTNA / Zero Trust Network Access) configuration as code
   through the Twingate GraphQL API. Covers Resources — the private
   applications, hosts and subnets a Remote Network exposes through Twingate
   Connectors — with name, address, remote network, TCP/UDP/ICMP protocol
-  policy and Group-based access, with validation, drift detection and
-  rollback handled by the Security-as-Code pipeline. Authenticates with a
-  Twingate API key against the tenant's network-scoped GraphQL endpoint.
+  policy and Group-based access; Remote Networks (name, location, network
+  type); Groups (MANUAL groups only, with Resource access); and Service
+  Accounts (name — keys are managed directly in Twingate) — with validation,
+  drift detection and rollback handled by the Security-as-Code pipeline.
+  Authenticates with a Twingate API key against the tenant's network-scoped
+  GraphQL endpoint.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/twingate
@@ -36,10 +39,20 @@ permissions:
     - resource: resources
       actions: [read, write, delete]
       description: Manage Twingate Resources (private apps/hosts/subnets, protocols and Group access) via the GraphQL API
+    - resource: remote-networks
+      actions: [read, write, delete]
+      description: Manage Twingate Remote Networks (name, location, network type) via the GraphQL API
+    - resource: groups
+      actions: [read, write, delete]
+      description: Manage Twingate Groups (MANUAL groups only — SYNCED/SYSTEM groups are never modified) and their Resource access via the GraphQL API
+    - resource: service-accounts
+      actions: [read, write, delete]
+      description: Manage Twingate Service Accounts (name only — key lifecycle is managed directly in Twingate) via the GraphQL API
 
 pipeline:
   configurationTypes:
     - id: resources
+      group: "Network"
       name: Resources
       description: >
         Twingate Resources via resourceCreate / resourceUpdate / resourceDelete;
@@ -56,6 +69,75 @@ pipeline:
         healthCheck: config-types/resources/healthCheck
         driftDetect: config-types/resources/driftDetect
         getStatus: config-types/resources/getStatus
+      targets:
+        componentTypes: [twingate-network]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: remote-networks
+      group: "Network"
+      name: Remote Networks
+      description: >
+        Twingate Remote Networks via remoteNetworkCreate / remoteNetworkUpdate /
+        remoteNetworkDelete; identity by name. Each network declares a location
+        (informational), a network type (Regular / Exit) and active state.
+        Missing networks are created; existing ones are reconciled to the
+        declared spec.
+      canvasTemplate: config-types/remote-networks/canvas.yaml
+      defaultConfig: config-types/remote-networks/defaults.yaml
+      handlers:
+        validate: config-types/remote-networks/validate
+        deploy: config-types/remote-networks/deploy
+        rollback: config-types/remote-networks/rollback
+        healthCheck: config-types/remote-networks/healthCheck
+        driftDetect: config-types/remote-networks/driftDetect
+        getStatus: config-types/remote-networks/getStatus
+      targets:
+        componentTypes: [twingate-network]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: groups
+      group: "Access"
+      name: Groups
+      description: >
+        Twingate Groups via groupCreate / groupUpdate / groupDelete; identity
+        by name, matched ONLY among MANUAL groups (SYNCED/IdP and SYSTEM/
+        built-in groups are never modified). Each group declares active state
+        and the Resources (matched by name) it grants access to
+        (full-replacement). User membership is out of scope — see the app README.
+      canvasTemplate: config-types/groups/canvas.yaml
+      defaultConfig: config-types/groups/defaults.yaml
+      handlers:
+        validate: config-types/groups/validate
+        deploy: config-types/groups/deploy
+        rollback: config-types/groups/rollback
+        healthCheck: config-types/groups/healthCheck
+        driftDetect: config-types/groups/driftDetect
+        getStatus: config-types/groups/getStatus
+      targets:
+        componentTypes: [twingate-network]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: service-accounts
+      group: "Access"
+      name: Service Accounts
+      description: >
+        Twingate Service Accounts via serviceAccountCreate / serviceAccountUpdate
+        / serviceAccountDelete; identity by name — the only mutable field.
+        Missing accounts are created; existing ones are reconciled to the
+        declared name. Service Account KEYS are out of scope — generate and
+        manage them directly in Twingate.
+      canvasTemplate: config-types/service-accounts/canvas.yaml
+      defaultConfig: config-types/service-accounts/defaults.yaml
+      handlers:
+        validate: config-types/service-accounts/validate
+        deploy: config-types/service-accounts/deploy
+        rollback: config-types/service-accounts/rollback
+        healthCheck: config-types/service-accounts/healthCheck
+        driftDetect: config-types/service-accounts/driftDetect
+        getStatus: config-types/service-accounts/getStatus
       targets:
         componentTypes: [twingate-network]
         requiresCredential: true

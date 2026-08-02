@@ -1,16 +1,9 @@
 import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
 import { buildXrayClient, xrayErrorMessage } from '../../lib/xrayApi'
-import { buildPolicyBody, extractPolicySpecs, findPolicy, policyKey, type XraySecurityPolicy } from './_shared'
+import { createPolicy, getPolicyByName, listPolicies, POLICIES_PATH, policyPath, putPolicy, type PolicyRollbackEntry } from '../../lib/xrayPolicies'
+import { buildPolicyBody, extractPolicySpecs, findPolicy, type XraySecurityCriteria } from './_shared'
 
-const POLICIES_PATH = '/api/v2/policies'
-const policyPath = (name: string): string => `${POLICIES_PATH}/${encodeURIComponent(name)}`
-
-export interface PolicyRollbackEntry {
-  name: string
-  existed: boolean
-  /** The full prior policy body (read before the PUT) — used to restore an updated policy on rollback. */
-  prior?: XraySecurityPolicy
-}
+export type { PolicyRollbackEntry }
 
 /**
  * Deploy JFrog Xray security policies over the Xray REST API v2:
@@ -23,8 +16,11 @@ export interface PolicyRollbackEntry {
  * Upserts by NAME. rollbackData records, per policy, whether it existed and (when it did) its full
  * prior body, so rollback can either delete what we created or PUT the exact prior state back.
  *
- * A policy's `watches[]` binding is a separate Xray object (Watches) and is intentionally not
- * managed here — see config-types/security-policies/../../README.md.
+ * The `/api/v2/policies` CRUD-by-name primitives are shared with `license-policies` via
+ * lib/xrayPolicies.ts (both are policies of a different `type` against the same REST surface).
+ *
+ * A policy's `watches[]` binding is managed by the separate `watches` config type (Xray Watches
+ * API) — see README.md.
  */
 export default async function deploy(ctx: DeployContext): Promise<DeployResult> {
   const built = buildXrayClient(ctx.component.hostname, ctx.credential, ctx.settings)
@@ -34,23 +30,23 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const { client, host } = built
 
   const specs = extractPolicySpecs(ctx.canvas).filter((s) => s.name && s.ruleName)
-  const rollbackState: PolicyRollbackEntry[] = []
+  const rollbackState: PolicyRollbackEntry<XraySecurityCriteria>[] = []
   const deployed: string[] = []
 
   try {
-    const live = await client.getJson<XraySecurityPolicy[]>(POLICIES_PATH)
+    const live = await listPolicies<XraySecurityCriteria>(client)
 
     for (const spec of specs) {
       const desired = buildPolicyBody(spec)
       const existing = findPolicy(Array.isArray(live) ? live : [], spec.name)
 
       if (existing) {
-        const prior = await client.getJson<XraySecurityPolicy>(policyPath(spec.name))
+        const prior = await getPolicyByName<XraySecurityCriteria>(client, spec.name)
         rollbackState.push({ name: spec.name, existed: true, prior })
-        await client.putJson(policyPath(spec.name), desired)
+        await putPolicy(client, spec.name, desired)
       } else {
         rollbackState.push({ name: spec.name, existed: false })
-        await client.postJson(POLICIES_PATH, desired)
+        await createPolicy(client, desired)
       }
       deployed.push(spec.name)
     }

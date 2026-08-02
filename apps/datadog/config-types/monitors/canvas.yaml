@@ -1,0 +1,96 @@
+# =============================================================================
+# Canvas Template — Datadog Monitors
+#
+# Declares ONE Datadog Monitor (the item). Operators add as many as they need.
+# Reconciled by monitor `name` (case-insensitive) against GET /api/v1/monitor.
+#
+# `type` is free text rather than a closed picklist: this app's research could
+# not fully confirm Datadog's complete monitor-type enum against one
+# authoritative source (see _shared.ts), so validate.ts only WARNS on an
+# unrecognized value rather than rejecting it — Datadog's own API is the final
+# arbiter and will reject a truly invalid type.
+#
+# Field keys must match config-types/monitors/_shared.ts.
+# API reference: https://docs.datadoghq.com/api/latest/monitors/
+# =============================================================================
+
+id: "datadog-monitors"
+name: "Monitor"
+toolType: "datadog"
+entityType: "monitors"
+description: "Define Datadog Monitors as code through the Monitors API (/api/v1/monitor). Reconciled by monitor name."
+
+item:
+  label: "Monitor"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Monitor"
+      icon: "bell"
+      description: "Identity, query and notification"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The monitor name — this app's logical identity for the monitor (matched case-insensitively against Datadog's live monitors on every deploy)."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "text"
+          required: true
+          defaultValue: "metric alert"
+          helpText: >
+            One of Datadog's monitor types, e.g. metric alert, query alert,
+            log alert, service check, event-v2 alert, process alert, rum
+            alert, trace-analytics alert, slo alert, audit alert, composite,
+            error-tracking alert, database-monitoring alert. An unrecognized
+            value is a WARNING, not an error — Datadog's API is the final
+            arbiter.
+
+        - key: "query"
+          label: "Query"
+          fieldType: "textarea"
+          required: true
+          helpText: 'The monitor query — its shape depends on "type", e.g. avg(last_5m):avg:system.cpu.user{*} > 80 for a metric alert, or logs("status:error").index("main").rollup("count").last("5m") > 100 for a log alert.'
+
+        - key: "message"
+          label: "Message"
+          fieldType: "textarea"
+          required: false
+          helpText: "Notification message. Supports Markdown and @-notifications (e.g. @slack-security-alerts, @pagerduty-oncall)."
+
+        - key: "priority"
+          label: "Priority (1-5, optional)"
+          fieldType: "number"
+          required: false
+          helpText: "1 (highest) through 5 (lowest). Leave blank for no priority."
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          helpText: "Tags attached to this monitor, e.g. team:security, env:production."
+
+    - name: "Options"
+      icon: "code"
+      description: "Thresholds and notification behavior, as JSON"
+      fields:
+        - key: "options"
+          label: "Options (JSON object)"
+          fieldType: "textarea"
+          required: false
+          defaultValue: '{"notify_no_data":false,"renotify_interval":0}'
+          helpText: >
+            A JSON object. Common fields: thresholds ({"critical":..,
+            "warning":.., "ok":.., "critical_recovery":..,
+            "warning_recovery":..}), notify_no_data (bool), no_data_timeframe
+            (minutes), renotify_interval (minutes), renotify_occurrences,
+            notify_audit (bool), timeout_h (0-24), include_tags (bool),
+            require_full_window (bool), new_group_delay (seconds),
+            evaluation_delay (seconds), threshold_windows
+            ({"trigger_window":..,"recovery_window":..}). Leave as {} to use
+            Datadog's defaults.

@@ -1,14 +1,15 @@
 id: authentik
 name: authentik
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage authentik (open-source Identity Provider) as code. Author authentik
-  Applications — the app-facing storefront entries that bind an existing
-  Provider (OAuth2/OIDC, SAML, proxy, LDAP, …) to policy-based access control —
-  and drive them through the Security-as-Code pipeline (validate, deploy, health
-  check, drift detection, rollback) over the authentik Core REST API (HTTPS,
-  self-signed tolerated), authenticated with a static API token.
+  Applications, OAuth2/OpenID Providers, Groups and Flows and drive them through
+  the Security-as-Code pipeline (validate, deploy, health check, drift
+  detection, rollback) over the authentik REST API (HTTPS, self-signed
+  tolerated), authenticated with a static API token. Applications bind to a
+  Provider (now authorable as OAuth2/OpenID Providers) via policy-based access
+  control.
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/authentik
@@ -31,6 +32,15 @@ permissions:
     - resource: applications
       actions: [read, write, delete]
       description: Manage authentik Applications (create / edit / delete)
+    - resource: oauth2-providers
+      actions: [read, write, delete]
+      description: Manage authentik OAuth2/OpenID Providers (create / edit / delete)
+    - resource: groups
+      actions: [read, write, delete]
+      description: Manage authentik Groups (create / edit / delete)
+    - resource: flows
+      actions: [read, write, delete]
+      description: Manage authentik Flows (create / edit / delete)
 
 pipeline:
   configurationTypes:
@@ -47,6 +57,60 @@ pipeline:
         healthCheck: config-types/applications/healthCheck
         driftDetect: config-types/applications/driftDetect
         getStatus: config-types/applications/getStatus
+      targets:
+        componentTypes: [authentik-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: oauth2-providers
+      group: "Providers"
+      name: OAuth2/OpenID Providers
+      description: authentik OAuth2/OpenID Providers — name, authorization/invalidation flow (by Flow UUID), client type/id, signing key, redirect URIs and scope mappings — applied over the authentik Core REST API (/api/v3/providers/oauth2/). Upserts by NAME (the API path key is a server-assigned id); the client secret is never read or captured.
+      canvasTemplate: config-types/oauth2-providers/canvas.yaml
+      defaultConfig: config-types/oauth2-providers/defaults.yaml
+      handlers:
+        validate: config-types/oauth2-providers/validate
+        deploy: config-types/oauth2-providers/deploy
+        rollback: config-types/oauth2-providers/rollback
+        healthCheck: config-types/oauth2-providers/healthCheck
+        driftDetect: config-types/oauth2-providers/driftDetect
+        getStatus: config-types/oauth2-providers/getStatus
+      targets:
+        componentTypes: [authentik-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: groups
+      group: "Directory"
+      name: Groups
+      description: authentik Groups — name, superuser flag, an optional parent group and custom attributes — applied over the authentik Core REST API (/api/v3/core/groups/). Upserts by NAME (the API path key is a server-assigned UUID); group membership and RBAC roles are not authored here.
+      canvasTemplate: config-types/groups/canvas.yaml
+      defaultConfig: config-types/groups/defaults.yaml
+      handlers:
+        validate: config-types/groups/validate
+        deploy: config-types/groups/deploy
+        rollback: config-types/groups/rollback
+        healthCheck: config-types/groups/healthCheck
+        driftDetect: config-types/groups/driftDetect
+        getStatus: config-types/groups/getStatus
+      targets:
+        componentTypes: [authentik-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: flows
+      group: "Flows"
+      name: Flows
+      description: authentik Flows — name, slug, title, designation and required authentication level — applied over the authentik Flows REST API (/api/v3/flows/instances/). A deployed flow's UUID can be referenced by the OAuth2/OpenID Providers configuration type.
+      canvasTemplate: config-types/flows/canvas.yaml
+      defaultConfig: config-types/flows/defaults.yaml
+      handlers:
+        validate: config-types/flows/validate
+        deploy: config-types/flows/deploy
+        rollback: config-types/flows/rollback
+        healthCheck: config-types/flows/healthCheck
+        driftDetect: config-types/flows/driftDetect
+        getStatus: config-types/flows/getStatus
       targets:
         componentTypes: [authentik-server, standalone]
         requiresCredential: true

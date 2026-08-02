@@ -1,7 +1,7 @@
 import React from 'react'
 import { Badge, Card, CardBody, Tabs } from '@veltrixsecops/app-sdk/ui'
 
-const MANAGES = ['Security policies']
+const MANAGES = ['Security policies', 'License policies', 'Watches', 'Ignore rules']
 
 /**
  * Step-by-step connection guide, rendered with the platform design-system
@@ -19,8 +19,9 @@ export default function SetupGuidePage() {
             <p>
               In the JFrog Platform, go to <strong>Administration &gt; User Management &gt; Access
               Tokens</strong> and generate a token scoped to a user or group that has been granted the
-              Xray <strong>Manage Policies</strong> and <strong>Read Policies</strong> permissions. Copy
-              the token — JFrog shows it once.
+              Xray <strong>Manage Policies</strong>, <strong>Read Policies</strong> and{' '}
+              <strong>Manage Watches</strong> permissions (the last one covers both watches and ignore
+              rules). Copy the token — JFrog shows it once.
             </p>
             <div>
               {MANAGES.map((scope) => (
@@ -64,7 +65,7 @@ export default function SetupGuidePage() {
               Register a <strong>jfrog-xray-instance</strong> component whose hostname is your JFrog
               Platform base URL — the same host you use for Artifactory and Xray (e.g.{' '}
               <code>mycompany.jfrog.io</code>, or your self-hosted front door) — and attach the
-              credential. Requests go to <code>https://&lt;host&gt;/xray/api/v2/…</code>.
+              credential. Requests go to <code>https://&lt;host&gt;/xray/api/…</code>.
             </p>
           </CardBody>
         </Card>

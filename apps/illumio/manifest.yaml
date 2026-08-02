@@ -1,17 +1,19 @@
 id: illumio
 name: Illumio
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Illumio Core (Policy Compute Engine) microsegmentation configuration as
-  code through the Illumio REST API v2. This first release covers Labels — the
-  key/value policy objects (role, app, env, loc, or a custom label dimension)
-  that every Illumio ruleset, boundary and map view scopes against — with
+  code through the Illumio REST API v2. Covers Labels (key/value policy
+  objects), IP Lists and Services (named security-policy objects), and
+  Rulesets (label-scoped security rules referencing labels/IP lists/services by
+  name, resolved to hrefs and provisioned into the active policy) — with
   validation, drift detection and rollback handled by the Security-as-Code
   pipeline. Authenticates with a PCE API key (username + secret) over HTTP Basic
-  auth against the org-scoped REST API. Security policy (rule sets, rules,
-  services, IP lists) uses the PCE's draft-then-provision model and is planned
-  for a follow-up release once labels are live.
+  auth against the org-scoped REST API. IP lists, services and rulesets use the
+  PCE's DRAFT-then-PROVISION model: every write lands in the draft policy, then
+  this app provisions (POST /orgs/{org_id}/sec_policy) the changed hrefs into a
+  new active policy version in the same deploy.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/illumio
@@ -34,6 +36,15 @@ permissions:
     - resource: illumio-labels
       actions: [read, write, delete]
       description: Manage Illumio Core labels (key/value policy objects) used to scope rulesets, boundaries and map views
+    - resource: illumio-ip-lists
+      actions: [read, write, delete]
+      description: Manage Illumio Core IP lists (named IP/CIDR ranges and FQDNs), provisioned into the active policy
+    - resource: illumio-services
+      actions: [read, write, delete]
+      description: Manage Illumio Core services (named TCP/UDP/ICMP port definitions), provisioned into the active policy
+    - resource: illumio-rulesets
+      actions: [read, write, delete]
+      description: Manage Illumio Core rulesets (label-scoped security rules referencing labels/IP lists/services), provisioned into the active policy
 
 pipeline:
   configurationTypes:
@@ -59,6 +70,80 @@ pipeline:
         healthCheck: config-types/labels/healthCheck
         driftDetect: config-types/labels/driftDetect
         getStatus: config-types/labels/getStatus
+      targets:
+        componentTypes: [illumio-pce]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ip-lists
+      group: "Policy Objects"
+      name: IP Lists
+      description: >
+        Illumio Core IP lists — named IP/CIDR ranges and/or FQDNs
+        (/orgs/{org_id}/sec_policy/draft/ip_lists). Identity is the list's
+        `name`; deploy lists the org's draft IP lists, upserts by name, and
+        PROVISIONS every changed href (create/update/delete) into a new active
+        policy version in the same deploy. Reconcile only deletes IP lists
+        this app created but no longer declares.
+      canvasTemplate: config-types/ip-lists/canvas.yaml
+      defaultConfig: config-types/ip-lists/defaults.yaml
+      handlers:
+        validate: config-types/ip-lists/validate
+        deploy: config-types/ip-lists/deploy
+        rollback: config-types/ip-lists/rollback
+        healthCheck: config-types/ip-lists/healthCheck
+        driftDetect: config-types/ip-lists/driftDetect
+        getStatus: config-types/ip-lists/getStatus
+      targets:
+        componentTypes: [illumio-pce]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: services
+      group: "Policy Objects"
+      name: Services
+      description: >
+        Illumio Core services — named TCP/UDP/ICMP port definitions
+        (/orgs/{org_id}/sec_policy/draft/services). Identity is the service's
+        `name`; deploy lists the org's draft services, upserts by name, and
+        PROVISIONS every changed href into a new active policy version in the
+        same deploy. Windows services are not supported in this release.
+      canvasTemplate: config-types/services/canvas.yaml
+      defaultConfig: config-types/services/defaults.yaml
+      handlers:
+        validate: config-types/services/validate
+        deploy: config-types/services/deploy
+        rollback: config-types/services/rollback
+        healthCheck: config-types/services/healthCheck
+        driftDetect: config-types/services/driftDetect
+        getStatus: config-types/services/getStatus
+      targets:
+        componentTypes: [illumio-pce]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: rulesets
+      group: "Security Policy"
+      name: Rulesets
+      description: >
+        Illumio Core rulesets — a label scope plus security rules
+        (/orgs/{org_id}/sec_policy/draft/rule_sets, rules at
+        {rule_set_href}/sec_rules). Each rule's providers/consumers reference a
+        label (key+value), an IP list (by name), or "All Workloads"; services
+        reference existing Service names. Every reference is resolved by name
+        to an href and FAILS CLOSED — an unresolved reference skips the whole
+        ruleset rather than deploying a partial rule. Deploy PROVISIONS every
+        changed ruleset href into a new active policy version in the same
+        deploy. One scope group per ruleset is supported in this release.
+      canvasTemplate: config-types/rulesets/canvas.yaml
+      defaultConfig: config-types/rulesets/defaults.yaml
+      handlers:
+        validate: config-types/rulesets/validate
+        deploy: config-types/rulesets/deploy
+        rollback: config-types/rulesets/rollback
+        healthCheck: config-types/rulesets/healthCheck
+        driftDetect: config-types/rulesets/driftDetect
+        getStatus: config-types/rulesets/getStatus
       targets:
         componentTypes: [illumio-pce]
         requiresCredential: true

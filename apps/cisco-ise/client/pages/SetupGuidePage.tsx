@@ -1,7 +1,7 @@
 import React from 'react'
 import { Badge, Card, CardBody, Tabs } from '@veltrixsecops/app-sdk/ui'
 
-const MANAGES = ['Endpoint identity groups']
+const MANAGES = ['Endpoint identity groups', 'Network device groups', 'Network devices', 'Authorization profiles']
 
 /**
  * Step-by-step connection guide, rendered with the platform design-system

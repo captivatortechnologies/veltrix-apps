@@ -204,20 +204,13 @@ async function getJson<T>(url: string, headers: Record<string, string>, opts: { 
   return (parseJson<T>(res.body) ?? ({} as T))
 }
 
-// --- Endpoint Identity Group (EndPointGroup) resource ---------------------
+// --- Generic ERS envelopes ---------------------------------------------------
 
-/** The full resource as read from / written to a single-resource ERS call. */
-export interface EndPointGroup {
-  id?: string
-  name: string
-  description?: string
-  /** Always false for anything this app creates — see the module doc drop note. */
-  systemDefined?: boolean
-  link?: { rel?: string; href?: string; type?: string }
-}
-
-interface EndPointGroupEnvelope {
-  EndPointGroup?: EndPointGroup
+/** The `link` object every ERS resource (summary or full) carries. */
+export interface ErsLink {
+  rel?: string
+  href?: string
+  type?: string
 }
 
 /** The lightweight summary ERS returns inside a SearchResult list. */
@@ -225,7 +218,7 @@ export interface ErsResourceSummary {
   id: string
   name: string
   description?: string
-  link?: { rel?: string; href?: string; type?: string }
+  link?: ErsLink
 }
 
 interface SearchResultEnvelope {
@@ -240,14 +233,16 @@ export function summariesFromSearchResult(list: unknown): ErsResourceSummary[] {
   return Array.isArray(resources) ? resources : []
 }
 
-export function unwrapEndPointGroup(envelope: unknown): EndPointGroup | null {
-  return (envelope as EndPointGroupEnvelope | null)?.EndPointGroup ?? null
+/** Unwrap a single-resource ERS envelope, e.g. `{ EndPointGroup: {...} }`. */
+export function unwrapErsResource<T>(envelope: unknown, wrapperKey: string): T | null {
+  const record = envelope as Record<string, unknown> | null
+  return (record?.[wrapperKey] as T | undefined) ?? null
 }
 
 /**
  * ERS's own id-from-Location convention: a successful POST returns the new
- * resource's URL (`.../ers/config/endpointgroup/<id>`) in the `Location`
- * response header, with no body. Falls back to null when absent so callers can
+ * resource's URL (`.../ers/config/<resource>/<id>`) in the `Location` response
+ * header, with no body. Falls back to null when absent so callers can
  * re-resolve the id by name instead of trusting a guess.
  */
 export function idFromLocationHeader(headers: Record<string, string | string[] | undefined>): string | null {
@@ -258,38 +253,46 @@ export function idFromLocationHeader(headers: Record<string, string | string[] |
   return match ? decodeURIComponent(match[1]) : null
 }
 
-export interface EndpointIdentityGroupsClient {
-  /** List every endpoint identity group (summaries only — id/name/description/link). */
+// --- Generic ERS resource client ---------------------------------------------
+
+export interface ErsResourceClient<T> {
+  /** List every resource (summaries only — id/name/description/link). */
   list(): Promise<ErsResourceSummary[]>
-  /** Find one group by exact name via the ERS name filter. Null when not found. */
+  /** Find one resource by exact name via the ERS name filter. Null when not found. */
   findByName(name: string): Promise<ErsResourceSummary | null>
-  /** Full detail for a group by id. */
-  getById(id: string): Promise<EndPointGroup | null>
-  /** Create a group; returns the new id (from Location, falling back to a name lookup). */
-  create(group: Pick<EndPointGroup, 'name' | 'description'>): Promise<string>
-  /** Replace a group's editable fields by id. */
-  update(id: string, group: Pick<EndPointGroup, 'name' | 'description'>): Promise<void>
+  /** Full detail for a resource by id. Null on a 404. */
+  getById(id: string): Promise<T | null>
+  /** Create a resource; returns the new id (from Location, falling back to a name lookup). */
+  create(body: Omit<T, 'id'>): Promise<string>
+  /** Replace a resource's editable fields by id. */
+  update(id: string, body: Omit<T, 'id'>): Promise<void>
   remove(id: string): Promise<void>
-  /** Cheap reachability probe: GET .../endpointgroup?size=1. Throws on failure. */
+  /** Cheap reachability probe: GET .../<resource>?size=1. Throws on failure. */
   probe(): Promise<{ total: number }>
 }
 
 /**
- * Build a client bound to one ISE connection (base URL + auth headers +
- * transport settings). `endpointgroup` is the only ERS resource this app
- * manages in v0.1.0.
+ * Build a client bound to one ERS resource (endpointgroup, networkdevicegroup,
+ * networkdevice, authorizationprofile, ...) on one ISE connection. Every ERS
+ * resource shares the same list/get/create/update/delete conventions (see the
+ * module doc) — only the URL segment, the single-resource envelope's wrapper
+ * key, and the resource's own field set differ, so this is the ONE transport
+ * implementation every config type's `lib` usage builds on (DRY — see each
+ * config type's `_shared.ts` for its resource-specific field mapping).
  */
-export function buildEndpointIdentityGroupsClient(
+export function buildErsResourceClient<T extends { id?: string; name: string }>(
   base: string,
+  resourceSegment: string,
+  wrapperKey: string,
   credential: CredentialRef,
   settings: IseSettings,
-): EndpointIdentityGroupsClient {
+): ErsResourceClient<T> {
   const headers = buildAuthHeader(credential)
-  const resource = `${base}/endpointgroup`
+  const resource = `${base}/${resourceSegment}`
   const jsonHeaders = { ...headers, 'Content-Type': 'application/json' }
   const opts = { verifyTls: settings.verifyTls, timeoutMs: settings.timeoutMs }
 
-  return {
+  const client: ErsResourceClient<T> = {
     async list() {
       return summariesFromSearchResult(await getJson<unknown>(resource, headers, opts))
     },
@@ -304,31 +307,28 @@ export function buildEndpointIdentityGroupsClient(
       const res = await iseRequest(`${resource}/${encodeURIComponent(id)}`, { headers, ...opts })
       if (res.status === 404) return null
       if (!res.ok) throw new Error(`GET ${resource}/${id} -> HTTP ${res.status}: ${ersErrorMessage(res)}`)
-      return unwrapEndPointGroup(parseJson(res.body))
+      return unwrapErsResource<T>(parseJson(res.body), wrapperKey)
     },
 
-    async create(group) {
-      const body: EndPointGroupEnvelope = {
-        EndPointGroup: { name: group.name, description: group.description ?? '', systemDefined: false },
-      }
-      const res = await iseRequest(resource, { method: 'POST', headers: jsonHeaders, body: JSON.stringify(body), ...opts })
+    async create(body) {
+      const envelope = { [wrapperKey]: body }
+      const res = await iseRequest(resource, { method: 'POST', headers: jsonHeaders, body: JSON.stringify(envelope), ...opts })
       if (!res.ok) throw new Error(`POST ${resource} -> HTTP ${res.status}: ${ersErrorMessage(res)}`)
       const idFromHeader = idFromLocationHeader(res.headers)
       if (idFromHeader) return idFromHeader
       // Defensive fallback — some ERS builds omit Location on a 201; re-resolve by name.
-      const created = await this.findByName(group.name)
-      if (!created) throw new Error(`Created endpoint identity group "${group.name}" but could not resolve its id`)
+      const name = (body as { name?: string }).name ?? ''
+      const created = name ? await client.findByName(name) : null
+      if (!created) throw new Error(`Created "${name}" (${wrapperKey}) but could not resolve its id`)
       return created.id
     },
 
-    async update(id, group) {
-      const body: EndPointGroupEnvelope = {
-        EndPointGroup: { id, name: group.name, description: group.description ?? '', systemDefined: false },
-      }
+    async update(id, body) {
+      const envelope = { [wrapperKey]: { id, ...body } }
       const res = await iseRequest(`${resource}/${encodeURIComponent(id)}`, {
         method: 'PUT',
         headers: jsonHeaders,
-        body: JSON.stringify(body),
+        body: JSON.stringify(envelope),
         ...opts,
       })
       if (!res.ok) throw new Error(`PUT ${resource}/${id} -> HTTP ${res.status}: ${ersErrorMessage(res)}`)
@@ -346,4 +346,111 @@ export function buildEndpointIdentityGroupsClient(
       return { total: parsed?.SearchResult?.total ?? 0 }
     },
   }
+
+  return client
+}
+
+// --- Endpoint Identity Group (EndPointGroup) resource — /ers/config/endpointgroup ---
+// https://developer.cisco.com/docs/identity-services-engine/latest/endpointgroup/
+
+/** The full resource as read from / written to a single-resource ERS call. */
+export interface EndPointGroup {
+  id?: string
+  name: string
+  description?: string
+  /** Always false for anything this app creates — non-system-defined groups only. */
+  systemDefined?: boolean
+  link?: ErsLink
+}
+
+// --- Network Device Group (NetworkDeviceGroup) resource — /ers/config/networkdevicegroup ---
+//
+// Verified against the community pyise-ers ERS client (add_device_group /
+// update_device_group — github.com/falkowich/pyise-ers, pyiseers/pyiseers.py),
+// which is exercised against real ISE deployments. `name` is the FULL
+// "#"-separated path from the NDG root (e.g. "Location#All Locations#SF",
+// "Device Type#All Device Types#Switches"); `othername` is just the root
+// category — the first "#" segment of `name` (built-in roots are "Location",
+// "Device Type" and "IPSEC"; ISE also allows custom root categories).
+//
+// CORRECTION: the coordinator's spec named this field "ndgtype" — the verified
+// ERS field is actually **"othername"**. Implemented with the verified name.
+export interface NetworkDeviceGroup {
+  id?: string
+  name: string
+  description?: string
+  othername?: string
+  link?: ErsLink
+}
+
+/** Derive `othername` (the NDG root category) from a "#"-separated `name`. */
+export function ndgRootFromName(name: string): string {
+  return name.split('#')[0] ?? name
+}
+
+// --- Network Device (NetworkDevice) resource — /ers/config/networkdevice ---
+//
+// Verified against the community pyise-ers ERS client (add_device / get_device
+// — github.com/falkowich/pyise-ers, pyiseers/pyiseers.py). A device must belong
+// to a Location and a Device Type NDG (ISE's admin UI enforces this too), so
+// both default to their "All ..." root when the operator leaves them unset.
+export interface NetworkDeviceIp {
+  ipaddress: string
+  mask: number
+}
+
+export interface NetworkDeviceAuthSettings {
+  networkProtocol?: 'RADIUS'
+  /** ⚠ WRITE-ONLY — see config-types/network-devices' module doc. */
+  radiusSharedSecret?: string
+  /** ERS wants the literal string "true"/"false", not a JSON boolean. */
+  enableKeyWrap?: 'true' | 'false'
+}
+
+export interface NetworkDevice {
+  id?: string
+  name: string
+  description?: string
+  NetworkDeviceIPList?: NetworkDeviceIp[]
+  /** Full "#"-path NDG names this device belongs to, e.g. "Location#All Locations". */
+  NetworkDeviceGroupList?: string[]
+  authenticationSettings?: NetworkDeviceAuthSettings
+  link?: ErsLink
+}
+
+// --- Authorization Profile (AuthorizationProfile) resource — /ers/config/authorizationprofile ---
+//
+// Verified against the official Cisco ISE Ansible collection
+// (github.com/CiscoISE/ansible-ise, plugins/modules/authorization_profile.py),
+// whose modules are generated from Cisco's own ERS/OpenAPI definitions. Fields
+// below are the well-established "standard" (SWITCH) subset this app manages —
+// see config-types/authorization-profiles' module doc for what is scoped out.
+export interface AuthorizationProfileVlan {
+  /** VLAN name or numeric id ISE assigns via RADIUS Tunnel-Private-Group-ID. */
+  nameID: string
+  /** RADIUS tunnel tag (RFC 2868), 0-31. ISE's UI defaults this to 1. */
+  tagID?: number
+}
+
+export interface AuthorizationProfileAdvancedAttribute {
+  /** A RADIUS/vendor dictionary attribute, e.g. "Radius:Session-Timeout" or "Cisco:cisco-av-pair". */
+  leftHandSideDictionaryAttribute?: string
+  rightHandSideAttributeValue?: string
+}
+
+export interface AuthorizationProfile {
+  id?: string
+  name: string
+  description?: string
+  accessType?: 'ACCESS_ACCEPT' | 'ACCESS_REJECT'
+  /** Hardcoded to "SWITCH" by this app — see the drop note in the module doc. */
+  authzProfileType?: 'SWITCH' | 'TRUSTSEC' | 'TACACS'
+  /** Filter-Id ACL name (pre-configured on the network device), independent of a DACL. */
+  acl?: string
+  /** ISE Downloadable ACL (DACL) name. */
+  daclName?: string
+  vlan?: AuthorizationProfileVlan
+  airespaceACL?: string
+  advancedAttributes?: AuthorizationProfileAdvancedAttribute[]
+  link?: ErsLink
 }

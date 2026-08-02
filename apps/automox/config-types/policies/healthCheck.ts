@@ -1,7 +1,9 @@
 import type { HealthCheckContext, HealthCheckResult, HealthCheck } from '@veltrixsecops/app-sdk'
 import { buildAutomoxClient, automoxErrorMessage } from '../../lib/automoxApi'
-import { listPolicies } from './deploy'
-import { extractPolicySpecs, findPolicyByName, type AutomoxPolicy } from './_shared'
+import { listPolicies, findPolicyByName, type AutomoxPolicy } from '../lib/automoxPolicies'
+import { extractPolicySpecs } from './_shared'
+
+const POLICY_TYPE = 'patch' as const
 
 /**
  * Health check for Policy configuration:
@@ -51,7 +53,7 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
 
   if (reachable) {
     for (const spec of extractPolicySpecs(ctx.canvas).filter((s) => s.name)) {
-      const live = findPolicyByName(livePolicies, spec.name)
+      const live = findPolicyByName(livePolicies, spec.name, POLICY_TYPE)
       checks.push({
         name: `policy:${spec.name}`,
         passed: Boolean(live),

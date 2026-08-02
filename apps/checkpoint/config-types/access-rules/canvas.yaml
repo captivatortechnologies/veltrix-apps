@@ -1,0 +1,174 @@
+# =============================================================================
+# Canvas Template — Check Point Access-Control (Firewall) Rules
+#
+# Declares ONE Check Point access rule — the item. Users add as many as they
+# need, across as many layers/packages as needed. A rule's identity is its
+# NAME, matched WITHIN its declared layer + package (a rule can legitimately
+# reuse a name in a different layer). Deploy lists the target rulebase
+# (show-access-rulebase), matches on the name, and uses add-access-rule
+# (create) / set-access-rule (update) to reconcile each declared rule. Rules
+# this app created but no longer declares are removed (delete-access-rule).
+#
+# ORDERING: items are applied top-to-bottom in the order they appear in this
+# canvas. "Above"/"Below" positions reference another rule or section BY
+# NAME, which must already exist — either pre-existing in the rulebase, or an
+# EARLIER item in this same canvas. Declare an anchor rule before anything
+# that positions itself above/below it. Position is re-asserted on every
+# deploy (so manual reordering self-heals), but rollback restores a rule's
+# field values only, not its exact prior position — see README.md.
+#
+# SCOPE: this config type manages FLAT, top-level rules only. Rules filed
+# under a named Section header in SmartConsole are not read, matched, or
+# touched — see README.md.
+#
+# Field keys must match config-types/access-rules/validate.ts.
+# =============================================================================
+
+id: "checkpoint-access-rules"
+name: "Check Point Access Rule Configuration"
+toolType: "checkpoint"
+entityType: "access-rules"
+description: "Define Check Point Management API access-control rules (add-access-rule / set-access-rule) as code. Reconciled by rule name within its layer + package; a session-wide publish commits every change together, or discards them all on any error."
+
+item:
+  label: "Access Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "shield"
+      description: "Rule name and target layer"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The rule's name — its identity within its layer + package. Must
+            be unique per layer+package within this canvas; deploy matches
+            live rules on it.
+
+        - key: "layer"
+          label: "Access Layer"
+          fieldType: "text"
+          required: true
+          helpText: "The access layer this rule belongs to, identified by name (e.g. Network)."
+
+        - key: "package"
+          label: "Policy Package"
+          fieldType: "text"
+          required: false
+          helpText: "Optional — only needed if the layer name above is reused across more than one policy package."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Unchecking disables the rule without deleting it."
+
+    - name: "Action"
+      icon: "zap"
+      description: "What the rule does and logs"
+      fields:
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "Drop"
+          options:
+            - { label: "Accept", value: "Accept" }
+            - { label: "Drop", value: "Drop" }
+            - { label: "Reject", value: "Reject" }
+            - { label: "Ask", value: "Ask" }
+            - { label: "Inform", value: "Inform" }
+          helpText: >
+            Accept / Drop / Reject / Ask / Inform. User Auth, Client Auth and
+            Apply Layer are not modeled by this config type (see README).
+
+        - key: "track"
+          label: "Track"
+          fieldType: "select"
+          required: true
+          defaultValue: "Log"
+          options:
+            - { label: "None", value: "None" }
+            - { label: "Log", value: "Log" }
+            - { label: "Alert", value: "Alert" }
+          helpText: "Logging/tracking applied when the rule matches."
+
+    - name: "Matching"
+      icon: "filter"
+      description: "Source, destination and service — object names, or leave empty for Any"
+      fields:
+        - key: "source"
+          label: "Source"
+          fieldType: "tags"
+          required: false
+          helpText: "Host/network/group object names. Leave empty for Any."
+
+        - key: "sourceNegate"
+          label: "Negate Source"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "destination"
+          label: "Destination"
+          fieldType: "tags"
+          required: false
+          helpText: "Host/network/group object names. Leave empty for Any."
+
+        - key: "destinationNegate"
+          label: "Negate Destination"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "service"
+          label: "Service"
+          fieldType: "tags"
+          required: false
+          helpText: "Service object names. Leave empty for Any."
+
+        - key: "serviceNegate"
+          label: "Negate Service"
+          fieldType: "checkbox"
+          defaultValue: false
+
+    - name: "Position"
+      icon: "arrow-up-down"
+      description: "Where the rule sits in the rulebase"
+      fields:
+        - key: "position"
+          label: "Position"
+          fieldType: "select"
+          required: true
+          defaultValue: "bottom"
+          options:
+            - { label: "Top of the layer", value: "top" }
+            - { label: "Bottom of the layer", value: "bottom" }
+            - { label: "Above another rule/section", value: "above" }
+            - { label: "Below another rule/section", value: "below" }
+          helpText: "Re-asserted on every deploy — see the ordering note at the top of this template."
+
+        - key: "positionAnchor"
+          label: "Relative To"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "position", in: ["above", "below"] }
+          helpText: "The name of an existing rule or section to position above/below. Must already exist (see the ordering note)."
+
+    - name: "Metadata"
+      icon: "tag"
+      description: "Install target and comments"
+      fields:
+        - key: "installOn"
+          label: "Install On"
+          fieldType: "tags"
+          required: false
+          helpText: "Gateway/cluster object names. Leave empty to not manage this field — the rule's existing install target (or Check Point's own default) is left alone."
+
+        - key: "comments"
+          label: "Comments"
+          fieldType: "textarea"
+          required: false

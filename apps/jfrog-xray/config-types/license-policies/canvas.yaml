@@ -1,0 +1,183 @@
+# =============================================================================
+# Canvas Template — JFrog Xray License Policies
+#
+# Declares ONE Xray license policy (the item) — a policy of `type: "license"`
+# against the SAME /xray/api/v2/policies endpoints as security-policies, just a
+# different criteria shape (allowed/banned licenses, unknown-license handling).
+# Users add as many as they need. Identified for reconciliation by its `name`.
+#
+# The "Actions" groups below are intentionally identical to
+# config-types/security-policies/canvas.yaml — the actions schema is the same
+# for every Xray policy type (verified against JFrog's own Terraform provider
+# docs; see config-types/license-policies/deploy.ts header for citations).
+#
+# Field keys must match config-types/license-policies/_shared.ts.
+# =============================================================================
+
+id: "jfrog-xray-license-policies"
+name: "Xray License Policy"
+toolType: "jfrog-xray"
+entityType: "license-policies"
+description: "Define JFrog Xray license policies as code through the Xray REST API v2. Reconciled by policy name; each policy gates on allowed/banned OSS licenses (and unknown-license handling) with build/release-blocking, notification and ticketing actions."
+
+item:
+  label: "License Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Identity and description"
+      fields:
+        - key: "name"
+          label: "Policy Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 200
+          helpText: "The policy's logical identity in Xray — also the URL path segment for reads/updates/deletes, so avoid \"/\" or \"\\\"."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Xray console."
+
+    - name: "Rule"
+      icon: "list"
+      description: "The policy's primary rule"
+      fields:
+        - key: "rule_name"
+          label: "Rule Name"
+          fieldType: "text"
+          required: true
+          defaultValue: "default-rule"
+          helpText: "Every Xray rule needs its own name, distinct from the policy name."
+
+        - key: "priority"
+          label: "Priority"
+          fieldType: "number"
+          validation:
+            min: 1
+          helpText: "Evaluation order among this policy's rules — lower runs first. Leave blank to let Xray assign the default order."
+
+    - name: "Criteria — Licenses"
+      icon: "alert-triangle"
+      description: "The license gate this rule matches"
+      fields:
+        - key: "allowed_licenses"
+          label: "Allowed Licenses"
+          fieldType: "tags"
+          helpText: 'SPDX license identifiers this rule allows, e.g. "MIT", "Apache-2.0". Any component whose license is NOT in this list is a violation. Leave empty if you are only banning specific licenses instead.'
+
+        - key: "banned_licenses"
+          label: "Banned Licenses"
+          fieldType: "tags"
+          helpText: 'SPDX license identifiers this rule forbids, e.g. "GPL-3.0-only", "AGPL-3.0-only". Any component using one of these is a violation.'
+
+        - key: "allow_unknown"
+          label: "Flag unknown licenses"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, a component whose license Xray cannot determine is also treated as a violation."
+
+        - key: "multi_license_permissive"
+          label: "Permissive on multi-license components"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When a component declares multiple licenses, do not flag a violation as long as at least one of them is allowed."
+
+    - name: "Actions — Build & Release"
+      icon: "ban"
+      description: "What happens when the rule matches"
+      fields:
+        - key: "fail_build"
+          label: "Fail build"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "build_failure_grace_period_days"
+          label: "Build failure grace period (days)"
+          fieldType: "number"
+          validation:
+            min: 0
+          helpText: "Delay build failures by this many days after a match is first found. Only applies when \"Fail build\" is on."
+
+        - key: "block_download_unscanned"
+          label: "Block download of unscanned artifacts"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_download_active"
+          label: "Block download of violating artifacts"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_release_bundle_distribution"
+          label: "Block release bundle distribution"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_release_bundle_promotion"
+          label: "Block release bundle promotion"
+          fieldType: "checkbox"
+          defaultValue: false
+
+    - name: "Actions — Notify"
+      icon: "bell"
+      description: "Who gets told"
+      fields:
+        - key: "notify_watch_recipients"
+          label: "Notify watch recipients"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Notify the recipients configured on any watch this policy is assigned to."
+
+        - key: "notify_deployer"
+          label: "Notify deployer"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "mails"
+          label: "Additional email recipients"
+          fieldType: "tags"
+          helpText: "Extra email addresses to notify, beyond a watch's own recipients."
+
+        - key: "webhooks"
+          label: "Webhooks"
+          fieldType: "tags"
+          helpText: "Names of webhook integrations already configured in Xray (Administration > General > Webhooks)."
+
+        - key: "create_ticket_enabled"
+          label: "Create a ticket"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Requires a Jira integration already configured in Xray."
+
+        - key: "fail_pull_request"
+          label: "Fail pull request checks"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "JFrog Advanced Security Git-repository scanning only."
+
+    - name: "Advanced (JSON)"
+      icon: "code"
+      description: "Escape valves for anything the fields above don't cover"
+      fields:
+        - key: "criteria_json"
+          label: "Additional Criteria (JSON)"
+          fieldType: "textarea"
+          helpText: 'Extra criteria fields merged into this rule''s criteria. The typed fields above win on a key collision.'
+
+        - key: "actions_json"
+          label: "Additional Actions (JSON)"
+          fieldType: "textarea"
+          helpText: 'Extra action fields merged into this rule''s actions, e.g. {"custom_severity":"High"}. The typed fields above win on a key collision.'
+
+        - key: "additional_rules_json"
+          label: "Additional Rules (JSON)"
+          fieldType: "textarea"
+          validation:
+            maxLength: 8000
+          helpText: 'Extra rules appended after the primary rule above, for multi-tier policies — a JSON array of {"name","criteria","actions"} objects.'

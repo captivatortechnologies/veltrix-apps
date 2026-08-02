@@ -1,7 +1,7 @@
 import React from 'react'
 import { Badge, Card, CardBody, Tabs } from '@veltrixsecops/app-sdk/ui'
 
-const MANAGES = ['Scripts']
+const MANAGES = ['Scripts', 'Categories', 'Smart Computer Groups', 'Policies']
 
 /**
  * Step-by-step connection guide, rendered with the platform design-system
@@ -30,9 +30,12 @@ export default function SetupGuidePage() {
             </div>
             <p>
               Specifically, grant <strong>Read</strong>, <strong>Create</strong>, <strong>Update</strong> and{' '}
-              <strong>Delete</strong> under <strong>Jamf Pro Server Objects &gt; Scripts</strong>. Set the
-              account type to <strong>API Only</strong> — it authenticates via username/password, exchanged for
-              a short-lived Bearer token, and never signs in to the Jamf Pro console.
+              <strong>Delete</strong> under <strong>Jamf Pro Server Objects &gt; Scripts</strong>,{' '}
+              <strong>Categories</strong>, <strong>Smart Computer Groups</strong> and <strong>Policies</strong>{' '}
+              (add <strong>Read</strong> on <strong>Packages</strong> too, if any policy deploys one — package
+              binaries themselves are not managed by this app). Set the account type to{' '}
+              <strong>API Only</strong> — it authenticates via username/password, exchanged for a short-lived
+              Bearer token, and never signs in to the Jamf Pro console.
             </p>
           </CardBody>
         </Card>

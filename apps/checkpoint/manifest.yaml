@@ -1,14 +1,16 @@
 id: checkpoint
 name: Check Point
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Check Point Security Management Server configuration as code through
-  the Check Point Management API (web_api) — starting with network host
-  objects (add-host / set-host / delete-host), with validation, drift
-  detection and rollback handled by the Security-as-Code pipeline. Every
-  deploy runs inside one Management API session: login, make changes, publish
-  (or discard on any error), then logout.
+  the Check Point Management API (web_api) — network host objects, network
+  (subnet) objects, TCP/UDP service objects, and access-control rules
+  (add-access-rule / set-access-rule / delete-access-rule /
+  show-access-rulebase) — with validation, drift detection and rollback
+  handled by the Security-as-Code pipeline. Every deploy runs inside one
+  Management API session: login, make changes, publish (or discard on any
+  error), then logout.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/checkpoint
@@ -32,11 +34,21 @@ permissions:
     - resource: network-hosts
       actions: [read, write, delete]
       description: Manage Check Point network host objects (add-host / set-host / delete-host) in the management database
+    - resource: network-objects
+      actions: [read, write, delete]
+      description: Manage Check Point network (subnet) objects (add-network / set-network / delete-network) in the management database
+    - resource: service-objects
+      actions: [read, write, delete]
+      description: Manage Check Point TCP/UDP service objects (add-service-tcp / add-service-udp and their set-/delete- counterparts) in the management database
+    - resource: access-rules
+      actions: [read, write, delete]
+      description: Manage Check Point access-control (firewall) rules (add-access-rule / set-access-rule / delete-access-rule) in a target access layer's rulebase
 
 pipeline:
   configurationTypes:
     - id: network-hosts
       name: Network Hosts
+      group: "Objects"
       description: >
         Host objects (add-host / set-host / delete-host / show-host(s));
         identity by object name. Missing hosts are created, existing ones are
@@ -52,6 +64,76 @@ pipeline:
         healthCheck: config-types/network-hosts/healthCheck
         driftDetect: config-types/network-hosts/driftDetect
         getStatus: config-types/network-hosts/getStatus
+      targets:
+        componentTypes: [checkpoint-management]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: network-objects
+      name: Network Objects
+      group: "Objects"
+      description: >
+        Network (subnet) objects (add-network / set-network / delete-network /
+        show-network(s)); identity by object name. Missing networks are
+        created, existing ones are updated to the declared spec, and networks
+        this app previously created but no longer declares are removed.
+      canvasTemplate: config-types/network-objects/canvas.yaml
+      defaultConfig: config-types/network-objects/defaults.yaml
+      handlers:
+        validate: config-types/network-objects/validate
+        deploy: config-types/network-objects/deploy
+        rollback: config-types/network-objects/rollback
+        healthCheck: config-types/network-objects/healthCheck
+        driftDetect: config-types/network-objects/driftDetect
+        getStatus: config-types/network-objects/getStatus
+      targets:
+        componentTypes: [checkpoint-management]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: service-objects
+      name: Service Objects
+      group: "Objects"
+      description: >
+        TCP or UDP service objects (add-service-tcp / add-service-udp and
+        their set-/delete- counterparts, per the declared protocol); identity
+        by object name. Missing services are created, existing ones are
+        updated to the declared spec, and services this app previously
+        created but no longer declares are removed.
+      canvasTemplate: config-types/service-objects/canvas.yaml
+      defaultConfig: config-types/service-objects/defaults.yaml
+      handlers:
+        validate: config-types/service-objects/validate
+        deploy: config-types/service-objects/deploy
+        rollback: config-types/service-objects/rollback
+        healthCheck: config-types/service-objects/healthCheck
+        driftDetect: config-types/service-objects/driftDetect
+        getStatus: config-types/service-objects/getStatus
+      targets:
+        componentTypes: [checkpoint-management]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: access-rules
+      name: Access Rules
+      group: "Policy"
+      description: >
+        Access-control (firewall) rules (add-access-rule / set-access-rule /
+        delete-access-rule against show-access-rulebase) on a declared access
+        layer / policy package; identity by rule name, unique per
+        layer+package. Rules reference host/network/service objects by name.
+        Position (top / bottom / above / below another named rule) is
+        re-asserted on every deploy. See README.md for the ordering and
+        publish-semantics assumptions this config type makes.
+      canvasTemplate: config-types/access-rules/canvas.yaml
+      defaultConfig: config-types/access-rules/defaults.yaml
+      handlers:
+        validate: config-types/access-rules/validate
+        deploy: config-types/access-rules/deploy
+        rollback: config-types/access-rules/rollback
+        healthCheck: config-types/access-rules/healthCheck
+        driftDetect: config-types/access-rules/driftDetect
+        getStatus: config-types/access-rules/getStatus
       targets:
         componentTypes: [checkpoint-management]
         requiresCredential: true

@@ -1,0 +1,57 @@
+# =============================================================================
+# Canvas Template — Cisco Meraki MX L7 (Application-Layer) Firewall Rules
+#
+# Same ordered-SINGLETON-per-network shape as L3 Firewall Rules: Meraki stores
+# the whole L7 ruleset as ONE ordered list per network, evaluated top-to-bottom
+# ON TOP OF the L3 posture (L7 rules only ever "deny" — there is no L7 allow).
+# One canvas item manages one network's L7 ruleset, identified by `network_id`.
+# Field keys must match config-types/l7-firewall-rules/validate.ts. Applied via
+# the Meraki Dashboard API v1
+# (PUT /networks/{networkId}/appliance/firewall/l7FirewallRules).
+# =============================================================================
+
+id: "cisco-meraki-l7-firewall-rules"
+name: "L7 Firewall Rules"
+toolType: "cisco-meraki"
+entityType: "l7-firewall-rules"
+description: "Manage a Meraki network's MX L7 (application-layer) firewall ruleset as code — one ordered list per network, applied as a whole-list replace via the Meraki Dashboard API."
+
+item:
+  label: "Network L7 Ruleset"
+  identityField: "network_id"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Network"
+      icon: "network"
+      description: "The Meraki network this ruleset applies to"
+      fields:
+        - key: "network_id"
+          label: "Meraki Network ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_-]+$"
+            maxLength: 64
+          helpText: "The Meraki Dashboard network id (e.g. L_646829496481099008 or N_646829496481099008) whose MX L7 application-layer firewall ruleset this item manages."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this ruleset is configured — recorded for your own record-keeping only; not sent to Meraki."
+
+    - name: "Firewall Rules"
+      icon: "shield"
+      description: "The ordered application-layer block rules, evaluated top to bottom"
+      fields:
+        - key: "rules"
+          label: "Rules (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 200000
+          helpText: 'The ordered L7 ruleset as JSON — a bare [ ... ] array or a { "rules": [...] } object. Each rule is { "policy": "deny", "type": "application"|"applicationCategory"|"host"|"port"|"ipRange"|"allowedCountries"|"blockedCountries", "value": ... } — value is a string for host/port/ipRange, an array of ISO country codes for allowedCountries/blockedCountries, and an object (application/category id) for application/applicationCategory. L7 has no "allow" policy. Order is significant.'

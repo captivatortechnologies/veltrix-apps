@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-jamf",
   "private": true,
-  "version": "0.1.0",
-  "description": "Veltrix app: manage Jamf Pro (Apple MDM / endpoint management) configuration as code — scripts — through the modern Jamf Pro API",
+  "version": "0.2.0",
+  "description": "Veltrix app: manage Jamf Pro (Apple MDM / endpoint management) configuration as code — scripts, categories, smart computer groups and policies — through the modern Jamf Pro API and the legacy Classic (XML) API",
   "scripts": { "typecheck": "tsc --noEmit" },
   "devDependencies": {
     "@types/jest": "^29.5.14",

@@ -1,0 +1,58 @@
+# =============================================================================
+# Canvas Template — Jamf Pro Smart Computer Groups
+#
+# Declares ONE Jamf Pro smart computer group — the item. Users add as many as
+# they need. Smart groups are still CLASSIC-API only (XML,
+# https://<host>/JSSResource/computergroups) — the modern Jamf Pro API only
+# offers a read-only mirror for this resource. Reconciled by group name.
+#
+# NOTE: Jamf Pro does not enforce unique computer-group names server-side —
+# this canvas rejects duplicate names among the groups YOU declare, but if the
+# live tenant already has more than one group sharing a name (created outside
+# Veltrix), the first one Jamf Pro returns is treated as the match.
+#
+# Field keys must match config-types/smart-computer-groups/validate.ts.
+# =============================================================================
+
+id: "jamf-smart-computer-groups"
+name: "Jamf Pro Smart Computer Group Configuration"
+toolType: "jamf"
+entityType: "smart-computer-groups"
+description: "Declare Jamf Pro smart computer groups as code through the Classic API (XML, /JSSResource/computergroups). Reconciled by group name; missing groups are created and existing ones are updated to the declared criteria."
+
+item:
+  label: "Smart Computer Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 300
+  groups:
+    - name: "Identity"
+      icon: "users"
+      description: "Name"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The group's display name in Jamf Pro — its logical identity for reconciliation. Referenced by name from a Policy's scope."
+
+    - name: "Criteria"
+      icon: "filter"
+      description: "The matching logic Jamf Pro evaluates against every computer's inventory"
+      fields:
+        - key: "criteria_json"
+          label: "Criteria (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >-
+            A JSON array of criteria, evaluated top-to-bottom exactly as Jamf Pro's own smart-group editor shows
+            them. Each item: {"name": "<inventory attribute, e.g. Operating System Version>",
+            "searchType": "<e.g. is, is not, more than x days ago, like>", "value": "<the value to compare>",
+            "andOr": "and"|"or" (optional, default "and"), "priority": <number, optional — evaluation order>,
+            "openingParen": true|false (optional), "closingParen": true|false (optional)}.
+            Example: [{"name":"Operating System Version","searchType":"is","value":"14.6"},
+            {"name":"Last Inventory Update","searchType":"more than x days ago","value":"7","andOr":"and"}].
+            The criterion name and search type are freeform — Jamf Pro validates the combination when this
+            deploys (its own UI derives valid search types from the chosen inventory attribute; that mapping
+            has no API to query generically).

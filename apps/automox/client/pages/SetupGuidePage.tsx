@@ -61,19 +61,26 @@ export default function SetupGuidePage() {
           <CardBody>
             <p>
               Saving a connection registers an <strong>automox-org</strong> deploy target automatically.
-              Then author a <strong>Policies</strong> configuration in the Configuration Canvas and
-              deploy it through the pipeline. A policy's <strong>name</strong> is its identity —
-              renaming a policy in the canvas updates the same Automox policy in place rather than
-              creating a duplicate.
+              Then author a configuration in the Configuration Canvas and deploy it through the
+              pipeline. An item's <strong>name</strong> is its identity — renaming it in the canvas
+              updates the same Automox object in place rather than creating a duplicate.
             </p>
-            <p>
-              <strong>Patch</strong> policies are modeled in full (schedule, patch rule, filters,
-              notifications, device targeting). <strong>Required Software</strong> and{' '}
-              <strong>Custom (Worklet)</strong> policies take a raw Configuration (JSON) object — their
-              full schemas are not yet modeled by this app; author the type-specific fields (e.g.{' '}
-              <code>package_name</code> / <code>installation_code</code> for Required Software) directly
-              as JSON in the policy item.
-            </p>
+            <ul>
+              <li>
+                <strong>Policies</strong> — patch policies (schedule, patch rule, filters,
+                notifications, device targeting).
+              </li>
+              <li>
+                <strong>Worklets</strong> — Custom (Worklet) policies (evaluation/remediation scripts)
+                and Required Software policies (package name/version/installer). Reconciled
+                independently from Policies, so a Worklet can share a name with a patch Policy without
+                either overwriting the other.
+              </li>
+              <li>
+                <strong>Server Groups</strong> — device groups, patch scan cadence, and WSUS / OS
+                update enforcement.
+              </li>
+            </ul>
           </CardBody>
         </Card>
       ),

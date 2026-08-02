@@ -1,0 +1,53 @@
+# =============================================================================
+# Canvas Template — Cisco ISE Network Device Groups
+#
+# Declares ONE Network Device Group (NDG) — the item. Users add as many as they
+# need. Field keys must match config-types/network-device-groups/_shared.ts.
+# Applied via the ISE ERS API (POST/PUT/DELETE /ers/config/networkdevicegroup).
+#
+# ISE organizes NDGs into hierarchies rooted at a category (built-in: Location,
+# Device Type, IPSEC; custom roots are also allowed). The ERS `name` field is
+# the FULL "#"-separated path from that root, e.g. "Location#All
+# Locations#SanJose" or "Device Type#All Device Types#Switches" — NOT just the
+# leaf value. This app derives the ERS `othername` field (the root category)
+# automatically from the first "#" segment of `name`, mirroring how ISE itself
+# treats the hierarchy — see lib/iseApi.ts's ndgRootFromName.
+# =============================================================================
+
+id: "cisco-ise-network-device-groups"
+name: "Network Device Groups"
+toolType: "cisco-ise"
+entityType: "network-device-groups"
+description: "Manage Cisco ISE Network Device Groups (NDGs) — the Location / Device Type / custom hierarchies used to classify network devices for authorization policy — via the ERS API (/ers/config/networkdevicegroup)"
+
+item:
+  label: "Network Device Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Group"
+      icon: "layers"
+      description: "Network device group identity and description"
+      fields:
+        - key: "name"
+          label: "Name (full path)"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The FULL "#"-separated path from the NDG root, e.g. "Location#All
+            Locations#SanJose" or "Device Type#All Device Types#Switches". A name
+            with no "#" (e.g. "MyCustomCategory") creates a new ROOT category
+            rather than a child under an existing one. Used as the stable identity
+            for upsert and drift.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this group is for — recorded on the group in ISE."

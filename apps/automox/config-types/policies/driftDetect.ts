@@ -1,14 +1,16 @@
 import type { DriftContext, DriftResult, DriftDiff } from '@veltrixsecops/app-sdk'
 import { buildAutomoxClient } from '../../lib/automoxApi'
-import { listPolicies, getPolicyById } from './deploy'
-import { extractPolicySpecs, buildConfiguration, findPolicyByName, type AutomoxPolicy } from './_shared'
+import { listPolicies, getPolicyById, findPolicyByName, type AutomoxPolicy } from '../lib/automoxPolicies'
+import { extractPolicySpecs, buildPatchConfiguration } from './_shared'
+
+const POLICY_TYPE = 'patch' as const
 
 /**
  * Detect drift between the deployed Policy configuration and the live org.
- * Re-finds each declared policy by name and diffs the managed state:
- * existence (critical); schedule (days/time), and for patch policies
- * auto_patch/auto_reboot/notify_user/patch_rule (warning); server_groups and
- * notes (info).
+ * Re-finds each declared policy by name (scoped to `policy_type_name: patch`)
+ * and diffs the managed state: existence (critical); schedule (days/time),
+ * and auto_patch/auto_reboot/notify_user/patch_rule (warning); server_groups
+ * and notes (info).
  *
  * Best-effort: if the org can't be read the check reports no drift rather than
  * raising a false positive.
@@ -30,7 +32,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   }
 
   for (const spec of specs) {
-    const match = findPolicyByName(livePolicies, spec.name)
+    const match = findPolicyByName(livePolicies, spec.name, POLICY_TYPE)
     if (!match || !match.id) {
       diffs.push({ field: spec.name, expected: 'exists', actual: 'missing', severity: 'critical' })
       continue
@@ -71,21 +73,19 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
       diffs.push({ field: `${spec.name}.notes`, expected: 'as declared', actual: 'changed in Automox', severity: 'info' })
     }
 
-    if (spec.policyTypeName === 'patch') {
-      const liveConfig = live.configuration ?? {}
-      const builtConfig = buildConfiguration(spec)
-      if (!builtConfig.error) {
-        for (const field of ['auto_patch', 'auto_reboot', 'notify_user', 'patch_rule'] as const) {
-          const expected = builtConfig.configuration[field]
-          const actual = liveConfig[field]
-          if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-            diffs.push({
-              field: `${spec.name}.configuration.${field}`,
-              expected: String(expected),
-              actual: actual === undefined ? 'not set' : String(actual),
-              severity: 'warning',
-            })
-          }
+    const liveConfig = live.configuration ?? {}
+    const builtConfig = buildPatchConfiguration(spec)
+    if (!builtConfig.error) {
+      for (const field of ['auto_patch', 'auto_reboot', 'notify_user', 'patch_rule'] as const) {
+        const expected = builtConfig.configuration[field]
+        const actual = liveConfig[field]
+        if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+          diffs.push({
+            field: `${spec.name}.configuration.${field}`,
+            expected: String(expected),
+            actual: actual === undefined ? 'not set' : String(actual),
+            severity: 'warning',
+          })
         }
       }
     }

@@ -1,0 +1,6 @@
+# Defaults for a new Log Pipeline item.
+#
+# Intentionally minimal: the per-field defaultValue in canvas.yaml already
+# seeds is_enabled and processors. Any values here would be a FLAT map keyed
+# by the canvas field keys (name, description, is_enabled, filter_query,
+# processors).

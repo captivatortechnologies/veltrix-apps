@@ -1,11 +1,13 @@
 import type { RollbackContext, RollbackResult } from '@veltrixsecops/app-sdk'
 import {
   ersBase,
-  buildEndpointIdentityGroupsClient,
+  buildErsResourceClient,
   readIseSettings,
   hasUsableCredential,
   MISSING_CREDENTIAL_MESSAGE,
+  type EndPointGroup,
 } from '../../lib/iseApi'
+import { toEndPointGroupBody } from './_shared'
 import type { RollbackEntry } from './deploy'
 
 /**
@@ -26,7 +28,7 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
 
   const settings = readIseSettings(ctx.settings)
   const base = ersBase(component, connectivity, connectivityProvider)
-  const client = buildEndpointIdentityGroupsClient(base, credential, settings)
+  const client = buildErsResourceClient<EndPointGroup>(base, 'endpointgroup', 'EndPointGroup', credential, settings)
 
   let restored = 0
   let deleted = 0
@@ -39,7 +41,10 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
         continue
       }
       if (entry.group) {
-        await client.update(entry.id, { name: entry.group.name ?? entry.name, description: entry.group.description ?? '' })
+        await client.update(
+          entry.id,
+          toEndPointGroupBody({ name: entry.group.name ?? entry.name, description: entry.group.description ?? '' }),
+        )
         restored++
       } else {
         await client.remove(entry.id)

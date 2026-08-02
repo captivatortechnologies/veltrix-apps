@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-checkpoint",
   "private": true,
-  "version": "0.1.0",
-  "description": "Veltrix app: manage Check Point Security Management Server configuration as code through the Management API (web_api) — network host objects, with a session login/publish/discard/logout model",
+  "version": "0.2.0",
+  "description": "Veltrix app: manage Check Point Security Management Server configuration as code through the Management API (web_api) — network host/network/service objects and access-control rules — with a session login/publish/discard/logout model",
   "scripts": { "typecheck": "tsc --noEmit" },
   "devDependencies": {
     "@types/jest": "^29.5.14",

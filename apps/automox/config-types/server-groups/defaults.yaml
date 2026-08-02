@@ -1,0 +1,5 @@
+# Defaults for a new Server Group item. Intentionally minimal: the canvas
+# fields already declare their own defaultValue (refresh_interval: 1440,
+# enable_os_auto_update/enable_wsus: "keep") — anything set here would be a
+# FLAT map keyed by the canvas field keys (see
+# config-types/server-groups/canvas.yaml), applied when a user adds a new item.

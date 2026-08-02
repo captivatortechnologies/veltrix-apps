@@ -1,0 +1,227 @@
+# =============================================================================
+# Canvas Template — Automox Worklets & Required Software
+#
+# Declares ONE Automox Custom (Worklet) or Required Software policy (the
+# item), matched on its NAME (the logical identity used for upsert and drift)
+# scoped to its own type — see config-types/lib/automoxPolicies.findPolicyByName.
+# Field keys must match config-types/worklets/_shared.ts (extractWorkletSpecs).
+#
+# Both types write to the SAME underlying /policies resource as the `policies`
+# (patch) config type, just with policy_type_name = custom | required_software
+# and a different `configuration` shape:
+#   GET/POST   /policies?o=<organizationId>
+#   GET/PUT/DELETE /policies/{id}?o=<organizationId>
+# Auth is `Authorization: Bearer <api key>`.
+# =============================================================================
+
+id: "automox-worklets"
+name: "Worklet"
+toolType: "automox"
+entityType: "worklets"
+description: "Define Automox Custom (Worklet) and Required Software policies as code through the Automox Console API (/policies)."
+
+item:
+  label: "Worklet"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Worklet"
+      icon: "shield"
+      description: "Identity and type"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The policy's display name. Must be unique within this canvas — this is the stable identity used to find, update and drift-check the policy on each deploy."
+
+        - key: "worklet_type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "custom"
+          options:
+            - { label: "Custom (Worklet)", value: "custom" }
+            - { label: "Required Software", value: "required_software" }
+          helpText: "Custom (Worklet) policies run your own evaluation/remediation scripts. Required Software policies install a specific package version."
+
+        - key: "notes"
+          label: "Notes"
+          fieldType: "textarea"
+          helpText: "Free-text notes shown on the policy in the Automox Console. Required by the API — leave empty to send an empty string."
+
+        - key: "server_groups"
+          label: "Server Group IDs"
+          fieldType: "tags"
+          helpText: "Automox Server Group ids this policy applies to (numeric ids — see the Server Groups config type, or the Automox Console). Leave empty to leave the policy unassigned to any group."
+
+    - name: "Schedule"
+      icon: "calendar"
+      description: "When the policy runs"
+      fields:
+        - key: "schedule_days"
+          label: "Schedule Days"
+          fieldType: "multiselect"
+          options:
+            - { label: "Sunday", value: "sunday" }
+            - { label: "Monday", value: "monday" }
+            - { label: "Tuesday", value: "tuesday" }
+            - { label: "Wednesday", value: "wednesday" }
+            - { label: "Thursday", value: "thursday" }
+            - { label: "Friday", value: "friday" }
+            - { label: "Saturday", value: "saturday" }
+          helpText: "Days of the week the policy runs. Converted to the Automox schedule_days bitmask. Leave empty to deploy the policy unscheduled (it will not run automatically)."
+
+        - key: "schedule_time"
+          label: "Schedule Time"
+          fieldType: "text"
+          defaultValue: "00:00"
+          validation:
+            pattern: "^([01]\\d|2[0-3]):[0-5]\\d$"
+          helpText: "24-hour time the policy runs on its scheduled days, e.g. \"02:00\"."
+
+        - key: "schedule_weeks_of_month"
+          label: "Schedule Weeks of Month (advanced)"
+          fieldType: "number"
+          helpText: "Automox bitmask for which weeks of the month the policy runs. Leave blank to run every week (auto-set to 62) whenever Schedule Days is non-empty."
+
+        - key: "schedule_months"
+          label: "Schedule Months (advanced)"
+          fieldType: "number"
+          helpText: "Automox bitmask for which months the policy runs. Leave blank to run every month (auto-set to 8190) whenever Schedule Days is non-empty."
+
+        - key: "use_scheduled_timezone"
+          label: "Use Scheduled Timezone"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Run the schedule in a specific timezone rather than each device's local time."
+
+        - key: "scheduled_timezone"
+          label: "Scheduled Timezone"
+          fieldType: "text"
+          visibleWhen:
+            field: "use_scheduled_timezone"
+            equals: true
+          helpText: "IANA timezone name, e.g. \"America/Denver\". Required when Use Scheduled Timezone is enabled."
+
+    - name: "Behavior"
+      icon: "settings"
+      description: "Common to both Worklet types"
+      fields:
+        - key: "os_family"
+          label: "OS Family"
+          fieldType: "select"
+          defaultValue: "Windows"
+          options:
+            - { label: "Windows", value: "Windows" }
+            - { label: "Mac", value: "Mac" }
+            - { label: "Linux", value: "Linux" }
+          helpText: "The OS family this policy targets. Enum-constrained by Automox for Custom (Worklet) policies; used as a fixed choice here for Required Software too."
+
+        - key: "missed_patch_window"
+          label: "Missed Patch Window"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Run the policy as soon as possible if a device missed its scheduled window."
+
+        - key: "device_filters_json"
+          label: "Device Filters (JSON)"
+          fieldType: "textarea"
+          helpText: >-
+            Optional JSON array of device targeting clauses, e.g.
+            [{"field":"tag","op":"in","value":["Windows","Win10"]}]. field: tag |
+            hostname | ip_addr | os_family | os_version_id | organizational_unit.
+            op: in | not_in | like_any | not_like_any. Leave empty for no
+            device-level targeting.
+
+    - name: "Custom (Worklet)"
+      icon: "code"
+      description: "Fields used when Type = Custom (Worklet)"
+      fields:
+        - key: "auto_reboot"
+          label: "Auto Reboot"
+          fieldType: "checkbox"
+          defaultValue: true
+          visibleWhen:
+            field: "worklet_type"
+            equals: "custom"
+          helpText: "Automatically reboot devices when the worklet requires it. Required by the Automox API for a Custom (Worklet) policy."
+
+        - key: "notify_reboot_user"
+          label: "Notify User Before Reboot"
+          fieldType: "checkbox"
+          defaultValue: true
+          visibleWhen:
+            field: "worklet_type"
+            equals: "custom"
+          helpText: "Show a notification 15 minutes before a reboot that follows the worklet."
+
+        - key: "evaluation_code"
+          label: "Evaluation Code"
+          fieldType: "textarea"
+          visibleWhen:
+            field: "worklet_type"
+            equals: "custom"
+          helpText: "The script that evaluates whether a device is compliant. Required for a Custom (Worklet) policy."
+
+        - key: "remediation_code"
+          label: "Remediation Code"
+          fieldType: "textarea"
+          visibleWhen:
+            field: "worklet_type"
+            equals: "custom"
+          helpText: "The script that remediates a non-compliant device. Optional — omit for an evaluation-only (detection) worklet."
+
+    - name: "Required Software"
+      icon: "package"
+      description: "Fields used when Type = Required Software"
+      fields:
+        - key: "package_name"
+          label: "Package Name"
+          fieldType: "text"
+          visibleWhen:
+            field: "worklet_type"
+            equals: "required_software"
+          helpText: "Required. The software package name, e.g. \"NotePadPlusPlus\"."
+
+        - key: "package_version"
+          label: "Package Version"
+          fieldType: "text"
+          visibleWhen:
+            field: "worklet_type"
+            equals: "required_software"
+          helpText: "Required. The version this policy enforces, e.g. \"7.8.4\"."
+
+        - key: "installation_code"
+          label: "Installation Code"
+          fieldType: "textarea"
+          visibleWhen:
+            field: "worklet_type"
+            equals: "required_software"
+          helpText: "Required. The install command/script Automox runs on a non-compliant device."
+
+        - key: "required_software_evaluation_code"
+          label: "Evaluation Code (advanced)"
+          fieldType: "textarea"
+          visibleWhen:
+            field: "worklet_type"
+            equals: "required_software"
+          helpText: >-
+            Optional custom detection script overriding the default version check.
+            FLAGGED: not in Automox's documented schema for this policy type, but
+            present (as null) in Automox's own official example payload — verify
+            against a live tenant before relying on it.
+
+        - key: "required_software_remediation_code"
+          label: "Remediation Code (advanced)"
+          fieldType: "textarea"
+          visibleWhen:
+            field: "worklet_type"
+            equals: "required_software"
+          helpText: >-
+            Optional custom remediation script overriding the default installer
+            behavior. FLAGGED — see Evaluation Code (advanced) above.

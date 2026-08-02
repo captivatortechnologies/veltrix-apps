@@ -3,6 +3,7 @@
 // resource (/ers/config/endpointgroup) — verify against a live ISE node.
 
 import type { CanvasItemSnapshot } from '@veltrixsecops/app-sdk'
+import type { EndPointGroup } from '../../lib/iseApi'
 
 export const MAX_NAME_LENGTH = 255
 export const MAX_DESCRIPTION_LENGTH = 1000
@@ -23,4 +24,9 @@ export function specFromItem(item: CanvasItemSnapshot): GroupSpec {
 
 export function extractSpecs(items: CanvasItemSnapshot[]): GroupSpec[] {
   return items.map(specFromItem)
+}
+
+/** The ERS create/update body for a spec — always non-system-defined. */
+export function toEndPointGroupBody(spec: GroupSpec): Omit<EndPointGroup, 'id' | 'link'> {
+  return { name: spec.name, description: spec.description, systemDefined: false }
 }

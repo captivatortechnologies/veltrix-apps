@@ -30,15 +30,21 @@
 // https://github.com/illumio/terraform-provider-illumio-core/blob/main/models/label.go
 // Docs: https://docs.illumio.com/core/23.2/Content/Guides/security-policy/security-policy-objects/labels-and-label-groups.htm
 //
-// UNVERIFIED / OUT OF SCOPE for this release: security policy (rule_sets,
-// rules, services, ip_lists, enforcement boundaries) lives under the PCE's
-// draft-then-provision model — /orgs/{org_id}/sec_policy/draft/<resource> while
-// editing, then POST /orgs/{org_id}/sec_policy with the changed hrefs to
-// "provision" (commit) a new active policy version (confirmed shape of the
-// path segment only, via illumio-py's `_build_endpoint`:
-// `/sec_policy/{draft|active}/{endpoint}`). This app does not build rule_sets
-// yet — planned for a follow-up release once the draft/provision flow is
-// verified against a live PCE.
+// Security policy (ip_lists, services, rule_sets) is DRAFT-then-PROVISION:
+// writes go to /orgs/{org_id}/sec_policy/draft/<resource> (name-keyed, like
+// labels' key/value); nothing takes effect until "provisioned" — a
+// POST /orgs/{org_id}/sec_policy { update_description, change_subset } that
+// commits a set of changed hrefs into a new ACTIVE policy version. Confirmed
+// against the Illumio Terraform provider's own provisioning tool
+// (cmd/provision/main.go, which POSTs exactly this after collecting the hrefs
+// `terraform apply` changed) and its models.SecurityPolicy /
+// SecurityPolicyChangeSubset (`change_subset.{ip_lists,services,rule_sets,...}`
+// = arrays of `{href}`):
+// https://github.com/illumio/terraform-provider-illumio-core/blob/main/cmd/provision/main.go
+// https://github.com/illumio/terraform-provider-illumio-core/blob/main/models/security_policy.go
+// Rules are a sub-collection of a rule_set: POST {rule_set_href}/sec_rules —
+// confirmed against resource_illumio_security_rule.go. See
+// config-types/rulesets/_shared.ts for the rule_set + rule shapes.
 // =============================================================================
 
 import { request as httpsRequest } from 'node:https'
@@ -94,6 +100,16 @@ export function buildIllumioBaseUrl(settings: IllumioSettings): string | null {
 /** The org-scoped path for a resource, e.g. orgPath(settings, 'labels') -> "/orgs/1/labels". */
 export function orgPath(settings: IllumioSettings, resource: string): string {
   return `/orgs/${settings.orgId}/${resource.replace(/^\/+/, '')}`
+}
+
+/**
+ * The DRAFT sec_policy path for a resource, e.g.
+ * secPolicyDraftPath(settings, 'ip_lists') -> "/orgs/1/sec_policy/draft/ip_lists".
+ * Every security-policy object (ip_lists, services, rule_sets, ...) is
+ * authored here; nothing takes effect until provisioned (see provisionChanges).
+ */
+export function secPolicyDraftPath(settings: IllumioSettings, resource: string): string {
+  return orgPath(settings, `sec_policy/draft/${resource.replace(/^\/+/, '')}`)
 }
 
 export interface IllumioCredential {
@@ -198,4 +214,42 @@ export async function sendJson<T>(
   })
   if (!res.ok) throw new Error(`${method} ${url} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
   return (res.body ? JSON.parse(res.body) : {}) as T
+}
+
+// --- Draft → Provision -------------------------------------------------------
+// See the header comment: security policy objects are drafted, then a batch of
+// changed hrefs is "provisioned" into a new active policy version.
+
+/** The provisionable security-policy resource types this app writes to. */
+export type ProvisionableType = 'ip_lists' | 'services' | 'rule_sets'
+
+/** `change_subset` on POST /orgs/{org_id}/sec_policy — one array of hrefs per type. */
+export type ChangeSubset = Partial<Record<ProvisionableType, { href: string }[]>>
+
+/** True when a change subset carries at least one href to provision. */
+export function hasProvisionableChanges(changeSubset: ChangeSubset): boolean {
+  return Object.values(changeSubset).some((hrefs) => Array.isArray(hrefs) && hrefs.length > 0)
+}
+
+/**
+ * Provision (commit) draft changes into a new active PCE policy version:
+ * POST /orgs/{org_id}/sec_policy { update_description, change_subset }.
+ * A no-op (skipped, not sent) when the change subset is empty — the PCE
+ * accepts an empty provision but there is nothing useful to report from it.
+ */
+export async function provisionChanges(
+  base: string,
+  settings: IllumioSettings,
+  headers: Record<string, string>,
+  updateDescription: string,
+  changeSubset: ChangeSubset,
+): Promise<{ href?: string } | null> {
+  if (!hasProvisionableChanges(changeSubset)) return null
+  return sendJson<{ href?: string }>(
+    'POST',
+    `${base}${orgPath(settings, 'sec_policy')}`,
+    headers,
+    { update_description: updateDescription, change_subset: changeSubset },
+    { timeoutMs: settings.timeoutMs, verifyTls: settings.verifyTls },
+  )
 }

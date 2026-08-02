@@ -1,0 +1,6 @@
+# Defaults for a new Jamf Pro category item.
+#
+# Intentionally empty: the platform starts a new item blank (the "Priority"
+# field's own defaultValue of 5, set in canvas.yaml, already seeds new items)
+# and users manage their own default value sets from there. Any values here
+# would be a FLAT map keyed by the canvas field keys (name, priority).

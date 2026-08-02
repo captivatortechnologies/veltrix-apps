@@ -1,7 +1,16 @@
 import React from 'react'
 import { Badge, Card, CardBody, Tabs } from '@veltrixsecops/app-sdk/ui'
 
-const MANAGES = ['Security Monitoring Rules']
+const MANAGES = ['Security Monitoring Rules', 'Security Monitoring Suppressions', 'Log Pipelines', 'Monitors']
+
+const PERMISSIONS = [
+  'security_monitoring_rules_read',
+  'security_monitoring_rules_write',
+  'security_monitoring_suppressions_read',
+  'security_monitoring_suppressions_write',
+  'monitors_write',
+  'logs_write_pipelines',
+]
 
 /**
  * Step-by-step connection guide, rendered with the platform design-system
@@ -22,16 +31,17 @@ export default function SetupGuidePage() {
               and create an <strong>Application key</strong> owned by a user with these permissions:
             </p>
             <div>
-              <Badge variant="primary" size="sm">
-                security_monitoring_rules_read
-              </Badge>{' '}
-              <Badge variant="primary" size="sm">
-                security_monitoring_rules_write
-              </Badge>
+              {PERMISSIONS.map((perm) => (
+                <Badge key={perm} variant="primary" size="sm">
+                  {perm}
+                </Badge>
+              ))}
             </div>
             <p>
               This app manages: {MANAGES.join(', ')}. Both the API key and the Application key are required for
-              every Security Monitoring Rules operation, including reads.
+              every Security Monitoring Rules and Suppressions operation, including reads. The permissions above
+              are the ones this app's research directly confirmed against Datadog's docs — also grant standard
+              read access for Monitors and Logs Pipelines (e.g. the built-in Datadog Standard role covers both).
             </p>
           </CardBody>
         </Card>

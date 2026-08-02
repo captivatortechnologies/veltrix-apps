@@ -1,0 +1,109 @@
+# =============================================================================
+# Canvas Template — Illumio Core Rulesets
+#
+# Declares ONE ruleset (the item), name-keyed. Rulesets live under the PCE's
+# DRAFT policy (/orgs/{org}/sec_policy/draft/rule_sets); rules are a nested
+# sub-collection ({ruleset_href}/sec_rules). Deploy resolves every scope label
+# and rule reference (labels/IP lists/services, by name) to a PCE href and
+# FAILS CLOSED on anything unresolved — see config-types/rulesets/_shared.ts.
+#
+# scopeLabelsJson / rulesJson are JSON-array textareas (the same pattern as
+# ip-lists' ip_ranges/fqdns and services' service_ports) — a rule is a
+# structured object (providers/consumers/services) that doesn't fit a flat
+# canvas field. This release supports exactly ONE scope (one AND-group of
+# labels) and provider/consumer actors of label | ipList | allWorkloads only —
+# see the app README for what's out of scope.
+# =============================================================================
+
+id: "illumio-rulesets"
+name: "Ruleset Configuration"
+toolType: "illumio"
+entityType: "rulesets"
+description: "Define Illumio Core rulesets (label-scoped security rules) as code through the Illumio REST API v2, provisioned into the active policy."
+
+item:
+  label: "Ruleset"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Ruleset"
+      icon: "shield"
+      description: "Name, description and enabled state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The ruleset name — its identity in this canvas. Must be unique within this canvas; deploy matches live rulesets on it."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the ruleset."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the ruleset is enabled in the PCE."
+
+    - name: "Scope"
+      icon: "target"
+      description: "The label scope this ruleset applies to — at least one label is required"
+      fields:
+        - key: "scopeLabelsJson"
+          label: "Scope labels (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 4000
+          helpText: >
+            A JSON array of label refs the ruleset scopes to (all must match —
+            an AND group), e.g. [{"key":"env","value":"E-Prod"}]. Each label
+            must already exist (create it with the Labels configuration type).
+            Only one scope group is supported in this release — multiple OR'd
+            scopes are not yet supported.
+
+    - name: "Rules"
+      icon: "list"
+      description: "Security rules — at least one is required"
+      fields:
+        - key: "rulesJson"
+          label: "Rules (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 16000
+          helpText: >
+            A JSON array of rules, e.g.
+            [{"providers":[{"label":{"key":"role","value":"R-Web"}}],"consumers":[{"label":{"key":"role","value":"R-DB"}}],"services":[{"name":"HTTPS"}]}].
+            Each provider/consumer sets exactly one of: label ({key,value}),
+            ipList (an existing IP list's name), or allWorkloads (true — the
+            PCE's "All Workloads" actor). services references existing
+            Service names (create them with the Services configuration type).
+            Optional per-rule fields: description, enabled (default true). All
+            references are resolved by name to the PCE's internal id — an
+            unresolved reference fails the whole ruleset closed (nothing is
+            applied) rather than deploying a partial rule.
+
+    - name: "Integration metadata"
+      icon: "link"
+      description: "Optional external-system linkage, carried through unchanged on every deploy"
+      fields:
+        - key: "externalDataSet"
+          label: "External data set"
+          fieldType: "text"
+          required: false
+          helpText: "Optional: the external system this ruleset originates from (external_data_set)."
+
+        - key: "externalDataReference"
+          label: "External data reference"
+          fieldType: "text"
+          required: false
+          helpText: "Optional: this ruleset's unique identifier within that external system (external_data_reference)."

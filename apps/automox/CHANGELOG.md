@@ -3,6 +3,55 @@
 All notable changes to the Automox app are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## 0.2.0 — 2026-08-02
+
+Two new configuration types, plus a refactor to keep every `/policies`-backed config type from
+colliding, all verified against the same official OpenAPI spec used in 0.1.0
+(`automox-console-sdk-python/specs/ax_console.yaml`), cross-checked against the community
+`automox-mcp` server's live-tested workflow.
+
+- **Worklets** config type — create / edit / delete Automox **Custom (Worklet)** and **Required
+  Software** policies over the same `/policies` API as Policies (`GET/POST /policies`,
+  `GET/PUT/DELETE /policies/{id}`), reconciled independently by name **scoped to their own
+  `policy_type_name`** so this config type never adopts a same-named patch Policy (or vice versa).
+  - **Custom (Worklet)** — fully modeled from `CustomPolicyConfiguration`: `auto_reboot` (required),
+    `notify_reboot_user`, `os_family` (enum Windows/Mac/Linux), `missed_patch_window`,
+    `evaluation_code` (required — the compliance-check script) and `remediation_code` (optional).
+  - **Required Software** — fully modeled from `RequiredSoftwarePolicyConfiguration`: `package_name`,
+    `package_version`, `installation_code` (all required), `os_family`, `missed_patch_window`. Also
+    exposes optional `evaluation_code`/`remediation_code` overrides — **FLAGGED**: not in the
+    documented schema `properties` for this policy type, but present (as `null`) in Automox's own
+    official example payload; only sent when the operator supplies a value.
+  - Device targeting (`device_filters` / `device_filters_enabled`) is supported for both types —
+    verified present on both configuration schemas, not patch-only as assumed in 0.1.0.
+  - Same schedule model, rename-safe id tracking, and "empty `POST` body → resolve id by name" handling
+    as Policies (shared via the new `config-types/lib/automoxPolicies.ts`).
+- **Server Groups** config type — create / edit / delete Automox Server Groups over
+  `GET/POST /servergroups` and `GET/PUT/DELETE /servergroups/{id}` (`ServerGroupCreateOrUpdateRequest`):
+  `name`, `refresh_interval` (360-1440 minutes), `parent_server_group_id` (required by Automox for
+  every group — including top-level ones, via the org's Default Group id; this app does not
+  auto-discover it), `ui_color`, `notes`, `enable_os_auto_update`/`enable_wsus` (tri-state:
+  keep-device-setting / enable / disable, matching Automox's nullable enforce flags), `wsus_server`,
+  and linked Policy ids. Unlike `POST /policies`, `POST /servergroups` returns the full created object
+  (200) — no id-resolution workaround needed.
+- **Refactor — `policies` is now patch-only.** The 0.1.0 raw-JSON passthrough for Required Software /
+  Custom policies is removed from the `policies` config type; those types are now the properly modeled
+  `worklets` config type above. Shared plumbing (types, list/get/create-id-resolution, the common
+  envelope fields, schedule bitmasks, device-filter parsing, rollback capture) was extracted into
+  `config-types/lib/automoxPolicies.ts`, `config-types/lib/canvasValues.ts` and
+  `config-types/lib/validation.ts` so `policies` and `worklets` share one implementation of the
+  `/policies` wire protocol instead of duplicating it.
+- Config sidebar grouping: `policies` and `worklets` are both under **"Policies"**; `server-groups` is
+  under **"Groups"**.
+- **Evaluated a 3rd config type — declined.** `/users/{userId}/api_keys` (`POST`, create an API key for
+  an existing Automox user) is the only other writable, non-imperative surface in the spec, but it
+  requires a pre-existing `userId` (there is no `POST /users` — user provisioning isn't in the API), and
+  it is account/credential administration rather than an endpoint-security policy — tangential to this
+  app's Endpoint Management scope and a poor fit for reconcile-by-identity Security-as-Code. `/servers`
+  and `/servers/batch` are device-inventory/action endpoints (move group, patch-now), `/data-extracts`
+  triggers an export job, and `/orgs` is account/billing settings — none are declarative policy state.
+  Two config types (extending the Policies surface) is the clean set for this wave.
+
 ## 0.1.0 — 2026-08-02
 
 Initial release — foundation + first config type.

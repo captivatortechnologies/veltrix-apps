@@ -1,14 +1,15 @@
 id: automox
 name: Automox
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Automox (cloud-native endpoint patch management) configuration as
-  code through the Automox Console API. Author Policies — patch, required
-  software and custom (Worklet) — and drive them through the Security-as-Code
-  pipeline (validate, deploy, health check, drift detection and rollback) over
-  the Automox REST API. Authenticates with a Bearer API key, scoped to an
-  Organization ID sent as the `o` query parameter on every request.
+  code through the Automox Console API. Author Policies (patch), Worklets
+  (custom scripts / required software) and Server Groups, and drive them
+  through the Security-as-Code pipeline (validate, deploy, health check, drift
+  detection and rollback) over the Automox REST API. Authenticates with a
+  Bearer API key, scoped to an Organization ID sent as the `o` query parameter
+  on every request.
 category: Endpoint Management
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/automox
@@ -29,7 +30,13 @@ permissions:
   app:
     - resource: policies
       actions: [read, write, delete]
-      description: Manage Automox Policies (patch / required software / custom Worklet)
+      description: Manage Automox patch Policies
+    - resource: worklets
+      actions: [read, write, delete]
+      description: Manage Automox Worklets (custom scripts) and Required Software policies
+    - resource: server-groups
+      actions: [read, write, delete]
+      description: Manage Automox Server Groups
 
 pipeline:
   configurationTypes:
@@ -37,10 +44,10 @@ pipeline:
       group: "Policies"
       name: Policies
       description: >
-        Automox Policies — patch, required software and custom (Worklet) —
-        applied over the Automox Console API (GET/POST /policies,
-        GET/PUT/DELETE /policies/{id}). Reconciled by policy name within the
-        configured Organization ID.
+        Automox patch Policies, applied over the Automox Console API
+        (GET/POST /policies, GET/PUT/DELETE /policies/{id}). Reconciled by
+        policy name (scoped to policy_type_name: patch) within the configured
+        Organization ID.
       canvasTemplate: config-types/policies/canvas.yaml
       defaultConfig: config-types/policies/defaults.yaml
       handlers:
@@ -50,6 +57,50 @@ pipeline:
         healthCheck: config-types/policies/healthCheck
         driftDetect: config-types/policies/driftDetect
         getStatus: config-types/policies/getStatus
+      targets:
+        componentTypes: [automox-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: worklets
+      group: "Policies"
+      name: Worklets
+      description: >
+        Automox Custom (Worklet) and Required Software policies, applied over
+        the same Automox Console API (GET/POST /policies, GET/PUT/DELETE
+        /policies/{id}) as Policies, but reconciled independently (scoped to
+        policy_type_name: custom / required_software) so the two config types
+        never collide on a shared name.
+      canvasTemplate: config-types/worklets/canvas.yaml
+      defaultConfig: config-types/worklets/defaults.yaml
+      handlers:
+        validate: config-types/worklets/validate
+        deploy: config-types/worklets/deploy
+        rollback: config-types/worklets/rollback
+        healthCheck: config-types/worklets/healthCheck
+        driftDetect: config-types/worklets/driftDetect
+        getStatus: config-types/worklets/getStatus
+      targets:
+        componentTypes: [automox-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: server-groups
+      group: "Groups"
+      name: Server Groups
+      description: >
+        Automox Server Groups, applied over the Automox Console API
+        (GET/POST /servergroups, GET/PUT/DELETE /servergroups/{id}).
+        Reconciled by group name within the configured Organization ID.
+      canvasTemplate: config-types/server-groups/canvas.yaml
+      defaultConfig: config-types/server-groups/defaults.yaml
+      handlers:
+        validate: config-types/server-groups/validate
+        deploy: config-types/server-groups/deploy
+        rollback: config-types/server-groups/rollback
+        healthCheck: config-types/server-groups/healthCheck
+        driftDetect: config-types/server-groups/driftDetect
+        getStatus: config-types/server-groups/getStatus
       targets:
         componentTypes: [automox-org]
         requiresCredential: true
