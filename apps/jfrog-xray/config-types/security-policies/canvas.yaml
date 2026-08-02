@@ -1,0 +1,219 @@
+# =============================================================================
+# Canvas Template — JFrog Xray Security Policies
+#
+# Declares ONE Xray security policy (the item). Users add as many as they need.
+# A policy is created/updated through POST/PUT /xray/api/v2/policies[/{name}]
+# and identified for reconciliation by its `name`. Each policy authors ONE
+# primary rule through typed fields (the common case — a single severity/CVSS
+# gate) plus JSON escape valves for advanced criteria/actions and any
+# additional rules beyond the primary one (multi-tier policies).
+#
+# Field keys must match config-types/security-policies/_shared.ts.
+# =============================================================================
+
+id: "jfrog-xray-security-policies"
+name: "Xray Security Policy"
+toolType: "jfrog-xray"
+entityType: "security-policies"
+description: "Define JFrog Xray security policies as code through the Xray REST API v2. Reconciled by policy name; each policy gates on a minimum severity or CVSS range with build/release-blocking, notification and ticketing actions."
+
+item:
+  label: "Security Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Identity and description"
+      fields:
+        - key: "name"
+          label: "Policy Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 200
+          helpText: "The policy's logical identity in Xray — also the URL path segment for reads/updates/deletes, so avoid \"/\" or \"\\\"."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Xray console."
+
+    - name: "Rule"
+      icon: "list"
+      description: "The policy's primary rule"
+      fields:
+        - key: "rule_name"
+          label: "Rule Name"
+          fieldType: "text"
+          required: true
+          defaultValue: "default-rule"
+          helpText: "Every Xray rule needs its own name, distinct from the policy name."
+
+        - key: "priority"
+          label: "Priority"
+          fieldType: "number"
+          validation:
+            min: 1
+          helpText: "Evaluation order among this policy's rules — lower runs first. Leave blank to let Xray assign the default order."
+
+    - name: "Criteria"
+      icon: "alert-triangle"
+      description: "The severity gate this rule matches"
+      fields:
+        - key: "use_cvss_range"
+          label: "Use a CVSS score range"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Gate on a numeric CVSS range instead of a named minimum severity."
+
+        - key: "min_severity"
+          label: "Minimum Severity"
+          fieldType: "select"
+          defaultValue: "High"
+          visibleWhen:
+            field: "use_cvss_range"
+            equals: false
+          options:
+            - { label: "All Severities", value: "All Severities" }
+            - { label: "Critical", value: "Critical" }
+            - { label: "High", value: "High" }
+            - { label: "Medium", value: "Medium" }
+            - { label: "Low", value: "Low" }
+          helpText: "The rule matches vulnerabilities at or above this severity."
+
+        - key: "cvss_from"
+          label: "CVSS From"
+          fieldType: "number"
+          visibleWhen:
+            field: "use_cvss_range"
+            equals: true
+          validation:
+            min: 0
+            max: 10
+          helpText: "Lower bound of the CVSS v3 score range (0.0–10.0)."
+
+        - key: "cvss_to"
+          label: "CVSS To"
+          fieldType: "number"
+          visibleWhen:
+            field: "use_cvss_range"
+            equals: true
+          validation:
+            min: 0
+            max: 10
+          helpText: "Upper bound of the CVSS v3 score range (0.0–10.0)."
+
+        - key: "malicious_package"
+          label: "Malicious package"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Match packages Xray's threat intelligence identifies as malicious, regardless of the severity/CVSS criteria above."
+
+        - key: "applicable_cves_only"
+          label: "Applicable CVEs only"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "JFrog Advanced Security only — restrict to CVEs Xray's contextual analysis confirms are applicable/reachable."
+
+        - key: "fix_version_dependant"
+          label: "Requires a fix version"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Only match vulnerabilities that have a published fix version. Cannot be combined with \"Malicious package\"."
+
+    - name: "Actions — Build & Release"
+      icon: "ban"
+      description: "What happens when the rule matches"
+      fields:
+        - key: "fail_build"
+          label: "Fail build"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "build_failure_grace_period_days"
+          label: "Build failure grace period (days)"
+          fieldType: "number"
+          validation:
+            min: 0
+          helpText: "Delay build failures by this many days after a match is first found. Only applies when \"Fail build\" is on."
+
+        - key: "block_download_unscanned"
+          label: "Block download of unscanned artifacts"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_download_active"
+          label: "Block download of violating artifacts"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_release_bundle_distribution"
+          label: "Block release bundle distribution"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_release_bundle_promotion"
+          label: "Block release bundle promotion"
+          fieldType: "checkbox"
+          defaultValue: false
+
+    - name: "Actions — Notify"
+      icon: "bell"
+      description: "Who gets told"
+      fields:
+        - key: "notify_watch_recipients"
+          label: "Notify watch recipients"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Notify the recipients configured on any watch this policy is assigned to."
+
+        - key: "notify_deployer"
+          label: "Notify deployer"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "mails"
+          label: "Additional email recipients"
+          fieldType: "tags"
+          helpText: "Extra email addresses to notify, beyond a watch's own recipients."
+
+        - key: "webhooks"
+          label: "Webhooks"
+          fieldType: "tags"
+          helpText: "Names of webhook integrations already configured in Xray (Administration > General > Webhooks)."
+
+        - key: "create_ticket_enabled"
+          label: "Create a ticket"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Requires a Jira integration already configured in Xray."
+
+        - key: "fail_pull_request"
+          label: "Fail pull request checks"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "JFrog Advanced Security Git-repository scanning only."
+
+    - name: "Advanced (JSON)"
+      icon: "code"
+      description: "Escape valves for anything the fields above don't cover"
+      fields:
+        - key: "criteria_json"
+          label: "Additional Criteria (JSON)"
+          fieldType: "textarea"
+          helpText: 'Extra criteria fields merged into this rule''s criteria, e.g. {"vulnerability_ids":["CVE-2024-1234"]} or {"exposures":{"min_severity":"High","secrets":true}}. The typed fields above win on a key collision.'
+
+        - key: "actions_json"
+          label: "Additional Actions (JSON)"
+          fieldType: "textarea"
+          helpText: 'Extra action fields merged into this rule''s actions, e.g. {"custom_severity":"High"}. The typed fields above win on a key collision.'
+
+        - key: "additional_rules_json"
+          label: "Additional Rules (JSON)"
+          fieldType: "textarea"
+          validation:
+            maxLength: 8000
+          helpText: 'Extra rules appended after the primary rule above, for multi-tier policies — a JSON array of {"name","criteria","actions"} objects, e.g. [{"name":"notify-only","criteria":{"min_severity":"Medium"},"actions":{"notify_watch_recipients":true}}].'

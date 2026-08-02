@@ -1,0 +1,12 @@
+# Defaults for a new security-policy item.
+#
+# Intentionally empty: the platform starts a new item blank and the field-level
+# `defaultValue`s in canvas.yaml (rule_name: "default-rule", min_severity: "High",
+# every checkbox: false) already give a sensible starting point. Any values here
+# would be a FLAT map keyed by the canvas field keys (name, description, rule_name,
+# priority, use_cvss_range, min_severity, cvss_from, cvss_to, malicious_package,
+# applicable_cves_only, fix_version_dependant, fail_build,
+# build_failure_grace_period_days, block_download_unscanned, block_download_active,
+# block_release_bundle_distribution, block_release_bundle_promotion,
+# notify_watch_recipients, notify_deployer, mails, webhooks, create_ticket_enabled,
+# fail_pull_request, criteria_json, actions_json, additional_rules_json).

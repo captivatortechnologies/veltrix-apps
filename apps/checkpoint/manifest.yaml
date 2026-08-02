@@ -1,0 +1,131 @@
+id: checkpoint
+name: Check Point
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Check Point Security Management Server configuration as code through
+  the Check Point Management API (web_api) — starting with network host
+  objects (add-host / set-host / delete-host), with validation, drift
+  detection and rollback handled by the Security-as-Code pipeline. Every
+  deploy runs inside one Management API session: login, make changes, publish
+  (or discard on any error), then logout.
+category: NETWORK
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/checkpoint
+icon: "🚧"
+
+platform:
+  minVersion: "1.0.0"
+
+# Check Point brand: the signature red with a dark navy accent.
+branding:
+  primaryColor: "#E31937"
+  accentColor: "#14213D"
+  logo: ./assets/logo.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: network-hosts
+      actions: [read, write, delete]
+      description: Manage Check Point network host objects (add-host / set-host / delete-host) in the management database
+
+pipeline:
+  configurationTypes:
+    - id: network-hosts
+      name: Network Hosts
+      description: >
+        Host objects (add-host / set-host / delete-host / show-host(s));
+        identity by object name. Missing hosts are created, existing ones are
+        updated to the declared spec, and hosts this app previously created
+        but no longer declares are removed. Every deploy publishes the
+        session's changes (or discards them on any error).
+      canvasTemplate: config-types/network-hosts/canvas.yaml
+      defaultConfig: config-types/network-hosts/defaults.yaml
+      handlers:
+        validate: config-types/network-hosts/validate
+        deploy: config-types/network-hosts/deploy
+        rollback: config-types/network-hosts/rollback
+        healthCheck: config-types/network-hosts/healthCheck
+        driftDetect: config-types/network-hosts/driftDetect
+        getStatus: config-types/network-hosts/getStatus
+      targets:
+        componentTypes: [checkpoint-management]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/checkpoint
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: login, then a bounded show-hosts read,
+# then logout — proves the host, credential and Management API session model
+# all work without making (or needing to publish) any change.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: port
+    type: number
+    label: HTTPS Port
+    description: Management API port. The endpoint is https://<host>:<port>/web_api/.
+    default: 443
+    required: false
+  - key: verify_tls
+    type: boolean
+    label: Verify TLS certificate
+    description: >
+      Enforce a valid TLS certificate on the Management Server. Off by
+      default — Check Point Security Management Servers commonly ship a
+      self-signed certificate for the web_api / SmartConsole endpoint.
+    default: false
+    required: false
+  - key: domain
+    type: string
+    label: Domain
+    description: >
+      Optional — only needed on a Multi-Domain Security Management server.
+      The name (or IP/UID) of the Domain Management Server or CMA to log into.
+      Leave blank for a standalone / single-domain Security Management Server.
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Management API calls.
+    default: 30
+    required: false

@@ -1,0 +1,20 @@
+# Defaults for a new L3 firewall ruleset item. Seeded with a single illustrative
+# rule so a new item starts from valid, well-formed JSON — replace network_id
+# and the rule(s) with the real network and policy. Meraki's implicit final
+# "Default rule" (allow any/any) is never included here.
+network_id: ""
+comment: ""
+rules: |
+  [
+    {
+      "comment": "Example: allow HTTPS to a web server subnet",
+      "policy": "allow",
+      "protocol": "tcp",
+      "srcPort": "any",
+      "srcCidr": "any",
+      "destPort": "443",
+      "destCidr": "192.168.1.0/24",
+      "syslogEnabled": false
+    }
+  ]
+syslog_default_rule: false

@@ -1,0 +1,108 @@
+id: authentik
+name: authentik
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage authentik (open-source Identity Provider) as code. Author authentik
+  Applications — the app-facing storefront entries that bind an existing
+  Provider (OAuth2/OIDC, SAML, proxy, LDAP, …) to policy-based access control —
+  and drive them through the Security-as-Code pipeline (validate, deploy, health
+  check, drift detection, rollback) over the authentik Core REST API (HTTPS,
+  self-signed tolerated), authenticated with a static API token.
+category: IAM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/authentik
+icon: "🔑"
+
+platform:
+  minVersion: "1.0.0"
+
+# authentik's orange brand accent — placeholder until the official lockup is added.
+branding:
+  primaryColor: "#fd4b2d"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: applications
+      actions: [read, write, delete]
+      description: Manage authentik Applications (create / edit / delete)
+
+pipeline:
+  configurationTypes:
+    - id: applications
+      group: "Applications"
+      name: Applications
+      description: authentik Applications — name, slug, provider binding (by existing provider pk), UI group, policy engine mode and metadata — applied over the authentik Core REST API (/api/v3/core/applications/)
+      canvasTemplate: config-types/applications/canvas.yaml
+      defaultConfig: config-types/applications/defaults.yaml
+      handlers:
+        validate: config-types/applications/validate
+        deploy: config-types/applications/deploy
+        rollback: config-types/applications/rollback
+        healthCheck: config-types/applications/healthCheck
+        driftDetect: config-types/applications/driftDetect
+        getStatus: config-types/applications/getStatus
+      targets:
+        componentTypes: [authentik-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/authentik
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the authentik instance (component)
+    # with the static API token credential, with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies the endpoint + static API token
+# against the authentik Core REST API (GET /api/v3/core/applications/?page_size=1).
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: verify_tls
+    type: boolean
+    label: Verify TLS certificate
+    description: >
+      Enforce a valid TLS certificate on the authentik endpoint. Off by default —
+      a self-hosted authentik instance commonly runs behind a self-signed
+      certificate until a real one is issued.
+    default: false
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated

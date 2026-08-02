@@ -1,0 +1,150 @@
+id: illumio
+name: Illumio
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Illumio Core (Policy Compute Engine) microsegmentation configuration as
+  code through the Illumio REST API v2. This first release covers Labels — the
+  key/value policy objects (role, app, env, loc, or a custom label dimension)
+  that every Illumio ruleset, boundary and map view scopes against — with
+  validation, drift detection and rollback handled by the Security-as-Code
+  pipeline. Authenticates with a PCE API key (username + secret) over HTTP Basic
+  auth against the org-scoped REST API. Security policy (rule sets, rules,
+  services, IP lists) uses the PCE's draft-then-provision model and is planned
+  for a follow-up release once labels are live.
+category: NETWORK
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/illumio
+icon: "🕸️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Illumio's brand teal-green. Placeholder until the official lockup is added.
+branding:
+  primaryColor: "#00A99D"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: illumio-labels
+      actions: [read, write, delete]
+      description: Manage Illumio Core labels (key/value policy objects) used to scope rulesets, boundaries and map views
+
+pipeline:
+  configurationTypes:
+    - id: labels
+      group: "Policy Objects"
+      name: Labels
+      description: >
+        Illumio Core labels — a key/value pair (e.g. role=R-DB, env=E-Prod) used
+        to scope rulesets, enforcement boundaries and the illumination map.
+        Identity is the (key, value) pair itself; deploy lists the org's labels,
+        creates any that are missing, and reconciles metadata
+        (external_data_set / external_data_reference) on ones that already
+        exist. The `key` must be one of the PCE's built-in dimensions (role, app,
+        env, loc) or a custom label dimension already created in the PCE — this
+        app does not yet manage label dimensions (label_dimensions API, PCE
+        22.5+; planned for a follow-up release).
+      canvasTemplate: config-types/labels/canvas.yaml
+      defaultConfig: config-types/labels/defaults.yaml
+      handlers:
+        validate: config-types/labels/validate
+        deploy: config-types/labels/deploy
+        rollback: config-types/labels/rollback
+        healthCheck: config-types/labels/healthCheck
+        driftDetect: config-types/labels/driftDetect
+        getStatus: config-types/labels/getStatus
+      targets:
+        componentTypes: [illumio-pce]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/illumio
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the PCE (via the app's host/port/org
+    # settings) with the API key/secret credential, with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: verifies the PCE host/port/org_id settings
+# and the API key/secret credential with GET /orgs/{org_id}/labels?max_results=1.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: host
+    type: string
+    label: PCE host
+    description: >
+      The Illumio PCE hostname (no scheme), e.g. pce.example.com. For a
+      Supercluster, use the region's PCE FQDN. The REST API is reached at
+      https://<host>:<port>/api/v2.
+    required: true
+  - key: port
+    type: number
+    label: PCE port
+    description: >
+      The PCE's HTTPS API port. On-premises PCEs commonly use 8443; some
+      deployments expose the API on 443 — check your PCE's "Deployment Type"
+      documentation or ask your PCE administrator.
+    default: 8443
+    required: false
+  - key: org_id
+    type: number
+    label: Organization ID
+    description: >
+      The PCE organization ID this app manages. Single-org PCEs use 1 (the
+      default). Every REST path is scoped under /orgs/{org_id}/.
+    default: 1
+    required: false
+  - key: verify_tls
+    type: boolean
+    label: Verify TLS certificate
+    description: >
+      Enforce a valid TLS certificate on the PCE endpoint. Off by default —
+      on-premises PCEs commonly ship a self-signed or internal-CA certificate.
+      Turn on once the PCE presents a certificate this platform trusts.
+    default: false
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for PCE REST API calls.
+    default: 30
+    required: false

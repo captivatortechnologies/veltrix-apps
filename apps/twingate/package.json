@@ -1,0 +1,14 @@
+{
+  "name": "veltrix-app-twingate",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Veltrix app: manage Twingate (ZTNA / Zero Trust Network Access) configuration as code — Resources (private apps/hosts/subnets, protocols and Group access) — through the Twingate GraphQL API",
+  "scripts": { "typecheck": "tsc --noEmit" },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.0.0",
+    "@veltrixsecops/app-sdk": "^3.7.0",
+    "fastify": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}

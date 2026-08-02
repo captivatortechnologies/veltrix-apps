@@ -1,0 +1,109 @@
+id: datadog
+name: Datadog
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Datadog Security Monitoring detection rules as code through the
+  Datadog Security Monitoring Rules API (/api/v2/security_monitoring/rules) —
+  with validation, drift detection and rollback handled by the Veltrix
+  Security-as-Code pipeline. Authenticates with a Datadog API key +
+  Application key pair against the organization's Datadog site
+  (datadoghq.com, datadoghq.eu, us3/us5.datadoghq.com, ap1/ap2.datadoghq.com,
+  ddog-gov.com).
+category: SIEM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/datadog
+icon: "🐶"
+
+platform:
+  minVersion: "1.0.0"
+
+# Datadog brand purple.
+branding:
+  primaryColor: "#632CA6"
+  accentColor: "#7B3FE4"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: security-monitoring-rules
+      actions: [read, write, delete]
+      description: Manage Datadog Security Monitoring detection rules via the Security Monitoring Rules API
+
+pipeline:
+  configurationTypes:
+    - id: security-monitoring-rules
+      group: "Detection"
+      name: Security Monitoring Rules
+      description: >
+        Datadog Security Monitoring detection rules — log_detection,
+        workload_security, application_security, signal_correlation and
+        cloud_configuration — via GET/POST/PUT/DELETE
+        /api/v2/security_monitoring/rules. Reconciled by rule name; a matched
+        rule's prior full state (including its optimistic-lock version) is
+        captured before every update for rollback.
+      canvasTemplate: config-types/security-monitoring-rules/canvas.yaml
+      defaultConfig: config-types/security-monitoring-rules/defaults.yaml
+      handlers:
+        validate: config-types/security-monitoring-rules/validate
+        deploy: config-types/security-monitoring-rules/deploy
+        rollback: config-types/security-monitoring-rules/rollback
+        healthCheck: config-types/security-monitoring-rules/healthCheck
+        driftDetect: config-types/security-monitoring-rules/driftDetect
+        getStatus: config-types/security-monitoring-rules/getStatus
+      targets:
+        componentTypes: [datadog-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/datadog
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: activity
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs a Datadog org (component, hostname
+    # holds the Datadog SITE) with the API key + Application key credential used
+    # to reach it, with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies the site + API key via
+# GET /api/v1/validate (API key only — no Application key required by this
+# specific endpoint, per https://docs.datadoghq.com/api/latest/authentication/validate-api-key/).
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for calls to the Datadog API.
+    default: 30
+    required: false

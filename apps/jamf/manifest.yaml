@@ -1,0 +1,123 @@
+id: jamf
+name: Jamf
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Jamf Pro (Apple MDM / endpoint management) configuration as code
+  through the modern Jamf Pro API. Covers Scripts (the shell/zsh payloads
+  policies run at a Before / After / At Reboot priority) — reconciled by
+  script name — with validation, drift detection and rollback handled by the
+  Security-as-Code pipeline. Authenticates as a Jamf Pro API-only account
+  (username/password exchanged for a short-lived Bearer token) against the
+  tenant's Jamf Pro server. Policies, Smart Groups and Configuration Profiles
+  live on the legacy Classic (XML) API and are intentionally out of scope for
+  this first release.
+category: Endpoint Management
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/jamf
+icon: "🍎"
+
+platform:
+  minVersion: "1.0.0"
+
+# Jamf brand: approximate navy + teal pairing — placeholders until an official
+# lockup is added (see assets/README convention used by sibling apps).
+branding:
+  primaryColor: "#0C2340"
+  accentColor: "#00C7B1"
+  logo: ./assets/logo.svg
+  logoDark: ./assets/logo-dark.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: scripts
+      actions: [read, write, delete]
+      description: Manage Jamf Pro scripts (shell/zsh payloads run by policies)
+
+pipeline:
+  configurationTypes:
+    - id: scripts
+      group: "Content"
+      name: Scripts
+      description: >
+        Jamf Pro scripts — name, priority (Before/After/At Reboot), category,
+        OS requirements, parameter labels ($4–$11) and the script contents
+        itself — via the modern Jamf Pro API (GET/POST/PUT/DELETE /v1/scripts).
+        Reconciled by script name; Jamf Pro's own script list is matched
+        case-insensitively and the first match wins (Jamf does not enforce
+        unique script names — see README).
+      canvasTemplate: config-types/scripts/canvas.yaml
+      defaultConfig: config-types/scripts/defaults.yaml
+      handlers:
+        validate: config-types/scripts/validate
+        deploy: config-types/scripts/deploy
+        rollback: config-types/scripts/rollback
+        healthCheck: config-types/scripts/healthCheck
+        driftDetect: config-types/scripts/driftDetect
+        getStatus: config-types/scripts/getStatus
+      targets:
+        componentTypes: [jamf-pro-server]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/jamf
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: cloud
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs a Jamf Pro server (component)
+    # with the API-only-account credential used to reach it, with a per-row
+    # connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: obtains a Bearer token (Basic auth) then
+# calls GET /v1/scripts?page-size=1 to prove the credential + endpoint work.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Jamf Pro token and API calls.
+    default: 30
+    required: false
+  - key: page_size
+    type: number
+    label: List Page Size
+    description: Page size used when listing scripts (GET /v1/scripts, page-size query parameter).
+    default: 100
+    required: false

@@ -1,0 +1,115 @@
+id: twingate
+name: Twingate
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Twingate (ZTNA / Zero Trust Network Access) configuration as code
+  through the Twingate GraphQL API. Covers Resources — the private
+  applications, hosts and subnets a Remote Network exposes through Twingate
+  Connectors — with name, address, remote network, TCP/UDP/ICMP protocol
+  policy and Group-based access, with validation, drift detection and
+  rollback handled by the Security-as-Code pipeline. Authenticates with a
+  Twingate API key against the tenant's network-scoped GraphQL endpoint.
+category: NETWORK
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/twingate
+icon: "🔒"
+
+platform:
+  minVersion: "1.0.0"
+
+# Twingate brand: purple. Approximated from public marketing assets — Twingate
+# does not publish a formal brand-color guide, so verify against a live brand
+# kit before treating this as authoritative.
+branding:
+  primaryColor: "#6C4CFF"
+  accentColor: "#B7A6FF"
+  logo: ./assets/logo.svg
+  logoDark: ./assets/logo-dark.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: resources
+      actions: [read, write, delete]
+      description: Manage Twingate Resources (private apps/hosts/subnets, protocols and Group access) via the GraphQL API
+
+pipeline:
+  configurationTypes:
+    - id: resources
+      name: Resources
+      description: >
+        Twingate Resources via resourceCreate / resourceUpdate / resourceDelete;
+        identity by name. Each resource declares an address, its Remote Network
+        (matched by name), TCP/UDP/ICMP protocol policy and the Groups (matched
+        by name) granted access. Missing resources are created; existing ones
+        are reconciled to the declared spec (full-replacement access).
+      canvasTemplate: config-types/resources/canvas.yaml
+      defaultConfig: config-types/resources/defaults.yaml
+      handlers:
+        validate: config-types/resources/validate
+        deploy: config-types/resources/deploy
+        rollback: config-types/resources/rollback
+        healthCheck: config-types/resources/healthCheck
+        driftDetect: config-types/resources/driftDetect
+        getStatus: config-types/resources/getStatus
+      targets:
+        componentTypes: [twingate-network]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/twingate
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs a Twingate network (component)
+    # with the API-key credential used to reach it, with a per-row connectivity
+    # test. componentType="twingate-network" so saving a connection also
+    # registers the deploy-target component the resources config type targets.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: verifies the network host + API key via a
+# minimal authenticated GraphQL query — { remoteNetworks(first:1){edges{node{id}}} }.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Twingate GraphQL API calls.
+    default: 30
+    required: false

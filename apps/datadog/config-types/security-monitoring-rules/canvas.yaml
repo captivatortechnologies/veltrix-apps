@@ -1,0 +1,142 @@
+# =============================================================================
+# Canvas Template — Datadog Security Monitoring Rules
+#
+# Declares ONE Datadog Security Monitoring detection rule (the item). Operators
+# add as many as they need. A rule's logical identity is its `name` — the
+# Security Monitoring Rules API keys rules on a server-assigned `id`, so this
+# config type upserts by matching the declared name against the tenant's live
+# rules (case-insensitive).
+#
+# The rule schema differs significantly by `type` (log_detection /
+# workload_security / application_security share one queries/cases/options
+# shape; signal_correlation and cloud_configuration have their own), so the
+# modelled fields are the identity/lifecycle bits that are universal across
+# every type (name, message, type, isEnabled, hasExtendedTitle, tags) and the
+# rest of the rule body — queries / cases / options / filters — is carried as
+# JSON. config-types/security-monitoring-rules/validate.ts deep-validates the
+# common shape (every case needs a `status`; queries/options enums are checked
+# when the fields they govern are present) and only relaxes to a basic
+# shape check for the parts of signal_correlation / cloud_configuration this
+# app does not model field-by-field — Datadog's own API is the final arbiter.
+#
+# Field keys must match config-types/security-monitoring-rules/_shared.ts.
+#
+# API reference: https://docs.datadoghq.com/api/latest/security-monitoring/
+# =============================================================================
+
+id: "datadog-security-monitoring-rules"
+name: "Security Monitoring Rule"
+toolType: "datadog"
+entityType: "security-monitoring-rules"
+description: "Define Datadog Security Monitoring detection rules as code through the Security Monitoring Rules API (/api/v2/security_monitoring/rules). Reconciled by rule name."
+
+item:
+  label: "Security Monitoring Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Rule"
+      icon: "shield-alert"
+      description: "Identity and lifecycle"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The rule name — this app's logical identity for the rule (matched case-insensitively against Datadog's live rules on every deploy)."
+
+        - key: "message"
+          label: "Message"
+          fieldType: "textarea"
+          required: true
+          helpText: "Message attached to every signal this rule generates. Supports Markdown and @-notifications (e.g. @slack-security-alerts, @pagerduty-oncall)."
+
+        - key: "type"
+          label: "Rule Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "log_detection"
+          options:
+            - { label: "Log Detection", value: "log_detection" }
+            - { label: "Cloud Workload Security", value: "workload_security" }
+            - { label: "Application Security", value: "application_security" }
+            - { label: "Signal Correlation", value: "signal_correlation" }
+            - { label: "Cloud Configuration (Posture Management)", value: "cloud_configuration" }
+          helpText: "log_detection / workload_security / application_security share the standard queries+cases+options shape below. signal_correlation's queries reference other rules by id; cloud_configuration's options carry a Rego policy instead of a query. See the Detection group's help text for each."
+
+        - key: "isEnabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the rule is active and evaluated."
+
+        - key: "hasExtendedTitle"
+          label: "Extended Title"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether generated-signal notifications include the triggering group-by values in their title."
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          helpText: "Tags attached to every signal this rule generates, e.g. security:attack, technique:T1110."
+
+    - name: "Detection"
+      icon: "code"
+      description: "Queries, cases and options — the rule body, as JSON"
+      fields:
+        - key: "queries"
+          label: "Queries (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A JSON array of query objects. For log_detection / workload_security /
+            application_security, each needs a "query" string and may set
+            "aggregation" (count, cardinality, sum, max, new_value, geo_data,
+            event_count, none — default count), "dataSource" (logs, audit,
+            app_sec_spans, spans, security_runtime, network, events,
+            security_signals — default logs), "name", "groupByFields",
+            "distinctFields" and "metrics". Example:
+            [{"name":"q1","query":"source:cloudtrail @evt.name:ConsoleLogin @responseElements.ConsoleLogin:Failure","aggregation":"count","groupByFields":["@userIdentity.arn"]}].
+            For signal_correlation, each query instead references another rule:
+            {"ruleId":"<rule id>","correlatedByFields":["host"],"correlatedQueryIndex":0}.
+            For cloud_configuration this is usually an empty array ([]) — the
+            policy lives in Options below.
+
+        - key: "cases"
+          label: "Cases (JSON array)"
+          fieldType: "textarea"
+          required: true
+          defaultValue: '[{"status":"medium","condition":"a > 0"}]'
+          helpText: >
+            A JSON array of case objects — at least one, each with a required
+            "status" (info, low, medium, high, critical) and optional
+            "condition" (e.g. "a > 0"), "name" and "notifications" (handle
+            names, e.g. ["slack-security-alerts"]). cloud_configuration rules
+            take exactly ONE case (its status is the finding's severity).
+
+        - key: "options"
+          label: "Options (JSON object)"
+          fieldType: "textarea"
+          required: true
+          defaultValue: '{"evaluationWindow":900,"keepAlive":3600,"maxSignalDuration":86400}'
+          helpText: >
+            A JSON object. evaluationWindow / keepAlive / maxSignalDuration (in
+            seconds) must be one of 0, 60, 300, 600, 900, 1800, 3600, 7200,
+            10800, 21600, 43200, 86400 when set. detectionMethod (threshold,
+            new_value, anomaly_detection, impossible_travel, hardcoded,
+            third_party, anomaly_threshold, sequence_detection) defaults to
+            threshold. cloud_configuration rules instead set
+            "complianceRuleOptions": {"resourceType":"...", "regoRule":
+            {"policy":"<rego source>", "resourceTypes":["..."]}}.
+
+        - key: "filters"
+          label: "Filters (JSON array, optional)"
+          fieldType: "textarea"
+          required: false
+          defaultValue: "[]"
+          helpText: 'Optional JSON array of additional queries that filter matched events before they are processed, e.g. [{"query":"-@usr.name:ci-bot","action":"require"}]. Each item''s "action" is "require" or "suppress". Leave as [] when not needed.'

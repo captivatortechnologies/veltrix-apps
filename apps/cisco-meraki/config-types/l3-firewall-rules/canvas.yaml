@@ -1,0 +1,63 @@
+# =============================================================================
+# Canvas Template — Cisco Meraki MX L3 (Outbound) Firewall Rules
+#
+# L3 Firewall Rules is a SINGLETON per network: Meraki stores the whole ruleset
+# as ONE ordered list per network, evaluated top-to-bottom, so ORDER matters.
+# This template therefore declares ONE ruleset per network — its identity is the
+# Meraki `network_id` and its payload is the ordered `rules` array. Add a second
+# item only to manage another network. Field keys must match
+# config-types/l3-firewall-rules/validate.ts. Applied via the Meraki Dashboard
+# API v1 (PUT /networks/{networkId}/appliance/firewall/l3FirewallRules).
+# =============================================================================
+
+id: "cisco-meraki-l3-firewall-rules"
+name: "L3 Firewall Rules"
+toolType: "cisco-meraki"
+entityType: "l3-firewall-rules"
+description: "Manage a Meraki network's MX L3 (outbound) firewall ruleset as code — one ordered list per network, applied as a whole-list replace via the Meraki Dashboard API."
+
+item:
+  label: "Network Firewall Ruleset"
+  identityField: "network_id"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Network"
+      icon: "network"
+      description: "The Meraki network this ruleset applies to"
+      fields:
+        - key: "network_id"
+          label: "Meraki Network ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_-]+$"
+            maxLength: 64
+          helpText: "The Meraki Dashboard network id (e.g. L_646829496481099008 or N_646829496481099008) whose MX L3 outbound firewall ruleset this item manages. Find it in the Meraki dashboard URL, or via GET /organizations/{organizationId}/networks."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this ruleset is configured — recorded for your own record-keeping only; not sent to Meraki."
+
+    - name: "Firewall Rules"
+      icon: "shield"
+      description: "The ordered outbound firewall rules, evaluated top to bottom"
+      fields:
+        - key: "rules"
+          label: "Rules (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 200000
+          helpText: 'The ordered custom ruleset as JSON — a bare [ ... ] array or a { "rules": [...] } object. Each rule is { "comment", "policy": "allow"|"deny", "protocol": "any"|"icmp"|"icmp6"|"tcp"|"udp", "srcPort", "srcCidr", "destPort", "destCidr", "syslogEnabled" }. Do NOT include Meraki''s implicit final "Default rule" (allow any/any) — it is appended automatically and is never part of this list. Order is significant; rules are evaluated top to bottom.'
+
+        - key: "syslog_default_rule"
+          label: "Log the Default Rule"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Enable syslog logging for Meraki's implicit final \"Default rule\" (the API's syslogDefaultRule). Meraki never returns this flag's current value, so drift detection cannot see it and rollback cannot restore it — every deploy re-applies the declared value here."

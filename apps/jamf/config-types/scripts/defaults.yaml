@@ -1,0 +1,7 @@
+# Defaults for a new Jamf Pro script item.
+#
+# Intentionally empty: the platform starts a new item blank (the "Priority"
+# field's own defaultValue of AFTER, set in canvas.yaml, already seeds new
+# items) and users manage their own default value sets from there. Any values
+# here would be a FLAT map keyed by the canvas field keys (name, priority,
+# category_name, info, notes, os_requirements, script_contents, parameter4..11).

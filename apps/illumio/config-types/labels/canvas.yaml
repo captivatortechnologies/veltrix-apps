@@ -1,0 +1,66 @@
+# =============================================================================
+# Canvas Template — Illumio Core Labels
+#
+# Declares ONE Illumio label (the item). Users add as many as they need. A
+# label's identity is its (key, value) PAIR, not either field alone — the same
+# value can appear under different keys (env=E-Prod vs loc=E-Prod would be two
+# distinct labels), so no single field is a true identityField and none is
+# declared here. Field keys must match config-types/labels/validate.ts.
+#
+# `key` must name an existing label dimension: the PCE's four built-in
+# dimensions (role, app, env, loc) always exist; a custom dimension must already
+# be created via the PCE's label_dimensions API (PCE 22.5+) — this app does not
+# yet manage label dimensions. See README.md.
+# =============================================================================
+
+id: "illumio-labels"
+name: "Label Configuration"
+toolType: "illumio"
+entityType: "labels"
+description: "Define Illumio Core labels (key/value policy objects) as code through the Illumio REST API v2."
+
+item:
+  label: "Label"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Label"
+      icon: "tag"
+      description: "The label's key/value pair — its identity in the PCE"
+      fields:
+        - key: "key"
+          label: "Key"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 64
+          helpText: >
+            The label dimension: one of the PCE's built-ins (role, app, env,
+            loc) or a custom dimension already created in the PCE. Up to 64
+            characters.
+
+        - key: "value"
+          label: "Value"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The label's value within that key, e.g. R-DB for key "role" or
+            E-Prod for key "env". Together, key + value are the label's
+            identity — deploy matches live labels on this pair.
+
+    - name: "Integration metadata"
+      icon: "link"
+      description: "Optional external-system linkage, carried through unchanged on every deploy"
+      fields:
+        - key: "externalDataSet"
+          label: "External data set"
+          fieldType: "text"
+          required: false
+          helpText: "Optional: the external system this label originates from (external_data_set)."
+
+        - key: "externalDataReference"
+          label: "External data reference"
+          fieldType: "text"
+          required: false
+          helpText: "Optional: this label's unique identifier within that external system (external_data_reference)."

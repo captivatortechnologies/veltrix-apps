@@ -1,0 +1,111 @@
+# =============================================================================
+# Canvas Template — Jamf Pro Scripts
+#
+# Declares ONE Jamf Pro script — the item. Users add as many as they need.
+# Scripts are created/updated through the modern Jamf Pro API
+# (POST/PUT /v1/scripts) and identified for reconciliation by their `name`.
+#
+# NOTE: Jamf Pro does not enforce unique script names server-side — this
+# canvas rejects duplicate names among the scripts YOU declare, but if the
+# live tenant already has more than one script sharing a name (created
+# outside Veltrix), the first one Jamf Pro returns is treated as the match.
+#
+# Field keys must match config-types/scripts/validate.ts.
+# =============================================================================
+
+id: "jamf-scripts"
+name: "Jamf Pro Script Configuration"
+toolType: "jamf"
+entityType: "scripts"
+description: "Declare Jamf Pro scripts as code through the modern Jamf Pro API (GET/POST/PUT/DELETE /v1/scripts). Reconciled by script name; missing scripts are created and existing ones are updated to the declared spec."
+
+item:
+  label: "Script"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "key"
+      description: "Name, execution priority and category"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The script's display name in Jamf Pro — its logical identity for reconciliation."
+
+        - key: "priority"
+          label: "Priority"
+          fieldType: "select"
+          required: true
+          defaultValue: "AFTER"
+          options:
+            - { label: "Before (runs before other policy items)", value: "BEFORE" }
+            - { label: "After (runs after other policy items)", value: "AFTER" }
+            - { label: "At Reboot", value: "AT_REBOOT" }
+          helpText: "When a policy runs this script relative to its other payloads (packages, printers, …)."
+
+        - key: "category_name"
+          label: "Category"
+          fieldType: "text"
+          helpText: "Optional Jamf Pro script category name (must already exist in Jamf Pro). Leave blank to leave the script uncategorized."
+
+    - name: "Documentation"
+      icon: "book"
+      description: "Description, notes and OS requirements"
+      fields:
+        - key: "info"
+          label: "Info"
+          fieldType: "textarea"
+          helpText: "Shown to Jamf Pro admins — what the script does and why."
+
+        - key: "notes"
+          label: "Notes"
+          fieldType: "textarea"
+          helpText: "Additional admin-facing notes (e.g. change history, author)."
+
+        - key: "os_requirements"
+          label: "OS Requirements"
+          fieldType: "text"
+          helpText: "Optional OS version requirement string, e.g. 13.x or 12.0-14.99.99."
+
+    - name: "Script Contents"
+      icon: "file-code"
+      description: "The shell/zsh payload Jamf Pro executes"
+      fields:
+        - key: "script_contents"
+          label: "Script Contents"
+          fieldType: "textarea"
+          required: true
+          helpText: "The full script body (e.g. #!/bin/zsh …) Jamf Pro runs on enrolled Macs."
+
+    - name: "Parameters"
+      icon: "sliders"
+      description: "Optional labels for positional script parameters $4–$11 (Jamf reserves $1–$3 for the mount point, computer name and username)"
+      fields:
+        - key: "parameter4"
+          label: "Parameter 4 ($4)"
+          fieldType: "text"
+        - key: "parameter5"
+          label: "Parameter 5 ($5)"
+          fieldType: "text"
+        - key: "parameter6"
+          label: "Parameter 6 ($6)"
+          fieldType: "text"
+        - key: "parameter7"
+          label: "Parameter 7 ($7)"
+          fieldType: "text"
+        - key: "parameter8"
+          label: "Parameter 8 ($8)"
+          fieldType: "text"
+        - key: "parameter9"
+          label: "Parameter 9 ($9)"
+          fieldType: "text"
+        - key: "parameter10"
+          label: "Parameter 10 ($10)"
+          fieldType: "text"
+        - key: "parameter11"
+          label: "Parameter 11 ($11)"
+          fieldType: "text"

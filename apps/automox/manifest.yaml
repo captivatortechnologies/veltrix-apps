@@ -1,0 +1,105 @@
+id: automox
+name: Automox
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Automox (cloud-native endpoint patch management) configuration as
+  code through the Automox Console API. Author Policies — patch, required
+  software and custom (Worklet) — and drive them through the Security-as-Code
+  pipeline (validate, deploy, health check, drift detection and rollback) over
+  the Automox REST API. Authenticates with a Bearer API key, scoped to an
+  Organization ID sent as the `o` query parameter on every request.
+category: Endpoint Management
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/automox
+icon: "🛠️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Automox brand blue.
+branding:
+  primaryColor: "#0072CE"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: policies
+      actions: [read, write, delete]
+      description: Manage Automox Policies (patch / required software / custom Worklet)
+
+pipeline:
+  configurationTypes:
+    - id: policies
+      group: "Policies"
+      name: Policies
+      description: >
+        Automox Policies — patch, required software and custom (Worklet) —
+        applied over the Automox Console API (GET/POST /policies,
+        GET/PUT/DELETE /policies/{id}). Reconciled by policy name within the
+        configured Organization ID.
+      canvasTemplate: config-types/policies/canvas.yaml
+      defaultConfig: config-types/policies/defaults.yaml
+      handlers:
+        validate: config-types/policies/validate
+        deploy: config-types/policies/deploy
+        rollback: config-types/policies/rollback
+        healthCheck: config-types/policies/healthCheck
+        driftDetect: config-types/policies/driftDetect
+        getStatus: config-types/policies/getStatus
+      targets:
+        componentTypes: [automox-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/automox
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs an Automox organization (component)
+    # with the API-key credential used to reach it, with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies the API key against the fixed
+# Automox Console API endpoint (GET /orgs — the one policy-adjacent endpoint
+# that does not require an Organization ID), and cross-checks the configured
+# Organization ID against the orgs the key can see.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Automox Console API calls.
+    default: 30
+    required: false

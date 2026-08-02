@@ -1,0 +1,92 @@
+# =============================================================================
+# Canvas Template — authentik Applications
+#
+# Declares ONE authentik Application (the item). Operators add as many as they
+# need. Field keys must match config-types/applications/validate.ts and
+# _shared.ts. Applied via the authentik Core REST API (GET/POST
+# /core/applications/, GET/PATCH/DELETE /core/applications/{slug}/). The slug
+# is authentik's own path identity for the resource, so this config type
+# upserts by SLUG.
+#
+# Provider linkage (deferred): `provider` references an EXISTING authentik
+# Provider by its numeric pk. This config type does not create or manage
+# Providers — that is a separate config type planned for a later wave. Leave it
+# blank for an application with no bound provider (e.g. a launcher-only tile).
+# =============================================================================
+
+id: "authentik-applications"
+name: "Applications"
+toolType: "authentik"
+entityType: "applications"
+description: "Manage authentik Applications — name, slug, provider binding (by existing provider pk), UI group, policy engine mode and metadata — via the authentik Core REST API"
+
+item:
+  label: "Application"
+  identityField: "slug"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "key"
+      description: "Application identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The application's display name, shown to end users and in the authentik admin interface."
+
+        - key: "slug"
+          label: "Slug"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[-a-zA-Z0-9_]+$"
+          helpText: "Internal application name, used in URLs. Letters, numbers, hyphens and underscores only. This is the stable identity used for upsert and drift, and cannot be changed after creation without re-creating the application."
+
+    - name: "Provider"
+      icon: "link"
+      description: "Bind an existing provider (OAuth2/OIDC, SAML, proxy, LDAP, …)"
+      fields:
+        - key: "provider"
+          label: "Provider (pk)"
+          fieldType: "number"
+          required: false
+          helpText: "The numeric primary key of an EXISTING authentik Provider to bind to this application (Admin interface > Applications > Providers, or the provider's detail page URL). Leave blank for no bound provider. Providers are not created or managed by this app yet — that ships as its own configuration type in a later release."
+
+    - name: "Access"
+      icon: "shield"
+      description: "Access policy and grouping"
+      fields:
+        - key: "policy_engine_mode"
+          label: "Policy Engine Mode"
+          fieldType: "select"
+          required: false
+          defaultValue: "any"
+          options:
+            - { label: "Any policy must match (OR)", value: "any" }
+            - { label: "All policies must match (AND)", value: "all" }
+          helpText: "How authentik evaluates this application's access policies (bindings configured separately in authentik). \"Any\" grants access if a single bound policy passes; \"All\" requires every bound policy to pass."
+
+        - key: "group"
+          label: "UI Group"
+          fieldType: "text"
+          required: false
+          helpText: "Optional group label used to organize this application on the user's My Applications page."
+
+    - name: "Metadata"
+      icon: "settings"
+      description: "Display metadata shown on the application's launch tile"
+      fields:
+        - key: "meta_description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          helpText: "Shown on the application's tile on the user's My Applications page."
+
+        - key: "meta_publisher"
+          label: "Publisher"
+          fieldType: "text"
+          required: false
+          helpText: "Shown on the application's tile on the user's My Applications page."

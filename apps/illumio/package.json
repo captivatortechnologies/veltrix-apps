@@ -1,0 +1,15 @@
+{
+  "name": "veltrix-app-illumio",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Veltrix app: manage Illumio Core (PCE) microsegmentation configuration as code — labels (key/value policy objects) over the Illumio REST API v2, with security policy (rule sets) planned for a follow-up release",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@veltrixsecops/app-sdk": "^3.7.0",
+    "fastify": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}

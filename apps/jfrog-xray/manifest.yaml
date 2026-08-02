@@ -1,0 +1,113 @@
+id: jfrog-xray
+name: JFrog Xray
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage JFrog Xray (software composition analysis / supply-chain security)
+  configuration as code through the Xray REST API v2. Covers security
+  policies — severity or CVSS-based vulnerability gates with build/release
+  blocking, notification and ticketing actions — reconciled by policy name,
+  with validation, drift detection and rollback handled by the
+  Security-as-Code pipeline. Authenticates with a JFrog Platform Access Token
+  (Bearer).
+category: COMPLIANCE
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/jfrog-xray
+icon: "🩻"
+
+platform:
+  minVersion: "1.0.0"
+
+# JFrog brand green. Approximate — no official hex was published in the brand
+# guidelines page consulted; adjust if JFrog's brand portal (brand.jfrog.com)
+# publishes an exact value. No logo asset shipped yet (placeholder, like the
+# Auth0 app) until an official lockup is added.
+branding:
+  primaryColor: "#41BF47"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: security-policies
+      actions: [read, write, delete]
+      description: Manage JFrog Xray security policies (create / edit / delete)
+
+pipeline:
+  configurationTypes:
+    - id: security-policies
+      group: "Policies"
+      name: Security Policies
+      description: >
+        JFrog Xray security policies — a minimum severity or CVSS-range gate
+        per rule, with build/release-blocking, notification and ticketing
+        actions — applied over the Xray REST API v2 (/xray/api/v2/policies).
+        Upserts by policy name.
+      canvasTemplate: config-types/security-policies/canvas.yaml
+      defaultConfig: config-types/security-policies/defaults.yaml
+      handlers:
+        validate: config-types/security-policies/validate
+        deploy: config-types/security-policies/deploy
+        rollback: config-types/security-policies/rollback
+        healthCheck: config-types/security-policies/healthCheck
+        driftDetect: config-types/security-policies/driftDetect
+        getStatus: config-types/security-policies/getStatus
+      targets:
+        componentTypes: [jfrog-xray-instance]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/jfrog-xray
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs a JFrog Platform host (component)
+    # with the Access Token used to reach it, with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: verifies the host + Access Token via an
+# authenticated GET /xray/api/v2/policies (proves both reachability AND that
+# the token carries the Read Policies permission — an unauthenticated ping
+# alone would not).
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Xray API calls.
+    default: 30
+    required: false

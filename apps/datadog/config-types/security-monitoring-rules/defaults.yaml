@@ -1,0 +1,6 @@
+# Defaults for a new Security Monitoring Rule item.
+#
+# Intentionally minimal: the per-field defaultValue in canvas.yaml already seeds
+# type, isEnabled, hasExtendedTitle, cases, options and filters. Any values here
+# would be a FLAT map keyed by the canvas field keys (name, message, type,
+# isEnabled, hasExtendedTitle, tags, queries, cases, options, filters).

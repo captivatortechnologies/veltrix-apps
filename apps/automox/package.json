@@ -1,0 +1,15 @@
+{
+  "name": "veltrix-app-automox",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Veltrix app: manage Automox endpoint patch management configuration as code — Policies (patch / required software / custom Worklet) over the Automox Console REST API (Bearer API key, org-scoped)",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@veltrixsecops/app-sdk": "^3.7.0",
+    "fastify": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}

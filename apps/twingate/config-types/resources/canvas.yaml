@@ -1,0 +1,119 @@
+# =============================================================================
+# Canvas Template — Twingate Resources
+#
+# Declares ONE Twingate Resource — a private application, host or subnet
+# reachable through a Remote Network's Connector(s). Users add as many as they
+# need. Resources are created/updated through the GraphQL resourceCreate /
+# resourceUpdate mutations and identified for reconciliation by their `name`.
+#
+# The Remote Network and any access Groups are entered by NAME and resolved to
+# their Twingate ids at deploy/drift time — friendlier and less error-prone
+# than pasting opaque ids, and consistent with how other Veltrix apps resolve
+# related objects.
+#
+# Field keys must match config-types/resources/_shared.ts (extractResourceSpecs).
+# =============================================================================
+
+id: "resources"
+name: "Twingate Resource"
+toolType: "twingate"
+entityType: "resources"
+description: "Define Twingate Resources (private apps/hosts/subnets) as code through the GraphQL API. Reconciled by resource name; the Remote Network and access Groups are matched by name against the live tenant."
+
+item:
+  label: "Resource"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Resource"
+      icon: "server"
+      description: "Identity, address and Remote Network"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The resource name — its logical identity among this network's resources."
+
+        - key: "address"
+          label: "Address"
+          fieldType: "text"
+          required: true
+          helpText: "The hostname, IP address or CIDR the Connector routes traffic to, e.g. 10.0.1.5, internal-app.corp.local, or 10.0.0.0/24."
+
+        - key: "remote_network_name"
+          label: "Remote Network"
+          fieldType: "text"
+          required: true
+          helpText: "The Twingate Remote Network this resource belongs to, matched by name (case-insensitive). Create the Remote Network in Twingate first."
+
+        - key: "alias"
+          label: "Alias"
+          fieldType: "text"
+          helpText: "Optional internal DNS alias Twingate assigns to this resource for Clients (e.g. app.internal)."
+
+    - name: "Visibility"
+      icon: "eye"
+      description: "How the resource appears to end users"
+      fields:
+        - key: "is_visible"
+          label: "Visible to Clients"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether this resource is listed in the Twingate Client's resource list."
+
+        - key: "is_browser_shortcut_enabled"
+          label: "Browser Shortcut"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Show a one-click browser shortcut for this resource in the Twingate Client."
+
+    - name: "Protocols"
+      icon: "network"
+      description: "TCP / UDP / ICMP access policy"
+      fields:
+        - key: "allow_icmp"
+          label: "Allow ICMP (ping)"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "tcp_policy"
+          label: "TCP Policy"
+          fieldType: "select"
+          required: true
+          defaultValue: "ALLOW_ALL"
+          options:
+            - { label: "Allow all ports", value: "ALLOW_ALL" }
+            - { label: "Restrict to specific ports", value: "RESTRICTED" }
+            - { label: "Deny all", value: "DENY_ALL" }
+
+        - key: "tcp_ports"
+          label: "TCP Ports"
+          fieldType: "tags"
+          helpText: "Only enforced when TCP Policy is Restricted. Each entry is a single port (443) or an inclusive range (8000-9000)."
+
+        - key: "udp_policy"
+          label: "UDP Policy"
+          fieldType: "select"
+          required: true
+          defaultValue: "ALLOW_ALL"
+          options:
+            - { label: "Allow all ports", value: "ALLOW_ALL" }
+            - { label: "Restrict to specific ports", value: "RESTRICTED" }
+            - { label: "Deny all", value: "DENY_ALL" }
+
+        - key: "udp_ports"
+          label: "UDP Ports"
+          fieldType: "tags"
+          helpText: "Only enforced when UDP Policy is Restricted. Each entry is a single port (53) or an inclusive range (60000-61000)."
+
+    - name: "Access"
+      icon: "users"
+      description: "Who can reach this resource"
+      fields:
+        - key: "group_names"
+          label: "Groups"
+          fieldType: "tags"
+          helpText: "Twingate Groups (by name) granted access to this resource. This list REPLACES the resource's access on every deploy — leave empty for no Group access (e.g. when access is granted to Service Accounts or individual users directly in Twingate instead)."

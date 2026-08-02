@@ -1,0 +1,4 @@
+# Defaults for a new authentik Application item — intentionally minimal; the
+# operator fills in the name/slug and this seeds authentik's own default policy
+# engine mode (matches other apps' item defaults).
+policy_engine_mode: "any"

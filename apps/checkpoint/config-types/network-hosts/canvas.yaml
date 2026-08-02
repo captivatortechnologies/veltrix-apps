@@ -1,0 +1,77 @@
+# =============================================================================
+# Canvas Template — Check Point Network Host Objects
+#
+# Declares ONE Check Point host object — the item. Users add as many as they
+# need. A host's identity is its NAME; deploy lists the management database
+# (show-hosts), matches on the name, and uses add-host (create) / set-host
+# (update) to reconcile each declared host. Hosts this app created but no
+# longer declares are removed (delete-host). Every deploy publishes the
+# session's changes, or discards them on any error.
+#
+# Field keys must match config-types/network-hosts/validate.ts.
+# =============================================================================
+
+id: "checkpoint-network-hosts"
+name: "Check Point Host Object Configuration"
+toolType: "checkpoint"
+entityType: "network-hosts"
+description: "Define Check Point Management API host objects (add-host / set-host) as code. Reconciled by object name; a session-wide publish commits every change together, or discards them all on any error."
+
+item:
+  label: "Host Object"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "server"
+      description: "Object name and IP address"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The host object's name — its identity in the Check Point
+            management database. Must be unique within this canvas; deploy
+            matches live objects on it.
+
+        - key: "ipv4Address"
+          label: "IPv4 Address"
+          fieldType: "text"
+          required: false
+          helpText: "The host's IPv4 address, e.g. 10.0.0.5. At least one of IPv4 / IPv6 address is required."
+
+        - key: "ipv6Address"
+          label: "IPv6 Address"
+          fieldType: "text"
+          required: false
+          helpText: "The host's IPv6 address. At least one of IPv4 / IPv6 address is required."
+
+    - name: "Metadata"
+      icon: "tag"
+      description: "Optional comments, color and tags"
+      fields:
+        - key: "comments"
+          label: "Comments"
+          fieldType: "textarea"
+          required: false
+          helpText: "Optional description stored on the object."
+
+        - key: "color"
+          label: "Color"
+          fieldType: "text"
+          required: false
+          defaultValue: "black"
+          helpText: >
+            Object color shown in SmartConsole, e.g. black, red, blue, green,
+            orange — see the object's color picker in SmartConsole for the
+            full list. Passed through as-is; Check Point rejects an unknown
+            color name at deploy time.
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          required: false
+          helpText: "Optional tag names applied to the object (created automatically if they don't already exist)."

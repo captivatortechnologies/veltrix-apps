@@ -1,0 +1,56 @@
+import type { RollbackContext, RollbackResult } from '@veltrixsecops/app-sdk'
+import {
+  ersBase,
+  buildEndpointIdentityGroupsClient,
+  readIseSettings,
+  hasUsableCredential,
+  MISSING_CREDENTIAL_MESSAGE,
+} from '../../lib/iseApi'
+import type { RollbackEntry } from './deploy'
+
+/**
+ * Undo an endpoint-identity-groups deploy from rollbackData.previous (written by
+ * deploy()): for each entry, PUT the prior name/description back (restore), or —
+ * when the group was newly created (prior detail null) — DELETE it. Applied over
+ * the ISE ERS API.
+ */
+export default async function rollback(ctx: RollbackContext): Promise<RollbackResult> {
+  const { component, credential, connectivity, connectivityProvider } = ctx
+  const data = (ctx.rollbackData ?? {}) as { previous?: RollbackEntry[] }
+  const previous = data.previous ?? []
+  if (previous.length === 0) return { success: true, message: 'Nothing to roll back.' }
+
+  if (!hasUsableCredential(credential)) {
+    return { success: false, message: MISSING_CREDENTIAL_MESSAGE }
+  }
+
+  const settings = readIseSettings(ctx.settings)
+  const base = ersBase(component, connectivity, connectivityProvider)
+  const client = buildEndpointIdentityGroupsClient(base, credential, settings)
+
+  let restored = 0
+  let deleted = 0
+  let skipped = 0
+  try {
+    for (const entry of previous) {
+      if (!entry.id) {
+        // A created group whose id we never learned — nothing safe to undo.
+        skipped++
+        continue
+      }
+      if (entry.group) {
+        await client.update(entry.id, { name: entry.group.name ?? entry.name, description: entry.group.description ?? '' })
+        restored++
+      } else {
+        await client.remove(entry.id)
+        deleted++
+      }
+    }
+    return {
+      success: true,
+      message: `Rolled back endpoint identity groups: ${restored} restored, ${deleted} deleted${skipped ? `, ${skipped} skipped` : ''}.`,
+    }
+  } catch (error) {
+    return { success: false, message: `Rollback failed: ${error instanceof Error ? error.message : 'Unknown error'}` }
+  }
+}

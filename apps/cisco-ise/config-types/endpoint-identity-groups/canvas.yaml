@@ -1,0 +1,48 @@
+# =============================================================================
+# Canvas Template — Cisco ISE Endpoint Identity Groups
+#
+# Declares ONE endpoint identity group (the item). Users add as many as they
+# need. Field keys must match config-types/endpoint-identity-groups/_shared.ts.
+# Applied via the ISE ERS API (POST/PUT/DELETE /ers/config/endpointgroup).
+#
+# ERS's EndPointGroup resource is deliberately small — id, name, description
+# and a systemDefined flag. This app only ever creates/manages custom groups
+# (systemDefined is always sent as false); ISE's built-in groups (Unknown,
+# Profiled, Cisco-IP-Phone, Blacklist, ...) are never created or modified.
+# =============================================================================
+
+id: "cisco-ise-endpoint-identity-groups"
+name: "Endpoint Identity Groups"
+toolType: "cisco-ise"
+entityType: "endpoint-identity-groups"
+description: "Manage Cisco ISE endpoint identity groups — custom groups used to classify endpoints for authorization policy — via the ERS API (/ers/config/endpointgroup)"
+
+item:
+  label: "Endpoint Identity Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Group"
+      icon: "users"
+      description: "Endpoint identity group identity and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The endpoint identity group name in ISE. Used as the stable identity for
+            upsert and drift — renaming here creates a new group rather than renaming
+            the existing one. Must be unique within ISE.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this group is for — recorded on the group in ISE."

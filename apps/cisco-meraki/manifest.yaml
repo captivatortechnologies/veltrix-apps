@@ -1,0 +1,127 @@
+# =============================================================================
+# Cisco Meraki (Veltrix app) — Manifest
+#
+# v0.1.0 ships the first NETWORK configuration type: MX L3 (outbound) Firewall
+# Rules. Meraki stores the whole ruleset for a network as ONE ordered list (the
+# platform never exposes create/delete of an individual rule — only a full
+# whole-list replace), so this config type is modeled as an ordered SINGLETON
+# per network, the same shape as Cribl's Routes config type: one canvas item =
+# one network's ruleset, identified by its `network_id`.
+# =============================================================================
+
+id: cisco-meraki
+name: Cisco Meraki
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Cisco Meraki Dashboard network security configuration as code through
+  the Meraki Dashboard API v1. Ships MX L3 (outbound) Firewall Rules
+  (l3-firewall-rules) — the ordered ruleset evaluated top-to-bottom before the
+  network's implicit final "Default rule" (allow any/any) — applied as a
+  whole-list replace via PUT /networks/{networkId}/appliance/firewall/l3FirewallRules,
+  with validation, drift detection and rollback handled by the
+  Security-as-Code pipeline. Authenticates with a Meraki Dashboard API key
+  (Authorization: Bearer) against the fixed api.meraki.com base.
+category: NETWORK
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cisco-meraki
+icon: "📡"
+
+platform:
+  minVersion: "1.0.0"
+
+# Cisco Meraki's brand green (approximate) — placeholder until the official
+# lockup is added.
+branding:
+  primaryColor: "#78BE21"
+  accentColor: "#00537D"
+  logo: ./assets/logo.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: l3-firewall-rules
+      actions: [read, write, delete]
+      description: Manage Meraki MX L3 (outbound) firewall rules per network
+
+pipeline:
+  configurationTypes:
+    - id: l3-firewall-rules
+      group: "Appliance · Firewall"
+      name: L3 Firewall Rules
+      description: >
+        The MX L3 (outbound) firewall ruleset for one Meraki network — an
+        ordered list of allow/deny rules evaluated top-to-bottom, applied as a
+        whole-list replace via PUT
+        /networks/{networkId}/appliance/firewall/l3FirewallRules. Meraki
+        appends an implicit final "Default rule" (allow any/any) after the
+        declared rules; it is never part of this ruleset and cannot be
+        removed. One canvas item manages one network's ruleset, identified by
+        its `network_id`.
+      canvasTemplate: config-types/l3-firewall-rules/canvas.yaml
+      defaultConfig: config-types/l3-firewall-rules/defaults.yaml
+      handlers:
+        validate: config-types/l3-firewall-rules/validate
+        deploy: config-types/l3-firewall-rules/deploy
+        rollback: config-types/l3-firewall-rules/rollback
+        healthCheck: config-types/l3-firewall-rules/healthCheck
+        driftDetect: config-types/l3-firewall-rules/driftDetect
+        getStatus: config-types/l3-firewall-rules/getStatus
+      targets:
+        componentTypes: [meraki-organization]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/cisco-meraki
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs a Meraki organization (component)
+    # with the Dashboard API key credential, with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: verifies the Dashboard API key via
+# GET /organizations against the fixed https://api.meraki.com/api/v1 base.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Meraki Dashboard API calls.
+    default: 30
+    required: false
