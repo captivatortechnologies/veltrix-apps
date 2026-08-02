@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-graylog",
   "private": true,
-  "version": "0.1.0",
-  "description": "Veltrix app: manage Graylog (open-source SIEM / log management) as code — message streams over the Graylog REST API",
+  "version": "0.2.0",
+  "description": "Veltrix app: manage Graylog (open-source SIEM / log management) as code — streams, inputs, pipeline rules and index sets over the Graylog REST API",
   "scripts": {
     "typecheck": "tsc --noEmit"
   },

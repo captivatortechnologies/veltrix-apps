@@ -1,6 +1,6 @@
 id: greenbone
 name: Greenbone
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Greenbone / OpenVAS vulnerability scanning as code. Author scan Targets
@@ -31,6 +31,15 @@ permissions:
     - resource: targets
       actions: [read, write, delete]
       description: Manage Greenbone scan targets (create / edit / delete)
+    - resource: port-lists
+      actions: [read, write, delete]
+      description: Manage Greenbone port lists (create / edit / delete)
+    - resource: schedules
+      actions: [read, write, delete]
+      description: Manage Greenbone scan schedules (create / edit / delete)
+    - resource: scan-tasks
+      actions: [read, write, delete]
+      description: Manage Greenbone scan tasks (create / edit / delete)
 
 pipeline:
   configurationTypes:
@@ -47,6 +56,60 @@ pipeline:
         healthCheck: config-types/targets/healthCheck
         driftDetect: config-types/targets/driftDetect
         getStatus: config-types/targets/getStatus
+      targets:
+        componentTypes: [greenbone, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: port-lists
+      group: "Scanning"
+      name: Port Lists
+      description: Greenbone port lists — named TCP/UDP port ranges scan targets reference — applied over GMP (XML over TLS, 9390)
+      canvasTemplate: config-types/port-lists/canvas.yaml
+      defaultConfig: config-types/port-lists/defaults.yaml
+      handlers:
+        validate: config-types/port-lists/validate
+        deploy: config-types/port-lists/deploy
+        rollback: config-types/port-lists/rollback
+        healthCheck: config-types/port-lists/healthCheck
+        driftDetect: config-types/port-lists/driftDetect
+        getStatus: config-types/port-lists/getStatus
+      targets:
+        componentTypes: [greenbone, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: schedules
+      group: "Scanning"
+      name: Schedules
+      description: Greenbone scan schedules — iCalendar (RFC 5545) recurrence + timezone — applied over GMP (XML over TLS, 9390)
+      canvasTemplate: config-types/schedules/canvas.yaml
+      defaultConfig: config-types/schedules/defaults.yaml
+      handlers:
+        validate: config-types/schedules/validate
+        deploy: config-types/schedules/deploy
+        rollback: config-types/schedules/rollback
+        healthCheck: config-types/schedules/healthCheck
+        driftDetect: config-types/schedules/driftDetect
+        getStatus: config-types/schedules/getStatus
+      targets:
+        componentTypes: [greenbone, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: scan-tasks
+      group: "Scanning"
+      name: Scan Tasks
+      description: Greenbone scan tasks — target + scan config + scanner (resolved by name) with an optional schedule — applied over GMP (XML over TLS, 9390)
+      canvasTemplate: config-types/scan-tasks/canvas.yaml
+      defaultConfig: config-types/scan-tasks/defaults.yaml
+      handlers:
+        validate: config-types/scan-tasks/validate
+        deploy: config-types/scan-tasks/deploy
+        rollback: config-types/scan-tasks/rollback
+        healthCheck: config-types/scan-tasks/healthCheck
+        driftDetect: config-types/scan-tasks/driftDetect
+        getStatus: config-types/scan-tasks/getStatus
       targets:
         componentTypes: [greenbone, standalone]
         requiresCredential: true

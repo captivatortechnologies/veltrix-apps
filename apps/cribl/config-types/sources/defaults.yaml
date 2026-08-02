@@ -1,0 +1,9 @@
+# Defaults for a new Source item. The worker group defaults to "default"; the
+# operator fills in the id, the Cribl input type and the conf JSON. Kept minimal
+# so a new item starts from a valid, empty Source config.
+worker_group: "default"
+type: ""
+conf: |
+  {
+    "disabled": false
+  }

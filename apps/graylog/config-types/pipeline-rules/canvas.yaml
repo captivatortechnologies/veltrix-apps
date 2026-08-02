@@ -1,0 +1,56 @@
+# =============================================================================
+# Canvas Template — Graylog Pipeline Rules
+#
+# Declares ONE Graylog processing pipeline rule (the item). Users add as many as
+# they need. Field keys must match config-types/pipeline-rules/validate.ts.
+# Applied via the Graylog REST API (POST/PUT /api/system/pipelines/rule,
+# DELETE /api/system/pipelines/rule/{id}).
+#
+# NOTE: Graylog names the rule from its DSL source (rule "NAME"), so the Title
+# below MUST match that name — validate.ts enforces this.
+# =============================================================================
+
+id: "graylog-pipeline-rules"
+name: "Pipeline Rules"
+toolType: "graylog"
+entityType: "pipeline-rules"
+description: "Manage Graylog processing pipeline rules — title, description and rule DSL source — via the Graylog REST API (/api/system/pipelines/rule)"
+
+item:
+  label: "Pipeline Rule"
+  identityField: "title"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Rule"
+      icon: "filter"
+      description: "Rule identity"
+      fields:
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Rule name. Must match the rule name in the source below (rule \"...\") — Graylog names the rule from its DSL."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this rule does — recorded on the rule in Graylog."
+
+    - name: "Source"
+      icon: "code"
+      description: "Rule DSL source"
+      fields:
+        - key: "source"
+          label: "Rule source (DSL)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            Graylog pipeline rule DSL. Structure: rule "name" when <condition> then <actions> end.
+            e.g. rule "add-source-tag" when has_field("message") then set_field("processed", true); end

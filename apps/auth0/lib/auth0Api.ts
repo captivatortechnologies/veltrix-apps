@@ -165,7 +165,7 @@ export async function getJson<T>(url: string, accessToken: string, timeoutMs?: n
 }
 
 export async function sendJson<T>(
-  method: 'POST' | 'PATCH' | 'PUT',
+  method: 'POST' | 'PATCH' | 'PUT' | 'DELETE',
   url: string,
   accessToken: string,
   body?: unknown,

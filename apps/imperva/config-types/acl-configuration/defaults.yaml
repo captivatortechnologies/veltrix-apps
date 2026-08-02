@@ -1,0 +1,4 @@
+# Defaults for a new ACL item — the operator picks the ACL type and fills in the
+# Site ID and the list values. `aclId` seeds to the IP blacklist (the most common
+# starting point); the list fields start empty.
+aclId: "api.acl.blacklisted_ips"

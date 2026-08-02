@@ -1,13 +1,13 @@
 # Greenbone (Veltrix app)
 
 Manage **Greenbone / OpenVAS** vulnerability scanning **as code**. Author scan
-**Targets** in the Configuration Canvas and drive them through the Veltrix
-Security-as-Code pipeline — validate, deploy, health check, drift detection and
-rollback.
+**Targets**, **Port Lists**, **Schedules** and **Scan Tasks** in the Configuration
+Canvas and drive them through the Veltrix Security-as-Code pipeline — validate,
+deploy, health check, drift detection and rollback.
 
 - **Category:** COMPLIANCE
-- **Version:** 0.1.0 (foundation)
-- **Manages:** Scan Targets (name, hosts, exclude hosts, port list)
+- **Version:** 0.2.0
+- **Manages:** Scan Targets, Port Lists, Schedules, Scan Tasks — all over GMP
 
 ## The transport is GMP, not REST
 
@@ -57,7 +57,40 @@ list** to scan. The target **name** is the stable identity used to upsert:
   against the live target (best-effort).
 
 Port lists are referenced by UUID. The default is **All IANA assigned TCP**
-(`33d0cd82-57c6-11e1-8ed1-406186ea4fc5`, 5836 ports).
+(`33d0cd82-57c6-11e1-8ed1-406186ea4fc5`, 5836 ports) — or author your own with the
+**Port Lists** config type below.
+
+## Port Lists
+
+A named set of TCP/UDP port ranges (`create_port_list` / `get_port_lists` /
+`modify_port_list` / `delete_port_list`). The canvas range string
+(`T:1-1024,U:53,T:3389`) is normalised to the same canonical form gvmd's structured
+`<port_range>` triples reconstruct to, so drift compares cleanly. **FLAG:**
+`modify_port_list` only changes name/comment — the port **ranges are immutable via
+modify** (a range edit needs a recreate); deploy surfaces a changed range instead of
+silently dropping it, and drift flags it.
+
+## Schedules
+
+A named recurrence expressed as **iCalendar (RFC 5545)** data plus a timezone
+(`create_schedule` / `get_schedules` / `modify_schedule` / `delete_schedule`).
+**FLAG:** the `<icalendar>` element is **GMP 20.08+** (it replaced the old
+`first_time` / `period` / `duration` model). gvmd keeps only **DTSTART / DTEND /
+DURATION / RRULE** from the VEVENT and reformats the rest, so drift compares those
+extracted keys, not the raw text.
+
+## Scan Tasks
+
+Tie a **target** to a **scan config** and a **scanner** (and optionally a
+**schedule**) — `create_task` / `get_tasks` / `modify_task` / `delete_task`. Each
+foreign key is referenced **by name** (or a pasted UUID) in the canvas and resolved
+to a gvmd id at deploy time by reading `get_targets` / `get_configs` /
+`get_scanners` / `get_schedules`. Config and scanner default to **Full and fast** /
+**OpenVAS Default**. **FLAG:** `create_task` needs `<usage_type>scan</usage_type>`
+(GMP 9.0+) and references config/target/scanner as **empty id-bearing elements**;
+`modify_task` **cannot re-point** them on a task that has already run unless the task
+is *alterable* (gvmd #1305), so deploy only re-sends a foreign key that actually
+changed.
 
 ## Verify against a live gvmd (FLAGS)
 
@@ -78,9 +111,8 @@ python-gvm and should be confirmed against your appliance:
 ## Roadmap
 
 - **BYOL infrastructure hosting** for the Greenbone stack (gvmd + scanner + feed +
-  PostgreSQL) — **planned for a later wave**. No database is bundled in this
-  foundation.
-- More config types (scan configs, scanners, schedules, credentials, tasks).
+  PostgreSQL) — **deferred to wave 3**. No database is bundled yet.
+- More config types (scan configs, scanners, credentials, alerts).
 
 ## References
 

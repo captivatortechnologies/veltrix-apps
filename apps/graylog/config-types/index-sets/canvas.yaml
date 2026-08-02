@@ -1,0 +1,126 @@
+# =============================================================================
+# Canvas Template — Graylog Index Sets
+#
+# Declares ONE Graylog index set (the item). Users add as many as they need.
+# Field keys must match config-types/index-sets/validate.ts. Applied via the
+# Graylog REST API (POST/PUT /api/system/indices/index_sets, DELETE .../{id}).
+#
+# Index sets have many required fields; the handler fills the boilerplate
+# (index_analyzer, index optimization, writable, field-type refresh, etc.) with
+# sensible defaults, exposing only the fields operators usually tune.
+# =============================================================================
+
+id: "graylog-index-sets"
+name: "Index Sets"
+toolType: "graylog"
+entityType: "index-sets"
+description: "Manage Graylog index sets — title, index prefix, rotation and retention strategy — via the Graylog REST API (/api/system/indices/index_sets)"
+
+item:
+  label: "Index Set"
+  identityField: "title"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Index Set"
+      icon: "database"
+      description: "Identity and storage"
+      fields:
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable index set name shown in Graylog. Used as the stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this index set is for — recorded in Graylog."
+
+        - key: "index_prefix"
+          label: "Index Prefix"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 64
+            pattern: "^[a-z0-9][a-z0-9_+-]*$"
+          helpText: "Prefix for the Elasticsearch/OpenSearch indices (must be unique). Lowercase; letters, digits, _, + and - only, e.g. \"firewall\"."
+
+        - key: "shards"
+          label: "Shards"
+          fieldType: "number"
+          required: false
+          defaultValue: 4
+          validation:
+            min: 1
+          helpText: "Number of primary shards per index."
+
+        - key: "replicas"
+          label: "Replicas"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+          validation:
+            min: 0
+          helpText: "Number of replica shards per index."
+
+    - name: "Rotation"
+      icon: "refresh"
+      description: "When to roll over to a new index"
+      fields:
+        - key: "rotation_strategy"
+          label: "Rotation Strategy"
+          fieldType: "select"
+          required: true
+          defaultValue: "msgcount"
+          options:
+            - label: "By message count"
+              value: "msgcount"
+            - label: "By index size"
+              value: "size"
+            - label: "By time period"
+              value: "time"
+          helpText: "How Graylog decides to start a new index."
+
+        - key: "rotation_value"
+          label: "Rotation Value"
+          fieldType: "text"
+          required: true
+          defaultValue: "20000000"
+          helpText: >
+            The rotation threshold, interpreted by the strategy: message count →
+            max documents per index (e.g. 20000000); index size → max bytes per
+            index (e.g. 1073741824); time period → an ISO-8601 period (e.g. P1D, PT6H).
+
+    - name: "Retention"
+      icon: "archive"
+      description: "What to do with old indices"
+      fields:
+        - key: "retention_strategy"
+          label: "Retention Strategy"
+          fieldType: "select"
+          required: true
+          defaultValue: "delete"
+          options:
+            - label: "Delete old indices"
+              value: "delete"
+            - label: "Close old indices"
+              value: "close"
+            - label: "Keep all (no-op)"
+              value: "none"
+          helpText: "What Graylog does once the index limit is reached."
+
+        - key: "retention_max_indices"
+          label: "Max Indices"
+          fieldType: "number"
+          required: false
+          defaultValue: 20
+          validation:
+            min: 1
+          helpText: "How many indices to keep before the retention strategy acts (ignored by the no-op strategy)."

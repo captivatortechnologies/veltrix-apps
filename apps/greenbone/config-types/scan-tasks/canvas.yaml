@@ -1,0 +1,88 @@
+# =============================================================================
+# Canvas Template — Greenbone Scan Tasks
+#
+# Declares ONE Greenbone scan task (the item). Users add as many as they need. A
+# task ties a target to a scan config and a scanner (and optionally a schedule),
+# each referenced BY NAME (or its UUID) and resolved to a gvmd id at deploy time.
+# Field keys must match config-types/scan-tasks/validate.ts. Applied over GMP (XML
+# over a TLS socket, default port 9390) via create_task / modify_task / delete_task.
+#
+# FLAG (GMP 22.5): create_task requires usage_type=scan; modify_task cannot
+# re-point config/target/scanner on a task that has already run unless the task is
+# alterable (gvmd #1305) — deploy only re-sends a foreign key that changed.
+# =============================================================================
+
+id: "greenbone-scan-tasks"
+name: "Scan Tasks"
+toolType: "greenbone"
+entityType: "scan-tasks"
+description: "Manage Greenbone scan tasks — target + scan config + scanner (by name) with an optional schedule — over GMP (XML over TLS, 9390)"
+
+item:
+  label: "Scan Task"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Task"
+      icon: "play"
+      description: "Task identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable task name shown in Greenbone, e.g. Weekly Prod Web Scan. Used as the stable identity for upsert and drift."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this task exists — recorded in Greenbone for audit."
+
+    - name: "Scan"
+      icon: "target"
+      description: "What is scanned, how, and by which scanner (referenced by name or UUID)"
+      fields:
+        - key: "target"
+          label: "Target"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Name of an existing Greenbone target (as authored in Scan Targets), or its UUID. Resolved to an id on the live gvmd at deploy time."
+
+        - key: "config"
+          label: "Scan Config"
+          fieldType: "text"
+          required: true
+          defaultValue: "Full and fast"
+          validation:
+            maxLength: 255
+          helpText: "Name of the scan config, e.g. 'Full and fast', 'Full and fast ultimate', 'Base', or its UUID. Resolved on the live gvmd."
+
+        - key: "scanner"
+          label: "Scanner"
+          fieldType: "text"
+          required: true
+          defaultValue: "OpenVAS Default"
+          validation:
+            maxLength: 255
+          helpText: "Name of the scanner, e.g. 'OpenVAS Default' or 'CVE', or its UUID. Resolved on the live gvmd."
+
+    - name: "Schedule"
+      icon: "clock"
+      description: "Optional recurrence"
+      fields:
+        - key: "schedule"
+          label: "Schedule"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Optional name of a Greenbone schedule (as authored in Schedules), or its UUID. Leave blank to run the task on demand."

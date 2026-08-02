@@ -2,6 +2,32 @@
 
 All notable changes to the Auth0 app are documented here.
 
+## 0.2.0 — 2026-08-01
+
+Three new configuration types, all over the Auth0 Management API v2 and upserting
+by name (list → match by name → PATCH existing / POST new), with rollback,
+health-check, drift-detect and status.
+
+- **Connections** config type — Auth0 Connections (identity providers): name,
+  strategy, display name, enabled clients and strategy `options` (free-form JSON)
+  over `/connections`. `name` and `strategy` are set at creation and omitted from
+  the update body (immutable). Secret-bearing option keys (`client_secret`, …) are
+  excluded from drift comparison and from the rollback restore body so a live
+  secret is never overwritten with Auth0's mask.
+- **Resource Servers (APIs)** config type — Auth0 APIs: name, `identifier`
+  (audience URI), scopes (authored as value → description pairs), signing algorithm
+  and token lifetime over `/resource-servers`. The `identifier` is unique and
+  immutable, so it is sent only on create and omitted from the update body.
+- **Roles** config type — Auth0 RBAC roles: name, description and assigned API
+  permissions over `/roles`, with permissions reconciled through the
+  `/roles/{id}/permissions` sub-resource (GET current → POST additions → DELETE
+  removals). Rollback restores the prior role body and prior permission grants, or
+  deletes a role it created.
+
+> Note: Auth0 marks `enabled_clients` on the connection object as deprecated in
+> favour of `PATCH /connections/{id}/clients`; it is still accepted here for
+> compatibility.
+
 ## 0.1.0 — 2026-08-01
 
 Initial release — foundation + first config type.

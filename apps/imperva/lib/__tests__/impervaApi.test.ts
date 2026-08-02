@@ -7,6 +7,7 @@ import {
   resolveImpervaCredentials,
   readTimeoutMs,
   isApiSuccess,
+  isAclApiSuccess,
   apiMessage,
   parseJson,
 } from '../impervaApi'
@@ -58,6 +59,15 @@ test('isApiSuccess is true only for res === 0 (number or string)', () => {
   assert.equal(isApiSuccess({ res: 1, res_message: 'bad' }), false)
   assert.equal(isApiSuccess({ res: '9403' }), false)
   assert.equal(isApiSuccess(null), false)
+})
+
+test('isAclApiSuccess accepts res 0 or 2 (the ACL configure endpoint convention)', () => {
+  assert.equal(isAclApiSuccess({ res: 0 }), true)
+  assert.equal(isAclApiSuccess({ res: '0' }), true)
+  assert.equal(isAclApiSuccess({ res: 2 }), true)
+  assert.equal(isAclApiSuccess({ res: '2' }), true)
+  assert.equal(isAclApiSuccess({ res: 1, res_message: 'bad' }), false)
+  assert.equal(isAclApiSuccess(null), false)
 })
 
 test('apiMessage surfaces res_message + res code', () => {

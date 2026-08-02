@@ -1,0 +1,53 @@
+# =============================================================================
+# Canvas Template — Auth0 Roles (RBAC)
+#
+# Declares ONE Auth0 Role (the item). Operators add as many as they need. Field
+# keys must match config-types/roles/validate.ts and _shared.ts. Applied via the
+# Auth0 Management API v2 (GET/POST /roles, PATCH/DELETE /roles/{id}) plus the
+# permissions sub-resource (GET/POST/DELETE /roles/{id}/permissions). The
+# Management API keys roles on the server-assigned id, so this config type upserts
+# by role NAME.
+# =============================================================================
+
+id: "auth0-roles"
+name: "Roles"
+toolType: "auth0"
+entityType: "roles"
+description: "Manage Auth0 RBAC Roles — name, description and their assigned API permissions — via the Auth0 Management API v2"
+
+item:
+  label: "Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Role"
+      icon: "shield"
+      description: "Role identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Role name (e.g. Orders Admin). Used as the stable identity for upsert and drift. Cannot contain < or >."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Human-readable description of what the role grants. Optional."
+
+    - name: "Permissions"
+      icon: "settings"
+      description: "API permissions granted by this role"
+      fields:
+        - key: "permissions"
+          label: "Permissions"
+          fieldType: "textarea"
+          required: false
+          helpText: "API permissions this role grants, one per line as <api-identifier>|<permission-name> (a space also works), e.g. https://api.example.com/orders|read:orders. Each permission must already exist as a scope on that API (Resource Server)."

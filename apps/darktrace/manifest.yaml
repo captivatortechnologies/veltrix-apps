@@ -1,14 +1,15 @@
 id: darktrace
 name: Darktrace
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
-  Manage a Darktrace NDR deployment's intel feed as code. Author watched
-  domains / IPs / hostnames in the Configuration Canvas and drive them through the
-  Security-as-Code pipeline — validate, deploy, health check, drift detection and
-  rollback — over the Darktrace REST API (HTTPS, DSA-signed, self-signed tolerated).
-  Darktrace's API is read-heavy; the intel feed (/intelfeed) is its primary writable
-  surface, so v0.1.0 manages exactly that.
+  Manage a Darktrace NDR deployment's writable surfaces as code. Author intel-feed
+  watched domains / IPs / hostnames and named tags in the Configuration Canvas and
+  drive them through the Security-as-Code pipeline — validate, deploy, health check,
+  drift detection and rollback — over the Darktrace REST API (HTTPS, DSA-signed,
+  self-signed tolerated). Darktrace's API is read-heavy; the intel feed (/intelfeed)
+  and tags (/tags) are its cleanly writable config surfaces, so this app manages
+  exactly those.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/darktrace
@@ -31,6 +32,9 @@ permissions:
     - resource: intelfeed
       actions: [read, write, delete]
       description: Manage Darktrace intel-feed watched entries (add / remove domains, IPs, hostnames)
+    - resource: tags
+      actions: [read, write, delete]
+      description: Manage Darktrace tags (create / delete named labels used to group entities)
 
 pipeline:
   configurationTypes:
@@ -47,6 +51,24 @@ pipeline:
         healthCheck: config-types/intelfeed/healthCheck
         driftDetect: config-types/intelfeed/driftDetect
         getStatus: config-types/intelfeed/getStatus
+      targets:
+        componentTypes: [darktrace, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: tags
+      group: "Asset Management"
+      name: Tags
+      description: Darktrace tags — named labels (with an optional colour and description) used to group entities and drive model logic — created / deleted over the Darktrace REST API (443, DSA-signed)
+      canvasTemplate: config-types/tags/canvas.yaml
+      defaultConfig: config-types/tags/defaults.yaml
+      handlers:
+        validate: config-types/tags/validate
+        deploy: config-types/tags/deploy
+        rollback: config-types/tags/rollback
+        healthCheck: config-types/tags/healthCheck
+        driftDetect: config-types/tags/driftDetect
+        getStatus: config-types/tags/getStatus
       targets:
         componentTypes: [darktrace, standalone]
         requiresCredential: true

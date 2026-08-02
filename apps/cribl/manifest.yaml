@@ -1,6 +1,6 @@
 id: cribl
 name: Cribl
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Cribl Stream (telemetry / observability data pipeline) as code. Author
@@ -31,6 +31,15 @@ permissions:
     - resource: pipelines
       actions: [read, write, delete]
       description: Manage Cribl Stream pipelines (create / edit / delete)
+    - resource: routes
+      actions: [read, write, delete]
+      description: Manage the Cribl Stream routing table (the ordered Routes per Worker Group)
+    - resource: sources
+      actions: [read, write, delete]
+      description: Manage Cribl Stream Sources (input integrations)
+    - resource: destinations
+      actions: [read, write, delete]
+      description: Manage Cribl Stream Destinations (output integrations)
 
 pipeline:
   configurationTypes:
@@ -51,6 +60,75 @@ pipeline:
         healthCheck: config-types/pipelines/healthCheck
         driftDetect: config-types/pipelines/driftDetect
         getStatus: config-types/pipelines/getStatus
+      targets:
+        componentTypes: [cribl-leader, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: routes
+      group: "Data Pipelines"
+      name: Routes
+      description: >
+        The Cribl Stream routing table — one ordered set of Routes per Worker
+        Group (a Route pairs a filter with a pipeline and destination). Routes is
+        a singleton per group (id "default") and order is significant, so this
+        config type manages the whole table as one item, applied over the Cribl
+        REST API (/api/v1[/m/<group>]/routes). Upsert + drift key off the table id.
+      canvasTemplate: config-types/routes/canvas.yaml
+      defaultConfig: config-types/routes/defaults.yaml
+      handlers:
+        validate: config-types/routes/validate
+        deploy: config-types/routes/deploy
+        rollback: config-types/routes/rollback
+        healthCheck: config-types/routes/healthCheck
+        driftDetect: config-types/routes/driftDetect
+        getStatus: config-types/routes/getStatus
+      targets:
+        componentTypes: [cribl-leader, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: sources
+      group: "Integrations"
+      name: Sources
+      description: >
+        Cribl Stream Sources (input integrations) — an id, a type (e.g.
+        splunk_hec, syslog, http) and a conf JSON block of type-specific settings,
+        applied over the Cribl REST API (/api/v1[/m/<group>]/system/inputs). The
+        input id is the stable identity used to upsert (create vs update) and to
+        detect drift.
+      canvasTemplate: config-types/sources/canvas.yaml
+      defaultConfig: config-types/sources/defaults.yaml
+      handlers:
+        validate: config-types/sources/validate
+        deploy: config-types/sources/deploy
+        rollback: config-types/sources/rollback
+        healthCheck: config-types/sources/healthCheck
+        driftDetect: config-types/sources/driftDetect
+        getStatus: config-types/sources/getStatus
+      targets:
+        componentTypes: [cribl-leader, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: destinations
+      group: "Integrations"
+      name: Destinations
+      description: >
+        Cribl Stream Destinations (output integrations) — an id, a type (e.g.
+        splunk_hec, s3, elastic) and a conf JSON block of type-specific settings,
+        applied over the Cribl REST API (/api/v1[/m/<group>]/system/outputs). The
+        output id is the stable identity used to upsert (create vs update) and to
+        detect drift.
+      canvasTemplate: config-types/destinations/canvas.yaml
+      defaultConfig: config-types/destinations/defaults.yaml
+      handlers:
+        validate: config-types/destinations/validate
+        deploy: config-types/destinations/deploy
+        rollback: config-types/destinations/rollback
+        healthCheck: config-types/destinations/healthCheck
+        driftDetect: config-types/destinations/driftDetect
+        getStatus: config-types/destinations/getStatus
       targets:
         componentTypes: [cribl-leader, standalone]
         requiresCredential: true

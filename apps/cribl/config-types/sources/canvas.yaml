@@ -1,0 +1,74 @@
+# =============================================================================
+# Canvas Template — Cribl Stream Sources (input integrations)
+#
+# Declares ONE Cribl Source (the item). Users add as many as they need. Field
+# keys must match config-types/sources/validate.ts. Applied via the Cribl REST
+# API (/api/v1[/m/<group>]/system/inputs).
+#
+# A Source pairs a stable `id` with a `type` (the Cribl integration, e.g.
+# splunk_hec, syslog, http, tcp) and a `conf` JSON block of the type-specific
+# settings. On deploy the object is sent as { id, type, ...conf } — Cribl spreads
+# the settings onto the object, so `conf` holds everything except id and type.
+# =============================================================================
+
+id: "cribl-sources"
+name: "Sources"
+toolType: "cribl"
+entityType: "sources"
+description: "Manage Cribl Stream Sources (input integrations) — an id, a type and a conf JSON block — via the Cribl REST API (/api/v1[/m/<group>]/system/inputs)"
+
+item:
+  label: "Source"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Source"
+      icon: "log-in"
+      description: "Source identity, type and target Worker Group"
+      fields:
+        - key: "id"
+          label: "Source ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_-]+$"
+            maxLength: 255
+          helpText: "Input id shown in Cribl (letters, digits, _ and - only). Used as the stable identity for upsert and drift."
+
+        - key: "type"
+          label: "Source Type"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: "Cribl input type, e.g. splunk_hec, syslog, http, tcp, kafka, cribl_http. Immutable once created."
+
+        - key: "worker_group"
+          label: "Worker Group / Fleet"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Worker Group or Edge Fleet to deploy into, e.g. default. Blank falls back to the app's Default Worker Group setting; set that blank for a single-instance deployment."
+
+    - name: "Configuration"
+      icon: "code"
+      description: "The Source's type-specific settings, as JSON"
+      fields:
+        - key: "conf"
+          label: "Source Config (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 100000
+          helpText: 'The input settings as a JSON object — everything except id and type, e.g. { "host": "0.0.0.0", "port": 10080, "disabled": false }. Sent to Cribl as { id, type, ...conf }.'
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this Source is configured — recorded for audit"

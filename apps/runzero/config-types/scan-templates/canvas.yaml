@@ -1,0 +1,71 @@
+# =============================================================================
+# Canvas Template — runZero Scan Templates
+#
+# Declares ONE reusable scan template (the item). Users add as many as they need.
+# Field keys must match config-types/scan-templates/validate.ts and _shared.ts.
+#
+# SCOPE: scan templates are ACCOUNT-scoped resources (POST/PUT /account/tasks/templates),
+# so this configuration requires the connection's API key to be an ACCOUNT-scoped runZero
+# key — an Organization key will be rejected (health check surfaces this). The template name
+# is the stable identity used to upsert.
+# =============================================================================
+
+id: "runzero-scan-templates"
+name: "Scan Templates"
+toolType: "runzero"
+entityType: "scan-templates"
+description: "Manage runZero reusable scan templates — named scan parameter sets a scan task can be based on — via the runZero console REST API (/account/tasks/templates). Requires an account-scoped API key."
+
+item:
+  label: "Scan Template"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Template"
+      icon: "layers"
+      description: "Template identity and scope"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Template name shown in runZero. Used as the stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this template configures — helps identify its purpose in the console."
+
+        - key: "organizationId"
+          label: "Organization ID"
+          fieldType: "text"
+          required: false
+          helpText: >
+            Optional organization UUID the template is available in. Leave blank to target the
+            organization the connection's API key resolves to (GET /org).
+
+        - key: "global"
+          label: "Global (all organizations)"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Make this template globally available to every organization in the account."
+
+    - name: "Parameters"
+      icon: "sliders"
+      description: "Scan parameter values"
+      fields:
+        - key: "params"
+          label: "Scan Parameters"
+          fieldType: "keyvalue"
+          required: false
+          helpText: >
+            Scan parameter values as key/value pairs, e.g. tcp-ports = 1-1000, rate = 10000,
+            screenshots = true. These are applied to any scan that uses the template.

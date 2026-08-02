@@ -7,9 +7,24 @@
 //   max_severity, instruction (+ CIA requirements + reference, read-only here).
 //   Confirmed shape: https://api.hackerone.com/customer-resources/ (Structured Scopes)
 //   Confirmed attribute list: github/hackerone-client StructuredScope model.
+//
+// The generic program/scope resolution primitives (program handle → id, scope
+// indexing, value coercion) are shared with other config types and live in
+// lib/programScopes.ts; they are re-exported here so existing imports of
+// `./_shared` keep working.
 
-import type { CanvasItemSnapshot } from '@veltrixsecops/app-sdk'
 import type { JsonApiResource } from '../../lib/hackeroneApi'
+import { str, toBool } from '../../lib/programScopes'
+
+export {
+  str,
+  normalizeIdentifier,
+  toBool,
+  groupItemsByProgram,
+  findProgramId,
+  scopesByIdentifier,
+  type ProgramResource,
+} from '../../lib/programScopes'
 
 /**
  * Machine enum values HackerOne accepts for a scope `asset_type`. Kept in sync
@@ -55,32 +70,6 @@ export interface ScopeAttributes {
 /** One live structured-scope as returned by GET /programs/{id}/structured_scopes. */
 export type LiveScope = JsonApiResource<Partial<ScopeAttributes>>
 
-/** One program as returned by GET /me/programs. */
-export type ProgramResource = JsonApiResource<{ handle?: string; name?: string }>
-
-/** Trim a value to a string (never null/undefined leaking through). */
-export function str(value: unknown): string {
-  return String(value ?? '').trim()
-}
-
-/** Normalize an asset identifier so two that differ only in case/whitespace match. */
-export function normalizeIdentifier(value: unknown): string {
-  return str(value).toLowerCase()
-}
-
-/**
- * Coerce a canvas checkbox value (boolean, or 'true'/'false'/'1'/'0' string, or
- * undefined) to a boolean. `fallback` is returned for an empty/undefined value.
- */
-export function toBool(value: unknown, fallback = false): boolean {
-  if (typeof value === 'boolean') return value
-  if (value === undefined || value === null || value === '') return fallback
-  const s = String(value).trim().toLowerCase()
-  if (s === 'true' || s === '1' || s === 'yes') return true
-  if (s === 'false' || s === '0' || s === 'no') return false
-  return fallback
-}
-
 /** Build the writable scope attributes from a canvas item's fields. */
 export function buildScopeAttributes(fields: Record<string, unknown>): ScopeAttributes {
   const instruction = str(fields.instruction)
@@ -103,35 +92,4 @@ export function buildScopeAttributes(fields: Record<string, unknown>): ScopeAttr
  */
 export function scopeWriteBody(attributes: Record<string, unknown>): { data: { type: string; attributes: Record<string, unknown> } } {
   return { data: { type: 'structured-scope', attributes } }
-}
-
-/** Group canvas items by their (trimmed) program_handle, preserving order. */
-export function groupItemsByProgram(items: CanvasItemSnapshot[]): Map<string, CanvasItemSnapshot[]> {
-  const byProgram = new Map<string, CanvasItemSnapshot[]>()
-  for (const item of items) {
-    const handle = str(item.fields.program_handle)
-    if (!handle) continue
-    const list = byProgram.get(handle) ?? []
-    list.push(item)
-    byProgram.set(handle, list)
-  }
-  return byProgram
-}
-
-/** Resolve a program handle to its numeric program id from a /me/programs listing. */
-export function findProgramId(programs: ProgramResource[], handle: string): string | null {
-  const h = str(handle).toLowerCase()
-  if (!h) return null
-  const match = programs.find((p) => str(p.attributes?.handle).toLowerCase() === h)
-  return match?.id != null ? String(match.id) : null
-}
-
-/** Index a program's live scopes by their normalized asset_identifier. */
-export function scopesByIdentifier(scopes: LiveScope[]): Map<string, LiveScope> {
-  const map = new Map<string, LiveScope>()
-  for (const scope of scopes) {
-    const id = normalizeIdentifier(scope.attributes?.asset_identifier)
-    if (id) map.set(id, scope)
-  }
-  return map
 }

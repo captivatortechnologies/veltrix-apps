@@ -1,0 +1,7 @@
+# Defaults for a new input item. Seeds a GELF UDP input (Graylog's default
+# structured-log receiver) as a sensible starting point; the operator fills in
+# the title and adjusts the type/configuration. Flat mapping of field key →
+# default (item form).
+type: "org.graylog2.inputs.gelf.udp.GELFUDPInput"
+global: true
+configuration: '{"bind_address":"0.0.0.0","port":12201}'

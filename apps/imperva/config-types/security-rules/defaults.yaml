@@ -1,0 +1,11 @@
+# Defaults for a new security-rule item — the operator picks the Rule and fills in
+# the Site ID. The kind-specific fields seed to match the canvas field defaults so
+# the most common choice (block SQL injection) works with no extra input.
+ruleId: "api.threats.sql_injection"
+securityRuleAction: "api.threats.action.block_request"
+activationMode: "api.threats.ddos.activation_mode.auto"
+ddosTrafficThreshold: "1000"
+unknownClientsChallenge: "cookies"
+blockNonEssentialBots: "false"
+blockBadBots: "true"
+challengeSuspectedBots: "false"

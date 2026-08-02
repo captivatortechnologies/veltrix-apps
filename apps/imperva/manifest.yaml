@@ -1,6 +1,6 @@
 id: imperva
 name: Imperva
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Imperva Cloud WAF (formerly Incapsula) edge security as code. Author
@@ -31,6 +31,12 @@ permissions:
     - resource: acl-rules
       actions: [read, write, delete]
       description: Manage Imperva Cloud WAF site security / ACL rules (add / edit / delete, per site)
+    - resource: security-rules
+      actions: [read, write]
+      description: Configure Imperva Cloud WAF threat protection per site (SQLi / XSS / RFI / illegal resource / backdoor action, DDoS protection, bot access control)
+    - resource: acl-configuration
+      actions: [read, write]
+      description: Manage Imperva Cloud WAF site ACLs (blacklist IPs / countries / URLs, whitelist IPs) as a declarative per-site set
 
 pipeline:
   configurationTypes:
@@ -51,6 +57,52 @@ pipeline:
         healthCheck: config-types/acl-rules/healthCheck
         driftDetect: config-types/acl-rules/driftDetect
         getStatus: config-types/acl-rules/getStatus
+      targets:
+        componentTypes: [imperva]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: security-rules
+      group: "Edge Security"
+      name: Security Rules
+      description: >
+        Imperva Cloud WAF threat protection per site — the action for SQL
+        injection, cross-site scripting, remote file inclusion, illegal resource
+        access and backdoor detections, plus DDoS protection and bot access
+        control — SET declaratively over the Cloud WAF (Incapsula) management API
+        v1 (POST /sites/configure/security, HTTPS 443). One item per (site, rule).
+      canvasTemplate: config-types/security-rules/canvas.yaml
+      defaultConfig: config-types/security-rules/defaults.yaml
+      handlers:
+        validate: config-types/security-rules/validate
+        deploy: config-types/security-rules/deploy
+        rollback: config-types/security-rules/rollback
+        healthCheck: config-types/security-rules/healthCheck
+        driftDetect: config-types/security-rules/driftDetect
+        getStatus: config-types/security-rules/getStatus
+      targets:
+        componentTypes: [imperva]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: acl-configuration
+      group: "Edge Security"
+      name: ACL Configuration
+      description: >
+        Imperva Cloud WAF site ACLs — blacklist IPs, countries/continents or URLs,
+        or whitelist IPs — managed as a declarative per-site set over the Cloud WAF
+        (Incapsula) management API v1 (POST /sites/configure/acl, HTTPS 443). The
+        value submitted for an ACL type REPLACES the whole list for that type on
+        the site. One item per (site, ACL type).
+      canvasTemplate: config-types/acl-configuration/canvas.yaml
+      defaultConfig: config-types/acl-configuration/defaults.yaml
+      handlers:
+        validate: config-types/acl-configuration/validate
+        deploy: config-types/acl-configuration/deploy
+        rollback: config-types/acl-configuration/rollback
+        healthCheck: config-types/acl-configuration/healthCheck
+        driftDetect: config-types/acl-configuration/driftDetect
+        getStatus: config-types/acl-configuration/getStatus
       targets:
         componentTypes: [imperva]
         requiresCredential: true

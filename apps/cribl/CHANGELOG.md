@@ -2,6 +2,38 @@
 
 All notable changes to the Cribl app are documented here.
 
+## 0.2.0 — 2026-08-01
+
+Three new config types — the rest of a Cribl Stream data path as code, alongside
+Pipelines.
+
+- **Routes** config type — the Cribl **routing table**, managed as code over the
+  Cribl REST API (`/api/v1[/m/<group>]/routes`). Routes is a *singleton* per
+  Worker Group (one ordered table, id `default`) and Route order is significant,
+  so the whole table is modelled as a single item (identity = the table id, the
+  payload is the ordered `routes` array), with validate / deploy (upsert by table
+  id, order-preserving) / rollback (restore prior table or delete created) /
+  order-sensitive drift-detect / health-check / status.
+- **Sources** config type — Cribl **input integrations** (`id`, `type`, and a
+  `conf` JSON block) over `/api/v1[/m/<group>]/system/inputs`, upserted by input
+  id, with rollback, subset-aware drift-detect (only declared keys are compared,
+  so Cribl's server-injected defaults raise no false drift), health-check and
+  status.
+- **Destinations** config type — Cribl **output integrations** (`id`, `type`,
+  `conf` JSON) over `/api/v1[/m/<group>]/system/outputs`, sharing the Sources
+  engine (`lib/criblSystemEntities`) — same upsert / rollback / drift lifecycle.
+- **Shared helpers** — `lib/criblCommon` (worker-group resolution, list-envelope
+  unwrap, id/JSON parsing, order-insensitive comparison, and the shared
+  health-check + status handlers) and `lib/criblSystemEntities` (the inputs /
+  outputs CRUD engine), all reusing the existing `lib/criblApi` Bearer client.
+- Registered `routes`, `sources` and `destinations` app permissions.
+
+> Cribl REST API paths and JSON shapes follow the documented Cribl API and should
+> be verified against a live Cribl. In particular: Routes is treated as a
+> singleton `default` table per group (create is a defensive fallback — Cribl
+> normally exposes exactly one table); and Source/Destination config fields are
+> flattened onto the object as `{ id, type, ...conf }`.
+
 ## 0.1.0 — 2026-08-01
 
 Initial release — foundation + first config type.

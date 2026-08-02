@@ -1,0 +1,54 @@
+# =============================================================================
+# Canvas Template — BeyondInsight User Groups
+#
+# Declares ONE BeyondInsight user group (the item). Users add as many as they
+# need. Field keys must match config-types/user-groups/validate.ts. Applied via
+# the BeyondInsight REST API (POST/DELETE /UserGroups) inside a PS-Auth session.
+#
+# BeyondInsight-type groups only — AD / LDAP / Entra ID groups need a bound
+# directory and are out of scope.
+# =============================================================================
+
+id: "beyondtrust-user-groups"
+name: "User Groups"
+toolType: "beyondtrust"
+entityType: "user-groups"
+description: "Manage BeyondInsight user groups — name, description and active flag — via the BeyondInsight REST API"
+
+item:
+  label: "User Group"
+  identityField: "groupName"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Group"
+      icon: "users"
+      description: "Identity of the BeyondInsight user group"
+      fields:
+        - key: "groupName"
+          label: "Group Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 200
+          helpText: "Name of the BeyondInsight user group. This is the group's identity — a group with this name is created only if one does not already exist."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "What this group is for. Required by Password Safe when creating a BeyondInsight group."
+
+    - name: "Status"
+      icon: "settings"
+      description: "Whether the group is active"
+      fields:
+        - key: "isActive"
+          label: "Active"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Active groups can be assigned roles and Smart Rule access. Set only on create — Password Safe has no update endpoint for a group."

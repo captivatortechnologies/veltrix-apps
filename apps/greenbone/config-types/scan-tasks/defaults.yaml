@@ -1,0 +1,5 @@
+# Defaults for a new scan-task item. The operator fills in the name and target;
+# the scan config and scanner are pre-seeded to the most common choices and are
+# resolved by NAME against the live gvmd at deploy time.
+config: "Full and fast"
+scanner: "OpenVAS Default"

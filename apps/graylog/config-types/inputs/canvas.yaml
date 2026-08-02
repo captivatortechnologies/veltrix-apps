@@ -1,0 +1,68 @@
+# =============================================================================
+# Canvas Template — Graylog Inputs
+#
+# Declares ONE Graylog message input (the item). Users add as many as they need.
+# Field keys must match config-types/inputs/validate.ts. Applied via the Graylog
+# REST API (POST/PUT /api/system/inputs, DELETE /api/system/inputs/{inputId}).
+# =============================================================================
+
+id: "graylog-inputs"
+name: "Inputs"
+toolType: "graylog"
+entityType: "inputs"
+description: "Manage Graylog message inputs — title, type, global flag and configuration — via the Graylog REST API (/api/system/inputs)"
+
+item:
+  label: "Input"
+  identityField: "title"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Input"
+      icon: "download"
+      description: "Input identity and placement"
+      fields:
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable input name shown in Graylog. Used as the input's stable identity for upsert and drift."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Fully-qualified Graylog input class, e.g. org.graylog2.inputs.gelf.udp.GELFUDPInput, org.graylog2.inputs.syslog.tcp.SyslogTCPInput, org.graylog2.inputs.raw.tcp.RawTCPInput."
+
+        - key: "global"
+          label: "Global (run on all nodes)"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "When on, the input runs on every Graylog node. When off, it is node-local and requires a Node ID."
+
+        - key: "node"
+          label: "Node ID"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 128
+          helpText: "Graylog node id for a node-local (non-global) input. Leave blank for a global input."
+
+    - name: "Configuration"
+      icon: "code"
+      description: "Input configuration (JSON)"
+      fields:
+        - key: "configuration"
+          label: "Configuration (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            JSON object of the input's configuration keys. The keys depend on the input
+            type — e.g. a GELF UDP input takes {"bind_address":"0.0.0.0","port":12201}.
+            Consult GET /api/system/inputs/types/{type} on your Graylog for the type's fields.

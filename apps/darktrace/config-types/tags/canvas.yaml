@@ -1,0 +1,54 @@
+# =============================================================================
+# Canvas Template — Darktrace Tags
+#
+# Declares ONE tag (the item). Operators add as many as they need. Field keys must
+# match config-types/tags/validate.ts. Applied via the Darktrace REST API
+# (GET/POST /tags, DELETE /tags/{tid}) on the instance HTTPS port (443), DSA-signed.
+# =============================================================================
+
+id: "darktrace-tags"
+name: "Tags"
+toolType: "darktrace"
+entityType: "tags"
+description: "Manage Darktrace tags — named labels (with an optional colour and description) used to group entities and drive model logic — via the Darktrace REST API (443)"
+
+item:
+  label: "Tag"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Identity"
+      icon: "tag"
+      description: "The tag's name — its stable identity for create / delete / drift"
+      fields:
+        - key: "name"
+          label: "Tag name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9 ._:-]+$"
+            maxLength: 128
+          helpText: "The tag name (e.g. Critical-Assets). Letters, digits, spaces and . _ : - Max 128 chars. This is the tag's identity for add / delete / drift."
+
+    - name: "Presentation"
+      icon: "palette"
+      description: "How the tag appears and what it is for"
+      fields:
+        - key: "color"
+          label: "Color (HSL hue)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+            max: 360
+          helpText: "Optional HSL hue (0–360) for the tag colour in the Darktrace UI. Blank = Darktrace picks a default. Verify the accepted range against your Darktrace."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 256
+          helpText: "Context for the tag — what it groups or why it exists (max 256 chars)."

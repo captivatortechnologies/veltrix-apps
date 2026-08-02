@@ -1,12 +1,13 @@
 id: graylog
 name: Graylog
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Graylog (open-source SIEM / log management) as code. Author message
-  streams and drive them through the Security-as-Code pipeline — validate, deploy,
-  health check, drift detection and rollback — over the Graylog REST API (HTTP
-  Basic auth, X-Requested-By CSRF guard, self-signed TLS tolerated).
+  streams, inputs, processing pipeline rules and index sets, and drive them through
+  the Security-as-Code pipeline — validate, deploy, health check, drift detection
+  and rollback — over the Graylog REST API (HTTP Basic auth, X-Requested-By CSRF
+  guard, self-signed TLS tolerated).
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/graylog
@@ -29,6 +30,15 @@ permissions:
     - resource: streams
       actions: [read, write, delete]
       description: Manage Graylog message streams (create / edit / resume / pause / delete)
+    - resource: inputs
+      actions: [read, write, delete]
+      description: Manage Graylog message inputs (create / edit / delete)
+    - resource: pipeline-rules
+      actions: [read, write, delete]
+      description: Manage Graylog processing pipeline rules (create / edit / delete)
+    - resource: index-sets
+      actions: [read, write, delete]
+      description: Manage Graylog index sets (create / edit / delete)
 
 pipeline:
   configurationTypes:
@@ -45,6 +55,60 @@ pipeline:
         healthCheck: config-types/streams/healthCheck
         driftDetect: config-types/streams/driftDetect
         getStatus: config-types/streams/getStatus
+      targets:
+        componentTypes: [graylog, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: inputs
+      group: "Collection"
+      name: Inputs
+      description: Graylog message inputs — title, type, global flag and configuration — applied over the Graylog REST API (/api/system/inputs)
+      canvasTemplate: config-types/inputs/canvas.yaml
+      defaultConfig: config-types/inputs/defaults.yaml
+      handlers:
+        validate: config-types/inputs/validate
+        deploy: config-types/inputs/deploy
+        rollback: config-types/inputs/rollback
+        healthCheck: config-types/inputs/healthCheck
+        driftDetect: config-types/inputs/driftDetect
+        getStatus: config-types/inputs/getStatus
+      targets:
+        componentTypes: [graylog, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: pipeline-rules
+      group: "Processing"
+      name: Pipeline Rules
+      description: Graylog processing pipeline rules — title, description and rule DSL source — applied over the Graylog REST API (/api/system/pipelines/rule)
+      canvasTemplate: config-types/pipeline-rules/canvas.yaml
+      defaultConfig: config-types/pipeline-rules/defaults.yaml
+      handlers:
+        validate: config-types/pipeline-rules/validate
+        deploy: config-types/pipeline-rules/deploy
+        rollback: config-types/pipeline-rules/rollback
+        healthCheck: config-types/pipeline-rules/healthCheck
+        driftDetect: config-types/pipeline-rules/driftDetect
+        getStatus: config-types/pipeline-rules/getStatus
+      targets:
+        componentTypes: [graylog, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: index-sets
+      group: "Indices"
+      name: Index Sets
+      description: Graylog index sets — title, index prefix, rotation and retention strategy — applied over the Graylog REST API (/api/system/indices/index_sets)
+      canvasTemplate: config-types/index-sets/canvas.yaml
+      defaultConfig: config-types/index-sets/defaults.yaml
+      handlers:
+        validate: config-types/index-sets/validate
+        deploy: config-types/index-sets/deploy
+        rollback: config-types/index-sets/rollback
+        healthCheck: config-types/index-sets/healthCheck
+        driftDetect: config-types/index-sets/driftDetect
+        getStatus: config-types/index-sets/getStatus
       targets:
         componentTypes: [graylog, standalone]
         requiresCredential: true

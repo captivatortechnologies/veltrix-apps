@@ -1,0 +1,108 @@
+# =============================================================================
+# Canvas Template — runZero Scan Tasks
+#
+# Declares ONE recurring scan task (the item). Users add as many as they need.
+# Field keys must match config-types/scan-tasks/validate.ts and _shared.ts. Applied
+# via the runZero console REST API — PUT /org/sites/{site}/scan to create, PATCH
+# /org/tasks/{id} to update an existing recurring task — using an Organization API
+# key (Bearer auth). (site + scan name) is the stable identity used to upsert.
+# =============================================================================
+
+id: "runzero-scan-tasks"
+name: "Scan Tasks"
+toolType: "runzero"
+entityType: "scan-tasks"
+description: "Manage runZero scan tasks — recurring scans of a Site with a frequency and target scope — via the runZero console REST API (/org/sites/{site}/scan, /org/tasks)"
+
+item:
+  label: "Scan Task"
+  identityField: "scanName"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Scan"
+      icon: "radar"
+      description: "What to scan and how often"
+      fields:
+        - key: "scanName"
+          label: "Scan Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Name shown in runZero. Used with the site as the stable identity for upsert and drift."
+
+        - key: "site"
+          label: "Site"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The Site to scan — its name (as shown in runZero) or its UUID. The site must already exist."
+
+        - key: "targets"
+          label: "Targets"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            What to scan — CIDRs or hosts, one per line (commas also accepted), e.g. 10.0.0.0/24.
+            Use the literal "defaults" to scan the site's own default scope.
+
+        - key: "excludes"
+          label: "Excludes"
+          fieldType: "textarea"
+          required: false
+          helpText: "Targets to exclude from this scan — CIDRs or hosts, one per line. Optional."
+
+        - key: "frequency"
+          label: "Frequency"
+          fieldType: "select"
+          required: true
+          defaultValue: "weekly"
+          options:
+            - { label: "Once (run now, no schedule)", value: "once" }
+            - { label: "Hourly", value: "hourly" }
+            - { label: "Daily", value: "daily" }
+            - { label: "Weekly", value: "weekly" }
+            - { label: "Monthly", value: "monthly" }
+            - { label: "Continuous", value: "continuous" }
+          helpText: >
+            How often the scan recurs. "Once" runs a one-time scan on each deploy and leaves no
+            recurring task (so it is not drift-tracked); any other value creates/updates a recurring schedule.
+
+    - name: "Tuning"
+      icon: "sliders"
+      description: "Optional scan parameters and template"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this scan is for — shown against the task in the console."
+
+        - key: "scanTemplate"
+          label: "Scan Template ID"
+          fieldType: "text"
+          required: false
+          helpText: "Optional scan template UUID to base this scan on (see the Scan Templates configuration)."
+
+        - key: "tcpPorts"
+          label: "TCP Ports"
+          fieldType: "text"
+          required: false
+          helpText: 'Optional TCP port range, e.g. "1-1000,5000-6000". Leave blank for the runZero default.'
+
+        - key: "rate"
+          label: "Scan Rate"
+          fieldType: "text"
+          required: false
+          helpText: 'Optional packets-per-second rate, e.g. "10000". Leave blank for the runZero default.'
+
+        - key: "tags"
+          label: "Scan Tags"
+          fieldType: "text"
+          required: false
+          helpText: 'Optional tags applied to discovered assets, e.g. "owner=IT location=Texas".'

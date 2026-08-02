@@ -1,0 +1,84 @@
+# =============================================================================
+# Canvas Template — Auth0 Resource Servers (APIs)
+#
+# Declares ONE Auth0 Resource Server / API (the item). Operators add as many as
+# they need. Field keys must match config-types/resource-servers/validate.ts and
+# _shared.ts. Applied via the Auth0 Management API v2 (GET/POST /resource-servers,
+# PATCH/DELETE /resource-servers/{id}). The Management API keys resource servers on
+# the server-assigned id, so this config type upserts by API NAME. The identifier
+# (audience URI) is unique and immutable — set at creation, never changed.
+# =============================================================================
+
+id: "auth0-resource-servers"
+name: "Resource Servers (APIs)"
+toolType: "auth0"
+entityType: "resource-servers"
+description: "Manage Auth0 Resource Servers (APIs) — name, identifier (audience URI), scopes, signing algorithm and token lifetime — via the Auth0 Management API v2"
+
+item:
+  label: "API"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "API"
+      icon: "shield"
+      description: "API identity and audience"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 200
+          helpText: "Friendly API name shown in Auth0 (max 200 chars). Used as the stable identity for upsert and drift. Cannot contain < or >."
+
+        - key: "identifier"
+          label: "Identifier (Audience)"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 600
+          helpText: "Unique API identifier used as the audience parameter on authorization calls, e.g. https://api.example.com. Immutable — set once at creation and never changed."
+
+    - name: "Permissions"
+      icon: "settings"
+      description: "Scopes (permissions) this API defines"
+      fields:
+        - key: "scopes"
+          label: "Scopes"
+          fieldType: "keyvalue"
+          required: false
+          helpText: "Permissions this API defines, as scope value → description pairs (e.g. read:users → Read users). The scope value is what appears in access-token scopes."
+
+    - name: "Tokens"
+      icon: "settings"
+      description: "Access-token signing and lifetime"
+      fields:
+        - key: "signing_alg"
+          label: "Signing Algorithm"
+          fieldType: "select"
+          required: false
+          defaultValue: "RS256"
+          options:
+            - label: "Auth0 default (HS256)"
+              value: ""
+            - label: "RS256 (asymmetric — recommended)"
+              value: "RS256"
+            - label: "RS512 (asymmetric)"
+              value: "RS512"
+            - label: "PS256 (asymmetric)"
+              value: "PS256"
+            - label: "HS256 (symmetric)"
+              value: "HS256"
+          helpText: "Algorithm used to sign access tokens issued for this API. RS256 is recommended for most APIs."
+
+        - key: "token_lifetime"
+          label: "Token Lifetime (seconds)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+            max: 2592000
+          helpText: "How long an access token for this API is valid, in seconds (0–2592000, i.e. up to 30 days). Leave blank to use the Auth0 default."

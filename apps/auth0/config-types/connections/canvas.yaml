@@ -1,0 +1,106 @@
+# =============================================================================
+# Canvas Template — Auth0 Connections (Identity Providers)
+#
+# Declares ONE Auth0 Connection (the item). Operators add as many as they need.
+# Field keys must match config-types/connections/validate.ts and _shared.ts.
+# Applied via the Auth0 Management API v2 (GET/POST /connections,
+# PATCH/DELETE /connections/{id}). The Management API keys connections on the
+# server-assigned id, so this config type upserts by connection NAME (unique per
+# tenant). name and strategy are set at creation and are NOT changed on update.
+# =============================================================================
+
+id: "auth0-connections"
+name: "Connections"
+toolType: "auth0"
+entityType: "connections"
+description: "Manage Auth0 Connections (identity providers) — name, strategy, display name, enabled clients and strategy options — via the Auth0 Management API v2"
+
+item:
+  label: "Connection"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Connection"
+      icon: "link"
+      description: "Connection identity and provider strategy"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$"
+            maxLength: 128
+          helpText: "Unique connection name (1–128 chars, alphanumeric and hyphens, starting and ending alphanumeric). Used as the stable identity for upsert and drift. Cannot be changed after creation."
+
+        - key: "strategy"
+          label: "Strategy"
+          fieldType: "select"
+          required: true
+          defaultValue: "auth0"
+          options:
+            - label: "Database (auth0)"
+              value: "auth0"
+            - label: "Google (google-oauth2)"
+              value: "google-oauth2"
+            - label: "Facebook (facebook)"
+              value: "facebook"
+            - label: "Apple (apple)"
+              value: "apple"
+            - label: "GitHub (github)"
+              value: "github"
+            - label: "Microsoft Account (windowslive)"
+              value: "windowslive"
+            - label: "LinkedIn (linkedin)"
+              value: "linkedin"
+            - label: "Twitter / X (twitter)"
+              value: "twitter"
+            - label: "Salesforce (salesforce)"
+              value: "salesforce"
+            - label: "SAML (samlp)"
+              value: "samlp"
+            - label: "Microsoft Entra ID / Azure AD (waad)"
+              value: "waad"
+            - label: "ADFS (adfs)"
+              value: "adfs"
+            - label: "OpenID Connect (oidc)"
+              value: "oidc"
+            - label: "Okta Workforce (okta)"
+              value: "okta"
+            - label: "AD / LDAP (ad)"
+              value: "ad"
+            - label: "Passwordless Email (email)"
+              value: "email"
+            - label: "Passwordless SMS (sms)"
+              value: "sms"
+          helpText: "The identity provider type. Set at creation and immutable on update — changing the strategy of an existing connection requires recreating it."
+
+        - key: "display_name"
+          label: "Display Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 128
+          helpText: "Friendly name shown on the Universal Login page (max 128 chars). Optional."
+
+    - name: "Access"
+      icon: "shield"
+      description: "Applications allowed to use this connection"
+      fields:
+        - key: "enabled_clients"
+          label: "Enabled Clients"
+          fieldType: "textarea"
+          required: false
+          helpText: "Client IDs (Applications) allowed to use this connection, one per line (or comma-separated). NOTE: Auth0 marks enabled_clients on the connection object as deprecated in favour of PATCH /connections/{id}/clients; it is still accepted here for compatibility."
+
+    - name: "Options"
+      icon: "settings"
+      description: "Strategy-specific configuration"
+      fields:
+        - key: "options"
+          label: "Options (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Strategy-dependent options as a JSON object, e.g. {\"passwordPolicy\":\"good\"} for a database connection, or {\"client_id\":\"...\",\"client_secret\":\"...\"} for a social connection. Secret keys (client_secret, ...) are write-only: they are not compared for drift and not rewound on rollback."

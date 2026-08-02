@@ -1,6 +1,6 @@
 id: hackerone
 name: HackerOne
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage HackerOne program asset scope as code. Author a program's Structured
@@ -35,6 +35,14 @@ permissions:
         Manage HackerOne program Structured Scopes — create / update the assets in
         scope for a program and archive scopes this app created — over the
         HackerOne API (GET/POST/PUT /programs/{id}/structured_scopes)
+    - resource: credential-inquiries
+      actions: [read, write, delete]
+      description: >
+        Manage HackerOne program Credential Inquiries — per structured scope, the
+        description of the information researchers must provide to be issued test
+        credentials — over the HackerOne API (GET/POST/PUT/DELETE
+        /programs/{id}/credential_inquiries). Requires the Team Management
+        permission on the API token.
 
 pipeline:
   configurationTypes:
@@ -56,6 +64,32 @@ pipeline:
         healthCheck: config-types/structured-scopes/healthCheck
         driftDetect: config-types/structured-scopes/driftDetect
         getStatus: config-types/structured-scopes/getStatus
+      targets:
+        componentTypes: [hackerone-program]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: credential-inquiries
+      group: "Credential Management"
+      name: Credential Inquiries
+      description: >
+        HackerOne program Credential Inquiries — per structured scope, the
+        description of the information researchers must provide before the program
+        issues them test credentials — applied over the HackerOne API
+        (https://api.hackerone.com/v1). The program is chosen per inquiry by
+        handle and resolved to its id via GET /me/programs; the asset identifier is
+        resolved to a structured_scope_id via the program's scope listing, and the
+        inquiry is upserted by the scope it attaches to. Requires the Team
+        Management permission on the API token.
+      canvasTemplate: config-types/credential-inquiries/canvas.yaml
+      defaultConfig: config-types/credential-inquiries/defaults.yaml
+      handlers:
+        validate: config-types/credential-inquiries/validate
+        deploy: config-types/credential-inquiries/deploy
+        rollback: config-types/credential-inquiries/rollback
+        healthCheck: config-types/credential-inquiries/healthCheck
+        driftDetect: config-types/credential-inquiries/driftDetect
+        getStatus: config-types/credential-inquiries/getStatus
       targets:
         componentTypes: [hackerone-program]
         requiresCredential: true

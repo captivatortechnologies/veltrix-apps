@@ -1,0 +1,10 @@
+# Defaults for a new index set item. Seeds Graylog's usual starting point —
+# message-count rotation (20M docs/index) with deletion retention (keep 20) and
+# 4 shards / 0 replicas. The operator fills in the title and index prefix. Flat
+# mapping of field key → default (item form).
+shards: 4
+replicas: 0
+rotation_strategy: "msgcount"
+rotation_value: "20000000"
+retention_strategy: "delete"
+retention_max_indices: 20

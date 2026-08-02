@@ -1,0 +1,19 @@
+# Defaults for a new routing table item. Cribl's one table per group is named
+# "default"; the worker group defaults to "default". The operator edits the
+# ordered `routes` array. Seeded with a single catch-all Route to a passthru
+# pipeline so a new item starts from a valid table.
+id: "default"
+worker_group: "default"
+routes: |
+  {
+    "routes": [
+      {
+        "name": "default",
+        "filter": "true",
+        "pipeline": "passthru",
+        "output": "default",
+        "final": true,
+        "disabled": false
+      }
+    ]
+  }

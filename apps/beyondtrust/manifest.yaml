@@ -1,6 +1,6 @@
 id: beyondtrust
 name: BeyondTrust
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage BeyondTrust Password Safe (privileged access management) as code. Author
@@ -30,6 +30,14 @@ permissions:
     - resource: functional-accounts
       actions: [read, write, delete]
       description: Manage Password Safe functional accounts (create / list / delete)
+    - resource: user-groups
+      actions: [read, write, delete]
+      description: Manage BeyondInsight user groups (create / list / delete)
+    - resource: workgroups
+      actions: [read, write]
+      description: >
+        Manage BeyondInsight workgroups (create / list). Password Safe has no
+        delete endpoint for workgroups, so there is no delete action.
 
 pipeline:
   configurationTypes:
@@ -49,6 +57,51 @@ pipeline:
         healthCheck: config-types/functional-accounts/healthCheck
         driftDetect: config-types/functional-accounts/driftDetect
         getStatus: config-types/functional-accounts/getStatus
+      targets:
+        componentTypes: [beyondtrust-passwordsafe, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: user-groups
+      group: "Password Safe"
+      name: User Groups
+      description: >
+        BeyondInsight user groups — the BeyondInsight-type groups that carry
+        Password Safe roles and Smart Rule access (name, description, active
+        flag) — applied over the BeyondInsight REST API (PS-Auth session).
+        BeyondInsight-type groups only; Active Directory / LDAP / Entra ID
+        groups require a bound directory and are out of scope.
+      canvasTemplate: config-types/user-groups/canvas.yaml
+      defaultConfig: config-types/user-groups/defaults.yaml
+      handlers:
+        validate: config-types/user-groups/validate
+        deploy: config-types/user-groups/deploy
+        rollback: config-types/user-groups/rollback
+        healthCheck: config-types/user-groups/healthCheck
+        driftDetect: config-types/user-groups/driftDetect
+        getStatus: config-types/user-groups/getStatus
+      targets:
+        componentTypes: [beyondtrust-passwordsafe, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: workgroups
+      group: "Password Safe"
+      name: Workgroups
+      description: >
+        BeyondInsight workgroups — the containers that organize assets and
+        managed systems (name, optional organization) — applied over the
+        BeyondInsight REST API (PS-Auth session). Create-if-absent: Password
+        Safe has no update or delete endpoint for workgroups.
+      canvasTemplate: config-types/workgroups/canvas.yaml
+      defaultConfig: config-types/workgroups/defaults.yaml
+      handlers:
+        validate: config-types/workgroups/validate
+        deploy: config-types/workgroups/deploy
+        rollback: config-types/workgroups/rollback
+        healthCheck: config-types/workgroups/healthCheck
+        driftDetect: config-types/workgroups/driftDetect
+        getStatus: config-types/workgroups/getStatus
       targets:
         componentTypes: [beyondtrust-passwordsafe, standalone]
         requiresCredential: true

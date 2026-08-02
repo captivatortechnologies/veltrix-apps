@@ -123,6 +123,19 @@ export function parseJson<T>(body: string): T | null {
   }
 }
 
+/**
+ * Coerce a runZero list response into rows. runZero mostly returns a bare array,
+ * but tolerate a `{ data: [...] }` envelope too. Shared by the org resource
+ * config types (sites keeps its own copy for isolation; tasks/templates use this).
+ */
+export function coerceList<T>(list: unknown): T[] {
+  if (Array.isArray(list)) return list as T[]
+  if (list && typeof list === 'object' && Array.isArray((list as { data?: unknown }).data)) {
+    return (list as { data: T[] }).data
+  }
+  return []
+}
+
 /** GET + parse JSON, throwing a readable error on a non-OK response. */
 export async function getJson<T>(url: string, headers: Record<string, string>, timeoutMs?: number): Promise<T> {
   const res = await runzeroRequest(url, { headers, timeoutMs })

@@ -1,0 +1,115 @@
+# =============================================================================
+# Canvas Template — Imperva Cloud WAF ACL Configuration
+#
+# Declares ONE site ACL list (the item) — blacklisted IPs / countries / URLs, or
+# whitelisted IPs. Each ACL type is a SINGLETON per site keyed by ACL type, and is
+# SET declaratively (the value REPLACES the whole list for that type on the site)
+# over the Cloud WAF (Incapsula) management API v1 (POST /sites/configure/acl,
+# HTTPS 443). The value fields shown depend on the chosen ACL type (visibleWhen).
+# Field keys must match config-types/acl-configuration/validate.ts + _shared.ts.
+# =============================================================================
+
+id: "imperva-acl-configuration"
+name: "ACL Configuration"
+toolType: "imperva"
+entityType: "acl-configuration"
+description: "Manage Imperva Cloud WAF site ACLs — blacklist IPs, countries/continents or URLs, or whitelist IPs — as a declarative per-site set, via the Cloud WAF (Incapsula) API v1"
+
+item:
+  label: "ACL"
+  identityField: "aclId"
+  repeatable: true
+  minItems: 1
+  maxItems: 20
+  groups:
+    - name: "Target"
+      icon: "globe"
+      description: "The site this ACL applies to"
+      fields:
+        - key: "siteId"
+          label: "Site ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[0-9]+$"
+            maxLength: 20
+          helpText: "The numeric Imperva Cloud WAF site ID. Each ACL type is a single list on the site — one item per (Site ID, ACL type)."
+
+    - name: "ACL"
+      icon: "shield"
+      description: "Which ACL list to manage"
+      fields:
+        - key: "aclId"
+          label: "ACL type"
+          fieldType: "select"
+          required: true
+          defaultValue: "api.acl.blacklisted_ips"
+          options:
+            - label: "Blacklist IPs"
+              value: "api.acl.blacklisted_ips"
+            - label: "Whitelist IPs"
+              value: "api.acl.whitelisted_ips"
+            - label: "Blacklist countries / continents"
+              value: "api.acl.blacklisted_countries"
+            - label: "Blacklist URLs"
+              value: "api.acl.blacklisted_urls"
+          helpText: "The ACL list to manage. The value you provide REPLACES the entire list for this type on the site (declarative set)."
+
+    - name: "IPs"
+      icon: "hash"
+      description: "IP addresses / ranges (IP blacklist or whitelist)"
+      fields:
+        - key: "ips"
+          label: "IPs"
+          fieldType: "tags"
+          required: false
+          visibleWhen:
+            field: "aclId"
+            in:
+              - "api.acl.blacklisted_ips"
+              - "api.acl.whitelisted_ips"
+          helpText: 'One entry per IP, range or CIDR — e.g. 192.168.1.1, 192.168.1.1-192.168.1.100 or 192.168.1.1/24. This is the FULL list; clearing it removes the ACL.'
+
+    - name: "Geography"
+      icon: "map"
+      description: "Countries and continents (country blacklist)"
+      fields:
+        - key: "countries"
+          label: "Countries"
+          fieldType: "tags"
+          required: false
+          visibleWhen:
+            field: "aclId"
+            equals: "api.acl.blacklisted_countries"
+          helpText: "Two-letter ISO country codes to blacklist — e.g. CN, RU, KP."
+
+        - key: "continents"
+          label: "Continents"
+          fieldType: "tags"
+          required: false
+          visibleWhen:
+            field: "aclId"
+            equals: "api.acl.blacklisted_countries"
+          helpText: "Continent codes to blacklist — e.g. AF, NA, AS, EU, SA, OC, AN."
+
+    - name: "URLs"
+      icon: "link"
+      description: "URL paths + match patterns (URL blacklist)"
+      fields:
+        - key: "urls"
+          label: "URLs"
+          fieldType: "tags"
+          required: false
+          visibleWhen:
+            field: "aclId"
+            equals: "api.acl.blacklisted_urls"
+          helpText: "Resource paths to blacklist — e.g. /admin, /wp-login.php. Each URL is paired positionally with the pattern in the same position below."
+
+        - key: "urlPatterns"
+          label: "URL patterns"
+          fieldType: "tags"
+          required: false
+          visibleWhen:
+            field: "aclId"
+            equals: "api.acl.blacklisted_urls"
+          helpText: "One pattern per URL above, same order. Each of: CONTAINS, EQUALS, PREFIX, SUFFIX, NOT_EQUALS, NOT_CONTAIN, NOT_PREFIX, NOT_SUFFIX."

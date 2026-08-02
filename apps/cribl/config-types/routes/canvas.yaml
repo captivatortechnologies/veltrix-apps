@@ -1,0 +1,65 @@
+# =============================================================================
+# Canvas Template — Cribl Stream Routes (the routing table)
+#
+# Routes is a SINGLETON per Worker Group: Cribl stores the whole routing table as
+# ONE ordered object per group (id "default"), and Routes are evaluated top-to-
+# bottom, so ORDER matters. This template therefore declares ONE routing table
+# per group — its identity is the table id ("default") and its payload is the
+# ordered `routes` array. Add a second item only to manage another Worker Group.
+# Field keys must match config-types/routes/validate.ts. Applied via the Cribl
+# REST API (/api/v1[/m/<group>]/routes).
+# =============================================================================
+
+id: "cribl-routes"
+name: "Routes"
+toolType: "cribl"
+entityType: "routes"
+description: "Manage the Cribl Stream routing table — one ordered table per Worker Group — via the Cribl REST API (/api/v1[/m/<group>]/routes)"
+
+item:
+  label: "Routing Table"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Routing Table"
+      icon: "route"
+      description: "The routing table id and its target Worker Group"
+      fields:
+        - key: "id"
+          label: "Routing Table ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_-]+$"
+            maxLength: 255
+          helpText: "The routing-table id. Cribl ships one table per group named 'default' — leave this as 'default' unless your Cribl exposes a differently-named table."
+
+        - key: "worker_group"
+          label: "Worker Group / Fleet"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Worker Group or Edge Fleet whose routing table this is, e.g. default. Blank falls back to the app's Default Worker Group setting; set that blank for a single-instance deployment."
+
+    - name: "Routes"
+      icon: "code"
+      description: "The ordered list of Routes, as JSON"
+      fields:
+        - key: "routes"
+          label: "Routes (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 200000
+          helpText: 'The ordered routing table as JSON — a { "routes": [ ... ] } object or a bare [ ... ] array. Each Route is { "name", "filter", "pipeline", "output", "final", "disabled" }. Order is significant; Routes are evaluated top to bottom.'
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this routing table is configured — recorded for audit"

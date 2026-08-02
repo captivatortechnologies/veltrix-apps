@@ -1,0 +1,76 @@
+# =============================================================================
+# Canvas Template — Greenbone Schedules
+#
+# Declares ONE Greenbone scan schedule (the item). Users add as many as they need.
+# A schedule is a named recurrence expressed as iCalendar (RFC 5545) data plus a
+# timezone. Field keys must match config-types/schedules/validate.ts. Applied over
+# GMP (XML over a TLS socket, default port 9390) via
+# create_schedule / modify_schedule / delete_schedule.
+#
+# FLAG (GMP 20.08+ / 22.5): the recurrence is a single <icalendar> element — NOT
+# the pre-20.08 first_time/period/duration fields. gvmd keeps only DTSTART, DTEND,
+# DURATION and RRULE from the VEVENT and reformats the rest.
+# =============================================================================
+
+id: "greenbone-schedules"
+name: "Schedules"
+toolType: "greenbone"
+entityType: "schedules"
+description: "Manage Greenbone scan schedules — iCalendar (RFC 5545) recurrence + timezone — over GMP (XML over TLS, 9390)"
+
+item:
+  label: "Schedule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Schedule"
+      icon: "calendar"
+      description: "Schedule identity and timezone"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable schedule name shown in Greenbone, e.g. Weekly Sunday 02:00. Used as the stable identity for upsert and drift."
+
+        - key: "timezone"
+          label: "Timezone"
+          fieldType: "text"
+          required: true
+          defaultValue: "UTC"
+          validation:
+            maxLength: 64
+          helpText: "IANA timezone the iCalendar times are interpreted in, e.g. UTC or Europe/Berlin."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this schedule exists — recorded in Greenbone for audit."
+
+    - name: "Recurrence"
+      icon: "clock"
+      description: "iCalendar (RFC 5545) recurrence"
+      fields:
+        - key: "icalendar"
+          label: "iCalendar (RFC 5545)"
+          fieldType: "textarea"
+          required: true
+          defaultValue: |
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//Veltrix//Greenbone//EN
+            BEGIN:VEVENT
+            DTSTART:20260101T020000Z
+            RRULE:FREQ=WEEKLY;BYDAY=SU
+            END:VEVENT
+            END:VCALENDAR
+          validation:
+            maxLength: 8000
+          helpText: "A VCALENDAR with one VEVENT. gvmd keeps only DTSTART, DTEND, DURATION and RRULE. DTSTART sets the first run; RRULE (e.g. FREQ=WEEKLY;BYDAY=SU) sets the recurrence — omit RRULE for a one-shot schedule."

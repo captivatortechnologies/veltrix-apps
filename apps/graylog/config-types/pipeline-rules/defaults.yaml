@@ -1,0 +1,11 @@
+# Defaults for a new pipeline-rule item. Seeds a template rule DSL; the operator
+# sets the Title to match the rule name ("new-rule") and adapts the source. Flat
+# mapping of field key → default (item form).
+description: ""
+source: |
+  rule "new-rule"
+  when
+    has_field("message")
+  then
+    set_field("processed", true);
+  end

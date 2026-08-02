@@ -1,0 +1,62 @@
+# =============================================================================
+# Canvas Template — HackerOne Credential Inquiries
+#
+# Declares ONE credential inquiry (the item) — a program's request, attached to a
+# structured scope, for the information researchers must provide before the
+# program issues them test credentials for that asset. Users add as many as they
+# need. Each inquiry names the PROGRAM it belongs to by handle and the ASSET
+# (structured scope) it attaches to by identifier; the deploy handler resolves the
+# handle to a program id via GET /me/programs, resolves the asset identifier to a
+# structured_scope_id via the program's scope listing, and upserts the inquiry by
+# the scope it attaches to. Field keys must match validate.ts.
+#
+# Applied over the HackerOne API (https://api.hackerone.com/v1). Only the
+# `description` attribute is writable. Requires the Team Management permission on
+# the API token.
+#   Confirmed: https://api.hackerone.com/customer-resources/ (Credential Inquiries)
+# =============================================================================
+
+id: "hackerone-credential-inquiries"
+name: "Credential Inquiries"
+toolType: "hackerone"
+entityType: "credential-inquiries"
+description: "Manage HackerOne program Credential Inquiries — per structured scope, the description of the information researchers must provide to be issued test credentials — via the HackerOne API (https://api.hackerone.com/v1). Requires the Team Management permission."
+
+item:
+  label: "Credential Inquiry"
+  identityField: "asset_identifier"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Program & Asset"
+      icon: "target"
+      description: "The program and the structured scope (asset) this inquiry attaches to"
+      fields:
+        - key: "program_handle"
+          label: "Program Handle"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The HackerOne program handle this inquiry belongs to (the slug in hackerone.com/<handle>). Resolved to the program id via GET /me/programs."
+
+        - key: "asset_identifier"
+          label: "Asset Identifier"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 1000
+          helpText: "The identifier of the structured scope (asset) this inquiry attaches to — e.g. api.example.com. It must already exist as a structured scope of the program; it is resolved to the scope's id, which the inquiry is upserted by."
+
+    - name: "Inquiry"
+      icon: "book"
+      description: "What researchers must provide to be issued credentials"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 5000
+          helpText: "The information a researcher must provide for the program to create test credentials for this asset (e.g. \"Reply with your preferred region and we will provision a sandbox account\"). This is the inquiry's only writable attribute."

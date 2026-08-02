@@ -224,3 +224,20 @@ export async function dtPostJson<T>(
   if (!res.ok) throw new Error(`POST ${path} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
   return (res.body ? JSON.parse(res.body) : {}) as T
 }
+
+/**
+ * Signed DELETE → raw response (throws on a non-2xx). The signature covers the
+ * request URI, exactly like GET. Darktrace's tag delete (`DELETE /tags/{tid}`)
+ * answers with a bare success flag rather than a JSON document, so this resolves
+ * the DarktraceResponse instead of parsing a body.
+ */
+export async function dtDelete(
+  base: string,
+  path: string,
+  auth: DarktraceAuth,
+  timeoutMs?: number,
+): Promise<DarktraceResponse> {
+  const res = await darktraceFetch(base, path, auth, { method: 'DELETE', timeoutMs })
+  if (!res.ok) throw new Error(`DELETE ${path} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+  return res
+}

@@ -47,6 +47,9 @@ import type { ComponentRef, ConnectivityRef } from '@veltrixsecops/app-sdk'
 /** Classic gvmd GMP-over-TLS port. */
 export const DEFAULT_GMP_PORT = 9390
 
+/** A GMP resource UUID (8-4-4-4-12 hex) — every gvmd entity id is one. */
+export const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
+
 /**
  * Well-known feed-provided port list UUIDs (stable across installs that load the
  * Greenbone feed). "All IANA assigned TCP" (5836 ports) is the sensible default.
@@ -247,6 +250,349 @@ export function parseTargets(xml: string): GmpTarget[] {
       excludeHosts: firstChildText(body, 'exclude_hosts') ?? '',
       comment: firstChildText(body, 'comment') ?? '',
       portListId: portListMatch ? portListMatch[1] : null,
+    })
+  }
+  return out
+}
+
+// =============================================================================
+// Additional GMP entities — schedules, scan tasks, port lists, plus the read-only
+// scan-config / scanner lookups scan tasks resolve their foreign keys against.
+//
+// Verified against python-gvm v224 request builders (GMP 22.4/22.5 share them) and
+// the GMP 22.5 command reference (cite):
+//   - https://docs.greenbone.net/API/GMP/gmp-22.5.html
+//   - https://github.com/greenbone/python-gvm (gvm/protocols/gmp/requests/v224)
+//
+// FLAGS — GMP is version-specific; confirm against a live gvmd:
+//   * SCHEDULES: create_schedule/modify_schedule take a single <icalendar> (RFC
+//     5545 VCALENDAR/VEVENT with RRULE) + <timezone>. This is GMP 20.08+ — older
+//     GMP (<= 9.0) used <first_time>/<period>/<period_unit>/<duration>/<byday>
+//     instead. gvmd also STRIPS every VEVENT property except DTSTART, DTEND,
+//     DURATION and RRULE and drops an undefined TZID, so the icalendar it echoes
+//     back is reformatted — drift compares the meaningful keys, not the raw text.
+//   * TASKS: create_task requires <usage_type>scan</usage_type> (GMP 9.0+) and
+//     references its config/target/scanner as EMPTY id-bearing elements
+//     (<config id="…"/>), NOT nested text. modify_task CANNOT re-point
+//     config/target/scanner on a task that has already run unless the task is
+//     alterable (gvmd issue #1305) — deploy only re-sends a foreign key that
+//     actually changed so an unchanged re-deploy never trips this.
+//   * PORT LISTS: modify_port_list only accepts <name>/<comment>; the port ranges
+//     are immutable via modify (you would create_port_range/delete_port_range or
+//     recreate the list). Deploy surfaces a changed range rather than silently
+//     dropping it. get_port_lists returns ranges as structured <port_range>
+//     <start>/<end>/<type> triples, not the compact "T:1-1024" input string.
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// Schedules — <create_schedule> / <get_schedules> / <modify_schedule> / <delete_schedule>.
+// -----------------------------------------------------------------------------
+
+export function buildGetSchedulesCommand(opts: { filter?: string } = {}): string {
+  const filter = opts.filter ?? 'rows=-1'
+  return `<get_schedules filter="${escapeXmlAttr(filter)}"/>`
+}
+
+export interface ScheduleInput {
+  name: string
+  icalendar: string
+  timezone: string
+  comment?: string
+}
+
+export function buildCreateScheduleCommand(s: ScheduleInput): string {
+  const parts = [
+    `<name>${escapeXmlText(s.name)}</name>`,
+    `<icalendar>${escapeXmlText(s.icalendar)}</icalendar>`,
+    `<timezone>${escapeXmlText(s.timezone)}</timezone>`,
+  ]
+  if (s.comment && String(s.comment).trim()) parts.push(`<comment>${escapeXmlText(s.comment)}</comment>`)
+  return `<create_schedule>${parts.join('')}</create_schedule>`
+}
+
+/** Modify a schedule. Only provided fields are sent; identity is the schedule_id attribute. */
+export function buildModifyScheduleCommand(
+  scheduleId: string,
+  s: { name?: string; icalendar?: string; timezone?: string; comment?: string },
+): string {
+  const parts: string[] = []
+  if (s.name !== undefined) parts.push(`<name>${escapeXmlText(s.name)}</name>`)
+  if (s.icalendar !== undefined) parts.push(`<icalendar>${escapeXmlText(s.icalendar)}</icalendar>`)
+  if (s.timezone !== undefined) parts.push(`<timezone>${escapeXmlText(s.timezone)}</timezone>`)
+  if (s.comment !== undefined) parts.push(`<comment>${escapeXmlText(s.comment)}</comment>`)
+  return `<modify_schedule schedule_id="${escapeXmlAttr(scheduleId)}">${parts.join('')}</modify_schedule>`
+}
+
+export function buildDeleteScheduleCommand(scheduleId: string, ultimate = true): string {
+  return `<delete_schedule schedule_id="${escapeXmlAttr(scheduleId)}" ultimate="${ultimate ? '1' : '0'}"/>`
+}
+
+export interface GmpSchedule {
+  id: string
+  name: string
+  comment: string
+  icalendar: string
+  timezone: string
+}
+
+/** Parse `<schedule id="…">…</schedule>` elements out of a get_schedules_response. */
+export function parseSchedules(xml: string): GmpSchedule[] {
+  const out: GmpSchedule[] = []
+  const re = /<schedule\b([^>]*)>([\s\S]*?)<\/schedule>/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(xml))) {
+    const id = attrsFrom(m[1]).id
+    if (!id) continue
+    const body = m[2]
+    out.push({
+      id,
+      name: firstChildText(body, 'name') ?? '',
+      comment: firstChildText(body, 'comment') ?? '',
+      icalendar: firstChildText(body, 'icalendar') ?? '',
+      timezone: firstChildText(body, 'timezone') ?? '',
+    })
+  }
+  return out
+}
+
+// -----------------------------------------------------------------------------
+// Scan tasks — <create_task> / <get_tasks> / <modify_task> / <delete_task>.
+// -----------------------------------------------------------------------------
+
+export function buildGetTasksCommand(opts: { filter?: string } = {}): string {
+  const filter = opts.filter ?? 'rows=-1'
+  return `<get_tasks usage_type="scan" filter="${escapeXmlAttr(filter)}"/>`
+}
+
+export interface TaskInput {
+  name: string
+  configId: string
+  targetId: string
+  scannerId: string
+  scheduleId?: string
+  comment?: string
+}
+
+export function buildCreateTaskCommand(t: TaskInput): string {
+  const parts = [
+    `<name>${escapeXmlText(t.name)}</name>`,
+    '<usage_type>scan</usage_type>',
+    `<config id="${escapeXmlAttr(t.configId)}"/>`,
+    `<target id="${escapeXmlAttr(t.targetId)}"/>`,
+    `<scanner id="${escapeXmlAttr(t.scannerId)}"/>`,
+  ]
+  if (t.comment && String(t.comment).trim()) parts.push(`<comment>${escapeXmlText(t.comment)}</comment>`)
+  // id="0" means "no schedule"; only attach a real schedule on create.
+  if (t.scheduleId && t.scheduleId !== '0') parts.push(`<schedule id="${escapeXmlAttr(t.scheduleId)}"/>`)
+  return `<create_task>${parts.join('')}</create_task>`
+}
+
+/**
+ * Modify a task. Only provided fields are sent; identity is the task_id attribute.
+ * config/target/scanner are re-pointed via id-bearing elements — see the FLAG:
+ * gvmd rejects re-pointing them on a task that has run unless it is alterable, so
+ * callers should only pass a foreign key that actually changed. schedule_id "0"
+ * clears the schedule.
+ */
+export function buildModifyTaskCommand(
+  taskId: string,
+  t: { name?: string; comment?: string; configId?: string; targetId?: string; scannerId?: string; scheduleId?: string },
+): string {
+  const parts: string[] = []
+  if (t.name !== undefined) parts.push(`<name>${escapeXmlText(t.name)}</name>`)
+  if (t.comment !== undefined) parts.push(`<comment>${escapeXmlText(t.comment)}</comment>`)
+  if (t.configId !== undefined) parts.push(`<config id="${escapeXmlAttr(t.configId)}"/>`)
+  if (t.targetId !== undefined) parts.push(`<target id="${escapeXmlAttr(t.targetId)}"/>`)
+  if (t.scannerId !== undefined) parts.push(`<scanner id="${escapeXmlAttr(t.scannerId)}"/>`)
+  if (t.scheduleId !== undefined) parts.push(`<schedule id="${escapeXmlAttr(t.scheduleId)}"/>`)
+  return `<modify_task task_id="${escapeXmlAttr(taskId)}">${parts.join('')}</modify_task>`
+}
+
+export function buildDeleteTaskCommand(taskId: string, ultimate = true): string {
+  return `<delete_task task_id="${escapeXmlAttr(taskId)}" ultimate="${ultimate ? '1' : '0'}"/>`
+}
+
+export interface GmpTask {
+  id: string
+  name: string
+  comment: string
+  targetId: string
+  targetName: string
+  configId: string
+  configName: string
+  scannerId: string
+  scannerName: string
+  scheduleId: string
+  scheduleName: string
+}
+
+/**
+ * Read a nested id-bearing child of a task body (target/config/scanner/schedule),
+ * which gvmd returns either as `<tag id="…"><name>…</name>…</tag>` or, when unset,
+ * as a self-closing `<tag id="0"/>`.
+ */
+function nestedRef(body: string, tag: string): { id: string; name: string } {
+  const full = new RegExp(`<${tag}\\b([^>]*)>([\\s\\S]*?)</${tag}>`).exec(body)
+  if (full) return { id: attrsFrom(full[1]).id ?? '', name: firstChildText(full[2], 'name') ?? '' }
+  const selfClosing = new RegExp(`<${tag}\\b([^>]*?)/>`).exec(body)
+  return { id: selfClosing ? (attrsFrom(selfClosing[1]).id ?? '') : '', name: '' }
+}
+
+/** Parse `<task id="…">…</task>` elements out of a get_tasks_response. */
+export function parseTasks(xml: string): GmpTask[] {
+  const out: GmpTask[] = []
+  const re = /<task\b([^>]*)>([\s\S]*?)<\/task>/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(xml))) {
+    const id = attrsFrom(m[1]).id
+    if (!id) continue
+    const body = m[2]
+    const target = nestedRef(body, 'target')
+    const config = nestedRef(body, 'config')
+    const scanner = nestedRef(body, 'scanner')
+    const schedule = nestedRef(body, 'schedule')
+    out.push({
+      id,
+      // The task's own <name> is its first child (before nested target/config names).
+      name: firstChildText(body, 'name') ?? '',
+      comment: firstChildText(body, 'comment') ?? '',
+      targetId: target.id,
+      targetName: target.name,
+      configId: config.id,
+      configName: config.name,
+      scannerId: scanner.id,
+      scannerName: scanner.name,
+      scheduleId: schedule.id,
+      scheduleName: schedule.name,
+    })
+  }
+  return out
+}
+
+// -----------------------------------------------------------------------------
+// Named-entity lookups — the read-only lists scan tasks resolve foreign keys
+// against: scan configs (<get_configs usage_type="scan">) and scanners
+// (<get_scanners>). Both answer `<config|scanner id="…"><name>…</name>…>`.
+// -----------------------------------------------------------------------------
+
+export function buildGetScanConfigsCommand(opts: { filter?: string } = {}): string {
+  const filter = opts.filter ?? 'rows=-1'
+  return `<get_configs usage_type="scan" filter="${escapeXmlAttr(filter)}"/>`
+}
+
+export function buildGetScannersCommand(opts: { filter?: string } = {}): string {
+  const filter = opts.filter ?? 'rows=-1'
+  return `<get_scanners filter="${escapeXmlAttr(filter)}"/>`
+}
+
+export interface GmpNamedRef {
+  id: string
+  name: string
+}
+
+/** Parse `<tag id="…"><name>…</name>…</tag>` entities (config/scanner) by id + name. */
+export function parseNamedRefs(xml: string, tag: string): GmpNamedRef[] {
+  const out: GmpNamedRef[] = []
+  const re = new RegExp(`<${tag}\\b([^>]*)>([\\s\\S]*?)</${tag}>`, 'g')
+  let m: RegExpExecArray | null
+  while ((m = re.exec(xml))) {
+    const id = attrsFrom(m[1]).id
+    if (!id) continue
+    out.push({ id, name: firstChildText(m[2], 'name') ?? '' })
+  }
+  return out
+}
+
+export const parseScanConfigs = (xml: string): GmpNamedRef[] => parseNamedRefs(xml, 'config')
+export const parseScanners = (xml: string): GmpNamedRef[] => parseNamedRefs(xml, 'scanner')
+
+// -----------------------------------------------------------------------------
+// Port lists — <create_port_list> / <get_port_lists> / <modify_port_list> / <delete_port_list>.
+// -----------------------------------------------------------------------------
+
+export function buildGetPortListsCommand(opts: { filter?: string } = {}): string {
+  const filter = opts.filter ?? 'rows=-1'
+  // details=1 so the structured <port_ranges> come back for drift comparison.
+  return `<get_port_lists details="1" filter="${escapeXmlAttr(filter)}"/>`
+}
+
+export interface PortListInput {
+  name: string
+  portRange: string
+  comment?: string
+}
+
+export function buildCreatePortListCommand(p: PortListInput): string {
+  const parts = [
+    `<name>${escapeXmlText(p.name)}</name>`,
+    `<port_range>${escapeXmlText(p.portRange)}</port_range>`,
+  ]
+  if (p.comment && String(p.comment).trim()) parts.push(`<comment>${escapeXmlText(p.comment)}</comment>`)
+  return `<create_port_list>${parts.join('')}</create_port_list>`
+}
+
+/**
+ * Modify a port list. gvmd only lets name/comment change here (see FLAG) — the
+ * port ranges are immutable via modify, so this builder deliberately takes no
+ * range argument.
+ */
+export function buildModifyPortListCommand(
+  portListId: string,
+  p: { name?: string; comment?: string },
+): string {
+  const parts: string[] = []
+  if (p.name !== undefined) parts.push(`<name>${escapeXmlText(p.name)}</name>`)
+  if (p.comment !== undefined) parts.push(`<comment>${escapeXmlText(p.comment)}</comment>`)
+  return `<modify_port_list port_list_id="${escapeXmlAttr(portListId)}">${parts.join('')}</modify_port_list>`
+}
+
+export function buildDeletePortListCommand(portListId: string, ultimate = true): string {
+  return `<delete_port_list port_list_id="${escapeXmlAttr(portListId)}" ultimate="${ultimate ? '1' : '0'}"/>`
+}
+
+export interface GmpPortList {
+  id: string
+  name: string
+  comment: string
+  /** Canonical compact range string reconstructed from the structured response, e.g. "T:1-1024,U:53". */
+  portRange: string
+}
+
+/**
+ * Rebuild the compact "T:1-1024,U:53" form from the structured <port_ranges> gvmd
+ * returns (`<port_range><start>1</start><end>1024</end><type>TCP</type>`), sorted
+ * so it compares canonically regardless of the order gvmd lists them.
+ */
+function portRangesToCompact(body: string): string {
+  const tokens: string[] = []
+  const re = /<port_range\b[^>]*>([\s\S]*?)<\/port_range>/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(body))) {
+    const inner = m[1]
+    const start = firstChildText(inner, 'start')
+    const end = firstChildText(inner, 'end')
+    const type = (firstChildText(inner, 'type') ?? '').toUpperCase()
+    if (!start) continue
+    const prefix = type === 'UDP' ? 'U' : 'T'
+    tokens.push(end && end !== start ? `${prefix}:${start}-${end}` : `${prefix}:${start}`)
+  }
+  return tokens.sort().join(',')
+}
+
+/** Parse `<port_list id="…">…</port_list>` elements out of a get_port_lists_response. */
+export function parsePortLists(xml: string): GmpPortList[] {
+  const out: GmpPortList[] = []
+  const re = /<port_list\b([^>]*)>([\s\S]*?)<\/port_list>/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(xml))) {
+    const id = attrsFrom(m[1]).id
+    if (!id) continue
+    const body = m[2]
+    out.push({
+      id,
+      name: firstChildText(body, 'name') ?? '',
+      comment: firstChildText(body, 'comment') ?? '',
+      portRange: portRangesToCompact(body),
     })
   }
   return out

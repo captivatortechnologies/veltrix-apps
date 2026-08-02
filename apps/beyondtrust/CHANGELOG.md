@@ -2,6 +2,40 @@
 
 All notable changes to the BeyondTrust app are documented here.
 
+## 0.2.0 — 2026-08-01
+
+Two more BeyondInsight config types, both driven through the same PS-Auth session
+client and pipeline (validate / deploy / rollback / health-check / drift-detect /
+status).
+
+- **User Groups** config type — create / list BeyondInsight **user groups**
+  (group name, description, active flag) over the BeyondInsight REST API
+  (`GET`/`POST` `/UserGroups`, `DELETE /UserGroups/{id}`). Create-if-absent upsert
+  matched by name; rollback deletes the groups this deploy created; drift reports
+  a missing group (warning) and a differing description / active flag (info).
+  Manages **BeyondInsight-type groups only** — Active Directory / LDAP / Entra ID
+  groups need a bound directory (a parent graph) and are out of scope. Permissions,
+  Smart Rule access and application registrations are **not** managed here; a group
+  is created without feature permissions and an admin grants them in BeyondInsight.
+- **Workgroups** config type — create / list BeyondInsight **workgroups** (name,
+  optional organization GUID) over the BeyondInsight REST API (`GET`/`POST`
+  `/Workgroups`). Create-if-absent upsert matched by name; drift reports a missing
+  workgroup (warning). Password Safe exposes **no update or delete endpoint** for a
+  workgroup, so rollback cannot remove a created workgroup — it reports which ones
+  remain for manual removal in the BeyondInsight console.
+
+> **Considered and dropped this release:** *Managed Systems* (`POST /ManagedSystems`
+> requires an existing AssetID **or** WorkgroupID plus a PlatformID and
+> platform-conditional fields — an un-authorable parent graph) and *Smart Rules*
+> (creation requires a full filter/action definition the public API does not model
+> as a simple writable body). Both need parent objects that cannot be authored
+> generically as-code, so they were left out rather than shipped half-working.
+
+> BeyondInsight / Password Safe REST paths follow the public v3 API and should be
+> verified against a live BeyondTrust instance. The exact requiredness of an
+> (empty) `Permissions` array on `POST /UserGroups` is unverified and flagged in
+> code.
+
 ## 0.1.0 — 2026-08-01
 
 Initial release — foundation + first config type.

@@ -1,0 +1,9 @@
+# Defaults for a new managed volume item. A single-channel, 100 GiB Oracle volume
+# as a starting point — the operator renames it, picks the application, sizes it and
+# scopes the export. Flat mapping of field key -> default (the canvas template uses
+# the "item" form).
+applicationTag: "Oracle"
+numChannels: 1
+volumeSizeGb: 100
+subnet: ""
+hostPatterns: []

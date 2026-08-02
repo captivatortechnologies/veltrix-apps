@@ -1,0 +1,16 @@
+# Defaults for a new fileset template item. A Linux template with a single root
+# include path as a starting point — the operator renames it, picks the OS family
+# and edits the paths. Flat mapping of field key -> default (the canvas template
+# uses the "item" form).
+operatingSystemType: "Linux"
+includes:
+  - "/"
+excludes: []
+exceptions: []
+useWindowsVss: false
+allowBackupNetworkMounts: false
+allowBackupHiddenFoldersInNetworkMounts: false
+preBackupScript: ""
+postBackupScript: ""
+backupScriptTimeout: 0
+backupScriptErrorHandling: "abort"

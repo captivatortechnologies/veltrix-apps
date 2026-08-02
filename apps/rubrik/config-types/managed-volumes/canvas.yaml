@@ -1,0 +1,103 @@
+# =============================================================================
+# Canvas Template — Rubrik Managed Volumes
+#
+# Declares ONE managed volume (the item) — a Rubrik-hosted, SLA-protected storage
+# target that applications write into over NFS/SMB channels. Users add as many as
+# they need. A managed volume's logical identity is its NAME (Rubrik assigns the id
+# on creation), so the item's identityField is `name` and
+# config-types/managed-volumes/validate.ts enforces name uniqueness across the canvas.
+#
+# Channel count and size are set at CREATION and are effectively immutable
+# afterwards; an update re-applies only the mutable fields (name, export patterns).
+# Applied over the Rubrik CDM internal REST API (POST/PATCH /api/internal/managed_volume).
+#
+# Field keys must match config-types/managed-volumes/validate.ts and _shared.ts.
+# =============================================================================
+
+id: "rubrik-managed-volumes"
+name: "Managed Volumes"
+toolType: "rubrik"
+entityType: "managed-volumes"
+description: "Manage Rubrik managed volumes (SLA-protected storage targets) — channels, size, subnet, application tag and export host patterns — via the Rubrik CDM internal REST API"
+
+item:
+  label: "Managed Volume"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Managed Volume"
+      icon: "database"
+      description: "Volume identity and the application that writes to it"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The managed volume name shown in Rubrik, e.g. oracle-prod-mv. This is the volume's logical identity (Rubrik assigns the id)."
+
+        - key: "applicationTag"
+          label: "Application"
+          fieldType: "select"
+          required: false
+          defaultValue: "Oracle"
+          options:
+            - label: "Oracle"
+              value: "Oracle"
+            - label: "Oracle (Incremental)"
+              value: "OracleIncremental"
+            - label: "Microsoft SQL Server"
+              value: "MsSql"
+            - label: "SAP HANA"
+              value: "SapHana"
+            - label: "MySQL"
+              value: "MySql"
+            - label: "PostgreSQL"
+              value: "PostgreSql"
+            - label: "RecoverX"
+              value: "RecoverX"
+          helpText: "The application that writes to this volume — tags the volume for the matching backup workflow."
+
+    - name: "Provisioning"
+      icon: "hard-drive"
+      description: "Size and channels are set at creation and cannot be changed afterwards"
+      fields:
+        - key: "numChannels"
+          label: "Channels"
+          fieldType: "number"
+          required: true
+          defaultValue: 1
+          validation:
+            min: 1
+            max: 16
+          helpText: "Number of parallel NFS/SMB channels (mount points) the volume exposes. Set at creation; immutable afterwards."
+
+        - key: "volumeSizeGb"
+          label: "Volume size (GiB)"
+          fieldType: "number"
+          required: true
+          defaultValue: 100
+          validation:
+            min: 1
+          helpText: "Provisioned capacity in GiB (converted to bytes for the API). Set at creation; immutable afterwards."
+
+        - key: "subnet"
+          label: "Subnet (CIDR)"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 64
+          helpText: "Optional VLAN subnet in CIDR form (e.g. 10.128.45.0/26) the channels are exposed on. Leave blank for the cluster default."
+
+    - name: "Export"
+      icon: "share"
+      description: "Which hosts may mount the volume's channels"
+      fields:
+        - key: "hostPatterns"
+          label: "Export host patterns"
+          fieldType: "tags"
+          required: false
+          helpText: "Host names / IPs / patterns allowed to mount the channels, one per entry (e.g. 10.0.0.0/24 or db-*.example.com). Leave empty for the cluster default."

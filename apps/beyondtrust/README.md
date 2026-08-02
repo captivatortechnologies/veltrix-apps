@@ -1,12 +1,13 @@
 # BeyondTrust (Veltrix app)
 
 Manage **BeyondTrust Password Safe** (privileged access management) as code. Author
-Password Safe **functional accounts** and drive them through the Veltrix
-Security-as-Code pipeline — validate, deploy, health check, drift detection and
-rollback — over the BeyondInsight / Password Safe public REST API.
+Password Safe **functional accounts**, BeyondInsight **user groups** and
+**workgroups**, and drive them through the Veltrix Security-as-Code pipeline —
+validate, deploy, health check, drift detection and rollback — over the
+BeyondInsight / Password Safe public REST API.
 
 - **Category:** IAM
-- **Version:** 0.1.0
+- **Version:** 0.2.0
 - **Target:** BeyondInsight / Password Safe (on-premises or cloud), public API `v3`
 
 ## What it manages
@@ -14,12 +15,25 @@ rollback — over the BeyondInsight / Password Safe public REST API.
 | Config type | Resource | Operations |
 | --- | --- | --- |
 | **Functional Accounts** | `/FunctionalAccounts` | create (if absent), list, delete (rollback) |
+| **User Groups** | `/UserGroups` | create (if absent), list, delete (rollback) |
+| **Workgroups** | `/Workgroups` | create (if absent), list — no delete endpoint |
 
 Functional accounts are the service accounts Password Safe uses to manage systems.
 Each account declares a **Platform ID**, an **account name** (without the domain),
 an optional **domain**, and presentation/elevation fields (display name,
 description, elevation command) plus an optional **password** that is sent only on
 create and never read back.
+
+**User groups** are the BeyondInsight **BeyondInsight-type** groups (group name,
+description, active flag) that carry Password Safe roles and Smart Rule access —
+Active Directory / LDAP / Entra ID groups need a bound directory and are out of
+scope. Feature permissions and Smart Rule access are **not** managed here; a group
+is created without them and an admin grants them in BeyondInsight.
+
+**Workgroups** are the containers that organize assets and managed systems (name,
+optional organization GUID). Password Safe has **no update or delete endpoint** for
+a workgroup, so deploy is create-if-absent and rollback cannot remove a created
+workgroup — it reports which ones remain for manual removal.
 
 ## How it connects
 
@@ -82,3 +96,9 @@ live instance before production use:
 - List functional accounts: `GET /api/public/v3/functionalaccounts`
 - Delete functional account: `DELETE /api/public/v3/functionalaccounts/{id}`
 - Sign in / out: `POST /api/public/v3/auth/signappin`, `POST /api/public/v3/auth/signout`
+- User groups (BeyondInsight group): `POST` / `GET /api/public/v3/usergroups`,
+  `DELETE /api/public/v3/usergroups/{id}` — BeyondInsight APIs reference,
+  <https://docs.beyondtrust.com/bips/v24.3/docs/beyondinsight-api> (groupName max
+  200, description required max 255)
+- Workgroups: `POST` / `GET /api/public/v3/workgroups` (Name max 256, optional
+  OrganizationID GUID) — no `PUT`/`DELETE` documented for the Workgroups resource

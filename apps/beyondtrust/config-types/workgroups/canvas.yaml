@@ -1,0 +1,41 @@
+# =============================================================================
+# Canvas Template — BeyondInsight Workgroups
+#
+# Declares ONE BeyondInsight workgroup (the item). Users add as many as they
+# need. Field keys must match config-types/workgroups/validate.ts. Applied via
+# the BeyondInsight REST API (POST /Workgroups) inside a PS-Auth session.
+#
+# Create-if-absent: Password Safe has no update or delete endpoint for a
+# workgroup, so a workgroup is only ever created, never changed or removed.
+# =============================================================================
+
+id: "beyondtrust-workgroups"
+name: "Workgroups"
+toolType: "beyondtrust"
+entityType: "workgroups"
+description: "Manage BeyondInsight workgroups — the containers that organize assets and managed systems — via the BeyondInsight REST API"
+
+item:
+  label: "Workgroup"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Workgroup"
+      icon: "folder"
+      description: "Identity of the workgroup"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: "Name of the workgroup. This is its identity — a workgroup with this name is created only if one does not already exist."
+
+        - key: "organizationId"
+          label: "Organization ID"
+          fieldType: "text"
+          required: false
+          helpText: "Optional organization GUID for multi-tenant installs, e.g. 00000000-0000-0000-0000-000000000000. Leave blank to use the default organization."

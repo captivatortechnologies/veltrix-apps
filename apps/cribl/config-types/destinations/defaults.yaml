@@ -1,0 +1,9 @@
+# Defaults for a new Destination item. The worker group defaults to "default";
+# the operator fills in the id, the Cribl output type and the conf JSON. Kept
+# minimal so a new item starts from a valid, empty Destination config.
+worker_group: "default"
+type: ""
+conf: |
+  {
+    "systemFields": []
+  }

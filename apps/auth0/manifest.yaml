@@ -1,13 +1,14 @@
 id: auth0
 name: Auth0
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Auth0 (Okta-owned enterprise identity platform) as code. Author Auth0
-  Applications (Clients) and drive them through the Security-as-Code pipeline —
-  validate, deploy, health check, drift detection and rollback — over the Auth0
-  Management API v2 (HTTPS), authenticated with a Machine-to-Machine
-  client-credentials access token.
+  Applications (Clients), Connections (identity providers), Resource Servers (APIs)
+  and RBAC Roles and drive them through the Security-as-Code pipeline — validate,
+  deploy, health check, drift detection and rollback — over the Auth0 Management
+  API v2 (HTTPS), authenticated with a Machine-to-Machine client-credentials
+  access token.
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/auth0
@@ -30,6 +31,15 @@ permissions:
     - resource: clients
       actions: [read, write, delete]
       description: Manage Auth0 Applications / Clients (create / edit / delete)
+    - resource: connections
+      actions: [read, write, delete]
+      description: Manage Auth0 Connections / identity providers (create / edit / delete)
+    - resource: resource-servers
+      actions: [read, write, delete]
+      description: Manage Auth0 Resource Servers / APIs (create / edit / delete)
+    - resource: roles
+      actions: [read, write, delete]
+      description: Manage Auth0 RBAC Roles and their API permissions (create / edit / delete)
 
 pipeline:
   configurationTypes:
@@ -46,6 +56,60 @@ pipeline:
         healthCheck: config-types/clients/healthCheck
         driftDetect: config-types/clients/driftDetect
         getStatus: config-types/clients/getStatus
+      targets:
+        componentTypes: [auth0-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: connections
+      group: "Authentication"
+      name: Connections
+      description: Auth0 Connections (identity providers) — name, strategy, display name, enabled clients and strategy options — applied over the Auth0 Management API v2 (/connections). Upserts by connection name; strategy is immutable.
+      canvasTemplate: config-types/connections/canvas.yaml
+      defaultConfig: config-types/connections/defaults.yaml
+      handlers:
+        validate: config-types/connections/validate
+        deploy: config-types/connections/deploy
+        rollback: config-types/connections/rollback
+        healthCheck: config-types/connections/healthCheck
+        driftDetect: config-types/connections/driftDetect
+        getStatus: config-types/connections/getStatus
+      targets:
+        componentTypes: [auth0-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: resource-servers
+      group: "APIs"
+      name: Resource Servers (APIs)
+      description: Auth0 Resource Servers (APIs) — name, identifier (audience URI), scopes, signing algorithm and token lifetime — applied over the Auth0 Management API v2 (/resource-servers). Upserts by API name; identifier is immutable.
+      canvasTemplate: config-types/resource-servers/canvas.yaml
+      defaultConfig: config-types/resource-servers/defaults.yaml
+      handlers:
+        validate: config-types/resource-servers/validate
+        deploy: config-types/resource-servers/deploy
+        rollback: config-types/resource-servers/rollback
+        healthCheck: config-types/resource-servers/healthCheck
+        driftDetect: config-types/resource-servers/driftDetect
+        getStatus: config-types/resource-servers/getStatus
+      targets:
+        componentTypes: [auth0-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: roles
+      group: "Authorization"
+      name: Roles
+      description: Auth0 RBAC Roles — name, description and assigned API permissions — applied over the Auth0 Management API v2 (/roles and the /roles/{id}/permissions sub-resource). Upserts by role name.
+      canvasTemplate: config-types/roles/canvas.yaml
+      defaultConfig: config-types/roles/defaults.yaml
+      handlers:
+        validate: config-types/roles/validate
+        deploy: config-types/roles/deploy
+        rollback: config-types/roles/rollback
+        healthCheck: config-types/roles/healthCheck
+        driftDetect: config-types/roles/driftDetect
+        getStatus: config-types/roles/getStatus
       targets:
         componentTypes: [auth0-tenant]
         requiresCredential: true

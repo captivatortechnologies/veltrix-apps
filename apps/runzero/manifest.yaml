@@ -1,6 +1,6 @@
 id: runzero
 name: runZero
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage runZero (asset discovery / attack-surface / network inventory) as code.
@@ -30,6 +30,12 @@ permissions:
     - resource: sites
       actions: [read, write, delete]
       description: Manage runZero Sites (create / edit / delete) and their scan scope
+    - resource: scan-tasks
+      actions: [read, write]
+      description: Manage runZero scan tasks — schedule / update recurring scans of a Site (stop to roll back)
+    - resource: scan-templates
+      actions: [read, write, delete]
+      description: Manage runZero reusable scan templates (create / edit / delete) — requires an account-scoped API key
 
 pipeline:
   configurationTypes:
@@ -48,6 +54,48 @@ pipeline:
         healthCheck: config-types/sites/healthCheck
         driftDetect: config-types/sites/driftDetect
         getStatus: config-types/sites/getStatus
+      targets:
+        componentTypes: [runzero-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: scan-tasks
+      group: "Scanning"
+      name: Scan Tasks
+      description: >
+        runZero scan tasks — recurring scans of a Site (name, target scope, frequency and
+        optional tuning), created with PUT /org/sites/{site}/scan and updated via PATCH
+        /org/tasks/{id} over the runZero console REST API
+      canvasTemplate: config-types/scan-tasks/canvas.yaml
+      defaultConfig: config-types/scan-tasks/defaults.yaml
+      handlers:
+        validate: config-types/scan-tasks/validate
+        deploy: config-types/scan-tasks/deploy
+        rollback: config-types/scan-tasks/rollback
+        healthCheck: config-types/scan-tasks/healthCheck
+        driftDetect: config-types/scan-tasks/driftDetect
+        getStatus: config-types/scan-tasks/getStatus
+      targets:
+        componentTypes: [runzero-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: scan-templates
+      group: "Scanning"
+      name: Scan Templates
+      description: >
+        runZero reusable scan templates — named scan-parameter sets a scan task can be based on,
+        applied over the runZero console REST API (/account/tasks/templates). ACCOUNT-scoped:
+        requires an account-scoped runZero API key.
+      canvasTemplate: config-types/scan-templates/canvas.yaml
+      defaultConfig: config-types/scan-templates/defaults.yaml
+      handlers:
+        validate: config-types/scan-templates/validate
+        deploy: config-types/scan-templates/deploy
+        rollback: config-types/scan-templates/rollback
+        healthCheck: config-types/scan-templates/healthCheck
+        driftDetect: config-types/scan-templates/driftDetect
+        getStatus: config-types/scan-templates/getStatus
       targets:
         componentTypes: [runzero-org, standalone]
         requiresCredential: true

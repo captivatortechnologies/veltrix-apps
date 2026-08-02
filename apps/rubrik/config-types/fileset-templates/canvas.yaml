@@ -1,0 +1,141 @@
+# =============================================================================
+# Canvas Template — Rubrik Fileset Templates
+#
+# Declares ONE fileset template (the item) — Rubrik's reusable definition of WHAT
+# to back up on a host. Users add as many as they need. A template's logical
+# identity is its NAME (Rubrik assigns the id on creation), so the item's
+# identityField is `name` and config-types/fileset-templates/validate.ts enforces
+# name uniqueness across the canvas.
+#
+# A template lists the host OS family plus include / exclude / exception paths
+# (full paths + wildcards: `*` matches within a path segment, `**` across
+# segments). `includes` is required. Applied over the Rubrik CDM v1 REST API
+# (POST/PATCH /api/v1/fileset_template).
+#
+# Field keys must match config-types/fileset-templates/validate.ts and _shared.ts.
+# =============================================================================
+
+id: "rubrik-fileset-templates"
+name: "Fileset Templates"
+toolType: "rubrik"
+entityType: "fileset-templates"
+description: "Manage Rubrik fileset templates (what to back up on a host) — OS family and include/exclude/exception paths — via the Rubrik CDM v1 REST API"
+
+item:
+  label: "Fileset Template"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Template"
+      icon: "file"
+      description: "Template identity and host OS family"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The fileset template name shown in Rubrik, e.g. Linux Home Dirs. This is the template's logical identity (Rubrik assigns the id)."
+
+        - key: "operatingSystemType"
+          label: "Host OS type"
+          fieldType: "select"
+          required: true
+          defaultValue: "Linux"
+          options:
+            - label: "Linux / Unix"
+              value: "Linux"
+            - label: "Windows"
+              value: "Windows"
+          helpText: "The host OS family this template applies to. Note: Rubrik CDM 4.2+ may expect \"UnixLike\" in place of \"Linux\" — verify against your cluster."
+
+    - name: "Paths"
+      icon: "folder"
+      description: "What to back up (full paths + wildcards: * within a segment, ** across segments)"
+      fields:
+        - key: "includes"
+          label: "Include paths"
+          fieldType: "tags"
+          required: true
+          helpText: "Paths to back up, one per entry — e.g. /home or C:\\Users. At least one is required."
+
+        - key: "excludes"
+          label: "Exclude paths"
+          fieldType: "tags"
+          required: false
+          helpText: "Paths under the includes to skip — e.g. /home/*/.cache."
+
+        - key: "exceptions"
+          label: "Exception paths"
+          fieldType: "tags"
+          required: false
+          helpText: "Paths that should NOT be excluded (re-include something an exclude would drop). Only meaningful alongside excludes."
+
+    - name: "Options"
+      icon: "settings"
+      description: "Backup behavior"
+      fields:
+        - key: "useWindowsVss"
+          label: "Use Windows VSS (Windows only)"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Use the Volume Shadow Copy Service for a consistent snapshot. Applies to Windows templates only; ignored on Linux."
+
+        - key: "allowBackupNetworkMounts"
+          label: "Back up network mounts"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Traverse into network-mounted filesystems under the include paths."
+
+        - key: "allowBackupHiddenFoldersInNetworkMounts"
+          label: "Back up hidden folders in network mounts"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Include hidden folders when backing up network mounts."
+
+    - name: "Backup Scripts"
+      icon: "terminal"
+      description: "Optional pre/post backup scripts (paths on the host)"
+      fields:
+        - key: "preBackupScript"
+          label: "Pre-backup script"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 1024
+          helpText: "Full path to a script run on the host before the snapshot."
+
+        - key: "postBackupScript"
+          label: "Post-backup script"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 1024
+          helpText: "Full path to a script run on the host after the snapshot."
+
+        - key: "backupScriptTimeout"
+          label: "Script timeout (seconds)"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+          validation:
+            min: 0
+          helpText: "How long a backup script may run before timing out. 0 leaves it unset."
+
+        - key: "backupScriptErrorHandling"
+          label: "On script error"
+          fieldType: "select"
+          required: false
+          defaultValue: "abort"
+          options:
+            - label: "Abort the backup"
+              value: "abort"
+            - label: "Continue the backup"
+              value: "continue"
+          helpText: "What to do when a pre/post backup script fails."

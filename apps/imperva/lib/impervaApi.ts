@@ -38,6 +38,19 @@ export const INCAP_RULES_EDIT_PATH = '/sites/incapRules/edit'
 export const INCAP_RULES_DELETE_PATH = '/sites/incapRules/delete'
 export const INCAP_RULES_LIST_PATH = '/sites/incapRules/list'
 
+/**
+ * Per-site declarative security / ACL configuration endpoints. Unlike IncapRules
+ * (add/edit/delete by rule), each of these SETS one singleton config on a site
+ * keyed by `rule_id`, so a deploy reads the prior value from /sites/status, POSTs
+ * the new value, and rollback re-POSTs the prior value.
+ *   security  → POST /sites/configure/security  { site_id, rule_id, ... }
+ *   acl       → POST /sites/configure/acl        { site_id, rule_id, ... }
+ * The current values of both are read back from the site status response.
+ */
+export const SECURITY_CONFIGURE_PATH = '/sites/configure/security'
+export const ACL_CONFIGURE_PATH = '/sites/configure/acl'
+export const SITE_STATUS_PATH = '/sites/status'
+
 /** Account details endpoint — used to verify credentials + reachability. */
 export const ACCOUNT_PATH = '/account'
 
@@ -175,6 +188,34 @@ export interface ImpervaEnvelope {
 export function isApiSuccess(payload: ImpervaEnvelope | null): boolean {
   if (!payload) return false
   return payload.res === 0 || payload.res === '0'
+}
+
+/**
+ * ACL configure success. The `/sites/configure/acl` endpoint reports success with
+ * `res === 0` OR `res === 2` — Imperva's own Terraform provider treats both as
+ * success for this endpoint (2 is returned when the submitted ACL set is accepted
+ * as-is / no effective change). FLAG: the exact meaning of res=2 is taken from the
+ * provider source and is not documented in the public API reference.
+ */
+export function isAclApiSuccess(payload: ImpervaEnvelope | null): boolean {
+  if (!payload) return false
+  return payload.res === 0 || payload.res === '0' || payload.res === 2 || payload.res === '2'
+}
+
+/**
+ * Read one site's status (POST /sites/status { site_id }) and return the parsed
+ * v1 envelope, or throw with a descriptive message. The site status carries the
+ * live `security.waf.rules` and `security.acls.rules` this app reconciles, so it
+ * is the read-side for both the security-rules and acl-configuration config types
+ * (deploy reads the prior value from it; drift compares against it).
+ */
+export async function fetchSiteStatus(client: ImpervaClient, siteId: string): Promise<ImpervaEnvelope> {
+  const res = await client.post(SITE_STATUS_PATH, { site_id: siteId })
+  const json = parseJson<ImpervaEnvelope>(res.body)
+  if (!res.ok || !isApiSuccess(json)) {
+    throw new Error(`site status for ${siteId} → HTTP ${res.status}: ${apiMessage(json)}`)
+  }
+  return json as ImpervaEnvelope
 }
 
 /** The human-readable status message from a v1 response, or a fallback. */

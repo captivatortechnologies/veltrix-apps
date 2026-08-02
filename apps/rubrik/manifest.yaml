@@ -1,14 +1,15 @@
 id: rubrik
 name: Rubrik
-version: "0.1.0"
+version: "0.2.0"
 vendor: Veltrix
 description: >
   Manage Rubrik (backup, ransomware recovery and data security) configuration as
   code through the Rubrik CDM (Cloud Data Management) REST API. Author SLA Domains
-  — backup policies with snapshot frequencies and retention — and drive them
-  through the Security-as-Code pipeline (validate, deploy, health check, drift
-  detection and rollback) over HTTPS with a service-account session (self-signed
-  certificates tolerated).
+  (backup policies), Fileset Templates (what to back up on a host) and Managed
+  Volumes (SLA-protected storage targets), and drive them through the
+  Security-as-Code pipeline (validate, deploy, health check, drift detection and
+  rollback) over HTTPS with a service-account session (self-signed certificates
+  tolerated).
 category: COMPLIANCE
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/rubrik
@@ -31,6 +32,12 @@ permissions:
     - resource: sla-domains
       actions: [read, write, delete]
       description: Manage Rubrik SLA Domains (backup policies — frequencies and retention)
+    - resource: fileset-templates
+      actions: [read, write, delete]
+      description: Manage Rubrik Fileset Templates (what to back up on a host — include/exclude paths)
+    - resource: managed-volumes
+      actions: [read, write, delete]
+      description: Manage Rubrik Managed Volumes (SLA-protected storage targets — channels, size, exports)
 
 pipeline:
   configurationTypes:
@@ -47,6 +54,42 @@ pipeline:
         healthCheck: config-types/sla-domains/healthCheck
         driftDetect: config-types/sla-domains/driftDetect
         getStatus: config-types/sla-domains/getStatus
+      targets:
+        componentTypes: [rubrik-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: fileset-templates
+      group: "Data Protection"
+      name: Fileset Templates
+      description: Rubrik Fileset Templates — reusable definitions of what to back up on a host (OS family + include/exclude/exception paths) — applied over the Rubrik CDM v1 REST API
+      canvasTemplate: config-types/fileset-templates/canvas.yaml
+      defaultConfig: config-types/fileset-templates/defaults.yaml
+      handlers:
+        validate: config-types/fileset-templates/validate
+        deploy: config-types/fileset-templates/deploy
+        rollback: config-types/fileset-templates/rollback
+        healthCheck: config-types/fileset-templates/healthCheck
+        driftDetect: config-types/fileset-templates/driftDetect
+        getStatus: config-types/fileset-templates/getStatus
+      targets:
+        componentTypes: [rubrik-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: managed-volumes
+      group: "Storage"
+      name: Managed Volumes
+      description: Rubrik Managed Volumes — SLA-protected storage targets (channels, size, subnet, application tag, export host patterns) — applied over the Rubrik CDM internal REST API
+      canvasTemplate: config-types/managed-volumes/canvas.yaml
+      defaultConfig: config-types/managed-volumes/defaults.yaml
+      handlers:
+        validate: config-types/managed-volumes/validate
+        deploy: config-types/managed-volumes/deploy
+        rollback: config-types/managed-volumes/rollback
+        healthCheck: config-types/managed-volumes/healthCheck
+        driftDetect: config-types/managed-volumes/driftDetect
+        getStatus: config-types/managed-volumes/getStatus
       targets:
         componentTypes: [rubrik-cluster]
         requiresCredential: true

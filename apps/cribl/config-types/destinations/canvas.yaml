@@ -1,0 +1,74 @@
+# =============================================================================
+# Canvas Template — Cribl Stream Destinations (output integrations)
+#
+# Declares ONE Cribl Destination (the item). Users add as many as they need.
+# Field keys must match config-types/destinations/validate.ts. Applied via the
+# Cribl REST API (/api/v1[/m/<group>]/system/outputs).
+#
+# A Destination pairs a stable `id` with a `type` (the Cribl integration, e.g.
+# splunk_hec, s3, elastic, syslog) and a `conf` JSON block of the type-specific
+# settings. On deploy the object is sent as { id, type, ...conf } — Cribl spreads
+# the settings onto the object, so `conf` holds everything except id and type.
+# =============================================================================
+
+id: "cribl-destinations"
+name: "Destinations"
+toolType: "cribl"
+entityType: "destinations"
+description: "Manage Cribl Stream Destinations (output integrations) — an id, a type and a conf JSON block — via the Cribl REST API (/api/v1[/m/<group>]/system/outputs)"
+
+item:
+  label: "Destination"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Destination"
+      icon: "log-out"
+      description: "Destination identity, type and target Worker Group"
+      fields:
+        - key: "id"
+          label: "Destination ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_-]+$"
+            maxLength: 255
+          helpText: "Output id shown in Cribl (letters, digits, _ and - only). Used as the stable identity for upsert and drift."
+
+        - key: "type"
+          label: "Destination Type"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: "Cribl output type, e.g. splunk_hec, s3, elastic, syslog, kafka, filesystem. Immutable once created."
+
+        - key: "worker_group"
+          label: "Worker Group / Fleet"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Worker Group or Edge Fleet to deploy into, e.g. default. Blank falls back to the app's Default Worker Group setting; set that blank for a single-instance deployment."
+
+    - name: "Configuration"
+      icon: "code"
+      description: "The Destination's type-specific settings, as JSON"
+      fields:
+        - key: "conf"
+          label: "Destination Config (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 100000
+          helpText: 'The output settings as a JSON object — everything except id and type, e.g. { "url": "https://splunk:8088", "onBackpressure": "block" }. Sent to Cribl as { id, type, ...conf }.'
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this Destination is configured — recorded for audit"

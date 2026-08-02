@@ -1,0 +1,197 @@
+# =============================================================================
+# Canvas Template — Imperva Cloud WAF Security Rules
+#
+# Declares ONE WAF threat-protection setting on a site (the item). Each rule is a
+# SINGLETON per site keyed by Rule ID, SET declaratively over the Cloud WAF
+# (Incapsula) management API v1 (POST /sites/configure/security, HTTPS 443). The
+# fields shown depend on the chosen Rule ID (visibleWhen). Field keys must match
+# config-types/security-rules/validate.ts + _shared.ts.
+# =============================================================================
+
+id: "imperva-security-rules"
+name: "Security Rules"
+toolType: "imperva"
+entityType: "security-rules"
+description: "Configure Imperva Cloud WAF threat protection per site — the action for SQLi / XSS / RFI / illegal resource / backdoor, plus DDoS protection and bot access control — via the Cloud WAF (Incapsula) API v1"
+
+item:
+  label: "Security Rule"
+  identityField: "ruleId"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Target"
+      icon: "globe"
+      description: "The site this rule protects"
+      fields:
+        - key: "siteId"
+          label: "Site ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[0-9]+$"
+            maxLength: 20
+          helpText: "The numeric Imperva Cloud WAF site ID this rule applies to. Each rule type is a single setting on the site — one item per (Site ID, Rule)."
+
+    - name: "Rule"
+      icon: "shield"
+      description: "Which WAF protection to configure"
+      fields:
+        - key: "ruleId"
+          label: "Rule"
+          fieldType: "select"
+          required: true
+          defaultValue: "api.threats.sql_injection"
+          options:
+            - label: "SQL Injection"
+              value: "api.threats.sql_injection"
+            - label: "Cross-Site Scripting (XSS)"
+              value: "api.threats.cross_site_scripting"
+            - label: "Illegal Resource Access"
+              value: "api.threats.illegal_resource_access"
+            - label: "Remote File Inclusion (RFI)"
+              value: "api.threats.remote_file_inclusion"
+            - label: "Backdoor Protection"
+              value: "api.threats.backdoor"
+            - label: "DDoS Protection"
+              value: "api.threats.ddos"
+            - label: "Bot Access Control"
+              value: "api.threats.bot_access_control"
+          helpText: "The WAF protection to configure. The threat rules (SQLi/XSS/RFI/illegal resource/backdoor) take an Action; DDoS and Bot Access Control take their own settings below."
+
+    - name: "Threat Action"
+      icon: "settings"
+      description: "How the threat rule responds (SQLi / XSS / RFI / illegal resource / backdoor)"
+      fields:
+        - key: "securityRuleAction"
+          label: "Action"
+          fieldType: "select"
+          required: false
+          defaultValue: "api.threats.action.block_request"
+          visibleWhen:
+            field: "ruleId"
+            in:
+              - "api.threats.sql_injection"
+              - "api.threats.cross_site_scripting"
+              - "api.threats.illegal_resource_access"
+              - "api.threats.remote_file_inclusion"
+              - "api.threats.backdoor"
+          options:
+            - label: "Block request"
+              value: "api.threats.action.block_request"
+            - label: "Block IP"
+              value: "api.threats.action.block_ip"
+            - label: "Block session (user)"
+              value: "api.threats.action.block_user"
+            - label: "Alert only"
+              value: "api.threats.action.alert"
+            - label: "Disabled (ignore)"
+              value: "api.threats.action.disabled"
+            - label: "Quarantine URL (Backdoor only)"
+              value: "api.threats.action.quarantine_url"
+          helpText: "What Imperva does when the threat is detected. Quarantine URL is valid only for Backdoor Protection."
+
+    - name: "DDoS Protection"
+      icon: "activity"
+      description: "Activation mode + threshold (DDoS Protection rule)"
+      fields:
+        - key: "activationMode"
+          label: "Activation mode"
+          fieldType: "select"
+          required: false
+          defaultValue: "api.threats.ddos.activation_mode.auto"
+          visibleWhen:
+            field: "ruleId"
+            equals: "api.threats.ddos"
+          options:
+            - label: "Auto (on when attacked)"
+              value: "api.threats.ddos.activation_mode.auto"
+            - label: "On (always)"
+              value: "api.threats.ddos.activation_mode.on"
+            - label: "Off"
+              value: "api.threats.ddos.activation_mode.off"
+            - label: "Adaptive"
+              value: "api.threats.ddos.activation_mode.adaptive"
+          helpText: "When DDoS protection engages for the site."
+
+        - key: "ddosTrafficThreshold"
+          label: "Traffic threshold (req/s)"
+          fieldType: "select"
+          required: false
+          defaultValue: "1000"
+          visibleWhen:
+            field: "ruleId"
+            equals: "api.threats.ddos"
+          options:
+            - { label: "10", value: "10" }
+            - { label: "20", value: "20" }
+            - { label: "50", value: "50" }
+            - { label: "100", value: "100" }
+            - { label: "200", value: "200" }
+            - { label: "500", value: "500" }
+            - { label: "750", value: "750" }
+            - { label: "1000", value: "1000" }
+            - { label: "2000", value: "2000" }
+            - { label: "3000", value: "3000" }
+            - { label: "4000", value: "4000" }
+            - { label: "5000", value: "5000" }
+          helpText: "Consider the site under DDoS when the request rate exceeds this. One of Imperva's fixed thresholds."
+
+        - key: "unknownClientsChallenge"
+          label: "Unknown clients challenge"
+          fieldType: "select"
+          required: false
+          defaultValue: "cookies"
+          visibleWhen:
+            field: "ruleId"
+            equals: "api.threats.ddos"
+          options:
+            - { label: "Cookies", value: "cookies" }
+            - { label: "JavaScript", value: "javascript" }
+            - { label: "CAPTCHA", value: "captcha" }
+            - { label: "None", value: "none" }
+          helpText: "How suspicious clients are challenged while under DDoS."
+
+        - key: "blockNonEssentialBots"
+          label: "Block non-essential bots"
+          fieldType: "select"
+          required: false
+          defaultValue: "false"
+          visibleWhen:
+            field: "ruleId"
+            equals: "api.threats.ddos"
+          options:
+            - { label: "No", value: "false" }
+            - { label: "Yes", value: "true" }
+          helpText: "Whether legitimate-but-non-essential bots (search engines, site helpers) are blocked while under DDoS."
+
+    - name: "Bot Access Control"
+      icon: "cpu"
+      description: "Bad-bot handling (Bot Access Control rule)"
+      fields:
+        - key: "blockBadBots"
+          label: "Block bad bots"
+          fieldType: "select"
+          required: false
+          defaultValue: "true"
+          visibleWhen:
+            field: "ruleId"
+            equals: "api.threats.bot_access_control"
+          options:
+            - { label: "Yes", value: "true" }
+            - { label: "No", value: "false" }
+          helpText: "Whether known bad bots are blocked."
+
+        - key: "challengeSuspectedBots"
+          label: "Challenge suspected bots"
+          fieldType: "select"
+          required: false
+          defaultValue: "false"
+          visibleWhen:
+            field: "ruleId"
+            equals: "api.threats.bot_access_control"
+          options:
+            - { label: "No", value: "false" }
+            - { label: "Yes", value: "true" }
+          helpText: "Whether clients suspected to be bad bots are sent a challenge (e.g. CAPTCHA)."
