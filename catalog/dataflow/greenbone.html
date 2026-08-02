@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Greenbone — Request Flows</title>
+<meta name="description" content="Request flows for the Greenbone Veltrix app — how a request routes through the platform, the app, and the Greenbone API to completion.">
+<style>body{margin:0;background:#f6f8fc}@media(prefers-color-scheme:dark){body{background:#0a0f1c}}</style>
+</head>
+<body>
+<style>
+  :root{
+    --bg:#f6f8fc; --surface:#ffffff; --surface-2:#f1f5f9; --border:#e2e8f0;
+    --text:#0f172a; --muted:#64748b; --faint:#94a3b8;
+    --brand:#2563eb; --brand-soft:#dbeafe; --call:#0ea5e9; --ret:#f59e0b; --ok:#10b981;
+    --accent:#2563eb; --shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px -12px rgba(15,23,42,.18);
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --bg:#0a0f1c; --surface:#111a2e; --surface-2:#0f1728; --border:#1e293b;
+    --text:#e6edf6; --muted:#94a3b8; --faint:#64748b; --brand:#60a5fa; --brand-soft:#172554;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 32px -14px rgba(0,0,0,.6);}}
+  :root[data-theme="dark"]{--bg:#0a0f1c;--surface:#111a2e;--surface-2:#0f1728;--border:#1e293b;
+    --text:#e6edf6;--muted:#94a3b8;--faint:#64748b;--brand:#60a5fa;--brand-soft:#172554;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 32px -14px rgba(0,0,0,.6);}
+  :root[data-theme="light"]{--bg:#f6f8fc;--surface:#fff;--surface-2:#f1f5f9;--border:#e2e8f0;
+    --text:#0f172a;--muted:#64748b;--faint:#94a3b8;--brand:#2563eb;--brand-soft:#dbeafe;
+    --shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px -12px rgba(15,23,42,.18);}
+  *{box-sizing:border-box}
+  .df{font-family:var(--sans);color:var(--text);background:var(--bg);line-height:1.5;
+    -webkit-font-smoothing:antialiased;padding:clamp(16px,3vw,40px);max-width:1160px;margin:0 auto}
+  .df h1,.df h2,.df h3,.df p{margin:0}
+  .mono{font-family:var(--mono);font-size:.85em}
+  .num{font-variant-numeric:tabular-nums}
+
+  .hd{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:18px}
+  .hd .icon{font-size:32px;line-height:1}
+  .hd h1{font-size:clamp(19px,2.5vw,26px);font-weight:700;letter-spacing:-.02em;text-wrap:balance}
+  .hd .sub{color:var(--muted);font-size:13px;margin-top:3px}
+  .hd .talks{color:var(--muted);font-size:12.5px;margin-top:7px;max-width:70ch}
+  .hd .talks b{color:var(--text);font-weight:650}
+
+  /* lifecycle mini-map */
+  .life{display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);
+    border-radius:12px;padding:10px 12px;margin-bottom:18px;box-shadow:var(--shadow)}
+  .life .lab{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:700;margin-right:4px}
+  .lnode{font-size:11.5px;font-weight:600;border:1px solid var(--border);border-radius:999px;padding:4px 10px;color:var(--muted);white-space:nowrap;background:var(--surface-2)}
+  .lnode.op{cursor:pointer;color:var(--text)}
+  .lnode.op:hover{border-color:var(--brand)}
+  .lnode.state{background:var(--brand-soft);border-color:transparent;color:var(--brand);font-weight:700}
+  .lnode.gate{background:color-mix(in srgb,var(--ret) 13%,transparent);border-color:color-mix(in srgb,var(--ret) 45%,transparent);color:var(--ret)}
+  .lnode.active{background:var(--brand);border-color:var(--brand);color:#fff}
+  .life .sep{color:var(--faint);font-size:12px}
+  .envs{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:-8px 0 18px 2px}
+  .envs .lab{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:700;margin-right:4px}
+  .env{font-size:11.5px;font-weight:600;border:1px solid var(--border);border-radius:8px;padding:4px 10px;background:var(--surface-2);color:var(--muted)}
+  .env.gate{background:color-mix(in srgb,var(--ret) 12%,transparent);border-color:color-mix(in srgb,var(--ret) 40%,transparent);color:var(--ret)}
+  .envs .sep{color:var(--faint);font-size:12px}
+
+  /* operation tabs */
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+  .tab{font-family:inherit;text-align:left;cursor:pointer;background:var(--surface);border:1px solid var(--border);
+    border-radius:12px;padding:9px 14px;box-shadow:var(--shadow);min-width:150px}
+  .tab:hover{border-color:var(--brand)}
+  .tab[aria-selected="true"]{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 40%,transparent)}
+  .tab .tt{font-weight:650;font-size:13.5px}
+  .tab .tw{font-size:11px;color:var(--muted);margin-top:2px}
+  .applies{font-size:11.5px;color:var(--muted);margin:10px 2px 2px}
+
+  /* board */
+  .stage{background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);
+    padding:16px 18px 8px;margin-top:8px}
+  .plane{display:flex;margin-bottom:2px}
+  .plane .p{flex:1;text-align:center;min-width:0;padding:0 4px}
+  .plane .p .nm{font-size:11.5px;font-weight:700;line-height:1.2;overflow-wrap:anywhere}
+  .plane .p .s{font-size:9.5px;color:var(--faint);margin-top:1px;overflow-wrap:anywhere}
+  .board{position:relative;margin-top:6px}
+  .lifelines{position:absolute;inset:0;pointer-events:none}
+  .lifelines i{position:absolute;top:0;bottom:0;width:1px;background:var(--border)}
+  .msg{position:relative;height:48px;cursor:pointer;border-radius:8px}
+  .msg:hover{background:color-mix(in srgb,var(--brand) 7%,transparent)}
+  .msg .lbl{position:absolute;top:6px;transform:translateX(-50%);font-size:11px;font-weight:600;color:var(--muted);
+    white-space:nowrap;max-width:46%;overflow:hidden;text-overflow:ellipsis;background:var(--surface);padding:0 5px}
+  .msg .wire{position:absolute;top:28px;height:2px;background:var(--faint);opacity:.5}
+  .msg .wire.dashed{background:none;border-top:2px dashed var(--faint)}
+  .msg .head{position:absolute;top:24px;width:0;height:0;border-top:5px solid transparent;border-bottom:5px solid transparent}
+  .msg .head.r{border-left:8px solid var(--faint)}
+  .msg .head.l{border-right:8px solid var(--faint)}
+  .msg .self{position:absolute;top:20px;transform:translateX(-50%);font-size:11px;font-weight:600;color:var(--muted);
+    background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:2px 8px;white-space:nowrap;max-width:60%;overflow:hidden;text-overflow:ellipsis}
+  .msg.done .lbl{color:var(--text)}
+  .msg.done .wire{opacity:.9}
+  .msg.active{background:color-mix(in srgb,var(--accent) 12%,transparent)}
+  .msg.active .lbl{color:var(--accent)}
+  .msg.active .wire{background:var(--call);opacity:1;height:3px;box-shadow:0 0 0 1px color-mix(in srgb,var(--call) 30%,transparent)}
+  .msg.active .wire.dashed{background:none;border-top:3px dashed var(--ret)}
+  .msg.active .head.r{border-left-color:var(--call)} .msg.active .head.l{border-right-color:var(--call)}
+  .msg.active.ret .wire{background:var(--ret)} .msg.active.ret .head.r{border-left-color:var(--ret)} .msg.active.ret .head.l{border-right-color:var(--ret)}
+  .msg.future{opacity:.4}
+
+  /* controls + description */
+  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+  .btn{font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;background:var(--surface-2);color:var(--text);
+    border:1px solid var(--border);border-radius:9px;padding:7px 13px;display:inline-flex;gap:6px;align-items:center}
+  .btn:hover{border-color:var(--brand)} .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn:disabled{opacity:.4;cursor:default}
+  .count{font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--muted);margin-left:2px}
+  .desc{margin-left:auto;flex:1;min-width:240px;font-size:13px;color:var(--text);background:var(--surface-2);
+    border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+  .desc .k{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:700;margin-right:6px}
+  .desc .dir{font-size:10.5px;font-weight:700;border-radius:5px;padding:1px 6px;margin-left:6px}
+  .desc .dir.call{background:color-mix(in srgb,var(--call) 16%,transparent);color:var(--call)}
+  .desc .dir.ret{background:color-mix(in srgb,var(--ret) 18%,transparent);color:var(--ret)}
+  .foot{margin-top:18px;font-size:12px;color:var(--faint);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .legend{display:flex;gap:14px;flex-wrap:wrap}
+  .legend span{display:flex;gap:6px;align-items:center}
+  .legend i{width:16px;height:0;border-top:2px solid var(--call);display:inline-block}
+  .legend i.ret{border-top:2px dashed var(--ret)}
+</style>
+<div class="df">
+  <header class="hd">
+    <div class="icon" id="df-icon"></div>
+    <div>
+      <h1 id="df-name"></h1>
+      <div class="sub" id="df-sub"></div>
+      <p class="talks" id="df-talks"></p>
+    </div>
+  </header>
+
+  <div class="life" id="df-life"><span class="lab">Lifecycle</span></div>
+  <div class="envs" id="df-envs"></div>
+
+  <div class="tabs" id="df-tabs"></div>
+  <div class="applies" id="df-applies"></div>
+
+  <section class="stage">
+    <div class="plane" id="df-plane"></div>
+    <div class="board" id="df-board"></div>
+    <div class="controls">
+      <button class="btn" id="df-prev">‹ Prev</button>
+      <button class="btn primary" id="df-play">▶ Play</button>
+      <button class="btn" id="df-next">Next ›</button>
+      <span class="count" id="df-count"></span>
+      <div class="desc" id="df-desc"></div>
+    </div>
+  </section>
+
+  <div class="foot">
+    <div class="legend">
+      <span><i></i> call (request)</span>
+      <span><i class="ret"></i> return (response)</span>
+    </div>
+    <div id="df-genfoot"></div>
+  </div>
+</div>
+<script type="application/json" id="df-model">{"model":{"id":"greenbone","name":"Greenbone","vendor":"Veltrix","version":"0.2.0","category":"COMPLIANCE","description":"Manage Greenbone / OpenVAS vulnerability scanning as code. Author scan Targets and drive them through the Security-as-Code pipeline — validate, deploy, health check, drift detection and rollback — over the Greenbone Management Protocol (GMP): XML over a TLS socket (default port 9390), NOT REST. BYOL infrastructure hosting for the Greenbone stack is planned for a later release.","icon":"🛡️","homepage":"https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/greenbone","primaryColor":"#66b512","hasConnections":true,"requiresCredential":true,"requiresConnectivity":true,"ops":{"deploy":true,"drift":true,"rollback":true,"status":true,"testConnection":true},"permissions":{"platform":["configuration-canvas:read","configuration-canvas:write","component:read","credential:read"],"app":[{"resource":"targets","actions":["read","write","delete"]},{"resource":"port-lists","actions":["read","write","delete"]},{"resource":"schedules","actions":["read","write","delete"]},{"resource":"scan-tasks","actions":["read","write","delete"]}]},"sampleResource":"targets","adapters":["greenboneApi","health","status"],"families":[{"name":"Scanning","isConnection":false,"types":[{"id":"port-lists","name":"Port Lists","group":"Scanning","description":"Greenbone port lists — named TCP/UDP port ranges scan targets reference — applied over GMP (XML over TLS, 9390)","caps":{"validate":true,"deploy":true,"drift":true,"rollback":true,"status":true,"health":true},"requiresCredential":true,"requiresConnectivity":true,"componentTypes":["greenbone","standalone"]},{"id":"targets","name":"Scan Targets","group":"Scanning","description":"Greenbone scan targets — name, hosts (CIDRs/IPs/hostnames), exclude hosts and port list — applied over GMP (XML over TLS, 9390)","caps":{"validate":true,"deploy":true,"drift":true,"rollback":true,"status":true,"health":true},"requiresCredential":true,"requiresConnectivity":true,"componentTypes":["greenbone","standalone"]},{"id":"scan-tasks","name":"Scan Tasks","group":"Scanning","description":"Greenbone scan tasks — target + scan config + scanner (resolved by name) with an optional schedule — applied over GMP (XML over TLS, 9390)","caps":{"validate":true,"deploy":true,"drift":true,"rollback":true,"status":true,"health":true},"requiresCredential":true,"requiresConnectivity":true,"componentTypes":["greenbone","standalone"]},{"id":"schedules","name":"Schedules","group":"Scanning","description":"Greenbone scan schedules — iCalendar (RFC 5545) recurrence + timezone — applied over GMP (XML over TLS, 9390)","caps":{"validate":true,"deploy":true,"drift":true,"rollback":true,"status":true,"health":true},"requiresCredential":true,"requiresConnectivity":true,"componentTypes":["greenbone","standalone"]}],"deployable":4,"driftable":4}],"counts":{"types":4,"vendorTypes":4,"families":1,"deployable":4,"driftable":4,"rollbackable":4}},"flows":{"participants":{"operator":{"key":"operator","name":"Operator / API","sub":"human or CI"},"canvas":{"key":"canvas","name":"Config Canvas","sub":"config as code"},"page":{"key":"page","name":"Connections","sub":"settings page"},"pipeline":{"key":"pipeline","name":"Pipeline","sub":"validate·deploy·drift·rollback"},"rbac":{"key":"rbac","name":"Access · RBAC","sub":"permission check"},"approval":{"key":"approval","name":"Approval gate","sub":"human-in-the-loop"},"handler":{"key":"handler","name":"App handler","sub":"SDK ctx"},"vault":{"key":"vault","name":"Credential Vault","sub":"resolveConnection"},"remote":{"key":"remote","name":"Network / ZTNA","sub":"ctx.remote"},"adapter":{"key":"adapter","name":"Adapter","sub":"greenboneApi · health · status"},"api":{"key":"api","name":"Greenbone API","sub":"by Veltrix"}},"operations":[{"key":"deploy","title":"Deploy a configuration","when":"You publish or change a config (e.g. a policy, rule, or exclusion).","appliesTo":"4 config types · 1 API families","participants":["operator","canvas","pipeline","rbac","approval","handler","vault","remote","adapter","api"],"steps":[{"from":"operator","to":"canvas","text":"author config (typed fields)"},{"from":"canvas","to":"pipeline","text":"submit for deploy → target environment"},{"from":"pipeline","to":"rbac","text":"authorize actor (RBAC)","note":"configuration-canvas:read · configuration-canvas:write · component:read · credential:read + targets:write"},{"from":"rbac","to":"pipeline","text":"permitted ✓ / denied","dashed":true},{"from":"pipeline","to":"handler","text":"validate(config)","note":"schema + business rules"},{"from":"handler","to":"pipeline","text":"valid ✓ / errors","dashed":true},{"from":"pipeline","to":"approval","text":"request approval","note":"required for production · human-in-the-loop"},{"from":"approval","to":"pipeline","text":"approved by a human — AI cannot self-approve","dashed":true},{"from":"pipeline","to":"handler","text":"deploy(config, ctx)"},{"from":"handler","to":"vault","text":"resolveConnection (env-scoped connection)"},{"from":"vault","to":"handler","text":"decrypted credential","dashed":true},{"from":"handler","to":"remote","text":"open ctx.remote channel"},{"from":"handler","to":"adapter","text":"map canvas → API shape"},{"from":"adapter","to":"api","text":"create / update resource (write ▶)"},{"from":"api","to":"adapter","text":"resource id(s)","dashed":true},{"from":"adapter","to":"handler","text":"applied result","dashed":true},{"from":"handler","to":"pipeline","text":"status + rollbackData (prior state)","dashed":true},{"from":"pipeline","to":"canvas","text":"deployed ✓ to the environment — snapshot stored","dashed":true}]},{"key":"drift","title":"Detect drift","when":"A scheduled sweep or on-demand check reconciles live state against the canvas.","appliesTo":"4 config types · 1 API families","participants":["operator","pipeline","rbac","handler","vault","adapter","api"],"steps":[{"from":"operator","to":"pipeline","text":"scheduled sweep / on-demand"},{"from":"pipeline","to":"rbac","text":"authorize actor (RBAC)","note":"component:read + targets:read"},{"from":"rbac","to":"pipeline","text":"permitted ✓ / denied","dashed":true},{"from":"pipeline","to":"handler","text":"driftDetect(ctx, snapshot)"},{"from":"handler","to":"vault","text":"resolveConnection (env-scoped connection)"},{"from":"vault","to":"handler","text":"decrypted credential","dashed":true},{"from":"handler","to":"adapter","text":"fetch live state"},{"from":"adapter","to":"api","text":"read resource (read ◀)"},{"from":"api","to":"adapter","text":"live config","dashed":true},{"from":"adapter","to":"handler","text":"normalized live","dashed":true},{"from":"handler","to":"handler","text":"diff vs snapshot → DriftDiff[] (per-field actor)"},{"from":"handler","to":"pipeline","text":"in-sync ✓ or drift found","dashed":true},{"from":"pipeline","to":"operator","text":"drift status → Correct / Acknowledge","dashed":true}]},{"key":"rollback","title":"Roll back","when":"Revert a config to its previously-deployed state using the stored rollbackData.","appliesTo":"4 config types · 1 API families","participants":["operator","pipeline","rbac","approval","handler","vault","adapter","api"],"steps":[{"from":"operator","to":"pipeline","text":"roll back to prior version"},{"from":"pipeline","to":"rbac","text":"authorize actor (RBAC)","note":"targets:write"},{"from":"rbac","to":"pipeline","text":"permitted ✓ / denied","dashed":true},{"from":"pipeline","to":"approval","text":"request approval","note":"required for production · human-in-the-loop"},{"from":"approval","to":"pipeline","text":"approved by a human — AI cannot self-approve","dashed":true},{"from":"pipeline","to":"handler","text":"rollback(rollbackData, ctx)"},{"from":"handler","to":"vault","text":"resolveConnection (env-scoped connection)"},{"from":"vault","to":"handler","text":"decrypted credential","dashed":true},{"from":"handler","to":"adapter","text":"apply prior state"},{"from":"adapter","to":"api","text":"restore resource (write ▶)"},{"from":"api","to":"adapter","text":"ok","dashed":true},{"from":"adapter","to":"handler","text":"restored","dashed":true},{"from":"handler","to":"pipeline","text":"rolled back ✓","dashed":true}]},{"key":"connect","title":"Test connection","when":"Verify a tenant credential before any deploy or drift can run.","appliesTo":"precondition for every operation","participants":["operator","page","rbac","handler","vault","api"],"steps":[{"from":"operator","to":"page","text":"enter / select credential (per environment)"},{"from":"page","to":"rbac","text":"authorize (RBAC)","note":"credential:read"},{"from":"rbac","to":"page","text":"permitted ✓","dashed":true},{"from":"page","to":"handler","text":"testConnection(ctx)"},{"from":"handler","to":"vault","text":"resolveConnection"},{"from":"vault","to":"handler","text":"credential","dashed":true},{"from":"handler","to":"api","text":"auth probe (token → whoami)"},{"from":"api","to":"handler","text":"200 / 401","dashed":true},{"from":"handler","to":"page","text":"connected ✓ / failed","dashed":true}]}],"lifecycle":{"nodes":[{"id":"connect","label":"Test connection","kind":"pre","on":true},{"id":"author","label":"Author config","kind":"start","on":true},{"id":"authz","label":"Permission check","kind":"gate","on":true},{"id":"validate","label":"Validate","kind":"step","on":true},{"id":"approve","label":"Approval gate","kind":"gate","on":true},{"id":"deploy","label":"Deploy ▶ (write)","kind":"act","on":true},{"id":"live","label":"Live & monitored","kind":"state","on":true},{"id":"drift","label":"Drift detect ◀ (read)","kind":"act","on":true},{"id":"correct","label":"Correct (re-deploy)","kind":"act","on":true},{"id":"rollback","label":"Roll back","kind":"act","on":true}],"edges":[["connect","authz","enables"],["author","authz",""],["authz","validate","permitted"],["validate","approve","valid"],["approve","deploy","approved"],["deploy","live","to env · stored"],["live","drift","sweep"],["drift","live","in sync ✓"],["drift","correct","drift found"],["correct","live",""],["drift","rollback","revert"],["rollback","live",""]]},"environments":[{"name":"dev","approval":false},{"name":"staging","approval":false},{"name":"production","approval":true}]}}</script>
+<script>
+(function(){
+  const DATA = JSON.parse(document.getElementById('df-model').textContent);
+  const M = DATA.model, F = DATA.flows, P = F.participants;
+  const $ = (id)=>document.getElementById(id);
+  document.documentElement.style.setProperty('--accent', M.primaryColor || '#2563eb');
+  const esc = (s)=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  $('df-icon').textContent = M.icon || '';
+  $('df-name').textContent = M.name + ' — Request Flows';
+  $('df-sub').innerHTML = '<span class="mono">'+M.id+'</span> · '+(M.category||'—')+' · v'+(M.version||'—')+(M.vendor?(' · by '+M.vendor):'');
+  $('df-talks').innerHTML = 'Talks to <b>'+esc(M.name)+' API</b>'+
+    (M.requiresCredential?' · credentials resolved per request via <b>the Credential Vault</b>':'')+
+    (M.requiresConnectivity?' · reached over <b>ctx.remote</b>':'')+'.';
+  $('df-genfoot').innerHTML = 'Generated from <span class="mono">manifest.yaml</span>';
+
+  // lifecycle mini-map
+  const opByLife = {deploy:'deploy',correct:'deploy',drift:'drift',rollback:'rollback',connect:'connect'};
+  const lifeEl = $('df-life');
+  F.lifecycle.nodes.forEach((n,i)=>{
+    if(i) { const s=document.createElement('span'); s.className='sep'; s.textContent='→'; lifeEl.appendChild(s); }
+    const el=document.createElement(opByLife[n.id]?'button':'span');
+    el.className='lnode '+(n.kind==='state'?'state ':'')+(n.kind==='gate'?'gate ':'')+(opByLife[n.id]?'op ':'');
+    el.textContent=n.label; el.dataset.op=opByLife[n.id]||'';
+    if(opByLife[n.id]) el.addEventListener('click',()=>selectOp(F.operations.findIndex(o=>o.key===opByLife[n.id])));
+    lifeEl.appendChild(el);
+  });
+
+  // environments & promotion strip
+  $('df-envs').innerHTML = '<span class="lab">Environments</span>' + F.environments.map((e,i)=>
+    (i?'<span class="sep">→</span>':'')+'<span class="env'+(e.approval?' gate':'')+'">'+esc(e.name)+(e.approval?' ✋ approval':'')+'</span>').join('');
+
+  // tabs
+  $('df-tabs').innerHTML = F.operations.map((o,i)=>
+    '<button class="tab" data-i="'+i+'" aria-selected="'+(i===0)+'"><div class="tt">'+esc(o.title)+'</div><div class="tw">'+esc(o.when)+'</div></button>').join('');
+  document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>selectOp(+t.dataset.i)));
+
+  let opi=0, step=0, timer=null;
+  const colX = (op,key)=>{ const n=op.participants.length; const i=op.participants.indexOf(key); return (i+0.5)/n*100; };
+
+  function renderPlane(op){
+    $('df-plane').innerHTML = op.participants.map(k=>{
+      const p=P[k]; return '<div class="p"><div class="nm">'+esc(p.name)+'</div>'+(p.sub?'<div class="s">'+esc(p.sub)+'</div>':'')+'</div>';
+    }).join('');
+  }
+  function renderBoard(op){
+    const board=$('df-board');
+    const n=op.participants.length;
+    let html='<div class="lifelines">'+op.participants.map((_,i)=>'<i style="left:'+((i+0.5)/n*100)+'%"></i>').join('')+'</div>';
+    op.steps.forEach((s,j)=>{
+      const x1=colX(op,s.from), x2=colX(op,s.to);
+      const ret=s.dashed?' ret':'';
+      if(s.from===s.to){
+        html+='<div class="msg'+ret+'" data-j="'+j+'"><div class="self" style="left:'+x1+'%">'+esc(s.text)+'</div></div>';
+      } else {
+        const left=Math.min(x1,x2), width=Math.abs(x2-x1), right=x2>x1;
+        const mid=(x1+x2)/2;
+        html+='<div class="msg'+ret+'" data-j="'+j+'">'+
+          '<div class="lbl" style="left:'+mid+'%">'+esc(s.text)+'</div>'+
+          '<div class="wire'+(s.dashed?' dashed':'')+'" style="left:'+left+'%;width:'+width+'%"></div>'+
+          '<div class="head '+(right?'r':'l')+'" style="left:'+(right?x2:x2)+'%;margin-left:'+(right?'-8px':'0')+'"></div>'+
+          '</div>';
+      }
+    });
+    board.innerHTML=html;
+    board.querySelectorAll('.msg').forEach(m=>m.addEventListener('click',()=>{pause();setStep(+m.dataset.j);}));
+  }
+  function setStep(j){
+    const op=F.operations[opi];
+    step=Math.max(0,Math.min(j,op.steps.length-1));
+    const rows=$('df-board').querySelectorAll('.msg');
+    rows.forEach((m,k)=>{ m.classList.toggle('active',k===step); m.classList.toggle('done',k<step); m.classList.toggle('future',k>step); });
+    const s=op.steps[step];
+    const dir=s.dashed?'<span class="dir ret">return ◀</span>':'<span class="dir call">call ▶</span>';
+    const path=s.from===s.to?esc(P[s.from].name)+' (self)':esc(P[s.from].name)+' → '+esc(P[s.to].name);
+    $('df-desc').innerHTML='<span class="k">Step '+(step+1)+'</span>'+esc(s.text)+dir+'<div style="font-size:11.5px;color:var(--muted);margin-top:4px">'+path+(s.note?' · '+esc(s.note):'')+'</div>';
+    $('df-count').textContent=(step+1)+' / '+op.steps.length;
+    $('df-prev').disabled=step===0; $('df-next').disabled=step===op.steps.length-1;
+  }
+  function selectOp(i){
+    if(i<0)return; pause(); opi=i; step=0;
+    document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',String(+t.dataset.i===i)));
+    document.querySelectorAll('.lnode').forEach(l=>l.classList.toggle('active',l.dataset.op===F.operations[i].key));
+    const op=F.operations[i];
+    $('df-applies').textContent='Applies to: '+op.appliesTo+'.';
+    renderPlane(op); renderBoard(op); setStep(0);
+  }
+  function play(){
+    const op=F.operations[opi];
+    if(step>=op.steps.length-1) setStep(0);
+    $('df-play').innerHTML='❚❚ Pause';
+    timer=setInterval(()=>{ if(step>=op.steps.length-1){pause();return;} setStep(step+1); },1050);
+  }
+  function pause(){ if(timer){clearInterval(timer);timer=null;} $('df-play').innerHTML='▶ Play'; }
+  $('df-prev').addEventListener('click',()=>{pause();setStep(step-1);});
+  $('df-next').addEventListener('click',()=>{pause();setStep(step+1);});
+  $('df-play').addEventListener('click',()=>{ timer?pause():play(); });
+
+  selectOp(0);
+})();
+</script>
+
+</body>
+</html>
