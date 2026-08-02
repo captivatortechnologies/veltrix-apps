@@ -98,6 +98,15 @@ try {
       external: ['node:*'],
       // The tests are Jest-shaped but no Jest is installed; supply the globals.
       inject: ['scripts/test-globals.mjs'],
+      // A vendored CJS dependency (e.g. `yaml`) may itself call require() on a
+      // bare Node builtin (e.g. `require('process')`) — valid CJS, but esbuild
+      // cannot statically rewrite that into an ESM import once it's wrapped by
+      // its own CJS-interop shim, and throws "Dynamic require of X is not
+      // supported" at runtime instead. A real `require` in module scope (via
+      // createRequire) is what esbuild's shim falls back to when present.
+      banner: {
+        js: "import { createRequire as __veltrixCreateRequire } from 'node:module';\nconst require = __veltrixCreateRequire(import.meta.url);",
+      },
     })
   }
 
