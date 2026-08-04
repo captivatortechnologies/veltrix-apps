@@ -205,6 +205,18 @@ export class HackerOneClient {
   }
 
   /**
+   * List the organizations the credential can see (GET /me/organizations). Each
+   * resource's `attributes.handle` is the organization handle used to select an
+   * organization — the same shape as `listPrograms`, one level up. Used by the
+   * org-scoped Assets / Asset Scopes config types (the confirmed, non-deprecated
+   * successor to the program-level structured-scope write endpoints).
+   *   Confirmed: https://api.hackerone.com/customer-resources/ (Get Your Organizations)
+   */
+  listOrganizations(): Promise<{ ok: boolean; items: JsonApiResource<{ handle?: string }>[]; status: number; body: string }> {
+    return this.getAll<{ handle?: string }>('/me/organizations')
+  }
+
+  /**
    * Connectivity / health probe: fetch the first page of the caller's programs.
    * 2xx = the Basic-auth pair is valid; 401 = bad identifier/token.
    */

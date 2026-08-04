@@ -1,0 +1,80 @@
+# =============================================================================
+# Canvas Template — Imperva Cloud WAF Data Centers
+#
+# Declares ONE data center (origin server pool) for a site (the item), with its
+# origin servers as a JSON list. Applied via the Cloud WAF (Incapsula) management
+# API v1 (POST /sites/dataCenters/*, /sites/dataCenters/servers/*, HTTPS 443).
+# The data center NAME is the identity within a site; each server's ADDRESS is
+# the identity within the data center. Field keys must match
+# config-types/data-centers/validate.ts + _shared.ts.
+# =============================================================================
+
+id: "imperva-data-centers"
+name: "Data Centers"
+toolType: "imperva"
+entityType: "data-centers"
+description: "Manage Imperva Cloud WAF data centers (origin server pools) and their origin servers, per site, via the Cloud WAF (Incapsula) API v1"
+
+item:
+  label: "Data Center"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Target"
+      icon: "globe"
+      description: "The site this data center belongs to"
+      fields:
+        - key: "siteId"
+          label: "Site ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[0-9]+$"
+            maxLength: 20
+          helpText: "The numeric Imperva Cloud WAF site ID this data center belongs to. The data center name is unique within this site."
+
+    - name: "Data Center"
+      icon: "server"
+      description: "Pool identity and behavior"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable data center name shown in Imperva. Used as the stable identity for upsert and drift (within the Site ID)."
+
+        - key: "isContentOnly"
+          label: "Content-only data center"
+          fieldType: "select"
+          required: false
+          defaultValue: "false"
+          options:
+            - { label: "No — general purpose", value: "false" }
+            - { label: "Yes — content only (Forward Delivery Rules)", value: "true" }
+          helpText: "A content-only data center is reachable only from Forward-to-Data-Center delivery rules, not as a normal traffic target."
+
+        - key: "isEnabled"
+          label: "Enabled"
+          fieldType: "select"
+          required: false
+          defaultValue: "true"
+          options:
+            - { label: "Yes", value: "true" }
+            - { label: "No", value: "false" }
+          helpText: "Whether Imperva routes traffic to this data center at all."
+
+    - name: "Origin Servers"
+      icon: "hard-drive"
+      description: "The origin servers in this pool"
+      fields:
+        - key: "servers"
+          label: "Servers (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 20000
+          helpText: 'A JSON array of origin servers — at least one is required (the first is created together with the data center). Each entry: { "address": "203.0.113.10", "isStandby": false, "isEnabled": true }. `address` is an IP or hostname and is the identity within this data center; `isStandby` marks a server as Standby (P1) rather than Active (P0); `isEnabled` toggles the server on/off. This is the FULL desired server list — a server removed from this list is deleted from the data center.'

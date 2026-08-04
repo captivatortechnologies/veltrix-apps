@@ -1,0 +1,7 @@
+# Defaults for a new data center — the operator fills in the Site ID, name and
+# at least one origin server. `servers` seeds with one placeholder entry to
+# show the expected JSON shape.
+isContentOnly: "false"
+isEnabled: "true"
+servers: |
+  [{ "address": "203.0.113.10", "isStandby": false, "isEnabled": true }]

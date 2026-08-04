@@ -1,0 +1,114 @@
+# =============================================================================
+# Canvas Template — HackerOne Asset Scopes
+#
+# Declares ONE attachment of an organization Asset (see the Assets configuration
+# type) to a PROGRAM's scope (the item) — the confirmed, non-deprecated successor
+# to the program-level structured-scope CREATE/UPDATE endpoints HackerOne removed
+# from its docs on 2026-04-07 (see the Structured Scopes config type's own
+# FLAGGED notes). Users add as many attachments as they need. Each item names its
+# ORGANIZATION (to reach the org-scoped write path), its target PROGRAM by
+# handle, and the ASSET it attaches by identifier — the asset must already exist
+# as an organization asset (create it with the Assets configuration type first).
+#
+# The deploy handler resolves the organization handle via GET /me/organizations,
+# the program handle via GET /me/programs, and the asset identifier via
+# GET /organizations/{id}/assets?filter[identifier]=...; it reads the program's
+# EXISTING structured scopes (GET /programs/{id}/structured_scopes — the one
+# structured-scope endpoint HackerOne's docs still document) to decide whether to
+# create or update the attachment. Field keys must match
+# config-types/asset-scopes/validate.ts.
+#
+# Applied over the HackerOne API (https://api.hackerone.com/v1):
+#   POST /organizations/{organization_id}/assets/{asset_id}/scopes
+#   PUT  /organizations/{organization_id}/assets/{asset_id}/scopes/{id}
+#   POST /organizations/{organization_id}/assets/{asset_id}/scopes/archive  (bulk; this app's delete)
+#   Confirmed: https://api.hackerone.com/customer-resources/ (Assets)
+#
+# FLAGGED:
+#  - Unlike every other resource in HackerOne's API reference, these endpoints do
+#    not state a "Required permissions" scope in the published docs. Verify
+#    against a live token before relying on it.
+#  - HackerOne's own documented request bodies use a DIFFERENT key for the same
+#    boolean on create vs. update — `notify_subscribers_on_changes` (POST) vs.
+#    `notify_subscribers_of_changes` (PUT). Both are used verbatim, per operation,
+#    below; this is very likely a documentation typo on HackerOne's side, but it
+#    has not been verified against a live program.
+#  - `max_severity` moved from being a per-(program, scope) attribute (the legacy
+#    Structured Scope model) to being a property of the Asset itself — set it
+#    once, in the Assets configuration type; it applies to every program the
+#    asset is scoped to.
+# =============================================================================
+
+id: "hackerone-asset-scopes"
+name: "Asset Scopes"
+toolType: "hackerone"
+entityType: "asset-scopes"
+description: "Attach a HackerOne organization Asset to a program's scope — bounty / submission eligibility, tester instruction and researcher notification — via the HackerOne API (https://api.hackerone.com/v1). The asset must already exist (see the Assets configuration type)."
+
+item:
+  label: "Asset Scope"
+  identityField: "asset_identifier"
+  repeatable: true
+  minItems: 1
+  maxItems: 2000
+  groups:
+    - name: "Organization, Program & Asset"
+      icon: "target"
+      description: "The organization, program and asset this attachment targets"
+      fields:
+        - key: "organization_handle"
+          label: "Organization Handle"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The HackerOne organization handle that owns the asset. Resolved to the organization id via GET /me/organizations."
+
+        - key: "program_handle"
+          label: "Program Handle"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The HackerOne program handle to attach this asset's scope to (the slug in hackerone.com/<handle>). Resolved to the program id via GET /me/programs."
+
+        - key: "asset_identifier"
+          label: "Asset Identifier"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 1000
+          helpText: "The identifier of the organization asset to attach (must already exist — see the Assets configuration type). Resolved to the asset's id via GET /organizations/{id}/assets?filter[identifier]=..."
+
+    - name: "Eligibility & Instruction"
+      icon: "shield"
+      description: "How this asset participates in the program"
+      fields:
+        - key: "eligible_for_submission"
+          label: "Eligible for submission"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether researchers may submit reports against this asset in this program (the asset is in scope)."
+
+        - key: "eligible_for_bounty"
+          label: "Eligible for bounty"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether valid reports against this asset in this program are eligible for a monetary bounty."
+
+        - key: "instruction"
+          label: "Instruction"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 5000
+          helpText: "Optional tester guidance for this asset in this program, shown on the program's scope page."
+
+        - key: "notify_subscribers_on_changes"
+          label: "Notify subscribers of changes"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether HackerOne notifies program subscribers when this attachment's eligibility / instruction changes. FLAGGED — HackerOne's docs name this field differently on create vs. update; verify against a live program."

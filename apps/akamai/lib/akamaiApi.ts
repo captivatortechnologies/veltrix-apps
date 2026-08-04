@@ -27,6 +27,18 @@ export const NETWORK_LISTS_PATH = '/network-list/v2/network-lists'
 /** Client Lists API v1 collection path (the newer replacement for Network Lists). */
 export const CLIENT_LISTS_PATH = '/client-list/v1/lists'
 
+/** Edge DNS API v2 zones collection path. */
+export const DNS_ZONES_PATH = '/config-dns/v2/zones'
+
+/** Edge DNS API v2 async bulk zone-delete endpoint — the only way to delete a zone. */
+export const DNS_ZONE_DELETE_REQUESTS_PATH = '/config-dns/v2/zones/delete-requests'
+
+/** Cloudlets API v3 (shared policies) collection path. */
+export const CLOUDLETS_POLICIES_PATH = '/cloudlets/v3/policies'
+
+/** EdgeWorkers API v2 EdgeWorker-id collection path. */
+export const EDGEWORKERS_IDS_PATH = '/edgeworkers/v1/ids'
+
 /** Akamai signs at most the first 128 KB of a POST body (the reference `max_body`). */
 const MAX_SIGN_BODY_BYTES = 131072
 

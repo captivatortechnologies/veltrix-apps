@@ -1,0 +1,136 @@
+# =============================================================================
+# Canvas Template — Akamai Edge DNS Zones
+#
+# Declares ONE Edge DNS zone (the item). The zone NAME is both its stable
+# identity AND its URL path segment in the Edge DNS API v2 — unlike Network
+# Lists / Client Lists there is no server-assigned opaque id, so deploy reads
+# the zone directly (GET /config-dns/v2/zones/{zone}) instead of listing and
+# matching by name. Field keys must match config-types/dns-zones/validate.ts.
+#
+# Zone content (recordsets) is a SEPARATE config type (dns-records) — the same
+# split already used for Network Lists (content) vs Network List Activation
+# (promotion). Deleting a zone is an ASYNC bulk operation in this API (there is
+# no synchronous DELETE) — see rollback.ts.
+# =============================================================================
+
+id: "akamai-dns-zones"
+name: "DNS Zones"
+toolType: "akamai"
+entityType: "dns-zones"
+description: "Manage Akamai Edge DNS zones — primary, secondary or alias — via the Edge DNS API v2"
+
+item:
+  label: "DNS Zone"
+  identityField: "zone"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Zone"
+      icon: "network"
+      description: "Zone identity, type and billing"
+      fields:
+        - key: "zone"
+          label: "Zone"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The domain zone, e.g. example.com. This is both the zone's stable identity and its Edge DNS API path segment — it cannot be renamed in place."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "PRIMARY"
+          options:
+            - label: "Primary (records managed in Akamai)"
+              value: "PRIMARY"
+            - label: "Secondary (records transferred from your name servers)"
+              value: "SECONDARY"
+            - label: "Alias (mirrors another zone's configuration)"
+              value: "ALIAS"
+          helpText: "PRIMARY zones hold records authored here (see the DNS Records config type). SECONDARY zones pull records from your masters via zone transfer. ALIAS zones copy another zone's configuration. The type cannot be changed after creation."
+
+        - key: "contractId"
+          label: "Contract ID"
+          fieldType: "text"
+          required: true
+          helpText: "The Akamai contract the zone is created under (e.g. 1-ABC123). Required to create a new zone; ignored on update."
+
+        - key: "groupId"
+          label: "Group ID"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+          helpText: "The Akamai group the zone is created under (numeric). Optional — defaults to the contract's default group."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          helpText: "Notes about this zone — recorded in Akamai for audit."
+
+    - name: "Secondary / Alias"
+      icon: "settings"
+      description: "Fields required only for SECONDARY or ALIAS zones"
+      fields:
+        - key: "masters"
+          label: "Master name servers"
+          fieldType: "tags"
+          required: false
+          helpText: "SECONDARY zones only: the IP addresses of your name servers Edge DNS transfers records from. One IP per tag. Required to create a SECONDARY zone."
+
+        - key: "target"
+          label: "Alias target zone"
+          fieldType: "text"
+          required: false
+          helpText: "ALIAS zones only: the name of the existing zone whose configuration this zone copies. Required to create an ALIAS zone."
+
+    - name: "DNSSEC"
+      icon: "shield"
+      description: "Optional DNSSEC signing (PRIMARY / SECONDARY zones)"
+      fields:
+        - key: "signAndServe"
+          label: "Sign and serve (DNSSEC)"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Enable Edge DNS to sign zone responses with DNSSEC."
+
+        - key: "signAndServeAlgorithm"
+          label: "Signing algorithm"
+          fieldType: "select"
+          required: false
+          defaultValue: "RSA_SHA256"
+          options:
+            - label: "RSA/SHA-1"
+              value: "RSA_SHA1"
+            - label: "RSA/SHA-256"
+              value: "RSA_SHA256"
+            - label: "RSA/SHA-512"
+              value: "RSA_SHA512"
+            - label: "ECDSA P-256/SHA-256"
+              value: "ECDSA_P256_SHA256"
+            - label: "ECDSA P-384/SHA-384"
+              value: "ECDSA_P384_SHA384"
+          helpText: "Only used when Sign and serve is enabled."
+
+    - name: "Advanced"
+      icon: "code"
+      description: "Rarely-used nested options, authored as raw JSON"
+      fields:
+        - key: "endCustomerId"
+          label: "End customer ID"
+          fieldType: "text"
+          required: false
+          helpText: "Free-form identifier for the end customer this zone belongs to (multi-tenant partner accounts)."
+
+        - key: "advanced"
+          label: "Advanced options (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: 'Optional JSON object merged into the create/update body — carries tsigKey (SECONDARY zone transfer authentication: {"name","algorithm","secret"}) and outboundZoneTransfer (transfer-out ACL/notify config). Leave blank for none. Fields set above always win over the same key here.'

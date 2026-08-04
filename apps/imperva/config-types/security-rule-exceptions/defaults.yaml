@@ -1,0 +1,4 @@
+# Defaults for a new exception — the operator picks the rule and fills in the
+# Site ID and at least one match condition. `ruleId` seeds to SQL Injection
+# (the most common starting point); condition fields start empty.
+ruleId: "api.threats.sql_injection"

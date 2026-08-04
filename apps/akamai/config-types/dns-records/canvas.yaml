@@ -1,0 +1,98 @@
+# =============================================================================
+# Canvas Template — Akamai Edge DNS Recordsets
+#
+# Declares ONE recordset (the item) inside an Edge DNS PRIMARY zone (see the
+# DNS Zones config type). The real API is generic — every record type is
+# `{ name, type, ttl, rdata }` where rdata is a raw array of presentation-
+# format strings (e.g. "10 mail.example.com." for MX) — so this canvas mirrors
+# that shape instead of inventing one field per record type. The (zone, name,
+# type) TRIPLE is the real identity; identityField is `name` alone (the same
+# convention used by Network List Activation for its compound identity).
+# Field keys must match config-types/dns-records/validate.ts. Applied via the
+# Edge DNS API v2 (EdgeGrid-signed, HTTPS 443).
+# =============================================================================
+
+id: "akamai-dns-records"
+name: "DNS Records"
+toolType: "akamai"
+entityType: "dns-records"
+description: "Manage individual Akamai Edge DNS recordsets — name, type, TTL and raw rdata — via the Edge DNS API v2"
+
+item:
+  label: "DNS Record"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Record"
+      icon: "list"
+      description: "Which zone this record lives in, and its identity"
+      fields:
+        - key: "zone"
+          label: "Zone"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The PRIMARY zone this record belongs to (see the DNS Zones config type), e.g. example.com."
+
+        - key: "name"
+          label: "Record name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The owner name, e.g. www.example.com. or the bare label www — use whichever form your zone's other records use. Together with Zone and Type this is the record's stable identity; it cannot be renamed in place."
+
+        - key: "recordType"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "A"
+          options:
+            - { label: "A (IPv4 address)", value: "A" }
+            - { label: "AAAA (IPv6 address)", value: "AAAA" }
+            - { label: "CNAME (canonical name)", value: "CNAME" }
+            - { label: "MX (mail exchange)", value: "MX" }
+            - { label: "NS (name server)", value: "NS" }
+            - { label: "TXT (text)", value: "TXT" }
+            - { label: "SPF (sender policy framework)", value: "SPF" }
+            - { label: "SRV (service)", value: "SRV" }
+            - { label: "CAA (certification authority authorization)", value: "CAA" }
+            - { label: "PTR (pointer)", value: "PTR" }
+            - { label: "NAPTR (naming authority pointer)", value: "NAPTR" }
+            - { label: "SSHFP (SSH fingerprint)", value: "SSHFP" }
+            - { label: "TLSA (TLS association)", value: "TLSA" }
+            - { label: "DS (delegation signer)", value: "DS" }
+            - { label: "DNSKEY (DNSSEC public key)", value: "DNSKEY" }
+            - { label: "CERT (certificate)", value: "CERT" }
+            - { label: "HINFO (host info)", value: "HINFO" }
+            - { label: "RP (responsible person)", value: "RP" }
+            - { label: "HTTPS (HTTPS service binding)", value: "HTTPS" }
+            - { label: "SVCB (service binding)", value: "SVCB" }
+            - { label: "NSEC3 (DNSSEC)", value: "NSEC3" }
+            - { label: "NSEC3PARAM (DNSSEC)", value: "NSEC3PARAM" }
+            - { label: "AFSDB (AFS database)", value: "AFSDB" }
+            - { label: "RRSIG (DNSSEC signature)", value: "RRSIG" }
+            - { label: "LOC (location)", value: "LOC" }
+          helpText: "Cannot be changed after creation — a type change is a delete + re-create of a different record. SOA is managed automatically with the zone and is not selectable here; Akamai-assigned answer records (AKAMAITLC) are read-only and unsupported."
+
+        - key: "ttl"
+          label: "TTL (seconds)"
+          fieldType: "number"
+          required: true
+          defaultValue: 300
+          validation:
+            min: 0
+          helpText: "Time-to-live in seconds. 0 prevents caching."
+
+    - name: "Data"
+      icon: "settings"
+      description: "The record's rdata, in Akamai's raw presentation format"
+      fields:
+        - key: "rdata"
+          label: "Rdata"
+          fieldType: "textarea"
+          required: true
+          helpText: 'One value per line, in the exact presentation format Edge DNS expects for the selected type — e.g. A/AAAA: an IP per line; CNAME/NS/PTR: a hostname per line (trailing dot recommended); MX: "10 mail.example.com."; SRV: "10 20 5060 sip.example.com."; TXT: a quoted string per line, e.g. "v=spf1 include:_spf.example.com ~all"; CAA: "0 issue \"letsencrypt.org\"".'

@@ -2,6 +2,83 @@
 
 All notable changes to the Imperva app are documented here.
 
+## 0.3.0 — 2026-08-04
+
+Config-as-code exhaustion pass over the legacy Cloud WAF (Incapsula) **API v1**
+surface: four new config types, all over the same `api_id` + `api_key` POST
+form-param transport as 0.1.0/0.2.0. See README.md "Coverage" for the full
+managed-vs-excluded classification of the API.
+
+- **Delivery Rules** config type — the delivery/rewrite/rate/custom-error subset
+  of Imperva's IncapRule `action` values (`RULE_ACTION_REDIRECT`,
+  `_SIMPLIFIED_REDIRECT`, `_REWRITE_URL`, `_REWRITE_HEADER`, `_REWRITE_COOKIE`,
+  `_DELETE_HEADER`, `_DELETE_COOKIE`, `_RESPONSE_REWRITE_HEADER`,
+  `_RESPONSE_DELETE_HEADER`, `_RESPONSE_REWRITE_RESPONSE_CODE`,
+  `_FORWARD_TO_DC`, `_FORWARD_TO_PORT`, `_RATE`, `_CUSTOM_ERROR_RESPONSE`) —
+  applied over the SAME `POST /sites/incapRules/{add,edit,delete,list}` endpoint
+  ACL Rules already uses, upserted by rule name within a site. `lib/impervaApi.ts`
+  gained the generic IncapRule list-parsing helpers (moved out of ACL Rules'
+  `_shared.ts`, which now re-exports them) so both config types share one
+  implementation of the underlying resource. Deliberately excludes
+  `RULE_ACTION_WAF_OVERRIDE` (a hybrid security-override action) and stays
+  distinct from Imperva's newer `delivery_rules_configuration` API (v3, out of
+  scope).
+- **Data Centers** config type — data centers (origin server pools) and their
+  origin servers, over `POST /sites/dataCenters/{add,edit,delete,list}` and
+  `POST /sites/dataCenters/servers/{add,edit,delete}`. One item per data center
+  (identity: name within a site), with its servers as a JSON list (identity:
+  address within the data center) — deploy creates a new pool together with its
+  first server, converges that first server's standby/enabled state with a
+  follow-up edit (the add call cannot set it), and reconciles the remaining
+  servers by address (add missing, edit changed, delete removed). Honors the
+  real API's add/edit asymmetry: `servers/add` takes `is_disabled` (inverted),
+  `servers/edit` takes `is_enabled` (direct).
+- **Security Rule Exceptions** config type — per-rule allowlist exceptions
+  (bypass one ACL or WAF security rule for specific IPs, countries/continents,
+  URLs, user agents, client apps/app types or request parameters), over `POST
+  /sites/configure/whitelists` (add/edit/delete) and `POST /sites/status`
+  (read). Unlike every other config type here, an exception has no
+  operator-facing name — Imperva only assigns a `whitelist_id` on create — so
+  this reconciles by CONTENT within each declared (site, rule) group: an
+  exception's match condition, normalized, IS its identity. An untouched
+  exception keeps its live `whitelist_id` rather than being torn down and
+  recreated every deploy.
+- **Site Configuration** config type — a site's general settings (active/bypass,
+  domain validation method, approver email, ignore-SSL, acceleration level,
+  trust seal location, restricted CNAME reuse, domain-redirect-to-full, naked
+  domain/wildcard SAN, reference ID) plus log level, SET declaratively over
+  `POST /sites/configure` (one call per changed param, mirroring Imperva's own
+  Terraform provider) and `POST /sites/setlog`. An empty field is left
+  untouched, never cleared. `domain_validation`, `approver`, `ignore_ssl` and
+  `domain_redirect_to_full` are WRITE-ONLY on this API (no read-back on
+  `/sites/status`) — deploy can set them but drift detection can't compare them
+  and rollback can't restore them, which the config type surfaces explicitly
+  rather than silently no-op. `remove_ssl` is deliberately NOT modeled — it
+  reads as a one-shot destructive action, not durable state.
+- **Shared v1 client additions** (`lib/impervaApi.ts`) — `SITE_CONFIGURE_PATH`,
+  `SITE_LOG_LEVEL_PATH`, `SECURITY_EXCEPTION_CONFIGURE_PATH`,
+  `DATA_CENTER_{ADD,EDIT,DELETE,LIST}_PATH`,
+  `DATA_CENTER_SERVER_{ADD,EDIT,DELETE}_PATH`; the generic `IncapRule` /
+  `rulesFromResponse` / `ruleIdOf` / `findRule` / `normalizeEnabled` helpers
+  (moved from ACL Rules).
+
+> **API provenance / FLAG.** Endpoints, parameters and enums for all four types
+> were taken from Imperva's **official open-source Terraform provider**
+> (`github.com/imperva/terraform-provider-incapsula`:
+> `client_incap_rule.go` + `resource_incap_rule.go` + the `incap_rule` markdown
+> docs' worked examples; `client_data_center.go` + `client_data_center_server.go`
+> + their resource files; `client_security_rule_exception.go` +
+> `resource_security_rule_exception.go`; `client_site.go` + `resource_site.go`'s
+> `updateParams` list + `client_log_level.go`) and cross-checked against
+> Imperva's own legacy-v1 blog post and API-composer OpenAPI fragments.
+> **Unverified against a live tenant:** the exact `/sites/status` shapes this
+> release reads from (`exceptions[]`, `sealLocation.id`, data center `servers[]`);
+> whether the Terraform provider's DEPRECATION of the v1-based
+> `incapsula_data_center(_server)` resources (in favor of a newer, non-v1
+> `incapsula_data_centers_configuration`) means the v1 endpoints could be
+> sunset — they are still present in the provider's client code as of this
+> writing. **Verify against a live Imperva account.**
+
 ## 0.2.0 — 2026-08-01
 
 Two declarative per-site edge-security config types, over the same legacy Cloud

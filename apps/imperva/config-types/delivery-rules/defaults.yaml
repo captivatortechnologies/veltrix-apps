@@ -1,0 +1,6 @@
+# Defaults for a new delivery rule — the operator picks the action and fills in
+# the Site ID, name, and the fields that action needs. `action` seeds to Redirect
+# (the most common starting point).
+action: "RULE_ACTION_REDIRECT"
+enabled: "enabled"
+response_code: "302"

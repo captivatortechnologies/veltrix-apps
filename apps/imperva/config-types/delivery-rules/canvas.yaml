@@ -1,0 +1,327 @@
+# =============================================================================
+# Canvas Template — Imperva Cloud WAF Delivery Rules
+#
+# Declares ONE Imperva IncapRule of the DELIVERY kind (the item) — redirect,
+# rewrite URL/header/cookie, delete header/cookie, forward to data center/port,
+# rate-limit, or custom error response. Same underlying resource + upsert-by-name
+# identity as ACL Rules (POST /sites/incapRules/*, HTTPS 443) — NOT Imperva's
+# newer `delivery_rules_configuration` API, which stays out of scope. Field keys
+# must match config-types/delivery-rules/validate.ts + _shared.ts. Each field key
+# appears in exactly ONE group (an item is one flat record); the fields shown
+# depend on the chosen Action (visibleWhen), several of which share a field
+# (e.g. `to` is used by both Redirect and Rewrite actions).
+# =============================================================================
+
+id: "imperva-delivery-rules"
+name: "Delivery Rules"
+toolType: "imperva"
+entityType: "delivery-rules"
+description: "Manage Imperva Cloud WAF delivery / rewrite rules — redirect, rewrite URL/header/cookie, forward to data center or port, rate-limit, custom error response — via the Cloud WAF (Incapsula) API v1"
+
+item:
+  label: "Delivery Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Target"
+      icon: "globe"
+      description: "The site this rule applies to"
+      fields:
+        - key: "siteId"
+          label: "Site ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[0-9]+$"
+            maxLength: 20
+          helpText: "The numeric Imperva Cloud WAF site ID this rule applies to. The rule name is unique within this site."
+
+    - name: "Rule"
+      icon: "shuffle"
+      description: "Rule identity and delivery action"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable rule name shown in Imperva. Used as the rule's stable identity for upsert and drift (within the Site ID)."
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "RULE_ACTION_REDIRECT"
+          options:
+            - { label: "Redirect", value: "RULE_ACTION_REDIRECT" }
+            - { label: "Simplified redirect (filter not used)", value: "RULE_ACTION_SIMPLIFIED_REDIRECT" }
+            - { label: "Rewrite URL", value: "RULE_ACTION_REWRITE_URL" }
+            - { label: "Rewrite request header", value: "RULE_ACTION_REWRITE_HEADER" }
+            - { label: "Rewrite request cookie", value: "RULE_ACTION_REWRITE_COOKIE" }
+            - { label: "Delete request header", value: "RULE_ACTION_DELETE_HEADER" }
+            - { label: "Delete request cookie", value: "RULE_ACTION_DELETE_COOKIE" }
+            - { label: "Rewrite response header", value: "RULE_ACTION_RESPONSE_REWRITE_HEADER" }
+            - { label: "Delete response header", value: "RULE_ACTION_RESPONSE_DELETE_HEADER" }
+            - { label: "Rewrite response status code", value: "RULE_ACTION_RESPONSE_REWRITE_RESPONSE_CODE" }
+            - { label: "Forward to data center", value: "RULE_ACTION_FORWARD_TO_DC" }
+            - { label: "Forward to port", value: "RULE_ACTION_FORWARD_TO_PORT" }
+            - { label: "Rate (count matching requests)", value: "RULE_ACTION_RATE" }
+            - { label: "Custom error response", value: "RULE_ACTION_CUSTOM_ERROR_RESPONSE" }
+          helpText: "What Imperva does when the filter matches. Each action reveals its own fields below."
+
+        - key: "filter"
+          label: "Filter"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          visibleWhen:
+            field: "action"
+            in:
+              - "RULE_ACTION_REDIRECT"
+              - "RULE_ACTION_REWRITE_URL"
+              - "RULE_ACTION_REWRITE_HEADER"
+              - "RULE_ACTION_REWRITE_COOKIE"
+              - "RULE_ACTION_DELETE_HEADER"
+              - "RULE_ACTION_DELETE_COOKIE"
+              - "RULE_ACTION_RESPONSE_REWRITE_HEADER"
+              - "RULE_ACTION_RESPONSE_DELETE_HEADER"
+              - "RULE_ACTION_RESPONSE_REWRITE_RESPONSE_CODE"
+              - "RULE_ACTION_FORWARD_TO_DC"
+              - "RULE_ACTION_FORWARD_TO_PORT"
+              - "RULE_ACTION_RATE"
+              - "RULE_ACTION_CUSTOM_ERROR_RESPONSE"
+          helpText: 'The Imperva rule filter expression. Examples: Full-URL == "/old-page"  |  Full-URL contains "/legacy". Leave empty to always run the action. Not used for Simplified Redirect (omitted below).'
+
+    - name: "Redirect / Rewrite Values"
+      icon: "arrow-right"
+      description: "Values shared by redirect, rewrite and response-code actions"
+      fields:
+        - key: "from"
+          label: "From"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 2000
+          visibleWhen:
+            field: "action"
+            in: ["RULE_ACTION_REDIRECT", "RULE_ACTION_REWRITE_URL", "RULE_ACTION_REWRITE_HEADER", "RULE_ACTION_REWRITE_COOKIE", "RULE_ACTION_RESPONSE_REWRITE_HEADER"]
+          helpText: "The URL, header or cookie VALUE to match (Redirect/Rewrite URL: the URL; Rewrite header/cookie: the current value). Leave empty on a rewrite to always apply the new value regardless of the current one."
+
+        - key: "to"
+          label: "To"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 2000
+          visibleWhen:
+            field: "action"
+            in: ["RULE_ACTION_REDIRECT", "RULE_ACTION_SIMPLIFIED_REDIRECT", "RULE_ACTION_REWRITE_URL", "RULE_ACTION_REWRITE_HEADER", "RULE_ACTION_REWRITE_COOKIE", "RULE_ACTION_RESPONSE_REWRITE_HEADER"]
+          helpText: "The URL, header or cookie value to change to."
+
+        - key: "response_code"
+          label: "Response code"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^[0-9]{3}$"
+          visibleWhen:
+            field: "action"
+            in: ["RULE_ACTION_REDIRECT", "RULE_ACTION_SIMPLIFIED_REDIRECT", "RULE_ACTION_RESPONSE_REWRITE_RESPONSE_CODE", "RULE_ACTION_CUSTOM_ERROR_RESPONSE"]
+          helpText: "Redirect / Simplified Redirect: one of 301, 302, 303, 307, 308. Rewrite response status code: any 3-digit code. Custom error response: one of Imperva's supported error codes (see the docs) — e.g. 400, 403, 404, 419, 500."
+
+    - name: "Rewrite / Delete Header or Cookie"
+      icon: "edit"
+      description: "Modify or remove a request/response header or cookie"
+      fields:
+        - key: "rewrite_name"
+          label: "Header / cookie name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          visibleWhen:
+            field: "action"
+            in:
+              - "RULE_ACTION_REWRITE_HEADER"
+              - "RULE_ACTION_REWRITE_COOKIE"
+              - "RULE_ACTION_DELETE_HEADER"
+              - "RULE_ACTION_DELETE_COOKIE"
+              - "RULE_ACTION_RESPONSE_REWRITE_HEADER"
+              - "RULE_ACTION_RESPONSE_DELETE_HEADER"
+          helpText: "The name of the header or cookie to rewrite or delete."
+
+        - key: "add_missing"
+          label: "Add if missing"
+          fieldType: "select"
+          required: false
+          defaultValue: "false"
+          visibleWhen:
+            field: "action"
+            in: ["RULE_ACTION_REWRITE_HEADER", "RULE_ACTION_REWRITE_COOKIE"]
+          options:
+            - { label: "No", value: "false" }
+            - { label: "Yes", value: "true" }
+          helpText: "Add the header/cookie when it does not already exist on the request."
+
+        - key: "rewrite_existing"
+          label: "Rewrite if it exists"
+          fieldType: "select"
+          required: false
+          defaultValue: "true"
+          visibleWhen:
+            field: "action"
+            in: ["RULE_ACTION_REWRITE_HEADER", "RULE_ACTION_REWRITE_COOKIE", "RULE_ACTION_RESPONSE_REWRITE_HEADER"]
+          options:
+            - { label: "Yes", value: "true" }
+            - { label: "No", value: "false" }
+          helpText: "Rewrite the header/cookie when it already exists."
+
+        - key: "multiple_deletions"
+          label: "Delete every occurrence"
+          fieldType: "select"
+          required: false
+          defaultValue: "false"
+          visibleWhen:
+            field: "action"
+            in: ["RULE_ACTION_DELETE_HEADER", "RULE_ACTION_RESPONSE_DELETE_HEADER"]
+          options:
+            - { label: "No (first only)", value: "false" }
+            - { label: "Yes", value: "true" }
+          helpText: "Delete every occurrence of the header, not just the first."
+
+    - name: "Forwarding"
+      icon: "server"
+      description: "Route matching traffic to a data center or port"
+      fields:
+        - key: "dc_id"
+          label: "Data center ID"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^[0-9]+$"
+          visibleWhen:
+            field: "action"
+            equals: "RULE_ACTION_FORWARD_TO_DC"
+          helpText: "The Imperva data center ID to forward matching requests to (see the Data Centers config type)."
+
+        - key: "port_forwarding_context"
+          label: "Port forwarding context"
+          fieldType: "select"
+          required: false
+          visibleWhen:
+            field: "action"
+            equals: "RULE_ACTION_FORWARD_TO_PORT"
+          options:
+            - { label: "Use port value", value: "Use Port Value" }
+            - { label: "Use header name", value: "Use Header Name" }
+          helpText: "Whether the port below is a literal port number or the name of a request header carrying the port."
+
+        - key: "port_forwarding_value"
+          label: "Port / header name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          visibleWhen:
+            field: "action"
+            equals: "RULE_ACTION_FORWARD_TO_PORT"
+          helpText: "The port number, or the header name, per the context above."
+
+    - name: "Rate"
+      icon: "activity"
+      description: "Count matching requests (Rate action)"
+      fields:
+        - key: "rate_context"
+          label: "Rate context"
+          fieldType: "select"
+          required: false
+          defaultValue: "IP"
+          visibleWhen:
+            field: "action"
+            equals: "RULE_ACTION_RATE"
+          options:
+            - { label: "IP", value: "IP" }
+            - { label: "Session", value: "Session" }
+          helpText: "Count matching requests per client IP or per session."
+
+        - key: "rate_interval"
+          label: "Rate interval (seconds)"
+          fieldType: "number"
+          required: false
+          defaultValue: 10
+          validation:
+            min: 10
+            max: 300
+          visibleWhen:
+            field: "action"
+            equals: "RULE_ACTION_RATE"
+          helpText: "The counting interval — a multiple of 10 seconds, from 10 to 300."
+
+    - name: "Custom Error Response"
+      icon: "alert-triangle"
+      description: "Replace the default error response (status code is set above)"
+      fields:
+        - key: "error_type"
+          label: "Triggering error"
+          fieldType: "select"
+          required: false
+          defaultValue: "error.type.all"
+          visibleWhen:
+            field: "action"
+            equals: "RULE_ACTION_CUSTOM_ERROR_RESPONSE"
+          options:
+            - { label: "All errors", value: "error.type.all" }
+            - { label: "Connection timeout", value: "error.type.connection_timeout" }
+            - { label: "Access denied", value: "error.type.access_denied" }
+            - { label: "Request parse error", value: "error.type.parse_req_error" }
+            - { label: "Response parse error", value: "error.type.parse_resp_error" }
+            - { label: "Connection failed", value: "error.type.connection_failed" }
+            - { label: "Deny and retry", value: "error.type.deny_and_retry" }
+            - { label: "SSL failed", value: "error.type.ssl_failed" }
+            - { label: "Deny and CAPTCHA", value: "error.type.deny_and_captcha" }
+            - { label: "2FA required", value: "error.type.2fa_required" }
+            - { label: "No SSL config", value: "error.type.no_ssl_config" }
+            - { label: "No IPv6 config", value: "error.type.no_ipv6_config" }
+          helpText: "Which error condition triggers this custom response. \"All errors\" applies regardless of the specific error."
+
+        - key: "error_response_format"
+          label: "Response format"
+          fieldType: "select"
+          required: false
+          defaultValue: "json"
+          visibleWhen:
+            field: "action"
+            equals: "RULE_ACTION_CUSTOM_ERROR_RESPONSE"
+          options:
+            - { label: "JSON", value: "json" }
+            - { label: "XML", value: "xml" }
+          helpText: "The format of the custom response body below."
+
+        - key: "error_response_data"
+          label: "Response body"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 10000
+          visibleWhen:
+            field: "action"
+            equals: "RULE_ACTION_CUSTOM_ERROR_RESPONSE"
+          helpText: 'The custom error body, in the format above. May include Imperva placeholders: $INCIDENT_ID$, $HOST_NAME$, $RR_CODE$, $RR_DESCRIPTION$, $TIME_UTC$, $CLIENT_IP$, $PROXY_ID$, $PROXY_IP$.'
+
+    - name: "State"
+      icon: "settings"
+      description: "Whether the rule is active"
+      fields:
+        - key: "enabled"
+          label: "State"
+          fieldType: "select"
+          required: true
+          defaultValue: "enabled"
+          options:
+            - { label: "Enabled", value: "enabled" }
+            - { label: "Disabled", value: "disabled" }
+          helpText: "Whether Imperva enforces this rule (enabled) or leaves it off (disabled)."

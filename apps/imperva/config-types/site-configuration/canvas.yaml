@@ -1,0 +1,192 @@
+# =============================================================================
+# Canvas Template — Imperva Cloud WAF Site Configuration
+#
+# Declares ONE site's general configuration (the item) — a SINGLETON per site,
+# SET declaratively over the Cloud WAF (Incapsula) management API v1
+# (POST /sites/configure, one call per changed setting, HTTPS 443; POST
+# /sites/setlog for the log level). Leave a field empty to leave that setting
+# untouched. Field keys must match config-types/site-configuration/validate.ts +
+# _shared.ts.
+# =============================================================================
+
+id: "imperva-site-configuration"
+name: "Site Configuration"
+toolType: "imperva"
+entityType: "site-configuration"
+description: "Manage a site's general configuration — active/bypass, SSL/domain validation, acceleration, trust seal, CNAME/SAN options and log level — via the Cloud WAF (Incapsula) API v1"
+
+item:
+  label: "Site Configuration"
+  identityField: "siteId"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Target"
+      icon: "globe"
+      description: "The site these settings apply to"
+      fields:
+        - key: "siteId"
+          label: "Site ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[0-9]+$"
+            maxLength: 20
+          helpText: "The numeric Imperva Cloud WAF site ID. A site's general configuration is a singleton — one item per Site ID."
+
+    - name: "Status"
+      icon: "power"
+      description: "Whether Imperva proxies or bypasses this site"
+      fields:
+        - key: "active"
+          label: "Active state"
+          fieldType: "select"
+          required: false
+          options:
+            - { label: "(leave unchanged)", value: "" }
+            - { label: "Active", value: "active" }
+            - { label: "Bypass", value: "bypass" }
+          helpText: "Active routes traffic through Imperva; Bypass sends it straight to origin."
+
+    - name: "SSL / Domain"
+      icon: "lock"
+      description: "SSL provisioning and domain validation"
+      fields:
+        - key: "domainValidation"
+          label: "Domain validation method"
+          fieldType: "select"
+          required: false
+          options:
+            - { label: "(leave unchanged)", value: "" }
+            - { label: "Email", value: "email" }
+            - { label: "HTML file", value: "html" }
+            - { label: "DNS", value: "dns" }
+            - { label: "CNAME", value: "cname" }
+          helpText: "How Imperva validates domain ownership for automatic SSL. WRITE-ONLY on this API — deploy can set it, but there is no read-back, so drift detection and rollback cannot see or restore it."
+
+        - key: "approver"
+          label: "Approver email"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "The email address that approves the SSL certificate (used with Email domain validation). WRITE-ONLY — same caveat as above."
+
+        - key: "ignoreSsl"
+          label: "Ignore existing SSL"
+          fieldType: "select"
+          required: false
+          options:
+            - { label: "(leave unchanged)", value: "" }
+            - { label: "true", value: "true" }
+            - { label: "false", value: "false" }
+          helpText: "Ignore an SSL certificate already installed on the origin during onboarding. WRITE-ONLY — same caveat as above."
+
+        - key: "domainRedirectToFull"
+          label: "Redirect naked domain to full"
+          fieldType: "select"
+          required: false
+          options:
+            - { label: "(leave unchanged)", value: "" }
+            - { label: "true", value: "true" }
+            - { label: "false", value: "false" }
+          helpText: "Redirect the naked (apex) domain to the full (www) domain. WRITE-ONLY — same caveat as above."
+
+        - key: "nakedDomainSan"
+          label: "Include naked domain SAN"
+          fieldType: "select"
+          required: false
+          options:
+            - { label: "(leave unchanged)", value: "" }
+            - { label: "true", value: "true" }
+            - { label: "false", value: "false" }
+          helpText: "Include the naked (apex) domain as a SAN on the Imperva-managed certificate."
+
+        - key: "wildcardSan"
+          label: "Use wildcard SAN"
+          fieldType: "select"
+          required: false
+          options:
+            - { label: "(leave unchanged)", value: "" }
+            - { label: "true", value: "true" }
+            - { label: "false", value: "false" }
+          helpText: "Use a wildcard SAN instead of the full domain name on the Imperva-managed certificate."
+
+    - name: "Performance & Trust"
+      icon: "zap"
+      description: "Acceleration and the Imperva trust seal"
+      fields:
+        - key: "accelerationLevel"
+          label: "Acceleration level"
+          fieldType: "select"
+          required: false
+          options:
+            - { label: "(leave unchanged)", value: "" }
+            - { label: "None", value: "none" }
+            - { label: "Standard", value: "standard" }
+            - { label: "Aggressive", value: "aggressive" }
+          helpText: "The site's general caching/acceleration posture."
+
+        - key: "sealLocation"
+          label: "Trust seal location"
+          fieldType: "select"
+          required: false
+          options:
+            - { label: "(leave unchanged)", value: "" }
+            - { label: "None", value: "api.seal_location.none" }
+            - { label: "Bottom left", value: "api.seal_location.bottom_left" }
+            - { label: "Bottom right", value: "api.seal_location.bottom_right" }
+            - { label: "Bottom", value: "api.seal_location.bottom" }
+            - { label: "Left", value: "api.seal_location.left" }
+            - { label: "Right", value: "api.seal_location.right" }
+            - { label: "Right bottom", value: "api.seal_location.right_bottom" }
+          helpText: "Where the Imperva trust seal is displayed on the site, if at all."
+
+    - name: "CNAME & Reference"
+      icon: "tag"
+      description: "CNAME reuse and your own tracking reference"
+      fields:
+        - key: "restrictedCnameReuse"
+          label: "Restricted CNAME reuse"
+          fieldType: "select"
+          required: false
+          options:
+            - { label: "(leave unchanged)", value: "" }
+            - { label: "true", value: "true" }
+            - { label: "false", value: "false" }
+          helpText: "Detect and add domains using the Imperva-provided CNAME. Imperva does not recommend enabling this."
+
+        - key: "refId"
+          label: "Reference ID"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Your own customer-specific identifier for this site."
+
+    - name: "Logging"
+      icon: "file-text"
+      description: "Site log level"
+      fields:
+        - key: "logLevel"
+          label: "Log level"
+          fieldType: "select"
+          required: false
+          options:
+            - { label: "(leave unchanged)", value: "" }
+            - { label: "Full", value: "full" }
+            - { label: "Security only", value: "security" }
+            - { label: "None", value: "none" }
+          helpText: "How much traffic Imperva logs for this site."
+
+        - key: "logsAccountId"
+          label: "Logs account ID"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^[0-9]*$"
+          visibleWhen:
+            field: "logLevel"
+            in: ["full", "security", "none"]
+          helpText: "Enterprise Plan Logs Integration only — the numeric account ID that collects these logs. Leave empty to use the authenticating account."

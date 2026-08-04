@@ -1,0 +1,57 @@
+# =============================================================================
+# Canvas Template — Akamai EdgeWorkers
+#
+# Declares ONE EdgeWorker identity (the item): its name, group and resource
+# tier. Akamai assigns each one a server-side numeric edgeWorkerId, so this
+# reconciles by NAME (list, match, update or create) — the same shape as Cisco
+# Meraki's Group Policies.
+#
+# SCOPE: this manages IDENTITY only. The JavaScript code bundle is a gzipped
+# tarball with no clean text/JSON canvas representation, so it ships via CI/CD
+# or the Akamai CLI, same as this app treats certificate private keys.
+# Promoting an EXISTING version onto STAGING/PRODUCTION is a SEPARATE config
+# type (edgeworker-activation). Field keys must match
+# config-types/edgeworkers/validate.ts. Applied via the EdgeWorkers API v1
+# (EdgeGrid-signed).
+# =============================================================================
+
+id: "akamai-edgeworkers"
+name: "EdgeWorkers"
+toolType: "akamai"
+entityType: "edgeworkers"
+description: "Manage Akamai EdgeWorker identities (name, group, resource tier) via the EdgeWorkers API v1"
+
+item:
+  label: "EdgeWorker"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "code"
+      description: "EdgeWorker name and placement"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 85
+          helpText: "The EdgeWorker's name — its stable identity for upsert and drift. Akamai assigns the numeric edgeWorkerId on create."
+
+        - key: "groupId"
+          label: "Group ID"
+          fieldType: "number"
+          required: true
+          validation:
+            min: 1
+          helpText: "The Akamai group this EdgeWorker is created under (numeric)."
+
+        - key: "resourceTierId"
+          label: "Resource Tier ID"
+          fieldType: "number"
+          required: true
+          validation:
+            min: 1
+          helpText: "The compute resource tier for this EdgeWorker (numeric — e.g. Basic Compute vs Dynamic Compute). Tier ids are contract-specific; look yours up via Control Center or GET /edgeworkers/v1/resource-tiers/{contractId}."

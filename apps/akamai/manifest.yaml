@@ -1,16 +1,19 @@
 id: akamai
 name: Akamai
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
-  Manage Akamai edge security as code. Author Network Lists (shared sets of IP
-  addresses / CIDR blocks or geographic country codes), activate them onto
-  STAGING / PRODUCTION, and manage Client Lists (the newer, richer replacement —
-  ASN, TLS fingerprints, file hashes, user IDs, domains and header name/value
-  pairs). Every surface runs through the Security-as-Code pipeline — validate,
-  deploy, health check, drift detection and rollback — over the Akamai Network
-  Lists API v2 and Client Lists API v1, authenticated with EdgeGrid
-  (EG1-HMAC-SHA256) request signing.
+  Manage Akamai edge security, DNS and edge delivery as code. Author Network
+  Lists and Client Lists (shared IP/GEO/ASN/TLS-fingerprint/etc. sets) and
+  activate them onto STAGING / PRODUCTION; manage Edge DNS zones and
+  recordsets; author Cloudlets shared policies (Edge Redirector, Request
+  Control, API Prioritization, Audience Segmentation, Phased Release, Forward
+  Rewrite) and activate their versions; and manage EdgeWorker identities and
+  their code-bundle activations. Every surface runs through the
+  Security-as-Code pipeline — validate, deploy, health check, drift detection
+  and rollback — over the Akamai Network Lists API v2, Client Lists API v1,
+  Edge DNS API v2, Cloudlets API v3 and EdgeWorkers API v1, authenticated with
+  EdgeGrid (EG1-HMAC-SHA256) request signing.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/akamai
@@ -39,6 +42,24 @@ permissions:
     - resource: client-lists
       actions: [read, write, delete]
       description: Manage Akamai Client Lists (create / update / delete, sync entries)
+    - resource: dns-zones
+      actions: [read, write]
+      description: Manage Akamai Edge DNS zones (create / update; deletion is a requested async operation)
+    - resource: dns-records
+      actions: [read, write, delete]
+      description: Manage Akamai Edge DNS recordsets (create / update / delete)
+    - resource: cloudlets-policies
+      actions: [read, write, delete]
+      description: Manage Akamai Cloudlets shared policies and their match-rule versions (create / update / delete)
+    - resource: cloudlets-policy-activation
+      actions: [read, write]
+      description: Activate / deactivate an Akamai Cloudlets policy version onto STAGING / PRODUCTION
+    - resource: edgeworkers
+      actions: [read, write, delete]
+      description: Manage Akamai EdgeWorker identities (name, group, resource tier)
+    - resource: edgeworker-activation
+      actions: [read, write]
+      description: Activate / deactivate an Akamai EdgeWorker code-bundle version onto STAGING / PRODUCTION
 
 pipeline:
   configurationTypes:
@@ -99,6 +120,133 @@ pipeline:
         healthCheck: config-types/client-lists/healthCheck
         driftDetect: config-types/client-lists/driftDetect
         getStatus: config-types/client-lists/getStatus
+      targets:
+        componentTypes: [akamai]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: dns-zones
+      group: "Edge DNS"
+      name: DNS Zones
+      description: >
+        Akamai Edge DNS zones — primary, secondary or alias — applied over the
+        Edge DNS API v2 (EdgeGrid-signed, HTTPS 443)
+      canvasTemplate: config-types/dns-zones/canvas.yaml
+      defaultConfig: config-types/dns-zones/defaults.yaml
+      handlers:
+        validate: config-types/dns-zones/validate
+        deploy: config-types/dns-zones/deploy
+        rollback: config-types/dns-zones/rollback
+        healthCheck: config-types/dns-zones/healthCheck
+        driftDetect: config-types/dns-zones/driftDetect
+        getStatus: config-types/dns-zones/getStatus
+      targets:
+        componentTypes: [akamai]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: dns-records
+      group: "Edge DNS"
+      name: DNS Records
+      description: >
+        Individual Akamai Edge DNS recordsets — name, type, TTL and raw rdata —
+        inside a PRIMARY zone, applied over the Edge DNS API v2 (EdgeGrid-signed)
+      canvasTemplate: config-types/dns-records/canvas.yaml
+      defaultConfig: config-types/dns-records/defaults.yaml
+      handlers:
+        validate: config-types/dns-records/validate
+        deploy: config-types/dns-records/deploy
+        rollback: config-types/dns-records/rollback
+        healthCheck: config-types/dns-records/healthCheck
+        driftDetect: config-types/dns-records/driftDetect
+        getStatus: config-types/dns-records/getStatus
+      targets:
+        componentTypes: [akamai]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: cloudlets-policies
+      group: "Cloudlets"
+      name: Cloudlets Policies
+      description: >
+        Akamai Cloudlets shared policies (Edge Redirector, Request Control, API
+        Prioritization, Audience Segmentation, Phased Release, Forward
+        Rewrite) and their match-rule versions, applied over the Cloudlets API
+        v3 (EdgeGrid-signed)
+      canvasTemplate: config-types/cloudlets-policies/canvas.yaml
+      defaultConfig: config-types/cloudlets-policies/defaults.yaml
+      handlers:
+        validate: config-types/cloudlets-policies/validate
+        deploy: config-types/cloudlets-policies/deploy
+        rollback: config-types/cloudlets-policies/rollback
+        healthCheck: config-types/cloudlets-policies/healthCheck
+        driftDetect: config-types/cloudlets-policies/driftDetect
+        getStatus: config-types/cloudlets-policies/getStatus
+      targets:
+        componentTypes: [akamai]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: cloudlets-policy-activation
+      group: "Cloudlets"
+      name: Cloudlets Policy Activation
+      description: >
+        Activate or deactivate an Akamai Cloudlets policy version onto
+        STAGING or PRODUCTION over the Cloudlets API v3 (EdgeGrid-signed).
+        Deploy TRIGGERS the activation and is idempotent — a policy already
+        effective at the declared version is skipped
+      canvasTemplate: config-types/cloudlets-policy-activation/canvas.yaml
+      defaultConfig: config-types/cloudlets-policy-activation/defaults.yaml
+      handlers:
+        validate: config-types/cloudlets-policy-activation/validate
+        deploy: config-types/cloudlets-policy-activation/deploy
+        rollback: config-types/cloudlets-policy-activation/rollback
+        healthCheck: config-types/cloudlets-policy-activation/healthCheck
+        driftDetect: config-types/cloudlets-policy-activation/driftDetect
+        getStatus: config-types/cloudlets-policy-activation/getStatus
+      targets:
+        componentTypes: [akamai]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: edgeworkers
+      group: "EdgeWorkers"
+      name: EdgeWorkers
+      description: >
+        Akamai EdgeWorker identities (name, group, resource tier) applied over
+        the EdgeWorkers API v1 (EdgeGrid-signed). The code bundle itself ships
+        via CI/CD or the Akamai CLI — this manages identity only
+      canvasTemplate: config-types/edgeworkers/canvas.yaml
+      defaultConfig: config-types/edgeworkers/defaults.yaml
+      handlers:
+        validate: config-types/edgeworkers/validate
+        deploy: config-types/edgeworkers/deploy
+        rollback: config-types/edgeworkers/rollback
+        healthCheck: config-types/edgeworkers/healthCheck
+        driftDetect: config-types/edgeworkers/driftDetect
+        getStatus: config-types/edgeworkers/getStatus
+      targets:
+        componentTypes: [akamai]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: edgeworker-activation
+      group: "EdgeWorkers"
+      name: EdgeWorker Activation
+      description: >
+        Activate or deactivate an Akamai EdgeWorker code-bundle version onto
+        STAGING or PRODUCTION over the EdgeWorkers API v1 (EdgeGrid-signed).
+        Deploy TRIGGERS the activation and is idempotent — an EdgeWorker
+        already effective at the declared version is skipped
+      canvasTemplate: config-types/edgeworker-activation/canvas.yaml
+      defaultConfig: config-types/edgeworker-activation/defaults.yaml
+      handlers:
+        validate: config-types/edgeworker-activation/validate
+        deploy: config-types/edgeworker-activation/deploy
+        rollback: config-types/edgeworker-activation/rollback
+        healthCheck: config-types/edgeworker-activation/healthCheck
+        driftDetect: config-types/edgeworker-activation/driftDetect
+        getStatus: config-types/edgeworker-activation/getStatus
       targets:
         componentTypes: [akamai]
         requiresCredential: true

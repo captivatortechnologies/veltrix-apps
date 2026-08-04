@@ -1,0 +1,159 @@
+# =============================================================================
+# Canvas Template — HackerOne Assets (organization asset inventory)
+#
+# Declares ONE organization-level asset (the item) — the confirmed, non-
+# deprecated successor to the program-level structured-scope CREATE/UPDATE
+# endpoints HackerOne removed from its docs on 2026-04-07 (see the Structured
+# Scopes config type). An asset lives at the ORGANIZATION level and is later
+# attached to one or more programs' scope by the Asset Scopes config type — this
+# type only manages the asset's own inventory record (type, identifier,
+# description, severity, CIA requirements, reference).
+#
+# Each item names its target ORGANIZATION by handle; the deploy handler resolves
+# the handle to an organization id via GET /me/organizations and upserts the
+# asset by its `identifier` (via `filter[identifier]`) within that organization.
+# `asset_type` and `identifier` are immutable after creation — HackerOne's own
+# Update Asset endpoint does not accept them. Field keys must match
+# config-types/assets/validate.ts.
+#
+# Applied over the HackerOne API (https://api.hackerone.com/v1):
+#   GET  /organizations/{organization_id}/assets?filter[identifier]=...
+#   POST /organizations/{organization_id}/assets
+#   PUT  /organizations/{organization_id}/assets/{asset_id}
+#   POST /organizations/{organization_id}/assets/archive   (bulk; this app's delete)
+#   Confirmed: https://api.hackerone.com/customer-resources/ (Assets)
+#
+# FLAGGED — unlike every other resource in HackerOne's API reference, the Assets
+# endpoints (Create/Update/Archive Asset) do not state a "Required permissions"
+# scope in the published docs. Verify against a live token before relying on it.
+# =============================================================================
+
+id: "hackerone-assets"
+name: "Assets"
+toolType: "hackerone"
+entityType: "assets"
+description: "Manage a HackerOne organization's Asset inventory — the asset-management successor to the deprecated program-level structured-scope write endpoints — via the HackerOne API (https://api.hackerone.com/v1). Attach an asset to a program's scope with the Asset Scopes configuration type."
+
+item:
+  label: "Asset"
+  identityField: "identifier"
+  repeatable: true
+  minItems: 1
+  maxItems: 2000
+  groups:
+    - name: "Organization & Asset"
+      icon: "target"
+      description: "The organization this asset belongs to and the asset itself"
+      fields:
+        - key: "organization_handle"
+          label: "Organization Handle"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The HackerOne organization handle this asset belongs to. Resolved to the organization id via GET /me/organizations."
+
+        - key: "identifier"
+          label: "Identifier"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 1000
+          helpText: "The asset value — e.g. api.example.com (domain/url), 10.0.0.0/24 (cidr), a store app id. The asset's stable identity for upsert and drift within the organization. Immutable after creation."
+
+        - key: "asset_type"
+          label: "Asset Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "domain"
+          options:
+            - { label: "Domain", value: "domain" }
+            - { label: "URL", value: "url" }
+            - { label: "CIDR (IP range)", value: "cidr" }
+            - { label: "Hardware / IoT", value: "hardware" }
+            - { label: "Source code", value: "sourceCode" }
+            - { label: "iOS: App Store", value: "iosAppStore" }
+            - { label: "iOS: TestFlight", value: "iosTestflight" }
+            - { label: "iOS: .ipa", value: "iosIpa" }
+            - { label: "Android: Google Play", value: "androidPlayStore" }
+            - { label: "Android: .apk", value: "androidApk" }
+            - { label: "Windows: Microsoft Store", value: "windowsMicrosoftStore" }
+            - { label: "Executable", value: "executable" }
+            - { label: "Smart contract", value: "smartContract" }
+            - { label: "API", value: "api" }
+            - { label: "AI model", value: "aiModel" }
+            - { label: "AWS cloud config", value: "awsCloudConfig" }
+            - { label: "Azure cloud config", value: "azureCloudConfig" }
+            - { label: "Other", value: "other" }
+          helpText: "The organization asset type (2026-04-19 reference schema — distinct machine values from the legacy program-level Structured Scope asset_type enum). Immutable after creation."
+
+    - name: "Description & Reference"
+      icon: "book"
+      description: "Free-text context for this asset"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          helpText: "Optional free-text description of the asset."
+
+        - key: "reference"
+          label: "Reference"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "An optional customer-defined reference identifier or tag for the asset (e.g. an internal CMDB id)."
+
+    - name: "Severity & CVSS Environmental Requirements"
+      icon: "shield"
+      description: "Risk posture for this asset — shared across every program it is scoped to"
+      fields:
+        - key: "max_severity"
+          label: "Max Severity"
+          fieldType: "select"
+          required: false
+          defaultValue: "none"
+          options:
+            - { label: "None", value: "none" }
+            - { label: "Low", value: "low" }
+            - { label: "Medium", value: "medium" }
+            - { label: "High", value: "high" }
+            - { label: "Critical", value: "critical" }
+          helpText: "The maximum severity a report against this asset can be rated. Unlike the legacy Structured Scope model, this is set ONCE on the asset and applies across every program it is scoped to."
+
+        - key: "confidentiality_requirement"
+          label: "Confidentiality Requirement"
+          fieldType: "select"
+          required: false
+          defaultValue: "none"
+          options:
+            - { label: "None", value: "none" }
+            - { label: "Low", value: "low" }
+            - { label: "Medium", value: "medium" }
+            - { label: "High", value: "high" }
+          helpText: "CVSS environmental modifier reweighting Confidentiality Impact for vulnerabilities on this asset."
+
+        - key: "integrity_requirement"
+          label: "Integrity Requirement"
+          fieldType: "select"
+          required: false
+          defaultValue: "none"
+          options:
+            - { label: "None", value: "none" }
+            - { label: "Low", value: "low" }
+            - { label: "Medium", value: "medium" }
+            - { label: "High", value: "high" }
+          helpText: "CVSS environmental modifier reweighting Integrity Impact for vulnerabilities on this asset."
+
+        - key: "availability_requirement"
+          label: "Availability Requirement"
+          fieldType: "select"
+          required: false
+          defaultValue: "none"
+          options:
+            - { label: "None", value: "none" }
+            - { label: "Low", value: "low" }
+            - { label: "Medium", value: "medium" }
+            - { label: "High", value: "high" }
+          helpText: "CVSS environmental modifier reweighting Availability Impact for vulnerabilities on this asset."

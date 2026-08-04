@@ -1,0 +1,17 @@
+# Defaults for a new site configuration item. Every setting starts empty
+# ("leave unchanged") except Site ID, which the operator must fill in — an
+# empty field is NEVER sent, so a freshly-added item is a safe no-op until
+# settings are declared.
+active: ""
+domainValidation: ""
+approver: ""
+ignoreSsl: ""
+accelerationLevel: ""
+sealLocation: ""
+restrictedCnameReuse: ""
+domainRedirectToFull: ""
+refId: ""
+nakedDomainSan: ""
+wildcardSan: ""
+logLevel: ""
+logsAccountId: ""

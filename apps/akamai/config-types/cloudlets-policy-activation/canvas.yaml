@@ -1,0 +1,62 @@
+# =============================================================================
+# Canvas Template — Akamai Cloudlets Policy Activation
+#
+# Declares ONE activation target (the item): a Cloudlets policy version (by
+# policy name) promoted onto STAGING or PRODUCTION. Users add as many as they
+# need — e.g. the same policy twice to activate it on both environments.
+# Deploy TRIGGERS the activation (POST .../activations) and is idempotent: a
+# policy already effective at the declared version on that network is
+# skipped. Unlike Network List Activation, this API exposes a REAL
+# deactivation operation, so rollback here can genuinely undo an activation —
+# see rollback.ts.
+#
+# Field keys must match config-types/cloudlets-policy-activation/validate.ts.
+# The (policyName + network) pair is the real identity; identityField is the
+# policy name (a single field), so the same policy may appear once per
+# environment — the same convention used by Network List Activation.
+# =============================================================================
+
+id: "akamai-cloudlets-policy-activation"
+name: "Cloudlets Policy Activation"
+toolType: "akamai"
+entityType: "cloudlets-policy-activation"
+description: "Activate an Akamai Cloudlets policy version onto STAGING or PRODUCTION via the Cloudlets API v3 (EdgeGrid-signed)"
+
+item:
+  label: "Activation"
+  identityField: "policyName"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Target"
+      icon: "shield"
+      description: "Which policy version to activate, and where"
+      fields:
+        - key: "policyName"
+          label: "Policy name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Name of the Cloudlets policy to activate (its stable identity, shared with the Cloudlets Policies config type). The policy must already exist."
+
+        - key: "policyVersion"
+          label: "Policy version"
+          fieldType: "number"
+          required: true
+          validation:
+            min: 1
+          helpText: "Which version number to activate (created by the Cloudlets Policies config type — check its version history in Control Center or the version returned on deploy)."
+
+        - key: "network"
+          label: "Environment"
+          fieldType: "select"
+          required: true
+          defaultValue: "STAGING"
+          options:
+            - label: "Staging"
+              value: "STAGING"
+            - label: "Production"
+              value: "PRODUCTION"
+          helpText: "STAGING for pre-production verification, PRODUCTION to go live. Activate STAGING first."

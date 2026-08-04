@@ -2,6 +2,134 @@
 
 All notable changes to the HackerOne app are documented here.
 
+## 0.3.0 — 2026-08-04
+
+Re-audits HackerOne's FULL public write surface against the live API reference
+(customer-resources + customer-reference, verified 2026-08-04) and adds four new
+configuration types — the largest single addition since the app's foundation.
+See the README's **Coverage** section for the complete endpoint-by-endpoint
+classification.
+
+- **Program Policy** (`program-policy`) — author a program's disclosure /
+  bug-bounty policy text (the document shown to researchers on the program's
+  page). One item per program; deploy replaces the entire document
+  (`PUT /programs/{id}/policy`, `type: program-policy`). Requires the Program
+  Management permission on the API token.
+- **Scope Exclusions** (`scope-exclusions`) — author named report categories
+  excluded from a program's scope / rewards, in addition to its core ineligible
+  findings (e.g. "Denial of Service"). Full CRUD, upserted by `category`
+  (`GET/POST/PUT/DELETE /programs/{id}/scope_exclusions[/{id}]`,
+  `type: scope-exclusion`). Unlike Structured Scopes, this has a genuine
+  `DELETE` — no archive-vs-delete ambiguity. Requires Program Management.
+- **Assets** (`assets`) — author an **organization**-level Asset inventory
+  (`asset_type`, `identifier`, `description`, `max_severity`, CVSS environmental
+  CIA requirements, `reference`). This is the confirmed, non-deprecated
+  successor to the program-level structured-scope create/update endpoints
+  HackerOne removed from its docs on 2026-04-07 (flagged in 0.1.0/0.2.0 as
+  "could not confirm a write path" — now fully confirmed). Upserted by
+  `identifier` via `filter[identifier]`
+  (`GET/POST /organizations/{id}/assets`,
+  `PUT /organizations/{id}/assets/{assetId}`,
+  `POST /organizations/{id}/assets/archive` — a **bulk** archive endpoint is
+  HackerOne's only delete path here; there is no per-id `DELETE`).
+  `asset_type`/`identifier` are immutable after creation — HackerOne's own
+  Update Asset body omits them, and this app's `deploy`/`rollback` never send
+  them on update.
+- **Asset Scopes** (`asset-scopes`) — attach an organization Asset (by
+  identifier) to a program's scope (by handle): eligibility for
+  submission/bounty, tester instruction, researcher notification. The write
+  path is new
+  (`POST /organizations/{id}/assets/{assetId}/scopes`,
+  `PUT .../scopes/{id}`,
+  `POST .../scopes/archive` bulk-keyed by **program** id), but the read side
+  reuses the still-documented `GET /programs/{id}/structured_scopes` — the
+  live resource returned is still `type: structured-scope`. `max_severity`
+  moved from a per-(program, scope) attribute to a property of the Asset
+  itself (set once in `assets`, shared across every program it is scoped to).
+- New shared lib: `lib/organizations.ts` (organization handle → id resolution,
+  asset lookup by identifier) and `HackerOneClient.listOrganizations()` in
+  `lib/hackeroneApi.ts` — mirrors the existing program-resolution primitives in
+  `lib/programScopes.ts` one level up.
+- 44 new unit tests (85 total, all network-free — deploy/rollback/drift call the
+  live HackerOne API over fetch and are exercised by the pure `_shared.ts`
+  helpers plus `validate.ts` instead, matching the existing convention).
+
+### Honest note on this release's exhaustion pass
+
+Re-verified against the raw HackerOne API reference/resources pages (not just
+search-result summaries, which proved inaccurate on exact paths in a few cases —
+see Flagged below). Candidates considered and their disposition:
+
+- **Weakness / CWE config** — `GET /programs/{id}/weaknesses` is read-only; the
+  only write is `PUT /reports/{id}/weakness`, which sets a **specific report's**
+  weakness, not program-level CWE configuration. NOT writable as declarative
+  config. Not added.
+- **Custom Field Attributes** (the field *definitions*, not per-report values) —
+  confirmed **UI-only** (HackerOne's own Help Center: "Security page >
+  Customizations > Custom fields"); the public API only lets you *reference* an
+  existing attribute's numeric id when setting `PUT /reports/{id}/custom_field_values`.
+  No create/update/delete endpoint exists. Not added.
+- **Inbox / Triage rules** — `GET /organizations/{id}/inboxes` is the only
+  inbox-related endpoint (read-only). No triage-rule resource exists in the
+  public API. Not added.
+- **Automations** (the "triggers" candidate) — `GET/POST/PATCH
+  /organizations/{id}/automations` IS fully writable and declarative (`title`,
+  `code`, `template_identifier`, `config`, `events[]`, `enabled`,
+  `run_once_per_report`) and uses `PATCH` (not `PUT`, unlike everything else in
+  this API). **Deliberately declined**: HackerOne's own docs confirm `code` is
+  arbitrary **Node.js 20 JavaScript**, executed with the permissions of a
+  dedicated "Automations" organization-member group that carries **all
+  organization, engagement, and asset-level permissions** — i.e. this stores and
+  runs arbitrary, org-wide-privileged code from declarative canvas config. Same
+  class of decision as declining Credentials in 0.2.0 (storing secrets in
+  canvas config was the wrong shape); storing/executing arbitrary
+  org-privileged code is the wrong shape for the same reason, doubly so. A
+  future dedicated, security-reviewed design is a fair candidate; this release
+  does not build one. Also has no confirmed archive/delete path (`archived` is
+  read-only in the response; `PATCH` doesn't accept it).
+- **Organization Groups / Member roles** (RBAC) — `POST/PUT
+  /organizations/{id}/groups` (`type: organization-member-group`) IS writable
+  (`name`, `permissions[]`, `eligibility_setting_id`, plus relationships to
+  specific members/programs/inboxes) — reversing 0.2.0's note that
+  "group-members" had no documented write endpoint (that note was about
+  *membership*, not the group entity; the entity itself is writable). Declined
+  for this release: it is organization-wide identity/access-control
+  administration (which members get which permissions org-wide), a distinct
+  security-admin surface outside this app's program-scope/asset-inventory
+  boundary — the same reasoning other Veltrix apps use to keep RBAC as its own
+  dedicated IDP-app surface rather than a bolt-on. A candidate for a future,
+  purpose-built config type.
+- **Campaigns** — `POST /programs/{id}/campaigns` IS writable, but is a
+  time-boxed, financially-consequential workflow (`bounty_pool_limit`, real
+  payouts) with an explicit non-idempotent `Launch`/`End` action distinct from
+  create — does not fit the idempotent-upsert-with-safe-rollback shape this
+  pipeline assumes. Declined.
+- **Findings Workboards / Views** (ASM saved views) —
+  `POST /organizations/{id}/findings/workboards[/{id}/views]` IS writable
+  (full CRUD), but is a saved-search / dashboard-layout convenience in the
+  separate Attack Surface Management "Findings" subsystem, not security-relevant
+  declarative state. Declined as out of this app's scope (comparable to how
+  `apps/cisco-meraki` excludes device-scale / UI-convenience resources).
+
+### Flagged for verification against live HackerOne
+
+- **Assets / Asset Scopes required permission** — unlike every other resource
+  in HackerOne's published API reference, the Create/Update/Archive Asset and
+  Add/Update/Archive Asset-Scope endpoints state **no** "Required permissions"
+  line. Verify the actual required token scope against a live organization
+  before depending on this in production.
+- **`notify_subscribers_on_changes` vs. `notify_subscribers_of_changes`** —
+  HackerOne's own documented request bodies use a different key for the same
+  boolean on create (`_on_changes`) vs. update (`_of_changes`) of an asset
+  scope. Both are sent verbatim, per operation, in this app — very likely a
+  documentation typo on HackerOne's side, not independently verified against a
+  live program.
+- **Asset identifier reconciliation** — the `asset` object's response echoes
+  `identifier` generically AND under a type-specific alias (`domain_name` for
+  `asset_type: domain`, etc.); this app reads the generic `identifier` field
+  only. Confirmed present in the reference schema, but worth re-checking if a
+  live response ever omits it.
+
 ## 0.2.0 — 2026-08-01
 
 Adds a second, genuinely-writable configuration type after an honest audit of

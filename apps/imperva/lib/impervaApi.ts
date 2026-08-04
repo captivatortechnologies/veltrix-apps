@@ -32,11 +32,54 @@ import type { CredentialRef } from '@veltrixsecops/app-sdk'
 /** Fixed default base URL for the legacy Cloud WAF (Incapsula) management API v1. */
 export const DEFAULT_IMPERVA_BASE_URL = 'https://my.imperva.com/api/prov/v1'
 
-/** IncapRules (site security / ACL rules) endpoints, relative to the v1 base URL. */
+/**
+ * IncapRules endpoints, relative to the v1 base URL. IncapRules is a single
+ * underlying resource — one flat, per-site rule list — reused by TWO config
+ * types over its `action` value:
+ *   acl-rules       → the SECURITY actions (RULE_ACTION_BLOCK, _ALERT, ...)
+ *   delivery-rules  → the DELIVERY/rewrite actions (RULE_ACTION_REDIRECT,
+ *                     _REWRITE_URL, _RATE, ...)
+ * Both upsert by rule NAME within a site over the same add/edit/delete/list
+ * calls; see rulesFromResponse / ruleIdOf / findRule below.
+ */
 export const INCAP_RULES_ADD_PATH = '/sites/incapRules/add'
 export const INCAP_RULES_EDIT_PATH = '/sites/incapRules/edit'
 export const INCAP_RULES_DELETE_PATH = '/sites/incapRules/delete'
 export const INCAP_RULES_LIST_PATH = '/sites/incapRules/list'
+
+/**
+ * Site general configuration — single param/value settings applied one at a time
+ * (mirrors Imperva's own Terraform provider, which diffs and sends only the
+ * params that changed). `SITE_LOG_LEVEL_PATH` is a sibling endpoint for the one
+ * general setting (`log_level` + `logs_account_id`) that has its own call.
+ */
+export const SITE_CONFIGURE_PATH = '/sites/configure'
+export const SITE_LOG_LEVEL_PATH = '/sites/setlog'
+
+/**
+ * WAF / ACL rule exceptions ("whitelists") — allow specific match conditions
+ * (IPs, countries, URLs, user agents, client apps, request parameters) to bypass
+ * ONE specific security or ACL rule on a site. Distinct from ACL Configuration
+ * (`ACL_CONFIGURE_PATH`), which blacklists/whitelists site-wide rather than
+ * excepting a single rule. add/edit/delete all POST to the same endpoint; list
+ * reads back from `/sites/status` (`security.waf.rules[].exceptions[]` /
+ * `security.acls.rules[].exceptions[]`).
+ */
+export const SECURITY_EXCEPTION_CONFIGURE_PATH = '/sites/configure/whitelists'
+
+/**
+ * Data Centers (origin server pools) and the individual origin servers within
+ * them. A data center is a named pool of one or more origin servers; `add`
+ * creates the pool together with its first server, `dataCenters/servers/add`
+ * adds additional servers to an existing pool.
+ */
+export const DATA_CENTER_ADD_PATH = '/sites/dataCenters/add'
+export const DATA_CENTER_EDIT_PATH = '/sites/dataCenters/edit'
+export const DATA_CENTER_DELETE_PATH = '/sites/dataCenters/delete'
+export const DATA_CENTER_LIST_PATH = '/sites/dataCenters/list'
+export const DATA_CENTER_SERVER_ADD_PATH = '/sites/dataCenters/servers/add'
+export const DATA_CENTER_SERVER_EDIT_PATH = '/sites/dataCenters/servers/edit'
+export const DATA_CENTER_SERVER_DELETE_PATH = '/sites/dataCenters/servers/delete'
 
 /**
  * Per-site declarative security / ACL configuration endpoints. Unlike IncapRules
@@ -223,4 +266,63 @@ export function apiMessage(payload: ImpervaEnvelope | null): string {
   if (!payload) return 'no/invalid response body'
   const res = payload.res ?? '?'
   return payload.res_message ? `${payload.res_message} (res=${res})` : `res=${res}`
+}
+
+// --- IncapRules (shared by acl-rules + delivery-rules) ------------------------
+
+/** One IncapRule as returned by the v1 API — the fields common to every action kind. */
+export interface IncapRule {
+  /** Rule identifier — `rule_id` in v1; some responses echo it as `id`. */
+  rule_id?: number | string
+  id?: number | string
+  name?: string
+  action?: string
+  filter?: string
+  enabled?: boolean | number | string
+  [key: string]: unknown
+}
+
+/**
+ * Extract the rules array from a v1 `incapRules/list` response. The exact shape is
+ * tolerated defensively across the forms Imperva has used:
+ *   { incap_rules: [...] } | { rules: [...] } | { incap_rules: { All: [...] } } |
+ *   { rules: { All: [...] } } | [...]
+ */
+export function rulesFromResponse(payload: ImpervaEnvelope | unknown[] | null): IncapRule[] {
+  if (Array.isArray(payload)) return payload as IncapRule[]
+  if (!payload || typeof payload !== 'object') return []
+  const obj = payload as Record<string, unknown>
+  const container = obj.incap_rules ?? obj.rules
+  if (Array.isArray(container)) return container as IncapRule[]
+  if (container && typeof container === 'object') {
+    const all = (container as Record<string, unknown>).All
+    if (Array.isArray(all)) return all as IncapRule[]
+    // Fall back to concatenating any array-valued buckets (e.g. { All, Alert, ... }).
+    return Object.values(container as Record<string, unknown>).flatMap((v) => (Array.isArray(v) ? (v as IncapRule[]) : []))
+  }
+  return []
+}
+
+/** The rule id from a rule (v1 `rule_id`, falling back to `id`), or null. */
+export function ruleIdOf(rule: IncapRule): number | string | null {
+  return rule.rule_id ?? rule.id ?? null
+}
+
+/** Find a live rule by (case-insensitive) name — the stable identity within a site. */
+export function findRule(rules: IncapRule[], name: string): IncapRule | null {
+  const n = name.trim().toLowerCase()
+  if (!n) return null
+  return rules.find((r) => String(r.name ?? '').trim().toLowerCase() === n) ?? null
+}
+
+/**
+ * `enabled` may arrive from the canvas as an 'enabled'/'disabled' string, or from
+ * Imperva as a boolean / 'true'|'false' / 1|0 — normalize to a boolean. Empty /
+ * unknown defaults to enabled (true), matching Imperva's default.
+ */
+export function normalizeEnabled(value: unknown): boolean {
+  if (typeof value === 'boolean') return value
+  const s = String(value ?? '').trim().toLowerCase()
+  if (s === 'disabled' || s === 'false' || s === '0' || s === 'no') return false
+  return true
 }

@@ -1,16 +1,19 @@
 id: hackerone
 name: HackerOne
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
-  Manage HackerOne program asset scope as code. Author a program's Structured
-  Scopes — the assets in scope for its bug-bounty / vulnerability-disclosure
-  program (asset type, identifier, bounty / submission eligibility, max severity
-  and tester instruction) — and drive them through the Security-as-Code pipeline
+  Manage HackerOne program scope, policy and organization asset inventory as
+  code. Author a program's Structured Scopes, Credential Inquiries, Scope
+  Exclusions and Policy text, and an organization's Asset inventory plus its
+  Asset Scope attachments to programs (the confirmed, non-deprecated successor
+  to the program-level structured-scope write endpoints HackerOne removed from
+  its docs on 2026-04-07) — and drive them through the Security-as-Code pipeline
   (validate, deploy, health check, drift detection and rollback) over the
-  HackerOne API (https://api.hackerone.com/v1, HTTP Basic auth, JSON:API). The
-  target program is selected per scope by its handle and resolved to its id via
-  GET /me/programs. No BYOL / no database — HackerOne is a pure SaaS API.
+  HackerOne API (https://api.hackerone.com/v1, HTTP Basic auth, JSON:API).
+  Programs are selected per item by handle (resolved via GET /me/programs) and
+  organizations by handle (resolved via GET /me/organizations). No BYOL / no
+  database — HackerOne is a pure SaaS API.
 category: COMPLIANCE
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/hackerone
@@ -43,6 +46,37 @@ permissions:
         credentials — over the HackerOne API (GET/POST/PUT/DELETE
         /programs/{id}/credential_inquiries). Requires the Team Management
         permission on the API token.
+    - resource: program-policy
+      actions: [read, write]
+      description: >
+        Manage a HackerOne program's disclosure / bug-bounty policy text over the
+        HackerOne API (GET /programs/{id}, PUT /programs/{id}/policy). Requires
+        the Program Management permission on the API token.
+    - resource: scope-exclusions
+      actions: [read, write, delete]
+      description: >
+        Manage HackerOne program Scope Exclusions — named report categories
+        excluded from a program's scope / rewards — over the HackerOne API
+        (GET/POST /programs/{id}/scope_exclusions, PUT/DELETE
+        /programs/{id}/scope_exclusions/{id}). Requires the Program Management
+        permission on the API token.
+    - resource: assets
+      actions: [read, write, delete]
+      description: >
+        Manage a HackerOne organization's Asset inventory — the confirmed,
+        non-deprecated successor to the program-level structured-scope
+        create/update endpoints removed from HackerOne's docs on 2026-04-07 —
+        over the HackerOne API (GET/POST /organizations/{id}/assets, PUT
+        /organizations/{id}/assets/{assetId}, POST
+        /organizations/{id}/assets/archive).
+    - resource: asset-scopes
+      actions: [read, write, delete]
+      description: >
+        Attach a HackerOne organization Asset to a program's scope — bounty /
+        submission eligibility and tester instruction — over the HackerOne API
+        (POST /organizations/{id}/assets/{assetId}/scopes, PUT
+        /organizations/{id}/assets/{assetId}/scopes/{id}, POST
+        /organizations/{id}/assets/{assetId}/scopes/archive).
 
 pipeline:
   configurationTypes:
@@ -90,6 +124,106 @@ pipeline:
         healthCheck: config-types/credential-inquiries/healthCheck
         driftDetect: config-types/credential-inquiries/driftDetect
         getStatus: config-types/credential-inquiries/getStatus
+      targets:
+        componentTypes: [hackerone-program]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: program-policy
+      group: "Program Scope"
+      name: Program Policy
+      description: >
+        A HackerOne program's disclosure / bug-bounty policy text — the document
+        shown to researchers on the program's page — applied over the HackerOne
+        API (https://api.hackerone.com/v1). The program is chosen per item by
+        handle and resolved to its id via GET /me/programs; deploy replaces the
+        program's ENTIRE policy text (there is no partial/append update).
+      canvasTemplate: config-types/program-policy/canvas.yaml
+      defaultConfig: config-types/program-policy/defaults.yaml
+      handlers:
+        validate: config-types/program-policy/validate
+        deploy: config-types/program-policy/deploy
+        rollback: config-types/program-policy/rollback
+        healthCheck: config-types/program-policy/healthCheck
+        driftDetect: config-types/program-policy/driftDetect
+        getStatus: config-types/program-policy/getStatus
+      targets:
+        componentTypes: [hackerone-program]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: scope-exclusions
+      group: "Program Scope"
+      name: Scope Exclusions
+      description: >
+        HackerOne program Scope Exclusions — named report categories excluded
+        from a program's scope / rewards, in addition to its core ineligible
+        findings — applied over the HackerOne API
+        (https://api.hackerone.com/v1). The program is chosen per exclusion by
+        handle and resolved to its id via GET /me/programs; exclusions are
+        upserted by `category` within that program.
+      canvasTemplate: config-types/scope-exclusions/canvas.yaml
+      defaultConfig: config-types/scope-exclusions/defaults.yaml
+      handlers:
+        validate: config-types/scope-exclusions/validate
+        deploy: config-types/scope-exclusions/deploy
+        rollback: config-types/scope-exclusions/rollback
+        healthCheck: config-types/scope-exclusions/healthCheck
+        driftDetect: config-types/scope-exclusions/driftDetect
+        getStatus: config-types/scope-exclusions/getStatus
+      targets:
+        componentTypes: [hackerone-program]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: assets
+      group: "Organization Assets"
+      name: Assets
+      description: >
+        A HackerOne organization's Asset inventory — asset type, identifier,
+        description, max severity and CVSS environmental (CIA) requirements —
+        the confirmed, non-deprecated successor to the program-level
+        structured-scope create/update endpoints HackerOne removed from its docs
+        on 2026-04-07. Applied over the HackerOne API
+        (https://api.hackerone.com/v1). The organization is chosen per asset by
+        handle and resolved to its id via GET /me/organizations; assets are
+        upserted by `identifier` within that organization. Attach an asset to a
+        program's scope with the Asset Scopes configuration type.
+      canvasTemplate: config-types/assets/canvas.yaml
+      defaultConfig: config-types/assets/defaults.yaml
+      handlers:
+        validate: config-types/assets/validate
+        deploy: config-types/assets/deploy
+        rollback: config-types/assets/rollback
+        healthCheck: config-types/assets/healthCheck
+        driftDetect: config-types/assets/driftDetect
+        getStatus: config-types/assets/getStatus
+      targets:
+        componentTypes: [hackerone-program]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: asset-scopes
+      group: "Organization Assets"
+      name: Asset Scopes
+      description: >
+        Attach a HackerOne organization Asset (see the Assets configuration
+        type) to a program's scope — bounty / submission eligibility and tester
+        instruction — the confirmed, non-deprecated successor to the
+        program-level structured-scope create/update endpoints HackerOne removed
+        from its docs on 2026-04-07. Applied over the HackerOne API
+        (https://api.hackerone.com/v1). The organization and program are chosen
+        per attachment by handle; the asset is chosen by identifier and must
+        already exist as an organization asset.
+      canvasTemplate: config-types/asset-scopes/canvas.yaml
+      defaultConfig: config-types/asset-scopes/defaults.yaml
+      handlers:
+        validate: config-types/asset-scopes/validate
+        deploy: config-types/asset-scopes/deploy
+        rollback: config-types/asset-scopes/rollback
+        healthCheck: config-types/asset-scopes/healthCheck
+        driftDetect: config-types/asset-scopes/driftDetect
+        getStatus: config-types/asset-scopes/getStatus
       targets:
         componentTypes: [hackerone-program]
         requiresCredential: true

@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template — HackerOne Scope Exclusions
+#
+# Declares ONE scope exclusion (the item) — a named report category that is
+# excluded from a program's scope / rewards, in addition to its core ineligible
+# findings (e.g. "Denial of Service", "Social Engineering"). Users add as many as
+# they need. Each exclusion names the PROGRAM it belongs to by handle; the deploy
+# handler resolves the handle to a program id via GET /me/programs and upserts
+# the exclusion by its `category` name within that program. Field keys must match
+# config-types/scope-exclusions/validate.ts.
+#
+# Applied over the HackerOne API (https://api.hackerone.com/v1):
+#   GET/POST /programs/{id}/scope_exclusions
+#   PUT/DELETE /programs/{id}/scope_exclusions/{id}
+#   Confirmed: https://api.hackerone.com/customer-resources/ (Scope Exclusions)
+# =============================================================================
+
+id: "hackerone-scope-exclusions"
+name: "Scope Exclusions"
+toolType: "hackerone"
+entityType: "scope-exclusions"
+description: "Manage HackerOne program Scope Exclusions — named report categories excluded from a program's scope / rewards — via the HackerOne API (https://api.hackerone.com/v1)."
+
+item:
+  label: "Scope Exclusion"
+  identityField: "category"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Program"
+      icon: "target"
+      description: "The program this exclusion applies to"
+      fields:
+        - key: "program_handle"
+          label: "Program Handle"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The HackerOne program handle this exclusion belongs to (the slug in hackerone.com/<handle>). Resolved to the program id via GET /me/programs."
+
+    - name: "Exclusion"
+      icon: "shield-off"
+      description: "The excluded category and what it covers"
+      fields:
+        - key: "category"
+          label: "Category"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: "The exclusion's name (e.g. \"Denial of Service\", \"Social Engineering\"). The scope exclusion's stable identity for upsert and drift within the program (HackerOne assigns no other caller-visible name)."
+
+        - key: "details"
+          label: "Details"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 300
+          helpText: "Description of what is excluded from the program's scope / rewards under this category."

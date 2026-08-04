@@ -2,6 +2,185 @@
 
 All notable changes to the Akamai app are documented here.
 
+## 0.3.0 — 2026-08-04
+
+Config-as-code surface exhaustion pass: the full Akamai OPEN API index was
+re-surveyed (techdocs.akamai.com reference pages, cross-checked against the
+official Go SDK `github.com/akamai/AkamaiOPEN-edgegrid-golang` — the same
+client the Akamai Terraform provider is built on — since several interactive
+API references are login-gated, the same provenance already used for Client
+Lists in v0.2.0) and classified into clean-CRUD surfaces worth adding versus
+heavyweight/out-of-scope surfaces to drop. Six new config types across three
+new products, all reusing the existing EdgeGrid signer unchanged.
+
+### Added
+
+- **DNS Zones (`dns-zones`)** — create/update Akamai **Edge DNS** zones
+  (PRIMARY / SECONDARY / ALIAS) over the **Edge DNS API v2**
+  (`POST /config-dns/v2/zones?contractId=..&gid=..`,
+  `PUT /config-dns/v2/zones/{zone}`). Unlike Network Lists / Client Lists, the
+  zone **name is the URL identity itself** — no server-assigned opaque id to
+  resolve first — so deploy/rollback/drift all `GET` the zone directly by name
+  rather than listing-then-matching. Fields: `zone`, `type`, `contractId`,
+  `groupId`, `comment`, `masters` (SECONDARY), `target` (ALIAS),
+  `signAndServe` + `signAndServeAlgorithm` (DNSSEC), `endCustomerId`, and an
+  `advanced` JSON blob for the rarely-used nested `tsigKey` /
+  `outboundZoneTransfer` objects (typed fields win on key collision — the same
+  "typed fields + JSON blob for the long tail" idiom as Cisco Meraki's Group
+  Policies).
+
+  > **Zone deletion is asynchronous.** Edge DNS has no synchronous single-zone
+  > `DELETE` — the only way to remove a zone is the bulk
+  > `POST /config-dns/v2/zones/delete-requests`, which queues an offline task
+  > and Akamai refuses outright if the zone is still receiving DNS queries or
+  > is delegated. Rollback of a zone this app created **requests** deletion
+  > (fire-and-forget) rather than confirming it — reported honestly as
+  > "requested", not "deleted".
+
+- **DNS Records (`dns-records`)** — create/update/delete individual **Edge
+  DNS** recordsets over the same API
+  (`POST`/`PUT`/`DELETE /config-dns/v2/zones/{zone}/names/{name}/types/{type}`).
+  The real API is deliberately generic — every record type is
+  `{ name, type, ttl, rdata }` where `rdata` is a raw array of
+  presentation-format strings (e.g. `"10 mail.example.com."` for MX) — so this
+  config type mirrors the API's own shape instead of inventing one field per
+  record type the way Terraform's provider does. The `(zone, name, type)`
+  triple is the real identity (a compound identity expressed as one
+  `identityField`, the same convention Network List Activation uses for its
+  `networkListName + network` pair). Per-record deletion is a real,
+  synchronous `DELETE` (unlike zone deletion), so rollback of a record this
+  app created is a genuine, confirmed delete. 25 record types are selectable
+  (A/AAAA/CNAME/MX/NS/TXT/SRV/CAA/PTR/NAPTR/SSHFP/TLSA/DS/DNSKEY/CERT/HINFO/RP/
+  HTTPS/SVCB/NSEC3/NSEC3PARAM/AFSDB/RRSIG/LOC/SPF); SOA (auto-created with the
+  zone) and Akamai's read-only `AKAMAITLC` answer-assignment records are
+  intentionally excluded.
+
+- **Cloudlets Policies (`cloudlets-policies`)** — create/update/delete Akamai
+  **Cloudlets** shared policies (API Prioritization, Audience Segmentation,
+  Phased Release, Edge Redirector, Forward Rewrite, Request Control) and their
+  match-rule versions over the **Cloudlets API v3** (shared policies only —
+  the only kind v3 supports). Reconciled by **name**:
+  `GET /cloudlets/v3/policies` → match → `PUT .../policies/{id}` (group/
+  description) or `POST /cloudlets/v3/policies` (create), then
+  `POST /cloudlets/v3/policies/{id}/versions` for the match-rule content.
+  Fields: `name`, `cloudletType`, `groupId`, `description`,
+  `versionDescription`, and `matchRules` as **one JSON array blob** — the
+  per-cloudlet-type match/action schema is large and type-specific (874 lines
+  in the Go SDK's `match_rule.go` alone), so — following Cisco Meraki's Group
+  Policies / Cribl's Sources-Destinations precedent — it is authored as raw
+  JSON rather than dozens of nested canvas fields; Cloudlets itself validates
+  the nested shape at deploy time.
+
+  > **Versions are immutable once activated.** Rather than tracking
+  > draft-vs-immutable state, deploy always creates a **new** version when the
+  > latest version's `matchRules`/description differ from what's declared —
+  > simpler and side-effect-safe at the cost of a new version number per edit,
+  > which Cloudlets' own version history already expects. Activating a
+  > version is a **separate** config type (below) — the same content/
+  > promotion split this app already uses for Network Lists.
+
+- **Cloudlets Policy Activation (`cloudlets-policy-activation`)** — activate
+  or deactivate a Cloudlets policy version onto **STAGING**/**PRODUCTION**
+  (`POST /cloudlets/v3/policies/{id}/activations`,
+  `{ operation: "ACTIVATION" | "DEACTIVATION", network, policyVersion }`).
+  Deploy is idempotent the same way Network List Activation is (skips a
+  target already effective at the declared version; leaves an in-flight
+  request alone) — fields: `policyName`, `policyVersion`, `network`.
+
+  > **Real rollback, unlike Network List Activation.** The Cloudlets API
+  > exposes a genuine `DEACTIVATION` operation on the same endpoint, so
+  > rollback here actually undoes an activation — re-activating the prior
+  > effective version, or deactivating outright if there was none — instead
+  > of the honest forward-only no-op Network List Activation documents (the
+  > public Network Lists API v2 has no deactivate endpoint at all).
+
+- **EdgeWorkers (`edgeworkers`)** — create/update/delete Akamai **EdgeWorker**
+  identities over the **EdgeWorkers API v1**
+  (`POST`/`PUT`/`DELETE /edgeworkers/v1/ids[/{edgeWorkerId}]`), reconciled by
+  **name**. Fields: `name`, `groupId`, `resourceTierId`.
+
+  > **Scope: identity only.** An EdgeWorker's JavaScript code bundle is a
+  > gzipped tarball (`bundle.json` + `main.js`) uploaded as binary content —
+  > there is no clean text/JSON canvas representation for it, unlike every
+  > other surface in this app, so version creation/upload is **out of
+  > scope** here and ships via CI/CD or the Akamai CLI instead (the same
+  > treatment this app already gives certificate private keys and IdP
+  > secrets: manage the declarative wrapper, not the opaque binary/secret
+  > payload). Promoting an **existing** version is the next config type.
+
+- **EdgeWorker Activation (`edgeworker-activation`)** — activate an existing
+  EdgeWorker code-bundle version onto **STAGING**/**PRODUCTION**
+  (`POST /edgeworkers/v1/ids/{id}/activations`,
+  `{ network, version, note }`). Idempotent the same way Network List
+  Activation is. Fields: `edgeWorkerName`, `version`, `network`, `note`.
+
+  > **Real rollback, unlike Network List Activation.** EdgeWorkers exposes a
+  > genuine deactivation **resource** (`POST .../deactivations`, a separate
+  > endpoint from activation rather than a flag on the same call), so
+  > rollback here — like Cloudlets Policy Activation above — actually undoes
+  > the promotion: re-activating the prior effective version, or
+  > deactivating outright if there was none. Effective state per network is
+  > derived client-side (the activations list has no per-network filter) as
+  > the most-recently-created, non-in-flight, non-failed request for that
+  > network.
+
+### Evaluated and dropped (with reason)
+
+- **CPS (Certificate Provisioning System) enrollments** — even the
+  "non-secret" configuration (SANs, validation type, network deployment
+  settings) is inseparable from an async, multi-step domain-validation /
+  certificate-issuance lifecycle (DV challenge records, CSR generation,
+  staging → production deployment slots). A partial "enrollment metadata"
+  surface without that lifecycle would be honest-but-useless; the lifecycle
+  itself is too heavyweight and stateful for a clean idempotent CRUD config
+  type, the same bar that excludes PAPI property rule-trees.
+- **App & API Protector / Application Security configurations (WAF)** — rate
+  policies, match targets, custom rules and firewall rules all live inside a
+  **versioned security configuration** with its own STAGING/PRODUCTION
+  activation lifecycle, layered on top of already deeply-nested per-rule
+  schemas. Evaluated and dropped for this exact reason in v0.2.0; re-verified
+  this release and the conclusion stands — no clean, version-independent
+  sub-API exists.
+- **Bot Manager** — bot categories, detections and actions are configured
+  **as part of** an Application Security configuration version, inheriting
+  the same versioned-config-plus-activation complexity as WAF above; there is
+  no standalone clean sub-API.
+- **SIEM** — the SIEM API is a **read-only** security-event log retrieval/
+  streaming surface (integration setup itself happens in Control Center, not
+  over a write-config REST resource). Not a config-as-code write surface at
+  all, so out of scope regardless of complexity.
+- **IAM users / groups / roles** — verified as genuinely clean CRUD
+  (`identity-management/v3/user-admin/{ui-identities,roles,groups}`,
+  full create/read/update/delete on all three) but deliberately excluded:
+  Control-Center identity and access administration is account-wide,
+  security-sensitive control-plane bootstrap, not edge-security/edge-delivery
+  configuration — the same boundary Cisco Meraki draws around organization
+  administrators in this monorepo ("Credential/API-key and SAML
+  administration is security-sensitive control-plane bootstrap, not canvas
+  configuration").
+
+### Other
+
+- `lib/akamaiApi.ts` gains the base collection-path constants for the three
+  new products (`DNS_ZONES_PATH`, `DNS_ZONE_DELETE_REQUESTS_PATH`,
+  `CLOUDLETS_POLICIES_PATH`, `EDGEWORKERS_IDS_PATH`); the EdgeGrid signer and
+  REST client are unchanged since v0.1.0 and reused as-is.
+- Every configuration type now declares a sidebar `group`: "Edge Security"
+  (Network Lists, Network List Activation, Client Lists — unchanged),
+  "Edge DNS" (DNS Zones, DNS Records), "Cloudlets" (Cloudlets Policies,
+  Cloudlets Policy Activation) and "EdgeWorkers" (EdgeWorkers, EdgeWorker
+  Activation).
+- Provenance note: the Edge DNS / Cloudlets / EdgeWorkers endpoint paths,
+  methods and request/response field names above were verified against
+  `AkamaiOPEN-edgegrid-golang`'s `pkg/dns`, `pkg/cloudlets/v3` and
+  `pkg/edgeworkers` packages (the library the Akamai Terraform provider
+  itself is built on) — treat as **verified against the SDK** but not against
+  a live tenant; the Cloudlets/EdgeWorkers activation status enums in
+  particular are asserted defensively (known in-flight/failed statuses
+  matched by name, everything else treated as terminal-success) since the
+  interactive API reference for activation states is not fully enumerated in
+  the public docs.
+
 ## 0.2.0 — 2026-08-01
 
 Two new Edge Security config types, both reusing the v0.1.0 EdgeGrid signer.

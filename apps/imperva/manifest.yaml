@@ -1,14 +1,15 @@
 id: imperva
 name: Imperva
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Imperva Cloud WAF (formerly Incapsula) edge security as code. Author
-  site security / ACL rules — block, alert or challenge traffic by client IP,
-  geography or URL — and drive them through the Security-as-Code pipeline:
-  validate, deploy, health check, drift detection and rollback. Rules are applied
-  over the legacy Cloud WAF management API (Incapsula) v1
-  (https://my.imperva.com/api/prov/v1), authenticated with an API ID + API key.
+  site security / ACL rules, delivery / rewrite rules, data centers and origin
+  servers, per-rule exceptions, and general site configuration — and drive them
+  through the Security-as-Code pipeline: validate, deploy, health check, drift
+  detection and rollback. Rules are applied over the legacy Cloud WAF management
+  API (Incapsula) v1 (https://my.imperva.com/api/prov/v1), authenticated with an
+  API ID + API key.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/imperva
@@ -37,6 +38,18 @@ permissions:
     - resource: acl-configuration
       actions: [read, write]
       description: Manage Imperva Cloud WAF site ACLs (blacklist IPs / countries / URLs, whitelist IPs) as a declarative per-site set
+    - resource: delivery-rules
+      actions: [read, write, delete]
+      description: Manage Imperva Cloud WAF delivery / rewrite rules (redirect, rewrite URL/header/cookie, forward to data center or port, rate-limit, custom error response, add / edit / delete per site)
+    - resource: data-centers
+      actions: [read, write, delete]
+      description: Manage Imperva Cloud WAF data centers (origin server pools) and their origin servers, per site
+    - resource: security-rule-exceptions
+      actions: [read, write, delete]
+      description: Manage Imperva Cloud WAF per-rule allowlist exceptions (bypass one security or ACL rule for specific IPs, countries, URLs, user agents, client apps or parameters)
+    - resource: site-configuration
+      actions: [read, write]
+      description: Manage a site's general configuration (active/bypass, SSL/domain validation, acceleration, trust seal, CNAME/SAN options, log level) as a declarative per-site set
 
 pipeline:
   configurationTypes:
@@ -103,6 +116,105 @@ pipeline:
         healthCheck: config-types/acl-configuration/healthCheck
         driftDetect: config-types/acl-configuration/driftDetect
         getStatus: config-types/acl-configuration/getStatus
+      targets:
+        componentTypes: [imperva]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: delivery-rules
+      group: "Edge Security"
+      name: Delivery Rules
+      description: >
+        Imperva Cloud WAF delivery / rewrite rules — redirect, rewrite URL /
+        request or response header / cookie, delete header or cookie, forward to
+        a data center or port, rate-limit, custom error response — applied over
+        the SAME Cloud WAF (Incapsula) management API v1 IncapRules endpoint ACL
+        Rules uses (POST /sites/incapRules/*, HTTPS 443), authoring the delivery
+        action subset instead of the security action subset. Upsert by rule name
+        within a site. NOT Imperva's newer `delivery_rules_configuration` API,
+        which stays out of scope.
+      canvasTemplate: config-types/delivery-rules/canvas.yaml
+      defaultConfig: config-types/delivery-rules/defaults.yaml
+      handlers:
+        validate: config-types/delivery-rules/validate
+        deploy: config-types/delivery-rules/deploy
+        rollback: config-types/delivery-rules/rollback
+        healthCheck: config-types/delivery-rules/healthCheck
+        driftDetect: config-types/delivery-rules/driftDetect
+        getStatus: config-types/delivery-rules/getStatus
+      targets:
+        componentTypes: [imperva]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: data-centers
+      group: "Origin Infrastructure"
+      name: Data Centers
+      description: >
+        Imperva Cloud WAF data centers (origin server pools) and their origin
+        servers, per site — applied over the Cloud WAF (Incapsula) management
+        API v1 (POST /sites/dataCenters/*, /sites/dataCenters/servers/*, HTTPS
+        443). The data center name is the identity within a site; each server's
+        address is the identity within the data center. One item per data
+        center, with its servers as a JSON list.
+      canvasTemplate: config-types/data-centers/canvas.yaml
+      defaultConfig: config-types/data-centers/defaults.yaml
+      handlers:
+        validate: config-types/data-centers/validate
+        deploy: config-types/data-centers/deploy
+        rollback: config-types/data-centers/rollback
+        healthCheck: config-types/data-centers/healthCheck
+        driftDetect: config-types/data-centers/driftDetect
+        getStatus: config-types/data-centers/getStatus
+      targets:
+        componentTypes: [imperva]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: security-rule-exceptions
+      group: "Edge Security"
+      name: Security Rule Exceptions
+      description: >
+        Per-rule allowlist exceptions — let specific IPs, countries/continents,
+        URLs, user agents, client apps/app types or request parameters bypass
+        ONE security or ACL rule on a site, distinct from ACL Configuration's
+        site-wide blacklist. Managed over the Cloud WAF (Incapsula) management
+        API v1 (POST /sites/configure/whitelists, HTTPS 443). An exception has no
+        operator-facing name — its match condition IS its identity — so
+        reconciliation is by content within each (site, rule) group.
+      canvasTemplate: config-types/security-rule-exceptions/canvas.yaml
+      defaultConfig: config-types/security-rule-exceptions/defaults.yaml
+      handlers:
+        validate: config-types/security-rule-exceptions/validate
+        deploy: config-types/security-rule-exceptions/deploy
+        rollback: config-types/security-rule-exceptions/rollback
+        healthCheck: config-types/security-rule-exceptions/healthCheck
+        driftDetect: config-types/security-rule-exceptions/driftDetect
+        getStatus: config-types/security-rule-exceptions/getStatus
+      targets:
+        componentTypes: [imperva]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: site-configuration
+      group: "Edge Security"
+      name: Site Configuration
+      description: >
+        A site's general configuration — active/bypass, SSL/domain validation,
+        acceleration level, trust seal placement, restricted CNAME reuse,
+        naked-domain/wildcard SAN, reference ID, and log level — managed as a
+        declarative per-site set over the Cloud WAF (Incapsula) management API
+        v1 (POST /sites/configure and /sites/setlog, HTTPS 443). One item per
+        site; an empty field is left untouched rather than cleared.
+      canvasTemplate: config-types/site-configuration/canvas.yaml
+      defaultConfig: config-types/site-configuration/defaults.yaml
+      handlers:
+        validate: config-types/site-configuration/validate
+        deploy: config-types/site-configuration/deploy
+        rollback: config-types/site-configuration/rollback
+        healthCheck: config-types/site-configuration/healthCheck
+        driftDetect: config-types/site-configuration/driftDetect
+        getStatus: config-types/site-configuration/getStatus
       targets:
         componentTypes: [imperva]
         requiresCredential: true

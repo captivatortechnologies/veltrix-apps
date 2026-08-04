@@ -1,0 +1,187 @@
+# =============================================================================
+# Canvas Template — Imperva Cloud WAF Security Rule Exceptions
+#
+# Declares ONE exception (the item) that lets a specific match condition bypass
+# ONE security or ACL rule on a site. Applied via the Cloud WAF (Incapsula)
+# management API v1 (POST /sites/configure/whitelists, HTTPS 443). There is no
+# operator-facing name — the match condition IS the exception's identity, so
+# duplicates for the same (site, rule) collapse into one and reconciliation is
+# by content, not name. The fields shown depend on the chosen Rule (visibleWhen).
+# Field keys must match config-types/security-rule-exceptions/validate.ts +
+# _shared.ts.
+# =============================================================================
+
+id: "imperva-security-rule-exceptions"
+name: "Security Rule Exceptions"
+toolType: "imperva"
+entityType: "security-rule-exceptions"
+description: "Allow specific IPs, countries, URLs, user agents, client apps or request parameters to bypass one security or ACL rule on a site, via the Cloud WAF (Incapsula) API v1"
+
+item:
+  label: "Rule Exception"
+  identityField: "ruleId"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Target"
+      icon: "globe"
+      description: "The site and rule this exception applies to"
+      fields:
+        - key: "siteId"
+          label: "Site ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[0-9]+$"
+            maxLength: 20
+          helpText: "The numeric Imperva Cloud WAF site ID this exception applies to."
+
+        - key: "ruleId"
+          label: "Rule"
+          fieldType: "select"
+          required: true
+          defaultValue: "api.threats.sql_injection"
+          options:
+            - { label: "SQL Injection", value: "api.threats.sql_injection" }
+            - { label: "Cross-Site Scripting (XSS)", value: "api.threats.cross_site_scripting" }
+            - { label: "Illegal Resource Access", value: "api.threats.illegal_resource_access" }
+            - { label: "Remote File Inclusion (RFI)", value: "api.threats.remote_file_inclusion" }
+            - { label: "Backdoor Protection", value: "api.threats.backdoor" }
+            - { label: "DDoS Protection", value: "api.threats.ddos" }
+            - { label: "Bot Access Control", value: "api.threats.bot_access_control" }
+            - { label: "Blacklisted IPs (ACL)", value: "api.acl.blacklisted_ips" }
+            - { label: "Blacklisted Countries (ACL)", value: "api.acl.blacklisted_countries" }
+            - { label: "Blacklisted URLs (ACL)", value: "api.acl.blacklisted_urls" }
+          helpText: "The security or ACL rule this exception excepts traffic FROM. Each rule kind accepts a different subset of the match conditions below."
+
+    - name: "Match Condition"
+      icon: "filter"
+      description: "What traffic bypasses the rule — at least one is required"
+      fields:
+        - key: "ips"
+          label: "IPs"
+          fieldType: "tags"
+          required: false
+          visibleWhen:
+            field: "ruleId"
+            in:
+              - "api.acl.blacklisted_countries"
+              - "api.acl.blacklisted_ips"
+              - "api.acl.blacklisted_urls"
+              - "api.threats.backdoor"
+              - "api.threats.bot_access_control"
+              - "api.threats.ddos"
+              - "api.threats.illegal_resource_access"
+              - "api.threats.remote_file_inclusion"
+          helpText: "IPs, ranges or CIDRs to except — e.g. 192.168.1.1, 192.168.1.1-192.168.1.100, 192.168.1.1/24."
+
+        - key: "urls"
+          label: "URLs"
+          fieldType: "tags"
+          required: false
+          visibleWhen:
+            field: "ruleId"
+            in:
+              - "api.acl.blacklisted_countries"
+              - "api.acl.blacklisted_ips"
+              - "api.acl.blacklisted_urls"
+              - "api.threats.backdoor"
+              - "api.threats.bot_access_control"
+              - "api.threats.cross_site_scripting"
+              - "api.threats.ddos"
+              - "api.threats.illegal_resource_access"
+              - "api.threats.remote_file_inclusion"
+              - "api.threats.sql_injection"
+          helpText: "Resource paths to except — e.g. /admin, /wp-login.php."
+
+        - key: "countries"
+          label: "Countries"
+          fieldType: "tags"
+          required: false
+          visibleWhen:
+            field: "ruleId"
+            in:
+              - "api.acl.blacklisted_ips"
+              - "api.acl.blacklisted_urls"
+              - "api.threats.backdoor"
+              - "api.threats.bot_access_control"
+              - "api.threats.cross_site_scripting"
+              - "api.threats.ddos"
+              - "api.threats.illegal_resource_access"
+              - "api.threats.remote_file_inclusion"
+              - "api.threats.sql_injection"
+          helpText: "Two-letter ISO country codes to except — e.g. US, DE."
+
+        - key: "continents"
+          label: "Continents"
+          fieldType: "tags"
+          required: false
+          visibleWhen:
+            field: "ruleId"
+            in:
+              - "api.acl.blacklisted_ips"
+              - "api.acl.blacklisted_urls"
+              - "api.threats.backdoor"
+              - "api.threats.bot_access_control"
+              - "api.threats.cross_site_scripting"
+              - "api.threats.ddos"
+              - "api.threats.illegal_resource_access"
+              - "api.threats.remote_file_inclusion"
+              - "api.threats.sql_injection"
+          helpText: "Continent codes to except — e.g. NA, EU."
+
+        - key: "clientApps"
+          label: "Client apps"
+          fieldType: "tags"
+          required: false
+          visibleWhen:
+            field: "ruleId"
+            in:
+              - "api.acl.blacklisted_ips"
+              - "api.acl.blacklisted_urls"
+              - "api.threats.backdoor"
+              - "api.threats.bot_access_control"
+              - "api.threats.cross_site_scripting"
+              - "api.threats.ddos"
+              - "api.threats.illegal_resource_access"
+              - "api.threats.remote_file_inclusion"
+              - "api.threats.sql_injection"
+          helpText: "Client application IDs to except (from Imperva's client app catalog)."
+
+        - key: "clientAppTypes"
+          label: "Client app types"
+          fieldType: "tags"
+          required: false
+          visibleWhen:
+            field: "ruleId"
+            in:
+              - "api.acl.blacklisted_countries"
+              - "api.threats.bot_access_control"
+          helpText: "Client application TYPES to except (a broader category than a specific client app)."
+
+        - key: "userAgents"
+          label: "User agents"
+          fieldType: "tags"
+          required: false
+          visibleWhen:
+            field: "ruleId"
+            in:
+              - "api.threats.backdoor"
+              - "api.threats.bot_access_control"
+              - "api.threats.remote_file_inclusion"
+          helpText: "Encoded user agent strings to except."
+
+        - key: "parameters"
+          label: "Request parameters"
+          fieldType: "tags"
+          required: false
+          visibleWhen:
+            field: "ruleId"
+            in:
+              - "api.threats.backdoor"
+              - "api.threats.cross_site_scripting"
+              - "api.threats.illegal_resource_access"
+              - "api.threats.remote_file_inclusion"
+              - "api.threats.sql_injection"
+          helpText: "Encoded request parameter names to except."

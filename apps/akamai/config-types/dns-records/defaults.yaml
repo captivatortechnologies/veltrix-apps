@@ -1,0 +1,5 @@
+# Defaults for a new DNS Record item — the operator fills in the zone, name
+# and rdata. `recordType` seeds to A and `ttl` to 300 (matches the canvas
+# field defaults).
+recordType: "A"
+ttl: 300

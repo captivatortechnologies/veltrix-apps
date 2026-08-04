@@ -1,0 +1,51 @@
+# =============================================================================
+# Canvas Template — HackerOne Program Policy
+#
+# Declares ONE program's policy (the item) — the full disclosure / bug-bounty
+# policy text shown to researchers on the program's page. Users add one item per
+# program they manage. Each item names its target PROGRAM by handle; the deploy
+# handler resolves the handle to a program id via GET /me/programs and replaces
+# the program's policy text wholesale (there is no partial/append update). Field
+# keys must match config-types/program-policy/validate.ts.
+#
+# Applied over the HackerOne API (https://api.hackerone.com/v1):
+#   PUT /programs/{id}/policy   { data: { type: "program-policy", attributes: { policy } } }
+#   Confirmed: https://api.hackerone.com/customer-resources/ (Update Policy)
+# =============================================================================
+
+id: "hackerone-program-policy"
+name: "Program Policy"
+toolType: "hackerone"
+entityType: "program-policy"
+description: "Manage a HackerOne program's disclosure / bug-bounty policy text — the document shown to researchers on the program's page — via the HackerOne API (https://api.hackerone.com/v1, PUT /programs/{id}/policy)."
+
+item:
+  label: "Program Policy"
+  identityField: "program_handle"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Program"
+      icon: "target"
+      description: "The program this policy applies to"
+      fields:
+        - key: "program_handle"
+          label: "Program Handle"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The HackerOne program handle this policy belongs to (the slug in hackerone.com/<handle>). Resolved to the program id via GET /me/programs."
+
+    - name: "Policy"
+      icon: "book"
+      description: "The full policy document shown to researchers"
+      fields:
+        - key: "policy"
+          label: "Policy"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 100000
+          helpText: "The program's full policy text (Markdown), shown to researchers on the program's page. Deploy replaces the ENTIRE document — there is no partial/append update."

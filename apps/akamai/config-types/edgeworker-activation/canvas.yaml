@@ -1,0 +1,78 @@
+# =============================================================================
+# Canvas Template — Akamai EdgeWorker Activation
+#
+# Declares ONE activation target (the item): an EdgeWorker code bundle version
+# (by EdgeWorker name) promoted onto STAGING or PRODUCTION. The version itself
+# is built and uploaded out of band (CI/CD or the Akamai CLI — see the
+# EdgeWorkers config type's scope note); this config type only controls WHICH
+# version is live where. Users add as many as they need — e.g. the same
+# EdgeWorker twice to activate it on both environments.
+#
+# Deploy TRIGGERS the activation (POST .../activations) and is idempotent: an
+# EdgeWorker already effective at the declared version on that network is
+# skipped. Unlike Network List Activation, EdgeWorkers exposes a REAL
+# deactivation resource, so rollback here can genuinely undo an activation —
+# see rollback.ts.
+#
+# Field keys must match config-types/edgeworker-activation/validate.ts. The
+# (edgeWorkerName + network) pair is the real identity; identityField is the
+# EdgeWorker name (a single field) — the same convention used by Network List
+# Activation.
+# =============================================================================
+
+id: "akamai-edgeworker-activation"
+name: "EdgeWorker Activation"
+toolType: "akamai"
+entityType: "edgeworker-activation"
+description: "Activate an Akamai EdgeWorker code bundle version onto STAGING or PRODUCTION via the EdgeWorkers API v1 (EdgeGrid-signed)"
+
+item:
+  label: "Activation"
+  identityField: "edgeWorkerName"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Target"
+      icon: "code"
+      description: "Which EdgeWorker version to activate, and where"
+      fields:
+        - key: "edgeWorkerName"
+          label: "EdgeWorker name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 85
+          helpText: "Name of the EdgeWorker to activate (its stable identity, shared with the EdgeWorkers config type). The EdgeWorker must already exist, and the version below must already be uploaded (out of band — see the EdgeWorkers config type)."
+
+        - key: "version"
+          label: "Version"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 20
+          helpText: "Which code bundle version to activate (e.g. 1.2 or 7) — as shown in Control Center or returned by your CI/CD upload step."
+
+        - key: "network"
+          label: "Environment"
+          fieldType: "select"
+          required: true
+          defaultValue: "STAGING"
+          options:
+            - label: "Staging"
+              value: "STAGING"
+            - label: "Production"
+              value: "PRODUCTION"
+          helpText: "STAGING for pre-production verification, PRODUCTION to go live. Activate STAGING first."
+
+    - name: "Notification"
+      icon: "settings"
+      description: "Optional activation metadata"
+      fields:
+        - key: "note"
+          label: "Note"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 8192
+          helpText: "Descriptive text recorded on the activation. Note the change or ticket reference here."

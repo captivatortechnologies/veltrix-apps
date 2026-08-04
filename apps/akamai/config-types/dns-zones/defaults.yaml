@@ -1,0 +1,5 @@
+# Defaults for a new DNS Zone item — the operator fills in the zone name and
+# contract. `type` seeds to PRIMARY (matches the canvas field default).
+type: "PRIMARY"
+signAndServe: false
+signAndServeAlgorithm: "RSA_SHA256"
