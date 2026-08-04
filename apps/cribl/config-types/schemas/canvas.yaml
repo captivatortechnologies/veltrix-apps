@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template — Cribl Stream Schemas
+#
+# Declares ONE reusable JSON Schema library entry (the item), used to validate
+# structured event data. Users add as many as they need. Field keys must match
+# config-types/schemas/validate.ts. Applied via the Cribl REST API
+# (/api/v1[/m/<group>]/lib/schemas).
+# =============================================================================
+
+id: "cribl-schemas"
+name: "Schemas"
+toolType: "cribl"
+entityType: "schemas"
+description: "Manage reusable JSON Schema library entries via the Cribl REST API (/api/v1[/m/<group>]/lib/schemas)"
+
+item:
+  label: "Schema"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Schema"
+      icon: "file-json"
+      description: "Schema identity and target Worker Group"
+      fields:
+        - key: "id"
+          label: "Schema ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Name shown in Cribl's Schemas library. Used as the stable identity for upsert and drift."
+
+        - key: "worker_group"
+          label: "Worker Group / Fleet"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Worker Group or Edge Fleet to deploy into, e.g. default. Blank falls back to the app's Default Worker Group setting; set that blank for a single-instance deployment."
+
+    - name: "Definition"
+      icon: "code"
+      description: "The JSON Schema"
+      fields:
+        - key: "schema"
+          label: "JSON Schema"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 200000
+          helpText: 'JSON Schema (draft 2019-09), e.g. {"type":"object","properties":{"_raw":{"type":"string"}}}.'
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "What this schema validates — recorded for audit"

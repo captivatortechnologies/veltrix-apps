@@ -1,0 +1,85 @@
+# =============================================================================
+# Canvas Template — Cribl Stream Regex Library
+#
+# Declares ONE reusable Regex Library entry (the item). Users add as many as
+# they need. Field keys must match config-types/regexes/validate.ts. Applied
+# via the Cribl REST API (/api/v1[/m/<group>]/lib/regex).
+# =============================================================================
+
+id: "cribl-regexes"
+name: "Regexes"
+toolType: "cribl"
+entityType: "regexes"
+description: "Manage reusable Regex Library entries via the Cribl REST API (/api/v1[/m/<group>]/lib/regex)"
+
+item:
+  label: "Regex"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Regex"
+      icon: "hash"
+      description: "Regex identity and target Worker Group"
+      fields:
+        - key: "id"
+          label: "Regex ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Name shown in Cribl's Regex Library. Used as the stable identity for upsert and drift."
+
+        - key: "worker_group"
+          label: "Worker Group / Fleet"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Worker Group or Edge Fleet to deploy into, e.g. default. Blank falls back to the app's Default Worker Group setting; set that blank for a single-instance deployment."
+
+        - key: "lib"
+          label: "Library"
+          fieldType: "text"
+          required: false
+          defaultValue: "custom"
+          validation:
+            maxLength: 100
+          helpText: "Library classification for this entry. Leave as custom unless organizing entries into named libraries."
+
+    - name: "Pattern"
+      icon: "code"
+      description: "The regular expression and optional sample data"
+      fields:
+        - key: "regex"
+          label: "Regex Pattern"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 10000
+          helpText: 'The regular expression, e.g. \\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b'
+
+        - key: "sample_data"
+          label: "Sample Data"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 4096
+          helpText: "Optional sample text to test the pattern against in Cribl's UI."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "What this pattern matches — recorded for audit"
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Comma-separated tags for filtering, e.g. network,ip"

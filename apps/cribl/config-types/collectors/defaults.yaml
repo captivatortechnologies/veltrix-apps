@@ -1,0 +1,14 @@
+# Defaults for a new Collector item. The operator fills in the id and the
+# collector backend + routing/schedule as conf JSON.
+worker_group: "default"
+conf: |
+  {
+    "collector": {
+      "type": "rest",
+      "conf": {}
+    },
+    "input": {
+      "pipeline": "main",
+      "output": "default"
+    }
+  }

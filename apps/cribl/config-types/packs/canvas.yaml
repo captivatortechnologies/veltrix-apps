@@ -1,0 +1,100 @@
+# =============================================================================
+# Canvas Template — Cribl Stream Packs
+#
+# Declares ONE Pack install (the item) — installed/upgraded from a git or
+# registry SOURCE (not a local .crbl file upload; see this app's README).
+# Users add as many as they need. Field keys must match
+# config-types/packs/validate.ts. Applied via the Cribl REST API
+# (/api/v1[/m/<group>]/packs).
+# =============================================================================
+
+id: "cribl-packs"
+name: "Packs"
+toolType: "cribl"
+entityType: "packs"
+description: "Install / upgrade Cribl Stream Packs from a git or registry source via the Cribl REST API (/api/v1[/m/<group>]/packs)"
+
+item:
+  label: "Pack"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Pack"
+      icon: "package"
+      description: "Pack identity, source and target Worker Group"
+      fields:
+        - key: "id"
+          label: "Pack ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_-]+$"
+            maxLength: 255
+          helpText: "Pack name shown in Cribl (letters, digits, _ and - only). Used as the stable identity for upsert and drift."
+
+        - key: "source"
+          label: "Source"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 2000
+          helpText: "Git URL or Pack registry reference to install from, e.g. https://github.com/org/packs/apache."
+
+        - key: "spec"
+          label: "Version Spec"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Branch, tag or semver spec to install/upgrade to, e.g. ^1.3.0 or a tag name. Leave blank to use the source's default."
+
+        - key: "worker_group"
+          label: "Worker Group / Fleet"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Worker Group or Edge Fleet to deploy into, e.g. default. Blank falls back to the app's Default Worker Group setting; set that blank for a single-instance deployment."
+
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Install the Pack disabled."
+
+    - name: "Metadata"
+      icon: "info"
+      description: "Optional display metadata"
+      fields:
+        - key: "display_name"
+          label: "Display Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Ignored when the Pack's own metadata already sets one."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this Pack provides — recorded for audit"
+
+        - key: "author"
+          label: "Author"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+
+        - key: "allow_custom_functions"
+          label: "Allow Custom Functions"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Allow this Pack to define custom Functions. Cannot be changed after install."

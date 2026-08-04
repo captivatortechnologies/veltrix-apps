@@ -1,0 +1,149 @@
+# =============================================================================
+# Canvas Template — Cribl Stream Database Connections
+#
+# Declares ONE reusable Database Connection (the item), used by the Database
+# Collector and Database Destination. Users add as many as they need. Field
+# keys must match config-types/database-connections/validate.ts. Applied via
+# the Cribl REST API (/api/v1[/m/<group>]/lib/database-connections).
+#
+# ⚠ Connection String / Password are WRITE-ONLY secrets — Cribl never returns
+# them, so they cannot be diffed, logged, or captured for rollback. Prefer
+# referencing a stored Secret (Cribl's `${{secret:<name>}}` syntax, or the
+# Creds/Text Secret Reference fields) over a literal credential where possible.
+# =============================================================================
+
+id: "cribl-database-connections"
+name: "Database Connections"
+toolType: "cribl"
+entityType: "database-connections"
+description: "Manage reusable Database Connections via the Cribl REST API (/api/v1[/m/<group>]/lib/database-connections)"
+
+item:
+  label: "Database Connection"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Connection"
+      icon: "database"
+      description: "Connection identity, engine and target Worker Group"
+      fields:
+        - key: "id"
+          label: "Connection ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Name shown in Cribl's Database Connections library. Used as the stable identity for upsert and drift."
+
+        - key: "worker_group"
+          label: "Worker Group / Fleet"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Worker Group or Edge Fleet to deploy into, e.g. default. Blank falls back to the app's Default Worker Group setting; set that blank for a single-instance deployment."
+
+        - key: "database_type"
+          label: "Database Type"
+          fieldType: "select"
+          required: true
+          options:
+            - { label: "MySQL", value: "mysql" }
+            - { label: "Oracle", value: "oracle" }
+            - { label: "PostgreSQL", value: "postgres" }
+            - { label: "SQL Server", value: "sqlserver" }
+          helpText: "The database engine."
+
+        - key: "auth_type"
+          label: "Auth Type"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: "How credentials are provided, e.g. connectionString, password. Valid values vary by database type."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 1000
+          helpText: "What this connection is used for — required by Cribl."
+
+    - name: "Credentials"
+      icon: "lock"
+      description: "Write-only — see the warning above"
+      fields:
+        - key: "connection_string"
+          label: "Connection String"
+          fieldType: "password"
+          required: false
+          helpText: >
+            ⚠ WRITE-ONLY secret — never returned, so it cannot be diffed, logged, or
+            captured for rollback. May embed credentials, e.g. postgresql://user:pass@host:5432/db.
+            Leave blank on an EXISTING connection to keep it unchanged.
+
+        - key: "user"
+          label: "Username"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Database username (Oracle-style auth)."
+
+        - key: "password"
+          label: "Password"
+          fieldType: "password"
+          required: false
+          helpText: >
+            ⚠ WRITE-ONLY secret — never returned, so it cannot be diffed, logged, or
+            captured for rollback. Leave blank on an EXISTING connection to keep it unchanged.
+            Prefer Cribl's `${{secret:<name>}}` reference syntax over a literal password.
+
+        - key: "creds_secrets"
+          label: "Credentials Secret Reference"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Name of a stored Secret (see the Secrets config type) holding username + password. Not secret material itself."
+
+        - key: "text_secret"
+          label: "Text Secret Reference"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Name of a stored Secret holding the full connection string. Not secret material itself."
+
+    - name: "Advanced"
+      icon: "settings"
+      description: "Optional timeouts, extra config and tags"
+      fields:
+        - key: "connection_timeout"
+          label: "Connection Timeout (ms)"
+          fieldType: "number"
+          required: false
+          helpText: "Maximum time to wait when establishing the connection."
+
+        - key: "request_timeout"
+          label: "Request Timeout (ms, SQL Server only)"
+          fieldType: "number"
+          required: false
+          helpText: "Maximum time to wait for a query to complete. Applies to SQL Server connections only."
+
+        - key: "config_obj"
+          label: "Advanced Config (JSON, write-only)"
+          fieldType: "password"
+          required: false
+          helpText: "⚠ WRITE-ONLY — advanced SQL Server connection settings as a JSON string, e.g. {\"ssl\":true}."
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Comma-separated tags for filtering, e.g. prod,db"

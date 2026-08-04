@@ -2,6 +2,85 @@
 
 All notable changes to the Cribl app are documented here.
 
+## 0.3.0 — 2026-08-04
+
+Exhausts the rest of Cribl Stream's genuinely-declarative REST configuration
+surface — 18 new config types across five new/expanded sidebar groups,
+researched against the official Cribl OpenAPI spec (v4.14.0, as vendored by
+`criblio/terraform-provider-criblio`) and cross-checked against that
+provider's own resource docs.
+
+**Knowledge** (new group) — reusable library entries referenced from
+Pipelines/Routes/Functions:
+- **Lookups** (`system/lookups`), **Regexes** (`lib/regex`), **Grok Patterns**
+  (`lib/grok`), **Parsers** (`lib/parsers`), **Event Breakers**
+  (`lib/breakers`, order-significant rules as JSON), **Schemas**
+  (`lib/schemas`, JSON Schema draft 2019-09), **Global Variables** (`lib/vars`).
+
+**Data Pipelines** (existing group):
+- **Subscriptions** (`system/subscriptions`) — stream-to-pipeline bindings.
+- **Collectors** (`lib/jobs`) — scheduled/ad hoc data-collection jobs; modeled
+  as id + conf JSON (Pipelines-style), matching the real ~9-backend
+  discriminated-union body shape.
+
+**Integrations** (existing group):
+- **Notification Targets** (`notification-targets`) — reuses the Sources/
+  Destinations `{ id, type, ...conf }` engine, extended with a new
+  `groupScoped: false` option (this collection is global, not per-group).
+- **Notifications** (`notifications`) — alert rules; also global, with Worker
+  Group as a genuine body field rather than a path segment.
+- **Database Connections** (`lib/database-connections`) — write-only
+  `connectionString`/`password`/`configObj`.
+
+**Packs** (new group):
+- **Packs** (`m/<group>/packs`) — install/upgrade from a git or registry
+  `source`+`spec`, hand-written (not the shared engine) because Cribl's own
+  Pack lifecycle is asymmetric: install is a POST with a JSON body, upgrade is
+  a PATCH with query-string params; rollback pins the exact prior resolved
+  `version` for a reproducible downgrade.
+
+**Security** (new group):
+- **Secrets** (`system/secrets`), **Certificates** (`system/certificates`) —
+  write-only secret material (value/password/apiKey/secretKey, privKey/
+  passphrase), following the same write-only-field convention as
+  `apps/cisco-ise`'s internal-users: sent only when non-blank, never captured
+  for drift or rollback (an UPDATE is left as-is on rollback; only a
+  newly-created record is deleted).
+- **Keys** (`system/keys`) — encryption key METADATA only; `plainKey`/
+  `cipherKey` are deliberately never sent, so Cribl's local KMS always
+  generates the material server-side (mirrors the official Terraform
+  provider's own field omission for this resource).
+- **HMAC Functions** (`lib/hmac-functions`) — no secret material.
+
+**Worker Groups** (new group):
+- **Worker Group Settings** (`m/<group>/system/settings/conf`) — a per-group
+  settings SINGLETON (GET+PATCH only). Users declare a partial JSON object of
+  just the settings to enforce; drift/rollback use a `deepPick` projection so
+  undeclared sibling fields never read as false drift, and rollback restores
+  the full live snapshot captured before the deploy's PATCH.
+
+**Shared engine work**:
+- `lib/criblRecordEntities.ts` (new) — a generic id+flat-body CRUD engine
+  (list/upsert/rollback/drift) for the 14 "named record" config types above,
+  parameterized by a per-type `buildRecord()` callback, with `sensitiveKeys`
+  and `identityKey` (Keys' wire identity is `keyId`, not `id`) support.
+- `lib/criblSystemEntities.ts` — `EntityDescriptor` gained `groupScoped`, so
+  Notification Targets can reuse the exact Sources/Destinations engine despite
+  not being Worker-Group-scoped.
+- `lib/criblCommon.ts` — added `findByKey`, `stripKeys`, `readStringList`.
+
+**Intentionally excluded** (see README "Coverage" for full reasoning):
+RBAC (Roles/Policies/Teams/Users — real endpoints exist, but excluded by
+Cribl's own official Terraform provider too, and carry credential
+lock-out/IdP-federation risk); Worker Group provisioning (topology, not
+config — the settings singleton above covers "worker-groups config");
+Commit/Deploy (imperative git actions, not desired state); Parquet Schemas
+(near-duplicate of Schemas); Pack install via local `.crbl` file upload
+(needs a file already on the Cribl box's filesystem); raw key material for
+Keys.
+
+Registered 18 new app permissions (one per new config type).
+
 ## 0.2.0 — 2026-08-01
 
 Three new config types — the rest of a Cribl Stream data path as code, alongside

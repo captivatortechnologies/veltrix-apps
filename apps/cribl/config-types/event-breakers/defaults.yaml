@@ -1,0 +1,7 @@
+# Defaults for a new Event Breaker Ruleset item. Kept minimal so a new item
+# starts from a valid, empty ruleset; the operator adds rules.
+worker_group: "default"
+lib: "custom"
+min_raw_length: 256
+rules: |
+  []

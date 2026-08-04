@@ -1,0 +1,107 @@
+# =============================================================================
+# Canvas Template — Cribl Stream Global Variables
+#
+# Declares ONE reusable Global Variable (the item) — a named value or
+# expression usable across Pipelines/Routes/Functions. Users add as many as
+# they need. Field keys must match config-types/global-variables/validate.ts.
+# Applied via the Cribl REST API (/api/v1[/m/<group>]/lib/vars).
+#
+# ⚠ type "Encrypted String" stores the value encrypted server-side, so it may
+# not round-trip on GET the way every other type does — see this app's README
+# for the accepted drift/rollback limitation on that one type.
+# =============================================================================
+
+id: "cribl-global-variables"
+name: "Global Variables"
+toolType: "cribl"
+entityType: "global-variables"
+description: "Manage reusable Global Variables via the Cribl REST API (/api/v1[/m/<group>]/lib/vars)"
+
+item:
+  label: "Global Variable"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Variable"
+      icon: "variable"
+      description: "Variable identity, type and target Worker Group"
+      fields:
+        - key: "id"
+          label: "Variable Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-zA-Z0-9_-]+$"
+            maxLength: 255
+          helpText: "Name shown in Cribl's Global Variables library (letters, digits, _ and - only). Used as the stable identity for upsert and drift."
+
+        - key: "worker_group"
+          label: "Worker Group / Fleet"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Worker Group or Edge Fleet to deploy into, e.g. default. Blank falls back to the app's Default Worker Group setting; set that blank for a single-instance deployment."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: false
+          defaultValue: "any"
+          options:
+            - { label: "Any", value: "any" }
+            - { label: "String", value: "string" }
+            - { label: "Number", value: "number" }
+            - { label: "Boolean", value: "boolean" }
+            - { label: "Array", value: "array" }
+            - { label: "Object", value: "object" }
+            - { label: "Expression", value: "expression" }
+            - { label: "Encrypted String", value: "encryptedString" }
+          helpText: "Type of the variable's value. Encrypted String is stored encrypted — see this app's README for its drift/rollback limitation."
+
+        - key: "lib"
+          label: "Library"
+          fieldType: "text"
+          required: false
+          defaultValue: "custom"
+          validation:
+            maxLength: 100
+          helpText: "Library classification for this variable."
+
+    - name: "Value"
+      icon: "code"
+      description: "The variable's value and (for Expression) its arguments"
+      fields:
+        - key: "value"
+          label: "Value"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: 'The variable value. For type Expression, a JavaScript expression, e.g. "rate * 1.5".'
+
+        - key: "args"
+          label: "Expression Args (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 5000
+          helpText: 'Only used when type is Expression: a JSON array of { "type", "name" } argument definitions, e.g. [{"type":"number","name":"rate"}].'
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "What this variable is used for — recorded for audit"
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Comma-separated tags for filtering"

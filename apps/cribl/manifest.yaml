@@ -1,14 +1,18 @@
 id: cribl
 name: Cribl
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
-  Manage Cribl Stream (telemetry / observability data pipeline) as code. Author
-  pipelines — an id plus a chain of Functions (conf JSON) — and drive them through
-  the Security-as-Code pipeline (validate, deploy, health check, drift detection
-  and rollback) over the Cribl REST API. Worker-group / Edge-fleet aware
-  (/api/v1/m/<group>/pipelines), on-prem (username + password login → Bearer) or
-  Cribl.Cloud (Bearer token), self-signed TLS tolerated.
+  Manage Cribl Stream (telemetry / observability data pipeline) as code across
+  its full REST configuration surface — Pipelines, Routes, Sources,
+  Destinations, the Knowledge library (Lookups, Regexes, Grok Patterns,
+  Parsers, Event Breakers, Schemas, Global Variables), Subscriptions,
+  Collectors, Notification Targets, Notifications, Database Connections,
+  Packs, Secrets, Certificates, Keys, HMAC Functions and per-Worker-Group
+  System Settings — driven through the Security-as-Code pipeline (validate,
+  deploy, health check, drift detection and rollback). Worker-group /
+  Edge-fleet aware (/api/v1/m/<group>/...), on-prem (username + password login
+  → Bearer) or Cribl.Cloud (Bearer token), self-signed TLS tolerated.
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cribl
@@ -40,6 +44,60 @@ permissions:
     - resource: destinations
       actions: [read, write, delete]
       description: Manage Cribl Stream Destinations (output integrations)
+    - resource: lookups
+      actions: [read, write, delete]
+      description: Manage Cribl Stream Lookup tables
+    - resource: regexes
+      actions: [read, write, delete]
+      description: Manage the Cribl Stream Regex Library
+    - resource: grok-patterns
+      actions: [read, write, delete]
+      description: Manage Cribl Stream Grok pattern files
+    - resource: parsers
+      actions: [read, write, delete]
+      description: Manage the Cribl Stream Parsers library
+    - resource: event-breakers
+      actions: [read, write, delete]
+      description: Manage Cribl Stream Event Breaker Rulesets
+    - resource: schemas
+      actions: [read, write, delete]
+      description: Manage the Cribl Stream JSON Schema library
+    - resource: global-variables
+      actions: [read, write, delete]
+      description: Manage Cribl Stream Global Variables
+    - resource: subscriptions
+      actions: [read, write, delete]
+      description: Manage Cribl Stream Subscriptions (stream-to-pipeline bindings)
+    - resource: collectors
+      actions: [read, write, delete]
+      description: Manage Cribl Stream Collectors (scheduled/ad hoc data-collection jobs)
+    - resource: notification-targets
+      actions: [read, write, delete]
+      description: Manage Cribl Stream Notification Targets
+    - resource: notifications
+      actions: [read, write, delete]
+      description: Manage Cribl Stream Notification alert rules
+    - resource: database-connections
+      actions: [read, write, delete]
+      description: Manage Cribl Stream Database Connections
+    - resource: packs
+      actions: [read, write, delete]
+      description: Install / upgrade Cribl Stream Packs
+    - resource: secrets
+      actions: [read, write, delete]
+      description: Manage the Cribl Stream Secrets store
+    - resource: certificates
+      actions: [read, write, delete]
+      description: Manage Cribl Stream TLS Certificates
+    - resource: keys
+      actions: [read, write, delete]
+      description: Manage Cribl Stream encryption key metadata
+    - resource: hmac-functions
+      actions: [read, write, delete]
+      description: Manage Cribl Stream HMAC Functions
+    - resource: worker-group-settings
+      actions: [read, write, delete]
+      description: Manage per-Worker-Group Cribl Stream system settings
 
 pipeline:
   configurationTypes:
@@ -129,6 +187,405 @@ pipeline:
         healthCheck: config-types/destinations/healthCheck
         driftDetect: config-types/destinations/driftDetect
         getStatus: config-types/destinations/getStatus
+      targets:
+        componentTypes: [cribl-leader, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: lookups
+      group: "Knowledge"
+      name: Lookups
+      description: >
+        Cribl Stream Lookup tables (CSV/MMDB reference data) — a filename-shaped
+        id plus file content and storage mode, applied over the Cribl REST API
+        (/api/v1[/m/<group>]/system/lookups). The id is the stable identity used
+        to upsert and to detect drift.
+      canvasTemplate: config-types/lookups/canvas.yaml
+      defaultConfig: config-types/lookups/defaults.yaml
+      handlers:
+        validate: config-types/lookups/validate
+        deploy: config-types/lookups/deploy
+        rollback: config-types/lookups/rollback
+        healthCheck: config-types/lookups/healthCheck
+        driftDetect: config-types/lookups/driftDetect
+        getStatus: config-types/lookups/getStatus
+      targets:
+        componentTypes: [cribl-leader, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: regexes
+      group: "Knowledge"
+      name: Regexes
+      description: >
+        Reusable Regex Library entries, applied over the Cribl REST API
+        (/api/v1[/m/<group>]/lib/regex). The id is the stable identity used to
+        upsert and to detect drift.
+      canvasTemplate: config-types/regexes/canvas.yaml
+      defaultConfig: config-types/regexes/defaults.yaml
+      handlers:
+        validate: config-types/regexes/validate
+        deploy: config-types/regexes/deploy
+        rollback: config-types/regexes/rollback
+        healthCheck: config-types/regexes/healthCheck
+        driftDetect: config-types/regexes/driftDetect
+        getStatus: config-types/regexes/getStatus
+      targets:
+        componentTypes: [cribl-leader, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: grok-patterns
+      group: "Knowledge"
+      name: Grok Patterns
+      description: >
+        Reusable Grok pattern files, applied over the Cribl REST API
+        (/api/v1[/m/<group>]/lib/grok). The id is the stable identity used to
+        upsert and to detect drift.
+      canvasTemplate: config-types/grok-patterns/canvas.yaml
+      defaultConfig: config-types/grok-patterns/defaults.yaml
+      handlers:
+        validate: config-types/grok-patterns/validate
+        deploy: config-types/grok-patterns/deploy
+        rollback: config-types/grok-patterns/rollback
+        healthCheck: config-types/grok-patterns/healthCheck
+        driftDetect: config-types/grok-patterns/driftDetect
+        getStatus: config-types/grok-patterns/getStatus
+      targets:
+        componentTypes: [cribl-leader, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: parsers
+      group: "Knowledge"
+      name: Parsers
+      description: >
+        Reusable format-parser library entries (csv, json, kvp, grok, ...),
+        applied over the Cribl REST API (/api/v1[/m/<group>]/lib/parsers). The
+        id is the stable identity used to upsert and to detect drift.
+      canvasTemplate: config-types/parsers/canvas.yaml
+      defaultConfig: config-types/parsers/defaults.yaml
+      handlers:
+        validate: config-types/parsers/validate
+        deploy: config-types/parsers/deploy
+        rollback: config-types/parsers/rollback
+        healthCheck: config-types/parsers/healthCheck
+        driftDetect: config-types/parsers/driftDetect
+        getStatus: config-types/parsers/getStatus
+      targets:
+        componentTypes: [cribl-leader, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: event-breakers
+      group: "Knowledge"
+      name: Event Breakers
+      description: >
+        Event Breaker Rulesets — ordered rules that split a raw byte stream
+        into events — applied over the Cribl REST API
+        (/api/v1[/m/<group>]/lib/breakers). The id is the stable identity used
+        to upsert and to detect drift.
+      canvasTemplate: config-types/event-breakers/canvas.yaml
+      defaultConfig: config-types/event-breakers/defaults.yaml
+      handlers:
+        validate: config-types/event-breakers/validate
+        deploy: config-types/event-breakers/deploy
+        rollback: config-types/event-breakers/rollback
+        healthCheck: config-types/event-breakers/healthCheck
+        driftDetect: config-types/event-breakers/driftDetect
+        getStatus: config-types/event-breakers/getStatus
+      targets:
+        componentTypes: [cribl-leader, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: schemas
+      group: "Knowledge"
+      name: Schemas
+      description: >
+        Reusable JSON Schema (draft 2019-09) library entries, applied over the
+        Cribl REST API (/api/v1[/m/<group>]/lib/schemas). The id is the stable
+        identity used to upsert and to detect drift.
+      canvasTemplate: config-types/schemas/canvas.yaml
+      defaultConfig: config-types/schemas/defaults.yaml
+      handlers:
+        validate: config-types/schemas/validate
+        deploy: config-types/schemas/deploy
+        rollback: config-types/schemas/rollback
+        healthCheck: config-types/schemas/healthCheck
+        driftDetect: config-types/schemas/driftDetect
+        getStatus: config-types/schemas/getStatus
+      targets:
+        componentTypes: [cribl-leader, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: global-variables
+      group: "Knowledge"
+      name: Global Variables
+      description: >
+        Reusable named values/expressions usable across Pipelines, Routes and
+        Functions, applied over the Cribl REST API
+        (/api/v1[/m/<group>]/lib/vars). The id is the stable identity used to
+        upsert and to detect drift.
+      canvasTemplate: config-types/global-variables/canvas.yaml
+      defaultConfig: config-types/global-variables/defaults.yaml
+      handlers:
+        validate: config-types/global-variables/validate
+        deploy: config-types/global-variables/deploy
+        rollback: config-types/global-variables/rollback
+        healthCheck: config-types/global-variables/healthCheck
+        driftDetect: config-types/global-variables/driftDetect
+        getStatus: config-types/global-variables/getStatus
+      targets:
+        componentTypes: [cribl-leader, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: subscriptions
+      group: "Data Pipelines"
+      name: Subscriptions
+      description: >
+        Bindings from an internal data-plane stream to a Pipeline, applied over
+        the Cribl REST API (/api/v1[/m/<group>]/system/subscriptions). The id is
+        the stable identity used to upsert and to detect drift.
+      canvasTemplate: config-types/subscriptions/canvas.yaml
+      defaultConfig: config-types/subscriptions/defaults.yaml
+      handlers:
+        validate: config-types/subscriptions/validate
+        deploy: config-types/subscriptions/deploy
+        rollback: config-types/subscriptions/rollback
+        healthCheck: config-types/subscriptions/healthCheck
+        driftDetect: config-types/subscriptions/driftDetect
+        getStatus: config-types/subscriptions/getStatus
+      targets:
+        componentTypes: [cribl-leader, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: collectors
+      group: "Data Pipelines"
+      name: Collectors
+      description: >
+        Scheduled/ad hoc data-collection jobs (REST, S3, Azure Blob, Database,
+        GCS, Splunk, Cribl Lake, Script, Health Check), applied over the Cribl
+        REST API (/api/v1[/m/<group>]/lib/jobs). The id is the stable identity
+        used to upsert and to detect drift.
+      canvasTemplate: config-types/collectors/canvas.yaml
+      defaultConfig: config-types/collectors/defaults.yaml
+      handlers:
+        validate: config-types/collectors/validate
+        deploy: config-types/collectors/deploy
+        rollback: config-types/collectors/rollback
+        healthCheck: config-types/collectors/healthCheck
+        driftDetect: config-types/collectors/driftDetect
+        getStatus: config-types/collectors/getStatus
+      targets:
+        componentTypes: [cribl-leader, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: notification-targets
+      group: "Integrations"
+      name: Notification Targets
+      description: >
+        Where alert Notifications are sent (Webhook, PagerDuty, Slack, SNS,
+        SMTP), applied over the Cribl REST API (/api/v1/notification-targets).
+        NOT Worker-Group-scoped — a single global collection. The id is the
+        stable identity used to upsert and to detect drift.
+      canvasTemplate: config-types/notification-targets/canvas.yaml
+      defaultConfig: config-types/notification-targets/defaults.yaml
+      handlers:
+        validate: config-types/notification-targets/validate
+        deploy: config-types/notification-targets/deploy
+        rollback: config-types/notification-targets/rollback
+        healthCheck: config-types/notification-targets/healthCheck
+        driftDetect: config-types/notification-targets/driftDetect
+        getStatus: config-types/notification-targets/getStatus
+      targets:
+        componentTypes: [cribl-leader, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: notifications
+      group: "Integrations"
+      name: Notifications
+      description: >
+        Alert rules that fire on a condition (high-volume, no-data,
+        persistent-queue-usage, a saved Search query, ...) and route to
+        Notification Targets, applied over the Cribl REST API
+        (/api/v1/notifications). NOT Worker-Group-scoped as a path segment
+        (Worker Group is a body field). The id is the stable identity used to
+        upsert and to detect drift.
+      canvasTemplate: config-types/notifications/canvas.yaml
+      defaultConfig: config-types/notifications/defaults.yaml
+      handlers:
+        validate: config-types/notifications/validate
+        deploy: config-types/notifications/deploy
+        rollback: config-types/notifications/rollback
+        healthCheck: config-types/notifications/healthCheck
+        driftDetect: config-types/notifications/driftDetect
+        getStatus: config-types/notifications/getStatus
+      targets:
+        componentTypes: [cribl-leader, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: database-connections
+      group: "Integrations"
+      name: Database Connections
+      description: >
+        Reusable JDBC-style connections used by the Database Collector and
+        Destination, applied over the Cribl REST API
+        (/api/v1[/m/<group>]/lib/database-connections). The id is the stable
+        identity used to upsert and to detect drift. Credential fields
+        (connection string, password) are write-only — never drift-checked or
+        captured for rollback.
+      canvasTemplate: config-types/database-connections/canvas.yaml
+      defaultConfig: config-types/database-connections/defaults.yaml
+      handlers:
+        validate: config-types/database-connections/validate
+        deploy: config-types/database-connections/deploy
+        rollback: config-types/database-connections/rollback
+        healthCheck: config-types/database-connections/healthCheck
+        driftDetect: config-types/database-connections/driftDetect
+        getStatus: config-types/database-connections/getStatus
+      targets:
+        componentTypes: [cribl-leader, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: packs
+      group: "Packs"
+      name: Packs
+      description: >
+        Installs/upgrades Cribl Stream Packs from a git or registry source
+        (not a local .crbl file upload), applied over the Cribl REST API
+        (/api/v1[/m/<group>]/packs). The id is the stable identity used to
+        upsert and to detect drift.
+      canvasTemplate: config-types/packs/canvas.yaml
+      defaultConfig: config-types/packs/defaults.yaml
+      handlers:
+        validate: config-types/packs/validate
+        deploy: config-types/packs/deploy
+        rollback: config-types/packs/rollback
+        healthCheck: config-types/packs/healthCheck
+        driftDetect: config-types/packs/driftDetect
+        getStatus: config-types/packs/getStatus
+      targets:
+        componentTypes: [cribl-leader, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: secrets
+      group: "Security"
+      name: Secrets
+      description: >
+        The local Secrets store (referenced elsewhere as
+        `${{secret:<id>}}`), applied over the Cribl REST API
+        (/api/v1[/m/<group>]/system/secrets). The id is the stable identity
+        used to upsert and to detect drift. Secret material is write-only —
+        never drift-checked or captured for rollback.
+      canvasTemplate: config-types/secrets/canvas.yaml
+      defaultConfig: config-types/secrets/defaults.yaml
+      handlers:
+        validate: config-types/secrets/validate
+        deploy: config-types/secrets/deploy
+        rollback: config-types/secrets/rollback
+        healthCheck: config-types/secrets/healthCheck
+        driftDetect: config-types/secrets/driftDetect
+        getStatus: config-types/secrets/getStatus
+      targets:
+        componentTypes: [cribl-leader, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: certificates
+      group: "Security"
+      name: Certificates
+      description: >
+        TLS certificate/key pairs usable by Sources, Destinations and Database
+        Connections, applied over the Cribl REST API
+        (/api/v1[/m/<group>]/system/certificates). The id is the stable
+        identity used to upsert and to detect drift. The private key is
+        write-only — never drift-checked or captured for rollback.
+      canvasTemplate: config-types/certificates/canvas.yaml
+      defaultConfig: config-types/certificates/defaults.yaml
+      handlers:
+        validate: config-types/certificates/validate
+        deploy: config-types/certificates/deploy
+        rollback: config-types/certificates/rollback
+        healthCheck: config-types/certificates/healthCheck
+        driftDetect: config-types/certificates/driftDetect
+        getStatus: config-types/certificates/getStatus
+      targets:
+        componentTypes: [cribl-leader, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: keys
+      group: "Security"
+      name: Keys
+      description: >
+        Encryption key METADATA (algorithm, KMS, rotation) — never raw key
+        material, which Cribl's local KMS always generates server-side —
+        applied over the Cribl REST API (/api/v1[/m/<group>]/system/keys). The
+        keyId is the stable identity used to upsert and to detect drift.
+      canvasTemplate: config-types/keys/canvas.yaml
+      defaultConfig: config-types/keys/defaults.yaml
+      handlers:
+        validate: config-types/keys/validate
+        deploy: config-types/keys/deploy
+        rollback: config-types/keys/rollback
+        healthCheck: config-types/keys/healthCheck
+        driftDetect: config-types/keys/driftDetect
+        getStatus: config-types/keys/getStatus
+      targets:
+        componentTypes: [cribl-leader, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: hmac-functions
+      group: "Security"
+      name: HMAC Functions
+      description: >
+        Reusable request-signing definitions used to sign outbound Destination
+        requests, applied over the Cribl REST API
+        (/api/v1[/m/<group>]/lib/hmac-functions). The id is the stable identity
+        used to upsert and to detect drift.
+      canvasTemplate: config-types/hmac-functions/canvas.yaml
+      defaultConfig: config-types/hmac-functions/defaults.yaml
+      handlers:
+        validate: config-types/hmac-functions/validate
+        deploy: config-types/hmac-functions/deploy
+        rollback: config-types/hmac-functions/rollback
+        healthCheck: config-types/hmac-functions/healthCheck
+        driftDetect: config-types/hmac-functions/driftDetect
+        getStatus: config-types/hmac-functions/getStatus
+      targets:
+        componentTypes: [cribl-leader, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: worker-group-settings
+      group: "Worker Groups"
+      name: Worker Group Settings
+      description: >
+        Per-Worker-Group system settings (API/TLS/security/PII/backups/
+        rollback/shutdown/worker sizing) — a singleton per group (GET+PATCH
+        only), applied over the Cribl REST API
+        (/api/v1/m/<group>/system/settings/conf). The Worker Group is the
+        stable identity used to upsert and to detect drift. HIGH BLAST RADIUS —
+        can change how the Leader/Workers authenticate and API availability.
+      canvasTemplate: config-types/worker-group-settings/canvas.yaml
+      defaultConfig: config-types/worker-group-settings/defaults.yaml
+      handlers:
+        validate: config-types/worker-group-settings/validate
+        deploy: config-types/worker-group-settings/deploy
+        rollback: config-types/worker-group-settings/rollback
+        healthCheck: config-types/worker-group-settings/healthCheck
+        driftDetect: config-types/worker-group-settings/driftDetect
+        getStatus: config-types/worker-group-settings/getStatus
       targets:
         componentTypes: [cribl-leader, standalone]
         requiresCredential: true

@@ -1,0 +1,53 @@
+# =============================================================================
+# Canvas Template — Cribl Stream Grok Patterns
+#
+# Declares ONE Grok pattern file (the item) — a named set of Grok pattern
+# definitions usable from Event Breakers, Parsers and Functions. Users add as
+# many as they need. Field keys must match config-types/grok-patterns/validate.ts.
+# Applied via the Cribl REST API (/api/v1[/m/<group>]/lib/grok).
+# =============================================================================
+
+id: "cribl-grok-patterns"
+name: "Grok Patterns"
+toolType: "cribl"
+entityType: "grok-patterns"
+description: "Manage reusable Grok pattern files via the Cribl REST API (/api/v1[/m/<group>]/lib/grok)"
+
+item:
+  label: "Grok Pattern File"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Grok File"
+      icon: "file-text"
+      description: "File identity and target Worker Group"
+      fields:
+        - key: "id"
+          label: "File ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Name shown in Cribl's Grok Patterns library. Used as the stable identity for upsert and drift."
+
+        - key: "worker_group"
+          label: "Worker Group / Fleet"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Worker Group or Edge Fleet to deploy into, e.g. default. Blank falls back to the app's Default Worker Group setting; set that blank for a single-instance deployment."
+
+    - name: "Patterns"
+      icon: "code"
+      description: "The Grok pattern definitions"
+      fields:
+        - key: "content"
+          label: "Pattern Definitions"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 200000
+          helpText: 'One NAME pattern-body pair per line, e.g. "CUSTOM_TIMESTAMP %{YEAR}-%{MONTHNUM}-%{MONTHDAY}".'

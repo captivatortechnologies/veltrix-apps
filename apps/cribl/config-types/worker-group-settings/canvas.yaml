@@ -1,0 +1,67 @@
+# =============================================================================
+# Canvas Template — Cribl Stream Worker Group Settings
+#
+# Declares the SYSTEM SETTINGS to enforce for ONE Worker Group / Edge Fleet
+# (the item) — API/TLS/security/PII/backups/rollback/shutdown/worker sizing.
+# This is a SINGLETON per group (GET+PATCH only — Cribl always has exactly one
+# settings object per group), so the item's identity IS the Worker Group
+# itself; add one item per group you want to manage. Field keys must match
+# config-types/worker-group-settings/validate.ts. Applied via the Cribl REST
+# API (/api/v1/m/<group>/system/settings/conf).
+#
+# ⚠ HIGH BLAST RADIUS — this can change how the Leader/Workers authenticate,
+# which TLS versions they accept, and API availability itself. Declare only
+# the specific settings you intend to enforce (a PARTIAL JSON object); Cribl's
+# PATCH here applies exactly the sub-object you send.
+# =============================================================================
+
+id: "cribl-worker-group-settings"
+name: "Worker Group Settings"
+toolType: "cribl"
+entityType: "worker-group-settings"
+description: "Manage per-Worker-Group system settings via the Cribl REST API (/api/v1/m/<group>/system/settings/conf)"
+
+item:
+  label: "Worker Group Settings"
+  identityField: "worker_group"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Target"
+      icon: "server"
+      description: "Which Worker Group / Edge Fleet these settings apply to"
+      fields:
+        - key: "worker_group"
+          label: "Worker Group / Fleet"
+          fieldType: "text"
+          required: true
+          defaultValue: "default"
+          validation:
+            pattern: "^[A-Za-z0-9_-]+$"
+            maxLength: 255
+          helpText: "The Worker Group or Edge Fleet these settings apply to, e.g. default. Used as the stable identity for upsert and drift."
+
+    - name: "Settings"
+      icon: "code"
+      description: "The settings to enforce, as a partial JSON object"
+      fields:
+        - key: "settings"
+          label: "Settings (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 200000
+          helpText: >
+            A PARTIAL SystemSettingsConf object — only the fields you want to enforce, e.g.
+            { "tls": { "minVersion": "TLSv1.2", "maxVersion": "TLSv1.3" },
+            "security": { "cspEnabled": true, "corsEnabled": true },
+            "pii": { "enablePiiDetection": true } }. Undeclared fields are left untouched.
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why these settings are enforced — recorded for audit"

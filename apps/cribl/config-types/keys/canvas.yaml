@@ -1,0 +1,111 @@
+# =============================================================================
+# Canvas Template — Cribl Stream Encryption Keys
+#
+# Declares ONE encryption key's METADATA (the item) — algorithm, KMS and
+# rotation. This app never supplies literal key bytes; Cribl's local KMS
+# always generates the material server-side (see this app's README). Users add
+# as many as they need. Field keys must match config-types/keys/validate.ts.
+# Applied via the Cribl REST API (/api/v1[/m/<group>]/system/keys).
+# =============================================================================
+
+id: "cribl-keys"
+name: "Keys"
+toolType: "cribl"
+entityType: "keys"
+description: "Manage Cribl Stream encryption key metadata via the Cribl REST API (/api/v1[/m/<group>]/system/keys)"
+
+item:
+  label: "Encryption Key"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Key"
+      icon: "key"
+      description: "Key identity, algorithm and target Worker Group"
+      fields:
+        - key: "id"
+          label: "Key ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Name shown in Cribl's Keys library. Used as the stable identity for upsert and drift."
+
+        - key: "worker_group"
+          label: "Worker Group / Fleet"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Worker Group or Edge Fleet to deploy into, e.g. default. Blank falls back to the app's Default Worker Group setting; set that blank for a single-instance deployment."
+
+        - key: "algorithm"
+          label: "Algorithm"
+          fieldType: "select"
+          required: false
+          defaultValue: "aes-256-cbc"
+          options:
+            - { label: "AES-256-CBC", value: "aes-256-cbc" }
+            - { label: "AES-256-GCM", value: "aes-256-gcm" }
+          helpText: "Encryption algorithm for this key."
+
+        - key: "kms"
+          label: "KMS"
+          fieldType: "select"
+          required: false
+          defaultValue: "local"
+          options:
+            - { label: "Local", value: "local" }
+          helpText: "Key Management Service backing this key."
+
+    - name: "Details"
+      icon: "settings"
+      description: "Optional rotation and metadata"
+      fields:
+        - key: "keyclass"
+          label: "Key Class"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+          validation:
+            min: 0
+          helpText: "Cribl's internal key classification."
+
+        - key: "use_iv"
+          label: "Use Initialization Vector"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Seed encryption with a nonce for extra randomness. Required with AES-256-GCM."
+
+        - key: "iv_size"
+          label: "IV Size (bytes)"
+          fieldType: "select"
+          required: false
+          defaultValue: 12
+          options:
+            - { label: "12", value: 12 }
+            - { label: "13", value: 13 }
+            - { label: "14", value: 14 }
+            - { label: "15", value: 15 }
+            - { label: "16", value: 16 }
+          visibleWhen:
+            field: "use_iv"
+            equals: true
+          helpText: "Length of the initialization vector, in bytes."
+
+        - key: "expires"
+          label: "Expiration (epoch ms, optional)"
+          fieldType: "number"
+          required: false
+          helpText: "When this key expires, as a Unix epoch timestamp in milliseconds. Leave blank for no expiration."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "What this key is used for — recorded for audit"

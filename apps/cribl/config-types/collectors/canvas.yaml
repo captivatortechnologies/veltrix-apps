@@ -1,0 +1,72 @@
+# =============================================================================
+# Canvas Template — Cribl Stream Collectors
+#
+# Declares ONE Collector job (the item) — a scheduled or ad hoc data-collection
+# task (REST, S3, Azure Blob, Database, GCS, Splunk, Cribl Lake, Script, Health
+# Check). Users add as many as they need. Field keys must match
+# config-types/collectors/validate.ts. Applied via the Cribl REST API
+# (/api/v1[/m/<group>]/lib/jobs).
+#
+# Provide the collector body as JSON — everything except id: which backend
+# (collector.type/collector.conf), where results land (input.pipeline /
+# input.output) and, for scheduled jobs, the cron schedule.
+# =============================================================================
+
+id: "cribl-collectors"
+name: "Collectors"
+toolType: "cribl"
+entityType: "collectors"
+description: "Manage Cribl Stream Collectors (scheduled/ad hoc data-collection jobs) via the Cribl REST API (/api/v1[/m/<group>]/lib/jobs)"
+
+item:
+  label: "Collector"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Collector"
+      icon: "download"
+      description: "Collector identity and target Worker Group"
+      fields:
+        - key: "id"
+          label: "Collector ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_-]+$"
+            maxLength: 255
+          helpText: "Job id shown in Cribl (letters, digits, _ and - only). Used as the stable identity for upsert and drift."
+
+        - key: "worker_group"
+          label: "Worker Group / Fleet"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Worker Group or Edge Fleet to deploy into, e.g. default. Blank falls back to the app's Default Worker Group setting; set that blank for a single-instance deployment."
+
+    - name: "Configuration"
+      icon: "code"
+      description: "The collector backend, routing and schedule, as JSON"
+      fields:
+        - key: "conf"
+          label: "Collector Config (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 100000
+          helpText: >
+            The Collector body as JSON (everything except id), e.g.
+            { "collector": { "type": "rest", "conf": { "discovery": [...] } },
+            "input": { "pipeline": "main", "output": "default" },
+            "schedule": { "enabled": true, "cronSchedule": "0 * * * *" } }.
+            "type":"collection" is filled in automatically if omitted.
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this collector is configured — recorded for audit"

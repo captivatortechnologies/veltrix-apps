@@ -1,0 +1,7 @@
+# Defaults for a new Encryption Key item. The operator fills in the id.
+worker_group: "default"
+algorithm: "aes-256-cbc"
+kms: "local"
+keyclass: 0
+use_iv: false
+iv_size: 12

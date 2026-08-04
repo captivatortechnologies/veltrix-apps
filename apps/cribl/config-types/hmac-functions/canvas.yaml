@@ -1,0 +1,92 @@
+# =============================================================================
+# Canvas Template — Cribl Stream HMAC Functions
+#
+# Declares ONE reusable HMAC Function (the item) — signs outbound Destination
+# requests. Users add as many as they need. Field keys must match
+# config-types/hmac-functions/validate.ts. Applied via the Cribl REST API
+# (/api/v1[/m/<group>]/lib/hmac-functions).
+# =============================================================================
+
+id: "cribl-hmac-functions"
+name: "HMAC Functions"
+toolType: "cribl"
+entityType: "hmac-functions"
+description: "Manage reusable HMAC Functions via the Cribl REST API (/api/v1[/m/<group>]/lib/hmac-functions)"
+
+item:
+  label: "HMAC Function"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Function"
+      icon: "shield-check"
+      description: "Function identity and target Worker Group"
+      fields:
+        - key: "id"
+          label: "Function ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Name shown in Cribl's HMAC Functions library. Used as the stable identity for upsert and drift."
+
+        - key: "worker_group"
+          label: "Worker Group / Fleet"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Worker Group or Edge Fleet to deploy into, e.g. default. Blank falls back to the app's Default Worker Group setting; set that blank for a single-instance deployment."
+
+        - key: "lib"
+          label: "Library"
+          fieldType: "text"
+          required: false
+          defaultValue: "custom"
+          validation:
+            maxLength: 100
+          helpText: "Library classification for this function."
+
+    - name: "Signature"
+      icon: "code"
+      description: "How the signature is computed and where it goes"
+      fields:
+        - key: "header_name"
+          label: "Header Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The HTTP header that will carry the signature, e.g. X-Signature."
+
+        - key: "header_expression"
+          label: "Header Expression"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 5000
+          helpText: 'JavaScript expression evaluated to produce the header value, referencing the built signatureString, e.g. `sha256=${{C.Crypto.createHmac(''sha256'', secretKey).update(signatureString).digest(''hex'')}}`.'
+
+        - key: "string_builders"
+          label: "String Builders"
+          fieldType: "tags"
+          required: true
+          helpText: "One or more JavaScript expressions, evaluated and joined, to build the signature string. Can reference method, urlObj, headers and body."
+
+        - key: "string_delim"
+          label: "String Delimiter"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 20
+          helpText: "Delimiter used to join the string builders. Leave blank to join without a separator."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "What this function signs and why — recorded for audit"

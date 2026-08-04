@@ -1,0 +1,83 @@
+# =============================================================================
+# Canvas Template — Cribl Stream Lookups
+#
+# Declares ONE Cribl Lookup table (the item). Users add as many as they need.
+# Field keys must match config-types/lookups/validate.ts. Applied via the Cribl
+# REST API (/api/v1[/m/<group>]/system/lookups).
+#
+# A Lookup pairs a filename-shaped `id` (must match the lookup file name Cribl
+# will show, e.g. "countries.csv") with its file `content` (CSV text) plus a
+# storage `mode`. The id is the stable identity used to upsert and drift.
+# =============================================================================
+
+id: "cribl-lookups"
+name: "Lookups"
+toolType: "cribl"
+entityType: "lookups"
+description: "Manage Cribl Stream Lookup tables (CSV reference data) via the Cribl REST API (/api/v1[/m/<group>]/system/lookups)"
+
+item:
+  label: "Lookup"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Lookup"
+      icon: "table"
+      description: "Lookup identity and target Worker Group"
+      fields:
+        - key: "id"
+          label: "Lookup Filename"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^\\w[\\w -]+(?:\\.csv|\\.gz|\\.csv\\.gz|\\.mmdb)?$"
+            maxLength: 255
+          helpText: "Must match the lookup file name shown in Cribl, e.g. countries.csv. Used as the stable identity for upsert and drift."
+
+        - key: "worker_group"
+          label: "Worker Group / Fleet"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Worker Group or Edge Fleet to deploy into, e.g. default. Blank falls back to the app's Default Worker Group setting; set that blank for a single-instance deployment."
+
+        - key: "mode"
+          label: "Storage Mode"
+          fieldType: "select"
+          required: false
+          defaultValue: "memory"
+          options:
+            - { label: "Memory (fast access)", value: "memory" }
+            - { label: "Disk (indexed, for large tables)", value: "disk" }
+          helpText: "How Cribl stores this Lookup for query. Memory is fastest; Disk suits tables too large to keep resident."
+
+    - name: "Content"
+      icon: "code"
+      description: "The lookup table data"
+      fields:
+        - key: "content"
+          label: "File Content (CSV)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 500000
+          helpText: "The lookup table as CSV text, header row first, e.g. \"ip,reputation\\n10.0.0.1,internal\"."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "What this Lookup is used for — recorded for audit"
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Comma-separated tags for filtering, e.g. geo,reference"

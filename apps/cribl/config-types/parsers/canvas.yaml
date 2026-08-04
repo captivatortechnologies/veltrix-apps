@@ -1,0 +1,86 @@
+# =============================================================================
+# Canvas Template — Cribl Stream Parsers
+#
+# Declares ONE reusable format-parser library entry (the item) — usable from
+# Event Breakers and the Parser Function. Users add as many as they need.
+# Field keys must match config-types/parsers/validate.ts. Applied via the Cribl
+# REST API (/api/v1[/m/<group>]/lib/parsers).
+# =============================================================================
+
+id: "cribl-parsers"
+name: "Parsers"
+toolType: "cribl"
+entityType: "parsers"
+description: "Manage reusable format-parser library entries via the Cribl REST API (/api/v1[/m/<group>]/lib/parsers)"
+
+item:
+  label: "Parser"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Parser"
+      icon: "code"
+      description: "Parser identity, format and target Worker Group"
+      fields:
+        - key: "id"
+          label: "Parser ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Name shown in Cribl's Parsers library. Used as the stable identity for upsert and drift."
+
+        - key: "type"
+          label: "Format"
+          fieldType: "select"
+          required: true
+          defaultValue: "csv"
+          options:
+            - { label: "CSV", value: "csv" }
+            - { label: "Extended Log File Format (ELFF)", value: "elff" }
+            - { label: "Common Log Format (CLF)", value: "clf" }
+            - { label: "Key-Value Pairs (KVP)", value: "kvp" }
+            - { label: "JSON", value: "json" }
+            - { label: "Delimited", value: "delim" }
+            - { label: "Regex", value: "regex" }
+            - { label: "Grok", value: "grok" }
+          helpText: "The parser/formatter type. Immutable once created."
+
+        - key: "worker_group"
+          label: "Worker Group / Fleet"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Worker Group or Edge Fleet to deploy into, e.g. default. Blank falls back to the app's Default Worker Group setting; set that blank for a single-instance deployment."
+
+        - key: "lib"
+          label: "Library"
+          fieldType: "text"
+          required: false
+          defaultValue: "custom"
+          validation:
+            maxLength: 100
+          helpText: "Library classification for this entry. Leave as custom unless organizing entries into named libraries."
+
+    - name: "Details"
+      icon: "info"
+      description: "Optional metadata"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "What this Parser is used for — recorded for audit"
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Comma-separated tags for filtering, e.g. csv,logs"

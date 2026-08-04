@@ -1,0 +1,76 @@
+# =============================================================================
+# Canvas Template — Cribl Stream Subscriptions
+#
+# Declares ONE Subscription (the item) — a binding from an internal data-plane
+# stream to a Pipeline. Users add as many as they need. Field keys must match
+# config-types/subscriptions/validate.ts. Applied via the Cribl REST API
+# (/api/v1[/m/<group>]/system/subscriptions).
+# =============================================================================
+
+id: "cribl-subscriptions"
+name: "Subscriptions"
+toolType: "cribl"
+entityType: "subscriptions"
+description: "Manage Cribl Stream Subscriptions via the Cribl REST API (/api/v1[/m/<group>]/system/subscriptions)"
+
+item:
+  label: "Subscription"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Subscription"
+      icon: "rss"
+      description: "Subscription identity, target Pipeline and Worker Group"
+      fields:
+        - key: "id"
+          label: "Subscription ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Subscription id shown in Cribl. Used as the stable identity for upsert and drift."
+
+        - key: "pipeline"
+          label: "Pipeline"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The existing Pipeline id this subscription feeds events into."
+
+        - key: "worker_group"
+          label: "Worker Group / Fleet"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Worker Group or Edge Fleet to deploy into, e.g. default. Blank falls back to the app's Default Worker Group setting; set that blank for a single-instance deployment."
+
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Disable this subscription without deleting it."
+
+    - name: "Details"
+      icon: "info"
+      description: "Optional filtering and metadata"
+      fields:
+        - key: "filter"
+          label: "Filter"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "JavaScript filter expression selecting which events this subscription receives."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "What this subscription is used for — recorded for audit"

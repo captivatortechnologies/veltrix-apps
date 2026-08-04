@@ -1,0 +1,5 @@
+# Defaults for a new Database Connection item. The operator fills in the id,
+# database type, auth type, description and a credential.
+worker_group: "default"
+database_type: "postgres"
+auth_type: "connectionString"

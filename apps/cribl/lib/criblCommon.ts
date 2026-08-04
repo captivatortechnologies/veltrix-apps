@@ -58,6 +58,16 @@ export function findById<T extends { id?: string }>(rows: T[], id: string): T | 
   return rows.find((r) => String(r.id ?? '').trim() === target) ?? null
 }
 
+/**
+ * Find a row by an arbitrary identity field — most Cribl resources key on
+ * `id`, but a few (e.g. `system/keys`'s `keyId`) use a differently-named field.
+ */
+export function findByKey<T extends Record<string, unknown>>(rows: T[], key: string, id: string): T | null {
+  const target = id.trim()
+  if (!target) return null
+  return rows.find((r) => String(r[key] ?? '').trim() === target) ?? null
+}
+
 /** Stable, key-sorted JSON of a value — for order-insensitive drift comparison. */
 export function canonicalJson(value: unknown): string {
   const seen = new WeakSet<object>()
@@ -82,6 +92,25 @@ export function pickKeys(source: Record<string, unknown> | null | undefined, key
   if (!source) return out
   for (const k of keys) if (k in source) out[k] = source[k]
   return out
+}
+
+/** `source` with every key in `keys` removed — for stripping secret material before persisting a snapshot. */
+export function stripKeys<T extends Record<string, unknown>>(source: T, keys: string[]): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...source }
+  for (const k of keys) delete out[k]
+  return out
+}
+
+/**
+ * Read a list-of-strings field that the canvas may hand back as either a real
+ * array (a `tags` field) or a comma-separated string (older data / a plain
+ * `text` field repurposed for a short list) — same defensive shape used across
+ * the platform for tag-like fields.
+ */
+export function readStringList(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean)
+  if (typeof value === 'string') return value.split(',').map((v) => v.trim()).filter(Boolean)
+  return []
 }
 
 export interface ParsedJson<T> {

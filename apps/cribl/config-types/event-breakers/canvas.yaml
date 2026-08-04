@@ -1,0 +1,96 @@
+# =============================================================================
+# Canvas Template — Cribl Stream Event Breaker Rulesets
+#
+# Declares ONE Event Breaker Ruleset (the item) — an ordered list of rules that
+# split a raw byte stream into events (regex/json/csv/header/timestamp/
+# aws_cloudtrail/...). Users add as many as they need. Field keys must match
+# config-types/event-breakers/validate.ts. Applied via the Cribl REST API
+# (/api/v1[/m/<group>]/lib/breakers).
+# =============================================================================
+
+id: "cribl-event-breakers"
+name: "Event Breakers"
+toolType: "cribl"
+entityType: "event-breakers"
+description: "Manage Cribl Stream Event Breaker Rulesets via the Cribl REST API (/api/v1[/m/<group>]/lib/breakers)"
+
+item:
+  label: "Event Breaker Ruleset"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Ruleset"
+      icon: "scissors"
+      description: "Ruleset identity and target Worker Group"
+      fields:
+        - key: "id"
+          label: "Ruleset ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-zA-Z0-9\\-_ ]+$"
+            maxLength: 255
+          helpText: "Name shown in Cribl's Event Breaker Rulesets library. Used as the stable identity for upsert and drift."
+
+        - key: "worker_group"
+          label: "Worker Group / Fleet"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Worker Group or Edge Fleet to deploy into, e.g. default. Blank falls back to the app's Default Worker Group setting; set that blank for a single-instance deployment."
+
+        - key: "lib"
+          label: "Library"
+          fieldType: "select"
+          required: false
+          defaultValue: "custom"
+          options:
+            - { label: "Custom", value: "custom" }
+            - { label: "Cribl Custom", value: "cribl-custom" }
+            - { label: "Cribl", value: "cribl" }
+          helpText: "Library classification for this ruleset."
+
+        - key: "min_raw_length"
+          label: "Min Raw Length"
+          fieldType: "number"
+          required: false
+          defaultValue: 256
+          validation:
+            min: 50
+            max: 100000
+          helpText: "Minimum number of characters in _raw needed to determine which rule applies."
+
+    - name: "Rules"
+      icon: "code"
+      description: "The ordered list of breaker rules, as JSON"
+      fields:
+        - key: "rules"
+          label: "Rules (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 200000
+          helpText: >
+            An ordered JSON array of rules, applied top to bottom, e.g.
+            [{"name":"nginx-access","condition":"true","type":"regex","timestampAnchorRegex":"/\\d{2}\\/[A-Za-z]{3}\\/\\d{4}/","eventBreakerRegex":"/\\n(?=\\S)/","timestamp":{"type":"auto"}}].
+            Each rule's "type" is one of regex, json, json_array, header, timestamp, csv,
+            aws_cloudtrail, aws_vpcflow, azure_flowlog.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "What this ruleset breaks and why — recorded for audit"
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Comma-separated tags for filtering, e.g. nginx,access,prod"

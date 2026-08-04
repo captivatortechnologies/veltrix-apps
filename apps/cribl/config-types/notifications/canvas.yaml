@@ -1,0 +1,90 @@
+# =============================================================================
+# Canvas Template — Cribl Stream Notifications
+#
+# Declares ONE Notification (alert rule) — fires on a condition (high-volume,
+# no-data, persistent-queue-usage, a saved Search query, ...) and routes to one
+# or more Notification Targets. Users add as many as they need. Field keys must
+# match config-types/notifications/validate.ts. Applied via the Cribl REST API
+# (/api/v1/notifications). Unlike Sources/Destinations, this collection is NOT
+# Worker-Group-scoped as a path segment — `group` below is a genuine body field.
+# =============================================================================
+
+id: "cribl-notifications"
+name: "Notifications"
+toolType: "cribl"
+entityType: "notifications"
+description: "Manage Cribl Stream Notification alert rules via the Cribl REST API (/api/v1/notifications)"
+
+item:
+  label: "Notification"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Notification"
+      icon: "alert-triangle"
+      description: "Notification identity, condition and scope"
+      fields:
+        - key: "id"
+          label: "Notification ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-zA-Z0-9_-]+$"
+            maxLength: 512
+          helpText: "Notification id shown in Cribl (letters, digits, _ and - only). Used as the stable identity for upsert and drift."
+
+        - key: "condition"
+          label: "Condition"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "What triggers this Notification, e.g. high-volume, low-volume, no-data, persistent-queue-usage, or a Search saved-query condition."
+
+        - key: "group"
+          label: "Worker Group / Fleet (optional)"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Scope this Notification to one Worker Group/Fleet. Leave blank to apply tenant-wide."
+
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Disable this Notification without deleting it."
+
+        - key: "targets"
+          label: "Notification Targets"
+          fieldType: "tags"
+          required: false
+          helpText: "IDs of the Notification Targets to send this Notification to (see the Notification Targets config type)."
+
+    - name: "Configuration"
+      icon: "code"
+      description: "Condition-specific settings and optional metadata, as JSON"
+      fields:
+        - key: "conf"
+          label: "Condition Config (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: >
+            Shape depends on Condition: Search uses savedQueryId + message (+ optional
+            triggerType/triggerComparator/triggerCount); high-volume/low-volume/no-data/
+            persistent-queue-usage use name (the source id) + timeWindow (+ optional
+            dataVolume / usageThreshold / notifyOnResolution). e.g.
+            { "name": "splunk:in_splunk_tcp", "timeWindow": "60s", "dataVolume": "1TB" }.
+
+        - key: "metadata"
+          label: "Metadata (JSON array, optional)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 5000
+          helpText: 'Additional metadata as a JSON array of { "name", "value" } objects, e.g. [{"name":"env","value":"prod"}].'

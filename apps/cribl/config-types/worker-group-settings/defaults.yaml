@@ -1,0 +1,10 @@
+# Defaults for a new Worker Group Settings item. The operator declares only
+# the specific settings they want to enforce for the group.
+worker_group: "default"
+settings: |
+  {
+    "security": {
+      "cspEnabled": true,
+      "corsEnabled": true
+    }
+  }

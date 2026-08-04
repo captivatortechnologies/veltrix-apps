@@ -32,7 +32,7 @@ import type {
   ValidationError,
   ValidationWarning,
 } from '@veltrixsecops/app-sdk'
-import { buildCriblUrl, criblConnect, getJson, sendJson, groupResourcePath } from './criblApi'
+import { buildCriblUrl, criblConnect, getJson, sendJson, groupResourcePath, apiRoot } from './criblApi'
 import {
   CRIBL_ID_RE,
   resolveWorkerGroup,
@@ -55,12 +55,23 @@ export interface SystemEntity {
  * Sources and Destinations each provide one of these.
  */
 export interface EntityDescriptor {
-  /** Group-scoped resource path segment, e.g. "system/inputs" / "system/outputs". */
+  /** Resource path segment, e.g. "system/inputs" / "system/outputs" / "notification-targets". */
   resource: string
   /** Singular, lower-case noun for messages, e.g. "source". */
   kind: string
   /** Title-case noun for messages, e.g. "Source". */
   Kind: string
+  /**
+   * Default true. Sources/Destinations live under `/api/v1/m/<group>/<resource>`.
+   * Notification Targets are a single global collection at `/api/v1/<resource>`
+   * with no Worker Group scoping at all — set false for those.
+   */
+  groupScoped?: boolean
+}
+
+/** The resource path for a descriptor: group-scoped, or a flat `apiRoot` path when it isn't. */
+function resourcePathFor(base: string, desc: EntityDescriptor, group: string): string {
+  return desc.groupScoped === false ? `${apiRoot(base)}/${desc.resource}` : groupResourcePath(base, group, desc.resource)
 }
 
 /** Build the REST body for an entity: identity + type + the flattened conf. */
@@ -77,13 +88,18 @@ async function listEntities(
   base: string,
   headers: Record<string, string>,
   group: string,
-  resource: string,
+  desc: EntityDescriptor,
 ): Promise<SystemEntity[]> {
   try {
-    return itemsFromList<SystemEntity>(await getJson<unknown>(groupResourcePath(base, group, resource), headers))
+    return itemsFromList<SystemEntity>(await getJson<unknown>(resourcePathFor(base, desc, group), headers))
   } catch {
     return []
   }
+}
+
+/** '' for a non-group-scoped descriptor (Notification Targets); the resolved Worker Group otherwise. */
+function groupOf(desc: EntityDescriptor, fields: Record<string, unknown>, settings: Record<string, unknown>): string {
+  return desc.groupScoped === false ? '' : resolveWorkerGroup(fields, settings)
 }
 
 // --- validate (static) -------------------------------------------------------
@@ -107,7 +123,7 @@ export function validateEntities(ctx: PipelineContext, desc: EntityDescriptor): 
   items.forEach((item, i) => {
     const id = String(item.fields.id ?? '').trim()
     const type = String(item.fields.type ?? '').trim()
-    const group = resolveWorkerGroup(item.fields, settings)
+    const group = groupOf(desc, item.fields, settings)
     const scopedId = `${group}/${id}`
 
     if (!id) {
@@ -119,9 +135,10 @@ export function validateEntities(ctx: PipelineContext, desc: EntityDescriptor): 
         code: 'INVALID_ID',
       })
     } else if (seen.has(scopedId)) {
+      const scope = desc.groupScoped === false ? '' : ` for group ${group || '(single-instance)'}`
       warnings.push({
         field: `items[${i}].id`,
-        message: `${desc.Kind} ID ${id} is listed more than once for group ${group || '(single-instance)'}; the last one wins.`,
+        message: `${desc.Kind} ID ${id} is listed more than once${scope}; the last one wins.`,
         code: 'DUPLICATE_ID',
       })
     } else {
@@ -175,18 +192,18 @@ export async function deployEntities(ctx: DeployContext, desc: EntityDescriptor)
         return { success: false, message: `${desc.Kind} ${id}: type is required.`, artifacts: { applied }, rollbackData: { previous } }
       }
 
-      const group = resolveWorkerGroup(item.fields, settings ?? {})
-      if (!liveByGroup.has(group)) liveByGroup.set(group, await listEntities(base, headers, group, desc.resource))
+      const group = groupOf(desc, item.fields, settings ?? {})
+      if (!liveByGroup.has(group)) liveByGroup.set(group, await listEntities(base, headers, group, desc))
       const live = liveByGroup.get(group)!
 
       const existing = findById(live, id)
       const body = buildEntityBody(id, type, conf)
 
       if (existing) {
-        await sendJson('PATCH', `${groupResourcePath(base, group, desc.resource)}/${encodeURIComponent(id)}`, headers, body)
+        await sendJson('PATCH', `${resourcePathFor(base, desc, group)}/${encodeURIComponent(id)}`, headers, body)
         previous.push({ id, group, entity: existing })
       } else {
-        await sendJson('POST', groupResourcePath(base, group, desc.resource), headers, body)
+        await sendJson('POST', resourcePathFor(base, desc, group), headers, body)
         previous.push({ id, group, entity: null })
       }
       applied.push(group ? `${group}/${id}` : id)
@@ -232,7 +249,7 @@ export async function rollbackEntities(ctx: RollbackContext, desc: EntityDescrip
 
     for (const { id, group, entity } of previous) {
       if (!id) continue
-      const url = `${groupResourcePath(base, group, desc.resource)}/${encodeURIComponent(id)}`
+      const url = `${resourcePathFor(base, desc, group)}/${encodeURIComponent(id)}`
       if (entity) {
         await sendJson('PATCH', url, headers, entity)
         restored++
@@ -277,7 +294,7 @@ export async function driftEntities(ctx: DriftContext, desc: EntityDescriptor): 
     if (liveByGroup.has(group)) return liveByGroup.get(group)!
     let live: SystemEntity[] | null
     try {
-      live = itemsFromList<SystemEntity>(await getJson<unknown>(groupResourcePath(base, group, desc.resource), headers))
+      live = itemsFromList<SystemEntity>(await getJson<unknown>(resourcePathFor(base, desc, group), headers))
     } catch {
       live = null
     }
@@ -290,7 +307,7 @@ export async function driftEntities(ctx: DriftContext, desc: EntityDescriptor): 
     const type = String(item.fields.type ?? '').trim()
     if (!id) continue
 
-    const group = resolveWorkerGroup(item.fields, settings ?? {})
+    const group = groupOf(desc, item.fields, settings ?? {})
     const live = await loadGroup(group)
     if (live === null) continue
 

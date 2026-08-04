@@ -1,0 +1,95 @@
+# =============================================================================
+# Canvas Template — Cribl Stream Certificates
+#
+# Declares ONE Certificate (the item) — a TLS certificate/key pair usable by
+# Sources, Destinations and Database Connections. Users add as many as they
+# need. Field keys must match config-types/certificates/validate.ts. Applied
+# via the Cribl REST API (/api/v1[/m/<group>]/system/certificates).
+#
+# ⚠ Private Key / Passphrase are WRITE-ONLY — Cribl's own docs state responses
+# never include the private key, so it cannot be diffed, logged, or captured
+# for rollback.
+# =============================================================================
+
+id: "cribl-certificates"
+name: "Certificates"
+toolType: "cribl"
+entityType: "certificates"
+description: "Manage TLS Certificates via the Cribl REST API (/api/v1[/m/<group>]/system/certificates)"
+
+item:
+  label: "Certificate"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Certificate"
+      icon: "shield"
+      description: "Certificate identity and target Worker Group"
+      fields:
+        - key: "id"
+          label: "Certificate ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-zA-Z0-9_-]+$"
+            maxLength: 255
+          helpText: "Name shown in Cribl's Certificates library (letters, digits, _ and - only). Used as the stable identity for upsert and drift."
+
+        - key: "worker_group"
+          label: "Worker Group / Fleet"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Worker Group or Edge Fleet to deploy into, e.g. default. Blank falls back to the app's Default Worker Group setting; set that blank for a single-instance deployment."
+
+    - name: "Material"
+      icon: "lock"
+      description: "PEM-encoded certificate and key material"
+      fields:
+        - key: "cert"
+          label: "Certificate (PEM)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 50000
+          helpText: "The host certificate in PEM format. Public — round-trips and diffs normally. For a chain, concatenate multiple certificates."
+
+        - key: "priv_key"
+          label: "Private Key (PEM)"
+          fieldType: "password"
+          required: false
+          validation:
+            maxLength: 50000
+          helpText: >
+            ⚠ WRITE-ONLY secret — Cribl never returns it, so it cannot be diffed, logged,
+            or captured for rollback. Required by Cribl when creating a NEW certificate;
+            leaving it blank on an EXISTING certificate keeps its current key unchanged.
+
+        - key: "passphrase"
+          label: "Private Key Passphrase"
+          fieldType: "password"
+          required: false
+          helpText: "⚠ WRITE-ONLY secret. Only needed if the private key is encrypted."
+
+        - key: "ca"
+          label: "CA Certificate (PEM, optional)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 50000
+          helpText: "Optional Certificate Authority certificate(s) in PEM format, for client/server authentication."
+
+    - name: "Details"
+      icon: "info"
+      description: "Optional metadata"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "What this certificate is used for — recorded for audit"
