@@ -1,6 +1,6 @@
 id: twingate
 name: Twingate
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Twingate (ZTNA / Zero Trust Network Access) configuration as code
@@ -48,6 +48,13 @@ permissions:
     - resource: service-accounts
       actions: [read, write, delete]
       description: Manage Twingate Service Accounts (name only — key lifecycle is managed directly in Twingate) via the GraphQL API
+
+    - resource: connectors
+      actions: [read, write, delete]
+      description: Manage Connector registrations; runtime token lifecycle remains operator-managed
+    - resource: dns-filtering-profiles
+      actions: [read, write, delete]
+      description: Manage Twingate DNS Filtering Profiles (priority, domain lists, content/security/privacy categories and Group assignment) via the GraphQL API
 
 pipeline:
   configurationTypes:
@@ -138,6 +145,49 @@ pipeline:
         healthCheck: config-types/service-accounts/healthCheck
         driftDetect: config-types/service-accounts/driftDetect
         getStatus: config-types/service-accounts/getStatus
+      targets:
+        componentTypes: [twingate-network]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: connectors
+      group: "Network"
+      name: Connectors
+      description: Register, rename and delete Connectors, bind them immutably to a Remote Network by name and manage status notifications. Runtime tokens are excluded.
+      canvasTemplate: config-types/connectors/canvas.yaml
+      defaultConfig: config-types/connectors/defaults.yaml
+      handlers:
+        validate: config-types/connectors/validate
+        deploy: config-types/connectors/deploy
+        rollback: config-types/connectors/rollback
+        healthCheck: config-types/connectors/healthCheck
+        driftDetect: config-types/connectors/driftDetect
+        getStatus: config-types/connectors/getStatus
+      targets:
+        componentTypes: [twingate-network]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: dns-filtering-profiles
+      group: "Security"
+      name: DNS Filtering Profiles
+      description: >
+        Twingate DNS Filtering Profiles via dnsFilteringProfileCreate /
+        dnsFilteringProfileUpdate / dnsFilteringProfileDelete; identity by
+        name. Create only sets the name — this app immediately follows with
+        an update applying priority, fallback method, allow/deny domain
+        lists, content/security/privacy category flags and Group assignment
+        (matched by name, full-replacement). Requires DNS filtering to be
+        enabled on the tenant's plan.
+      canvasTemplate: config-types/dns-filtering-profiles/canvas.yaml
+      defaultConfig: config-types/dns-filtering-profiles/defaults.yaml
+      handlers:
+        validate: config-types/dns-filtering-profiles/validate
+        deploy: config-types/dns-filtering-profiles/deploy
+        rollback: config-types/dns-filtering-profiles/rollback
+        healthCheck: config-types/dns-filtering-profiles/healthCheck
+        driftDetect: config-types/dns-filtering-profiles/driftDetect
+        getStatus: config-types/dns-filtering-profiles/getStatus
       targets:
         componentTypes: [twingate-network]
         requiresCredential: true

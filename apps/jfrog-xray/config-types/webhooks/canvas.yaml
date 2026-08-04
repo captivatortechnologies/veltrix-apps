@@ -1,0 +1,85 @@
+# =============================================================================
+# Canvas Template — JFrog Xray Webhooks
+#
+# Declares ONE Xray webhook (the item) — a named HTTP callback target that a
+# policy's/watch's "webhooks" action list can reference by NAME to notify an
+# external system on a violation. Users add as many as they need. Identified
+# for reconciliation by its `name`.
+#
+# This is Xray's OWN webhook registry (`/xray/api/v1/webhooks`) — distinct
+# from the JFrog Platform's separate Event/Webhooks service. Confirmed via
+# JFrog's own Terraform provider source code (the official REST reference has
+# no dedicated page for this object); see config-types/webhooks/deploy.ts
+# header for the full citation trail.
+#
+# Field keys must match config-types/webhooks/_shared.ts.
+# =============================================================================
+
+id: "jfrog-xray-webhooks"
+name: "Xray Webhook"
+toolType: "jfrog-xray"
+entityType: "webhooks"
+description: "Define JFrog Xray webhooks as code through the Xray REST API v1 (/xray/api/v1/webhooks). A webhook is a named HTTP callback target that security/license/operational-risk policy actions can reference by name. Reconciled by webhook name."
+
+item:
+  label: "Webhook"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Webhook"
+      icon: "link"
+      description: "Identity and target"
+      fields:
+        - key: "name"
+          label: "Webhook Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 200
+          helpText: "The identifier policies reference in their \"Webhooks\" action list — also the URL path segment for reads/updates/deletes, so avoid \"/\" or \"\\\"."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional free-text description."
+
+        - key: "url"
+          label: "Target URL"
+          fieldType: "text"
+          required: true
+          helpText: "The HTTP(S) endpoint Xray calls when a policy referencing this webhook triggers."
+
+    - name: "Authentication"
+      icon: "lock"
+      description: "Optional credentials Xray presents to the target URL"
+      fields:
+        - key: "user_name"
+          label: "Username"
+          fieldType: "text"
+          helpText: "Optional HTTP basic-auth username for the target URL."
+
+        - key: "password"
+          label: "Password"
+          fieldType: "password"
+          helpText: >
+            Optional HTTP basic-auth password. Write-only: Xray's read
+            response may not echo a set password back (typical of secret
+            fields), so drift/rollback cannot verify or restore it — see
+            README Coverage notes.
+
+        - key: "use_proxy"
+          label: "Route through the configured proxy"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Send the webhook call through the HTTP proxy configured in the JFrog Platform, if any."
+
+    - name: "Headers"
+      icon: "code"
+      description: "Custom HTTP headers sent with every call"
+      fields:
+        - key: "headers"
+          label: "Custom Headers"
+          fieldType: "keyvalue"
+          helpText: "Extra name/value HTTP headers Xray sends with the webhook call, e.g. a custom signing token header."

@@ -1,0 +1,7 @@
+# Defaults for a new OPNsense Unbound host override item.
+#
+# A FLAT map keyed by the canvas field keys. hostname/domain are left blank
+# for a deliberate choice.
+enabled: true
+rr: A
+addptr: true

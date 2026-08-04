@@ -1,6 +1,6 @@
 id: illumio
 name: Illumio
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Illumio Core (Policy Compute Engine) microsegmentation configuration as
@@ -45,6 +45,18 @@ permissions:
     - resource: illumio-rulesets
       actions: [read, write, delete]
       description: Manage Illumio Core rulesets (label-scoped security rules referencing labels/IP lists/services), provisioned into the active policy
+    - resource: illumio-label-groups
+      actions: [read, write, delete]
+      description: Manage Illumio Core label groups (named sets of same-dimension labels), provisioned into the active policy
+    - resource: illumio-enforcement-boundaries
+      actions: [read, write, delete]
+      description: Manage Illumio Core enforcement boundaries (deny-by-default rules), provisioned into the active policy
+    - resource: illumio-virtual-services
+      actions: [read, write, delete]
+      description: Manage Illumio Core virtual services (named port groups workloads classify under), provisioned into the active policy
+    - resource: illumio-pairing-profiles
+      actions: [read, write, delete]
+      description: Manage Illumio Core pairing profiles (VEN onboarding templates) — takes effect immediately, no provisioning step
 
 pipeline:
   configurationTypes:
@@ -144,6 +156,113 @@ pipeline:
         healthCheck: config-types/rulesets/healthCheck
         driftDetect: config-types/rulesets/driftDetect
         getStatus: config-types/rulesets/getStatus
+      targets:
+        componentTypes: [illumio-pce]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: label-groups
+      group: "Policy Objects"
+      name: Label Groups
+      description: >
+        Illumio Core label groups — a named set of same-dimension labels
+        (/orgs/{org_id}/sec_policy/draft/label_groups). A group's `key` names
+        the dimension every member label must share. Identity is the group's
+        `name`; deploy resolves every member label (by key+value) to an href
+        and FAILS CLOSED on anything unresolved, then PROVISIONS every
+        changed href into a new active policy version in the same deploy.
+        Sub-groups (a group containing other groups) are not supported in
+        this release.
+      canvasTemplate: config-types/label-groups/canvas.yaml
+      defaultConfig: config-types/label-groups/defaults.yaml
+      handlers:
+        validate: config-types/label-groups/validate
+        deploy: config-types/label-groups/deploy
+        rollback: config-types/label-groups/rollback
+        healthCheck: config-types/label-groups/healthCheck
+        driftDetect: config-types/label-groups/driftDetect
+        getStatus: config-types/label-groups/getStatus
+      targets:
+        componentTypes: [illumio-pce]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: enforcement-boundaries
+      group: "Security Policy"
+      name: Enforcement Boundaries
+      description: >
+        Illumio Core enforcement boundaries — deny-by-default rules
+        (/orgs/{org_id}/sec_policy/draft/enforcement_boundaries). Unlike a
+        ruleset, a boundary has no scope wrapper: providers, consumers and
+        ingress services (each referencing a label, IP list or "All
+        Workloads" by name) sit directly on it. Identity is the boundary's
+        `name`; every reference is resolved to an href and FAILS CLOSED —
+        an unresolved reference skips the whole boundary. Deploy PROVISIONS
+        every changed boundary href into a new active policy version in the
+        same deploy.
+      canvasTemplate: config-types/enforcement-boundaries/canvas.yaml
+      defaultConfig: config-types/enforcement-boundaries/defaults.yaml
+      handlers:
+        validate: config-types/enforcement-boundaries/validate
+        deploy: config-types/enforcement-boundaries/deploy
+        rollback: config-types/enforcement-boundaries/rollback
+        healthCheck: config-types/enforcement-boundaries/healthCheck
+        driftDetect: config-types/enforcement-boundaries/driftDetect
+        getStatus: config-types/enforcement-boundaries/getStatus
+      targets:
+        componentTypes: [illumio-pce]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: virtual-services
+      group: "Policy Objects"
+      name: Virtual Services
+      description: >
+        Illumio Core virtual services — a named port group (or reference to
+        an existing Service) workloads can be classified under
+        (/orgs/{org_id}/sec_policy/draft/virtual_services), for rules that
+        should scope against a service rather than individual workload
+        labels. Identity is the service's `name`; deploy resolves the
+        optional Service-name and label references to hrefs and FAILS CLOSED
+        on anything unresolved, then PROVISIONS every changed href into a new
+        active policy version in the same deploy. Exactly one of an existing
+        Service or inline service ports (TCP/UDP only) is required.
+      canvasTemplate: config-types/virtual-services/canvas.yaml
+      defaultConfig: config-types/virtual-services/defaults.yaml
+      handlers:
+        validate: config-types/virtual-services/validate
+        deploy: config-types/virtual-services/deploy
+        rollback: config-types/virtual-services/rollback
+        healthCheck: config-types/virtual-services/healthCheck
+        driftDetect: config-types/virtual-services/driftDetect
+        getStatus: config-types/virtual-services/getStatus
+      targets:
+        componentTypes: [illumio-pce]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: pairing-profiles
+      group: "Workloads"
+      name: Pairing Profiles
+      description: >
+        Illumio Core pairing profiles — VEN onboarding templates
+        (/orgs/{org_id}/pairing_profiles) controlling starting labels,
+        enforcement mode, visibility level and pairing-key limits. UNLIKE
+        every other config type in this app, pairing profiles are NOT
+        draft-then-provision — writes take effect immediately, the same
+        posture as Labels. Identity is the profile's `name`; deploy resolves
+        member label references and FAILS CLOSED on anything unresolved.
+        Actual VEN pairing (running the pairing script) and pairing keys
+        themselves are out of scope — this manages the reusable profile only.
+      canvasTemplate: config-types/pairing-profiles/canvas.yaml
+      defaultConfig: config-types/pairing-profiles/defaults.yaml
+      handlers:
+        validate: config-types/pairing-profiles/validate
+        deploy: config-types/pairing-profiles/deploy
+        rollback: config-types/pairing-profiles/rollback
+        healthCheck: config-types/pairing-profiles/healthCheck
+        driftDetect: config-types/pairing-profiles/driftDetect
+        getStatus: config-types/pairing-profiles/getStatus
       targets:
         componentTypes: [illumio-pce]
         requiresCredential: true

@@ -1,0 +1,102 @@
+# =============================================================================
+# Canvas Template — OPNsense Traffic Shaper Queues
+#
+# Declares ONE traffic-shaper queue (a weighted share of a pipe) — the item.
+# Identity is `description`. `pipe` references a traffic-shaper-pipes item by
+# its NAME (description), resolved to a live uuid at deploy time. `number` is
+# server-assigned and never set by this app.
+#
+# Field keys must match config-types/traffic-shaper-queues/_shared.ts.
+# =============================================================================
+
+id: "opnsense-traffic-shaper-queues"
+name: "OPNsense Traffic Shaper Queue Configuration"
+toolType: "opnsense"
+entityType: "traffic-shaper-queues"
+description: "Define OPNsense traffic-shaper queues (addQueue / setQueue against /api/trafficshaper/settings) as code. Every deploy stages its changes then applies them with one reconfigure call."
+
+item:
+  label: "Queue"
+  identityField: "description"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "tag"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: "This queue's name — its identity. Required by OPNsense itself."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "pipe_name"
+          label: "Pipe"
+          fieldType: "text"
+          required: true
+          helpText: "The NAME (description) of a traffic-shaper-pipes item — resolved to its live uuid at deploy time."
+
+        - key: "weight"
+          label: "Weight"
+          fieldType: "number"
+          required: true
+          defaultValue: 100
+          helpText: "1-100. This queue's relative share of its pipe's bandwidth."
+
+    - name: "Advanced"
+      icon: "settings"
+      fields:
+        - key: "mask"
+          label: "Mask"
+          fieldType: "select"
+          required: false
+          defaultValue: "none"
+          options:
+            - label: "(none)"
+              value: "none"
+            - label: "Source"
+              value: "src-ip"
+            - label: "Destination"
+              value: "dst-ip"
+            - label: "Source (IPv6)"
+              value: "src-ip6"
+            - label: "Destination (IPv6)"
+              value: "dst-ip6"
+
+        - key: "buckets"
+          label: "Buckets"
+          fieldType: "number"
+          required: false
+
+        - key: "codel_enable"
+          label: "Enable CoDel"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Cannot be combined with PIE."
+
+        - key: "codel_target"
+          label: "CoDel Target (ms)"
+          fieldType: "number"
+          required: false
+
+        - key: "codel_interval"
+          label: "CoDel Interval (ms)"
+          fieldType: "number"
+          required: false
+
+        - key: "codel_ecn_enable"
+          label: "Enable CoDel ECN"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "pie_enable"
+          label: "Enable PIE"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Cannot be combined with CoDel."

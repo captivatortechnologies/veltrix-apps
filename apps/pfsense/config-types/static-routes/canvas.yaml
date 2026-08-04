@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — pfSense Static Routes
+#
+# Declares ONE static route — the item. Applied via the pfSense REST API
+# package (POST/PATCH/DELETE /api/v2/routing/static_route), with pending
+# changes applied once per deploy (/api/v2/routing/apply — shared with the
+# separate gateways config type, NOT the firewall/aliases apply endpoint).
+#
+# IDENTITY: routes have no name field — this app tracks identity by the
+# canvas item itself (recorded in rollbackData across deploys), NOT by
+# `descr`.
+# =============================================================================
+
+id: "pfsense-static-routes"
+name: "Static Routes"
+toolType: "pfsense"
+entityType: "static-routes"
+description: "Manage pfSense static routes via the pfSense REST API package (/api/v2/routing/static_route). Identity is tracked per canvas item (routes have no name field)."
+
+item:
+  label: "Static Route"
+  # Routes have no name field (see _shared.ts's module doc) — deploy.ts
+  # derives the real identity from the canvas item's own platform-assigned
+  # id, tracked via rollbackData. `descr` is only the display label here.
+  identityField: "descr"
+  identityDerived: true
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Route"
+      icon: "route"
+      description: "Destination network and gateway"
+      fields:
+        - key: "network"
+          label: "Destination Network"
+          fieldType: "text"
+          required: true
+          helpText: "A destination network in CIDR notation (e.g. 10.10.0.0/24), or an existing host/network alias name."
+
+        - key: "gateway"
+          label: "Gateway"
+          fieldType: "text"
+          required: true
+          helpText: "The name of an existing pfSense routing gateway or gateway group (see the Gateways config type) that traffic to this network should be routed through."
+
+        - key: "descr"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1024
+          helpText: "Recorded on the route in pfSense. Recommended for readability even though it is not this app's identity key."
+
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "pfSense requires a route to be disabled whenever its parent gateway is disabled."

@@ -3,6 +3,114 @@
 All notable changes to the OPNsense app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 0.3.0 — 2026-08-03
+
+This release exhausts OPNsense's config-as-code write surface as far as it
+can safely go — every remaining meaningful, cleanly-writable API surface is
+now managed, and everything left out has a documented, verified reason (see
+README.md's new **Coverage** section). `lib/opnsenseApi.ts` was split into
+`lib/opnsenseCore.ts` (transport + the generic `buildModelResource` factory +
+the two "apply" idioms) plus one file per API family, purely for file size —
+every existing import path is unchanged (`lib/opnsenseApi.ts` is now a
+re-export barrel).
+
+### Added
+- **1:1 NAT (`one-to-one-nat`, group "NAT").** `onetoone.rule` on the SAME
+  shared Filter.xml model as firewall-rules/source-nat, via
+  `/api/firewall/one_to_one` (`addRule`/`setRule`/`delRule`/`apply`).
+  **REQUIRES OPNsense 24.1.9 (June 18, 2024) or later** — more precise than
+  firewall-rules/source-nat's 24.1 floor: verified `OneToOneController.php`'s
+  own git history (oldest commit `cd81bcc9`, 2024-04-25, "refactor to MVC")
+  and pinned to an exact release via the official changelog
+  (`community/24.1/24.1.9`: "the last bit of preparation for the upcoming
+  24.7 series reimplementing one-to-one NAT using MVC/API"). Itemid-based
+  reconcile, same as firewall-rules/source-nat (no name field).
+- **Unbound host overrides (`unbound-host-overrides`, group "Services").**
+  `hosts.host` via `/api/unbound/settings` (`addHostOverride`/
+  `setHostOverride`/`delHostOverride`), reconciled by the (hostname, domain)
+  composite. Supports A/AAAA/MX/TXT records with the model's own per-type
+  required-field constraints replicated client-side. Applies via
+  `/api/unbound/service/reconfigure`, which — per
+  `ApiMutableServiceControllerBase`'s default — STOPS THEN STARTS the Unbound
+  resolver (a brief DNS gap, not a soft reload).
+- **Unbound domain overrides (`unbound-domain-overrides`, group "Services").**
+  Mapped onto `dots.dot` with `type: "forward"` — verified there is NO
+  separate endpoint for the legacy "Domain Override" concept in the current
+  MVC model; `addForwardAction`/`setForwardAction` force `type: "forward"`
+  via their own overlay regardless of what's sent, so this config type can
+  only ever create/manage plain forwards, never DNS-over-TLS entries (and
+  will silently downgrade a hand-configured DNS-over-TLS entry sharing the
+  same domain — documented, not hidden). Same apply step as host overrides.
+- **Traffic-shaper pipes/queues/rules (`traffic-shaper-pipes`,
+  `traffic-shaper-queues`, `traffic-shaper-rules`, group "Traffic Shaping").**
+  Three config types over ONE shared `TrafficShaper.xml` model
+  (`/api/trafficshaper/settings`, verb sets verified against
+  docs.opnsense.org's own endpoint tables: singular add/set/del, PLURAL
+  search — `searchPipes`, not `searchPipe`). Pipes/queues use their
+  model-required `description` as a natural identity; rules (no required
+  name) use the canvas item's own id, like firewall-rules. Queues/rules
+  declare their target pipe (or pipe-or-queue, for rules) by NAME and resolve
+  it to a live uuid at deploy time. The pf dnpipe/queue `number` is
+  SERVER-ASSIGNED (an `addBase` overlay) and never set by this app. Applies
+  via `/api/trafficshaper/service/reconfigure` (reloads the Shaper and IPFW
+  templates, then `shaper reload` + `ipfw reload`).
+- **Static routes (`static-routes`, group "Routing").** `route` (a top-level
+  array, not nested under a sub-container like every other resource in this
+  app) via `/api/routes/routes`. Verified GENUINELY all-lowercase, no-
+  camelCase action names (`searchroute`/`addroute`/`setroute`/`delroute`) —
+  the literal PHP method names on `RoutesController`, confirmed independently
+  against docs.opnsense.org's own endpoint table. Reconciled by `network`
+  (the model's field is `descr`, not `description` — the one resource in this
+  app where that differs). `gateway` is a name from OPNsense's own configured
+  gateway list, passed through as-is (not enumerable offline). Applies via
+  `/api/routes/routes/reconfigure` (`interface routes configure`) — the
+  actual OS routing-table delete is deferred server-side to a
+  `/tmp/delete_route_<uuid>.todo` marker file this app never touches directly.
+- **`buildModelResource` verb-naming verified against docs.opnsense.org's own
+  API reference tables** (not just PHP source reading) for every module in
+  this app — confirming, among other things, that OPNsense's official docs
+  spell commands in underscore_case (`add_pipe`, `search_rule`) while this
+  app's camelCase (`addPipe`, `searchRule`) is the byte-identical equivalent
+  under the router's `ucwords`/`lcfirst` transform (see
+  `lib/opnsenseCore.ts`'s URL-segment-derivation doc) — and that the
+  Destination NAT (port forward) module segment is `d_nat` (with an
+  underscore), not `dnat`, useful for a future wave.
+
+### Coverage — see README.md for the full table
+Every OPNsense config-as-code surface this app could plausibly reach was
+evaluated. See README.md's new **Coverage** section for the complete
+managed-vs-excluded breakdown; summarized:
+- **Excluded, structurally (drop, don't fake):** WireGuard server/peer
+  configuration (`Server.xml`'s `privkey` is `Required: Y` with no
+  credential-vault-backed way to reference an existing key — see below),
+  certificates/CAs (private key material), interface/hardware assignment,
+  and system actions (firmware upgrade, reboot, backup/restore) — none of
+  these are "configuration as code" in the sense this app's pipeline model
+  (validate → deploy → drift → rollback) is built for.
+- **Not yet built, but cleanly buildable (future work, not excluded):**
+  Unbound ACLs/DNSBL/host-aliases/DoT entries, Destination NAT (port
+  forward — see the "Why Source NAT, not 1:1 NAT or Port Forward" note in
+  v0.2.0's entry below for why it was skipped, not just deferred), NPTv6,
+  IPsec, OpenVPN, DHCP (Kea/ISC), gateway groups, and Category-reference
+  support on `firewall-aliases` (added for rules/NAT in v0.2.0, not
+  retrofitted onto aliases).
+
+### Dropped, with full reasoning: WireGuard
+WireGuard (`/api/wireguard/{server,client}/*`) was evaluated and NOT built.
+Verified: `Server.xml`'s `privkey` field (`Base64Field`) is `<Required>Y</Required>`
+— a WireGuard server literally cannot be created without a private key.
+`ServerController::keyPairAction()` generates one server-side
+(`wireguard gen_keypair`), but persisting it means the private key would
+have to transit through this app's canvas configuration and `rollbackData`
+— neither is a Credential-Vault-backed secret store, and this codebase
+avoids embedding fetchable/usable secrets in declarative config everywhere
+else (see the URL-Table-authentication drop in `firewall-aliases`, v0.1.0).
+Client (peer) records additionally carry a `psk` (pre-shared key) and
+require bidirectional Server<->Client `peers` CSV-field synchronization
+(`ClientController::setClientAction` rewrites every Server's `peers` field
+on every peer add/remove) — real complexity, but secondary to the primary,
+disqualifying blocker above.
+
 ## 0.2.0 — 2026-08-02
 
 ### Added

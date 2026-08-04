@@ -1,0 +1,10 @@
+# Defaults for a new curation-policy item.
+#
+# Intentionally empty: the platform starts a new item blank and the field-level
+# `defaultValue`s in canvas.yaml (policy_action: "dry_run", enabled: true,
+# scope: "all_repos", waiver_request_config: "forbidden") already give a safe
+# starting point (dry-run first). Any values here would be a FLAT map keyed by
+# the canvas field keys (name, condition_id, policy_action, enabled,
+# block_from_cache, scope, repo_include, repo_exclude, pkg_types_include,
+# waiver_request_config, decision_owners, notify_emails, waivers_json,
+# label_waivers_json).

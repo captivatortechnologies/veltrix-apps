@@ -1,0 +1,116 @@
+# =============================================================================
+# Canvas Template — Illumio Core Virtual Services
+#
+# Declares ONE virtual service (the item), name-keyed. Virtual services live
+# under the PCE's DRAFT policy (/orgs/{org}/sec_policy/draft/virtual_services)
+# — a named group of ports (or an existing Service) that rules/rulesets can
+# scope against instead of individual workload labels. Deploy resolves the
+# optional Service-name and label references to hrefs and FAILS CLOSED on
+# anything unresolved.
+#
+# Exactly ONE of Service name / Service ports is required (the PCE's own
+# `ExactlyOneOf` constraint). service_addresses (DNS/load-balancer-oriented
+# addressing) is NOT supported — see README.md Coverage.
+# =============================================================================
+
+id: "illumio-virtual-services"
+name: "Virtual Service Configuration"
+toolType: "illumio"
+entityType: "virtual-services"
+description: "Define Illumio Core virtual services (named port groups workloads can be classified under) as code through the Illumio REST API v2, provisioned into the active policy."
+
+item:
+  label: "Virtual Service"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Virtual Service"
+      icon: "shield"
+      description: "Name, description and how it applies"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The virtual service name — its identity in this canvas. Must be unique within this canvas; deploy matches live virtual services on it."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the virtual service."
+
+        - key: "applyTo"
+          label: "Apply To"
+          fieldType: "select"
+          required: true
+          defaultValue: "host_only"
+          options:
+            - label: "Host only"
+              value: "host_only"
+            - label: "Internal bridge network"
+              value: "internal_bridge_network"
+          helpText: "Whether the virtual service applies to the host itself or an internal bridge network (containers)."
+
+    - name: "Ports"
+      icon: "list"
+      description: "Set exactly ONE of Service name or Service ports"
+      fields:
+        - key: "serviceName"
+          label: "Service name"
+          fieldType: "text"
+          required: false
+          helpText: "Reference an existing Service by name (create it with the Services configuration type). Mutually exclusive with Service ports."
+
+        - key: "servicePortsJson"
+          label: "Service ports (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 4000
+          helpText: >
+            A JSON array of inline port definitions, e.g.
+            [{"proto":6,"port":443}]. proto must be 6 (TCP) or 17 (UDP) —
+            narrower than the Services configuration type, which also allows
+            ICMP. Mutually exclusive with Service name.
+
+    - name: "Classification"
+      icon: "tag"
+      description: "Optional labels and IP overrides"
+      fields:
+        - key: "labelsJson"
+          label: "Labels (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 4000
+          helpText: >
+            A JSON array of label refs classifying this virtual service, e.g.
+            [{"key":"app","value":"Payments"}]. Each must already exist
+            (create it with the Labels configuration type).
+
+        - key: "ipOverrides"
+          label: "IP overrides"
+          fieldType: "tags"
+          required: false
+          helpText: "Optional IP addresses or CIDRs that override the workload's own IP for this virtual service."
+
+    - name: "Integration metadata"
+      icon: "link"
+      description: "Optional external-system linkage, carried through unchanged on every deploy"
+      fields:
+        - key: "externalDataSet"
+          label: "External data set"
+          fieldType: "text"
+          required: false
+          helpText: "Optional: the external system this virtual service originates from (external_data_set)."
+
+        - key: "externalDataReference"
+          label: "External data reference"
+          fieldType: "text"
+          required: false
+          helpText: "Optional: this virtual service's unique identifier within that external system (external_data_reference)."

@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-opnsense",
   "private": true,
-  "version": "0.2.0",
-  "description": "Veltrix app: manage OPNsense open-source firewall configuration as code through the OPNsense REST API — firewall aliases, categories, pf rules and source NAT, staged then applied",
+  "version": "0.3.0",
+  "description": "Veltrix app: manage OPNsense open-source firewall configuration as code — firewall aliases/categories/rules, source & 1:1 NAT, Unbound DNS overrides, traffic-shaper pipes/queues/rules, and static routes — staged then applied",
   "scripts": { "typecheck": "tsc --noEmit" },
   "devDependencies": {
     "@types/jest": "^29.5.14",

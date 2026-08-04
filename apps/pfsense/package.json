@@ -1,11 +1,9 @@
 {
   "name": "veltrix-app-pfsense",
   "private": true,
-  "version": "0.2.0",
-  "description": "Veltrix app: manage pfSense firewall configuration as code — firewall aliases, firewall rules, NAT port forwards and virtual IPs — through the third-party pfSense REST API package (pfSense-pkg-RESTAPI)",
-  "scripts": {
-    "typecheck": "tsc --noEmit"
-  },
+  "version": "0.3.0",
+  "description": "Veltrix app: manage pfSense firewall, NAT, routing, DNS Resolver, local user and group configuration as code through pfSense-pkg-RESTAPI",
+  "scripts": { "typecheck": "tsc --noEmit" },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@veltrixsecops/app-sdk": "^3.7.0",

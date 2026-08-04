@@ -2,6 +2,76 @@
 
 All notable changes to the pfSense app are documented here.
 
+## 0.3.0 — 2026-08-04
+
+Exhausts the pfSense REST API package's remaining meaningful declarative
+surface — ten more config types, each with typed per-field canvas forms
+(never a raw JSON blob), dedicated handlers, and a full `node:test` suite,
+matching Firewall Aliases' v0.1.0 foundation. Same package dependency as
+every prior release — still a real, separate install step, still flagged
+throughout.
+
+- **NAT Outbound Mode** — a **singleton** config type for pfSense's
+  system-wide outbound NAT mode (`/api/v2/firewall/nat/outbound/mode`,
+  PATCH-only). Verified the Model's actual `choices` are
+  `['automatic','hybrid','advanced','disabled']` — its own prose help text
+  says "manual" instead of "advanced," a real mismatch this app resolves in
+  favor of the verified `choices`, not the prose.
+- **NAT Outbound Mappings** and **1:1 NAT Mappings** — `/api/v2/firewall/nat/outbound/mapping(s)`
+  and `/api/v2/firewall/nat/one_to_one/mapping(s)`. Neither Model declares a
+  unique field (verified), so both are tracked by canvas-item id, same
+  pattern as Firewall Rules/NAT Port Forwards. Outbound Mappings additionally
+  support the same optional `position` -> `placement` ordering. Both share
+  `/api/v2/firewall/apply`.
+- **Firewall Schedules** — `/api/v2/firewall/schedule(s)`, name-keyed. Each
+  schedule embeds exactly ONE time range in this release — recurring
+  weekdays OR specific month+day date pairs, never both (mutually exclusive
+  per the API); multiple time ranges per schedule is flagged as out of
+  scope. Replicates the package's own quirks faithfully rather than
+  "fixing" them: the supported minute set is `00/15/30/45/59` (not every 15
+  minutes), and February is hardcoded to 29 days in the day-in-month check
+  regardless of leap year.
+- **Gateways** and **Static Routes** — `/api/v2/routing/gateway(s)` (name-keyed,
+  immutable name) and `/api/v2/routing/static_route(s)` (no name field,
+  canvas-item-id tracked). Both apply via **`/api/v2/routing/apply`** — a
+  THIRD distinct apply endpoint, verified shared by `RoutingGateway.inc` and
+  `StaticRoute.inc` and separate from every firewall/virtual-IP endpoint.
+  Gateways are scoped to core identity/monitoring fields; ~14 advanced
+  dpinger tuning knobs are dropped (every one has a safe server-side default).
+- **DNS Resolver Host Overrides** and **DNS Resolver Domain Overrides** —
+  `/api/v2/services/dns_resolver/host_override(s)` and `.../domain_override(s)`.
+  Host overrides key on the COMPOSITE `host`+`domain` pair (verified
+  `unique_together_fields` — neither field alone is unique); domain
+  overrides key on `domain`. Both share a **FOURTH** distinct apply
+  endpoint, `/api/v2/services/dns_resolver/apply`. Host overrides' nested
+  `aliases` sub-list (additional alias hostnames) is out of scope — every
+  override this app writes has zero aliases.
+- **Local Users** and **Local User Groups** — `/api/v2/user` and
+  `/api/v2/user/group`, name-keyed. Both Models are `always_apply: true`
+  server-side (verified) — every write applies immediately, so neither
+  config type calls an apply endpoint at all, unlike every other type in
+  this app. `password` is treated write-only in this app's own behavior
+  (never diffed by drift or restored by rollback) even though the Model
+  itself doesn't declare the field `write_only`. System-scoped accounts and
+  groups (pfSense's own built-ins, e.g. `admin`) are never touched, matching
+  what the package itself forbids deleting.
+- **Coverage section added to README.md** — every pfSense REST API package
+  surface, managed vs. explicitly excluded and why (Certificates/CAs need
+  private-key material; VPN configuration needs key material and
+  multi-resource activation; interfaces/VLANs/bridges are host-specific
+  hardware topology; several services are themselves optional packages
+  layered on the REST API package; system actions/diagnostics/status/logs
+  are imperative or read-only, not declarative resources).
+- Every new config type declares a sidebar `group` (`"NAT"`, `"Firewall"`,
+  `"Routing"`, `"Services"`, or `"System"`).
+
+> **FLAG**: this app deliberately does not attempt automatic outbound-NAT
+> mode coordination — declaring Outbound NAT Mappings while Outbound NAT
+> Mode is left at its default "Automatic" is valid but inert (pfSense
+> ignores manual mappings in that mode); `validate` surfaces this as a
+> warning, not an error, since the two config types are deployed
+> independently and this app cannot assume deploy order.
+
 ## 0.2.0 — 2026-08-02
 
 Three more config types, all via the same REST API package dependency

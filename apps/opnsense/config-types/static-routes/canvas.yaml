@@ -1,0 +1,49 @@
+# =============================================================================
+# Canvas Template — OPNsense Static Routes
+#
+# Declares ONE OPNsense static route — the item. Identity is `network`
+# (destination CIDR). `gateway` is a NAME from OPNsense's own configured
+# gateway list — this app cannot enumerate or validate it offline. Deploy
+# stages via addroute/setroute/delroute then applies with
+# /api/routes/routes/reconfigure.
+#
+# Field keys must match config-types/static-routes/_shared.ts.
+# =============================================================================
+
+id: "opnsense-static-routes"
+name: "OPNsense Static Route Configuration"
+toolType: "opnsense"
+entityType: "static-routes"
+description: "Define OPNsense static routes (addroute / setroute against /api/routes/routes) as code. Every deploy stages its changes then applies them with one reconfigure call."
+
+item:
+  label: "Static Route"
+  identityField: "network"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Route"
+      icon: "network"
+      fields:
+        - key: "network"
+          label: "Destination Network"
+          fieldType: "text"
+          required: true
+          helpText: "The destination network in CIDR form, e.g. 10.10.0.0/24 — this route's identity."
+
+        - key: "gateway"
+          label: "Gateway"
+          fieldType: "text"
+          required: true
+          helpText: "The NAME of a gateway already configured on OPNsense (System > Gateways). Not enumerable offline — OPNsense validates it at deploy time."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "descr"
+          label: "Description"
+          fieldType: "text"
+          required: false

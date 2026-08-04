@@ -1,0 +1,96 @@
+# =============================================================================
+# Canvas Template — pfSense Routing Gateways
+#
+# Declares ONE routing gateway — the item. Applied via the pfSense REST API
+# package (POST/PATCH/DELETE /api/v2/routing/gateway), with pending changes
+# applied once per deploy (/api/v2/routing/apply — shared with the separate
+# static-routes config type, NOT the firewall/aliases apply endpoint).
+#
+# Scoped to the core identity/match fields plus the two most commonly
+# hand-tuned monitoring toggles. Advanced dpinger tuning (latency/loss
+# thresholds, probe intervals, etc.) is left at pfSense's own defaults —
+# see README.md's Coverage section.
+#
+# Field keys must match config-types/gateways/_shared.ts.
+# =============================================================================
+
+id: "pfsense-gateways"
+name: "Gateways"
+toolType: "pfsense"
+entityType: "gateways"
+description: "Manage pfSense routing gateways via the pfSense REST API package (/api/v2/routing/gateway). A gateway's name is immutable once created."
+
+item:
+  label: "Gateway"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Gateway"
+      icon: "route"
+      description: "Identity and upstream address"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 31
+          helpText: "Letters, numbers and underscores only, 31 characters or fewer. IMMUTABLE once created — used as the stable identity for upsert and drift."
+
+        - key: "ipprotocol"
+          label: "IP Protocol"
+          fieldType: "select"
+          required: true
+          defaultValue: "inet"
+          options:
+            - { label: "IPv4", value: "inet" }
+            - { label: "IPv6", value: "inet6" }
+
+        - key: "interface"
+          label: "Interface"
+          fieldType: "text"
+          required: true
+          helpText: "The interface this gateway is reachable through (e.g. \"wan\"). Must already have an address of the matching IP Protocol."
+
+        - key: "gateway"
+          label: "Gateway Address"
+          fieldType: "text"
+          required: true
+          helpText: "The upstream gateway's IPv4/IPv6 address, or the literal \"dynamic\" for a dynamically-assigned interface (e.g. PPPoE, DHCP)."
+
+        - key: "descr"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1024
+
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          defaultValue: false
+
+    - name: "Monitoring"
+      icon: "activity"
+      description: "Gateway monitoring (dpinger)"
+      fields:
+        - key: "monitor_disable"
+          label: "Disable Monitoring"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Turns off dpinger monitoring for this gateway entirely."
+
+        - key: "monitor"
+          label: "Monitor IP (advanced)"
+          fieldType: "text"
+          required: false
+          helpText: "An alternate IP to send monitoring probes to, if the gateway itself does not respond to ICMP. Only used when monitoring is not disabled."
+
+        - key: "weight"
+          label: "Weight"
+          fieldType: "number"
+          required: false
+          defaultValue: 1
+          helpText: "1-30. Used to weight this gateway's traffic share when it is a member of a Gateway Group."

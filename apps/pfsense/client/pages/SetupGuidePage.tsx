@@ -1,7 +1,20 @@
 import React from 'react'
 import { Badge, Card, CardBody, Tabs } from '@veltrixsecops/app-sdk/ui'
 
-const MANAGES = ['Firewall aliases', 'Firewall rules', 'NAT port forwards', 'Virtual IPs']
+const MANAGES = [
+  'Firewall aliases',
+  'Firewall rules',
+  'NAT port forwards',
+  'Virtual IPs',
+  'Outbound NAT mode',
+  'Outbound NAT mappings',
+  '1:1 NAT mappings',
+  'Firewall schedules',
+  'Gateways',
+  'Static routes',
+  'DNS Resolver overrides',
+  'Local users & groups',
+]
 
 /**
  * Step-by-step connection guide, rendered with the platform design-system

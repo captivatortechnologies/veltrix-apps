@@ -1,0 +1,69 @@
+# =============================================================================
+# Canvas Template — OPNsense Unbound Domain Overrides
+#
+# Declares ONE domain-forwarding override — the item. Maps onto OPNsense's
+# `dots.dot` model with `type: "forward"` (the modern MVC replacement for the
+# legacy "Domain Override" concept — see
+# config-types/unbound-domain-overrides/_shared.ts and lib/unboundApi.ts).
+# Identity is `domain`. Deploy stages via addForward/setForward/delForward
+# then applies with /api/unbound/service/reconfigure, which RESTARTS Unbound.
+#
+# Field keys must match config-types/unbound-domain-overrides/_shared.ts.
+# =============================================================================
+
+id: "opnsense-unbound-domain-overrides"
+name: "OPNsense Unbound Domain Override Configuration"
+toolType: "opnsense"
+entityType: "unbound-domain-overrides"
+description: "Define OPNsense DNS Resolver (Unbound) per-domain forwarding overrides (addForward / setForward) as code. Every deploy stages its changes then applies them — which restarts the Unbound service."
+
+item:
+  label: "Domain Override"
+  identityField: "domain"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "tag"
+      fields:
+        - key: "domain"
+          label: "Domain"
+          fieldType: "text"
+          required: true
+          helpText: "The domain whose queries this override forwards, e.g. internal.example.com."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+
+    - name: "Forward Target"
+      icon: "network"
+      fields:
+        - key: "server"
+          label: "Server"
+          fieldType: "text"
+          required: true
+          helpText: "The DNS server IP address to forward matching queries to."
+
+        - key: "port"
+          label: "Port"
+          fieldType: "number"
+          required: false
+          helpText: "Leave blank for the standard DNS port (53)."
+
+        - key: "forward_tcp_upstream"
+          label: "Use TCP for upstream queries"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "forward_first"
+          label: "Forward first (try this server before the resolver's own recursion)"
+          fieldType: "checkbox"
+          defaultValue: false

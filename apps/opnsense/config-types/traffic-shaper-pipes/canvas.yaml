@@ -1,0 +1,161 @@
+# =============================================================================
+# Canvas Template — OPNsense Traffic Shaper Pipes
+#
+# Declares ONE traffic-shaper pipe (a bandwidth cap) — the item. Identity is
+# `description` (required by the model itself). `number` (the pf dnpipe id)
+# is server-assigned and never set by this app. Deploy stages via
+# addPipe/setPipe/delPipe then applies with
+# /api/trafficshaper/service/reconfigure.
+#
+# Field keys must match config-types/traffic-shaper-pipes/_shared.ts.
+# =============================================================================
+
+id: "opnsense-traffic-shaper-pipes"
+name: "OPNsense Traffic Shaper Pipe Configuration"
+toolType: "opnsense"
+entityType: "traffic-shaper-pipes"
+description: "Define OPNsense traffic-shaper pipes (addPipe / setPipe against /api/trafficshaper/settings) as code. Every deploy stages its changes then applies them with one reconfigure call."
+
+item:
+  label: "Pipe"
+  identityField: "description"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "tag"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: "This pipe's name — its identity. Required by OPNsense itself."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+
+    - name: "Bandwidth"
+      icon: "list"
+      fields:
+        - key: "bandwidth"
+          label: "Bandwidth"
+          fieldType: "number"
+          required: true
+          helpText: "A positive integer, in the unit selected below."
+
+        - key: "bandwidthMetric"
+          label: "Bandwidth Unit"
+          fieldType: "select"
+          required: true
+          defaultValue: "Kbit"
+          options:
+            - label: "bit/s"
+              value: "bit"
+            - label: "kbit/s"
+              value: "Kbit"
+            - label: "Mbit/s"
+              value: "Mbit"
+            - label: "Gbit/s"
+              value: "Gbit"
+
+        - key: "delay"
+          label: "Delay (ms)"
+          fieldType: "number"
+          required: false
+          helpText: "Optional artificial delay, 1-3000ms."
+
+    - name: "Advanced"
+      icon: "settings"
+      fields:
+        - key: "mask"
+          label: "Mask"
+          fieldType: "select"
+          required: false
+          defaultValue: "none"
+          options:
+            - label: "(none)"
+              value: "none"
+            - label: "Source"
+              value: "src-ip"
+            - label: "Destination"
+              value: "dst-ip"
+            - label: "Source (IPv6)"
+              value: "src-ip6"
+            - label: "Destination (IPv6)"
+              value: "dst-ip6"
+
+        - key: "scheduler"
+          label: "Scheduler"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - label: "Weighted Fair Queueing (default)"
+              value: ""
+            - label: "FIFO"
+              value: "fifo"
+            - label: "Deficit Round Robin"
+              value: "rr"
+            - label: "QFQ"
+              value: "qfq"
+            - label: "FlowQueue-CoDel"
+              value: "fq_codel"
+            - label: "FlowQueue-PIE"
+              value: "fq_pie"
+
+        - key: "queue"
+          label: "Queue Size"
+          fieldType: "number"
+          required: false
+          helpText: "2-100. Leave blank for the scheduler's default."
+
+        - key: "buckets"
+          label: "Buckets"
+          fieldType: "number"
+          required: false
+          helpText: "1-65535. Leave blank for the default hash table size."
+
+        - key: "codel_enable"
+          label: "Enable CoDel"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Cannot be combined with PIE."
+
+        - key: "codel_target"
+          label: "CoDel Target (ms)"
+          fieldType: "number"
+          required: false
+
+        - key: "codel_interval"
+          label: "CoDel Interval (ms)"
+          fieldType: "number"
+          required: false
+
+        - key: "codel_ecn_enable"
+          label: "Enable CoDel ECN"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "pie_enable"
+          label: "Enable PIE"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Cannot be combined with CoDel."
+
+        - key: "fqcodel_quantum"
+          label: "FQ-CoDel Quantum"
+          fieldType: "number"
+          required: false
+
+        - key: "fqcodel_limit"
+          label: "FQ-CoDel Limit"
+          fieldType: "number"
+          required: false
+
+        - key: "fqcodel_flows"
+          label: "FQ-CoDel Flows"
+          fieldType: "number"
+          required: false

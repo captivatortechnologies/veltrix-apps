@@ -1,0 +1,58 @@
+# =============================================================================
+# Canvas Template — pfSense User Groups
+#
+# Declares ONE local user group — the item. Applied via the pfSense REST API
+# package (POST/PATCH/DELETE /api/v2/user/group). Writes apply IMMEDIATELY —
+# UserGroup is `always_apply` server-side (verified), so there is no
+# separate "apply pending changes" step for this config type.
+#
+# System-scoped groups (pfSense's own built-ins) are never created/updated/
+# deleted by this app.
+# =============================================================================
+
+id: "pfsense-user-groups"
+name: "User Groups"
+toolType: "pfsense"
+entityType: "user-groups"
+description: "Manage pfSense local user groups via the pfSense REST API package (/api/v2/user/group). Writes apply immediately — there is no separate apply step."
+
+item:
+  label: "User Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Group"
+      icon: "users"
+      description: "Group identity and members"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 16
+          helpText: "Letters, numbers, hyphens, periods and underscores only, 16 characters or fewer (local-scope groups). Used as the stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          helpText: "Recorded on the group in pfSense."
+
+        - key: "member"
+          label: "Members"
+          fieldType: "tags"
+          required: false
+          helpText: "Existing local usernames (see the Users config type) to add as members of this group."
+
+        - key: "priv"
+          label: "Privileges (advanced)"
+          fieldType: "tags"
+          required: false
+          helpText: >
+            Raw pfSense privilege constant names (e.g. "page-all",
+            "user-shell-access") — the exact set pfSense itself uses. Only
+            checked for validity server-side; a typo is rejected at deploy
+            time, not here.

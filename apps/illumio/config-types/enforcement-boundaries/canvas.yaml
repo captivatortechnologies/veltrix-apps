@@ -1,0 +1,87 @@
+# =============================================================================
+# Canvas Template — Illumio Core Enforcement Boundaries
+#
+# Declares ONE enforcement boundary (the item), name-keyed. A boundary is a
+# DENY-BY-DEFAULT rule: DRAFT-then-PROVISION at
+# /orgs/{org}/sec_policy/draft/enforcement_boundaries — unlike a ruleset it has
+# no scope wrapper; providers/consumers/ingress_services sit directly on it.
+# Deploy resolves every reference (labels/IP lists/services, by name) to a PCE
+# href and FAILS CLOSED on anything unresolved — see
+# config-types/enforcement-boundaries/_shared.ts.
+#
+# providersJson/consumersJson/servicesJson are JSON-array textareas (the same
+# pattern used by rulesets) — this release supports provider/consumer actors
+# of label | ipList | allWorkloads only; label groups are not supported here.
+# =============================================================================
+
+id: "illumio-enforcement-boundaries"
+name: "Enforcement Boundary Configuration"
+toolType: "illumio"
+entityType: "enforcement-boundaries"
+description: "Define Illumio Core enforcement boundaries (deny-by-default rules) as code through the Illumio REST API v2, provisioned into the active policy."
+
+item:
+  label: "Enforcement Boundary"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Boundary"
+      icon: "shield"
+      description: "Name and enabled state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The boundary name — its identity in this canvas. Must be unique within this canvas; deploy matches live boundaries on it."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the boundary is enabled in the PCE."
+
+    - name: "Providers & Consumers"
+      icon: "target"
+      description: "Who the deny applies to — at least one of each is required"
+      fields:
+        - key: "providersJson"
+          label: "Providers (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 4000
+          helpText: >
+            A JSON array of provider refs, e.g.
+            [{"label":{"key":"env","value":"E-Prod"}}]. Each entry sets
+            exactly one of label ({key,value}), ipList (an existing IP list's
+            name), or allWorkloads (true — the PCE's "All Workloads" actor).
+
+        - key: "consumersJson"
+          label: "Consumers (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 4000
+          helpText: "Same shape as Providers — the traffic source(s) this boundary denies against the providers above."
+
+    - name: "Services"
+      icon: "list"
+      description: "Ingress services this boundary denies — at least one is required"
+      fields:
+        - key: "servicesJson"
+          label: "Services (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 4000
+          helpText: >
+            A JSON array of Service name refs, e.g. [{"name":"SSH"}]. Each
+            must reference an existing Service (create it with the Services
+            configuration type). An unresolved reference fails this boundary
+            closed (nothing is applied) rather than deploying a partial deny.

@@ -48,16 +48,21 @@ export default function OverviewPage() {
           Manages Illumio Core (Policy Compute Engine) microsegmentation configuration as code through the
           Illumio REST API v2. Create a configuration in the Configuration Canvas and deploy it through the
           pipeline — validate, deploy, health check, drift detection, and rollback are all handled per
-          configuration type. Labels are matched by their (key, value) pair; IP lists, services and rulesets are
-          matched by name, upserted where missing, and reconciled where this app's own prior creations are
-          removed from the canvas.
+          configuration type. Labels are matched by their (key, value) pair; every other type is matched by
+          name (rules, nested under a ruleset, by a content signature instead), upserted where missing, and
+          reconciled where this app's own prior creations are removed from the canvas.
         </p>
         <p>
-          IP lists, services and rulesets use the PCE's <strong>draft-then-provision</strong> model: every write
-          lands in the draft policy first, then this app provisions the changed hrefs into a new active policy
-          version in the same deploy. Ruleset rules reference labels, IP lists and services by name — every
-          reference is resolved to the PCE's internal id and the whole ruleset fails closed (nothing is applied)
-          if any reference can't be resolved.
+          IP lists, services, label groups, virtual services, rulesets and enforcement boundaries use the PCE's{' '}
+          <strong>draft-then-provision</strong> model: every write lands in the draft policy first, then this
+          app provisions the changed hrefs into a new active policy version in the same deploy. Pairing
+          Profiles are the one exception — they take effect immediately, the same posture as Labels. Every
+          reference to a label, IP list or service by name is resolved to the PCE's internal id, and the whole
+          object <strong>fails closed</strong> (nothing is applied) if any reference can't be resolved. See the{' '}
+          <a href="https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/illumio#coverage">
+            README's Coverage section
+          </a>{' '}
+          for what this app manages vs. intentionally excludes.
         </p>
 
         <h3>Configuration Types</h3>

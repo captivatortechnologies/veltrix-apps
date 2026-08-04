@@ -1,0 +1,12 @@
+# Defaults for a new OPNsense 1:1 NAT rule item.
+#
+# A FLAT map keyed by the canvas field keys, mirroring each field's own
+# defaultValue. description/source_net/external are left blank for a
+# deliberate choice.
+enabled: true
+sequence: 1
+interface: wan
+type: binat
+destination_net: any
+natreflection: ""
+log: false

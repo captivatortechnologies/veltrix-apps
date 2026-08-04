@@ -20,8 +20,10 @@ export default function SetupGuidePage() {
           <CardBody>
             <p>
               In the PCE, create an <strong>API key</strong> (Settings → API Keys for a service account, or a
-              Personal API Key) with the <strong>labels</strong> scope. Note its key (e.g.{' '}
-              <code>api_145a5c788e2ba897c</code>) and secret — the secret is shown only once.
+              Personal API Key) with read/write scope on <strong>labels, security policy (rulesets, IP lists,
+              services, label groups, virtual services, enforcement boundaries) and workloads (pairing
+              profiles)</strong>. Note its key (e.g. <code>api_145a5c788e2ba897c</code>) and secret — the secret
+              is shown only once.
             </p>
             <p>This app manages Illumio labels — key/value pairs under these dimensions:</p>
             <div>
@@ -107,11 +109,13 @@ export default function SetupGuidePage() {
             </p>
             <p>
               Then author a configuration in the Configuration Canvas and deploy it through the pipeline.
-              Labels are matched by their <strong>(key, value)</strong> pair; IP lists, services and rulesets are
-              matched by <strong>name</strong>. IP lists, services and rulesets are drafted then automatically{' '}
-              <strong>provisioned</strong> into the active policy in the same deploy — create the labels, IP
-              lists and services a ruleset references first, since rulesets resolve those references by name
-              and fail closed if any is missing.
+              Labels are matched by their <strong>(key, value)</strong> pair; every other type is matched by{' '}
+              <strong>name</strong>. Security-policy types (IP Lists, Services, Label Groups, Virtual Services,
+              Rulesets, Enforcement Boundaries) are drafted then automatically <strong>provisioned</strong> into
+              the active policy in the same deploy — Pairing Profiles take effect immediately instead. Create
+              the labels, IP lists and services a ruleset, boundary, label group or virtual service references
+              first: every name reference is resolved to the PCE's internal id and <strong>fails closed</strong>{' '}
+              (nothing is applied) if any is missing.
             </p>
           </CardBody>
         </Card>

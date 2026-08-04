@@ -1,0 +1,10 @@
+# Defaults for a new OPNsense traffic-shaper queue item.
+#
+# A FLAT map keyed by the canvas field keys. description/pipe_name are left
+# blank for a deliberate choice.
+enabled: true
+weight: 100
+mask: none
+codel_enable: false
+codel_ecn_enable: false
+pie_enable: false

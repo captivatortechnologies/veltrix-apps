@@ -1,0 +1,44 @@
+# =============================================================================
+# Canvas Template — pfSense Outbound NAT Mode (singleton)
+#
+# The outbound NAT mode is a system-wide singleton — declare it at most once
+# per canvas. Applied via PATCH /api/v2/firewall/nat/outbound/mode, then
+# pending changes are applied once via /api/v2/firewall/apply.
+#
+# "Automatic" mode ignores manually-declared outbound NAT mappings (this
+# app's separate nat-outbound-mappings config type) — set this to "Hybrid"
+# or "Advanced" for those mappings to actually take effect.
+#
+# Field keys must match config-types/nat-outbound-mode/_shared.ts.
+# =============================================================================
+
+id: "pfsense-nat-outbound-mode"
+name: "Outbound NAT Mode"
+toolType: "pfsense"
+entityType: "nat-outbound-mode"
+description: "Manage pfSense's system-wide outbound NAT mode via the pfSense REST API package (/api/v2/firewall/nat/outbound/mode). A singleton — declare it at most once per canvas."
+
+item:
+  label: "Outbound NAT Mode"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Mode"
+      icon: "settings"
+      description: "The system-wide outbound NAT mode"
+      fields:
+        - key: "mode"
+          label: "Mode"
+          fieldType: "select"
+          required: true
+          defaultValue: "automatic"
+          options:
+            - { label: "Automatic (system-generated rules only)", value: "automatic" }
+            - { label: "Hybrid (system-generated + manual mappings)", value: "hybrid" }
+            - { label: "Advanced (manual mappings only)", value: "advanced" }
+            - { label: "Disabled (no outbound NAT)", value: "disabled" }
+          helpText: >
+            "Automatic" ignores any mappings declared in the separate
+            "NAT Outbound Mappings" config type. Use "Hybrid" or "Advanced"
+            for those mappings to take effect.

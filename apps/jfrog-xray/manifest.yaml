@@ -1,15 +1,18 @@
 id: jfrog-xray
 name: JFrog Xray
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage JFrog Xray (software composition analysis / supply-chain security)
-  configuration as code through the Xray REST API. Covers security policies
-  (severity/CVSS gates), license policies (allowed/banned OSS licenses),
-  watches (the scope + policy binding that makes a policy actually take
-  effect) and ignore rules (violation suppression) — with validation, drift
-  detection and rollback handled by the Security-as-Code pipeline.
-  Authenticates with a JFrog Platform Access Token (Bearer).
+  configuration as code through the Xray REST API. Covers security, license
+  and operational-risk policies, watches (the scope + policy binding that
+  makes a policy actually take effect), ignore rules (violation suppression),
+  custom issues (manually-authored vulnerability records), webhooks (named
+  HTTP callback targets), and JFrog Curation policies (pre-Artifactory
+  open-source package governance) — with validation, drift detection and
+  rollback handled by the Security-as-Code pipeline. Authenticates with a
+  JFrog Platform Access Token (Bearer). See README.md for a full coverage
+  map of the Xray REST API and what is intentionally out of scope.
 category: COMPLIANCE
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/jfrog-xray
@@ -43,6 +46,18 @@ permissions:
     - resource: ignore-rules
       actions: [read, write, delete]
       description: Manage JFrog Xray ignore rules (create / delete — Xray has no update endpoint)
+    - resource: operational-risk-policies
+      actions: [read, write, delete]
+      description: Manage JFrog Xray operational-risk policies (create / edit / delete)
+    - resource: custom-issues
+      actions: [read, write, delete]
+      description: Author custom Xray issues (vulnerabilities) for components Xray's own database doesn't cover
+    - resource: webhooks
+      actions: [read, write, delete]
+      description: Manage JFrog Xray webhooks — named HTTP callback targets policy actions can reference
+    - resource: curation-policies
+      actions: [read, write, delete]
+      description: Manage JFrog Curation policies governing which package versions may flow through Artifactory remote repositories
 
 pipeline:
   configurationTypes:
@@ -134,6 +149,94 @@ pipeline:
         healthCheck: config-types/ignore-rules/healthCheck
         driftDetect: config-types/ignore-rules/driftDetect
         getStatus: config-types/ignore-rules/getStatus
+      targets:
+        componentTypes: [jfrog-xray-instance]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: operational-risk-policies
+      group: "Policies"
+      name: Operational Risk Policies
+      description: Project-maturity and end-of-life risk gates managed as operational_risk policies through /xray/api/v2/policies.
+      canvasTemplate: config-types/operational-risk-policies/canvas.yaml
+      defaultConfig: config-types/operational-risk-policies/defaults.yaml
+      handlers:
+        validate: config-types/operational-risk-policies/validate
+        deploy: config-types/operational-risk-policies/deploy
+        rollback: config-types/operational-risk-policies/rollback
+        healthCheck: config-types/operational-risk-policies/healthCheck
+        driftDetect: config-types/operational-risk-policies/driftDetect
+        getStatus: config-types/operational-risk-policies/getStatus
+      targets:
+        componentTypes: [jfrog-xray-instance]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: custom-issues
+      group: "Data"
+      name: Custom Issues
+      description: >
+        Manually-authored Xray issues (vulnerabilities) for components not
+        covered by Xray's own vulnerability database — applied over
+        `/xray/api/v1/events` (create/update) and `/xray/api/v2/events/{id}`
+        (read). Upserts by a USER-CHOSEN issue id (Xray assigns no id of its
+        own for this object).
+      canvasTemplate: config-types/custom-issues/canvas.yaml
+      defaultConfig: config-types/custom-issues/defaults.yaml
+      handlers:
+        validate: config-types/custom-issues/validate
+        deploy: config-types/custom-issues/deploy
+        rollback: config-types/custom-issues/rollback
+        healthCheck: config-types/custom-issues/healthCheck
+        driftDetect: config-types/custom-issues/driftDetect
+        getStatus: config-types/custom-issues/getStatus
+      targets:
+        componentTypes: [jfrog-xray-instance]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: webhooks
+      group: "Integrations"
+      name: Webhooks
+      description: >
+        Named HTTP callback targets that a policy's "Webhooks" action list
+        can reference by name — applied over Xray's OWN webhook registry
+        (`/xray/api/v1/webhooks`), distinct from the JFrog Platform's
+        separate Event/Webhooks service. Upserts by webhook name.
+      canvasTemplate: config-types/webhooks/canvas.yaml
+      defaultConfig: config-types/webhooks/defaults.yaml
+      handlers:
+        validate: config-types/webhooks/validate
+        deploy: config-types/webhooks/deploy
+        rollback: config-types/webhooks/rollback
+        healthCheck: config-types/webhooks/healthCheck
+        driftDetect: config-types/webhooks/driftDetect
+        getStatus: config-types/webhooks/getStatus
+      targets:
+        componentTypes: [jfrog-xray-instance]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: curation-policies
+      group: "Policies"
+      name: Curation Policies
+      description: >
+        JFrog Curation policies — package-based governance blocking (or
+        dry-running) risky open-source package versions before they reach an
+        Artifactory remote repository — applied over
+        `/xray/api/v1/curation/policies`. Upserts by policy name (the write
+        URLs key off a server-assigned policy id, resolved via the list
+        endpoint). Custom curation conditions/templates are out of scope —
+        `condition_id` references an existing condition by id.
+      canvasTemplate: config-types/curation-policies/canvas.yaml
+      defaultConfig: config-types/curation-policies/defaults.yaml
+      handlers:
+        validate: config-types/curation-policies/validate
+        deploy: config-types/curation-policies/deploy
+        rollback: config-types/curation-policies/rollback
+        healthCheck: config-types/curation-policies/healthCheck
+        driftDetect: config-types/curation-policies/driftDetect
+        getStatus: config-types/curation-policies/getStatus
       targets:
         componentTypes: [jfrog-xray-instance]
         requiresCredential: true

@@ -8,6 +8,65 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.3.0 — 2026-08-04
+
+### Added
+
+Four new configuration types, exhausting the PCE's declarative write surface
+for security policy and VEN onboarding (see README.md's **Coverage** section
+for the full managed-vs-excluded inventory):
+
+- **Label Groups** configuration type — named sets of same-dimension labels
+  (`/orgs/{org_id}/sec_policy/draft/label_groups`), name-keyed. A group's
+  `key` names the dimension every member label must share (per the Terraform
+  schema's own field description); member labels are resolved by key+value
+  to hrefs and **fail closed** on anything unresolved. Draft → provision,
+  same as IP Lists/Services/Rulesets. Sub-groups (a group containing other
+  groups) are not supported.
+- **Enforcement Boundaries** configuration type — deny-by-default rules
+  (`/orgs/{org_id}/sec_policy/draft/enforcement_boundaries`), name-keyed.
+  Unlike a ruleset, a boundary has no scope wrapper: providers, consumers and
+  ingress services sit directly on it, each referencing a label, IP list or
+  "All Workloads" (the PCE actor `ams` — confirmed as the *only* allowed
+  actor value here, stricter than a security rule's consumer side) by name.
+  Fails closed on any unresolved reference. Draft → provision.
+- **Virtual Services** configuration type — a named port group (or a
+  reference to an existing Service) workloads can be classified under
+  (`/orgs/{org_id}/sec_policy/draft/virtual_services`), name-keyed. Exactly
+  one of an existing Service (by name) or inline service ports (TCP/UDP
+  only — narrower than the Services type's proto range) is required,
+  mirroring the PCE's own `ExactlyOneOf` constraint. Optional label refs and
+  IP overrides. Fails closed on unresolved service/label references. Draft →
+  provision.
+- **Pairing Profiles** configuration type — VEN onboarding templates
+  (`/orgs/{org_id}/pairing_profiles`): starting labels, enforcement mode,
+  visibility level, and pairing-key use/lifespan limits (`"unlimited"` or an
+  integer, matching the PCE's own field semantics — an unparseable/"unlimited"
+  value is simply omitted from the request body, telling the PCE to use its
+  own default). **Not draft-then-provision** — confirmed no `StoreHref` call
+  anywhere in the Terraform provider's pairing-profile resource, unlike every
+  other resource in this release; writes take effect immediately, the same
+  posture as Labels. Fails closed on unresolved label references.
+- `group:` added to all four — Label Groups and Virtual Services under
+  **Policy Objects**, Enforcement Boundaries under **Security Policy**,
+  Pairing Profiles under **Workloads**.
+- README.md **Coverage** section: every Illumio config surface this app
+  manages vs. intentionally excludes, and why (Workloads/VENs are
+  agent-reported inventory not declarative state; Virtual Servers need
+  SLB/NEN integration; Pairing Keys are short-lived credential material;
+  custom Label Dimensions are a PCE-version-gated tenant schema; Firewall
+  Settings and other singletons aren't safely modeled as canvas items).
+
+### Deferred / out of scope (flagged, not faked)
+
+- Label group sub-groups (nested label groups).
+- Enforcement boundary actors beyond label / IP list / "All Workloads"
+  (label groups as boundary actors are not supported).
+- Virtual service `service_addresses` (DNS/load-balancer-oriented
+  addressing) and Windows service definitions.
+- Pairing profile lock-flag and log-traffic drift comparison (drift focuses
+  on enabled, enforcement mode, key limits, labels and visibility level).
+
 ## 0.2.0 — 2026-08-02
 
 ### Added

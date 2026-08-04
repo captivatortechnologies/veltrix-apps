@@ -1,7 +1,16 @@
 import React from 'react'
 import { Badge, Card, CardBody, Tabs } from '@veltrixsecops/app-sdk/ui'
 
-const MANAGES = ['Security policies', 'License policies', 'Watches', 'Ignore rules']
+const MANAGES = [
+  'Security policies',
+  'License policies',
+  'Operational risk policies',
+  'Curation policies',
+  'Watches',
+  'Ignore rules',
+  'Custom issues',
+  'Webhooks',
+]
 
 /**
  * Step-by-step connection guide, rendered with the platform design-system
@@ -20,8 +29,9 @@ export default function SetupGuidePage() {
               In the JFrog Platform, go to <strong>Administration &gt; User Management &gt; Access
               Tokens</strong> and generate a token scoped to a user or group that has been granted the
               Xray <strong>Manage Policies</strong>, <strong>Read Policies</strong> and{' '}
-              <strong>Manage Watches</strong> permissions (the last one covers both watches and ignore
-              rules). Copy the token — JFrog shows it once.
+              <strong>Manage Watches</strong> permissions (the last one also covers ignore rules and
+              custom issues) plus <strong>Manage Xray Metadata</strong> for custom issues specifically.
+              Copy the token — JFrog shows it once.
             </p>
             <div>
               {MANAGES.map((scope) => (

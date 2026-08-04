@@ -1,6 +1,6 @@
 id: pfsense
 name: pfSense
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage pfSense firewall configuration as code. pfSense CE ships NO REST API
@@ -16,6 +16,9 @@ description: >
   virtual IPs use their own /api/v2/firewall/virtual_ip/apply) — with
   validation, drift detection and rollback handled by the Security-as-Code
   pipeline.
+  Version 0.3.0 additionally covers outbound and 1:1 NAT, schedules, gateways,
+  static routes, DNS Resolver overrides, and local users/groups, with each
+  subsystem dispatched through its correct apply lifecycle.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/pfsense
@@ -47,6 +50,37 @@ permissions:
     - resource: virtual-ips
       actions: [read, write, delete]
       description: Manage pfSense virtual IPs (IP Alias / Proxy ARP / CARP / Other) via the pfSense REST API package (/api/v2/firewall/virtual_ip)
+    - resource: nat-outbound-mode
+      actions: [read, write, delete]
+      description: Manage the pfSense system-wide outbound NAT mode via the pfSense REST API package (/api/v2/firewall/nat/outbound/mode)
+    - resource: nat-outbound-mappings
+      actions: [read, write, delete]
+      description: Manage pfSense outbound NAT mappings via the pfSense REST API package (/api/v2/firewall/nat/outbound/mapping)
+    - resource: nat-one-to-one
+      actions: [read, write, delete]
+      description: Manage pfSense 1:1 NAT mappings via the pfSense REST API package (/api/v2/firewall/nat/one_to_one/mapping)
+    - resource: firewall-schedules
+      actions: [read, write, delete]
+      description: Manage pfSense firewall schedules via the pfSense REST API package (/api/v2/firewall/schedule)
+    - resource: gateways
+      actions: [read, write, delete]
+      description: Manage pfSense routing gateways via the pfSense REST API package (/api/v2/routing/gateway)
+    - resource: static-routes
+      actions: [read, write, delete]
+      description: Manage pfSense static routes via the pfSense REST API package (/api/v2/routing/static_route)
+    - resource: dns-resolver-host-overrides
+      actions: [read, write, delete]
+      description: Manage pfSense DNS Resolver host overrides via the pfSense REST API package (/api/v2/services/dns_resolver/host_override)
+    - resource: dns-resolver-domain-overrides
+      actions: [read, write, delete]
+      description: Manage pfSense DNS Resolver domain overrides via the pfSense REST API package (/api/v2/services/dns_resolver/domain_override)
+    - resource: users
+      actions: [read, write, delete]
+      description: Manage pfSense local user accounts via the pfSense REST API package (/api/v2/user)
+    - resource: user-groups
+      actions: [read, write, delete]
+      description: Manage pfSense local user groups via the pfSense REST API package (/api/v2/user/group)
+
 
 pipeline:
   configurationTypes:
@@ -140,6 +174,242 @@ pipeline:
         healthCheck: config-types/virtual-ips/healthCheck
         driftDetect: config-types/virtual-ips/driftDetect
         getStatus: config-types/virtual-ips/getStatus
+      targets:
+        componentTypes: [pfsense]
+        requiresCredential: true
+        requiresConnectivity: false
+
+
+    - id: nat-outbound-mode
+      group: "NAT"
+      name: Outbound NAT Mode
+      description: >
+        The system-wide outbound NAT mode (automatic / hybrid / advanced /
+        disabled) — a PATCH-only singleton against
+        /api/v2/firewall/nat/outbound/mode, with pending changes applied via
+        /api/v2/firewall/apply. "Automatic" ignores the separate NAT
+        Outbound Mappings config type entirely; use "Hybrid" or "Advanced"
+        for those mappings to take effect.
+      canvasTemplate: config-types/nat-outbound-mode/canvas.yaml
+      defaultConfig: config-types/nat-outbound-mode/defaults.yaml
+      handlers:
+        validate: config-types/nat-outbound-mode/validate
+        deploy: config-types/nat-outbound-mode/deploy
+        rollback: config-types/nat-outbound-mode/rollback
+        healthCheck: config-types/nat-outbound-mode/healthCheck
+        driftDetect: config-types/nat-outbound-mode/driftDetect
+        getStatus: config-types/nat-outbound-mode/getStatus
+      targets:
+        componentTypes: [pfsense]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: nat-outbound-mappings
+      group: "NAT"
+      name: Outbound NAT Mappings
+      description: >
+        Outbound NAT mappings against
+        /api/v2/firewall/nat/outbound/mapping(s), with pending changes
+        applied once per deploy via /api/v2/firewall/apply. Only takes
+        effect when the separate Outbound NAT Mode config type is Hybrid or
+        Advanced. pfSense mappings have no name field, so identity is
+        tracked per canvas item; an optional explicit position controls
+        evaluation order via the REST API package's generic `placement` field.
+      canvasTemplate: config-types/nat-outbound-mappings/canvas.yaml
+      defaultConfig: config-types/nat-outbound-mappings/defaults.yaml
+      handlers:
+        validate: config-types/nat-outbound-mappings/validate
+        deploy: config-types/nat-outbound-mappings/deploy
+        rollback: config-types/nat-outbound-mappings/rollback
+        healthCheck: config-types/nat-outbound-mappings/healthCheck
+        driftDetect: config-types/nat-outbound-mappings/driftDetect
+        getStatus: config-types/nat-outbound-mappings/getStatus
+      targets:
+        componentTypes: [pfsense]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: nat-one-to-one
+      group: "NAT"
+      name: 1:1 NAT Mappings
+      description: >
+        1:1 NAT mappings against /api/v2/firewall/nat/one_to_one/mapping(s),
+        with pending changes applied once per deploy via
+        /api/v2/firewall/apply. Like outbound mappings, 1:1 mappings have no
+        name field, so identity is tracked per canvas item.
+      canvasTemplate: config-types/nat-one-to-one/canvas.yaml
+      defaultConfig: config-types/nat-one-to-one/defaults.yaml
+      handlers:
+        validate: config-types/nat-one-to-one/validate
+        deploy: config-types/nat-one-to-one/deploy
+        rollback: config-types/nat-one-to-one/rollback
+        healthCheck: config-types/nat-one-to-one/healthCheck
+        driftDetect: config-types/nat-one-to-one/driftDetect
+        getStatus: config-types/nat-one-to-one/getStatus
+      targets:
+        componentTypes: [pfsense]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewall-schedules
+      group: "Firewall"
+      name: Firewall Schedules
+      description: >
+        Named time-based schedules (referenced by a Firewall Rule's Schedule
+        field) against /api/v2/firewall/schedule(s), name-keyed like
+        aliases. Each schedule carries exactly one embedded time range
+        (recurring weekdays OR specific month/day date pairs) — multiple
+        time ranges per schedule are out of scope. Pending changes are
+        applied once per deploy via /api/v2/firewall/apply.
+      canvasTemplate: config-types/firewall-schedules/canvas.yaml
+      defaultConfig: config-types/firewall-schedules/defaults.yaml
+      handlers:
+        validate: config-types/firewall-schedules/validate
+        deploy: config-types/firewall-schedules/deploy
+        rollback: config-types/firewall-schedules/rollback
+        healthCheck: config-types/firewall-schedules/healthCheck
+        driftDetect: config-types/firewall-schedules/driftDetect
+        getStatus: config-types/firewall-schedules/getStatus
+      targets:
+        componentTypes: [pfsense]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: gateways
+      group: "Routing"
+      name: Gateways
+      description: >
+        Routing gateways against /api/v2/routing/gateway(s), name-keyed
+        (name immutable once created, like aliases). Pending changes are
+        applied once per deploy via /api/v2/routing/apply — a distinct
+        endpoint from every firewall/NAT/DNS apply endpoint, shared only
+        with the separate Static Routes config type.
+      canvasTemplate: config-types/gateways/canvas.yaml
+      defaultConfig: config-types/gateways/defaults.yaml
+      handlers:
+        validate: config-types/gateways/validate
+        deploy: config-types/gateways/deploy
+        rollback: config-types/gateways/rollback
+        healthCheck: config-types/gateways/healthCheck
+        driftDetect: config-types/gateways/driftDetect
+        getStatus: config-types/gateways/getStatus
+      targets:
+        componentTypes: [pfsense]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: static-routes
+      group: "Routing"
+      name: Static Routes
+      description: >
+        Static routes against /api/v2/routing/static_route(s), sharing the
+        same /api/v2/routing/apply endpoint as Gateways. pfSense routes have
+        no name field, so identity is tracked per canvas item.
+      canvasTemplate: config-types/static-routes/canvas.yaml
+      defaultConfig: config-types/static-routes/defaults.yaml
+      handlers:
+        validate: config-types/static-routes/validate
+        deploy: config-types/static-routes/deploy
+        rollback: config-types/static-routes/rollback
+        healthCheck: config-types/static-routes/healthCheck
+        driftDetect: config-types/static-routes/driftDetect
+        getStatus: config-types/static-routes/getStatus
+      targets:
+        componentTypes: [pfsense]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: dns-resolver-host-overrides
+      group: "Services"
+      name: DNS Resolver Host Overrides
+      description: >
+        DNS Resolver (Unbound) host overrides against
+        /api/v2/services/dns_resolver/host_override(s). `host`+`domain`
+        together (case-insensitive) are the identity — pfSense itself
+        enforces this pair as unique, not either field alone. Pending
+        changes are applied once per deploy via the dedicated
+        /api/v2/services/dns_resolver/apply endpoint. Nested per-override
+        alias hostnames are out of scope for v0.3.0.
+      canvasTemplate: config-types/dns-resolver-host-overrides/canvas.yaml
+      defaultConfig: config-types/dns-resolver-host-overrides/defaults.yaml
+      handlers:
+        validate: config-types/dns-resolver-host-overrides/validate
+        deploy: config-types/dns-resolver-host-overrides/deploy
+        rollback: config-types/dns-resolver-host-overrides/rollback
+        healthCheck: config-types/dns-resolver-host-overrides/healthCheck
+        driftDetect: config-types/dns-resolver-host-overrides/driftDetect
+        getStatus: config-types/dns-resolver-host-overrides/getStatus
+      targets:
+        componentTypes: [pfsense]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: dns-resolver-domain-overrides
+      group: "Services"
+      name: DNS Resolver Domain Overrides
+      description: >
+        DNS Resolver (Unbound) domain overrides against
+        /api/v2/services/dns_resolver/domain_override(s), forwarding all
+        queries for a domain to a specific upstream DNS server (optionally
+        over DNS-over-TLS). Identity is the domain itself (case-insensitive).
+        Shares the same /api/v2/services/dns_resolver/apply endpoint as
+        DNS Resolver Host Overrides.
+      canvasTemplate: config-types/dns-resolver-domain-overrides/canvas.yaml
+      defaultConfig: config-types/dns-resolver-domain-overrides/defaults.yaml
+      handlers:
+        validate: config-types/dns-resolver-domain-overrides/validate
+        deploy: config-types/dns-resolver-domain-overrides/deploy
+        rollback: config-types/dns-resolver-domain-overrides/rollback
+        healthCheck: config-types/dns-resolver-domain-overrides/healthCheck
+        driftDetect: config-types/dns-resolver-domain-overrides/driftDetect
+        getStatus: config-types/dns-resolver-domain-overrides/getStatus
+      targets:
+        componentTypes: [pfsense]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: users
+      group: "System"
+      name: Local Users
+      description: >
+        Local pfSense user accounts against /api/v2/user, name-keyed.
+        Writes apply IMMEDIATELY (User is `always_apply` server-side) — no
+        separate apply step, unlike every firewall/NAT/routing/DNS config
+        type in this app. Passwords are write-only: never read back,
+        diffed by drift, or restored by rollback; leaving the password
+        blank on an existing user keeps it unchanged. System-scoped
+        accounts (e.g. "admin") are never touched.
+      canvasTemplate: config-types/users/canvas.yaml
+      defaultConfig: config-types/users/defaults.yaml
+      handlers:
+        validate: config-types/users/validate
+        deploy: config-types/users/deploy
+        rollback: config-types/users/rollback
+        healthCheck: config-types/users/healthCheck
+        driftDetect: config-types/users/driftDetect
+        getStatus: config-types/users/getStatus
+      targets:
+        componentTypes: [pfsense]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: user-groups
+      group: "System"
+      name: Local User Groups
+      description: >
+        Local pfSense user groups against /api/v2/user/group, name-keyed.
+        Writes apply IMMEDIATELY (UserGroup is `always_apply` server-side)
+        — no separate apply step. System-scoped groups (pfSense's own
+        built-ins) are never touched.
+      canvasTemplate: config-types/user-groups/canvas.yaml
+      defaultConfig: config-types/user-groups/defaults.yaml
+      handlers:
+        validate: config-types/user-groups/validate
+        deploy: config-types/user-groups/deploy
+        rollback: config-types/user-groups/rollback
+        healthCheck: config-types/user-groups/healthCheck
+        driftDetect: config-types/user-groups/driftDetect
+        getStatus: config-types/user-groups/getStatus
       targets:
         componentTypes: [pfsense]
         requiresCredential: true

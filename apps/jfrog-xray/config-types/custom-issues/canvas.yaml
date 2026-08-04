@@ -1,0 +1,144 @@
+# =============================================================================
+# Canvas Template — JFrog Xray Custom Issues
+#
+# Declares ONE Xray custom issue (the item) — a manually-authored vulnerability/
+# issue record for components Xray's own vulnerability database doesn't cover
+# (e.g. an internal package, or a vendor's own advisory feed). Users add as
+# many as they need. UNLIKE policies/watches, the identity here is a
+# USER-CHOSEN `id` (not a display name) — it is the literal path segment for
+# every read/update/delete call.
+#
+# Verified against the official Xray REST API reference (see
+# config-types/custom-issues/deploy.ts header for citations). The OpenAPI
+# schema does NOT enforce a fixed enum for `type`/`package_type`/`severity` —
+# they are free-form strings — so this canvas offers them as text/select with
+# documented common values rather than a hard-validated enum (see validate.ts).
+#
+# Field keys must match config-types/custom-issues/_shared.ts.
+# =============================================================================
+
+id: "jfrog-xray-custom-issues"
+name: "Xray Custom Issue"
+toolType: "jfrog-xray"
+entityType: "custom-issues"
+description: "Author custom Xray issues (vulnerabilities) as code through the Xray REST API — for components not covered by Xray's own vulnerability database. Reconciled by the issue's own id (create + full-replace update; the id is chosen by you, not assigned by Xray)."
+
+item:
+  label: "Custom Issue"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "hash"
+      description: "How Xray and this canvas both identify the issue"
+      fields:
+        - key: "id"
+          label: "Issue ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: 'A unique identifier you choose, e.g. "ACME-2024-001". Must NOT start with "Xray" (case-insensitive — that prefix is reserved for Xray''s own issues). This is also the URL path segment for updates/deletes.'
+
+        - key: "provider"
+          label: "Provider"
+          fieldType: "text"
+          required: true
+          helpText: 'Your vendor/organization identifier, e.g. "acme-secops". Must NOT be "JFrog" (reserved).'
+
+    - name: "Issue"
+      icon: "alert-triangle"
+      description: "What the issue is"
+      fields:
+        - key: "type"
+          label: "Type"
+          fieldType: "text"
+          required: true
+          defaultValue: "Security"
+          helpText: 'Xray''s OpenAPI schema does not enforce a fixed enum for this field. Common values seen in the wild: "Security", "Performance", "Versions", "Other".'
+
+        - key: "package_type"
+          label: "Package Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "generic"
+          options:
+            - { label: "generic", value: "generic" }
+            - { label: "alpine", value: "alpine" }
+            - { label: "bower", value: "bower" }
+            - { label: "cargo", value: "cargo" }
+            - { label: "composer", value: "composer" }
+            - { label: "conan", value: "conan" }
+            - { label: "conda", value: "conda" }
+            - { label: "cran", value: "cran" }
+            - { label: "debian", value: "debian" }
+            - { label: "docker", value: "docker" }
+            - { label: "go", value: "go" }
+            - { label: "gradle", value: "gradle" }
+            - { label: "huggingface", value: "huggingface" }
+            - { label: "ivy", value: "ivy" }
+            - { label: "maven", value: "maven" }
+            - { label: "npm", value: "npm" }
+            - { label: "nuget", value: "nuget" }
+            - { label: "oci", value: "oci" }
+            - { label: "pypi", value: "pypi" }
+            - { label: "rpm", value: "rpm" }
+            - { label: "rubygems", value: "rubygems" }
+            - { label: "sbt", value: "sbt" }
+            - { label: "terraformbe", value: "terraformbe" }
+          helpText: "The affected component's package ecosystem."
+
+        - key: "severity"
+          label: "Severity"
+          fieldType: "select"
+          required: true
+          defaultValue: "Medium"
+          options:
+            - { label: "Critical", value: "Critical" }
+            - { label: "High", value: "High" }
+            - { label: "Medium", value: "Medium" }
+            - { label: "Low", value: "Low" }
+            - { label: "Information", value: "Information" }
+
+        - key: "summary"
+          label: "Summary"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 500
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: true
+
+    - name: "Affected Components"
+      icon: "package"
+      description: "Which components this issue affects — required"
+      fields:
+        - key: "components_json"
+          label: "Components (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 8000
+          helpText: >
+            A JSON array of at least one component, e.g.
+            [{"id":"generic://acme-internal-lib","vulnerable_versions":["[0,1.2.3]"],"fixed_versions":["1.2.4"]}].
+            "id" is required per component; "vulnerable_versions"/"fixed_versions" are optional string arrays.
+
+    - name: "Advanced (JSON)"
+      icon: "code"
+      description: "Optional CVE and source references"
+      fields:
+        - key: "cves_json"
+          label: "CVEs (JSON)"
+          fieldType: "textarea"
+          helpText: 'Optional JSON array, e.g. [{"cve":"CVE-2017-1000386","cvss_v2":"2.4","cvss_v3":"5.3"}].'
+
+        - key: "sources_json"
+          label: "Sources (JSON)"
+          fieldType: "textarea"
+          helpText: 'Optional JSON array of references, e.g. [{"source_id":"CVE-2017-1000386"}] — verified against the official REST example; per-source name/url were not confirmed and are not exposed as typed fields.'

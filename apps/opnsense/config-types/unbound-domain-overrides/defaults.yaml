@@ -1,0 +1,7 @@
+# Defaults for a new OPNsense Unbound domain override item.
+#
+# A FLAT map keyed by the canvas field keys. domain/server are left blank for
+# a deliberate choice.
+enabled: true
+forward_tcp_upstream: false
+forward_first: false

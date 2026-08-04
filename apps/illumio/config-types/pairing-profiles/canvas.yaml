@@ -1,0 +1,195 @@
+# =============================================================================
+# Canvas Template — Illumio Core Pairing Profiles
+#
+# Declares ONE pairing profile (the item), name-keyed. UNLIKE every other
+# config type in this app, pairing profiles are NOT draft/provision —
+# /orgs/{org}/pairing_profiles has no "draft" path segment and takes effect
+# immediately (the same posture as Labels). A pairing profile is how a VEN
+# (Illumio's endpoint agent) is issued a pairing key and onboarded: which
+# labels it gets, its starting enforcement mode, and how long/how many times
+# its pairing key can be used. See README.md Coverage — actual VEN pairing
+# (running the pairing script) and pairing KEYS themselves are out of scope;
+# this only manages the reusable PROFILE.
+# =============================================================================
+
+id: "illumio-pairing-profiles"
+name: "Pairing Profile Configuration"
+toolType: "illumio"
+entityType: "pairing-profiles"
+description: "Define Illumio Core pairing profiles (VEN onboarding templates) as code through the Illumio REST API v2 — takes effect immediately, no provisioning step."
+
+item:
+  label: "Pairing Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Profile"
+      icon: "shield"
+      description: "Name, description and enabled state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The pairing profile name — its identity in this canvas. Must be unique within this canvas; deploy matches live profiles on it."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the pairing profile."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether this pairing profile can be used to generate pairing keys."
+
+    - name: "Pairing keys"
+      icon: "key"
+      description: "Limits on keys generated from this profile"
+      fields:
+        - key: "allowedUsesPerKey"
+          label: "Allowed uses per key"
+          fieldType: "text"
+          required: false
+          defaultValue: "unlimited"
+          helpText: '"unlimited" or an integer from 1 to 2147483647 — how many VENs a single pairing key from this profile can pair.'
+
+        - key: "keyLifespan"
+          label: "Key lifespan (seconds)"
+          fieldType: "text"
+          required: false
+          defaultValue: "unlimited"
+          helpText: '"unlimited" or an integer from 1 to 2147483647 — how long a pairing key from this profile stays valid.'
+
+    - name: "VEN labels"
+      icon: "tag"
+      description: "Labels applied to every VEN paired with this profile"
+      fields:
+        - key: "labelsJson"
+          label: "Labels (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 4000
+          helpText: >
+            A JSON array of label refs, e.g. [{"key":"role","value":"R-Web"}].
+            Each must already exist (create it with the Labels configuration
+            type).
+
+        - key: "envLabelLock"
+          label: "Lock env label"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Prevent the env label from being overridden by the pairing script."
+
+        - key: "locLabelLock"
+          label: "Lock loc label"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Prevent the loc label from being overridden by the pairing script."
+
+        - key: "roleLabelLock"
+          label: "Lock role label"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Prevent the role label from being overridden by the pairing script."
+
+        - key: "appLabelLock"
+          label: "Lock app label"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Prevent the app label from being overridden by the pairing script."
+
+    - name: "Enforcement & visibility"
+      icon: "eye"
+      description: "The VEN's starting enforcement mode and traffic visibility"
+      fields:
+        - key: "enforcementMode"
+          label: "Enforcement mode"
+          fieldType: "select"
+          required: false
+          defaultValue: "visibility_only"
+          options:
+            - label: "Idle"
+              value: "idle"
+            - label: "Visibility only"
+              value: "visibility_only"
+            - label: "Full"
+              value: "full"
+            - label: "Selective"
+              value: "selective"
+          helpText: "The VEN's starting enforcement mode."
+
+        - key: "enforcementModeLock"
+          label: "Lock enforcement mode"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Prevent the enforcement mode from being overridden by the pairing script."
+
+        - key: "logTraffic"
+          label: "Log traffic"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Enable traffic logging on paired VENs by default."
+
+        - key: "logTrafficLock"
+          label: "Lock log traffic"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Prevent log traffic from being overridden by the pairing script."
+
+        - key: "visibilityLevel"
+          label: "Visibility level"
+          fieldType: "select"
+          required: false
+          options:
+            - label: "(PCE default)"
+              value: ""
+            - label: "Flow — full detail"
+              value: "flow_full_detail"
+            - label: "Flow — summary"
+              value: "flow_summary"
+            - label: "Flow — drops only"
+              value: "flow_drops"
+            - label: "Flow — off"
+              value: "flow_off"
+            - label: "Enhanced data collection"
+              value: "enhanced_data_collection"
+          helpText: "How much traffic detail paired VENs collect. Leave at PCE default to omit."
+
+        - key: "visibilityLevelLock"
+          label: "Lock visibility level"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Prevent the visibility level from being overridden by the pairing script."
+
+    - name: "Integration metadata"
+      icon: "link"
+      description: "Optional external-system linkage, carried through unchanged on every deploy"
+      fields:
+        - key: "externalDataSet"
+          label: "External data set"
+          fieldType: "text"
+          required: false
+          helpText: "Optional: the external system this pairing profile originates from (external_data_set)."
+
+        - key: "externalDataReference"
+          label: "External data reference"
+          fieldType: "text"
+          required: false
+          helpText: "Optional: this pairing profile's unique identifier within that external system (external_data_reference)."

@@ -1,18 +1,21 @@
 id: opnsense
 name: OPNsense
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage OPNsense open-source firewall configuration as code through the
-  OPNsense REST API (/api/<module>/<controller>/<command>) — firewall aliases,
-  firewall categories, firewall (pf) rules and outbound source NAT rules —
-  with validation, drift detection and rollback handled by the
-  Security-as-Code pipeline. OPNsense's own model stages every
+  OPNsense REST API (/api/<module>/<controller>/<command>) — firewall
+  aliases/categories/rules, outbound source NAT, 1:1 NAT, DNS Resolver
+  (Unbound) host and domain overrides, traffic-shaper pipes/queues/rules, and
+  static routes — with validation, drift detection and rollback handled by
+  the Security-as-Code pipeline. OPNsense's own model stages every
   create/update/delete into the pending configuration; nothing takes effect on
-  the firewall until an explicit apply/reconfigure call reloads the pf
-  ruleset and alias tables, so every deploy/rollback stages its changes first,
-  then applies them once as one unit. Firewall rules and source NAT require
-  OPNsense 24.1 "Savvy Shark" (Jan 2024) or later — see README.md.
+  the target subsystem until an explicit apply/reconfigure call runs, so every
+  deploy/rollback stages its changes first, then applies them once as one
+  unit. Firewall Rules and Source NAT require OPNsense 24.1+; 1:1 NAT requires
+  24.1.9+ — see README.md's Coverage section for what is managed, what is
+  intentionally excluded (VPN key material, certificates, hardware/interface
+  provisioning, system actions), and why.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/opnsense
@@ -55,6 +58,47 @@ permissions:
         delRule against /api/firewall/source_nat) and apply them on the
         firewall. Requires OPNsense 24.1+ and Outbound NAT mode set to
         Hybrid or Manual to take effect.
+    - resource: one-to-one-nat
+      actions: [read, write, delete]
+      description: >
+        Manage OPNsense 1:1 NAT rules (addRule / setRule / delRule against
+        /api/firewall/one_to_one) and apply them on the firewall. Requires
+        OPNsense 24.1.9+.
+    - resource: unbound-host-overrides
+      actions: [read, write, delete]
+      description: >
+        Manage OPNsense DNS Resolver (Unbound) host overrides (addHostOverride
+        / setHostOverride / delHostOverride against /api/unbound/settings) and
+        apply them (reconfigure — restarts Unbound).
+    - resource: unbound-domain-overrides
+      actions: [read, write, delete]
+      description: >
+        Manage OPNsense DNS Resolver (Unbound) per-domain forwarding overrides
+        (addForward / setForward / delForward against /api/unbound/settings)
+        and apply them (reconfigure — restarts Unbound).
+    - resource: traffic-shaper-pipes
+      actions: [read, write, delete]
+      description: >
+        Manage OPNsense traffic-shaper bandwidth pipes (addPipe / setPipe /
+        delPipe against /api/trafficshaper/settings) and apply them on the
+        firewall.
+    - resource: traffic-shaper-queues
+      actions: [read, write, delete]
+      description: >
+        Manage OPNsense traffic-shaper queues (addQueue / setQueue / delQueue
+        against /api/trafficshaper/settings), referencing a pipe by name, and
+        apply them on the firewall.
+    - resource: traffic-shaper-rules
+      actions: [read, write, delete]
+      description: >
+        Manage OPNsense traffic-shaper classifier rules (addRule / setRule /
+        delRule against /api/trafficshaper/settings), referencing a pipe or
+        queue by name, and apply them on the firewall.
+    - resource: static-routes
+      actions: [read, write, delete]
+      description: >
+        Manage OPNsense static routes (addroute / setroute / delroute against
+        /api/routes/routes) and apply them (reconfigure).
 
 pipeline:
   configurationTypes:
@@ -157,6 +201,176 @@ pipeline:
         healthCheck: config-types/source-nat/healthCheck
         driftDetect: config-types/source-nat/driftDetect
         getStatus: config-types/source-nat/getStatus
+      targets:
+        componentTypes: [opnsense-firewall]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: one-to-one-nat
+      name: 1:1 NAT
+      group: "NAT"
+      description: >
+        *** Requires OPNsense 24.1.9 (June 2024) or later *** — more precise
+        than Firewall Rules/Source NAT's 24.1 floor; OneToOneController's own
+        API was added after the base 24.1 import (verified via the exact core
+        commit and the 24.1.9 changelog entry — see README.md). 1:1 NAT rules
+        (addRule / setRule / delRule against /api/firewall/one_to_one),
+        identified by the canvas item's own id (no name field, same as
+        Firewall Rules/Source NAT). Every deploy that touches a rule finishes
+        with one /api/firewall/one_to_one/apply call — the SAME underlying pf
+        reload Firewall Rules/Source NAT's apply runs.
+      canvasTemplate: config-types/one-to-one-nat/canvas.yaml
+      defaultConfig: config-types/one-to-one-nat/defaults.yaml
+      handlers:
+        validate: config-types/one-to-one-nat/validate
+        deploy: config-types/one-to-one-nat/deploy
+        rollback: config-types/one-to-one-nat/rollback
+        healthCheck: config-types/one-to-one-nat/healthCheck
+        driftDetect: config-types/one-to-one-nat/driftDetect
+        getStatus: config-types/one-to-one-nat/getStatus
+      targets:
+        componentTypes: [opnsense-firewall]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: unbound-host-overrides
+      name: Unbound Host Overrides
+      group: "Services"
+      description: >
+        DNS Resolver (Unbound) host overrides (addHostOverride /
+        setHostOverride / delHostOverride against /api/unbound/settings),
+        identified by the (hostname, domain) pair. Every deploy that touches
+        an override finishes with one /api/unbound/service/reconfigure call —
+        which, per the generic mutable-service base class's default, STOPS
+        THEN STARTS the Unbound resolver (a brief DNS gap, not a soft reload).
+      canvasTemplate: config-types/unbound-host-overrides/canvas.yaml
+      defaultConfig: config-types/unbound-host-overrides/defaults.yaml
+      handlers:
+        validate: config-types/unbound-host-overrides/validate
+        deploy: config-types/unbound-host-overrides/deploy
+        rollback: config-types/unbound-host-overrides/rollback
+        healthCheck: config-types/unbound-host-overrides/healthCheck
+        driftDetect: config-types/unbound-host-overrides/driftDetect
+        getStatus: config-types/unbound-host-overrides/getStatus
+      targets:
+        componentTypes: [opnsense-firewall]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: unbound-domain-overrides
+      name: Unbound Domain Overrides
+      group: "Services"
+      description: >
+        The modern MVC equivalent of the legacy "Domain Override" concept —
+        mapped onto Unbound's `dots.dot` model with type "forward" (verified;
+        there is no separate endpoint for it). addForward / setForward /
+        delForward against /api/unbound/settings, identified by domain. Same
+        apply step (and full-resolver-restart caveat) as Unbound Host
+        Overrides.
+      canvasTemplate: config-types/unbound-domain-overrides/canvas.yaml
+      defaultConfig: config-types/unbound-domain-overrides/defaults.yaml
+      handlers:
+        validate: config-types/unbound-domain-overrides/validate
+        deploy: config-types/unbound-domain-overrides/deploy
+        rollback: config-types/unbound-domain-overrides/rollback
+        healthCheck: config-types/unbound-domain-overrides/healthCheck
+        driftDetect: config-types/unbound-domain-overrides/driftDetect
+        getStatus: config-types/unbound-domain-overrides/getStatus
+      targets:
+        componentTypes: [opnsense-firewall]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: traffic-shaper-pipes
+      name: Traffic Shaper Pipes
+      group: "Traffic Shaping"
+      description: >
+        Bandwidth-cap pipes (addPipe / setPipe / delPipe against
+        /api/trafficshaper/settings), identified by description (required by
+        the model itself). The pf dnpipe `number` is server-assigned and never
+        set by this app. Every deploy that touches a pipe finishes with one
+        /api/trafficshaper/service/reconfigure call.
+      canvasTemplate: config-types/traffic-shaper-pipes/canvas.yaml
+      defaultConfig: config-types/traffic-shaper-pipes/defaults.yaml
+      handlers:
+        validate: config-types/traffic-shaper-pipes/validate
+        deploy: config-types/traffic-shaper-pipes/deploy
+        rollback: config-types/traffic-shaper-pipes/rollback
+        healthCheck: config-types/traffic-shaper-pipes/healthCheck
+        driftDetect: config-types/traffic-shaper-pipes/driftDetect
+        getStatus: config-types/traffic-shaper-pipes/getStatus
+      targets:
+        componentTypes: [opnsense-firewall]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: traffic-shaper-queues
+      name: Traffic Shaper Queues
+      group: "Traffic Shaping"
+      description: >
+        Weighted queues attached to a pipe (addQueue / setQueue / delQueue
+        against /api/trafficshaper/settings), identified by description. The
+        target pipe is declared by NAME and resolved to its live uuid at
+        deploy time. Same apply step as Traffic Shaper Pipes.
+      canvasTemplate: config-types/traffic-shaper-queues/canvas.yaml
+      defaultConfig: config-types/traffic-shaper-queues/defaults.yaml
+      handlers:
+        validate: config-types/traffic-shaper-queues/validate
+        deploy: config-types/traffic-shaper-queues/deploy
+        rollback: config-types/traffic-shaper-queues/rollback
+        healthCheck: config-types/traffic-shaper-queues/healthCheck
+        driftDetect: config-types/traffic-shaper-queues/driftDetect
+        getStatus: config-types/traffic-shaper-queues/getStatus
+      targets:
+        componentTypes: [opnsense-firewall]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: traffic-shaper-rules
+      name: Traffic Shaper Rules
+      group: "Traffic Shaping"
+      description: >
+        Traffic classifier rules that match packets into a pipe or queue
+        (addRule / setRule / delRule against /api/trafficshaper/settings —
+        TrafficShaper's OWN rules.rule, a different model than Firewall's).
+        Identified by the canvas item's own id (no required name field). The
+        target pipe/queue is declared by NAME and resolved to its live uuid
+        at deploy time (both resources are searched). Same apply step as
+        Traffic Shaper Pipes/Queues.
+      canvasTemplate: config-types/traffic-shaper-rules/canvas.yaml
+      defaultConfig: config-types/traffic-shaper-rules/defaults.yaml
+      handlers:
+        validate: config-types/traffic-shaper-rules/validate
+        deploy: config-types/traffic-shaper-rules/deploy
+        rollback: config-types/traffic-shaper-rules/rollback
+        healthCheck: config-types/traffic-shaper-rules/healthCheck
+        driftDetect: config-types/traffic-shaper-rules/driftDetect
+        getStatus: config-types/traffic-shaper-rules/getStatus
+      targets:
+        componentTypes: [opnsense-firewall]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: static-routes
+      name: Static Routes
+      group: "Routing"
+      description: >
+        Static routes (addroute / setroute / delroute against
+        /api/routes/routes — note the all-lowercase action names, the literal
+        PHP method names on this controller), identified by destination
+        network. `gateway` is a NAME from OPNsense's own configured gateway
+        list, passed through as-is. Every deploy that touches a route
+        finishes with one /api/routes/routes/reconfigure call
+        (`interface routes configure`).
+      canvasTemplate: config-types/static-routes/canvas.yaml
+      defaultConfig: config-types/static-routes/defaults.yaml
+      handlers:
+        validate: config-types/static-routes/validate
+        deploy: config-types/static-routes/deploy
+        rollback: config-types/static-routes/rollback
+        healthCheck: config-types/static-routes/healthCheck
+        driftDetect: config-types/static-routes/driftDetect
+        getStatus: config-types/static-routes/getStatus
       targets:
         componentTypes: [opnsense-firewall]
         requiresCredential: true

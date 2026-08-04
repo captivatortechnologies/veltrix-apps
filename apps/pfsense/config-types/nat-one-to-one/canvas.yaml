@@ -1,0 +1,100 @@
+# =============================================================================
+# Canvas Template — pfSense NAT 1:1 Mappings
+#
+# Declares ONE 1:1 NAT mapping — the item. Applied via the pfSense REST API
+# package (POST/PATCH/DELETE /api/v2/firewall/nat/one_to_one/mapping), with
+# pending changes applied once per deploy (/api/v2/firewall/apply — shared
+# with aliases/rules/port-forwards/outbound-mappings).
+#
+# IDENTITY: mappings have no name field — this app tracks identity by the
+# canvas item itself (recorded in rollbackData across deploys), NOT by
+# `descr`.
+# =============================================================================
+
+id: "pfsense-nat-one-to-one"
+name: "NAT 1:1 Mappings"
+toolType: "pfsense"
+entityType: "nat-one-to-one"
+description: "Manage pfSense 1:1 NAT mappings via the pfSense REST API package (/api/v2/firewall/nat/one_to_one/mapping). Identity is tracked per canvas item (mappings have no name field)."
+
+item:
+  label: "1:1 NAT Mapping"
+  # Mappings have no name field (see _shared.ts's module doc) — deploy.ts
+  # derives the real identity from the canvas item's own platform-assigned
+  # id, tracked via rollbackData. `descr` is only the display label here.
+  identityField: "descr"
+  identityDerived: true
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Mapping"
+      icon: "arrow-left-right"
+      description: "Interface, IP family and the external/source/destination match"
+      fields:
+        - key: "interface"
+          label: "Interface"
+          fieldType: "text"
+          required: true
+          helpText: "The interface this 1:1 mapping applies to (e.g. \"wan\")."
+
+        - key: "ipprotocol"
+          label: "IP Protocol"
+          fieldType: "select"
+          required: false
+          defaultValue: "inet"
+          options:
+            - { label: "IPv4", value: "inet" }
+            - { label: "IPv6", value: "inet6" }
+
+        - key: "external"
+          label: "External Address"
+          fieldType: "text"
+          required: true
+          helpText: "The external (public-facing) IP address or an interface's \":ip\" modifier — must match the IP Protocol above."
+
+        - key: "source"
+          label: "Source (internal)"
+          fieldType: "text"
+          required: true
+          helpText: "The internal IP address or subnet that this mapping applies to."
+
+        - key: "destination"
+          label: "Destination"
+          fieldType: "text"
+          required: true
+          defaultValue: "any"
+          helpText: "An IP address, subnet CIDR, existing alias, \"any\", or an interface name. Prefix with \"!\" to invert."
+
+        - key: "natreflection"
+          label: "NAT Reflection"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - { label: "System default", value: "" }
+            - { label: "Enable", value: "enable" }
+            - { label: "Disable", value: "disable" }
+
+    - name: "Behavior"
+      icon: "settings"
+      description: "How this mapping behaves"
+      fields:
+        - key: "descr"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1024
+          helpText: "Recorded on the mapping in pfSense. Recommended for readability even though it is not this app's identity key."
+
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "nobinat"
+          label: "No BINAT (exclusion)"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Excludes traffic matching this entry from a later, more general 1:1 mapping — used to carve out exceptions."

@@ -1,0 +1,119 @@
+# =============================================================================
+# Canvas Template — Twingate DNS Filtering Profiles
+#
+# Declares ONE DNS Filtering Profile — controls website access via DNS for the
+# Groups it is assigned to. Requires DNS filtering to be enabled on the
+# tenant's plan. Profiles are created/updated through the GraphQL
+# dnsFilteringProfileCreate / dnsFilteringProfileUpdate mutations (create only
+# sets the name; this app immediately follows with an update to apply the
+# rest of the declared spec) and identified for reconciliation by `name`.
+#
+# Field keys must match config-types/dns-filtering-profiles/_shared.ts
+# (extractDnsFilteringProfileSpecs).
+# =============================================================================
+
+id: "dns-filtering-profiles"
+name: "Twingate DNS Filtering Profile"
+toolType: "twingate"
+entityType: "dns-filtering-profiles"
+description: "Define Twingate DNS Filtering Profiles as code through the GraphQL API. Reconciled by profile name; Group access is resolved by name against the live tenant."
+
+item:
+  label: "DNS Filtering Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Profile"
+      icon: "shield-check"
+      description: "Identity, priority and fallback behavior"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The profile name — its logical identity among this tenant's DNS filtering profiles."
+
+        - key: "priority"
+          label: "Priority"
+          fieldType: "number"
+          required: true
+          defaultValue: 1
+          helpText: "Evaluation priority among a Group's assigned profiles — lower numbers are evaluated first."
+
+        - key: "fallback_method"
+          label: "Fallback Method"
+          fieldType: "select"
+          required: true
+          defaultValue: "STRICT"
+          options:
+            - { label: "Strict", value: "STRICT" }
+            - { label: "Auto", value: "AUTO" }
+          helpText: "How DNS resolution falls back when the primary filtering path is unavailable."
+
+    - name: "Domains"
+      icon: "globe"
+      description: "Explicit allow/deny overrides"
+      fields:
+        - key: "allowed_domains"
+          label: "Allowed Domains"
+          fieldType: "tags"
+          helpText: "Domains always allowed, overriding category blocks. This list REPLACES the profile's allowed domains on every deploy."
+
+        - key: "denied_domains"
+          label: "Denied Domains"
+          fieldType: "tags"
+          helpText: "Domains always blocked, regardless of category settings. This list REPLACES the profile's denied domains on every deploy."
+
+    - name: "Categories"
+      icon: "filter"
+      description: "Content, security and privacy filtering"
+      fields:
+        - key: "content_categories"
+          label: "Content Categories to Block/Enable"
+          fieldType: "multiselect"
+          options:
+            - { label: "Gambling", value: "blockGambling" }
+            - { label: "Dating", value: "blockDating" }
+            - { label: "Adult content", value: "blockAdultContent" }
+            - { label: "Social media", value: "blockSocialMedia" }
+            - { label: "Games", value: "blockGames" }
+            - { label: "Streaming", value: "blockStreaming" }
+            - { label: "Piracy", value: "blockPiracy" }
+            - { label: "YouTube Restricted Mode", value: "enableYoutubeRestrictedMode" }
+            - { label: "Safe Search", value: "enableSafeSearch" }
+          helpText: "Select every category to enforce. This list REPLACES the profile's content category flags on every deploy — unselected flags are explicitly turned off."
+
+        - key: "security_categories"
+          label: "Security Categories to Block/Enable"
+          fieldType: "multiselect"
+          options:
+            - { label: "Threat intelligence feeds", value: "enableThreatIntelligenceFeeds" }
+            - { label: "Google Safe Browsing", value: "enableGoogleSafeBrowsing" }
+            - { label: "Cryptojacking", value: "blockCryptojacking" }
+            - { label: "IDN homograph attacks", value: "blockIdnHomographs" }
+            - { label: "Typosquatting", value: "blockTyposquatting" }
+            - { label: "DNS rebinding", value: "blockDnsRebinding" }
+            - { label: "Newly registered domains", value: "blockNewlyRegisteredDomains" }
+            - { label: "Domain generation algorithms (DGA)", value: "blockDomainGenerationAlgorithms" }
+            - { label: "Parked domains", value: "blockParkedDomains" }
+          helpText: "Select every category to enforce. This list REPLACES the profile's security category flags on every deploy."
+
+        - key: "privacy_categories"
+          label: "Privacy Categories to Block"
+          fieldType: "multiselect"
+          options:
+            - { label: "Affiliate links", value: "blockAffiliate" }
+            - { label: "Disguised trackers", value: "blockDisguisedTrackers" }
+            - { label: "Ads and trackers", value: "blockAdsAndTrackers" }
+          helpText: "Select every category to block. This list REPLACES the profile's privacy category flags on every deploy."
+
+    - name: "Access"
+      icon: "users"
+      description: "Which Groups this profile applies to"
+      fields:
+        - key: "group_names"
+          label: "Groups"
+          fieldType: "tags"
+          helpText: "Twingate Groups (by name) this profile is assigned to. This list REPLACES the profile's assigned Groups on every deploy — leave empty to assign none."

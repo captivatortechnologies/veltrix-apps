@@ -67,6 +67,16 @@ References:
 | **Firewall Rules** | `/api/v2/firewall/rule(s)` + `/api/v2/firewall/apply` | canvas item id | ✅ v0.2.0 |
 | **NAT Port Forwards** | `/api/v2/firewall/nat/port_forward(s)` + `/api/v2/firewall/apply` | canvas item id | ✅ v0.2.0 |
 | **Virtual IPs** | `/api/v2/firewall/virtual_ip(s)` + `/api/v2/firewall/virtual_ip/apply` | `subnet` (unique) | ✅ v0.2.0 |
+| **Outbound NAT Mode** | `/api/v2/firewall/nat/outbound/mode` (singleton) + `/api/v2/firewall/apply` | singleton | ✅ v0.3.0 |
+| **Outbound NAT Mappings** | `/api/v2/firewall/nat/outbound/mapping(s)` + `/api/v2/firewall/apply` | canvas item id | ✅ v0.3.0 |
+| **1:1 NAT Mappings** | `/api/v2/firewall/nat/one_to_one/mapping(s)` + `/api/v2/firewall/apply` | canvas item id | ✅ v0.3.0 |
+| **Firewall Schedules** | `/api/v2/firewall/schedule(s)` + `/api/v2/firewall/apply` | `name` (unique) | ✅ v0.3.0 |
+| **Gateways** | `/api/v2/routing/gateway(s)` + `/api/v2/routing/apply` | `name` (unique, immutable) | ✅ v0.3.0 |
+| **Static Routes** | `/api/v2/routing/static_route(s)` + `/api/v2/routing/apply` | canvas item id | ✅ v0.3.0 |
+| **DNS Resolver Host Overrides** | `/api/v2/services/dns_resolver/host_override(s)` + `/api/v2/services/dns_resolver/apply` | `host`+`domain` (composite) | ✅ v0.3.0 |
+| **DNS Resolver Domain Overrides** | `/api/v2/services/dns_resolver/domain_override(s)` + `/api/v2/services/dns_resolver/apply` | `domain` | ✅ v0.3.0 |
+| **Local Users** | `/api/v2/user` (writes apply immediately) | `name` (unique) | ✅ v0.3.0 |
+| **Local User Groups** | `/api/v2/user/group` (writes apply immediately) | `name` (unique) | ✅ v0.3.0 |
 
 A firewall alias is pfSense's named host/network/port group, referenced by
 firewall rules and NAT — verified against
@@ -223,3 +233,129 @@ regenerating the live ruleset from config regardless of any dirty flag.
   `verify_tls` setting.
 
 Apache-2.0.
+
+### NAT Outbound Mode / Mappings, 1:1 NAT, Schedules, Gateways, Static Routes, DNS Resolver, Users/Groups (v0.3.0)
+
+- **NAT Outbound Mode** is a **singleton** (`repeatable: false`, like a settings
+  form) — declare it once per canvas. `automatic` mode makes the separate
+  **NAT Outbound Mappings** config type a no-op; use `hybrid` or `advanced`
+  for mappings to take effect. Verified: `OutboundNATMode.inc`'s actual
+  `choices` array is `['automatic','hybrid','advanced','disabled']` — its own
+  prose help text says "manual" instead of "advanced", a real mismatch in the
+  package's docstring; this app uses the verified `choices`, not the prose.
+- **NAT Outbound Mappings** and **1:1 NAT Mappings** have no name field
+  (verified) — tracked by canvas-item id, same pattern as Firewall Rules.
+  Outbound Mappings additionally support the same optional `position` ->
+  `placement` ordering as Firewall Rules/NAT Port Forwards. Both share
+  `/api/v2/firewall/apply` (subsystem `natconf`).
+- **Firewall Schedules** are `name`-keyed. Each schedule embeds exactly
+  **one** time range (`RESTAPI/Models/FirewallScheduleTimeRange.inc`) —
+  either recurring weekdays (`position`, 1-7) OR paired `month`+`day` date
+  values, never both. Multiple time ranges per schedule (e.g. different
+  hours on different days) is **out of scope** for v0.3.0 — flagged, not
+  faked. The `hour` field's minute set is verified as the unusual
+  `00/15/30/45/59` (not every 15 minutes), and its day-in-month table
+  hardcodes February to 29 days regardless of leap year — replicated
+  faithfully from the package's own validator, not "fixed."
+- **Gateways** are `name`-keyed (immutable, like aliases) and scoped to the
+  core identity/monitoring fields — the ~14 advanced dpinger tuning knobs
+  (latency/loss thresholds, probe intervals, etc., verified in
+  `RoutingGateway.inc`) are dropped for v0.3.0 since every one already has a
+  safe server-side default. **Static Routes** have no name field — tracked
+  by canvas-item id. Both share **`/api/v2/routing/apply`** — a THIRD
+  distinct apply endpoint from `/api/v2/firewall/apply` and
+  `/api/v2/firewall/virtual_ip/apply`.
+- **DNS Resolver Host Overrides** key on the COMPOSITE `host`+`domain` pair
+  (verified `unique_together_fields`) — this app cannot use either field
+  alone as identity. The Model's nested `aliases` sub-list (additional
+  alias hostnames per override) is dropped for v0.3.0; every override this
+  app writes has zero aliases. **DNS Resolver Domain Overrides** key on
+  `domain`. Both share a **FOURTH** distinct apply endpoint,
+  `/api/v2/services/dns_resolver/apply`.
+- **Local Users** and **Local User Groups** are `name`-keyed, but unlike
+  every other config type here, both Models are `always_apply: true` —
+  every write takes effect immediately server-side
+  (`local_user_set`/`local_group_set`), so there is **no** apply-endpoint
+  call at all for these two types. `password` (Users) is treated write-only
+  in this app's own behavior — never diffed by drift or restored by
+  rollback, even though the Model itself doesn't mark the field
+  `write_only`. System-scoped accounts/groups (pfSense's own built-ins,
+  e.g. `admin`) are never created, updated, or deleted by this app,
+  matching what the package itself forbids.
+
+## Coverage (v0.3.0)
+
+Audited against the official `pfrest/pfSense-pkg-RESTAPI` v2 PHP model and
+endpoint source (not prose docs). pfSense CE itself still ships no REST API;
+the package remains a hard prerequisite for every config type below.
+
+### Managed declarative resources
+
+| Type | REST API package surface | Apply endpoint |
+| --- | --- | --- |
+| Firewall aliases | `/firewall/alias(es)` | `/firewall/apply` |
+| Firewall rules | `/firewall/rule(s)` | `/firewall/apply` |
+| NAT port forwards | `/firewall/nat/port_forward(s)` | `/firewall/apply` |
+| Virtual IPs | `/firewall/virtual_ip(s)` | `/firewall/virtual_ip/apply` (own) |
+| Outbound NAT mode | `/firewall/nat/outbound/mode` | `/firewall/apply` |
+| Outbound NAT mappings | `/firewall/nat/outbound/mapping(s)` | `/firewall/apply` |
+| 1:1 NAT mappings | `/firewall/nat/one_to_one/mapping(s)` | `/firewall/apply` |
+| Firewall schedules | `/firewall/schedule(s)` | `/firewall/apply` |
+| Gateways | `/routing/gateway(s)` | `/routing/apply` (own) |
+| Static routes | `/routing/static_route(s)` | `/routing/apply` (own) |
+| DNS Resolver host overrides | `/services/dns_resolver/host_override(s)` | `/services/dns_resolver/apply` (own) |
+| DNS Resolver domain overrides | `/services/dns_resolver/domain_override(s)` | `/services/dns_resolver/apply` (own) |
+| Local users | `/user(s)` | none — `always_apply` server-side |
+| Local user groups | `/user/group(s)` | none — `always_apply` server-side |
+
+Every config type exposes typed, per-field canvas forms (selects, checkboxes,
+tag lists, validated text) — never a raw JSON blob — with dedicated
+`validate`/`deploy`/`rollback`/`driftDetect`/`healthCheck`/`getStatus`
+handlers and a `node:test` suite, matching Firewall Aliases' v0.1.0
+foundation. Name-keyed and composite-keyed resources reconcile by their
+natural vendor identity; resources with no vendor-unique field use the
+canvas-item-id tracking pattern described above. Passwords, IPsec PSKs and
+the CARP VHID password are write-only in this app's own behavior — never
+drift-compared or written into rollback data, even on Models that don't
+declare the field `write_only` themselves.
+
+### Explicit exclusions (and why)
+
+- **Certificates and Certificate Authorities** (`SystemCertificateEndpoint`,
+  `SystemCertificateAuthorityEndpoint`) — importing one requires
+  transmitting the **private key** (`prv`, required, `sensitive: true`)
+  through canvas config, the same real-secret-material concern as VPN
+  tunnels. `CertificateGenerate` avoids transmitting a key (pfSense
+  generates it server-side) but is POST-only with no meaningful
+  update/drift/rollback semantics (you don't "update" a generated X.509
+  cert — you regenerate an entirely new one), so it doesn't fit this app's
+  reconciliation model either way.
+- **VPN configuration** (IPsec Phase 1/2, OpenVPN client/server, WireGuard
+  tunnels/peers) — all involve real key material (pre-shared keys, private
+  keys, certificates) and/or multi-resource activation sequences better
+  suited to a dedicated, security-reviewed VPN-specific tool than a generic
+  config-as-code canvas field.
+- **Network interfaces, VLANs, bridges, LAGGs, interface groups** — these
+  bind to the box's actual physical/virtual NICs; misconfiguring one can
+  sever the very connection this app uses to reach the box. Host-specific
+  hardware topology, not portable declarative config.
+- **DHCP server/relay, BIND, HAProxy, FreeRADIUS, ACME, NTP, cron, SSH,
+  service watchdogs** — several of these are themselves OPTIONAL packages
+  layered on top of the REST API package (which is already a real
+  prerequisite this app flags prominently); adding a second and third
+  "you must also install X" chain was judged out of scope for this app's
+  wave of work, not a technical impossibility.
+- **System actions and diagnostics** (reboot, halt, package install/update,
+  firmware update, ARP table, ping, config-history revisions, wake-on-LAN,
+  the command prompt endpoint) — one-shot imperative actions or read-only
+  diagnostics, not declarative, reconcilable, rollback-able resources.
+- **Status/logs/state surfaces** (`Status*Endpoint`, `StatusLogs*Endpoint`,
+  firewall states, CARP status, gateway status) — GET-only by design; there
+  is nothing to declare or deploy.
+- **REST API package's own administration** (API keys, JWT settings, the
+  package's access list, GraphQL, its own settings sync) — bootstrapping
+  concerns for the credential this app already consumes, not target-system
+  configuration to manage as code.
+
+Primary authorities: [pfSense REST API package](https://github.com/pfrest/pfSense-pkg-RESTAPI)
+and [pfrest documentation](https://pfrest.org/).

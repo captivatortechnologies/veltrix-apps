@@ -3,10 +3,12 @@ import {
   parseJsonArray,
   parseJsonObject,
   readBool,
+  readKeyValueMap,
   readOptionalNumber,
   readOptionalString,
   readString,
   readStringArray,
+  stringMapsEqual,
   stringSetsEqual,
 } from '../fields'
 
@@ -73,5 +75,18 @@ describe('lib/fields', () => {
     expect(looksLikeEmail('secops@example.com')).toBe(true)
     expect(looksLikeEmail('not-an-email')).toBe(false)
     expect(looksLikeEmail('missing-domain@')).toBe(false)
+  })
+
+  it('readKeyValueMap accepts an object, an array of pairs, or a "k=v" string', () => {
+    expect(readKeyValueMap({ a: '1', b: 2 })).toEqual({ a: '1', b: '2' })
+    expect(readKeyValueMap([{ key: 'a', value: '1' }, { name: 'b', value: 2 }])).toEqual({ a: '1', b: '2' })
+    expect(readKeyValueMap('a=1\nb=2')).toEqual({ a: '1', b: '2' })
+    expect(readKeyValueMap(undefined)).toEqual({})
+  })
+
+  it('stringMapsEqual compares keys and values', () => {
+    expect(stringMapsEqual({ a: '1', b: '2' }, { b: '2', a: '1' })).toBe(true)
+    expect(stringMapsEqual({ a: '1' }, { a: '2' })).toBe(false)
+    expect(stringMapsEqual({ a: '1' }, { a: '1', b: '2' })).toBe(false)
   })
 })

@@ -1,0 +1,66 @@
+# =============================================================================
+# Canvas Template — pfSense DNS Resolver Host Overrides
+#
+# Declares ONE host override — the item. Applied via the pfSense REST API
+# package (POST/PATCH/DELETE /api/v2/services/dns_resolver/host_override),
+# with pending changes applied once per deploy
+# (/api/v2/services/dns_resolver/apply — its own dedicated endpoint, shared
+# with the separate Domain Overrides config type).
+#
+# IDENTITY: `host`+`domain` together (case-insensitive) — pfSense itself
+# enforces this pair as unique, not either field alone.
+#
+# NOT SUPPORTED in v0.3.0: additional alias hostnames per override (a nested
+# list in the underlying API) — every override this app creates/updates has
+# zero aliases. See README.md's Coverage section.
+# =============================================================================
+
+id: "pfsense-dns-resolver-host-overrides"
+name: "DNS Resolver Host Overrides"
+toolType: "pfsense"
+entityType: "dns-resolver-host-overrides"
+description: "Manage pfSense DNS Resolver (Unbound) host overrides via the pfSense REST API package (/api/v2/services/dns_resolver/host_override). Resolves a specific host+domain combination to one or more IPs, overriding normal DNS resolution."
+
+item:
+  label: "Host Override"
+  # Identity is the COMPOSITE host+domain pair (see _shared.ts's module doc)
+  # — `host` alone may legitimately be blank (it overrides the bare domain),
+  # so the real key is derived by deploy.ts, not read verbatim from this field.
+  identityField: "host"
+  identityDerived: true
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Override"
+      icon: "globe"
+      description: "The host, its domain and the IP(s) it resolves to"
+      fields:
+        - key: "host"
+          label: "Host"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "The hostname portion (e.g. \"nas\" for \"nas.internal.example.com\"). Leave blank to override the bare Domain value itself. Used together with Domain as this app's identity for upsert/drift."
+
+        - key: "domain"
+          label: "Domain"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The domain portion (e.g. \"internal.example.com\")."
+
+        - key: "ip"
+          label: "IP Address(es)"
+          fieldType: "tags"
+          required: true
+          helpText: "One or more IPv4/IPv6 addresses this host resolves to. Multiple addresses round-robin."
+
+        - key: "descr"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1024

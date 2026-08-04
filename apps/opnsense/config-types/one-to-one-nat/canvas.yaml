@@ -1,0 +1,122 @@
+# =============================================================================
+# Canvas Template — OPNsense 1:1 NAT Rules
+#
+# *** REQUIRES OPNsense 24.1.9 (June 2024) OR LATER *** — OneToOneController's
+# own API was added after the base 24.1 filter/source-NAT import; see
+# lib/oneToOneNatApi.ts's module doc for the full citation trail.
+#
+# Declares ONE OPNsense 1:1 NAT rule — the item. Like firewall-rules/
+# source-nat, `onetoone.rule` has NO name field, so identity is the CANVAS
+# ITEM's own id — see config-types/one-to-one-nat/_shared.ts.
+#
+# Field keys must match config-types/one-to-one-nat/_shared.ts.
+# =============================================================================
+
+id: "opnsense-one-to-one-nat"
+name: "OPNsense 1:1 NAT Configuration"
+toolType: "opnsense"
+entityType: "one-to-one-nat"
+description: "Define OPNsense 1:1 NAT rules (addRule / setRule against /api/firewall/one_to_one) as code. Requires OPNsense 24.1.9+. Every deploy stages its changes then applies them with one apply call."
+
+item:
+  label: "1:1 NAT Rule"
+  identityField: "description"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Match"
+      icon: "shield"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: "A human label for this rule. Required by this app for identification — not enforced by OPNsense itself."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "sequence"
+          label: "Position"
+          fieldType: "number"
+          required: true
+          defaultValue: 1
+          helpText: "Relative evaluation order among 1:1 NAT rules (1-999999). Use well-spaced values (10, 20, 30, ...)."
+
+        - key: "interface"
+          label: "Interface"
+          fieldType: "text"
+          required: true
+          defaultValue: "wan"
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "binat"
+          options:
+            - label: "BINAT"
+              value: "binat"
+            - label: "NAT"
+              value: "nat"
+
+    - name: "Source & Destination"
+      icon: "list"
+      fields:
+        - key: "source_net"
+          label: "Source (internal)"
+          fieldType: "text"
+          required: true
+          helpText: "The internal host/network/alias this rule translates."
+
+        - key: "source_not"
+          label: "Invert source match"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "destination_net"
+          label: "Destination"
+          fieldType: "text"
+          required: false
+          defaultValue: "any"
+
+        - key: "destination_not"
+          label: "Invert destination match"
+          fieldType: "checkbox"
+          defaultValue: false
+
+    - name: "Translation"
+      icon: "settings"
+      fields:
+        - key: "external"
+          label: "External"
+          fieldType: "text"
+          required: true
+          helpText: "The external address/network this rule translates the source to."
+
+        - key: "natreflection"
+          label: "NAT Reflection"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - label: "Default (system setting)"
+              value: ""
+            - label: "Enable"
+              value: "enable"
+            - label: "Disable"
+              value: "disable"
+
+        - key: "log"
+          label: "Log matches"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "categories"
+          label: "Categories"
+          fieldType: "tags"
+          required: false
+          helpText: "Category NAMES declared in a firewall-categories canvas — resolved to their live uuid at deploy time."

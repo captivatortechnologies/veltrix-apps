@@ -45,6 +45,18 @@
 // Rules are a sub-collection of a rule_set: POST {rule_set_href}/sec_rules —
 // confirmed against resource_illumio_security_rule.go. See
 // config-types/rulesets/_shared.ts for the rule_set + rule shapes.
+//
+// label_groups, virtual_services and enforcement_boundaries follow the SAME
+// draft-then-provision shape as ip_lists/services/rule_sets (their own
+// /orgs/{org_id}/sec_policy/draft/<resource> collection, name-keyed, and a
+// `change_subset` field of the same name — confirmed in
+// models/security_policy.go's SecurityPolicyChangeSubset).
+//
+// pairing_profiles is DIFFERENT: /orgs/{org_id}/pairing_profiles has NO
+// "draft" path segment and no StoreHref tracking anywhere in the Terraform
+// provider's resource_illumio_pairing_profile.go — writes take effect
+// immediately, the same posture as labels. See README.md Coverage for the
+// full inventory of what this app manages vs. intentionally excludes.
 // =============================================================================
 
 import { request as httpsRequest } from 'node:https'
@@ -220,8 +232,13 @@ export async function sendJson<T>(
 // See the header comment: security policy objects are drafted, then a batch of
 // changed hrefs is "provisioned" into a new active policy version.
 
-/** The provisionable security-policy resource types this app writes to. */
-export type ProvisionableType = 'ip_lists' | 'services' | 'rule_sets'
+/**
+ * The provisionable security-policy resource types this app writes to.
+ * Matches the JSON keys of models.SecurityPolicyChangeSubset (the full set
+ * there also includes virtual_servers and firewall_settings, which this app
+ * does not write — see README.md Coverage).
+ */
+export type ProvisionableType = 'ip_lists' | 'services' | 'rule_sets' | 'label_groups' | 'virtual_services' | 'enforcement_boundaries'
 
 /** `change_subset` on POST /orgs/{org_id}/sec_policy — one array of hrefs per type. */
 export type ChangeSubset = Partial<Record<ProvisionableType, { href: string }[]>>

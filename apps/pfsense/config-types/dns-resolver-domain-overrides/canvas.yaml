@@ -1,0 +1,62 @@
+# =============================================================================
+# Canvas Template — pfSense DNS Resolver Domain Overrides
+#
+# Declares ONE domain override — the item. Applied via the pfSense REST API
+# package (POST/PATCH/DELETE /api/v2/services/dns_resolver/domain_override),
+# with pending changes applied once per deploy
+# (/api/v2/services/dns_resolver/apply — its own dedicated endpoint,
+# separate from every firewall/NAT/routing apply endpoint).
+#
+# Identity is the `domain` value (case-insensitive) — pfSense's own GUI
+# treats one override per domain as the norm.
+# =============================================================================
+
+id: "pfsense-dns-resolver-domain-overrides"
+name: "DNS Resolver Domain Overrides"
+toolType: "pfsense"
+entityType: "dns-resolver-domain-overrides"
+description: "Manage pfSense DNS Resolver (Unbound) domain overrides via the pfSense REST API package (/api/v2/services/dns_resolver/domain_override). Forwards all queries for a domain to a specific upstream DNS server."
+
+item:
+  label: "Domain Override"
+  identityField: "domain"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Override"
+      icon: "globe"
+      description: "The domain and the upstream DNS server to forward it to"
+      fields:
+        - key: "domain"
+          label: "Domain"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The domain (e.g. \"internal.example.com\") whose DNS queries should be forwarded to the IP below instead of resolved normally. Used as this app's identity for upsert/drift."
+
+        - key: "ip"
+          label: "Upstream DNS Server IP"
+          fieldType: "text"
+          required: true
+          helpText: "The IPv4 or IPv6 address of the DNS server to forward queries for this domain to."
+
+        - key: "forward_tls_upstream"
+          label: "Forward TLS Upstream (DoT)"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Enable DNS-over-TLS when forwarding to the upstream server."
+
+        - key: "tls_hostname"
+          label: "TLS Hostname"
+          fieldType: "text"
+          required: false
+          helpText: "The hostname to validate the upstream server's TLS certificate against. Only used when \"Forward TLS Upstream\" is enabled."
+
+        - key: "descr"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1024

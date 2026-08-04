@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-illumio",
   "private": true,
-  "version": "0.2.0",
-  "description": "Veltrix app: manage Illumio Core (PCE) microsegmentation configuration as code — labels, IP lists, services and rulesets (label-scoped security rules) over the Illumio REST API v2's draft-then-provision model",
+  "version": "0.3.0",
+  "description": "Veltrix app: manage Illumio Core (PCE) microsegmentation configuration as code — labels, IP lists, services, label groups, virtual services, rulesets, enforcement boundaries and pairing profiles",
   "scripts": {
     "typecheck": "tsc --noEmit"
   },

@@ -1,0 +1,7 @@
+# Defaults for a new 1:1 NAT mapping item. interface/external/source are left
+# for the operator to fill in.
+ipprotocol: inet
+destination: any
+natreflection: ""
+disabled: false
+nobinat: false

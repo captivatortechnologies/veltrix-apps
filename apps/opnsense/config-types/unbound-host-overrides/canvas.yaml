@@ -1,0 +1,114 @@
+# =============================================================================
+# Canvas Template — OPNsense Unbound Host Overrides
+#
+# Declares ONE OPNsense DNS Resolver (Unbound) host override — the item.
+# Identity is the (hostname, domain) pair together — see
+# config-types/unbound-host-overrides/_shared.ts. Deploy stages via
+# addHostOverride/setHostOverride/delHostOverride then applies with
+# /api/unbound/service/reconfigure, which RESTARTS the Unbound service.
+#
+# Field keys must match config-types/unbound-host-overrides/_shared.ts.
+# =============================================================================
+
+id: "opnsense-unbound-host-overrides"
+name: "OPNsense Unbound Host Override Configuration"
+toolType: "opnsense"
+entityType: "unbound-host-overrides"
+description: "Define OPNsense DNS Resolver (Unbound) host overrides (addHostOverride / setHostOverride) as code. Every deploy stages its changes then applies them — which restarts the Unbound service."
+
+item:
+  label: "Host Override"
+  identityField: "hostname"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Identity"
+      icon: "tag"
+      fields:
+        - key: "hostname"
+          label: "Hostname"
+          fieldType: "text"
+          required: true
+          helpText: "The host label, e.g. \"printer\" for printer.example.com. Together with Domain, this is the override's identity."
+
+        - key: "domain"
+          label: "Domain"
+          fieldType: "text"
+          required: true
+          helpText: "e.g. example.com."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+
+    - name: "Record"
+      icon: "list"
+      fields:
+        - key: "rr"
+          label: "Record Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "A"
+          options:
+            - label: "A (IPv4 address)"
+              value: "A"
+            - label: "AAAA (IPv6 address)"
+              value: "AAAA"
+            - label: "MX (mail server)"
+              value: "MX"
+            - label: "TXT (text)"
+              value: "TXT"
+
+        - key: "server"
+          label: "IP Address"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "rr"
+            in: ["A", "AAAA"]
+          helpText: "Required for an A or AAAA record."
+
+        - key: "mxprio"
+          label: "MX Priority"
+          fieldType: "number"
+          required: false
+          visibleWhen:
+            field: "rr"
+            equals: "MX"
+          helpText: "Required for an MX record."
+
+        - key: "mx"
+          label: "MX Host"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "rr"
+            equals: "MX"
+          helpText: "Required for an MX record."
+
+        - key: "txtdata"
+          label: "TXT Data"
+          fieldType: "textarea"
+          required: false
+          visibleWhen:
+            field: "rr"
+            equals: "TXT"
+          helpText: "Required for a TXT record (max 255 characters)."
+
+        - key: "ttl"
+          label: "TTL (seconds)"
+          fieldType: "number"
+          required: false
+          helpText: "Leave blank for the resolver's default."
+
+        - key: "addptr"
+          label: "Also create a reverse-DNS (PTR) record"
+          fieldType: "checkbox"
+          defaultValue: true

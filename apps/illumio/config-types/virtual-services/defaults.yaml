@@ -1,0 +1,6 @@
+# Defaults for a new virtual service item.
+#
+# A FLAT map keyed by the canvas field keys. Only `applyTo` is seeded (matching
+# the canvas field's own defaultValue) — name and the port/label refs are left
+# blank for a deliberate choice.
+applyTo: host_only

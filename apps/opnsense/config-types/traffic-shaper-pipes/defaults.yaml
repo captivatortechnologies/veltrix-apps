@@ -1,0 +1,11 @@
+# Defaults for a new OPNsense traffic-shaper pipe item.
+#
+# A FLAT map keyed by the canvas field keys. description/bandwidth are left
+# blank for a deliberate choice.
+enabled: true
+bandwidthMetric: Kbit
+mask: none
+scheduler: ""
+codel_enable: false
+codel_ecn_enable: false
+pie_enable: false

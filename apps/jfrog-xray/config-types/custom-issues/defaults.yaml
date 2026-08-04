@@ -1,0 +1,8 @@
+# Defaults for a new custom-issue item.
+#
+# Intentionally empty: the platform starts a new item blank and the field-level
+# `defaultValue`s in canvas.yaml (type: "Security", package_type: "generic",
+# severity: "Medium") already give a sensible starting point. Any values here
+# would be a FLAT map keyed by the canvas field keys (id, provider, type,
+# package_type, severity, summary, description, components_json, cves_json,
+# sources_json).

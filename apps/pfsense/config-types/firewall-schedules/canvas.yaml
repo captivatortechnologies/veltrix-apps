@@ -1,0 +1,78 @@
+# =============================================================================
+# Canvas Template — pfSense Firewall Schedules
+#
+# Declares ONE firewall schedule — the item. Applied via the pfSense REST
+# API package (POST/PATCH/DELETE /api/v2/firewall/schedule), with pending
+# changes applied once per deploy (/api/v2/firewall/apply — shared with
+# aliases/rules/NAT mappings).
+#
+# Each schedule carries exactly ONE time range in v0.3.0 (the common case).
+# A time range is EITHER a set of recurring weekdays (Days of Week) OR a set
+# of specific month+day date pairs — never both; leave Days of Week empty to
+# use Month/Day instead.
+# =============================================================================
+
+id: "pfsense-firewall-schedules"
+name: "Firewall Schedules"
+toolType: "pfsense"
+entityType: "firewall-schedules"
+description: "Manage pfSense firewall schedules via the pfSense REST API package (/api/v2/firewall/schedule) — used to make firewall rules time-based. Each schedule has exactly one time range in this app; multiple time ranges per schedule are out of scope."
+
+item:
+  label: "Firewall Schedule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "calendar"
+      description: "Schedule name and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 31
+          helpText: "Letters, numbers and underscores only, 31 characters or fewer. Used as the stable identity for upsert and drift — referenced by firewall rules' Schedule field."
+
+        - key: "descr"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1024
+
+    - name: "Time Range"
+      icon: "clock"
+      description: "When this schedule is active"
+      fields:
+        - key: "position"
+          label: "Days of Week (recurring)"
+          fieldType: "tags"
+          required: false
+          helpText: "1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday, 7=Sunday. If set, Month/Day below are ignored — this schedule recurs every week on these days."
+
+        - key: "month"
+          label: "Month (specific dates)"
+          fieldType: "tags"
+          required: false
+          helpText: "1-12. Paired positionally with Day below (the Nth Month value + the Nth Day value = one specific date). Ignored if Days of Week is set. Required (with Day) otherwise."
+
+        - key: "day"
+          label: "Day (specific dates)"
+          fieldType: "tags"
+          required: false
+          helpText: "1-31. Must have the same number of values as Month, in matching order. Ignored if Days of Week is set."
+
+        - key: "hour"
+          label: "Time Range"
+          fieldType: "text"
+          required: true
+          helpText: "24-hour HH:MM-HH:MM (e.g. \"08:00-17:00\"). Minutes must be one of :00, :15, :30, :45 or :59. Start must be at or before end — an overnight range (e.g. 22:00-02:00) is not supported by pfSense itself."
+
+        - key: "rangedescr"
+          label: "Time Range Description"
+          fieldType: "text"
+          required: false

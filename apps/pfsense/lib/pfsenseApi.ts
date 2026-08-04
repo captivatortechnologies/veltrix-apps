@@ -116,6 +116,83 @@
 //     the SDK's own `DeploymentSummary.rollbackData` doc describes ("the
 //     external ids it assigned per canvas item — so the next deploy can
 //     match existing objects by stable id ... instead of by name").
+//
+// v0.3.0 EXHAUSTS the package's remaining meaningful declarative surface —
+// see README.md's Coverage section for the full managed-vs-excluded list.
+// New resources and their apply/identity model (all verified against PHP
+// source, same discipline as above):
+//   - nat-outbound-mode:      /api/v2/firewall/nat/outbound/mode (PATCH-only
+//     singleton, RESTAPI/Models/OutboundNATMode.inc). NOTE: the Model's own
+//     help text says "manual" but its actual `choices` array is
+//     `['automatic','hybrid','advanced','disabled']` — a real mismatch in
+//     the package's own docstring; this client uses the verified `choices`
+//     values, not the prose.
+//   - nat-outbound-mappings:  /api/v2/firewall/nat/outbound/mapping(s)
+//     (RESTAPI/Models/OutboundNATMapping.inc, subsystem 'natconf' — shares
+//     the main /api/v2/firewall/apply). No unique field -> itemId-tracked,
+//     same as firewall-rules. Split into its own config type from the mode
+//     setting above because a canvas item schema is homogeneous per config
+//     type — a singleton "mode" selector and a repeatable mapping list
+//     can't share one canvas.
+//   - nat-one-to-one:         /api/v2/firewall/nat/one_to_one/mapping(s)
+//     (RESTAPI/Models/OneToOneNATMapping.inc, subsystem 'natconf' — shares
+//     /api/v2/firewall/apply). No unique field -> itemId-tracked.
+//   - firewall-schedules:     /api/v2/firewall/schedule(s)
+//     (RESTAPI/Models/FirewallSchedule.inc, `name` unique+required -> name-
+//     keyed like aliases; `always_apply: true` but STILL reloads the filter
+//     via FirewallApplyDispatcher, so this app still calls the shared
+//     /api/v2/firewall/apply once per deploy for consistency/certainty).
+//     Requires >=1 embedded time range (NestedModelField over
+//     RESTAPI/Models/FirewallScheduleTimeRange.inc) — v0.3.0 supports
+//     exactly ONE time range per schedule (the common case); multiple time
+//     ranges per schedule (e.g. different hours on different days) is
+//     FLAGGED as out of scope, not faked.
+//   - gateways:               /api/v2/routing/gateway(s)
+//     (RESTAPI/Models/RoutingGateway.inc, `name` unique+immutable -> name-
+//     keyed). Applies via /api/v2/routing/apply (RoutingApplyDispatcher) —
+//     a THIRD distinct apply endpoint, separate from both
+//     /api/v2/firewall/apply and /api/v2/firewall/virtual_ip/apply.
+//   - static-routes:          /api/v2/routing/static_route(s)
+//     (RESTAPI/Models/StaticRoute.inc, no unique field -> itemId-tracked).
+//     ALSO applies via /api/v2/routing/apply (same RoutingApplyDispatcher
+//     as gateways — confirmed both share this endpoint).
+//   - dns-resolver-host-overrides: /api/v2/services/dns_resolver/host_override(s)
+//     (RESTAPI/Models/DNSResolverHostOverride.inc, `unique_together_fields
+//     = ['host','domain']` — a COMPOSITE key, not a single field -> this app
+//     uses `${host}.${domain}` as its identity key). Applies via
+//     /api/v2/services/dns_resolver/apply — a FOURTH distinct apply
+//     endpoint. The Model's nested `aliases` (additional alias hostnames
+//     per override) is FLAGGED as out of scope for v0.3.0 (another
+//     NestedModelField, same complexity/scope call as firewall-schedules'
+//     time ranges) — every override is created with zero aliases.
+//   - dns-resolver-domain-overrides: /api/v2/services/dns_resolver/domain_override(s)
+//     (RESTAPI/Models/DNSResolverDomainOverride.inc, `domain` used as this
+//     app's identity key — not formally `unique:true` in the Model, but
+//     pfSense's own GUI treats one override per domain as the norm). Shares
+//     the same DNS resolver apply endpoint.
+//   - users:                  /api/v2/user (RESTAPI/Models/User.inc, `name`
+//     unique -> name-keyed). `always_apply: true` — every write applies
+//     itself immediately (`local_user_set`/`local_user_del`); there is NO
+//     apply endpoint to call afterward. `password` is treated write-only in
+//     spirit (never diffed by drift, never restored by rollback) even
+//     though the Model does not mark it `write_only` — GET responses return
+//     the stored HASH (bcrypt/etc, keyed by the system's configured
+//     `pwhash` algorithm), never plaintext, but this app does not treat a
+//     hash as meaningfully comparable/restorable either.
+//   - user-groups:            /api/v2/user/group (RESTAPI/Models/UserGroup.inc,
+//     `name` unique -> name-keyed). Also `always_apply: true` — no apply
+//     endpoint.
+//
+// EXCLUDED, deliberately (see README.md's Coverage section for the full
+// list and every other surface's reasoning): Certificates and Certificate
+// Authorities (RESTAPI/Models/Certificate.inc / CertificateAuthority.inc)
+// — importing one requires transmitting the PRIVATE KEY (`prv`, required,
+// `sensitive: true`) through canvas config, which this app treats as real
+// key material exactly like VPN tunnels, never something to author as
+// declarative config; and `CertificateGenerate` (POST-only, `always_apply:
+// true`, no meaningful PATCH/update semantics) doesn't fit this app's
+// create/update/drift/rollback reconciliation model even though the
+// generated private key stays server-side.
 // =============================================================================
 
 import { Agent, request as httpsRequest } from 'node:https'
@@ -313,8 +390,12 @@ export interface PfsenseApplyStatus {
   pending_subsystems: string[]
 }
 
-/** VirtualIPApply's response shape has no `pending_subsystems` (verified: RESTAPI/Models/VirtualIPApply.inc declares only `applied`). */
-export interface PfsenseVipApplyStatus {
+/**
+ * The simpler `{ applied }`-only apply-status shape (no `pending_subsystems`)
+ * — verified shared by VirtualIPApply.inc, RoutingApply.inc and
+ * DNSResolverApply.inc, each declaring only a single `applied` BooleanField.
+ */
+export interface PfsenseSimpleApplyStatus {
   applied: boolean
 }
 
@@ -398,6 +479,189 @@ export interface VirtualIP {
   password?: string
   carp_mode?: 'mcast' | 'ucast'
   carp_peer?: string
+}
+
+/** Verified against RESTAPI/Models/OutboundNATMode.inc — the `choices` array, not its (mismatched) prose help text. */
+export type OutboundNatMode = 'automatic' | 'hybrid' | 'advanced' | 'disabled'
+
+/**
+ * One outbound NAT mapping — a deliberately-scoped SUBSET of
+ * OutboundNATMapping.inc's 16 fields. Covers the core match/target fields;
+ * DROPS the advanced load-balancing knobs (`poolopts`, `source_hash_key`)
+ * and `nosync` (HA-sync cosmetic) as out of scope for v0.3.0.
+ */
+export interface OutboundNatMapping {
+  id?: number | string
+  interface: string
+  protocol?: string | null
+  disabled?: boolean
+  nonat?: boolean
+  source: string
+  source_port?: string | null
+  destination: string
+  destination_port?: string | null
+  /** Required unless `nonat` is true. */
+  target?: string
+  /** 1-128; only applicable when `target` is an IP or alias. */
+  target_subnet?: number
+  static_nat_port?: boolean
+  nat_port?: string
+  descr?: string
+}
+
+/** One 1:1 NAT mapping — verified against RESTAPI/Models/OneToOneNATMapping.inc (full field set; compact model, no scope cuts needed). */
+export interface OneToOneNatMapping {
+  id?: number | string
+  interface: string
+  disabled?: boolean
+  nobinat?: boolean
+  natreflection?: 'enable' | 'disable' | null
+  ipprotocol?: 'inet' | 'inet6'
+  external: string
+  source: string
+  destination: string
+  descr?: string
+}
+
+/**
+ * One time range embedded in a firewall schedule — verified against
+ * RESTAPI/Models/FirewallScheduleTimeRange.inc. `position` (days of week,
+ * 1-7) and `month`+`day` (specific dates) are MUTUALLY EXCLUSIVE — the API
+ * only reads `month`/`day` when `position` is unset (`conditions: ['position'
+ * => null]`). `hour` is a "HH:MM-HH:MM" 24-hour range whose minutes must be
+ * one of 00/15/30/45/59 (verified — an unusual, asymmetric set, not every
+ * 15 minutes).
+ */
+export interface FirewallScheduleTimeRange {
+  position?: number[] | null
+  month?: number[]
+  day?: number[]
+  hour: string
+  rangedescr?: string
+}
+
+/**
+ * One firewall schedule — verified against RESTAPI/Models/FirewallSchedule.inc.
+ * `name` is required+unique (name-keyed identity, like aliases). Exactly one
+ * embedded `timerange` entry is supported in v0.3.0 — see this file's
+ * module doc.
+ */
+export interface FirewallSchedule {
+  id?: number | string
+  name: string
+  descr?: string
+  timerange: FirewallScheduleTimeRange[]
+}
+
+/**
+ * One routing gateway — a deliberately-scoped SUBSET of RoutingGateway.inc's
+ * ~23 fields (verified). Covers identity/match + the two most commonly
+ * hand-tuned monitoring toggles (`monitor_disable`/`monitor`, `weight`);
+ * DROPS the advanced dpinger tuning knobs (action_disable, force_down,
+ * dpinger_dont_add_static_route, gw_down_kill_states, nonlocalgateway,
+ * data_payload, latencylow/high, losslow/high, interval, loss_interval,
+ * time_period, alert_interval) as out of scope for v0.3.0 — every dropped
+ * field has a server-side default (verified), so omitting them is safe, not
+ * silently wrong. `name` is immutable after creation (`editable: false`).
+ */
+export interface RoutingGateway {
+  id?: number | string
+  name: string
+  descr?: string
+  disabled?: boolean
+  ipprotocol: 'inet' | 'inet6'
+  interface: string
+  /** An IPv4/IPv6 address, or the literal "dynamic" for a dynamic (e.g. PPPoE) interface. */
+  gateway: string
+  monitor_disable?: boolean
+  monitor?: string | null
+  weight?: number
+}
+
+/** One static route — verified against RESTAPI/Models/StaticRoute.inc (compact model, no scope cuts needed). No unique field -> itemId-tracked. */
+export interface StaticRoute {
+  id?: number | string
+  /** A CIDR subnet, or an existing host/network alias name. */
+  network: string
+  /** An existing RoutingGateway or RoutingGatewayGroup name. */
+  gateway: string
+  descr?: string
+  disabled?: boolean
+}
+
+/** One additional alias hostname on a DNS Resolver host override — verified against RESTAPI/Models/DNSResolverHostOverrideAlias.inc. NOT supported for creation in v0.3.0 — see this file's module doc; kept here only for the type's completeness. */
+export interface DnsResolverHostOverrideAlias {
+  host: string
+  domain: string
+  descr?: string
+}
+
+/**
+ * One DNS Resolver host override — verified against
+ * RESTAPI/Models/DNSResolverHostOverride.inc. `host`+`domain` together are
+ * `unique_together_fields` (a COMPOSITE key) -> this app's identity is
+ * `${host}.${domain}`. The nested `aliases` list is NOT populated by this
+ * app in v0.3.0 (flagged, see module doc) — every override this app writes
+ * has zero aliases.
+ */
+export interface DnsResolverHostOverride {
+  id?: number | string
+  /** May be an empty string to override the bare domain itself (verified: `allow_empty: true`). */
+  host: string
+  domain: string
+  ip: string[]
+  descr?: string
+  aliases?: DnsResolverHostOverrideAlias[]
+}
+
+/** One DNS Resolver domain override — verified against RESTAPI/Models/DNSResolverDomainOverride.inc (compact model, no scope cuts needed). */
+export interface DnsResolverDomainOverride {
+  id?: number | string
+  domain: string
+  ip: string
+  descr?: string
+  forward_tls_upstream?: boolean
+  tls_hostname?: string
+}
+
+/**
+ * One local pfSense user — a deliberately-scoped SUBSET of User.inc's 11
+ * fields (verified). `uid`/`scope` are server-managed and never written.
+ * `cert` (linking existing certificate `refid`s) is DROPPED for v0.3.0 —
+ * this app does not manage Certificates at all (see module doc), so there
+ * is nothing valid to link. `password` is treated write-only in spirit
+ * (never diffed/restored) even though the Model itself does not mark it
+ * `write_only` — see module doc. `expires` uses pfSense's own `m/d/Y`
+ * (MM/DD/YYYY) format, verified.
+ */
+export interface PfsenseUser {
+  id?: number | string
+  name: string
+  password?: string
+  disabled?: boolean
+  descr?: string
+  /** Raw pfSense privilege constant names (e.g. "page-all") — validated server-side only, see module doc. */
+  priv?: string[]
+  /** "m/d/Y" format (e.g. "12/31/2026"), or empty string for no expiration. */
+  expires?: string
+  /** Base64-encoded SSH authorized_keys content. */
+  authorizedkeys?: string
+  ipsecpsk?: string
+  /** Read-only, server-managed (default "user"; system accounts like "admin" carry a different value) — never written; read to skip touching system accounts. */
+  scope?: string
+}
+
+/** One local pfSense user group — verified against RESTAPI/Models/UserGroup.inc. `gid`/`scope` are server-managed; `scope: "system"` groups cannot be created/deleted by this app (verified — the Model itself forbids it). */
+export interface PfsenseUserGroup {
+  id?: number | string
+  name: string
+  description?: string
+  /** Existing local user names to add as members. */
+  member?: string[]
+  /** Raw pfSense privilege constant names — validated server-side only. */
+  priv?: string[]
+  /** Read-only, server-managed ("local" | "remote" | "system") — never written; read to skip touching system-scoped groups. */
+  scope?: string
 }
 
 /** A generic CRUD surface for one `many`-enabled REST API package resource, shared by every resource this client exposes. */
@@ -496,9 +760,103 @@ export interface PfsenseClient {
   /** DELETE /api/v2/firewall/virtual_ip. */
   deleteVirtualIp(id: number | string): Promise<void>
   /** GET /api/v2/firewall/virtual_ip/apply — pending virtual-IP status. SEPARATE from getApplyStatus(). */
-  getVirtualIpApplyStatus(): Promise<PfsenseVipApplyStatus>
+  getVirtualIpApplyStatus(): Promise<PfsenseSimpleApplyStatus>
   /** POST /api/v2/firewall/virtual_ip/apply — apply pending virtual-IP changes. SEPARATE from applyChanges(). */
   applyVirtualIpChanges(): Promise<void>
+
+  /** GET /api/v2/firewall/nat/outbound/mode — the current outbound NAT mode. */
+  getOutboundNatMode(): Promise<OutboundNatMode>
+  /** PATCH /api/v2/firewall/nat/outbound/mode. Does NOT apply — call applyChanges() afterward. */
+  updateOutboundNatMode(mode: OutboundNatMode): Promise<void>
+
+  /** GET /api/v2/firewall/nat/outbound/mappings — every outbound NAT mapping, full representation. */
+  listOutboundNatMappings(): Promise<OutboundNatMapping[]>
+  /** POST /api/v2/firewall/nat/outbound/mapping. `opts.placement` — see this file's module doc on ordering. Does NOT apply. */
+  createOutboundNatMapping(body: Omit<OutboundNatMapping, 'id'>, opts?: { placement?: number }): Promise<OutboundNatMapping>
+  /** PATCH /api/v2/firewall/nat/outbound/mapping. */
+  updateOutboundNatMapping(id: number | string, body: Omit<OutboundNatMapping, 'id'>, opts?: { placement?: number }): Promise<void>
+  /** DELETE /api/v2/firewall/nat/outbound/mapping. */
+  deleteOutboundNatMapping(id: number | string): Promise<void>
+
+  /** GET /api/v2/firewall/nat/one_to_one/mappings — every 1:1 NAT mapping, full representation. */
+  listOneToOneNatMappings(): Promise<OneToOneNatMapping[]>
+  /** POST /api/v2/firewall/nat/one_to_one/mapping. Does NOT apply. */
+  createOneToOneNatMapping(body: Omit<OneToOneNatMapping, 'id'>): Promise<OneToOneNatMapping>
+  /** PATCH /api/v2/firewall/nat/one_to_one/mapping. */
+  updateOneToOneNatMapping(id: number | string, body: Omit<OneToOneNatMapping, 'id'>): Promise<void>
+  /** DELETE /api/v2/firewall/nat/one_to_one/mapping. */
+  deleteOneToOneNatMapping(id: number | string): Promise<void>
+
+  /** GET /api/v2/firewall/schedules — every schedule, full representation. */
+  listFirewallSchedules(): Promise<FirewallSchedule[]>
+  /** POST /api/v2/firewall/schedule. Does NOT apply. */
+  createFirewallSchedule(body: Omit<FirewallSchedule, 'id'>): Promise<FirewallSchedule>
+  /** PATCH /api/v2/firewall/schedule. */
+  updateFirewallSchedule(id: number | string, body: Omit<FirewallSchedule, 'id'>): Promise<void>
+  /** DELETE /api/v2/firewall/schedule. */
+  deleteFirewallSchedule(id: number | string): Promise<void>
+
+  /** GET /api/v2/routing/gateways — every gateway, full representation. */
+  listRoutingGateways(): Promise<RoutingGateway[]>
+  /** POST /api/v2/routing/gateway. Does NOT apply — call applyRoutingChanges() once after a batch. */
+  createRoutingGateway(body: Omit<RoutingGateway, 'id'>): Promise<RoutingGateway>
+  /** PATCH /api/v2/routing/gateway. `name` must be omitted — it cannot change. */
+  updateRoutingGateway(id: number | string, body: Omit<RoutingGateway, 'id' | 'name'>): Promise<void>
+  /** DELETE /api/v2/routing/gateway. */
+  deleteRoutingGateway(id: number | string): Promise<void>
+
+  /** GET /api/v2/routing/static_routes — every static route, full representation. */
+  listStaticRoutes(): Promise<StaticRoute[]>
+  /** POST /api/v2/routing/static_route. Does NOT apply. */
+  createStaticRoute(body: Omit<StaticRoute, 'id'>): Promise<StaticRoute>
+  /** PATCH /api/v2/routing/static_route. */
+  updateStaticRoute(id: number | string, body: Omit<StaticRoute, 'id'>): Promise<void>
+  /** DELETE /api/v2/routing/static_route. */
+  deleteStaticRoute(id: number | string): Promise<void>
+  /** GET /api/v2/routing/apply — pending routing-change status. SEPARATE from getApplyStatus()/getVirtualIpApplyStatus(). Shared by gateways AND static routes. */
+  getRoutingApplyStatus(): Promise<PfsenseSimpleApplyStatus>
+  /** POST /api/v2/routing/apply — apply pending gateway/static-route changes. */
+  applyRoutingChanges(): Promise<void>
+
+  /** GET /api/v2/services/dns_resolver/host_overrides — every host override, full representation. */
+  listDnsResolverHostOverrides(): Promise<DnsResolverHostOverride[]>
+  /** POST /api/v2/services/dns_resolver/host_override. Does NOT apply. */
+  createDnsResolverHostOverride(body: Omit<DnsResolverHostOverride, 'id'>): Promise<DnsResolverHostOverride>
+  /** PATCH /api/v2/services/dns_resolver/host_override. */
+  updateDnsResolverHostOverride(id: number | string, body: Omit<DnsResolverHostOverride, 'id'>): Promise<void>
+  /** DELETE /api/v2/services/dns_resolver/host_override. */
+  deleteDnsResolverHostOverride(id: number | string): Promise<void>
+
+  /** GET /api/v2/services/dns_resolver/domain_overrides — every domain override, full representation. */
+  listDnsResolverDomainOverrides(): Promise<DnsResolverDomainOverride[]>
+  /** POST /api/v2/services/dns_resolver/domain_override. Does NOT apply. */
+  createDnsResolverDomainOverride(body: Omit<DnsResolverDomainOverride, 'id'>): Promise<DnsResolverDomainOverride>
+  /** PATCH /api/v2/services/dns_resolver/domain_override. */
+  updateDnsResolverDomainOverride(id: number | string, body: Omit<DnsResolverDomainOverride, 'id'>): Promise<void>
+  /** DELETE /api/v2/services/dns_resolver/domain_override. */
+  deleteDnsResolverDomainOverride(id: number | string): Promise<void>
+  /** GET /api/v2/services/dns_resolver/apply — pending DNS Resolver status. SEPARATE from every other apply endpoint. */
+  getDnsResolverApplyStatus(): Promise<PfsenseSimpleApplyStatus>
+  /** POST /api/v2/services/dns_resolver/apply — apply pending host/domain override changes. */
+  applyDnsResolverChanges(): Promise<void>
+
+  /** GET /api/v2/users — every local user, full representation. */
+  listUsers(): Promise<PfsenseUser[]>
+  /** POST /api/v2/user. `always_apply` server-side — no apply-endpoint call needed. */
+  createUser(body: Omit<PfsenseUser, 'id'>): Promise<PfsenseUser>
+  /** PATCH /api/v2/user. */
+  updateUser(id: number | string, body: Omit<PfsenseUser, 'id'>): Promise<void>
+  /** DELETE /api/v2/user. */
+  deleteUser(id: number | string): Promise<void>
+
+  /** GET /api/v2/user/groups — every local user group, full representation. */
+  listUserGroups(): Promise<PfsenseUserGroup[]>
+  /** POST /api/v2/user/group. `always_apply` server-side — no apply-endpoint call needed. */
+  createUserGroup(body: Omit<PfsenseUserGroup, 'id'>): Promise<PfsenseUserGroup>
+  /** PATCH /api/v2/user/group. */
+  updateUserGroup(id: number | string, body: Omit<PfsenseUserGroup, 'id'>): Promise<void>
+  /** DELETE /api/v2/user/group. */
+  deleteUserGroup(id: number | string): Promise<void>
 }
 
 /** Build a client bound to one pfSense connection (host/port/base path + credential). */
@@ -547,6 +905,30 @@ export function buildPfsenseClient(
   const ruleOps = buildCrudOps<FirewallRule>(call, '/firewall/rule', '/firewall/rules', 'firewall rule')
   const portForwardOps = buildCrudOps<PortForward>(call, '/firewall/nat/port_forward', '/firewall/nat/port_forwards', 'NAT port forward')
   const virtualIpOps = buildCrudOps<VirtualIP>(call, '/firewall/virtual_ip', '/firewall/virtual_ips', 'virtual IP')
+  const outboundNatMappingOps = buildCrudOps<OutboundNatMapping>(
+    call,
+    '/firewall/nat/outbound/mapping',
+    '/firewall/nat/outbound/mappings',
+    'outbound NAT mapping',
+  )
+  const oneToOneNatOps = buildCrudOps<OneToOneNatMapping>(call, '/firewall/nat/one_to_one/mapping', '/firewall/nat/one_to_one/mappings', '1:1 NAT mapping')
+  const scheduleOps = buildCrudOps<FirewallSchedule>(call, '/firewall/schedule', '/firewall/schedules', 'firewall schedule')
+  const gatewayOps = buildCrudOps<RoutingGateway>(call, '/routing/gateway', '/routing/gateways', 'routing gateway')
+  const staticRouteOps = buildCrudOps<StaticRoute>(call, '/routing/static_route', '/routing/static_routes', 'static route')
+  const dnsHostOverrideOps = buildCrudOps<DnsResolverHostOverride>(
+    call,
+    '/services/dns_resolver/host_override',
+    '/services/dns_resolver/host_overrides',
+    'DNS Resolver host override',
+  )
+  const dnsDomainOverrideOps = buildCrudOps<DnsResolverDomainOverride>(
+    call,
+    '/services/dns_resolver/domain_override',
+    '/services/dns_resolver/domain_overrides',
+    'DNS Resolver domain override',
+  )
+  const userOps = buildCrudOps<PfsenseUser>(call, '/user', '/users', 'user')
+  const userGroupOps = buildCrudOps<PfsenseUserGroup>(call, '/user/group', '/user/groups', 'user group')
 
   const client: PfsenseClient = {
     async authenticate() {
@@ -602,15 +984,90 @@ export function buildPfsenseClient(
     deleteVirtualIp: (id) => virtualIpOps.remove(id),
 
     async getVirtualIpApplyStatus() {
-      const res = await call<PfsenseVipApplyStatus>('GET', '/firewall/virtual_ip/apply')
+      const res = await call<PfsenseSimpleApplyStatus>('GET', '/firewall/virtual_ip/apply')
       if (!res.ok) throw new Error(`GET /firewall/virtual_ip/apply -> HTTP ${res.status}: ${pfsenseErrorMessage(res)}`)
-      return (res.envelope?.data as PfsenseVipApplyStatus | undefined) ?? { applied: true }
+      return (res.envelope?.data as PfsenseSimpleApplyStatus | undefined) ?? { applied: true }
     },
 
     async applyVirtualIpChanges() {
       const res = await call('POST', '/firewall/virtual_ip/apply')
       if (!res.ok) throw new Error(`POST /firewall/virtual_ip/apply -> HTTP ${res.status}: ${pfsenseErrorMessage(res)}`)
     },
+
+    async getOutboundNatMode() {
+      const res = await call<{ mode?: OutboundNatMode }>('GET', '/firewall/nat/outbound/mode')
+      if (!res.ok) throw new Error(`GET /firewall/nat/outbound/mode -> HTTP ${res.status}: ${pfsenseErrorMessage(res)}`)
+      return (res.envelope?.data?.mode as OutboundNatMode | undefined) ?? 'automatic'
+    },
+    async updateOutboundNatMode(mode) {
+      const res = await call('PATCH', '/firewall/nat/outbound/mode', { mode })
+      if (!res.ok) throw new Error(`PATCH /firewall/nat/outbound/mode -> HTTP ${res.status}: ${pfsenseErrorMessage(res)}`)
+    },
+
+    listOutboundNatMappings: () => outboundNatMappingOps.list(),
+    createOutboundNatMapping: (body, opts) => outboundNatMappingOps.create(body, opts),
+    updateOutboundNatMapping: (id, body, opts) => outboundNatMappingOps.update(id, body, opts),
+    deleteOutboundNatMapping: (id) => outboundNatMappingOps.remove(id),
+
+    listOneToOneNatMappings: () => oneToOneNatOps.list(),
+    createOneToOneNatMapping: (body) => oneToOneNatOps.create(body),
+    updateOneToOneNatMapping: (id, body) => oneToOneNatOps.update(id, body),
+    deleteOneToOneNatMapping: (id) => oneToOneNatOps.remove(id),
+
+    listFirewallSchedules: () => scheduleOps.list(),
+    createFirewallSchedule: (body) => scheduleOps.create(body),
+    updateFirewallSchedule: (id, body) => scheduleOps.update(id, body),
+    deleteFirewallSchedule: (id) => scheduleOps.remove(id),
+
+    listRoutingGateways: () => gatewayOps.list(),
+    createRoutingGateway: (body) => gatewayOps.create(body),
+    updateRoutingGateway: (id, body) => gatewayOps.update(id, body),
+    deleteRoutingGateway: (id) => gatewayOps.remove(id),
+
+    listStaticRoutes: () => staticRouteOps.list(),
+    createStaticRoute: (body) => staticRouteOps.create(body),
+    updateStaticRoute: (id, body) => staticRouteOps.update(id, body),
+    deleteStaticRoute: (id) => staticRouteOps.remove(id),
+
+    async getRoutingApplyStatus() {
+      const res = await call<PfsenseSimpleApplyStatus>('GET', '/routing/apply')
+      if (!res.ok) throw new Error(`GET /routing/apply -> HTTP ${res.status}: ${pfsenseErrorMessage(res)}`)
+      return (res.envelope?.data as PfsenseSimpleApplyStatus | undefined) ?? { applied: true }
+    },
+    async applyRoutingChanges() {
+      const res = await call('POST', '/routing/apply')
+      if (!res.ok) throw new Error(`POST /routing/apply -> HTTP ${res.status}: ${pfsenseErrorMessage(res)}`)
+    },
+
+    listDnsResolverHostOverrides: () => dnsHostOverrideOps.list(),
+    createDnsResolverHostOverride: (body) => dnsHostOverrideOps.create(body),
+    updateDnsResolverHostOverride: (id, body) => dnsHostOverrideOps.update(id, body),
+    deleteDnsResolverHostOverride: (id) => dnsHostOverrideOps.remove(id),
+
+    listDnsResolverDomainOverrides: () => dnsDomainOverrideOps.list(),
+    createDnsResolverDomainOverride: (body) => dnsDomainOverrideOps.create(body),
+    updateDnsResolverDomainOverride: (id, body) => dnsDomainOverrideOps.update(id, body),
+    deleteDnsResolverDomainOverride: (id) => dnsDomainOverrideOps.remove(id),
+
+    async getDnsResolverApplyStatus() {
+      const res = await call<PfsenseSimpleApplyStatus>('GET', '/services/dns_resolver/apply')
+      if (!res.ok) throw new Error(`GET /services/dns_resolver/apply -> HTTP ${res.status}: ${pfsenseErrorMessage(res)}`)
+      return (res.envelope?.data as PfsenseSimpleApplyStatus | undefined) ?? { applied: true }
+    },
+    async applyDnsResolverChanges() {
+      const res = await call('POST', '/services/dns_resolver/apply')
+      if (!res.ok) throw new Error(`POST /services/dns_resolver/apply -> HTTP ${res.status}: ${pfsenseErrorMessage(res)}`)
+    },
+
+    listUsers: () => userOps.list(),
+    createUser: (body) => userOps.create(body),
+    updateUser: (id, body) => userOps.update(id, body),
+    deleteUser: (id) => userOps.remove(id),
+
+    listUserGroups: () => userGroupOps.list(),
+    createUserGroup: (body) => userGroupOps.create(body),
+    updateUserGroup: (id, body) => userGroupOps.update(id, body),
+    deleteUserGroup: (id) => userGroupOps.remove(id),
   }
 
   return { client, host }

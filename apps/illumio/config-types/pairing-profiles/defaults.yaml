@@ -1,0 +1,17 @@
+# Defaults for a new pairing profile item.
+#
+# A FLAT map keyed by the canvas field keys. Mirrors each field's own
+# defaultValue in canvas.yaml — name and labels are left blank for a
+# deliberate choice.
+enabled: true
+allowedUsesPerKey: "unlimited"
+keyLifespan: "unlimited"
+envLabelLock: true
+locLabelLock: true
+roleLabelLock: true
+appLabelLock: true
+enforcementMode: visibility_only
+enforcementModeLock: true
+logTraffic: false
+logTrafficLock: true
+visibilityLevelLock: true

@@ -1,0 +1,153 @@
+# =============================================================================
+# Canvas Template — pfSense NAT Outbound Mappings
+#
+# Declares ONE outbound NAT mapping — the item. Applied via the pfSense REST
+# API package (POST/PATCH/DELETE /api/v2/firewall/nat/outbound/mapping),
+# with pending changes applied once per deploy (/api/v2/firewall/apply —
+# shared with aliases/rules/port-forwards/1:1-mappings).
+#
+# These mappings ONLY take effect when the separate "Outbound NAT Mode"
+# config type is set to "Hybrid" or "Advanced" — "Automatic" (pfSense's
+# default) ignores them entirely.
+#
+# IDENTITY: mappings have no name field — this app tracks identity by the
+# canvas item itself (recorded in rollbackData across deploys), NOT by
+# `descr`.
+#
+# Scoped to the core match/target fields — the advanced load-balancing pool
+# options (round-robin/random/source-hash) are out of scope for v0.3.0, see
+# README.md's Coverage section.
+# =============================================================================
+
+id: "pfsense-nat-outbound-mappings"
+name: "NAT Outbound Mappings"
+toolType: "pfsense"
+entityType: "nat-outbound-mappings"
+description: "Manage pfSense outbound NAT mappings via the pfSense REST API package (/api/v2/firewall/nat/outbound/mapping). Only takes effect when the Outbound NAT Mode config type is set to Hybrid or Advanced. Identity is tracked per canvas item (mappings have no name field)."
+
+item:
+  label: "Outbound NAT Mapping"
+  # Mappings have no name field (see _shared.ts's module doc) — deploy.ts
+  # derives the real identity from the canvas item's own platform-assigned
+  # id, tracked via rollbackData. `descr` is only the display label here.
+  identityField: "descr"
+  identityDerived: true
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Match"
+      icon: "filter"
+      description: "What outbound traffic this mapping matches"
+      fields:
+        - key: "interface"
+          label: "Interface"
+          fieldType: "text"
+          required: true
+          helpText: "The interface traffic exits on as it leaves the firewall — usually a WAN-type interface (e.g. \"wan\")."
+
+        - key: "protocol"
+          label: "Protocol"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - { label: "Any", value: "" }
+            - { label: "TCP", value: "tcp" }
+            - { label: "UDP", value: "udp" }
+            - { label: "TCP/UDP", value: "tcp/udp" }
+            - { label: "ICMP", value: "icmp" }
+            - { label: "ESP", value: "esp" }
+            - { label: "AH", value: "ah" }
+            - { label: "GRE", value: "gre" }
+            - { label: "IPv6", value: "ipv6" }
+            - { label: "IGMP", value: "igmp" }
+            - { label: "PIM", value: "pim" }
+            - { label: "OSPF", value: "ospf" }
+
+        - key: "source"
+          label: "Source"
+          fieldType: "text"
+          required: true
+          defaultValue: "any"
+          helpText: "A subnet CIDR, existing alias, interface name, \"any\", or \"(self)\" — NOT a bare IP address (this field requires a network-shaped value, unlike a firewall rule's source)."
+
+        - key: "source_port"
+          label: "Source Port"
+          fieldType: "text"
+          required: false
+          helpText: "Only used when Protocol is TCP/UDP/TCP-UDP; leave blank for any port."
+
+        - key: "destination"
+          label: "Destination"
+          fieldType: "text"
+          required: true
+          defaultValue: "any"
+          helpText: "Same value shapes as Source, above."
+
+        - key: "destination_port"
+          label: "Destination Port"
+          fieldType: "text"
+          required: false
+
+    - name: "Target"
+      icon: "arrow-right"
+      description: "How matching traffic is translated (ignored when No NAT is enabled)"
+      fields:
+        - key: "target"
+          label: "Target"
+          fieldType: "text"
+          required: false
+          helpText: "The external IP address, alias, or an interface's \":ip\" modifier to translate the source to. Required unless \"No NAT\" is enabled."
+
+        - key: "target_subnet"
+          label: "Target Subnet Bits"
+          fieldType: "number"
+          required: false
+          defaultValue: 128
+          helpText: "Only applies when Target is an IP address or alias of many addresses — controls the pool size for load balancing (1-32 for IPv4, 1-128 for IPv6)."
+
+        - key: "static_nat_port"
+          label: "Static NAT Port"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Do not rewrite the source port for matching connections."
+
+        - key: "nat_port"
+          label: "NAT Port (advanced)"
+          fieldType: "text"
+          required: false
+          helpText: "An external source port or port range (colon-delimited) to rewrite the original source port to. Only used when \"Static NAT Port\" is off."
+
+    - name: "Behavior"
+      icon: "settings"
+      description: "How this mapping behaves"
+      fields:
+        - key: "descr"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1024
+          helpText: "Recorded on the mapping in pfSense. Recommended for readability even though it is not this app's identity key."
+
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "nonat"
+          label: "No NAT (exemption)"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Exempts matching traffic from outbound NAT entirely — used to carve out exceptions. When enabled, Target/Target Subnet/Static NAT Port/NAT Port are ignored."
+
+        - key: "position"
+          label: "Position (advanced)"
+          fieldType: "number"
+          required: false
+          helpText: >
+            OPTIONAL 0-based index into pfSense's COMPLETE outbound NAT
+            mapping list — leave blank unless you specifically need to force
+            this mapping ahead of/behind other mappings NOT managed by this
+            app. Leaving it blank never reorders an existing mapping.

@@ -1,0 +1,32 @@
+id: "connectors"
+name: "Twingate Connector"
+toolType: "twingate"
+entityType: "connectors"
+description: "Register Twingate Connectors as code. Connector runtime tokens remain operator-managed secrets."
+
+item:
+  label: "Connector"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Connector"
+      icon: "server"
+      description: "Connector identity, immutable Remote Network placement and status notifications"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "Unique Connector name used as its declarative identity."
+        - key: "remote_network_name"
+          label: "Remote Network"
+          fieldType: "text"
+          required: true
+          helpText: "Existing Remote Network name. Placement is immutable after creation."
+        - key: "status_updates_enabled"
+          label: "Status notifications"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Send notifications when this Connector changes status."

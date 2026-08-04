@@ -1,0 +1,13 @@
+# Defaults for a new OPNsense traffic-shaper rule item.
+#
+# A FLAT map keyed by the canvas field keys. description/target_name are
+# left blank for a deliberate choice.
+enabled: true
+sequence: 1
+interface: wan
+direction: ""
+proto: ip
+source: ["any"]
+src_port: any
+destination: ["any"]
+dst_port: any

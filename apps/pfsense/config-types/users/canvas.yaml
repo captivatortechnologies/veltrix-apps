@@ -1,0 +1,85 @@
+# =============================================================================
+# Canvas Template — pfSense Local Users
+#
+# Declares ONE local user — the item. Applied via the pfSense REST API
+# package (POST/PATCH/DELETE /api/v2/user). Writes apply IMMEDIATELY — User
+# is `always_apply` server-side (verified), so there is no separate "apply
+# pending changes" step for this config type.
+#
+# `password` is WRITE-ONLY in this app's own posture: leaving it blank on an
+# UPDATE means "keep the current password" — it is never read back, diffed
+# by drift, or restored by rollback. System-scoped users (pfSense's own
+# built-ins, e.g. "admin") are never created/updated/deleted by this app.
+# =============================================================================
+
+id: "pfsense-users"
+name: "Users"
+toolType: "pfsense"
+entityType: "users"
+description: "Manage pfSense local user accounts via the pfSense REST API package (/api/v2/user). Writes apply immediately — there is no separate apply step. Passwords are write-only."
+
+item:
+  label: "User"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Account"
+      icon: "user"
+      description: "Username, password and status"
+      fields:
+        - key: "name"
+          label: "Username"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 32
+          helpText: "Letters, numbers, periods, hyphens and underscores only, 32 characters or fewer. Used as the stable identity for upsert and drift."
+
+        - key: "password"
+          label: "Password"
+          fieldType: "password"
+          required: false
+          helpText: "Required when creating a new user. Leave blank on an existing user to keep its current password unchanged — this app never overwrites a password with a blank value, and never reads a password back for drift comparison or rollback."
+
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "descr"
+          label: "Full Name / Description"
+          fieldType: "text"
+          required: false
+
+        - key: "expires"
+          label: "Expires"
+          fieldType: "text"
+          required: false
+          helpText: "MM/DD/YYYY format (e.g. 12/31/2026). Leave blank for no expiration."
+
+    - name: "Access"
+      icon: "key"
+      description: "Privileges and key material"
+      fields:
+        - key: "priv"
+          label: "Privileges (advanced)"
+          fieldType: "tags"
+          required: false
+          helpText: >
+            Raw pfSense privilege constant names (e.g. "page-all",
+            "user-shell-access") — the exact set pfSense itself uses. Only
+            checked for validity server-side; a typo is rejected at deploy
+            time, not here.
+
+        - key: "authorizedkeys"
+          label: "SSH Authorized Keys"
+          fieldType: "textarea"
+          required: false
+          helpText: "One or more SSH public keys (OpenSSH authorized_keys format), one per line."
+
+        - key: "ipsecpsk"
+          label: "IPsec Pre-Shared Key"
+          fieldType: "password"
+          required: false

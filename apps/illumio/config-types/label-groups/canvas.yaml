@@ -1,0 +1,85 @@
+# =============================================================================
+# Canvas Template — Illumio Core Label Groups
+#
+# Declares ONE label group (the item), name-keyed like this app's other draft
+# security-policy objects. Label groups live under the PCE's DRAFT policy
+# (/orgs/{org}/sec_policy/draft/label_groups); deploy resolves every member
+# label (by key+value) to an href and FAILS CLOSED on anything unresolved.
+#
+# A label group's `key` names the label dimension of EVERY label it contains
+# (the Terraform schema describes `key` itself as "Key in key-value pair OF
+# CONTAINED LABELS") — validate.ts rejects a member label whose key doesn't
+# match. Sub-groups (a label group containing other label groups) are NOT
+# supported in this release — see README.md Coverage.
+# =============================================================================
+
+id: "illumio-label-groups"
+name: "Label Group Configuration"
+toolType: "illumio"
+entityType: "label-groups"
+description: "Define Illumio Core label groups (named sets of same-dimension labels) as code through the Illumio REST API v2, provisioned into the active policy."
+
+item:
+  label: "Label Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Label Group"
+      icon: "tag"
+      description: "Name, dimension key and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The label group name — its identity in this canvas. Must be unique within this canvas; deploy matches live label groups on it."
+
+        - key: "key"
+          label: "Key"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 64
+          helpText: "The label dimension every contained label must share (e.g. env). Immutable once created in the PCE."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the label group."
+
+    - name: "Members"
+      icon: "list"
+      description: "Contained labels — each must share the group's Key"
+      fields:
+        - key: "labelsJson"
+          label: "Labels (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 8000
+          helpText: >
+            A JSON array of label refs, e.g.
+            [{"key":"env","value":"E-Dev"},{"key":"env","value":"E-Stage"}].
+            Each label must already exist (create it with the Labels
+            configuration type) and share this group's Key.
+
+    - name: "Integration metadata"
+      icon: "link"
+      description: "Optional external-system linkage, carried through unchanged on every deploy"
+      fields:
+        - key: "externalDataSet"
+          label: "External data set"
+          fieldType: "text"
+          required: false
+          helpText: "Optional: the external system this label group originates from (external_data_set)."
+
+        - key: "externalDataReference"
+          label: "External data reference"
+          fieldType: "text"
+          required: false
+          helpText: "Optional: this label group's unique identifier within that external system (external_data_reference)."

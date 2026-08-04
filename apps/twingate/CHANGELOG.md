@@ -3,6 +3,41 @@
 All notable changes to the Twingate app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 0.3.0 — 2026-08-04
+
+### Added
+- **Connectors (`connectors`, group "Network").** Declarative Connector
+  registration, rename/delete, immutable Remote Network placement and status
+  notification preference through `connectorCreate` / `connectorUpdate` /
+  `connectorDelete`. A Connector's Remote Network is set on create only
+  (`connectorUpdate` has no such argument) — a declared move fails closed
+  rather than being silently ignored or attempted via an unsupported mutation.
+- **DNS Filtering Profiles (`dns-filtering-profiles`, group "Security").**
+  Manage Twingate DNS Filtering Profiles as code through
+  `dnsFilteringProfileCreate` / `dnsFilteringProfileUpdate` /
+  `dnsFilteringProfileDelete`, reconciled by name. `dnsFilteringProfileCreate`
+  accepts only `name` — creating a new profile always create-then-immediately-
+  updates to apply the rest of the declared spec (priority, fallback method,
+  allow/deny domain lists, every content/security/privacy category flag, and
+  Group assignment matched by name, full-replacement).
+- A schema/provider-source **Coverage** section in the README documenting
+  every managed Twingate mutation family and every intentionally EXCLUDED
+  surface with its reason (one-time credentials, IdP-owned identity,
+  externally-managed groups, read-only objects, runtime/telemetry state).
+
+### Fixed
+- Corrected a prior (incorrect) Coverage note claiming DNS Filtering Profiles
+  had no stable, documented CRUD mutations — `dnsFilteringProfileCreate` /
+  `Update` / `Delete` are confirmed via terraform-provider-twingate's tested
+  Go GraphQL client and are now managed (see above).
+
+### Security
+- Connector token generation and DNS Filtering Profile category content
+  remain the only two write paths this app touches for these objects; Connector
+  runtime tokens are explicitly EXCLUDED (see README Coverage) — they are
+  one-time bearer credentials with no declarative desired state to diff or
+  safely roll back.
+
 ## 0.2.0 — 2026-08-02
 
 ### Added

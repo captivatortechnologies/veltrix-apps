@@ -1,0 +1,156 @@
+# =============================================================================
+# Canvas Template — OPNsense Traffic Shaper Rules
+#
+# Declares ONE traffic-shaper rule (matches traffic into a pipe or queue) —
+# the item. TrafficShaper's OWN `rules.rule` has no required name field, so
+# identity is the CANVAS ITEM's own id — see
+# config-types/traffic-shaper-rules/_shared.ts. `target` references a
+# traffic-shaper-pipes OR traffic-shaper-queues item by NAME, resolved at
+# deploy time (both are searched).
+#
+# Field keys must match config-types/traffic-shaper-rules/_shared.ts.
+# =============================================================================
+
+id: "opnsense-traffic-shaper-rules"
+name: "OPNsense Traffic Shaper Rule Configuration"
+toolType: "opnsense"
+entityType: "traffic-shaper-rules"
+description: "Define OPNsense traffic-shaper rules (addRule / setRule against /api/trafficshaper/settings) as code. Every deploy stages its changes then applies them with one reconfigure call."
+
+item:
+  label: "Shaper Rule"
+  identityField: "description"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Match"
+      icon: "shield"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          helpText: "A human label for this rule. Required by this app for identification — not enforced by OPNsense itself."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "sequence"
+          label: "Position"
+          fieldType: "number"
+          required: true
+          defaultValue: 1
+          helpText: "Relative evaluation order among shaper rules (1-1000000)."
+
+        - key: "interface"
+          label: "Interface"
+          fieldType: "text"
+          required: true
+          defaultValue: "wan"
+
+        - key: "interface2"
+          label: "Interface 2 (optional)"
+          fieldType: "text"
+          required: false
+          helpText: "For matching traffic between two specific interfaces."
+
+        - key: "direction"
+          label: "Direction"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - label: "Both"
+              value: ""
+            - label: "In"
+              value: "in"
+            - label: "Out"
+              value: "out"
+
+        - key: "proto"
+          label: "Protocol"
+          fieldType: "select"
+          required: true
+          defaultValue: "ip"
+          options:
+            - label: "IP (any)"
+              value: "ip"
+            - label: "IPv4"
+              value: "ip4"
+            - label: "IPv6"
+              value: "ip6"
+            - label: "TCP"
+              value: "tcp"
+            - label: "TCP (ACK packets only)"
+              value: "tcp_ack"
+            - label: "TCP (non-ACK packets)"
+              value: "tcp_ack_not"
+            - label: "UDP"
+              value: "udp"
+            - label: "ICMP"
+              value: "icmp"
+            - label: "ICMPv6"
+              value: "ipv6-icmp"
+            - label: "IGMP"
+              value: "igmp"
+            - label: "ESP"
+              value: "esp"
+            - label: "AH"
+              value: "ah"
+            - label: "GRE"
+              value: "gre"
+
+    - name: "Source & Destination"
+      icon: "list"
+      fields:
+        - key: "source"
+          label: "Source"
+          fieldType: "tags"
+          required: false
+          defaultValue: ["any"]
+
+        - key: "source_not"
+          label: "Invert source match"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "src_port"
+          label: "Source Port"
+          fieldType: "text"
+          required: false
+          defaultValue: "any"
+
+        - key: "destination"
+          label: "Destination"
+          fieldType: "tags"
+          required: false
+          defaultValue: ["any"]
+
+        - key: "destination_not"
+          label: "Invert destination match"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "dst_port"
+          label: "Destination Port"
+          fieldType: "text"
+          required: false
+          defaultValue: "any"
+
+        - key: "dscp"
+          label: "DSCP"
+          fieldType: "tags"
+          required: false
+          helpText: "Optional DSCP class-selector values, e.g. ef, af11, cs1."
+
+    - name: "Target"
+      icon: "settings"
+      fields:
+        - key: "target_name"
+          label: "Target Pipe/Queue"
+          fieldType: "text"
+          required: true
+          helpText: "The NAME (description) of a traffic-shaper-pipes or traffic-shaper-queues item — resolved to its live uuid at deploy time."

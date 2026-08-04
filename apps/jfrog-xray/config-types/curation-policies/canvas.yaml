@@ -1,0 +1,168 @@
+# =============================================================================
+# Canvas Template — JFrog Curation Policies
+#
+# Declares ONE JFrog Curation policy (the item) — policy-based governance that
+# blocks (or dry-runs) risky open-source packages BEFORE they reach an
+# Artifactory remote repository. Served by the Xray REST API under a
+# `/curation` sub-path (`/xray/api/v1/curation/policies`), so it stays within
+# this app's Xray scope even though "Curation" is its own JFrog product line.
+#
+# UNLIKE security/license/operational-risk policies, a curation policy's write
+# URLs use a SERVER-ASSIGNED `policy_id` — but the list endpoint supports
+# filtering/matching by NAME, so this still reconciles by `name` (list, match,
+# capture id) rather than needing the item-id tracking ignore-rules requires.
+#
+# `condition_id` references an existing curation CONDITION (a built-in one, or
+# a custom one you create directly in Xray) by its id — this app does not
+# manage condition templates/custom conditions; see README Coverage.
+#
+# `waivers` and `label_waivers` are variable-length, multi-field nested lists
+# with their own add/retain/remove-by-omission update semantics, so they are
+# JSON escape valves rather than typed repeatable fields.
+#
+# Field keys must match config-types/curation-policies/_shared.ts.
+# =============================================================================
+
+id: "jfrog-xray-curation-policies"
+name: "Curation Policy"
+toolType: "jfrog-xray"
+entityType: "curation-policies"
+description: "Define JFrog Curation policies as code through the Xray REST API (/xray/api/v1/curation/policies). Governs which open-source package versions may flow through Artifactory remote repositories. Reconciled by policy name."
+
+item:
+  label: "Curation Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Identity and enforcement mode"
+      fields:
+        - key: "name"
+          label: "Policy Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 200
+          helpText: "The policy's display name — this app matches an existing policy by this name (the write URL itself uses a server-assigned id)."
+
+        - key: "condition_id"
+          label: "Condition ID"
+          fieldType: "text"
+          required: true
+          helpText: "The id of an existing curation condition (built-in, or a custom one you create directly in Xray — this app does not manage custom conditions; see README Coverage)."
+
+        - key: "policy_action"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "dry_run"
+          options:
+            - { label: "Dry run (report only)", value: "dry_run" }
+            - { label: "Block", value: "block" }
+          helpText: "Start with \"Dry run\" to see what a policy would block before enforcing it."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "block_from_cache"
+          label: "Also block already-cached packages"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Extend blocking to package versions Artifactory has already cached from the remote repository."
+
+    - name: "Scope"
+      icon: "target"
+      description: "Which repositories / package types this policy governs"
+      fields:
+        - key: "scope"
+          label: "Scope"
+          fieldType: "select"
+          required: true
+          defaultValue: "all_repos"
+          options:
+            - { label: "All repositories", value: "all_repos" }
+            - { label: "Specific repositories", value: "specific_repos" }
+            - { label: "Specific package types", value: "pkg_types" }
+
+        - key: "repo_include"
+          label: "Included Repositories"
+          fieldType: "tags"
+          visibleWhen:
+            field: "scope"
+            equals: "specific_repos"
+          helpText: "Repository keys this policy applies to."
+
+        - key: "repo_exclude"
+          label: "Excluded Repositories"
+          fieldType: "tags"
+          visibleWhen:
+            field: "scope"
+            equals: "all_repos"
+          helpText: "Repository keys to exempt from an otherwise all-repos policy."
+
+        - key: "pkg_types_include"
+          label: "Included Package Types"
+          fieldType: "tags"
+          visibleWhen:
+            field: "scope"
+            equals: "pkg_types"
+          helpText: 'Package ecosystems this policy applies to, e.g. "npm", "PyPI", "Maven", "Go", "NuGet", "Docker".'
+
+    - name: "Waiver Workflow"
+      icon: "check-circle"
+      description: "How exceptions are requested and approved"
+      fields:
+        - key: "waiver_request_config"
+          label: "Waiver Requests"
+          fieldType: "select"
+          required: true
+          defaultValue: "forbidden"
+          options:
+            - { label: "Forbidden", value: "forbidden" }
+            - { label: "Manual approval", value: "manual" }
+            - { label: "Auto-approved", value: "auto_approved" }
+
+        - key: "decision_owners"
+          label: "Decision Owners"
+          fieldType: "tags"
+          visibleWhen:
+            field: "waiver_request_config"
+            equals: "manual"
+          helpText: "JFrog Access group names allowed to approve a manual waiver request."
+
+        - key: "notify_emails"
+          label: "Notify Emails"
+          fieldType: "tags"
+          helpText: "Email addresses alerted when this policy blocks a package."
+
+    - name: "Advanced (JSON)"
+      icon: "code"
+      description: "Package-level and label-level exceptions"
+      fields:
+        - key: "waivers_json"
+          label: "Package Waivers (JSON)"
+          fieldType: "textarea"
+          validation:
+            maxLength: 8000
+          helpText: >
+            A JSON array of package-level exceptions, e.g.
+            [{"pkg_type":"npm","pkg_name":"lodash","all_versions":true,"justification":"Reviewed and approved by SecOps"}].
+            Each entry needs pkg_type, pkg_name and justification (all_versions
+            OR pkg_versions[]). Include a captured "id" to retain an existing
+            waiver across deploys — omit it to add a new one.
+
+        - key: "label_waivers_json"
+          label: "Label Waivers (JSON)"
+          fieldType: "textarea"
+          validation:
+            maxLength: 4000
+          helpText: >
+            A JSON array of label-level exceptions, e.g.
+            [{"label":"internal-approved","justification":"Pre-vetted internal label"}].
+            Include a captured "id" to retain an existing label waiver across
+            deploys — omit it to add a new one.

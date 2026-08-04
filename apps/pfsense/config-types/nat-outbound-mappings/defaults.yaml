@@ -1,0 +1,9 @@
+# Defaults for a new outbound NAT mapping item. interface/target are left for
+# the operator to fill in.
+protocol: ""
+source: any
+destination: any
+target_subnet: 128
+static_nat_port: false
+disabled: false
+nonat: false
