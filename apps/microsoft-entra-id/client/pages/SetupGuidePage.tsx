@@ -7,6 +7,8 @@ const GRAPH_PERMISSIONS = [
   'Policy.ReadWrite.ConditionalAccess',
   'Policy.Read.All',
   'Group.ReadWrite.All',
+  'User.Read.All',
+  'RoleManagement.Read.Directory',
   'Organization.Read.All',
 ]
 
@@ -61,11 +63,21 @@ export default function SetupGuidePage() {
               ))}
             </div>
             <p>
-              These cover Conditional Access policies and named locations
-              (<code>Policy.ReadWrite.ConditionalAccess</code>), security groups
-              (<code>Group.ReadWrite.All</code>), and the connection test
+              These cover Conditional Access policies, named locations, and authentication
+              strengths (<code>Policy.ReadWrite.ConditionalAccess</code>, <code>Policy.Read.All</code>),
+              security groups (<code>Group.ReadWrite.All</code>), the Included/Excluded Users
+              live picker (<code>User.Read.All</code>), the Included/Excluded Roles live picker
+              (<code>RoleManagement.Read.Directory</code>), and the connection test
               (<code>Organization.Read.All</code>). Admin consent is required — without it Graph
               rejects the app with 403.
+            </p>
+            <p>
+              <strong>Terms of Use</strong> is the one exception: Microsoft Graph does not
+              support listing terms-of-use agreements with application permissions at all (it's
+              delegated-only), so no permission above makes that picker searchable — enter the
+              agreement id directly, copied from the Entra admin center (Identity Governance{' '}
+              &gt; Terms of use). Writing an agreement id into a policy's grant controls still
+              works normally via <code>Policy.ReadWrite.ConditionalAccess</code>.
             </p>
           </CardBody>
         </Card>

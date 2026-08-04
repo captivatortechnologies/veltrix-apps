@@ -2,7 +2,7 @@
 
 > How a request is routed through the system — from the moment you act to when it reaches completion. **Auto-generated** from `manifest.yaml` (regenerate via `scripts/dataflow/generate.mjs`).
 
-**App:** `microsoft-entra-id` · **Category:** IAM · **Version:** 0.8.0  
+**App:** `microsoft-entra-id` · **Category:** IAM · **Version:** 0.8.1  
 **Operations:** Deploy a configuration · Detect drift · Roll back · Test connection  
 Talks to **Microsoft Entra ID API** · credentials via the Credential Vault (`ctx.resolveConnection`).
 

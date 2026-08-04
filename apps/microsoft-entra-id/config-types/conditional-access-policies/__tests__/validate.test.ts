@@ -1,5 +1,5 @@
-import validate, { mapCanvasStateToGraph, asStringArray } from '../validate'
-import type { PipelineContext } from '@veltrixsecops/app-sdk'
+import validate, { mapCanvasStateToGraph, asStringArray, extractPolicySpecs } from '../validate'
+import type { CanvasSnapshot, PipelineContext } from '@veltrixsecops/app-sdk'
 
 function ctxWith(
   items: Array<{ id?: string; name: string; fields: Record<string, unknown> }>
@@ -41,6 +41,30 @@ describe('conditional-access-policies validate', () => {
     expect(r.errors.some((e) => e.code === 'no_user_target')).toBe(true)
   })
 
+  it('accepts a user target satisfied by Included Users alone', () => {
+    const r = validate(
+      ctxWith([
+        {
+          name: 'P',
+          fields: { ...validFields, name: 'P', includeAllUsers: false, includeGroups: '', includeUsers: ['u-1'] },
+        },
+      ])
+    )
+    expect(r.errors.some((e) => e.code === 'no_user_target')).toBe(false)
+  })
+
+  it('accepts a user target satisfied by Included Roles alone', () => {
+    const r = validate(
+      ctxWith([
+        {
+          name: 'P',
+          fields: { ...validFields, name: 'P', includeAllUsers: false, includeGroups: '', includeRoles: ['r-1'] },
+        },
+      ])
+    )
+    expect(r.errors.some((e) => e.code === 'no_user_target')).toBe(false)
+  })
+
   it('requires an app target', () => {
     const r = validate(
       ctxWith([{ name: 'P', fields: { ...validFields, name: 'P', includeAllApps: false, includeApps: '' } }])
@@ -73,6 +97,20 @@ describe('conditional-access-policies validate', () => {
     expect(r.warnings.some((w) => w.code === 'no_break_glass')).toBe(true)
   })
 
+  it('does not warn when the break-glass exclusion is an excluded user', () => {
+    const r = validate(
+      ctxWith([{ name: 'P', fields: { ...validFields, name: 'P', state: 'enabled', excludeUsers: ['breakglass@contoso.com'] } }])
+    )
+    expect(r.warnings.some((w) => w.code === 'no_break_glass')).toBe(false)
+  })
+
+  it('does not warn when the break-glass exclusion is an excluded role', () => {
+    const r = validate(
+      ctxWith([{ name: 'P', fields: { ...validFields, name: 'P', state: 'enabled', excludeRoles: ['role-1'] } }])
+    )
+    expect(r.warnings.some((w) => w.code === 'no_break_glass')).toBe(false)
+  })
+
   it('rejects duplicate names', () => {
     const r = validate(
       ctxWith([
@@ -99,5 +137,53 @@ describe('asStringArray', () => {
     expect(asStringArray('a\nb, c')).toEqual(['a', 'b', 'c'])
     expect(asStringArray('')).toEqual([])
     expect(asStringArray(undefined)).toEqual([])
+  })
+})
+
+describe('extractPolicySpecs — Phase 2 targeting fields', () => {
+  it('extracts includeUsers/excludeUsers, includeRoles/excludeRoles, includeLocations/excludeLocations, authenticationStrength and termsOfUse', () => {
+    const canvas = {
+      items: [
+        {
+          id: 'item-1',
+          name: 'P',
+          fields: {
+            ...validFields,
+            name: 'P',
+            includeUsers: ['All'],
+            excludeUsers: ['GuestsOrExternalUsers'],
+            includeRoles: ['role-1'],
+            excludeRoles: ['role-2'],
+            includeLocations: ['AllTrusted'],
+            excludeLocations: ['loc-1'],
+            authenticationStrength: 'auth-strength-1',
+            termsOfUse: ['tou-1', 'tou-2'],
+          },
+        },
+      ],
+    } as unknown as CanvasSnapshot
+
+    const [spec] = extractPolicySpecs(canvas)
+    expect(spec.includeUsers).toEqual(['All'])
+    expect(spec.excludeUsers).toEqual(['GuestsOrExternalUsers'])
+    expect(spec.includeRoles).toEqual(['role-1'])
+    expect(spec.excludeRoles).toEqual(['role-2'])
+    expect(spec.includeLocations).toEqual(['AllTrusted'])
+    expect(spec.excludeLocations).toEqual(['loc-1'])
+    expect(spec.authenticationStrength).toBe('auth-strength-1')
+    expect(spec.termsOfUse).toEqual(['tou-1', 'tou-2'])
+  })
+
+  it('defaults every Phase 2 field to empty when absent (backward compatible with pre-Phase-2 canvases)', () => {
+    const canvas = { items: [{ id: 'item-1', name: 'P', fields: { ...validFields, name: 'P' } }] } as unknown as CanvasSnapshot
+    const [spec] = extractPolicySpecs(canvas)
+    expect(spec.includeUsers).toEqual([])
+    expect(spec.excludeUsers).toEqual([])
+    expect(spec.includeRoles).toEqual([])
+    expect(spec.excludeRoles).toEqual([])
+    expect(spec.includeLocations).toEqual([])
+    expect(spec.excludeLocations).toEqual([])
+    expect(spec.authenticationStrength).toBe('')
+    expect(spec.termsOfUse).toEqual([])
   })
 })

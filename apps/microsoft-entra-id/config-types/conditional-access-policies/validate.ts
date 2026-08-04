@@ -39,11 +39,25 @@ export interface CaPolicySpec {
   /** Group display names (resolved to ids at deploy time). */
   includeGroups: string[]
   excludeGroups: string[]
+  /** User object ids/UPNs/display names, or the sentinels All/None/GuestsOrExternalUsers. */
+  includeUsers: string[]
+  /** User object ids/UPNs/display names, or the sentinel GuestsOrExternalUsers. */
+  excludeUsers: string[]
+  /** Directory role ids or display names (built-in roles only — Graph rejects custom roles). */
+  includeRoles: string[]
+  excludeRoles: string[]
+  /** Named-location ids or display names, or the sentinels All/AllTrusted. */
+  includeLocations: string[]
+  excludeLocations: string[]
   includeAllApps: boolean
   /** App ids or well-known keywords (e.g. Office365); passed to Graph as-is. */
   includeApps: string[]
   grantOperator: string
   builtInControls: string[]
+  /** authenticationStrengthPolicy id or display name; empty = not required. */
+  authenticationStrength: string
+  /** Terms-of-use agreement ids or display names. */
+  termsOfUse: string[]
 }
 
 /** A CA policy as returned by Graph GET /identity/conditionalAccess/policies. */
@@ -52,10 +66,23 @@ export interface LiveCaPolicy {
   displayName?: string
   state?: string
   conditions?: {
-    users?: { includeUsers?: string[]; includeGroups?: string[]; excludeGroups?: string[] }
+    users?: {
+      includeUsers?: string[]
+      excludeUsers?: string[]
+      includeGroups?: string[]
+      excludeGroups?: string[]
+      includeRoles?: string[]
+      excludeRoles?: string[]
+    }
     applications?: { includeApplications?: string[] }
+    locations?: { includeLocations?: string[]; excludeLocations?: string[] }
   }
-  grantControls?: { operator?: string; builtInControls?: string[] } | null
+  grantControls?: {
+    operator?: string
+    builtInControls?: string[]
+    authenticationStrength?: { id?: string } | null
+    termsOfUse?: string[]
+  } | null
 }
 
 function asString(v: unknown): string {
@@ -86,10 +113,18 @@ export function extractPolicySpecs(canvas: CanvasSnapshot): CaPolicySpec[] {
       includeAllUsers: asBool(f.includeAllUsers),
       includeGroups: asStringArray(f.includeGroups),
       excludeGroups: asStringArray(f.excludeGroups),
+      includeUsers: asStringArray(f.includeUsers),
+      excludeUsers: asStringArray(f.excludeUsers),
+      includeRoles: asStringArray(f.includeRoles),
+      excludeRoles: asStringArray(f.excludeRoles),
+      includeLocations: asStringArray(f.includeLocations),
+      excludeLocations: asStringArray(f.excludeLocations),
       includeAllApps: asBool(f.includeAllApps),
       includeApps: asStringArray(f.includeApps),
       grantOperator: (asString(f.grantOperator) || 'OR').toUpperCase(),
       builtInControls: asStringArray(f.builtInControls).map((c) => c.trim()),
+      authenticationStrength: asString(f.authenticationStrength),
+      termsOfUse: asStringArray(f.termsOfUse),
     }
   })
 }
@@ -134,11 +169,17 @@ export default function validate(ctx: PipelineContext): ValidationResult {
       })
     }
 
-    // users — at least one include target
-    if (!spec.includeAllUsers && spec.includeGroups.length === 0) {
+    // users — at least one include target (a group, a user, or a role all count)
+    if (
+      !spec.includeAllUsers &&
+      spec.includeGroups.length === 0 &&
+      spec.includeUsers.length === 0 &&
+      spec.includeRoles.length === 0
+    ) {
       errors.push({
         field: `${prefix}.includeGroups`,
-        message: 'Target at least one user population: enable "All users" or name at least one included group',
+        message:
+          'Target at least one user population: enable "All users", or name at least one included group, user, or role',
         code: 'no_user_target',
       })
     }
@@ -187,12 +228,18 @@ export default function validate(ctx: PipelineContext): ValidationResult {
     }
 
     // Safety warning: an enforced policy with no break-glass exclusion can lock
-    // every admin out. Warn (not error) so it's a deliberate choice.
-    if (spec.state === 'enabled' && spec.excludeGroups.length === 0) {
+    // every admin out. Warn (not error) so it's a deliberate choice. An
+    // exclusion by group, user, or role all count as a break-glass path.
+    if (
+      spec.state === 'enabled' &&
+      spec.excludeGroups.length === 0 &&
+      spec.excludeUsers.length === 0 &&
+      spec.excludeRoles.length === 0
+    ) {
       warnings.push({
         field: `${prefix}.excludeGroups`,
         message:
-          'This policy is set to Enabled (enforced) with no excluded groups — consider excluding a break-glass / emergency-access group to avoid locking yourself out',
+          'This policy is set to Enabled (enforced) with no excluded groups, users, or roles — consider excluding a break-glass / emergency-access account to avoid locking yourself out',
         code: 'no_break_glass',
       })
     }

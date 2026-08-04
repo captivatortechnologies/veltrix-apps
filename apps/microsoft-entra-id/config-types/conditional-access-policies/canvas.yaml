@@ -70,7 +70,7 @@ item:
           label: "All users"
           fieldType: "checkbox"
           defaultValue: false
-          helpText: "Target every user. When off, target the included groups below instead."
+          helpText: "Target every user. When off, target the included groups/users/roles below instead."
 
         - key: "includeGroups"
           label: "Included Groups"
@@ -81,7 +81,9 @@ item:
           helpText: >
             Groups to target — pick from the live tenant. Stores the group id;
             a hand-typed display name from an older canvas still resolves the
-            same way at deploy time. Ignored when "All users" is on.
+            same way at deploy time. Combines with Included Users and Included
+            Roles below (a user is targeted if they match ANY of the three).
+            Ignored when "All users" is on.
 
         - key: "excludeGroups"
           label: "Excluded Groups (break-glass)"
@@ -93,6 +95,83 @@ item:
             Groups to exclude — pick from the live tenant. Always applied — use
             this to exclude an emergency-access group so an enforced policy
             can't lock every admin out.
+
+        - key: "includeUsers"
+          label: "Included Users"
+          fieldType: "remote-multiselect"
+          optionsSource: "usersInclude"
+          optionsMulti: true
+          required: false
+          helpText: >
+            Individual users to target — pick from the live tenant, or choose
+            All users / No users / Guests or external users. Stores the
+            user's object id or the literal sentinel; a hand-typed display
+            name or UPN also resolves at deploy time. Combines with Included
+            Groups and Included Roles. Ignored when "All users" is on.
+
+        - key: "excludeUsers"
+          label: "Excluded Users"
+          fieldType: "remote-multiselect"
+          optionsSource: "usersExclude"
+          optionsMulti: true
+          required: false
+          helpText: >
+            Individual users to exclude — pick from the live tenant, or choose
+            Guests or external users. Always applied, even when "All users" is
+            on.
+
+        - key: "includeRoles"
+          label: "Included Roles"
+          fieldType: "remote-multiselect"
+          optionsSource: "roleDefinitions"
+          optionsMulti: true
+          required: false
+          helpText: >
+            Directory roles to target by membership — pick from the live
+            tenant. Only BUILT-IN directory roles are supported by
+            Conditional Access; administrative-unit-scoped roles and custom
+            roles are not, even though they may appear in this list (Graph
+            rejects them at deploy — pick a built-in role such as "Global
+            Administrator"). Combines with Included Groups and Included
+            Users. Ignored when "All users" is on.
+
+        - key: "excludeRoles"
+          label: "Excluded Roles"
+          fieldType: "remote-multiselect"
+          optionsSource: "roleDefinitions"
+          optionsMulti: true
+          required: false
+          helpText: >
+            Directory roles to exclude — same built-in-role-only restriction
+            as Included Roles. Always applied, even when "All users" is on.
+
+    - name: "Locations"
+      icon: "globe"
+      description: "Which network locations the policy applies to"
+      fields:
+        - key: "includeLocations"
+          label: "Included Locations"
+          fieldType: "remote-multiselect"
+          optionsSource: "namedLocationsInclude"
+          optionsMulti: true
+          required: false
+          helpText: >
+            Named locations to target — pick from the live tenant's Named
+            Locations, or choose All locations / All trusted locations.
+            Stores the location id or the literal sentinel; a hand-typed
+            display name also resolves at deploy time. Leave both location
+            fields empty to apply the policy regardless of location.
+
+        - key: "excludeLocations"
+          label: "Excluded Locations"
+          fieldType: "remote-multiselect"
+          optionsSource: "namedLocations"
+          optionsMulti: true
+          required: false
+          helpText: >
+            Named locations to exclude (e.g. a trusted corporate network) —
+            pick from the live tenant. Applied whenever either location field
+            is set.
 
     - name: "Cloud apps"
       icon: "grid"
@@ -156,3 +235,32 @@ item:
           helpText: >
             Grant requirements. "Block access" denies sign-in and cannot be
             combined with any other control.
+
+        - key: "authenticationStrength"
+          label: "Authentication Strength"
+          fieldType: "remote-select"
+          optionsSource: "authStrengthPolicies"
+          required: false
+          helpText: >
+            An authentication strength policy to require, in place of or in
+            addition to the Controls above — pick from the live tenant's
+            built-in and custom strengths (e.g. "Phishing-resistant MFA").
+            Stores the policy id; a hand-typed display name from an older
+            canvas also resolves at deploy time. Optional — leave unset to
+            rely on the Controls above only.
+
+        - key: "termsOfUse"
+          label: "Terms of Use"
+          fieldType: "remote-multiselect"
+          optionsSource: "termsOfUse"
+          optionsMulti: true
+          required: false
+          helpText: >
+            Terms-of-use agreements the user must accept to be granted
+            access — pick from the live tenant. NOTE: Microsoft Graph does
+            not support listing terms-of-use agreements with application
+            permissions (it's delegated-only), so this live picker may come
+            back empty even when agreements exist. If so, copy the agreement
+            id from the Entra admin center (Identity Governance > Terms of
+            use) and enter it directly — a hand-typed id or display name
+            still resolves the same way at deploy time.

@@ -8,6 +8,25 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.8.1 — 2026-08-04
+
+Conditional Access — full targeting surface as live pickers. Building on 0.8.0,
+the policy form now searches/selects every target from the connected tenant:
+
+- **Users** (Included/Excluded) → live users picker (sentinels `All` / `None` /
+  `GuestsOrExternalUsers` on include; `GuestsOrExternalUsers` on exclude).
+- **Directory Roles** (Included/Excluded) → live roleDefinitions picker (built-in
+  roles; the roleDefinition id equals the role-template id CA expects).
+- **Named Locations** (Included/Excluded) → live namedLocations picker (sentinels
+  `All` / `AllTrusted` on include).
+- **Authentication Strength** → single live picker → `grantControls.authenticationStrength`.
+- **Terms of Use** → live agreements picker → `grantControls.termsOfUse` (note:
+  the picker needs delegated Graph permission; writing a hand-typed agreement id
+  works under app permissions — documented in the Setup Guide).
+- Setup Guide updated with the extra Graph permissions the pickers require
+  (`User.Read.All`, `RoleManagement.Read.Directory`). id-aware + backward
+  compatible throughout (hand-typed names still resolve).
+
 ## 0.8.0 — 2026-08-04
 
 Live remote pickers for reference fields — config forms now pull related objects
