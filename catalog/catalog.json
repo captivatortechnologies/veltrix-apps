@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-08-04T15:35:53.661Z",
+  "generatedAt": "2026-08-04T15:38:03.733Z",
   "apps": [
     {
       "appId": "akamai",
@@ -731,7 +731,7 @@
     {
       "appId": "microsoft-entra-id",
       "name": "Microsoft Entra ID",
-      "version": "0.8.0",
+      "version": "0.8.1",
       "vendor": "Veltrix",
       "description": "Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the Microsoft Graph API. Covers Conditional Access, named locations, security groups, administrative units, custom roles and authentication strengths/contexts; the tenant authorization, security-defaults, authentication-methods, authentication-flows, admin-consent-request, permission-grant, cross-tenant access, app-management, token-issuance / lifetime / claims-mapping, home-realm-discovery, activity-timeout and feature-rollout policies; group directory settings, custom security attributes, external identity providers, delegated permission grants, user-flow attributes and self-service sign-up flows; and identity governance (entitlement catalogs, access packages, assignment policies, connected organizations, access reviews, lifecycle workflows and PIM role activation policies); plus company branding — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
@@ -740,11 +740,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-entra-id",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-entra-id-v0.8.0/microsoft-entra-id.zip",
-      "sha256": "3751e45bcb8323ec8bb18af39a0d78aa6267e7d93a6aae8e2e25fbaf1e28533f",
-      "sizeBytes": 787492,
-      "publishedAt": "2026-08-04T14:50:20.973Z",
-      "releaseNotes": "## 0.8.0 — 2026-08-04\n\nLive remote pickers for reference fields — config forms now pull related objects\nfrom the connected tenant instead of pasting display names / GUIDs.\n\n- **Shared live-options provider** (`config-types/lib/entraOptions.ts`) — 12\n  Graph-backed sources (groups, users, applications, servicePrincipals,\n  namedLocations, roleDefinitions, administrativeUnits, authStrengthPolicies,\n  termsOfUse, authContexts, accessPackageCatalogs, connectedOrganizations),\n  searchable server-side (`$search` where supported) and id→label on mount.\n- **Conditional Access Policies** — Included/Excluded Groups and Included Apps\n  are now searchable live pickers (Groups picker; Applications picker with the\n  All / Office365 / MicrosoftAdminPortals cloud-app sentinels).\n- **id-aware, backward compatible** — pickers store ids/appIds; a hand-typed\n  display name still resolves at deploy time.\n\nPhase 1 of a rollout wiring the same live pickers into every reference field\nacross all Entra config types.",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-entra-id-v0.8.1/microsoft-entra-id.zip",
+      "sha256": "6fa89fb1798a20e35bdd40347cd38b11b81f32c1771d2b3ae0f406e37c67a068",
+      "sizeBytes": 797215,
+      "publishedAt": "2026-08-04T15:38:03.694Z",
+      "releaseNotes": "## 0.8.1 — 2026-08-04\n\nConditional Access — full targeting surface as live pickers. Building on 0.8.0,\nthe policy form now searches/selects every target from the connected tenant:\n\n- **Users** (Included/Excluded) → live users picker (sentinels `All` / `None` /\n  `GuestsOrExternalUsers` on include; `GuestsOrExternalUsers` on exclude).\n- **Directory Roles** (Included/Excluded) → live roleDefinitions picker (built-in\n  roles; the roleDefinition id equals the role-template id CA expects).\n- **Named Locations** (Included/Excluded) → live namedLocations picker (sentinels\n  `All` / `AllTrusted` on include).\n- **Authentication Strength** → single live picker → `grantControls.authenticationStrength`.\n- **Terms of Use** → live agreements picker → `grantControls.termsOfUse` (note:\n  the picker needs delegated Graph permission; writing a hand-typed agreement id\n  works under app permissions — documented in the Setup Guide).\n- Setup Guide updated with the extra Graph permissions the pickers require\n  (`User.Read.All`, `RoleManagement.Read.Directory`). id-aware + backward\n  compatible throughout (hand-typed names still resolve).",
       "releasedAt": "2026-08-04T00:00:00.000Z"
     },
     {
