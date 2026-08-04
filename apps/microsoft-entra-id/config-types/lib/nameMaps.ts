@@ -75,6 +75,50 @@ export function buildApplicationObjectNameToId(client: GraphClient): Promise<Map
   return nameToIdMap(client, '/applications?$select=id,displayName')
 }
 
+/**
+ * identityGovernance/entitlementManagement/catalogs displayName -> id — for
+ * accessPackage.catalog (entitlement-access-packages) and any other field that
+ * references a catalog by name.
+ */
+export function buildAccessPackageCatalogNameToId(client: GraphClient): Promise<Map<string, string>> {
+  return nameToIdMap(client, '/identityGovernance/entitlementManagement/catalogs?$select=id,displayName')
+}
+
+/**
+ * identityGovernance/entitlementManagement/accessPackages displayName -> id —
+ * for accessPackageAssignmentPolicy.accessPackage (entitlement-assignment-policies)
+ * and the accessPackage-scoped access review scope (access-review-definitions).
+ */
+export function buildAccessPackageNameToId(client: GraphClient): Promise<Map<string, string>> {
+  return nameToIdMap(client, '/identityGovernance/entitlementManagement/accessPackages?$select=id,displayName')
+}
+
+/**
+ * identityGovernance/entitlementManagement/connectedOrganizations displayName -> id
+ * — for connectedOrganizationMembers.connectedOrganizationId (a subjectSet kind
+ * used in entitlement-assignment-policies' specificAllowedTargets).
+ */
+export function buildConnectedOrganizationNameToId(client: GraphClient): Promise<Map<string, string>> {
+  return nameToIdMap(client, '/identityGovernance/entitlementManagement/connectedOrganizations?$select=id,displayName')
+}
+
+/**
+ * identityGovernance/lifecycleWorkflows/taskDefinitions displayName -> id — the
+ * built-in Lifecycle Workflows task catalog (confirmed real, e.g. "Enable user
+ * account" = 6fc52c9d-398b-4305-9763-15f42c1676fc via
+ * GET /identityGovernance/lifecycleWorkflows/taskDefinitions,
+ * https://learn.microsoft.com/graph/api/identitygovernance-lifecycleworkflowscontainer-list-taskdefinitions).
+ * NOT exposed as a canvas picker field (see lifecycle-workflows/canvas.yaml for
+ * why — tasks is a JSON array of {taskDefinitionId, arguments[]} objects, and
+ * this app's canvas fields are flat, not nested per-array-element pickers) —
+ * used only by lifecycle-workflows/deploy.ts and driftDetect.ts to resolve a
+ * hand-typed task NAME to its id and to catch an unknown id at deploy/drift
+ * time instead of a raw Graph 400.
+ */
+export function buildTaskDefinitionNameToId(client: GraphClient): Promise<Map<string, string>> {
+  return nameToIdMap(client, '/identityGovernance/lifecycleWorkflows/taskDefinitions?$select=id,displayName')
+}
+
 /** Build a case-insensitive user displayName/UPN -> id map from the live directory. */
 export async function buildUserNameToId(client: GraphClient): Promise<Map<string, string>> {
   const map = new Map<string, string>()

@@ -1,6 +1,6 @@
 id: microsoft-entra-id
 name: Microsoft Entra ID
-version: "0.8.2"
+version: "0.8.3"
 vendor: Veltrix
 description: >
   Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the
@@ -720,6 +720,7 @@ pipeline:
         healthCheck: config-types/entitlement-access-packages/healthCheck
         driftDetect: config-types/entitlement-access-packages/driftDetect
         getStatus: config-types/entitlement-access-packages/getStatus
+        options: config-types/entitlement-access-packages/options
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true
@@ -738,6 +739,7 @@ pipeline:
         healthCheck: config-types/entitlement-assignment-policies/healthCheck
         driftDetect: config-types/entitlement-assignment-policies/driftDetect
         getStatus: config-types/entitlement-assignment-policies/getStatus
+        options: config-types/entitlement-assignment-policies/options
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true
@@ -756,6 +758,7 @@ pipeline:
         healthCheck: config-types/access-review-definitions/healthCheck
         driftDetect: config-types/access-review-definitions/driftDetect
         getStatus: config-types/access-review-definitions/getStatus
+        options: config-types/access-review-definitions/options
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true

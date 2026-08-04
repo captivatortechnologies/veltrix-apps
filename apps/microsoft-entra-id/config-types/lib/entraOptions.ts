@@ -20,6 +20,7 @@
 //   authContexts           GET /identity/conditionalAccess/authenticationContextClassReferences ($search: no)
 //   accessPackageCatalogs  GET /identityGovernance/entitlementManagement/catalogs         ($search: no)
 //   connectedOrganizations GET /identityGovernance/entitlementManagement/connectedOrganizations ($search: no)
+//   accessPackages         GET /identityGovernance/entitlementManagement/accessPackages    ($search: no)
 //
 // $search support is NOT uniform across Graph and was verified (not assumed)
 // against "Advanced query capabilities on Microsoft Entra ID objects"
@@ -248,6 +249,20 @@ const SIMPLE_SOURCES: Record<string, SimpleSource> = {
     select: 'id,displayName,description,state',
     searchable: false,
     toOption: (c) => opt(c.id, c.displayName, c.description ?? c.state),
+  },
+  // Phase-2 batch-2 (entitlement management / access reviews): entitlementManagement
+  // access packages, targeted by entitlement-assignment-policies' accessPackageId
+  // and access-review-definitions' accessPackage-scope picker. Same "governance
+  // resource, not a directory object" reasoning as accessPackageCatalogs/
+  // connectedOrganizations above — accessPackage is not one of the six
+  // $search-eligible directory object types verified in the header, so this
+  // lists a page and filters client-side like its siblings rather than
+  // depending on undocumented $search support.
+  accessPackages: {
+    path: '/identityGovernance/entitlementManagement/accessPackages',
+    select: 'id,displayName,description',
+    searchable: false,
+    toOption: (p) => opt(p.id, p.displayName, p.description ?? p.id),
   },
 }
 

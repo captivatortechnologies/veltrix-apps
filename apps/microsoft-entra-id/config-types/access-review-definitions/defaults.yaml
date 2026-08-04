@@ -1,8 +1,24 @@
 # Defaults for a new access review definition item.
 #
-# Seeds empty JSON scaffolds the author fills in. Values are a FLAT map keyed by
-# the canvas field keys.
+# Seeds a group-membership review (the most common case) with no reviewers set
+# (self-review) and an empty settings scaffold to fill in. Values are a FLAT
+# map keyed by the canvas field keys.
 descriptionForAdmins: ""
-scope: "{}"
-reviewers: "[]"
+
+scopeType: "groupMembership"
+scopeGroupId: ""
+scopeRoleDefinitionId: ""
+scopeAccessPackageId: ""
+scopeServicePrincipalId: ""
+scopeCustomJson: ""
+instanceEnumerationScopeJson: ""
+
+reviewerUsers: []
+reviewerGroupOwners: []
+reviewerManagersSelfReview: false
+reviewersCustomJson: ""
+fallbackReviewerUsers: []
+fallbackReviewerGroupOwners: []
+fallbackReviewersCustomJson: ""
+
 settings: "{}"

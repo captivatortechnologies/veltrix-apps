@@ -9,6 +9,38 @@
 # executionConditions and tasks are supplied as validated JSON. Requires a
 # Microsoft Entra ID Governance license.
 #
+# NO LIVE-PICKER REFERENCE FIELDS ON executionConditions/tasks (assessed,
+# Phase-2 batch-2), confirmed against each resource's own page:
+#   - triggerAndScopeBasedConditions.scope is a plain microsoft.graph.subjectSet
+#     (https://learn.microsoft.com/graph/api/resources/identitygovernance-triggerandscopebasedconditions)
+#     — for the standard time-based trigger this is a ruleBasedSubjectSet, a
+#     RULE-EXPRESSION STRING (e.g. "(department eq 'Sales')"), not an object
+#     reference — exactly the "rule expression, not object picker" case this
+#     phase's brief says not to force a picker onto. The alternative
+#     membershipChangeTrigger + groupBasedSubjectSet combination ("run this
+#     workflow when someone joins/leaves group X") pairs a specific group with
+#     the trigger, but groupBasedSubjectSet exposes that group ONLY as a
+#     RELATIONSHIP ("groups", not a body property —
+#     https://learn.microsoft.com/graph/api/resources/identitygovernance-groupbasedsubjectset)
+#     with no citable, worked create/update body example for binding it
+#     (unlike accessPackage/catalog's plain `{id}` bodies elsewhere in this
+#     app) — left as JSON rather than guessing an @odata.bind-style shape.
+#   - tasks[].taskDefinitionId DOES reference a real, live, low-cardinality
+#     Graph collection (GET /identityGovernance/lifecycleWorkflows/taskDefinitions
+#     — https://learn.microsoft.com/graph/api/identitygovernance-lifecycleworkflowscontainer-list-taskdefinitions,
+#     ~25 built-in tasks e.g. "Enable user account" =
+#     6fc52c9d-398b-4305-9763-15f42c1676fc), but `tasks` is a JSON ARRAY of
+#     {taskDefinitionId, arguments[]} objects and this app's canvas fields are
+#     FLAT (one picker per field, not one picker per array element) — there is
+#     no field to attach a remote-select to. deploy.ts and driftDetect.ts still
+#     get the benefit of the live catalog: each task's taskDefinitionId may be
+#     a hand-typed built-in task NAME (e.g. "Enable user account"), resolved
+#     against the live catalog the same way every other id-aware field in this
+#     app resolves a hand-typed display name (see
+#     config-types/lib/nameMaps.ts's buildTaskDefinitionNameToId and
+#     resolveTaskDefinitionIds in deploy.ts) — an unknown id/name fails the
+#     deploy/drift run with a clear message instead of a raw Graph 400.
+#
 # Field keys must match config-types/lifecycle-workflows/validate.ts.
 # =============================================================================
 
@@ -88,3 +120,7 @@ item:
           helpText: >
             A non-empty JSON array of task objects, e.g.
             [{"continueOnError":false,"displayName":"Enable account","taskDefinitionId":"6fc52c9d-398b-4305-9763-15f42c1676fc","arguments":[]}].
+            Each taskDefinitionId may instead be the built-in task's NAME (e.g.
+            "Enable user account") — resolved against the live built-in task
+            catalog (GET /identityGovernance/lifecycleWorkflows/taskDefinitions)
+            at deploy/drift time, same as every other id-aware field in this app.

@@ -1,7 +1,7 @@
 # Defaults for a new access package item.
 #
-# Seeds a visible package with no catalog set (the author supplies the catalog
-# name). Values are a FLAT map keyed by the canvas field keys.
-catalogName: ""
+# Seeds a visible package with no catalog set (the author picks the catalog
+# from the live tenant). Values are a FLAT map keyed by the canvas field keys.
+catalogId: ""
 description: ""
 isHidden: false

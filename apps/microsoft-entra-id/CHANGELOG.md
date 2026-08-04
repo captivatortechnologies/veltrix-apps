@@ -8,6 +8,25 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.8.3 — 2026-08-04
+
+Live pickers Phase 2 (batch 2) — Entitlement Management & Identity Governance.
+
+- **entitlement-access-packages** — catalog → live `accessPackageCatalogs` picker.
+- **entitlement-assignment-policies** — target access package → new `accessPackages`
+  picker; the requestor/approval JSON textareas decomposed into typed fields +
+  on-behalf-requestor and approver pickers (users/groups/service-principals); and
+  `specificAllowedTargets` wired (was previously unwired — any `specificDirectory*`
+  target scope silently targeted nobody) with its full `allowedTargetScope` enum.
+- **access-review-definitions** — review scope (group / directory-role / access-package
+  / application) and reviewers/fallback-reviewers now live pickers, each matching the
+  Graph `accessReviewScheduleDefinition` worked examples.
+- **lifecycle-workflows** — task names resolved against the live task-definition catalog
+  (fails loudly on unknown, instead of a raw Graph 400).
+- entitlement-access-package-catalogs / entitlement-connected-organizations left unwired
+  (no directory-object reference field — documented). New source `accessPackages`;
+  new shared `subjectSet` lib. id-aware + backward compatible.
+
 ## 0.8.2 — 2026-08-04
 
 Live pickers Phase 2 (batch 1) — Roles / PIM / Directory. Reference fields on

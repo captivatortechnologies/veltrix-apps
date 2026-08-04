@@ -1,10 +1,32 @@
 # Defaults for a new assignment policy item.
 #
-# Seeds a minimal, no-expiration / no-approval policy the author can tailor.
+# Seeds a minimal, no-expiration / no-approval policy the author can tailor —
+# self-service add only, no on-behalf-of requestors, no approval required.
 # Values are a FLAT map keyed by the canvas field keys.
-accessPackageName: ""
+accessPackageId: ""
 description: ""
 allowedTargetScope: "notSpecified"
 expiration: '{"type":"noExpiration"}'
-requestorSettings: '{"enableTargetsToSelfAddAccess":false}'
-requestApprovalSettings: '{"isApprovalRequiredForAdd":false}'
+
+specificTargetUsers: []
+specificTargetGroups: []
+specificTargetServicePrincipals: []
+specificTargetConnectedOrganizations: []
+
+enableTargetsToSelfAddAccess: true
+enableTargetsToSelfUpdateAccess: false
+enableTargetsToSelfRemoveAccess: false
+allowCustomAssignmentSchedule: true
+enableOnBehalfRequestorsToAddAccess: false
+enableOnBehalfRequestorsToUpdateAccess: false
+enableOnBehalfRequestorsToRemoveAccess: false
+onBehalfRequestorUsers: []
+onBehalfRequestorGroups: []
+onBehalfRequestorServicePrincipals: []
+
+isApprovalRequiredForAdd: false
+isApprovalRequiredForUpdate: false
+isRequestorJustificationRequired: true
+primaryApproverUsers: []
+primaryApproverGroups: []
+approvalStagesOverride: ""

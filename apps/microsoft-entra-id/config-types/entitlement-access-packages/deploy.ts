@@ -8,10 +8,10 @@ import {
   MISSING_CREDENTIAL_MESSAGE,
 } from '../../lib/graph'
 import { extractAccessPackageSpecs, type AccessPackageSpec, type LiveAccessPackage } from './validate'
+import { buildAccessPackageCatalogNameToId, resolveRef } from '../lib/nameMaps'
 
 const BASE = '/identityGovernance/entitlementManagement/accessPackages'
 const SELECT = '?$select=id,displayName,description,isHidden'
-const CATALOGS = '/identityGovernance/entitlementManagement/catalogs?$select=id,displayName'
 
 export interface RollbackEntry {
   itemId?: string
@@ -21,15 +21,11 @@ export interface RollbackEntry {
   prior?: Record<string, unknown>
 }
 
-interface LiveCatalog {
-  id?: string
-  displayName?: string
-}
-
 export function buildPatchBody(spec: AccessPackageSpec): Record<string, unknown> {
   return { displayName: spec.name, description: spec.description || '', isHidden: spec.isHidden }
 }
 
+/** https://learn.microsoft.com/graph/api/entitlementmanagement-post-accesspackages — catalog only needs "id". */
 export function buildCreateBody(spec: AccessPackageSpec, catalogId: string): Record<string, unknown> {
   return { ...buildPatchBody(spec), catalog: { id: catalogId } }
 }
@@ -54,16 +50,13 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   if (!cred) return { success: false, message: MISSING_CREDENTIAL_MESSAGE }
   const client = buildGraphClient(cred, settings)
 
-  const specs = extractAccessPackageSpecs(ctx.canvas).filter((s) => s.name && s.catalogName)
+  const specs = extractAccessPackageSpecs(ctx.canvas).filter((s) => s.name && s.catalogId)
 
-  const catalogsRes = await client.getAll<LiveCatalog>(CATALOGS)
-  if (!catalogsRes.ok) {
-    return { success: false, message: `Failed to list catalogs: ${graphErrorMessage(catalogsRes.lastError!)}` }
-  }
-  const catalogByName = new Map<string, string>()
-  for (const c of catalogsRes.items) {
-    if (c.displayName && c.id) catalogByName.set(c.displayName.toLowerCase(), c.id)
-  }
+  // catalogId is a live remote-select value (a real catalog id — no lookup
+  // needed) or a hand-typed catalog display name from a pre-picker canvas,
+  // resolved via the live catalog name -> id map the same way every other
+  // id-aware field in this app's Phase-2 batches resolves.
+  const catalogNameToId = await buildAccessPackageCatalogNameToId(client)
 
   const listed = await client.getAll<LiveAccessPackage>(`${BASE}${SELECT}`)
   if (!listed.ok) {
@@ -84,11 +77,12 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const failures: string[] = []
 
   for (const spec of specs) {
-    const catalogId = catalogByName.get(spec.catalogName.toLowerCase())
-    if (!catalogId) {
-      failures.push(`${spec.name}: catalog "${spec.catalogName}" not found`)
+    const catalog = resolveRef(spec.catalogId, catalogNameToId)
+    if (catalog.missing) {
+      failures.push(`${spec.name}: catalog "${spec.catalogId}" not found — create/verify it first or fix the name`)
       continue
     }
+    const catalogId = catalog.id
     const priorEntry = (spec.itemId && priorByItemId.get(spec.itemId)) || priorByName.get(spec.name.toLowerCase())
     const liveMatch =
       (priorEntry?.id ? liveById.get(priorEntry.id) : undefined) ?? liveByName.get(spec.name.toLowerCase()) ?? null

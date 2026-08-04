@@ -1,6 +1,8 @@
 import type { DriftContext, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildGraphClient, readGraphSettings, resolveGraphCredential } from '../../lib/graph'
 import { canonical, extractWorkflowSpecs, parseArray, parseObject, type LiveWorkflow } from './validate'
+import { buildTaskDefinitionNameToId } from '../lib/nameMaps'
+import { resolveTaskDefinitionIds } from './deploy'
 
 const BASE = '/identityGovernance/lifecycleWorkflows/workflows'
 const SELECT = '?$select=id,category,displayName,description,isEnabled,isSchedulingEnabled,executionConditions,tasks'
@@ -17,6 +19,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const listed = await client.getAll<LiveWorkflow>(`${BASE}${SELECT}`)
   if (!listed.ok) return { hasDrift: false, diffs: [] }
   const liveByName = new Map(listed.items.filter((w) => w.displayName).map((w) => [w.displayName!.toLowerCase(), w]))
+  const taskDefNameToId = await buildTaskDefinitionNameToId(client)
 
   const diffs: Diffs = []
   for (const spec of specs) {
@@ -39,10 +42,20 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     if (wantConditions !== liveConditions) {
       diffs.push({ field: `${spec.name}.executionConditions`, expected: wantConditions, actual: liveConditions, severity: 'warning' })
     }
-    const wantTasks = canonical(parseArray(spec.tasks) ?? [])
-    const liveTasks = canonical(live.tasks ?? [])
-    if (wantTasks !== liveTasks) {
-      diffs.push({ field: `${spec.name}.tasks`, expected: wantTasks, actual: liveTasks, severity: 'warning' })
+    const { tasks: resolvedTasks, missing } = resolveTaskDefinitionIds(parseArray(spec.tasks) ?? [], taskDefNameToId)
+    if (missing.length) {
+      diffs.push({
+        field: `${spec.name}.tasks`,
+        expected: 'resolvable',
+        actual: `unknown task definition(s): ${missing.join(', ')}`,
+        severity: 'critical',
+      })
+    } else {
+      const wantTasks = canonical(resolvedTasks)
+      const liveTasks = canonical(live.tasks ?? [])
+      if (wantTasks !== liveTasks) {
+        diffs.push({ field: `${spec.name}.tasks`, expected: wantTasks, actual: liveTasks, severity: 'warning' })
+      }
     }
   }
 

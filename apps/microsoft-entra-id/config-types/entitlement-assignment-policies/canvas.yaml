@@ -2,13 +2,27 @@
 # Canvas Template — Entra ID Access Package Assignment Policies
 #
 # Declares ONE assignment policy — the item. Users add as many as they need. A
-# policy belongs to an access package (referenced by package display name and
-# resolved to an id at deploy time). The logical identity is the policy NAME
-# (displayName); deploy lists policies, matches on the name (or a stored id,
-# rename-safe), and PATCHes (update) or POSTs (create, binding the package)
-# accordingly. Reconcile only deletes policies this app created.
+# policy belongs to an access package (picked from the live tenant; a
+# hand-typed package display name from a pre-picker canvas still resolves to
+# an id at deploy time). The logical identity is the policy NAME (displayName);
+# deploy lists policies, matches on the name (or a stored id, rename-safe), and
+# PATCHes (update) or POSTs (create, binding the package) accordingly.
+# Reconcile only deletes policies this app created.
 #
-# The nested settings (expiration, requestor, approval) are managed as JSON.
+# requestorSettings and requestApprovalSettings are decomposed into typed
+# fields (accessPackageAssignmentRequestorSettings/accessPackageAssignmentApprovalSettings
+# are simple flag + subjectSet-collection shapes — see the Graph citations
+# below), each subjectSet-producing field kept SINGLE-KIND (see
+# config-types/lib/subjectSet.ts for why). Multi-stage / escalation approval
+# (accessPackageApprovalStage beyond one stage, or requestorManager /
+# internalSponsors / externalSponsors / targetUserSponsors approvers) has no
+# flat-field equivalent — use "Approval Stages Override (JSON)" for that case;
+# when set it REPLACES the single-stage primaryApprover* fields entirely.
+#
+# specificAllowedTargets is wired directly — Graph requires it populated
+# whenever allowedTargetScope is one of the "specific*" enum values, and
+# leaving it empty in that case silently targets NOBODY despite the scope
+# setting (a common real-world misconfiguration this decomposition prevents).
 #
 # Field keys must match config-types/entitlement-assignment-policies/validate.ts.
 # =============================================================================
@@ -28,7 +42,7 @@ item:
   groups:
     - name: "Assignment Policy"
       icon: "clipboard"
-      description: "Package, targeting and request/approval settings"
+      description: "Package, targeting scope and expiration"
       fields:
         - key: "name"
           label: "Name"
@@ -40,11 +54,18 @@ item:
             Display name of the policy (max 256 chars). Must be unique within this
             canvas — it is the logical identity deploy matches on.
 
-        - key: "accessPackageName"
-          label: "Access Package Name"
-          fieldType: "text"
+        - key: "accessPackageId"
+          label: "Access Package"
+          fieldType: "remote-select"
+          optionsSource: "accessPackages"
           required: true
-          helpText: "The display name of the access package this policy governs. Resolved to an id at deploy time."
+          helpText: >
+            The access package this policy governs — pick from the live
+            tenant. Stores the package's id (accessPackageAssignmentPolicy is
+            created bound via `accessPackage: {id}` — only "id" is required:
+            https://learn.microsoft.com/graph/api/resources/accesspackageassignmentpolicy);
+            a hand-typed package display name from an older canvas also
+            resolves at deploy time.
 
         - key: "description"
           label: "Description"
@@ -60,19 +81,31 @@ item:
           options:
             - label: "Not specified"
               value: "notSpecified"
-            - label: "Specific directory users"
+            - label: "Specific directory users (or group members)"
               value: "specificDirectoryUsers"
             - label: "Specific connected organization users"
               value: "specificConnectedOrganizationUsers"
+            - label: "Specific directory service principals"
+              value: "specificDirectoryServicePrincipals"
             - label: "All member users"
               value: "allMemberUsers"
             - label: "All directory users"
               value: "allDirectoryUsers"
+            - label: "All directory service principals"
+              value: "allDirectoryServicePrincipals"
             - label: "All configured connected organization users"
               value: "allConfiguredConnectedOrganizationUsers"
             - label: "All external users"
               value: "allExternalUsers"
-          helpText: "Who is allowed to be assigned the access package through this policy."
+            - label: "All directory agent identities"
+              value: "allDirectoryAgentIdentities"
+          helpText: >
+            Who is allowed to be assigned the access package through this
+            policy (accessPackageAssignmentPolicy.allowedTargetScope —
+            https://learn.microsoft.com/graph/api/resources/accesspackageassignmentpolicy).
+            The three "Specific ..." values require the matching Specific
+            Targets field below to be populated — Graph does not infer targets
+            from the scope alone.
 
         - key: "expiration"
           label: "Expiration (JSON)"
@@ -80,14 +113,223 @@ item:
           required: false
           helpText: 'An expirationPattern JSON object, e.g. {"type":"afterDuration","duration":"P365D"} or {"type":"noExpiration"}.'
 
-        - key: "requestorSettings"
-          label: "Requestor Settings (JSON)"
-          fieldType: "textarea"
+    - name: "Specific Targets"
+      icon: "target"
+      description: "Only used when Allowed Target Scope above is one of the Specific ... values"
+      fields:
+        - key: "specificTargetUsers"
+          label: "Specific target users"
+          fieldType: "remote-multiselect"
+          optionsSource: "users"
+          optionsMulti: true
           required: false
-          helpText: 'A requestor settings JSON object, e.g. {"enableTargetsToSelfAddAccess":true,"allowCustomAssignmentSchedule":true}.'
+          visibleWhen:
+            field: "allowedTargetScope"
+            equals: "specificDirectoryUsers"
+          helpText: >
+            Individual users allowed to be assigned this package —
+            specificAllowedTargets entries of kind singleUser
+            (https://learn.microsoft.com/graph/api/resources/singleuser). Used
+            when Allowed Target Scope is "Specific directory users".
 
-        - key: "requestApprovalSettings"
-          label: "Request Approval Settings (JSON)"
+        - key: "specificTargetGroups"
+          label: "Specific target groups (members)"
+          fieldType: "remote-multiselect"
+          optionsSource: "groups"
+          optionsMulti: true
+          required: false
+          visibleWhen:
+            field: "allowedTargetScope"
+            equals: "specificDirectoryUsers"
+          helpText: >
+            Groups whose members are allowed to be assigned this package —
+            specificAllowedTargets entries of kind groupMembers
+            (https://learn.microsoft.com/graph/api/resources/groupmembers).
+            Graph has no separate "specific directory groups" scope value, so
+            group-based specific targeting is also declared under "Specific
+            directory users".
+
+        - key: "specificTargetServicePrincipals"
+          label: "Specific target service principals"
+          fieldType: "remote-multiselect"
+          optionsSource: "servicePrincipals"
+          optionsMulti: true
+          required: false
+          visibleWhen:
+            field: "allowedTargetScope"
+            equals: "specificDirectoryServicePrincipals"
+          helpText: >
+            Service principals (workload identities) allowed to be assigned
+            this package — specificAllowedTargets entries of kind
+            singleServicePrincipal
+            (https://learn.microsoft.com/graph/api/resources/singleserviceprincipal).
+            Used when Allowed Target Scope is "Specific directory service
+            principals".
+
+        - key: "specificTargetConnectedOrganizations"
+          label: "Specific target connected organizations"
+          fieldType: "remote-multiselect"
+          optionsSource: "connectedOrganizations"
+          optionsMulti: true
+          required: false
+          visibleWhen:
+            field: "allowedTargetScope"
+            equals: "specificConnectedOrganizationUsers"
+          helpText: >
+            Connected organizations whose users are allowed to be assigned
+            this package — specificAllowedTargets entries of kind
+            connectedOrganizationMembers
+            (https://learn.microsoft.com/graph/api/resources/connectedorganizationmembers).
+            Used when Allowed Target Scope is "Specific connected organization
+            users".
+
+    - name: "Requestor Settings"
+      icon: "user-check"
+      description: "Who can request this package for themselves or on behalf of others (accessPackageAssignmentRequestorSettings)"
+      fields:
+        - key: "enableTargetsToSelfAddAccess"
+          label: "Allow self-service requests to add access"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "requestorSettings.enableTargetsToSelfAddAccess — requestors can request the package for themselves."
+
+        - key: "enableTargetsToSelfUpdateAccess"
+          label: "Allow self-service requests to update access"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "requestorSettings.enableTargetsToSelfUpdateAccess."
+
+        - key: "enableTargetsToSelfRemoveAccess"
+          label: "Allow self-service requests to remove access"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "requestorSettings.enableTargetsToSelfRemoveAccess."
+
+        - key: "allowCustomAssignmentSchedule"
+          label: "Allow requestor to set a custom schedule"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "requestorSettings.allowCustomAssignmentSchedule — false means the requestor can't include a schedule in their request."
+
+        - key: "enableOnBehalfRequestorsToAddAccess"
+          label: "Allow on-behalf-of requests to add access"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "requestorSettings.enableOnBehalfRequestorsToAddAccess — allows the users/groups/service principals below to request on behalf of others."
+
+        - key: "enableOnBehalfRequestorsToUpdateAccess"
+          label: "Allow on-behalf-of requests to update access"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "requestorSettings.enableOnBehalfRequestorsToUpdateAccess."
+
+        - key: "enableOnBehalfRequestorsToRemoveAccess"
+          label: "Allow on-behalf-of requests to remove access"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "requestorSettings.enableOnBehalfRequestorsToRemoveAccess."
+
+        - key: "onBehalfRequestorUsers"
+          label: "On-behalf-of requestor users"
+          fieldType: "remote-multiselect"
+          optionsSource: "users"
+          optionsMulti: true
+          required: false
+          helpText: >
+            Specific users who can request on behalf of others —
+            requestorSettings.onBehalfRequestors entries of kind singleUser.
+            Only takes effect when one of the "on-behalf-of" toggles above is on.
+
+        - key: "onBehalfRequestorGroups"
+          label: "On-behalf-of requestor groups"
+          fieldType: "remote-multiselect"
+          optionsSource: "groups"
+          optionsMulti: true
+          required: false
+          helpText: >
+            Groups whose members can request on behalf of others —
+            requestorSettings.onBehalfRequestors entries of kind groupMembers.
+
+        - key: "onBehalfRequestorServicePrincipals"
+          label: "On-behalf-of requestor service principals"
+          fieldType: "remote-multiselect"
+          optionsSource: "servicePrincipals"
+          optionsMulti: true
+          required: false
+          helpText: >
+            Service principals that can request on behalf of others —
+            requestorSettings.onBehalfRequestors entries of kind
+            singleServicePrincipal.
+
+    - name: "Approval Settings"
+      icon: "check-circle"
+      description: "Whether approval is required, and who approves (accessPackageAssignmentApprovalSettings)"
+      fields:
+        - key: "isApprovalRequiredForAdd"
+          label: "Require approval for new requests"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "requestApprovalSettings.isApprovalRequiredForAdd."
+
+        - key: "isApprovalRequiredForUpdate"
+          label: "Require approval for update requests"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "requestApprovalSettings.isApprovalRequiredForUpdate."
+
+        - key: "isRequestorJustificationRequired"
+          label: "Require requestor justification"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "requestApprovalSettings.isRequestorJustificationRequired."
+
+        - key: "primaryApproverUsers"
+          label: "Primary approver users"
+          fieldType: "remote-multiselect"
+          optionsSource: "users"
+          optionsMulti: true
+          required: false
+          helpText: >
+            Specific users who approve requests (single-stage approval) —
+            accessPackageApprovalStage.primaryApprovers entries of kind
+            singleUser
+            (https://learn.microsoft.com/graph/api/resources/accesspackageapprovalstage).
+            Only takes effect when approval is required above, and is ignored
+            if Approval Stages Override (JSON) below is set.
+
+        - key: "primaryApproverGroups"
+          label: "Primary approver groups"
+          fieldType: "remote-multiselect"
+          optionsSource: "groups"
+          optionsMulti: true
+          required: false
+          helpText: >
+            Groups whose members approve requests (single-stage approval) —
+            accessPackageApprovalStage.primaryApprovers entries of kind
+            groupMembers. Ignored if Approval Stages Override (JSON) below is
+            set.
+
+        - key: "approvalStagesOverride"
+          label: "Approval Stages Override (JSON array)"
           fieldType: "textarea"
           required: false
-          helpText: 'An approval settings JSON object, e.g. {"isApprovalRequiredForAdd":true,"stages":[...]}.'
+          helpText: >
+            Advanced: a full accessPackageApprovalStage[] JSON array — for
+            MULTIPLE stages, escalation (durationBeforeEscalation,
+            escalationApprovers, isEscalationEnabled), or approver kinds this
+            canvas has no picker for (requestorManager, internalSponsors,
+            externalSponsors, targetUserSponsors — see
+            https://learn.microsoft.com/graph/api/resources/subjectset). When
+            set to a non-empty array, this REPLACES the Primary Approver
+            Users/Groups fields above entirely for the `stages` sent to Graph.
+            Example: [{"primaryApprovers":[{"@odata.type":"#microsoft.graph.requestorManager"}],"isEscalationEnabled":false}]

@@ -8,6 +8,7 @@ import {
   MISSING_CREDENTIAL_MESSAGE,
 } from '../../lib/graph'
 import { extractWorkflowSpecs, parseArray, parseObject, type WorkflowSpec, type LiveWorkflow } from './validate'
+import { buildTaskDefinitionNameToId, resolveRef } from '../lib/nameMaps'
 
 const BASE = '/identityGovernance/lifecycleWorkflows/workflows'
 const SELECT = '?$select=id,category,displayName,description,isEnabled,isSchedulingEnabled,executionConditions,tasks'
@@ -20,19 +21,50 @@ export interface RollbackEntry {
   prior?: Record<string, unknown>
 }
 
-/** Create body includes the immutable category; PATCH body omits it. */
-export function buildCreateBody(spec: WorkflowSpec): Record<string, unknown> {
-  return { category: spec.category, ...buildPatchBody(spec) }
+/**
+ * Resolve each task's `taskDefinitionId` against the live built-in task
+ * catalog (GET /identityGovernance/lifecycleWorkflows/taskDefinitions — see
+ * ../lib/nameMaps.ts's buildTaskDefinitionNameToId for why this has no canvas
+ * picker field). A value already GUID-shaped passes straight through; a
+ * hand-typed task NAME (e.g. "Enable user account") resolves via the live
+ * map, the same id-aware convention every picker-backed field in this app
+ * uses — this just applies it to an id embedded in a JSON array element
+ * instead of a flat field. Non-object entries and entries with no
+ * taskDefinitionId are passed through unchanged (validate.ts already requires
+ * `tasks` to be a non-empty array, but not that every element is well-formed
+ * — a malformed entry surfaces as a Graph 400 at deploy, same as before this
+ * change).
+ */
+export function resolveTaskDefinitionIds(tasks: unknown[], nameToId: Map<string, string>): { tasks: unknown[]; missing: string[] } {
+  const missing: string[] = []
+  const resolved = tasks.map((t) => {
+    if (!t || typeof t !== 'object' || Array.isArray(t)) return t
+    const obj = t as Record<string, unknown>
+    const raw = obj.taskDefinitionId
+    if (typeof raw !== 'string' || !raw.trim()) return t
+    const r = resolveRef(raw, nameToId)
+    if (r.missing) {
+      missing.push(raw)
+      return t
+    }
+    return { ...obj, taskDefinitionId: r.id }
+  })
+  return { tasks: resolved, missing }
 }
 
-export function buildPatchBody(spec: WorkflowSpec): Record<string, unknown> {
+/** Create body includes the immutable category; PATCH body omits it. */
+export function buildCreateBody(spec: WorkflowSpec, resolvedTasks: unknown[]): Record<string, unknown> {
+  return { category: spec.category, ...buildPatchBody(spec, resolvedTasks) }
+}
+
+export function buildPatchBody(spec: WorkflowSpec, resolvedTasks: unknown[]): Record<string, unknown> {
   return {
     displayName: spec.name,
     description: spec.description || '',
     isEnabled: spec.isEnabled,
     isSchedulingEnabled: spec.isSchedulingEnabled,
     executionConditions: parseObject(spec.executionConditions) ?? {},
-    tasks: parseArray(spec.tasks) ?? [],
+    tasks: resolvedTasks,
   }
 }
 
@@ -80,23 +112,35 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const priorByItemId = new Map(prior.filter((e) => e.itemId).map((e) => [e.itemId as string, e]))
   const priorByName = new Map(prior.map((e) => [e.name.toLowerCase(), e]))
 
+  // Built-in task catalog name -> id map, once for the whole deploy — see
+  // resolveTaskDefinitionIds' doc comment for why this is resolved here
+  // rather than via a canvas picker field.
+  const taskDefNameToId = await buildTaskDefinitionNameToId(client)
+
   const entries: RollbackEntry[] = []
   const failures: string[] = []
 
   for (const spec of specs) {
+    const rawTasks = parseArray(spec.tasks) ?? []
+    const { tasks: resolvedTasks, missing } = resolveTaskDefinitionIds(rawTasks, taskDefNameToId)
+    if (missing.length) {
+      failures.push(`${spec.name}: unknown task definition(s) ${missing.join(', ')} — see GET /identityGovernance/lifecycleWorkflows/taskDefinitions for the built-in catalog`)
+      continue
+    }
+
     const priorEntry = (spec.itemId && priorByItemId.get(spec.itemId)) || priorByName.get(spec.name.toLowerCase())
     const liveMatch =
       (priorEntry?.id ? liveById.get(priorEntry.id) : undefined) ?? liveByName.get(spec.name.toLowerCase()) ?? null
 
     if (liveMatch?.id) {
-      const resp = await client.patch(`${BASE}/${liveMatch.id}`, buildPatchBody(spec))
+      const resp = await client.patch(`${BASE}/${liveMatch.id}`, buildPatchBody(spec, resolvedTasks))
       if (!resp.ok) {
         failures.push(`${spec.name}: ${graphErrorMessage(resp)}`)
         continue
       }
       entries.push({ itemId: spec.itemId, name: spec.name, existed: true, id: liveMatch.id, prior: snapshotLive(liveMatch) })
     } else {
-      const resp = await client.post(BASE, buildCreateBody(spec))
+      const resp = await client.post(BASE, buildCreateBody(spec, resolvedTasks))
       if (!resp.ok) {
         failures.push(`${spec.name}: ${graphErrorMessage(resp)}`)
         continue

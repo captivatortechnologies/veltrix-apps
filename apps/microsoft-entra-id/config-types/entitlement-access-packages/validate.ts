@@ -11,8 +11,8 @@ export interface AccessPackageSpec {
   itemId?: string
   /** displayName — the logical identity live access packages are matched on. */
   name: string
-  /** The display name of the catalog this package belongs to (resolved to an id). */
-  catalogName: string
+  /** Catalog id (picker-stored) or a hand-typed catalog display name, resolved at deploy time. */
+  catalogId: string
   description: string
   isHidden: boolean
 }
@@ -40,7 +40,7 @@ export function extractAccessPackageSpecs(canvas: CanvasSnapshot): AccessPackage
     return {
       itemId: item.id,
       name: asString(f.name) || item.name,
-      catalogName: asString(f.catalogName),
+      catalogId: asString(f.catalogId),
       description: asString(f.description),
       isHidden: asBool(f.isHidden),
     }
@@ -62,16 +62,16 @@ export default function validate(ctx: PipelineContext): ValidationResult {
       errors.push({ field: `${prefix}.name`, message: `Name must be ${MAX_DISPLAY_NAME_LENGTH} characters or fewer`, code: 'too_long' })
     }
 
-    if (!spec.catalogName) {
-      errors.push({ field: `${prefix}.catalogName`, message: 'Catalog name is required', code: 'required' })
+    if (!spec.catalogId) {
+      errors.push({ field: `${prefix}.catalogId`, message: 'Catalog is required', code: 'required' })
     }
 
-    if (spec.name && spec.catalogName) {
-      const key = `${spec.catalogName.toLowerCase()}|${spec.name.toLowerCase()}`
+    if (spec.name && spec.catalogId) {
+      const key = `${spec.catalogId.toLowerCase()}|${spec.name.toLowerCase()}`
       if (seen.has(key)) {
         errors.push({
           field: `${prefix}.name`,
-          message: `Duplicate access package "${spec.name}" in catalog "${spec.catalogName}"`,
+          message: `Duplicate access package "${spec.name}" in catalog "${spec.catalogId}"`,
           code: 'duplicate_name',
         })
       }

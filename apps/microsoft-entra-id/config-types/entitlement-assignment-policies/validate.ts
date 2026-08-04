@@ -2,31 +2,75 @@ import type { CanvasSnapshot, PipelineContext, ValidationResult } from '@veltrix
 
 // --- Entra access-package assignment-policy constraints ----------------------
 //
-// Nested under an access package (resolved by package display name). The nested
-// setting objects (expiration, requestor, approval) are managed as JSON blobs.
+// Nested under an access package (resolved by id or, for a pre-picker canvas,
+// package display name). requestorSettings/requestApprovalSettings are
+// decomposed into typed flags + single-kind subjectSet pickers (see
+// canvas.yaml and deploy.ts); approvalStagesOverride remains a JSON escape
+// hatch for multi-stage/escalation approval. specificAllowedTargets is wired
+// directly per allowedTargetScope's "specific*" values.
 
 export const MAX_DISPLAY_NAME_LENGTH = 256
+
+/**
+ * accessPackageAssignmentPolicy.allowedTargetScope
+ * (https://learn.microsoft.com/graph/api/resources/accesspackageassignmentpolicy).
+ * `unknownFutureValue` is a forward-compatibility read-only sentinel and is
+ * deliberately not offered here — the same "don't offer what a client should
+ * never set" rule this app's CLOUD_APP_SENTINELS/CA-sentinel comments already
+ * document for other enums.
+ */
 export const ALLOWED_TARGET_SCOPES = new Set([
   'notSpecified',
   'specificDirectoryUsers',
   'specificConnectedOrganizationUsers',
+  'specificDirectoryServicePrincipals',
   'allMemberUsers',
   'allDirectoryUsers',
+  'allDirectoryServicePrincipals',
   'allConfiguredConnectedOrganizationUsers',
   'allExternalUsers',
+  'allDirectoryAgentIdentities',
+])
+
+/** allowedTargetScope values that require specificAllowedTargets to be non-empty. */
+const SPECIFIC_SCOPES = new Set([
+  'specificDirectoryUsers',
+  'specificConnectedOrganizationUsers',
+  'specificDirectoryServicePrincipals',
 ])
 
 export interface AssignmentPolicySpec {
   itemId?: string
   /** displayName — the logical identity live policies are matched on. */
   name: string
-  /** The display name of the access package this policy belongs to. */
-  accessPackageName: string
+  /** Access package id (picker-stored) or a hand-typed package display name, resolved at deploy time. */
+  accessPackageId: string
   description: string
   allowedTargetScope: string
   expiration: string
-  requestorSettings: string
-  requestApprovalSettings: string
+
+  specificTargetUsers: string[]
+  specificTargetGroups: string[]
+  specificTargetServicePrincipals: string[]
+  specificTargetConnectedOrganizations: string[]
+
+  enableTargetsToSelfAddAccess: boolean
+  enableTargetsToSelfUpdateAccess: boolean
+  enableTargetsToSelfRemoveAccess: boolean
+  allowCustomAssignmentSchedule: boolean
+  enableOnBehalfRequestorsToAddAccess: boolean
+  enableOnBehalfRequestorsToUpdateAccess: boolean
+  enableOnBehalfRequestorsToRemoveAccess: boolean
+  onBehalfRequestorUsers: string[]
+  onBehalfRequestorGroups: string[]
+  onBehalfRequestorServicePrincipals: string[]
+
+  isApprovalRequiredForAdd: boolean
+  isApprovalRequiredForUpdate: boolean
+  isRequestorJustificationRequired: boolean
+  primaryApproverUsers: string[]
+  primaryApproverGroups: string[]
+  approvalStagesOverride: string
 }
 
 /** An access package assignment policy as returned by Graph. */
@@ -36,12 +80,48 @@ export interface LiveAssignmentPolicy {
   description?: string | null
   allowedTargetScope?: string
   expiration?: unknown
-  requestorSettings?: unknown
-  requestApprovalSettings?: unknown
+  specificAllowedTargets?: unknown
+  requestorSettings?: {
+    enableTargetsToSelfAddAccess?: boolean
+    enableTargetsToSelfUpdateAccess?: boolean
+    enableTargetsToSelfRemoveAccess?: boolean
+    allowCustomAssignmentSchedule?: boolean
+    enableOnBehalfRequestorsToAddAccess?: boolean
+    enableOnBehalfRequestorsToUpdateAccess?: boolean
+    enableOnBehalfRequestorsToRemoveAccess?: boolean
+    onBehalfRequestors?: unknown[]
+  } | null
+  requestApprovalSettings?: {
+    isApprovalRequiredForAdd?: boolean
+    isApprovalRequiredForUpdate?: boolean
+    isRequestorJustificationRequired?: boolean
+    stages?: unknown[]
+  } | null
 }
 
 function asString(v: unknown): string {
   return typeof v === 'string' ? v.trim() : ''
+}
+
+function asBool(v: unknown, fallback: boolean): boolean {
+  if (v === true || v === 'true') return true
+  if (v === false || v === 'false') return false
+  return fallback
+}
+
+function asStringArray(v: unknown): string[] {
+  if (!Array.isArray(v)) return []
+  return v.map((s) => (typeof s === 'string' ? s.trim() : '')).filter(Boolean)
+}
+
+export function parseArray(text: string): unknown[] | null {
+  if (!text) return null
+  try {
+    const parsed = JSON.parse(text)
+    return Array.isArray(parsed) ? parsed : null
+  } catch {
+    return null
+  }
 }
 
 export function parseObject(text: string): Record<string, unknown> | null {
@@ -76,12 +156,33 @@ export function extractAssignmentPolicySpecs(canvas: CanvasSnapshot): Assignment
     return {
       itemId: item.id,
       name: asString(f.name) || item.name,
-      accessPackageName: asString(f.accessPackageName),
+      accessPackageId: asString(f.accessPackageId),
       description: asString(f.description),
       allowedTargetScope: asString(f.allowedTargetScope) || 'notSpecified',
       expiration: asString(f.expiration),
-      requestorSettings: asString(f.requestorSettings),
-      requestApprovalSettings: asString(f.requestApprovalSettings),
+
+      specificTargetUsers: asStringArray(f.specificTargetUsers),
+      specificTargetGroups: asStringArray(f.specificTargetGroups),
+      specificTargetServicePrincipals: asStringArray(f.specificTargetServicePrincipals),
+      specificTargetConnectedOrganizations: asStringArray(f.specificTargetConnectedOrganizations),
+
+      enableTargetsToSelfAddAccess: asBool(f.enableTargetsToSelfAddAccess, true),
+      enableTargetsToSelfUpdateAccess: asBool(f.enableTargetsToSelfUpdateAccess, false),
+      enableTargetsToSelfRemoveAccess: asBool(f.enableTargetsToSelfRemoveAccess, false),
+      allowCustomAssignmentSchedule: asBool(f.allowCustomAssignmentSchedule, true),
+      enableOnBehalfRequestorsToAddAccess: asBool(f.enableOnBehalfRequestorsToAddAccess, false),
+      enableOnBehalfRequestorsToUpdateAccess: asBool(f.enableOnBehalfRequestorsToUpdateAccess, false),
+      enableOnBehalfRequestorsToRemoveAccess: asBool(f.enableOnBehalfRequestorsToRemoveAccess, false),
+      onBehalfRequestorUsers: asStringArray(f.onBehalfRequestorUsers),
+      onBehalfRequestorGroups: asStringArray(f.onBehalfRequestorGroups),
+      onBehalfRequestorServicePrincipals: asStringArray(f.onBehalfRequestorServicePrincipals),
+
+      isApprovalRequiredForAdd: asBool(f.isApprovalRequiredForAdd, false),
+      isApprovalRequiredForUpdate: asBool(f.isApprovalRequiredForUpdate, false),
+      isRequestorJustificationRequired: asBool(f.isRequestorJustificationRequired, true),
+      primaryApproverUsers: asStringArray(f.primaryApproverUsers),
+      primaryApproverGroups: asStringArray(f.primaryApproverGroups),
+      approvalStagesOverride: asString(f.approvalStagesOverride),
     }
   })
 }
@@ -100,8 +201,8 @@ export default function validate(ctx: PipelineContext): ValidationResult {
       errors.push({ field: `${prefix}.name`, message: `Name must be ${MAX_DISPLAY_NAME_LENGTH} characters or fewer`, code: 'too_long' })
     }
 
-    if (!spec.accessPackageName) {
-      errors.push({ field: `${prefix}.accessPackageName`, message: 'Access package name is required', code: 'required' })
+    if (!spec.accessPackageId) {
+      errors.push({ field: `${prefix}.accessPackageId`, message: 'Access package is required', code: 'required' })
     }
 
     if (!ALLOWED_TARGET_SCOPES.has(spec.allowedTargetScope)) {
@@ -110,18 +211,37 @@ export default function validate(ctx: PipelineContext): ValidationResult {
         message: `allowedTargetScope must be one of ${[...ALLOWED_TARGET_SCOPES].join(', ')}`,
         code: 'invalid_target_scope',
       })
-    }
-
-    for (const field of ['expiration', 'requestorSettings', 'requestApprovalSettings'] as const) {
-      if (spec[field] && !parseObject(spec[field])) {
-        errors.push({ field: `${prefix}.${field}`, message: `${field} must be a valid JSON object`, code: 'invalid_json' })
+    } else if (SPECIFIC_SCOPES.has(spec.allowedTargetScope)) {
+      const hasAnyTarget =
+        spec.specificTargetUsers.length > 0 ||
+        spec.specificTargetGroups.length > 0 ||
+        spec.specificTargetServicePrincipals.length > 0 ||
+        spec.specificTargetConnectedOrganizations.length > 0
+      if (!hasAnyTarget) {
+        warnings.push({
+          field: `${prefix}.allowedTargetScope`,
+          message: `allowedTargetScope "${spec.allowedTargetScope}" requires at least one Specific Targets field — leaving all empty targets nobody`,
+          code: 'empty_specific_targets',
+        })
       }
     }
 
-    if (spec.name && spec.accessPackageName) {
-      const key = `${spec.accessPackageName.toLowerCase()}|${spec.name.toLowerCase()}`
+    if (spec.expiration && !parseObject(spec.expiration)) {
+      errors.push({ field: `${prefix}.expiration`, message: 'expiration must be a valid JSON object', code: 'invalid_json' })
+    }
+
+    if (spec.approvalStagesOverride && !parseArray(spec.approvalStagesOverride)) {
+      errors.push({
+        field: `${prefix}.approvalStagesOverride`,
+        message: 'approvalStagesOverride must be a valid JSON array',
+        code: 'invalid_json',
+      })
+    }
+
+    if (spec.name && spec.accessPackageId) {
+      const key = `${spec.accessPackageId.toLowerCase()}|${spec.name.toLowerCase()}`
       if (seen.has(key)) {
-        errors.push({ field: `${prefix}.name`, message: `Duplicate policy "${spec.name}" for package "${spec.accessPackageName}"`, code: 'duplicate_name' })
+        errors.push({ field: `${prefix}.name`, message: `Duplicate policy "${spec.name}" for package "${spec.accessPackageId}"`, code: 'duplicate_name' })
       }
       seen.add(key)
     }

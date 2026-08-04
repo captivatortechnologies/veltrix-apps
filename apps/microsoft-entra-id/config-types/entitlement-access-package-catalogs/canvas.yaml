@@ -9,6 +9,19 @@
 # The built-in service-managed catalog ("General") is protected and never
 # modified or deleted.
 #
+# NO LIVE-PICKER REFERENCE FIELDS ON THIS TYPE (assessed, Phase-2 batch-2):
+# accessPackageCatalog's own create/update body — confirmed against its
+# resource page — is exactly {displayName, description, isExternallyVisible,
+# state} (https://learn.microsoft.com/graph/api/resources/accesspackagecatalog);
+# catalogType/createdDateTime/modifiedDateTime/id are all read-only. A
+# catalog's linked resources (groups/applications/SharePoint sites) are NOT a
+# property of this body at all — they are the SEPARATE `resources`
+# relationship, added/removed one at a time via
+# POST /catalogs/{id}/resources/add (and its /resources/{resourceId}/remove
+# counterpart), a distinct write operation this config type does not perform.
+# There is therefore no "reference field" on the catalog object itself to
+# convert to a picker — every field below is already a plain scalar/enum.
+#
 # Field keys must match config-types/entitlement-access-package-catalogs/validate.ts.
 # =============================================================================
 

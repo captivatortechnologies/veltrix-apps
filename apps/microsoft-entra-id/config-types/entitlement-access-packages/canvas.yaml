@@ -2,8 +2,9 @@
 # Canvas Template — Entra ID Entitlement Management Access Packages
 #
 # Declares ONE access package — the item. Users add as many as they need. A
-# package belongs to a catalog (referenced by catalog display name and resolved
-# to an id at deploy time). The logical identity is the package NAME
+# package belongs to a catalog (picked from the live tenant; a hand-typed
+# catalog display name from a pre-picker canvas still resolves to an id at
+# deploy time). The logical identity is the package NAME
 # (displayName); deploy lists packages, matches on the name (or a stored id,
 # rename-safe), and PATCHes (update) or POSTs (create, binding the catalog)
 # accordingly. Reconcile only deletes packages this app created. Resource-role
@@ -39,11 +40,17 @@ item:
             Display name of the access package (max 256 chars). Must be unique
             within this canvas — it is the logical identity deploy matches on.
 
-        - key: "catalogName"
-          label: "Catalog Name"
-          fieldType: "text"
+        - key: "catalogId"
+          label: "Catalog"
+          fieldType: "remote-select"
+          optionsSource: "accessPackageCatalogs"
           required: true
-          helpText: "The display name of the catalog this package belongs to. Resolved to an id at deploy time."
+          helpText: >
+            The catalog this package belongs to — pick from the live tenant's
+            catalogs (accessPackage.catalog, only "id" is required on write:
+            https://learn.microsoft.com/graph/api/entitlementmanagement-post-accesspackages).
+            Stores the catalog's id; a hand-typed catalog display name from an
+            older canvas also resolves at deploy time.
 
         - key: "description"
           label: "Description"

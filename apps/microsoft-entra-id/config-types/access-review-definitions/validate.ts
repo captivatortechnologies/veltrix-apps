@@ -2,17 +2,41 @@ import type { CanvasSnapshot, PipelineContext, ValidationResult } from '@veltrix
 
 // --- Entra access-review schedule-definition constraints ---------------------
 //
-// The scope, reviewers and settings sub-objects are managed as validated JSON.
+// scope is decomposed by "Scope Type" into one live-picker field per
+// documented accessReviewScope shape (see canvas.yaml + deploy.ts for the
+// exact Graph query strings, each cited against Microsoft's own worked
+// examples), with a JSON escape hatch ("custom") for every other shape.
+// reviewers/fallbackReviewers are decomposed into typed picker fields whose
+// entries are appended to an optional JSON array. settings stays JSON — it is
+// pure scalar/enum data (recurrence, defaultDecision, ...) with no directory
+// references to wire.
 
 export const MAX_DISPLAY_NAME_LENGTH = 256
+
+export const SCOPE_TYPES = new Set(['groupMembership', 'directoryRole', 'accessPackageAssignments', 'applicationAccess', 'custom'])
 
 export interface AccessReviewSpec {
   itemId?: string
   /** displayName — the logical identity live definitions are matched on. */
   name: string
   descriptionForAdmins: string
-  scope: string
-  reviewers: string
+
+  scopeType: string
+  scopeGroupId: string
+  scopeRoleDefinitionId: string
+  scopeAccessPackageId: string
+  scopeServicePrincipalId: string
+  scopeCustomJson: string
+  instanceEnumerationScopeJson: string
+
+  reviewerUsers: string[]
+  reviewerGroupOwners: string[]
+  reviewerManagersSelfReview: boolean
+  reviewersCustomJson: string
+  fallbackReviewerUsers: string[]
+  fallbackReviewerGroupOwners: string[]
+  fallbackReviewersCustomJson: string
+
   settings: string
 }
 
@@ -22,12 +46,23 @@ export interface LiveAccessReview {
   displayName?: string
   descriptionForAdmins?: string | null
   scope?: unknown
+  instanceEnumerationScope?: unknown
   reviewers?: unknown
+  fallbackReviewers?: unknown
   settings?: unknown
 }
 
 function asString(v: unknown): string {
   return typeof v === 'string' ? v.trim() : ''
+}
+
+function asBool(v: unknown): boolean {
+  return v === true || v === 'true'
+}
+
+function asStringArray(v: unknown): string[] {
+  if (!Array.isArray(v)) return []
+  return v.map((s) => (typeof s === 'string' ? s.trim() : '')).filter(Boolean)
 }
 
 export function parseObject(text: string): Record<string, unknown> | null {
@@ -73,11 +108,42 @@ export function extractAccessReviewSpecs(canvas: CanvasSnapshot): AccessReviewSp
       itemId: item.id,
       name: asString(f.name) || item.name,
       descriptionForAdmins: asString(f.descriptionForAdmins),
-      scope: asString(f.scope),
-      reviewers: asString(f.reviewers),
+
+      scopeType: asString(f.scopeType) || 'groupMembership',
+      scopeGroupId: asString(f.scopeGroupId),
+      scopeRoleDefinitionId: asString(f.scopeRoleDefinitionId),
+      scopeAccessPackageId: asString(f.scopeAccessPackageId),
+      scopeServicePrincipalId: asString(f.scopeServicePrincipalId),
+      scopeCustomJson: asString(f.scopeCustomJson),
+      instanceEnumerationScopeJson: asString(f.instanceEnumerationScopeJson),
+
+      reviewerUsers: asStringArray(f.reviewerUsers),
+      reviewerGroupOwners: asStringArray(f.reviewerGroupOwners),
+      reviewerManagersSelfReview: asBool(f.reviewerManagersSelfReview),
+      reviewersCustomJson: asString(f.reviewersCustomJson),
+      fallbackReviewerUsers: asStringArray(f.fallbackReviewerUsers),
+      fallbackReviewerGroupOwners: asStringArray(f.fallbackReviewerGroupOwners),
+      fallbackReviewersCustomJson: asString(f.fallbackReviewersCustomJson),
+
       settings: asString(f.settings),
     }
   })
+}
+
+/** The scope-defining field required for a given (non-custom) scopeType. */
+function requiredScopeField(scopeType: string): keyof AccessReviewSpec | null {
+  switch (scopeType) {
+    case 'groupMembership':
+      return 'scopeGroupId'
+    case 'directoryRole':
+      return 'scopeRoleDefinitionId'
+    case 'accessPackageAssignments':
+      return 'scopeAccessPackageId'
+    case 'applicationAccess':
+      return 'scopeServicePrincipalId'
+    default:
+      return null
+  }
 }
 
 export default function validate(ctx: PipelineContext): ValidationResult {
@@ -99,12 +165,33 @@ export default function validate(ctx: PipelineContext): ValidationResult {
       seenNames.add(key)
     }
 
-    if (!parseObject(spec.scope)) {
-      errors.push({ field: `${prefix}.scope`, message: 'Scope is required and must be a valid JSON object', code: 'invalid_scope' })
+    if (!SCOPE_TYPES.has(spec.scopeType)) {
+      errors.push({
+        field: `${prefix}.scopeType`,
+        message: `scopeType must be one of ${[...SCOPE_TYPES].join(', ')}`,
+        code: 'invalid_scope_type',
+      })
+    } else if (spec.scopeType === 'custom') {
+      if (!parseObject(spec.scopeCustomJson)) {
+        errors.push({ field: `${prefix}.scopeCustomJson`, message: 'Custom Scope (JSON) is required and must be a valid JSON object when Scope Type is "Custom"', code: 'invalid_scope' })
+      }
+      if (spec.instanceEnumerationScopeJson && !parseObject(spec.instanceEnumerationScopeJson)) {
+        errors.push({ field: `${prefix}.instanceEnumerationScopeJson`, message: 'Custom Instance Enumeration Scope (JSON) must be a valid JSON object', code: 'invalid_json' })
+      }
+    } else {
+      const field = requiredScopeField(spec.scopeType)
+      if (field && !spec[field]) {
+        errors.push({ field: `${prefix}.${field}`, message: `${field} is required when Scope Type is "${spec.scopeType}"`, code: 'required' })
+      }
     }
-    if (!parseArray(spec.reviewers)) {
-      errors.push({ field: `${prefix}.reviewers`, message: 'Reviewers is required and must be a valid JSON array', code: 'invalid_reviewers' })
+
+    if (spec.reviewersCustomJson && !parseArray(spec.reviewersCustomJson)) {
+      errors.push({ field: `${prefix}.reviewersCustomJson`, message: 'Additional Reviewers (JSON) must be a valid JSON array', code: 'invalid_json' })
     }
+    if (spec.fallbackReviewersCustomJson && !parseArray(spec.fallbackReviewersCustomJson)) {
+      errors.push({ field: `${prefix}.fallbackReviewersCustomJson`, message: 'Additional Fallback Reviewers (JSON) must be a valid JSON array', code: 'invalid_json' })
+    }
+
     if (!parseObject(spec.settings)) {
       errors.push({ field: `${prefix}.settings`, message: 'Settings is required and must be a valid JSON object', code: 'invalid_settings' })
     }

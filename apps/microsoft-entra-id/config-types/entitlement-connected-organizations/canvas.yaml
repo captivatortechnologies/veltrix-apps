@@ -7,6 +7,17 @@
 # PATCHes (update) or POSTs (create) accordingly. Reconcile only deletes
 # organizations this app created. Sponsors are not managed by this type.
 #
+# NO LIVE-PICKER REFERENCE FIELD FOR identitySources (assessed, Phase-2
+# batch-2): a connectedOrganization's identitySources are azureActiveDirectoryTenant
+# ({tenantId, displayName} — an EXTERNAL Entra tenant, not one this app's own
+# credential can enumerate) or domainIdentitySource ({domainName, displayName}
+# — a bare domain string) entries. Neither is a directory object IN THIS
+# TENANT that entraOptions (or Graph generally, from this app's own tenant
+# credential) has any collection to list — there is no "list of other Entra
+# tenants" or "list of external domains" endpoint to back a picker with. This
+# stays a hand-authored JSON array; forcing a picker here would mean
+# inventing options with nothing real to populate them from.
+#
 # Field keys must match config-types/entitlement-connected-organizations/validate.ts.
 # =============================================================================
 
