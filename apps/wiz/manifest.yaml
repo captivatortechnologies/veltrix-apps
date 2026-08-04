@@ -1,16 +1,18 @@
 id: wiz
 name: Wiz
-version: "1.2.0"
+version: "1.3.0"
 vendor: Veltrix
 description: >
   Manage Wiz (CNAPP / cloud security) configuration as code through the Wiz
   GraphQL API. Covers service accounts (createServiceAccount — the generated
   client secret is a write-only output and is never captured), custom cloud
-  configuration (CSPM) rules, automation rules (notification / remediation),
-  graph-query reports and custom security frameworks (compliance policies) —
-  with validation, drift detection and rollback handled by the Security-as-Code
-  pipeline. Authenticates as a Wiz service account via OAuth2 client credentials
-  against the tenant's regional API host.
+  and host configuration (CSPM) rules, custom Controls, automation rules
+  (notification / remediation), integrations (Webhook/Slack/Jira/ServiceNow/
+  PagerDuty/...), graph-query reports, custom security frameworks (compliance
+  policies), SAML SSO identity providers and Projects — with validation, drift
+  detection and rollback handled by the Security-as-Code pipeline.
+  Authenticates as a Wiz service account via OAuth2 client credentials against
+  the tenant's regional API host.
 category: CLOUD
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/wiz
@@ -47,6 +49,21 @@ permissions:
     - resource: wiz-security-frameworks
       actions: [read, write, delete]
       description: Manage Wiz custom security frameworks (compliance policies)
+    - resource: wiz-controls
+      actions: [read, write, delete]
+      description: Manage Wiz custom Controls (Security Graph query + severity)
+    - resource: wiz-host-config-rules
+      actions: [read, write, delete]
+      description: Manage Wiz custom host configuration (OVAL) rules
+    - resource: wiz-integrations
+      actions: [read, write, delete]
+      description: Manage Wiz integrations (Webhook, Slack, Jira, ServiceNow, PagerDuty, ...)
+    - resource: wiz-saml-identity-providers
+      actions: [read, write, delete]
+      description: Manage Wiz SAML SSO identity providers and group role mappings
+    - resource: wiz-projects
+      actions: [read, write, delete]
+      description: Manage Wiz Projects (cloud account/organization/Kubernetes grouping)
 
 pipeline:
   configurationTypes:
@@ -149,6 +166,113 @@ pipeline:
         healthCheck: config-types/wiz-security-frameworks/healthCheck
         driftDetect: config-types/wiz-security-frameworks/driftDetect
         getStatus: config-types/wiz-security-frameworks/getStatus
+      targets:
+        componentTypes: [wiz-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: wiz-controls
+      name: Wiz Controls
+      description: >
+        Custom Controls via createControl / updateControl; identity by name.
+        A Control pairs a Security Graph query with a severity — every result
+        opens an Issue. createControl does not accept `enabled`; a
+        declared-disabled new control is corrected with an immediate follow-up
+        update. A control's project scope can only be set at creation.
+      canvasTemplate: config-types/wiz-controls/canvas.yaml
+      defaultConfig: config-types/wiz-controls/defaults.yaml
+      handlers:
+        validate: config-types/wiz-controls/validate
+        deploy: config-types/wiz-controls/deploy
+        rollback: config-types/wiz-controls/rollback
+        healthCheck: config-types/wiz-controls/healthCheck
+        driftDetect: config-types/wiz-controls/driftDetect
+        getStatus: config-types/wiz-controls/getStatus
+      targets:
+        componentTypes: [wiz-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: wiz-host-config-rules
+      name: Wiz Host Configuration Rules
+      description: >
+        Custom host/OS-assessment rules via createHostConfigurationRule /
+        updateHostConfigurationRule; identity by name against non-builtin
+        rules. The host counterpart to Cloud Configuration Rules — an OVAL
+        definition instead of a Rego policy.
+      canvasTemplate: config-types/wiz-host-config-rules/canvas.yaml
+      defaultConfig: config-types/wiz-host-config-rules/defaults.yaml
+      handlers:
+        validate: config-types/wiz-host-config-rules/validate
+        deploy: config-types/wiz-host-config-rules/deploy
+        rollback: config-types/wiz-host-config-rules/rollback
+        healthCheck: config-types/wiz-host-config-rules/healthCheck
+        driftDetect: config-types/wiz-host-config-rules/driftDetect
+        getStatus: config-types/wiz-host-config-rules/getStatus
+      targets:
+        componentTypes: [wiz-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: wiz-integrations
+      name: Wiz Integrations
+      description: >
+        Integrations via createIntegration / updateIntegration; identity by
+        name. Covers the 11 API-manageable types (Webhook, Slack, Slack Bot,
+        AWS SNS, Azure Service Bus, GCP Pub/Sub, PagerDuty, Jira, ServiceNow,
+        Opsgenie, ClickUp) — the objects wiz-automation-rules actions deliver
+        to. Every vendor credential is write-only (never read back or
+        compared by drift).
+      canvasTemplate: config-types/wiz-integrations/canvas.yaml
+      defaultConfig: config-types/wiz-integrations/defaults.yaml
+      handlers:
+        validate: config-types/wiz-integrations/validate
+        deploy: config-types/wiz-integrations/deploy
+        rollback: config-types/wiz-integrations/rollback
+        healthCheck: config-types/wiz-integrations/healthCheck
+        driftDetect: config-types/wiz-integrations/driftDetect
+        getStatus: config-types/wiz-integrations/getStatus
+      targets:
+        componentTypes: [wiz-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: wiz-saml-identity-providers
+      name: Wiz SAML Identity Providers
+      description: >
+        SAML SSO identity providers (+ group role mappings) via
+        createSAMLIdentityProvider / updateSAMLIdentityProvider /
+        deleteSAMLIdentityProvider; identity by name.
+      canvasTemplate: config-types/wiz-saml-identity-providers/canvas.yaml
+      defaultConfig: config-types/wiz-saml-identity-providers/defaults.yaml
+      handlers:
+        validate: config-types/wiz-saml-identity-providers/validate
+        deploy: config-types/wiz-saml-identity-providers/deploy
+        rollback: config-types/wiz-saml-identity-providers/rollback
+        healthCheck: config-types/wiz-saml-identity-providers/healthCheck
+        driftDetect: config-types/wiz-saml-identity-providers/driftDetect
+        getStatus: config-types/wiz-saml-identity-providers/getStatus
+      targets:
+        componentTypes: [wiz-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: wiz-projects
+      name: Wiz Projects
+      description: >
+        Projects via createProject / updateProject; identity by name. Groups
+        cloud accounts/organizations/Kubernetes clusters, owners and a risk
+        profile. Wiz has no deleteProject mutation — only archive; `is_folder`
+        is create-time only.
+      canvasTemplate: config-types/wiz-projects/canvas.yaml
+      defaultConfig: config-types/wiz-projects/defaults.yaml
+      handlers:
+        validate: config-types/wiz-projects/validate
+        deploy: config-types/wiz-projects/deploy
+        rollback: config-types/wiz-projects/rollback
+        healthCheck: config-types/wiz-projects/healthCheck
+        driftDetect: config-types/wiz-projects/driftDetect
+        getStatus: config-types/wiz-projects/getStatus
       targets:
         componentTypes: [wiz-tenant]
         requiresCredential: true

@@ -1,0 +1,89 @@
+# =============================================================================
+# Canvas Template — Greenbone Notes
+#
+# Declares ONE Greenbone note (the item) — a persistent comment attached to a
+# specific NVT's results (no severity change — see the Overrides config type
+# for that). Field keys must match config-types/notes/validate.ts. Applied
+# over GMP (XML over a TLS socket, default port 9390) via create_note /
+# modify_note / delete_note.
+#
+# IDENTITY: a note has no name field — this app tracks identity by the canvas
+# item itself (recorded in rollbackData across deploys), NOT by content
+# matching (same precedent as apps/pfsense/config-types/firewall-rules for a
+# resource with no name field).
+# =============================================================================
+
+id: "greenbone-notes"
+name: "Notes"
+toolType: "greenbone"
+entityType: "notes"
+description: "Manage Greenbone notes — persistent comments on a specific NVT's results — over GMP (XML over TLS, 9390). Identity is tracked per canvas item (notes have no name field)."
+
+item:
+  label: "Note"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Note"
+      icon: "sticky-note"
+      description: "What this note says, and about which NVT"
+      fields:
+        - key: "text"
+          label: "Text"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 2000
+          helpText: "Note content — shown alongside the affected results in Greenbone."
+
+        - key: "nvtOid"
+          label: "NVT OID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[0-9.]+$"
+          helpText: "OID of the NVT this note applies to, e.g. 1.3.6.1.4.1.25623.1.0.12345."
+
+    - name: "Scope"
+      icon: "crosshair"
+      description: "Optional scoping — leave blank for the widest applicable scope"
+      fields:
+        - key: "hosts"
+          label: "Hosts"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Comma-separated hosts this note applies to. Leave blank to apply to all hosts."
+
+        - key: "port"
+          label: "Port"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^\\d{1,5}/(tcp|udp)$"
+          helpText: "Optional port/protocol, e.g. 80/tcp."
+
+        - key: "taskId"
+          label: "Task UUID"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          helpText: "Optional — scope this note to one scan task."
+
+        - key: "resultId"
+          label: "Result UUID"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          helpText: "Optional — scope this note to one specific scan result (a point-in-time finding)."
+
+        - key: "daysActive"
+          label: "Active For (days)"
+          fieldType: "number"
+          required: false
+          defaultValue: -1
+          helpText: "-1 = always active, 0 = inactive, N = active for N days from now."

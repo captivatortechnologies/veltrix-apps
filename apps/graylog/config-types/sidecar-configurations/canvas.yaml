@@ -1,0 +1,91 @@
+# =============================================================================
+# Canvas Template — Graylog Sidecar Configurations
+#
+# Declares ONE Graylog Sidecar configuration (the item) — the rendered config
+# file (a Go template) Sidecar pushes to matching hosts for one collector.
+# Users add as many as they need. Field keys must match
+# config-types/sidecar-configurations/validate.ts. Applied via the Graylog
+# REST API (POST/PUT/DELETE /api/sidecar/configurations[/{id}]).
+#
+# NOTE: create the referenced collector first (see the "Sidecar Collectors"
+# configuration type) — its name (+ optional OS, to disambiguate a name reused
+# across operating systems) is resolved to an id at deploy time.
+# =============================================================================
+
+id: "graylog-sidecar-configurations"
+name: "Sidecar Configurations"
+toolType: "graylog"
+entityType: "sidecar-configurations"
+description: "Manage Graylog Sidecar configurations — the rendered config file pushed to matching hosts — via the Graylog REST API (/api/sidecar/configurations)"
+
+item:
+  label: "Configuration"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Configuration"
+      icon: "file-text"
+      description: "Configuration identity and targeting"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Configuration name (becomes part of the rendered file's name on disk — avoid ; * ? \" < > | &). Used as the stable identity for upsert and drift."
+
+        - key: "collector_name"
+          label: "Collector Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Name of the collector this configuration is for (see the \"Sidecar Collectors\" configuration type). Resolved to the collector's id at deploy time."
+
+        - key: "collector_os"
+          label: "Collector Operating System"
+          fieldType: "select"
+          required: false
+          options:
+            - label: "(any — use only if the collector name is ambiguous)"
+              value: ""
+            - label: "Linux"
+              value: "linux"
+            - label: "Windows"
+              value: "windows"
+            - label: "macOS (Darwin)"
+              value: "darwin"
+            - label: "FreeBSD"
+              value: "freebsd"
+          helpText: "Disambiguates Collector Name when the same collector name exists on more than one operating system."
+
+        - key: "color"
+          label: "Color"
+          fieldType: "text"
+          required: false
+          defaultValue: "#FF3B2F"
+          validation:
+            maxLength: 16
+          helpText: "Hex color Graylog shows this configuration's tag with in the Sidecar UI."
+
+        - key: "tags"
+          label: "Tags (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: "JSON array of Sidecar tags — a Sidecar agent with a matching tag is auto-assigned this configuration, e.g. [\"linux-servers\",\"production\"]."
+
+    - name: "Template"
+      icon: "code"
+      description: "The rendered config file (Go template)"
+      fields:
+        - key: "template"
+          label: "Template"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The collector's config file content, as a Go template. Sidecar substitutes
+            template variables (e.g. {{.UserConfig.some_variable}}) before writing this to
+            disk on each assigned host.

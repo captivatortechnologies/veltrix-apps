@@ -1,0 +1,66 @@
+# =============================================================================
+# Canvas Template — Graylog Decorators
+#
+# Declares ONE Graylog message-list decorator (the item) — a display-time
+# enrichment (e.g. a WHOIS lookup on an IP field) applied to search results,
+# either globally or scoped to one stream. Users add as many as they need.
+# Field keys must match config-types/decorators/validate.ts. Applied via the
+# Graylog REST API (POST/PUT/DELETE /api/search/decorators[/{decoratorId}]).
+#
+# NOTE: a decorator has no name/title field in Graylog — this app reconciles by
+# the (Stream, Type) pair instead, and assumes at most one decorator of a given
+# type per stream (or globally). See _shared.ts for the full identity note.
+# =============================================================================
+
+id: "graylog-decorators"
+name: "Decorators"
+toolType: "graylog"
+entityType: "decorators"
+description: "Manage Graylog message-list decorators — display-time search-result enrichment, global or per-stream — via the Graylog REST API (/api/search/decorators)"
+
+item:
+  label: "Decorator"
+  identityField: "type"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Scope"
+      icon: "eye"
+      description: "Which search results this decorator applies to"
+      fields:
+        - key: "stream_title"
+          label: "Stream Title"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Title of the stream to scope this decorator to (see the \"Streams\" configuration type). Leave blank to apply globally (every search, not scoped to one stream)."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Decorator plugin type, e.g. \"format-message-field-decorator\" or a bundled/plugin-provided type. See GET /api/search/decorators/available on your Graylog for the installed types."
+
+        - key: "order"
+          label: "Order"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+          helpText: "Run order among decorators in the same scope (lower runs first)."
+
+    - name: "Configuration"
+      icon: "code"
+      description: "Decorator configuration (JSON)"
+      fields:
+        - key: "config"
+          label: "Config (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            JSON object of the decorator type's own config keys, e.g. a field-formatting
+            decorator takes {"field":"src_ip","format":"..."}. Leave empty ({}) for a
+            decorator with no configurable options.

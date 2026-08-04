@@ -1,0 +1,8 @@
+# Defaults for a new lookup-data-adapter item. Seeds a CSV-file adapter as a
+# sensible starting point; the operator fills in the name/title and adjusts the
+# path/columns. Flat mapping of field key → default (item form).
+description: ""
+config: '{"type":"csvfile","path":"","separator":",","quotechar":"\"","key_column":"key","value_column":"value","check_interval":60,"case_insensitive_lookup":false}'
+custom_error_ttl_enabled: false
+custom_error_ttl: 60
+custom_error_ttl_unit: "SECONDS"

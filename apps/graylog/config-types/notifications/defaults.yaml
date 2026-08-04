@@ -1,0 +1,5 @@
+# Defaults for a new notification item. Seeds an HTTP webhook notification as a
+# sensible starting point; the operator fills in the title and destination URL.
+# Flat mapping of field key → default (item form).
+description: ""
+config: '{"type":"http-notification-v2","url":"","http_method":"POST","content_type":"JSON","skip_tls_verification":false,"api_key_as_header":false}'

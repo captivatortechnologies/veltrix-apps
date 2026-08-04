@@ -1,0 +1,105 @@
+# =============================================================================
+# Canvas Template — Wiz SAML Identity Providers
+#
+# Declares ONE Wiz SAML SSO identity provider (+ its group-to-role mappings) —
+# the item. Most tenants declare exactly one; Wiz supports more than one IdP.
+# Providers are created / updated / deleted through the GraphQL
+# createSAMLIdentityProvider / updateSAMLIdentityProvider /
+# deleteSAMLIdentityProvider mutations, identified for reconciliation by `name`.
+#
+# VERIFIED verbatim against terraform-provider-wiz's resource_saml_idp.go
+# (github.com/AxtonGrams/terraform-provider-wiz) — the create/update/delete/read
+# GraphQL text is reused directly by config-types/wiz-saml-identity-providers/
+# deploy.ts. The `samlIdentityProviders` LIST query (needed to reconcile by
+# name, since that reference provider tracks identity via Terraform state
+# instead) is inferred from the now-repeated plural-list / singular-by-id
+# naming convention this app already relies on elsewhere in this schema.
+#
+# NOT a secret: `certificate` is the IdP's PUBLIC signing certificate (used by
+# Wiz to verify SAML assertions), not a private key — it is treated as an
+# ordinary field, diffed by drift like any other.
+#
+# Field keys must match config-types/wiz-saml-identity-providers/validate.ts.
+# =============================================================================
+
+id: "wiz-saml-identity-providers"
+name: "Wiz SAML Identity Provider"
+toolType: "wiz"
+entityType: "wiz-saml-identity-providers"
+description: "Define Wiz SAML SSO identity providers and their group-to-role mappings as code through the GraphQL API. Reconciled by provider name."
+
+item:
+  label: "SAML Identity Provider"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 20
+  groups:
+    - name: "Provider"
+      icon: "key"
+      description: "Name and endpoints"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The IdP name shown in the Wiz console — its logical identity."
+
+        - key: "login_url"
+          label: "Login URL"
+          fieldType: "text"
+          required: true
+          helpText: "The IdP's SSO (login) URL."
+
+        - key: "issuer_url"
+          label: "Issuer URL"
+          fieldType: "text"
+          helpText: "The IdP's issuer (entity id) URL. Leave empty to default to the Login URL — set the same value as Login URL if unsure."
+
+        - key: "logout_url"
+          label: "Logout URL"
+          fieldType: "text"
+          helpText: "Optional IdP single-logout URL."
+
+        - key: "certificate"
+          label: "Signing Certificate (PEM)"
+          fieldType: "textarea"
+          required: true
+          helpText: "The IdP's PUBLIC PEM signing certificate, used by Wiz to verify SAML assertions. Not a secret."
+
+    - name: "Roles"
+      icon: "users"
+      description: "How SSO roles are assigned"
+      fields:
+        - key: "use_provider_managed_roles"
+          label: "Provider-Managed Roles"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, roles come from SAML assertion attributes the IdP provides. When disabled, roles are assigned via the Group Mapping below."
+
+        - key: "allow_manual_role_override"
+          label: "Allow Manual Role Override"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Allow overriding the mapped SSO role for specific users in the Wiz console. Must be enabled when Provider-Managed Roles is disabled."
+
+        - key: "merge_groups_mapping_by_role"
+          label: "Merge Group Mappings By Role"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When multiple group mappings resolve to the same role, merge their project scopes instead of taking the most specific one."
+
+        - key: "domains"
+          label: "Domains (deprecated)"
+          fieldType: "tags"
+          helpText: "Deprecated by Wiz — kept for compatibility with existing providers. New providers should leave this empty."
+
+        - key: "group_mapping"
+          label: "Group Mapping (JSON)"
+          fieldType: "textarea"
+          helpText: >-
+            A JSON array mapping SAML assertion group ids to Wiz roles, used when
+            Provider-Managed Roles is disabled. Each entry needs "providerGroupId"
+            and "role"; "projects" (an array of Wiz project ids) is optional —
+            omit it for a global role assignment. Example:
+            [{"providerGroupId":"grp-admins","role":"GLOBAL_ADMIN"},{"providerGroupId":"grp-readers","role":"PROJECT_READER","projects":["proj-1"]}]

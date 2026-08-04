@@ -1,0 +1,116 @@
+# =============================================================================
+# Canvas Template — Wiz Controls
+#
+# Declares ONE Wiz custom Control — the item. Users add as many as they need.
+# Controls are created / updated through the GraphQL createControl /
+# updateControl mutations and identified for reconciliation by their `name`.
+#
+# A Control pairs a Security Graph query with a severity: whenever the query
+# returns results, Wiz opens an Issue for each one. `scope_query` selects which
+# resources the control evaluates; `query` is the check itself. This is the
+# same query language used by Wiz Reports (wiz-reports) and by "Function As
+# Control" on a Cloud Configuration Rule (wiz-cloud-config-rules).
+#
+# VERIFIED against terraform-provider-wiz (github.com/AxtonGrams/terraform-
+# provider-wiz) resource_control.go — the literal createControl/updateControl/
+# GetControl GraphQL text is reused verbatim by config-types/wiz-controls/deploy.ts.
+#
+# CAVEAT: Wiz's `createControl` mutation does not accept an `enabled` input (a
+# documented defect in the reference provider) — every new Control is created
+# enabled, and deploy issues an immediate follow-up update when this canvas
+# declares Enabled = false. See config-types/wiz-controls/deploy.ts.
+#
+# CAVEAT: a Control's Project scope (`project_id`) can only be set at creation
+# — `UpdateControlPatch` has no project field. Changing it here after creation
+# is reported as drift but is NOT auto-corrected; delete and recreate the
+# Control to change its project scope.
+#
+# Field keys must match config-types/wiz-controls/validate.ts.
+# =============================================================================
+
+id: "wiz-controls"
+name: "Wiz Control"
+toolType: "wiz"
+entityType: "wiz-controls"
+description: "Define Wiz custom Controls (a Security Graph query + severity that opens an Issue per matching result) as code through the GraphQL API. Reconciled by control name."
+
+item:
+  label: "Control"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Control"
+      icon: "shield-alert"
+      description: "Name, severity and guidance"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The control name — its logical identity in the tenant. Give it a name that will not collide with a built-in Wiz control or one auto-generated from a Cloud Configuration Rule's \"Function As Control\"."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Wiz console."
+
+        - key: "severity"
+          label: "Severity"
+          fieldType: "select"
+          required: true
+          defaultValue: "MEDIUM"
+          options:
+            - { label: "Informational", value: "INFORMATIONAL" }
+            - { label: "Low", value: "LOW" }
+            - { label: "Medium", value: "MEDIUM" }
+            - { label: "High", value: "HIGH" }
+            - { label: "Critical", value: "CRITICAL" }
+          helpText: "Severity assigned to Issues this control opens."
+
+        - key: "resolution_recommendation"
+          label: "Resolution Recommendation"
+          fieldType: "textarea"
+          helpText: "Optional guidance shown on Issues this control opens."
+
+    - name: "Scope"
+      icon: "crosshair"
+      description: "Which project this control belongs to"
+      fields:
+        - key: "project_id"
+          label: "Project ID"
+          fieldType: "text"
+          defaultValue: "*"
+          helpText: "A Wiz project id to scope this control to, or \"*\" for all projects (default). CREATE-TIME ONLY — Wiz has no API to change a control's project scope after creation; changing this value here is reported as drift but is never auto-corrected."
+
+    - name: "Detection"
+      icon: "search"
+      description: "The Security Graph queries the control evaluates"
+      fields:
+        - key: "scope_query"
+          label: "Scope Query (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: "The Security Graph query (JSON) selecting which resources are in scope for this control, e.g. {\"type\":[\"SUBSCRIPTION\"]}."
+
+        - key: "query"
+          label: "Query (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: "The Security Graph query (JSON) the control runs against in-scope resources — every result opens an Issue."
+
+    - name: "Response"
+      icon: "toggle-right"
+      description: "Whether the control is active, and framework mapping"
+      fields:
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the control is active. New controls are always created enabled — Wiz's create API does not accept this field — so deploy issues an immediate follow-up update when this is unchecked."
+
+        - key: "security_sub_categories"
+          label: "Security Sub-Category IDs"
+          fieldType: "tags"
+          helpText: "Optional Wiz security sub-category ids mapping this control to a framework (same ids used by Cloud/Host Configuration Rules and Security Frameworks)."

@@ -1,0 +1,97 @@
+# =============================================================================
+# Canvas Template — Greenbone Scan Configs
+#
+# Declares ONE Greenbone scan config (the item). Users add as many as they
+# need. create_config is CLONE-ONLY (there is no "define from scratch" GMP
+# command) — this app clones baseConfigId once, then tunes the clone via
+# modify_config on every deploy. Field keys must match
+# config-types/scan-configs/validate.ts. Applied over GMP (XML over a TLS
+# socket, default port 9390) via create_config / modify_config / delete_config.
+#
+# FLAG (GMP 22.5): family/nvt selection and scanner preferences are declared as
+# JSON (the nested shape is too deep for flat canvas fields, following the
+# same typed-fields-plus-JSON-blob precedent as Cisco Meraki's group policies)
+# and are always RE-APPLIED on deploy — drift only compares name/comment (see
+# lib/gmp/scanConfigs.ts's FLAGS for why).
+# =============================================================================
+
+id: "greenbone-scan-configs"
+name: "Scan Configs"
+toolType: "greenbone"
+entityType: "scan-configs"
+description: "Manage Greenbone scan configs — cloned from a base config, then tuned via family/NVT selection and scanner preferences — over GMP (XML over TLS, 9390)"
+
+item:
+  label: "Scan Config"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Config"
+      icon: "settings"
+      description: "Identity and clone source"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable scan config name shown in Greenbone. Used as the stable identity for upsert and drift."
+
+        - key: "baseConfigId"
+          label: "Base Config (clone source)"
+          fieldType: "text"
+          required: true
+          defaultValue: "daba56c8-73ec-11df-a475-002264764cea"
+          validation:
+            pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          helpText: "UUID of the existing scan config to clone (create_config is clone-only in GMP). Default daba56c8-…-4cea = the feed-provided 'Full and fast'. Only used the FIRST time this config is created; ignored on later deploys once it exists."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this scan config is configured — recorded in Greenbone for audit."
+
+    - name: "Selection"
+      icon: "filter"
+      description: "Which NVT families and NVTs run (optional — leave blank to keep the cloned base config's selection)"
+      fields:
+        - key: "familySelection"
+          label: "Family Selection (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: 'Optional JSON array of NVT families to include, e.g. [{"name":"Windows","all":true,"growing":false}]. Leave blank to keep the cloned config''s family selection unchanged.'
+
+        - key: "familyGrowing"
+          label: "Auto-include new families"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Maps to family_selection's growing flag — whether NVT families added by future feed updates are automatically included. Only applied when Family Selection (JSON) is set."
+
+        - key: "nvtSelection"
+          label: "NVT Selection (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 50000
+          helpText: 'Optional JSON array of specific NVTs to include per family, e.g. [{"family":"Windows","oids":["1.3.6.1.4.1.25623.1.0.12345"]}]. Leave blank to keep the cloned config''s NVT selection unchanged.'
+
+    - name: "Preferences"
+      icon: "sliders"
+      description: "Scanner / NVT preference overrides (optional)"
+      fields:
+        - key: "preferences"
+          label: "Preferences (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: 'Optional JSON array of scanner or per-NVT preferences, e.g. [{"name":"Max hosts","value":"20"}] or [{"name":"timeout","nvtOid":"1.3.6.1.4.1.25623.1.0.12345","value":"60"}]. Values are sent to gvmd base64-encoded automatically.'

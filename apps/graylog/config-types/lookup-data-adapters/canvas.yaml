@@ -1,0 +1,99 @@
+# =============================================================================
+# Canvas Template — Graylog Lookup Data Adapters
+#
+# Declares ONE Graylog lookup-table data adapter (the item) — the source a
+# lookup table reads from (CSV file, DNS, HTTP JSONPath, ...). Users add as
+# many as they need. Field keys must match
+# config-types/lookup-data-adapters/validate.ts. Applied via the Graylog REST
+# API (POST/PUT/DELETE /api/system/lookup/adapters[/{idOrName}]).
+# =============================================================================
+
+id: "graylog-lookup-data-adapters"
+name: "Lookup Data Adapters"
+toolType: "graylog"
+entityType: "lookup-data-adapters"
+description: "Manage Graylog lookup-table data adapters — the data source a lookup table reads from — via the Graylog REST API (/api/system/lookup/adapters)"
+
+item:
+  label: "Data Adapter"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Adapter"
+      icon: "database"
+      description: "Adapter identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "Machine-readable identifier (lowercase, letters/digits/dots/underscores/hyphens). Used as the stable identity for upsert, drift and lookup-table references."
+
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable adapter name shown in Graylog."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+
+    - name: "Configuration"
+      icon: "code"
+      description: "Adapter implementation (JSON)"
+      fields:
+        - key: "config"
+          label: "Config (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            JSON object with a "type" discriminator selecting the adapter implementation,
+            e.g. "csvfile" ({"type":"csvfile","path":"/etc/graylog/lookup.csv",
+            "separator":",","quotechar":"\"","key_column":"key","value_column":"value",
+            "check_interval":60,"case_insensitive_lookup":false}), "dnslookup"
+            ({"type":"dnslookup","lookup_type":"A","server_ips":"8.8.8.8","request_timeout":5000}),
+            or "httpjsonpath" ({"type":"httpjsonpath","url":"https://...","single_value_path":"$.value",
+            "user_agent":"Graylog Lookup"}).
+
+    - name: "Error TTL"
+      icon: "clock"
+      description: "How long a failed lookup is cached as an error"
+      fields:
+        - key: "custom_error_ttl_enabled"
+          label: "Override the default error TTL"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When on, a failed adapter lookup is remembered as an error for the duration below instead of Graylog's default."
+
+        - key: "custom_error_ttl"
+          label: "Error TTL"
+          fieldType: "number"
+          required: false
+          defaultValue: 60
+          helpText: "How long a failed lookup is cached as an error, in the unit below. Only applies when the override above is on."
+
+        - key: "custom_error_ttl_unit"
+          label: "Error TTL Unit"
+          fieldType: "select"
+          required: false
+          defaultValue: "SECONDS"
+          options:
+            - label: "Seconds"
+              value: "SECONDS"
+            - label: "Minutes"
+              value: "MINUTES"
+            - label: "Hours"
+              value: "HOURS"
+            - label: "Days"
+              value: "DAYS"

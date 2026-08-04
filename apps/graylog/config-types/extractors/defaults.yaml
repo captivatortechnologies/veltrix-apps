@@ -1,0 +1,11 @@
+# Defaults for a new extractor item. Seeds a Grok extractor reading the raw
+# "message" field as a sensible starting point; the operator fills in the input
+# title, extractor title, target field and grok pattern. Flat mapping of field
+# key → default (item form).
+extractor_type: "GROK"
+cursor_strategy: "COPY"
+source_field: "message"
+extractor_config: '{"grok_pattern":"","named_captures_only":true}'
+converters: "[]"
+condition_type: "NONE"
+order: 0

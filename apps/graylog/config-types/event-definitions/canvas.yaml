@@ -1,0 +1,142 @@
+# =============================================================================
+# Canvas Template — Graylog Event Definitions
+#
+# Declares ONE Graylog event definition (the item) — the modern alerting
+# condition (aggregation, filter, correlation, Sigma rule, ...) that raises
+# Events/Alerts and triggers Notifications. Users add as many as they need.
+# Field keys must match config-types/event-definitions/validate.ts. Applied via
+# the Graylog REST API (POST/PUT/DELETE /api/events/definitions[/{id}]).
+#
+# NOTE: reference a notification from the "notifications" field below by its
+# Graylog id (see the "Notifications" configuration type — its id is NOT the
+# same as its title, and this app does not resolve that cross-reference by
+# title automatically).
+# =============================================================================
+
+id: "graylog-event-definitions"
+name: "Event Definitions"
+toolType: "graylog"
+entityType: "event-definitions"
+description: "Manage Graylog event definitions — the modern alerting conditions that raise Events and trigger notifications — via the Graylog REST API (/api/events/definitions)"
+
+item:
+  label: "Event Definition"
+  identityField: "title"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "alert-triangle"
+      description: "Event definition identity and priority"
+      fields:
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable name shown in the Alerts view. Used as the stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+
+        - key: "priority"
+          label: "Priority"
+          fieldType: "select"
+          required: true
+          defaultValue: "2"
+          options:
+            - label: "Info"
+              value: "0"
+            - label: "Low"
+              value: "1"
+            - label: "Medium"
+              value: "2"
+            - label: "High"
+              value: "3"
+            - label: "Critical"
+              value: "4"
+
+        - key: "alert"
+          label: "Mark as Alert"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Legacy flag Graylog still requires on every event definition. Leave on."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "When off, the definition is created/updated DISABLED (schedule=false) — it exists but never evaluates."
+
+    - name: "Condition"
+      icon: "code"
+      description: "The event processor (JSON)"
+      fields:
+        - key: "config"
+          label: "Config (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            JSON object with a "type" discriminator selecting the event processor, e.g.
+            "aggregation-v1" — {"type":"aggregation-v1","query":"level:3","streams":["<stream_id>"],
+            "group_by":[],"series":[{"id":"count-1","function":"count","field":null}],
+            "conditions":null,"search_within_ms":60000,"execute_every_ms":60000,
+            "use_cron_scheduling":false}. Streams are referenced by RAW Graylog stream id here
+            (not title) — find it via GET /api/streams or the Graylog UI.
+
+        - key: "field_spec"
+          label: "Field Spec (JSON object)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Maps event fields to their source. Usually left empty ({}) for a simple aggregation."
+
+        - key: "key_spec"
+          label: "Key Spec (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Ordered list of field_spec keys used to group/deduplicate events (\"group by\"). Leave empty ([]) for none."
+
+    - name: "Notifications"
+      icon: "bell"
+      description: "What happens when this event fires"
+      fields:
+        - key: "notification_settings"
+          label: "Notification Settings (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            {"grace_period_ms":0,"backlog_size":0} — grace_period_ms suppresses repeat
+            notifications for that many milliseconds after one fires; backlog_size is how
+            many prior messages to attach as context.
+
+        - key: "notifications"
+          label: "Notifications (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            JSON array of {"notification_id":"<id>","notification_parameters":{}} — the id
+            of a Notification (see the "Notifications" configuration type). Leave empty ([])
+            for a silent event definition (visible only in the Alerts view).
+
+        - key: "storage"
+          label: "Storage (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            JSON array of event-storage handlers. Leave empty ([]) — Graylog automatically
+            adds the default "persist-to-streams-v1" handler (writes to the built-in
+            "All Events" stream) when none is declared.
+
+        - key: "tags"
+          label: "Tags (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: "JSON array of lowercase tag strings for filtering in the Alerts view, e.g. [\"brute-force\",\"mitre-ta0006\"]."

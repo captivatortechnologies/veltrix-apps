@@ -1,0 +1,8 @@
+# Defaults for a new sidecar-collector item. Seeds a Linux Filebeat-shaped
+# executable as a sensible starting point; the operator fills in the name and
+# adjusts the path. Flat mapping of field key → default (item form).
+node_operating_system: "linux"
+service_type: "exec"
+execute_parameters: "-c %s"
+validation_parameters: "test config -c %s"
+default_template: ""

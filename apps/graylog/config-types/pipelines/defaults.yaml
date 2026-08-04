@@ -1,0 +1,10 @@
+# Defaults for a new pipeline item. Seeds a single-stage template referencing a
+# rule by name; the operator sets the Title to match the pipeline name
+# ("new-pipeline") and adapts the source + rule references. Flat mapping of
+# field key → default (item form).
+description: ""
+source: |
+  pipeline "new-pipeline"
+  stage 0 match either
+    rule "new-rule"
+  end

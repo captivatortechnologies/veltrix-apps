@@ -2,6 +2,87 @@
 
 All notable changes to the Greenbone app are documented here.
 
+## 0.4.0 — 2026-08-04
+
+Exhausted the remaining genuinely-declarative GMP config-as-code surface —
+**11 new configuration types**, all built research-first against the GMP 22.5
+command reference and python-gvm, reusing the existing hand-rolled GMP
+XML-over-TLS seam (`lib/greenboneApi.ts`). The BYOL infrastructure hosting
+foundation is untouched.
+
+- **Scan Configs** (`scan-configs`, group *Scan Configuration*) — `create_config`
+  is clone-only (there is no from-scratch authoring in GMP); this type clones a
+  base config (default: the feed's "Full and fast") then tunes it via one
+  `modify_config` call carrying name/comment/family selection/NVT
+  selection/scanner preferences (declared as JSON, following Cisco Meraki's
+  typed-fields-plus-JSON-blob precedent). Drift compares name/comment only —
+  the family/NVT/preference selection is always re-applied on deploy rather
+  than diffed (the live shape is far richer than the declared JSON — see the
+  module's FLAGS).
+- **Scanners** (`scanners`, group *Scan Configuration*) — additional scanner
+  endpoints (host/port/type/CA cert). `create_scanner` hard-requires an
+  **existing** GMP credential id — this app does not create or store GMP
+  credentials (see Credentials below), so a scanner references one the
+  operator already created in the Greenbone UI. `modify_scanner` always
+  resends every field (its RNC declares host/port/type non-optional even on
+  modify).
+- **Alerts** (`alerts`, group *Alerts*) — event/condition/method, scoped to
+  **secret-free methods only**: Email (plain), HTTP Get, Syslog, Start Task,
+  SNMP (inline community). SCP, SMB, TippingPoint SMS and verinice Connector
+  are deliberately excluded — they store a Credential UUID reference this app
+  does not manage. `test_alert` (a live test-fire) is a runtime action and is
+  not exposed.
+- **Filters** (`filters`, group *Filters & Tags*) and **Tags** (`tags`, group
+  *Filters & Tags*) — named search terms and name/value resource labels.
+  Tags' resource-attachment list uses the `<resources><type/><resource
+  id/>…</resources>` wrapper (python-gvm's tested shape) with `action="set"`
+  on modify (full replace, idempotent).
+- **Groups** and **Roles** (group *Access Control*) — named user sets and
+  custom roles. A group's "full access to each other" flag is create-only
+  (`modify_group` cannot change it — surfaced as a deploy note, mirroring
+  port-lists' immutable-range pattern). The **7 predefined/protected roles**
+  (Admin, User, Observer, Guest, Info, Monitor, Super Admin — their UUIDs read
+  directly from gvmd server source) are never targeted for create/modify/delete.
+- **Permissions** (`permissions`, group *Access Control*) — grants a GMP
+  command (or the special "Super") to a user/group/role, optionally
+  resource-scoped. A permission has **no name field** — this type tracks
+  identity by the canvas item's own stable id across deploys (the same
+  pattern `apps/pfsense/config-types/static-routes` uses for a nameless
+  resource), including deleting a permission whose canvas item was removed.
+- **Report Formats** (`report-formats`, group *Reporting*) — **scoped strictly
+  to cloning + activate/rename/tune-params** of an existing (usually
+  predefined) format. The raw `get_report_formats_response`/file-import path
+  — which installs an executable report-generation script server-side — is
+  never used. `verify_report_format` (a feed-signature check) is a runtime
+  action and is not exposed.
+- **Overrides** and **Notes** (group *Findings*) — persistent, re-appliable
+  severity-override / comment annotations on a specific NVT's results. Neither
+  has a name field; both use the same canvas-item-id identity tracking as
+  Permissions, including reconciling deletes for removed canvas items.
+- **Intentionally dropped** (see the README's new **Coverage** section for the
+  full accounting): **Credentials** (all 7 GMP credential types carry secret
+  material — password, private key, or community string — with no exception);
+  **Tickets** (permanently bound to one point-in-time scan result, with no
+  name field — a workflow record, not reusable declarative config); every GMP
+  **runtime action** (`test_alert`, `verify_scanner`, `verify_report_format`,
+  `sync_config`, task start/stop, etc.).
+
+Every new type ships the same `validate`/`deploy`/`rollback`/`healthCheck`/
+`driftDetect`/`getStatus` handler set as the existing four, plus unit tests for
+its GMP XML command assembly and response parsing (the live socket path
+remains unmockable — house convention). The GMP wire-format builders/parsers
+for these 11 entities live one-file-per-entity under the new `lib/gmp/`
+directory (built on the transport + escaping/parsing primitives already in
+`lib/greenboneApi.ts`, which now also exports those primitives) to keep any
+one file from growing unmanageably large.
+
+> GMP is version-specific; several shapes here carry an explicit UNVERIFIED
+> flag pending confirmation against a live gvmd — see each `lib/gmp/*.ts`
+> module doc and the README's Coverage section (scanner types 3/5 beyond the
+> doc-confirmed 2, the exact GMP version `usage_type` was introduced, whether
+> `modify_ticket` would accept "Fix Verified", the literal wire acceptance of
+> the "Super" permission name).
+
 ## 0.3.0 — 2026-08-01
 
 BYOL infrastructure hosting for the Greenbone / OpenVAS stack — the app now owns

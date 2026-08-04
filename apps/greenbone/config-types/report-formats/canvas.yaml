@@ -1,0 +1,83 @@
+# =============================================================================
+# Canvas Template — Greenbone Report Formats
+#
+# Declares ONE Greenbone report format (the item) to MANAGE — either an
+# EXISTING format (a predefined one, or one this app cloned earlier) by UUID,
+# or a NEW clone of a base format. Field keys must match
+# config-types/report-formats/validate.ts. Applied over GMP (XML over a TLS
+# socket, default port 9390) via create_report_format (clone-only) /
+# modify_report_format / delete_report_format.
+#
+# SCOPE (security): this app NEVER imports a raw report-format file/script —
+# only clones an existing format (<copy>) and tunes active/name/summary/param
+# — see lib/gmp/reportFormats.ts's module doc.
+#
+# IDENTITY: reportFormatId is the canvas identity. Leave it blank + set
+# cloneFrom to have this app clone a NEW format on first deploy — the
+# resulting id is then remembered per canvas item (identityDerived).
+# =============================================================================
+
+id: "greenbone-report-formats"
+name: "Report Formats"
+toolType: "greenbone"
+entityType: "report-formats"
+description: "Manage Greenbone report formats — clone + activate/rename/tune params of an existing format — over GMP (XML over TLS, 9390)"
+
+item:
+  label: "Report Format"
+  identityField: "reportFormatId"
+  identityDerived: true
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Report Format"
+      icon: "file-text"
+      description: "Which format to manage"
+      fields:
+        - key: "reportFormatId"
+          label: "Report Format UUID (existing)"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          helpText: "UUID of an EXISTING report format (a predefined one, e.g. PDF/CSV/XML, or one this app cloned earlier) to manage. Leave blank and set Clone From below to have this app create a new one instead."
+
+        - key: "cloneFrom"
+          label: "Clone From (base UUID)"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          helpText: "UUID of an existing format to clone when Report Format UUID above is blank. GMP's create_report_format is clone-only — there is no from-scratch authoring."
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Rename the format. Leave blank to keep its current name."
+
+        - key: "summary"
+          label: "Summary"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+
+        - key: "active"
+          label: "Active"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+
+    - name: "Parameters"
+      icon: "sliders"
+      description: "Existing format-specific parameter values (cannot add new parameters or change the generation script)"
+      fields:
+        - key: "params"
+          label: "Parameters"
+          fieldType: "keyvalue"
+          required: false
+          helpText: 'Parameter name → value (e.g. "Executive Report: showTable" → "1"). Only tunes parameters the format already exposes — cannot add new ones.'

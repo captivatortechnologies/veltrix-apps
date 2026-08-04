@@ -1,0 +1,6 @@
+# Defaults for a new alert item. Fires on a completed scan task; the operator
+# fills in the method-specific fields (e.g. emailTo for Email).
+event: "Task run status changed"
+eventStatus: "Done"
+condition: "Always"
+method: "Email"

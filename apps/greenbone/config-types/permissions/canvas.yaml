@@ -1,0 +1,88 @@
+# =============================================================================
+# Canvas Template — Greenbone Permissions
+#
+# Declares ONE Greenbone permission (the item) — grants a capability (a GMP
+# command name, or the special "Super") to a subject (user/group/role),
+# optionally scoped to one resource. Field keys must match
+# config-types/permissions/validate.ts. Applied over GMP (XML over a TLS
+# socket, default port 9390) via create_permission / modify_permission /
+# delete_permission.
+#
+# IDENTITY: a permission has no name field of its own (its `name` is the
+# granted COMMAND, not a unique label) and gvmd does not enforce
+# (name, subject, resource) uniqueness — this app tracks identity by the
+# CANVAS ITEM's own stable id (recorded in rollbackData across deploys), NOT
+# by matching content. No identityField is declared here (same precedent as
+# apps/pfsense/config-types/firewall-rules for a resource with no name field).
+# =============================================================================
+
+id: "greenbone-permissions"
+name: "Permissions"
+toolType: "greenbone"
+entityType: "permissions"
+description: "Grant GMP command permissions to a user/group/role, optionally scoped to a resource — over GMP (XML over TLS, 9390). Identity is tracked per canvas item (permissions have no name field)."
+
+item:
+  label: "Permission"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Permission"
+      icon: "key"
+      description: "The command being granted"
+      fields:
+        - key: "name"
+          label: "Command Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 80
+          helpText: 'The GMP command being granted, e.g. "get_tasks", "create_task", or the special "Super" (blanket access, scoped by the resource below).'
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+
+    - name: "Subject"
+      icon: "user"
+      description: "Who receives this permission"
+      fields:
+        - key: "subjectType"
+          label: "Subject Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "user"
+          options:
+            - { label: "User", value: "user" }
+            - { label: "Group", value: "group" }
+            - { label: "Role", value: "role" }
+
+        - key: "subjectId"
+          label: "Subject UUID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          helpText: "UUID of the existing user/group/role receiving this permission. This app does not manage GMP users/groups/roles identities beyond the Groups/Roles config types — paste the id here."
+
+    - name: "Resource"
+      icon: "target"
+      description: "Optional — scope this permission to one resource (leave both blank for a global/command-level grant)"
+      fields:
+        - key: "resourceType"
+          label: "Resource Type"
+          fieldType: "text"
+          required: false
+          helpText: 'GMP resource type of the resource below, e.g. "task", "target". For a "Super" permission: user, group or role.'
+
+        - key: "resourceId"
+          label: "Resource UUID"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          helpText: "UUID of the resource to scope this permission to. Leave blank for a global/command-level grant."

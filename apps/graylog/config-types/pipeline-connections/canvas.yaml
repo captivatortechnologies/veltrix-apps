@@ -1,0 +1,45 @@
+# =============================================================================
+# Canvas Template — Graylog Pipeline Connections
+#
+# Declares the COMPLETE set of pipelines wired to ONE Graylog stream (the item —
+# one per stream). Graylog's connections API has no per-pipeline connect/
+# disconnect, only a whole-value replace, so every deploy resends the full
+# declared list. Field keys must match
+# config-types/pipeline-connections/validate.ts. Applied via the Graylog REST
+# API (POST /api/system/pipelines/connections/to_stream).
+# =============================================================================
+
+id: "graylog-pipeline-connections"
+name: "Pipeline Connections"
+toolType: "graylog"
+entityType: "pipeline-connections"
+description: "Wire Graylog processing pipelines to streams — the complete pipeline set per stream — via the Graylog REST API (/api/system/pipelines/connections)"
+
+item:
+  label: "Stream Connection"
+  identityField: "stream_title"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Connection"
+      icon: "git-merge"
+      description: "Stream and its connected pipelines"
+      fields:
+        - key: "stream_title"
+          label: "Stream Title"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Title of the stream to connect pipelines to (see the \"Streams\" configuration type). Resolved to the stream's id at deploy time."
+
+        - key: "pipeline_titles"
+          label: "Pipeline Titles (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            JSON array of pipeline titles to connect to this stream (see the "Pipelines"
+            configuration type), e.g. ["route-firewall","enrich-geoip"]. This REPLACES the
+            stream's entire connected pipeline set on every deploy — an empty array
+            ([]) disconnects every pipeline from the stream.

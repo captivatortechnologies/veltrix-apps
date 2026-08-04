@@ -1,0 +1,99 @@
+# =============================================================================
+# Canvas Template — Graylog Sidecar Collectors
+#
+# Declares ONE Graylog Sidecar collector binary definition (the item) — which
+# log-shipper binary (Filebeat, Winlogbeat, NXLog, ...) the Sidecar agent runs
+# and how. Users add as many as they need. Field keys must match
+# config-types/sidecar-collectors/validate.ts. Applied via the Graylog REST API
+# (POST/PUT/DELETE /api/sidecar/collectors[/{id}]).
+#
+# NOTE: the true identity is the (Name, Operating System) PAIR — the same
+# collector name may exist once per OS (e.g. "filebeat" on both linux and
+# windows), even though the canvas only exposes Name as the single identity
+# field the platform supports.
+# =============================================================================
+
+id: "graylog-sidecar-collectors"
+name: "Sidecar Collectors"
+toolType: "graylog"
+entityType: "sidecar-collectors"
+description: "Manage Graylog Sidecar collector binary definitions — which log-shipper binary runs and how — via the Graylog REST API (/api/sidecar/collectors)"
+
+item:
+  label: "Collector"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Collector"
+      icon: "package"
+      description: "Collector identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Collector name (letters, digits, underscores, dots, hyphens), e.g. \"filebeat\". Unique per Operating System — see the note above."
+
+        - key: "node_operating_system"
+          label: "Operating System"
+          fieldType: "select"
+          required: true
+          defaultValue: "linux"
+          options:
+            - label: "Linux"
+              value: "linux"
+            - label: "Windows"
+              value: "windows"
+            - label: "macOS (Darwin)"
+              value: "darwin"
+            - label: "FreeBSD"
+              value: "freebsd"
+
+        - key: "service_type"
+          label: "Service Type"
+          fieldType: "select"
+          required: false
+          defaultValue: "exec"
+          options:
+            - label: "Executable (spawned + supervised by Sidecar)"
+              value: "exec"
+            - label: "Windows service (Windows only)"
+              value: "svc"
+
+    - name: "Execution"
+      icon: "terminal"
+      description: "How the collector binary is invoked"
+      fields:
+        - key: "executable_path"
+          label: "Executable Path"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 1000
+          helpText: "Absolute path to the collector binary on the host, e.g. /usr/share/filebeat/bin/filebeat or C:\\Program Files\\filebeat\\filebeat.exe."
+
+        - key: "execute_parameters"
+          label: "Execute Parameters"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Command-line arguments used to run the collector, e.g. -c %s (Sidecar substitutes the rendered config path)."
+
+        - key: "validation_parameters"
+          label: "Validation Parameters"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Command-line arguments used to validate a rendered config before applying it, e.g. test config -c %s."
+
+        - key: "default_template"
+          label: "Default Config Template"
+          fieldType: "textarea"
+          required: false
+          helpText: "Starting-point Go template body shown when a new Sidecar Configuration is created for this collector. Optional."

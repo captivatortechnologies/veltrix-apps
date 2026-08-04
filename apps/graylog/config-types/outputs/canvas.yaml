@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — Graylog Outputs
+#
+# Declares ONE Graylog message output (the item) — a destination messages are
+# forwarded to (GELF over TCP/UDP being the bundled example). Users add as many
+# as they need. Field keys must match config-types/outputs/validate.ts. Applied
+# via the Graylog REST API (POST/PUT/DELETE /api/system/outputs[/{outputId}]).
+#
+# NOTE: this manages the output's OWN definition only. Attaching an output to a
+# stream is a separate wiring action (Streams UI / API) — see the app README.
+# =============================================================================
+
+id: "graylog-outputs"
+name: "Outputs"
+toolType: "graylog"
+entityType: "outputs"
+description: "Manage Graylog message outputs — forwarding destinations such as GELF over TCP/UDP — via the Graylog REST API (/api/system/outputs)"
+
+item:
+  label: "Output"
+  identityField: "title"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Output"
+      icon: "upload"
+      description: "Output identity"
+      fields:
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable output name shown in Graylog. Used as the output's stable identity for upsert and drift."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "text"
+          required: true
+          defaultValue: "org.graylog2.outputs.GelfOutput"
+          validation:
+            maxLength: 255
+          helpText: "Fully-qualified Graylog output class. \"org.graylog2.outputs.GelfOutput\" (bundled) forwards messages as GELF over TCP/UDP/TCP+TLS to another endpoint."
+
+    - name: "Configuration"
+      icon: "code"
+      description: "Output configuration (JSON)"
+      fields:
+        - key: "configuration"
+          label: "Configuration (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            JSON object of the output type's configuration keys. The bundled GELF output
+            takes {"protocol":"TCP","hostname":"...","port":12201,"tls_verification_enabled":false}.
+            Note: Graylog MERGES this into the existing configuration on update rather than
+            replacing it — a key removed here is not removed from the live output.

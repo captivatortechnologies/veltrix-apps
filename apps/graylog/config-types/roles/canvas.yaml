@@ -1,0 +1,57 @@
+# =============================================================================
+# Canvas Template — Graylog Roles
+#
+# Declares ONE Graylog RBAC role (the item) — a named, reusable permission set
+# assigned to users. Users add as many as they need. Field keys must match
+# config-types/roles/validate.ts. Applied via the Graylog REST API
+# (POST/PUT/DELETE /api/roles[/{name}]).
+#
+# NOTE: Graylog's built-in "Admin" and "Reader" roles are read-only and cannot
+# be managed here — validate.ts rejects them.
+# =============================================================================
+
+id: "graylog-roles"
+name: "Roles"
+toolType: "graylog"
+entityType: "roles"
+description: "Manage Graylog RBAC roles — named permission sets assigned to users — via the Graylog REST API (/api/roles)"
+
+item:
+  label: "Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Role"
+      icon: "shield"
+      description: "Role identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Role name shown in the user-management UI. Used as the stable identity for upsert and drift. Cannot be \"Admin\" or \"Reader\" (built-in, read-only)."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+
+    - name: "Permissions"
+      icon: "key"
+      description: "Granted permissions (JSON)"
+      fields:
+        - key: "permissions"
+          label: "Permissions (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            JSON array of Graylog permission strings, e.g.
+            ["streams:read","streams:edit:5f2a...","dashboards:read"]. Use "*" for every
+            permission (full admin — use sparingly). See a live Graylog's
+            GET /api/system/permissions for the full catalog.

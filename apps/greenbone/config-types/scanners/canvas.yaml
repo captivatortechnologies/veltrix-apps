@@ -1,0 +1,98 @@
+# =============================================================================
+# Canvas Template — Greenbone Scanners
+#
+# Declares ONE additional Greenbone scanner endpoint (the item) — beyond the
+# feed-provided "OpenVAS Default" every gvmd ships with. Field keys must match
+# config-types/scanners/validate.ts. Applied over GMP (XML over a TLS socket,
+# default port 9390) via create_scanner / modify_scanner / delete_scanner.
+#
+# FLAG (GMP 22.5): create_scanner REQUIRES an existing GMP credential id — this
+# app does not create/store GMP credentials (secret material). Create the
+# credential directly in the Greenbone UI/gvmd first, then reference its UUID
+# below.
+# =============================================================================
+
+id: "greenbone-scanners"
+name: "Scanners"
+toolType: "greenbone"
+entityType: "scanners"
+description: "Manage additional Greenbone scanner endpoints — host/port/type/credential — over GMP (XML over TLS, 9390)"
+
+item:
+  label: "Scanner"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Scanner"
+      icon: "server"
+      description: "Identity and endpoint"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable scanner name shown in Greenbone. Used as the stable identity for upsert and drift."
+
+        - key: "host"
+          label: "Host"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Hostname or IP of the scanner endpoint (e.g. an OSP sensor)."
+
+        - key: "port"
+          label: "Port"
+          fieldType: "number"
+          required: true
+          defaultValue: 9391
+          validation:
+            min: 1
+            max: 65535
+          helpText: "TCP port the scanner listens on (OSP sensors commonly use 9391)."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "2"
+          options:
+            - label: "OpenVAS (classic) — confirmed against GMP 22.5"
+              value: "2"
+            - label: "CVE scanner — UNVERIFIED against GMP 22.5, confirm on your gvmd"
+              value: "3"
+            - label: "Greenbone Sensor (OSP) — UNVERIFIED against GMP 22.5, confirm on your gvmd"
+              value: "5"
+          helpText: "GMP scanner type. Only \"OpenVAS (classic)\" (2) is confirmed by the GMP 22.5 doc text; the others are offered per python-gvm's client enum but are not independently verified against this GMP version — confirm they're accepted before relying on them."
+
+    - name: "Credential"
+      icon: "key"
+      description: "Existing GMP credential this scanner authenticates with"
+      fields:
+        - key: "credentialId"
+          label: "Credential UUID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          helpText: "UUID of an EXISTING Greenbone credential (client certificate type) created in the Greenbone UI — this app never creates or stores GMP credentials (secret material)."
+
+        - key: "caPub"
+          label: "CA Certificate (PEM)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: "Optional CA certificate (PEM) to pin the scanner's TLS endpoint against. Leave blank if not required."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this scanner is configured — recorded in Greenbone for audit."

@@ -38,6 +38,19 @@
 //     deployments additionally require a CLIENT certificate — not handled here.
 //   * modify_target: gvmd rejects changing <hosts>/<port_list> while the target
 //     is in use by a task (status 400) — surfaced as an error, not silently.
+//
+// This file owns the TRANSPORT (GmpSession/withGmpSession), the wire-format
+// primitives (escaping, attrsFrom/firstChildText/idAttrOf, base64 value
+// encoding, status/id parsing) and the first five entities (targets, port
+// lists, schedules, scan tasks, plus the scan-config/scanner name lookups scan
+// tasks resolve against). Eleven more entities (scan configs, scanners,
+// alerts, filters, tags, groups, roles, permissions, report formats,
+// overrides, notes) are colocated per-entity under lib/gmp/*.ts — one file
+// each, built on the exported primitives here — to keep this file from
+// growing into an unmanageable single-file client. See each lib/gmp/*.ts
+// module doc plus the app README's Coverage section for what was added and
+// what was deliberately left out (credentials, tickets, scanner/report-format
+// executable-code import, and every "runtime action" GMP command).
 // =============================================================================
 
 import { connect as tlsConnect } from 'node:tls'
@@ -189,7 +202,14 @@ function openingTag(xml: string): { name: string; attrs: string } | null {
   return { name: m[1], attrs }
 }
 
-function attrsFrom(attrString: string): Record<string, string> {
+/**
+ * Attributes from a raw ` key="value" key2='value2'` attribute-list substring.
+ * Exported (in addition to the entity parsers already in this file) so the
+ * lib/gmp/*.ts entity modules — scan configs, scanners, alerts, filters, tags,
+ * groups, roles, permissions, report formats, overrides, notes — can parse
+ * their own response shapes without re-implementing this.
+ */
+export function attrsFrom(attrString: string): Record<string, string> {
   const attrs: Record<string, string> = {}
   const re = /([\w:.-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g
   let m: RegExpExecArray | null
@@ -217,10 +237,40 @@ export function parseCreatedId(xml: string): string | null {
   return parseRootAttributes(xml).id ?? null
 }
 
-/** Content of the first `<name>…</name>` style child of a fragment. */
-function firstChildText(fragment: string, tag: string): string | null {
+/** Content of the first `<name>…</name>` style child of a fragment. Exported — see attrsFrom(). */
+export function firstChildText(fragment: string, tag: string): string | null {
   const m = new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*?)</${tag}>`).exec(fragment)
   return m ? unescapeXml(m[1]) : null
+}
+
+/**
+ * The `id` attribute of a child element, whether it is self-closing
+ * (`<subject id="…"/>`) or has nested children (`<subject id="…"><type>…</type></subject>`).
+ * Shared by the new entity modules for id-bearing references (permission
+ * subject/resource, tag resources, override/note task/result scoping).
+ */
+export function idAttrOf(fragment: string, tag: string): string | null {
+  const m = new RegExp(`<${tag}\\b([^>]*)>`).exec(fragment)
+  return m ? (attrsFrom(m[1]).id ?? null) : null
+}
+
+/**
+ * GMP encodes several element VALUES (scan-config preference values,
+ * report-format param values) as base64 — confirmed by the GMP 22.5 reference's
+ * own modify_report_format example (`<value>cmVk</value>` = base64 "red") and by
+ * modify_config's `preference/value` being documented as "(optional, base64)".
+ * These two helpers are the single place that encoding lives.
+ */
+export function encodeGmpValue(value: unknown): string {
+  return Buffer.from(String(value ?? ''), 'utf8').toString('base64')
+}
+
+export function decodeGmpValue(value: unknown): string {
+  try {
+    return Buffer.from(String(value ?? ''), 'base64').toString('utf8')
+  } catch {
+    return String(value ?? '')
+  }
 }
 
 export interface GmpTarget {

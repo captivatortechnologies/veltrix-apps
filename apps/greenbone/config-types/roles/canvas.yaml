@@ -1,0 +1,51 @@
+# =============================================================================
+# Canvas Template — Greenbone Roles
+#
+# Declares ONE Greenbone role (the item) — a named capability set a user/group
+# can hold. Permissions attach to it via the SEPARATE Permissions config type
+# (create_role has no permission list of its own). Field keys must match
+# config-types/roles/validate.ts. Applied over GMP (XML over a TLS socket,
+# default port 9390) via create_role / modify_role / delete_role.
+#
+# FLAG (GMP 22.5): the 7 predefined roles (Admin/User/Observer/Guest/Info/
+# Monitor/Super Admin) are protected — a declared name matching one is
+# rejected at validate time rather than attempting a doomed write.
+# =============================================================================
+
+id: "greenbone-roles"
+name: "Roles"
+toolType: "greenbone"
+entityType: "roles"
+description: "Manage custom Greenbone roles — name, comment, member users — over GMP (XML over TLS, 9390)"
+
+item:
+  label: "Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Role"
+      icon: "shield-check"
+      description: "Identity and membership"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable role name shown in Greenbone. Must not match a predefined role (Admin, User, Observer, Guest, Info, Monitor, Super Admin). Used as the stable identity for upsert and drift."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+
+        - key: "users"
+          label: "Members (usernames)"
+          fieldType: "tags"
+          required: false
+          helpText: "Existing GMP usernames (not ids) to hold this role. This app does not manage GMP users — the usernames must already exist."

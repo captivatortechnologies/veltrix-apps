@@ -1,14 +1,16 @@
 id: graylog
 name: Graylog
-version: "0.3.0"
+version: "0.4.0"
 vendor: Veltrix
 description: >
   Manage Graylog (open-source SIEM / log management) as code. Author message
-  streams, inputs, processing pipeline rules and index sets, and drive them through
-  the Security-as-Code pipeline — validate, deploy, health check, drift detection
-  and rollback — over the Graylog REST API (HTTP Basic auth, X-Requested-By CSRF
-  guard, self-signed TLS tolerated), with BYOL infrastructure provisioning for the
-  Graylog stack (Graylog server + OpenSearch + MongoDB).
+  streams, inputs, extractors, grok patterns, processing pipelines/rules/connections,
+  index sets, lookup tables/caches/data-adapters, event definitions, notifications,
+  roles, Sidecar collectors/configurations, outputs and decorators, and drive them
+  through the Security-as-Code pipeline — validate, deploy, health check, drift
+  detection and rollback — over the Graylog REST API (HTTP Basic auth,
+  X-Requested-By CSRF guard, self-signed TLS tolerated), with BYOL infrastructure
+  provisioning for the Graylog stack (Graylog server + OpenSearch + MongoDB).
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/graylog
@@ -40,6 +42,48 @@ permissions:
     - resource: index-sets
       actions: [read, write, delete]
       description: Manage Graylog index sets (create / edit / delete)
+    - resource: extractors
+      actions: [read, write, delete]
+      description: Manage Graylog input extractors (create / edit / delete)
+    - resource: grok-patterns
+      actions: [read, write, delete]
+      description: Manage Graylog grok patterns (create / edit / delete)
+    - resource: pipelines
+      actions: [read, write, delete]
+      description: Manage Graylog processing pipelines (create / edit / delete)
+    - resource: pipeline-connections
+      actions: [read, write, delete]
+      description: Manage Graylog pipeline-to-stream connections (create / edit / delete)
+    - resource: lookup-caches
+      actions: [read, write, delete]
+      description: Manage Graylog lookup-table caches (create / edit / delete)
+    - resource: lookup-data-adapters
+      actions: [read, write, delete]
+      description: Manage Graylog lookup-table data adapters (create / edit / delete)
+    - resource: lookup-tables
+      actions: [read, write, delete]
+      description: Manage Graylog lookup tables (create / edit / delete)
+    - resource: event-definitions
+      actions: [read, write, delete]
+      description: Manage Graylog event definitions (create / edit / delete)
+    - resource: notifications
+      actions: [read, write, delete]
+      description: Manage Graylog event notifications (create / edit / delete)
+    - resource: roles
+      actions: [read, write, delete]
+      description: Manage Graylog RBAC roles (create / edit / delete)
+    - resource: sidecar-collectors
+      actions: [read, write, delete]
+      description: Manage Graylog Sidecar collector definitions (create / edit / delete)
+    - resource: sidecar-configurations
+      actions: [read, write, delete]
+      description: Manage Graylog Sidecar configurations (create / edit / delete)
+    - resource: outputs
+      actions: [read, write, delete]
+      description: Manage Graylog message outputs (create / edit / delete)
+    - resource: decorators
+      actions: [read, write, delete]
+      description: Manage Graylog message-list decorators (create / edit / delete)
     - resource: byol
       actions: [read, write, delete]
       description: Manage BYOL Graylog stack infrastructure
@@ -120,6 +164,258 @@ pipeline:
         healthCheck: config-types/index-sets/healthCheck
         driftDetect: config-types/index-sets/driftDetect
         getStatus: config-types/index-sets/getStatus
+      targets:
+        componentTypes: [graylog, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: extractors
+      group: "Collection"
+      name: Extractors
+      description: Graylog input extractors — field-extraction/parsing rules attached to a message input — applied over the Graylog REST API (/api/system/inputs/{inputId}/extractors)
+      canvasTemplate: config-types/extractors/canvas.yaml
+      defaultConfig: config-types/extractors/defaults.yaml
+      handlers:
+        validate: config-types/extractors/validate
+        deploy: config-types/extractors/deploy
+        rollback: config-types/extractors/rollback
+        healthCheck: config-types/extractors/healthCheck
+        driftDetect: config-types/extractors/driftDetect
+        getStatus: config-types/extractors/getStatus
+      targets:
+        componentTypes: [graylog, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: grok-patterns
+      group: "Collection"
+      name: Grok Patterns
+      description: Graylog grok patterns — named regular-expression building blocks used by extractors and pipeline rules — applied over the Graylog REST API (/api/system/grok)
+      canvasTemplate: config-types/grok-patterns/canvas.yaml
+      defaultConfig: config-types/grok-patterns/defaults.yaml
+      handlers:
+        validate: config-types/grok-patterns/validate
+        deploy: config-types/grok-patterns/deploy
+        rollback: config-types/grok-patterns/rollback
+        healthCheck: config-types/grok-patterns/healthCheck
+        driftDetect: config-types/grok-patterns/driftDetect
+        getStatus: config-types/grok-patterns/getStatus
+      targets:
+        componentTypes: [graylog, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: pipelines
+      group: "Processing"
+      name: Pipelines
+      description: Graylog processing pipelines — title, description and stage/rule DSL source — applied over the Graylog REST API (/api/system/pipelines/pipeline)
+      canvasTemplate: config-types/pipelines/canvas.yaml
+      defaultConfig: config-types/pipelines/defaults.yaml
+      handlers:
+        validate: config-types/pipelines/validate
+        deploy: config-types/pipelines/deploy
+        rollback: config-types/pipelines/rollback
+        healthCheck: config-types/pipelines/healthCheck
+        driftDetect: config-types/pipelines/driftDetect
+        getStatus: config-types/pipelines/getStatus
+      targets:
+        componentTypes: [graylog, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: pipeline-connections
+      group: "Processing"
+      name: Pipeline Connections
+      description: Wires Graylog processing pipelines to streams — the complete pipeline set per stream — applied over the Graylog REST API (/api/system/pipelines/connections)
+      canvasTemplate: config-types/pipeline-connections/canvas.yaml
+      defaultConfig: config-types/pipeline-connections/defaults.yaml
+      handlers:
+        validate: config-types/pipeline-connections/validate
+        deploy: config-types/pipeline-connections/deploy
+        rollback: config-types/pipeline-connections/rollback
+        healthCheck: config-types/pipeline-connections/healthCheck
+        driftDetect: config-types/pipeline-connections/driftDetect
+        getStatus: config-types/pipeline-connections/getStatus
+      targets:
+        componentTypes: [graylog, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: lookup-caches
+      group: "Lookup Tables"
+      name: Lookup Caches
+      description: Graylog lookup-table caches — the caching layer in front of a lookup data adapter — applied over the Graylog REST API (/api/system/lookup/caches)
+      canvasTemplate: config-types/lookup-caches/canvas.yaml
+      defaultConfig: config-types/lookup-caches/defaults.yaml
+      handlers:
+        validate: config-types/lookup-caches/validate
+        deploy: config-types/lookup-caches/deploy
+        rollback: config-types/lookup-caches/rollback
+        healthCheck: config-types/lookup-caches/healthCheck
+        driftDetect: config-types/lookup-caches/driftDetect
+        getStatus: config-types/lookup-caches/getStatus
+      targets:
+        componentTypes: [graylog, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: lookup-data-adapters
+      group: "Lookup Tables"
+      name: Lookup Data Adapters
+      description: Graylog lookup-table data adapters — the data source a lookup table reads from (CSV, DNS, HTTP JSONPath, ...) — applied over the Graylog REST API (/api/system/lookup/adapters)
+      canvasTemplate: config-types/lookup-data-adapters/canvas.yaml
+      defaultConfig: config-types/lookup-data-adapters/defaults.yaml
+      handlers:
+        validate: config-types/lookup-data-adapters/validate
+        deploy: config-types/lookup-data-adapters/deploy
+        rollback: config-types/lookup-data-adapters/rollback
+        healthCheck: config-types/lookup-data-adapters/healthCheck
+        driftDetect: config-types/lookup-data-adapters/driftDetect
+        getStatus: config-types/lookup-data-adapters/getStatus
+      targets:
+        componentTypes: [graylog, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: lookup-tables
+      group: "Lookup Tables"
+      name: Lookup Tables
+      description: Graylog lookup tables — wiring a cache to a data adapter for pipeline-rule lookups — applied over the Graylog REST API (/api/system/lookup/tables)
+      canvasTemplate: config-types/lookup-tables/canvas.yaml
+      defaultConfig: config-types/lookup-tables/defaults.yaml
+      handlers:
+        validate: config-types/lookup-tables/validate
+        deploy: config-types/lookup-tables/deploy
+        rollback: config-types/lookup-tables/rollback
+        healthCheck: config-types/lookup-tables/healthCheck
+        driftDetect: config-types/lookup-tables/driftDetect
+        getStatus: config-types/lookup-tables/getStatus
+      targets:
+        componentTypes: [graylog, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: event-definitions
+      group: "Alerting"
+      name: Event Definitions
+      description: Graylog event definitions — the modern alerting conditions that raise Events and trigger notifications — applied over the Graylog REST API (/api/events/definitions)
+      canvasTemplate: config-types/event-definitions/canvas.yaml
+      defaultConfig: config-types/event-definitions/defaults.yaml
+      handlers:
+        validate: config-types/event-definitions/validate
+        deploy: config-types/event-definitions/deploy
+        rollback: config-types/event-definitions/rollback
+        healthCheck: config-types/event-definitions/healthCheck
+        driftDetect: config-types/event-definitions/driftDetect
+        getStatus: config-types/event-definitions/getStatus
+      targets:
+        componentTypes: [graylog, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: notifications
+      group: "Alerting"
+      name: Notifications
+      description: Graylog event notifications — email/HTTP actions triggered by an event definition — applied over the Graylog REST API (/api/events/notifications)
+      canvasTemplate: config-types/notifications/canvas.yaml
+      defaultConfig: config-types/notifications/defaults.yaml
+      handlers:
+        validate: config-types/notifications/validate
+        deploy: config-types/notifications/deploy
+        rollback: config-types/notifications/rollback
+        healthCheck: config-types/notifications/healthCheck
+        driftDetect: config-types/notifications/driftDetect
+        getStatus: config-types/notifications/getStatus
+      targets:
+        componentTypes: [graylog, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: roles
+      group: "Access Control"
+      name: Roles
+      description: Graylog RBAC roles — named permission sets assigned to users — applied over the Graylog REST API (/api/roles)
+      canvasTemplate: config-types/roles/canvas.yaml
+      defaultConfig: config-types/roles/defaults.yaml
+      handlers:
+        validate: config-types/roles/validate
+        deploy: config-types/roles/deploy
+        rollback: config-types/roles/rollback
+        healthCheck: config-types/roles/healthCheck
+        driftDetect: config-types/roles/driftDetect
+        getStatus: config-types/roles/getStatus
+      targets:
+        componentTypes: [graylog, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: sidecar-collectors
+      group: "Sidecar"
+      name: Sidecar Collectors
+      description: Graylog Sidecar collector binary definitions — which log-shipper binary runs and how — applied over the Graylog REST API (/api/sidecar/collectors)
+      canvasTemplate: config-types/sidecar-collectors/canvas.yaml
+      defaultConfig: config-types/sidecar-collectors/defaults.yaml
+      handlers:
+        validate: config-types/sidecar-collectors/validate
+        deploy: config-types/sidecar-collectors/deploy
+        rollback: config-types/sidecar-collectors/rollback
+        healthCheck: config-types/sidecar-collectors/healthCheck
+        driftDetect: config-types/sidecar-collectors/driftDetect
+        getStatus: config-types/sidecar-collectors/getStatus
+      targets:
+        componentTypes: [graylog, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: sidecar-configurations
+      group: "Sidecar"
+      name: Sidecar Configurations
+      description: Graylog Sidecar configurations — the rendered config file pushed to matching hosts — applied over the Graylog REST API (/api/sidecar/configurations)
+      canvasTemplate: config-types/sidecar-configurations/canvas.yaml
+      defaultConfig: config-types/sidecar-configurations/defaults.yaml
+      handlers:
+        validate: config-types/sidecar-configurations/validate
+        deploy: config-types/sidecar-configurations/deploy
+        rollback: config-types/sidecar-configurations/rollback
+        healthCheck: config-types/sidecar-configurations/healthCheck
+        driftDetect: config-types/sidecar-configurations/driftDetect
+        getStatus: config-types/sidecar-configurations/getStatus
+      targets:
+        componentTypes: [graylog, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: outputs
+      group: "Outputs"
+      name: Outputs
+      description: Graylog message outputs — forwarding destinations such as GELF over TCP/UDP — applied over the Graylog REST API (/api/system/outputs)
+      canvasTemplate: config-types/outputs/canvas.yaml
+      defaultConfig: config-types/outputs/defaults.yaml
+      handlers:
+        validate: config-types/outputs/validate
+        deploy: config-types/outputs/deploy
+        rollback: config-types/outputs/rollback
+        healthCheck: config-types/outputs/healthCheck
+        driftDetect: config-types/outputs/driftDetect
+        getStatus: config-types/outputs/getStatus
+      targets:
+        componentTypes: [graylog, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: decorators
+      group: "Search"
+      name: Decorators
+      description: Graylog message-list decorators — display-time search-result enrichment, global or per-stream — applied over the Graylog REST API (/api/search/decorators)
+      canvasTemplate: config-types/decorators/canvas.yaml
+      defaultConfig: config-types/decorators/defaults.yaml
+      handlers:
+        validate: config-types/decorators/validate
+        deploy: config-types/decorators/deploy
+        rollback: config-types/decorators/rollback
+        healthCheck: config-types/decorators/healthCheck
+        driftDetect: config-types/decorators/driftDetect
+        getStatus: config-types/decorators/getStatus
       targets:
         componentTypes: [graylog, standalone]
         requiresCredential: true

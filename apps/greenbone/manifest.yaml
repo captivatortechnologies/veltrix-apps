@@ -1,6 +1,6 @@
 id: greenbone
 name: Greenbone
-version: "0.3.0"
+version: "0.4.0"
 vendor: Veltrix
 description: >
   Manage Greenbone / OpenVAS vulnerability scanning as code. Author scan Targets
@@ -41,6 +41,39 @@ permissions:
     - resource: scan-tasks
       actions: [read, write, delete]
       description: Manage Greenbone scan tasks (create / edit / delete)
+    - resource: scan-configs
+      actions: [read, write, delete]
+      description: Manage Greenbone scan configs — cloned + tuned family/NVT selection and preferences
+    - resource: scanners
+      actions: [read, write, delete]
+      description: Manage additional Greenbone scanner endpoints
+    - resource: alerts
+      actions: [read, write, delete]
+      description: Manage Greenbone alerts (event / condition / secret-free methods)
+    - resource: filters
+      actions: [read, write, delete]
+      description: Manage Greenbone filters (named search terms)
+    - resource: tags
+      actions: [read, write, delete]
+      description: Manage Greenbone tags (name/value labels on resources)
+    - resource: groups
+      actions: [read, write, delete]
+      description: Manage Greenbone groups (named sets of existing users)
+    - resource: roles
+      actions: [read, write, delete]
+      description: Manage custom Greenbone roles (predefined roles are protected)
+    - resource: permissions
+      actions: [read, write, delete]
+      description: Grant Greenbone GMP command permissions to a user/group/role
+    - resource: report-formats
+      actions: [read, write, delete]
+      description: Manage Greenbone report formats (clone + activate/rename/tune params only)
+    - resource: overrides
+      actions: [read, write, delete]
+      description: Manage Greenbone overrides (NVT severity risk-acceptance rules)
+    - resource: notes
+      actions: [read, write, delete]
+      description: Manage Greenbone notes (persistent comments on NVT results)
     - resource: byol
       actions: [read, write, delete]
       description: Manage BYOL Greenbone stack infrastructure
@@ -121,6 +154,204 @@ pipeline:
         healthCheck: config-types/scan-tasks/healthCheck
         driftDetect: config-types/scan-tasks/driftDetect
         getStatus: config-types/scan-tasks/getStatus
+      targets:
+        componentTypes: [greenbone, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: scan-configs
+      group: "Scan Configuration"
+      name: Scan Configs
+      description: Greenbone scan configs — cloned from a base config, then tuned via family/NVT selection and scanner preferences — applied over GMP (XML over TLS, 9390)
+      canvasTemplate: config-types/scan-configs/canvas.yaml
+      defaultConfig: config-types/scan-configs/defaults.yaml
+      handlers:
+        validate: config-types/scan-configs/validate
+        deploy: config-types/scan-configs/deploy
+        rollback: config-types/scan-configs/rollback
+        healthCheck: config-types/scan-configs/healthCheck
+        driftDetect: config-types/scan-configs/driftDetect
+        getStatus: config-types/scan-configs/getStatus
+      targets:
+        componentTypes: [greenbone, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: scanners
+      group: "Scan Configuration"
+      name: Scanners
+      description: Additional Greenbone scanner endpoints — host/port/type/existing credential — applied over GMP (XML over TLS, 9390)
+      canvasTemplate: config-types/scanners/canvas.yaml
+      defaultConfig: config-types/scanners/defaults.yaml
+      handlers:
+        validate: config-types/scanners/validate
+        deploy: config-types/scanners/deploy
+        rollback: config-types/scanners/rollback
+        healthCheck: config-types/scanners/healthCheck
+        driftDetect: config-types/scanners/driftDetect
+        getStatus: config-types/scanners/getStatus
+      targets:
+        componentTypes: [greenbone, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: alerts
+      group: "Alerts"
+      name: Alerts
+      description: Greenbone alerts — event/condition/secret-free method (Email/HTTP Get/Syslog/Start Task/SNMP) — applied over GMP (XML over TLS, 9390)
+      canvasTemplate: config-types/alerts/canvas.yaml
+      defaultConfig: config-types/alerts/defaults.yaml
+      handlers:
+        validate: config-types/alerts/validate
+        deploy: config-types/alerts/deploy
+        rollback: config-types/alerts/rollback
+        healthCheck: config-types/alerts/healthCheck
+        driftDetect: config-types/alerts/driftDetect
+        getStatus: config-types/alerts/getStatus
+      targets:
+        componentTypes: [greenbone, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: filters
+      group: "Filters & Tags"
+      name: Filters
+      description: Greenbone filters — named search terms scoped to a resource type — applied over GMP (XML over TLS, 9390)
+      canvasTemplate: config-types/filters/canvas.yaml
+      defaultConfig: config-types/filters/defaults.yaml
+      handlers:
+        validate: config-types/filters/validate
+        deploy: config-types/filters/deploy
+        rollback: config-types/filters/rollback
+        healthCheck: config-types/filters/healthCheck
+        driftDetect: config-types/filters/driftDetect
+        getStatus: config-types/filters/getStatus
+      targets:
+        componentTypes: [greenbone, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: tags
+      group: "Filters & Tags"
+      name: Tags
+      description: Greenbone tags — name/value labels attached to a resource type + id list — applied over GMP (XML over TLS, 9390)
+      canvasTemplate: config-types/tags/canvas.yaml
+      defaultConfig: config-types/tags/defaults.yaml
+      handlers:
+        validate: config-types/tags/validate
+        deploy: config-types/tags/deploy
+        rollback: config-types/tags/rollback
+        healthCheck: config-types/tags/healthCheck
+        driftDetect: config-types/tags/driftDetect
+        getStatus: config-types/tags/getStatus
+      targets:
+        componentTypes: [greenbone, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: groups
+      group: "Access Control"
+      name: Groups
+      description: Greenbone groups — named sets of existing GMP users — applied over GMP (XML over TLS, 9390)
+      canvasTemplate: config-types/groups/canvas.yaml
+      defaultConfig: config-types/groups/defaults.yaml
+      handlers:
+        validate: config-types/groups/validate
+        deploy: config-types/groups/deploy
+        rollback: config-types/groups/rollback
+        healthCheck: config-types/groups/healthCheck
+        driftDetect: config-types/groups/driftDetect
+        getStatus: config-types/groups/getStatus
+      targets:
+        componentTypes: [greenbone, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: roles
+      group: "Access Control"
+      name: Roles
+      description: Custom Greenbone roles — name, comment, member users (predefined roles are protected) — applied over GMP (XML over TLS, 9390)
+      canvasTemplate: config-types/roles/canvas.yaml
+      defaultConfig: config-types/roles/defaults.yaml
+      handlers:
+        validate: config-types/roles/validate
+        deploy: config-types/roles/deploy
+        rollback: config-types/roles/rollback
+        healthCheck: config-types/roles/healthCheck
+        driftDetect: config-types/roles/driftDetect
+        getStatus: config-types/roles/getStatus
+      targets:
+        componentTypes: [greenbone, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: permissions
+      group: "Access Control"
+      name: Permissions
+      description: Grant Greenbone GMP command permissions to a user/group/role, optionally scoped to a resource — applied over GMP (XML over TLS, 9390)
+      canvasTemplate: config-types/permissions/canvas.yaml
+      defaultConfig: config-types/permissions/defaults.yaml
+      handlers:
+        validate: config-types/permissions/validate
+        deploy: config-types/permissions/deploy
+        rollback: config-types/permissions/rollback
+        healthCheck: config-types/permissions/healthCheck
+        driftDetect: config-types/permissions/driftDetect
+        getStatus: config-types/permissions/getStatus
+      targets:
+        componentTypes: [greenbone, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: report-formats
+      group: "Reporting"
+      name: Report Formats
+      description: Greenbone report formats — clone + activate/rename/tune params of an existing format — applied over GMP (XML over TLS, 9390)
+      canvasTemplate: config-types/report-formats/canvas.yaml
+      defaultConfig: config-types/report-formats/defaults.yaml
+      handlers:
+        validate: config-types/report-formats/validate
+        deploy: config-types/report-formats/deploy
+        rollback: config-types/report-formats/rollback
+        healthCheck: config-types/report-formats/healthCheck
+        driftDetect: config-types/report-formats/driftDetect
+        getStatus: config-types/report-formats/getStatus
+      targets:
+        componentTypes: [greenbone, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: overrides
+      group: "Findings"
+      name: Overrides
+      description: Greenbone overrides — change the reported severity of a specific NVT's results — applied over GMP (XML over TLS, 9390)
+      canvasTemplate: config-types/overrides/canvas.yaml
+      defaultConfig: config-types/overrides/defaults.yaml
+      handlers:
+        validate: config-types/overrides/validate
+        deploy: config-types/overrides/deploy
+        rollback: config-types/overrides/rollback
+        healthCheck: config-types/overrides/healthCheck
+        driftDetect: config-types/overrides/driftDetect
+        getStatus: config-types/overrides/getStatus
+      targets:
+        componentTypes: [greenbone, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: notes
+      group: "Findings"
+      name: Notes
+      description: Greenbone notes — persistent comments on a specific NVT's results — applied over GMP (XML over TLS, 9390)
+      canvasTemplate: config-types/notes/canvas.yaml
+      defaultConfig: config-types/notes/defaults.yaml
+      handlers:
+        validate: config-types/notes/validate
+        deploy: config-types/notes/deploy
+        rollback: config-types/notes/rollback
+        healthCheck: config-types/notes/healthCheck
+        driftDetect: config-types/notes/driftDetect
+        getStatus: config-types/notes/getStatus
       targets:
         componentTypes: [greenbone, standalone]
         requiresCredential: true

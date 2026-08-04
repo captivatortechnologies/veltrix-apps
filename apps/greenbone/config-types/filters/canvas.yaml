@@ -1,0 +1,82 @@
+# =============================================================================
+# Canvas Template — Greenbone Filters
+#
+# Declares ONE Greenbone filter (the item) — a named, reusable search term
+# scoped to a resource type. Field keys must match
+# config-types/filters/validate.ts. Applied over GMP (XML over a TLS socket,
+# default port 9390) via create_filter / modify_filter / delete_filter.
+# =============================================================================
+
+id: "greenbone-filters"
+name: "Filters"
+toolType: "greenbone"
+entityType: "filters"
+description: "Manage Greenbone filters — named search terms scoped to a resource type — over GMP (XML over TLS, 9390)"
+
+item:
+  label: "Filter"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Filter"
+      icon: "filter"
+      description: "Identity and scope"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable filter name shown in Greenbone. Used as the stable identity for upsert and drift."
+
+        - key: "type"
+          label: "Resource Type"
+          fieldType: "select"
+          required: false
+          defaultValue: "task"
+          options:
+            - { label: "Task", value: "task" }
+            - { label: "Target", value: "target" }
+            - { label: "Result", value: "result" }
+            - { label: "Report", value: "report" }
+            - { label: "Host", value: "host" }
+            - { label: "OS", value: "os" }
+            - { label: "Alert", value: "alert" }
+            - { label: "Schedule", value: "schedule" }
+            - { label: "Config", value: "config" }
+            - { label: "Port List", value: "port_list" }
+            - { label: "Note", value: "note" }
+            - { label: "Override", value: "override" }
+            - { label: "Tag", value: "tag" }
+            - { label: "Permission", value: "permission" }
+            - { label: "User", value: "user" }
+            - { label: "Role", value: "role" }
+            - { label: "Group", value: "group" }
+            - { label: "Credential", value: "credential" }
+            - { label: "Report Format", value: "report_format" }
+            - { label: "Ticket", value: "ticket" }
+            - { label: "Vulnerability", value: "vuln" }
+            - { label: "SecInfo", value: "secinfo" }
+            - { label: "TLS Certificate", value: "tls_certificate" }
+            - { label: "Asset", value: "asset" }
+            - { label: "Filter", value: "filter" }
+          helpText: "GMP resource type this filter applies to. Not protocol-enforced — gvmd accepts any text here; this is the best-known set."
+
+        - key: "term"
+          label: "Term"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: 'GMP filter term syntax, e.g. "ips=1 first=1 rows=-2" or "severity>7". Leave blank for an unfiltered (match-all) filter.'
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this filter is configured — recorded in Greenbone for audit."

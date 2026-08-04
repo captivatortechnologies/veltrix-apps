@@ -1,0 +1,5 @@
+# Defaults for a new lookup-cache item. Seeds a small in-memory guava_cache as a
+# sensible starting point; the operator fills in the name/title and adjusts
+# sizing. Flat mapping of field key → default (item form).
+description: ""
+config: '{"type":"guava_cache","max_size":1000,"expire_after_access":60,"expire_after_access_unit":"SECONDS","expire_after_write":0,"expire_after_write_unit":"SECONDS"}'

@@ -1,0 +1,88 @@
+# =============================================================================
+# Canvas Template — Greenbone Tags
+#
+# Declares ONE Greenbone tag (the item) — a name/value label attached to a set
+# of resources of one resource type. Field keys must match
+# config-types/tags/validate.ts. Applied over GMP (XML over a TLS socket,
+# default port 9390) via create_tag / modify_tag / delete_tag.
+#
+# FLAG (GMP 22.5): modify always sends resources with action="set" (full
+# replace) — see lib/gmp/tags.ts's module doc.
+# =============================================================================
+
+id: "greenbone-tags"
+name: "Tags"
+toolType: "greenbone"
+entityType: "tags"
+description: "Manage Greenbone tags — name/value labels attached to a resource type + id list — over GMP (XML over TLS, 9390)"
+
+item:
+  label: "Tag"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Tag"
+      icon: "tag"
+      description: "Identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: 'Tag name, conventionally "namespace:predicate" (e.g. geo:long) though this is not schema-enforced. Used as this app''s upsert identity (gvmd itself allows duplicate tag names).'
+
+        - key: "value"
+          label: "Value"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 2000
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+
+        - key: "active"
+          label: "Active"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+
+    - name: "Attachment"
+      icon: "link"
+      description: "Which resources this tag is attached to"
+      fields:
+        - key: "resourceType"
+          label: "Resource Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "task"
+          options:
+            - { label: "Task", value: "task" }
+            - { label: "Target", value: "target" }
+            - { label: "Result", value: "result" }
+            - { label: "Report", value: "report" }
+            - { label: "Host", value: "host" }
+            - { label: "Alert", value: "alert" }
+            - { label: "Schedule", value: "schedule" }
+            - { label: "Config", value: "config" }
+            - { label: "Port List", value: "port_list" }
+            - { label: "Note", value: "note" }
+            - { label: "Override", value: "override" }
+            - { label: "User", value: "user" }
+            - { label: "Group", value: "group" }
+            - { label: "Role", value: "role" }
+          helpText: "GMP resource type this tag's resourceIds refer to."
+
+        - key: "resourceIds"
+          label: "Resource UUIDs"
+          fieldType: "tags"
+          required: false
+          helpText: "UUIDs of the resources (of the type above) this tag is attached to. Leave empty to declare the tag without attaching it to anything yet."

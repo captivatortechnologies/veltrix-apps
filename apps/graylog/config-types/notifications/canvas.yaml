@@ -1,0 +1,65 @@
+# =============================================================================
+# Canvas Template — Graylog Notifications
+#
+# Declares ONE Graylog event notification (the item) — an action (email, HTTP
+# webhook, ...) an Event Definition triggers. Users add as many as they need.
+# Field keys must match config-types/notifications/validate.ts. Applied via the
+# Graylog REST API (POST/PUT/DELETE /api/events/notifications[/{id}]).
+#
+# NOTE: reference a notification from an Event Definition by its Graylog id
+# (visible in the Graylog UI or via GET /api/events/notifications) in that
+# type's "notifications" field — this app does not resolve notification
+# TITLES to ids automatically for that cross-reference.
+# =============================================================================
+
+id: "graylog-notifications"
+name: "Notifications"
+toolType: "graylog"
+entityType: "notifications"
+description: "Manage Graylog event notifications — email/HTTP actions triggered by an Event Definition — via the Graylog REST API (/api/events/notifications)"
+
+item:
+  label: "Notification"
+  identityField: "title"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Notification"
+      icon: "bell"
+      description: "Notification identity"
+      fields:
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable notification name shown in Graylog. Used as the stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+
+    - name: "Configuration"
+      icon: "code"
+      description: "Notification implementation (JSON)"
+      fields:
+        - key: "config"
+          label: "Config (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            JSON object with a "type" discriminator selecting the notification action:
+            "email-notification-v1" (requires SMTP configured in graylog.conf, e.g.
+            {"type":"email-notification-v1","sender":"","subject":"Graylog alert: ${event_definition_title}",
+            "body_template":"...","user_recipients":[],"email_recipients":["soc@example.com"],
+            "time_zone":"UTC"}) or "http-notification-v2" (a webhook, e.g.
+            {"type":"http-notification-v2","url":"https://...","http_method":"POST",
+            "content_type":"JSON","skip_tls_verification":false,"api_key_as_header":false}).
+            "basic_auth" and "api_secret" are Graylog-encrypted fields (EncryptedValue) — set
+            one with {"set_value":"<secret>"}, and expect Graylog to echo back {"is_set":true}
+            (never the plaintext) on every subsequent read, which drift detection ignores.

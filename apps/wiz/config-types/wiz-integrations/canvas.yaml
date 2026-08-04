@@ -1,0 +1,507 @@
+# =============================================================================
+# Canvas Template — Wiz Integrations
+#
+# Declares ONE Wiz integration — the item. Users add as many as they need, one
+# per template. Integrations are the objects wiz-automation-rules' Action
+# references by `integration_id` — creating them here closes that gap (until
+# now, this app could only manage automation rules that pointed at an
+# integration created by hand in the Wiz console).
+#
+# VERIFIED against the generated Wiz GraphQL SDK type surface (terraform-
+# provider-wiz's internal/wiz Go package, github.com/AxtonGrams/terraform-
+# provider-wiz): Wiz's actual schema is ONE generic createIntegration /
+# updateIntegration / deleteIntegration mutation set with a `type` enum plus a
+# `params` union keyed by that type (CreateIntegrationParamsInput) — NOT one
+# mutation per vendor. That reference provider exposes only 3 of the 11
+# API-manageable types as separate Terraform resources (wiz_integration_jira,
+# _servicenow, _aws_sns) for a nicer HCL experience, but the underlying mutation
+# is the same generic one this file targets. IntegrationType's full enum lists
+# ~20 values; only the 11 below have a `Create*IntegrationParamsInput` in the
+# schema — the rest (Splunk, Sumo Logic, Tines, Torq, PagerDuty's own OAuth app,
+# Cortex XSOAR, ...) are OAuth/browser-flow-only and can only be created by hand
+# in the Wiz console, then referenced by id — same as wiz-automation-rules
+# already documents for its own action_template_type list.
+#
+# SECRETS: every vendor type here embeds THAT VENDOR's own secret directly in
+# the mutation (Jira password/PAT, ServiceNow password/OAuth secret, a Slack
+# incoming-webhook URL, a PagerDuty integration key, ...) — Wiz has no separate
+# credential store to reference. Every such field uses fieldType "password":
+# write-only, never read back, never compared by drift, never included in a
+# rollback restore of prior VALUES — matching this codebase's established
+# pattern for exactly this problem (see apps/orca-security's
+# notification-integrations canvas, webhookApiKey). Rollback of an item's
+# non-secret fields instead reads the PREVIOUSLY DEPLOYED canvas snapshot
+# (ctx.previousConfig), not a live API read, so a captured "prior" is always
+# whatever the operator had actually declared — never a value Wiz may or may
+# not echo back.
+#
+# Field keys must match config-types/wiz-integrations/validate.ts.
+# =============================================================================
+
+id: "wiz-integrations"
+name: "Wiz Integration"
+toolType: "wiz"
+entityType: "wiz-integrations"
+description: "Define Wiz integrations (Webhook, Slack, Slack Bot, AWS SNS, Azure Service Bus, GCP Pub/Sub, PagerDuty, Jira, ServiceNow, Opsgenie, ClickUp) as code through the GraphQL API. Reconciled by integration name — these are the objects wiz-automation-rules actions deliver to."
+
+item:
+  label: "Integration"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Integration"
+      icon: "plug"
+      description: "Name, type and project scope"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The integration name — its logical identity in the tenant, and what wiz-automation-rules' Integration ID field should reference (this app resolves the id for you at deploy time; the name is what you author against)."
+
+        - key: "integration_type"
+          label: "Integration Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "WEBHOOK"
+          options:
+            - { label: "Webhook", value: "WEBHOOK" }
+            - { label: "Slack (incoming webhook)", value: "SLACK" }
+            - { label: "Slack Bot", value: "SLACK_BOT" }
+            - { label: "AWS SNS", value: "AWS_SNS" }
+            - { label: "Azure Service Bus", value: "AZURE_SERVICE_BUS" }
+            - { label: "GCP Pub/Sub", value: "GCP_PUB_SUB" }
+            - { label: "PagerDuty", value: "PAGER_DUTY" }
+            - { label: "Jira", value: "JIRA" }
+            - { label: "ServiceNow", value: "SERVICE_NOW" }
+            - { label: "Opsgenie", value: "OPSGENIE" }
+            - { label: "ClickUp", value: "CLICK_UP" }
+          helpText: "Which Wiz integration this item manages. Fields below change based on this choice. Only these 11 types can be created through the API — every other Wiz integration type must be created by hand in the Wiz console (Settings > Integrations) and referenced by id in an automation rule."
+
+        - key: "project_id"
+          label: "Project ID"
+          fieldType: "text"
+          helpText: "Optional Wiz project id to scope this integration to. Leave empty for an unscoped (tenant-wide) integration."
+
+        - key: "is_accessible_to_all_projects"
+          label: "Accessible To All Projects"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether users with project-scoped (not just global) roles can see and use this integration."
+
+    - name: "Webhook"
+      icon: "webhook"
+      description: "Shown when Type = Webhook"
+      fields:
+        - key: "webhook_url"
+          label: "Webhook URL"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "WEBHOOK"
+          helpText: "Destination URL Wiz posts events to."
+
+        - key: "webhook_is_on_prem"
+          label: "On-Prem Endpoint"
+          fieldType: "checkbox"
+          defaultValue: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "WEBHOOK"
+          helpText: "Whether the webhook endpoint is on a private/on-prem network Wiz reaches via an Outpost."
+
+        - key: "webhook_auth_username"
+          label: "Basic Auth Username"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "WEBHOOK"
+          helpText: "Optional HTTP basic-auth username. Use this with the password below, OR the bearer token field, not both."
+
+        - key: "webhook_auth_password"
+          label: "Basic Auth Password"
+          fieldType: "password"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "WEBHOOK"
+          helpText: "Optional HTTP basic-auth password. Write-only — never read back or compared by drift."
+
+        - key: "webhook_auth_token"
+          label: "Bearer Token"
+          fieldType: "password"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "WEBHOOK"
+          helpText: "Optional bearer token sent as an Authorization header, instead of basic auth. Write-only."
+
+        - key: "webhook_headers_json"
+          label: "Custom Headers (JSON)"
+          fieldType: "textarea"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "WEBHOOK"
+          helpText: 'Optional JSON array of extra HTTP headers, e.g. [{"key":"X-Source","value":"veltrix"}].'
+
+        - key: "webhook_tls_allow_insecure"
+          label: "Allow Insecure TLS"
+          fieldType: "checkbox"
+          defaultValue: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "WEBHOOK"
+          helpText: "Skip TLS certificate validation for the webhook endpoint. Only for trusted internal endpoints."
+
+        - key: "webhook_tls_server_ca"
+          label: "Server CA Certificate"
+          fieldType: "textarea"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "WEBHOOK"
+          helpText: "Optional PEM CA certificate to validate a private/self-signed webhook endpoint."
+
+    - name: "Slack"
+      icon: "message-square"
+      description: "Shown when Type = Slack"
+      fields:
+        - key: "slack_webhook_url"
+          label: "Incoming Webhook URL"
+          fieldType: "password"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "SLACK"
+          helpText: "The Slack incoming-webhook URL (create one in Slack under Apps > Incoming Webhooks). Write-only — never read back or compared by drift."
+
+    - name: "Slack Bot"
+      icon: "bot"
+      description: "Shown when Type = Slack Bot"
+      fields:
+        - key: "slack_bot_token"
+          label: "Bot Token"
+          fieldType: "password"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "SLACK_BOT"
+          helpText: "The Slack app's bot user OAuth token (xoxb-...). Write-only."
+
+    - name: "AWS SNS"
+      icon: "cloud"
+      description: "Shown when Type = AWS SNS"
+      fields:
+        - key: "aws_sns_topic_arn"
+          label: "Topic ARN"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "AWS_SNS"
+          helpText: "The SNS topic ARN Wiz publishes to."
+
+        - key: "aws_sns_access_method_type"
+          label: "Access Method"
+          fieldType: "select"
+          defaultValue: "ASSUME_CONNECTOR_ROLE"
+          visibleWhen:
+            field: "integration_type"
+            equals: "AWS_SNS"
+          options:
+            - { label: "Assume Connector Role", value: "ASSUME_CONNECTOR_ROLE" }
+            - { label: "Assume Specified Role", value: "ASSUME_SPECIFIED_ROLE" }
+          helpText: "Whether Wiz assumes the role of an existing AWS connector, or a role you specify directly."
+
+        - key: "aws_sns_access_connector_id"
+          label: "Connector ID"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "AWS_SNS"
+          helpText: "Required when Access Method = Assume Connector Role — an existing Wiz AWS connector id."
+
+        - key: "aws_sns_customer_role_arn"
+          label: "Customer Role ARN"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "AWS_SNS"
+          helpText: "Required when Access Method = Assume Specified Role — the role Wiz assumes. Not a secret (an IAM role ARN), but its trust policy must accept Wiz's principal with your Wiz tenant id as the ExternalId."
+
+    - name: "Azure Service Bus"
+      icon: "cloud"
+      description: "Shown when Type = Azure Service Bus"
+      fields:
+        - key: "azure_service_bus_queue_url"
+          label: "Queue URL"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "AZURE_SERVICE_BUS"
+          helpText: "The Azure Service Bus queue URL Wiz publishes to."
+
+        - key: "azure_access_method_type"
+          label: "Access Method"
+          fieldType: "select"
+          defaultValue: "CONNECTOR_CREDENTIALS"
+          visibleWhen:
+            field: "integration_type"
+            equals: "AZURE_SERVICE_BUS"
+          options:
+            - { label: "Connector Credentials", value: "CONNECTOR_CREDENTIALS" }
+            - { label: "Connection String With SAS", value: "CONNECTION_STRING_WITH_SAS" }
+          helpText: "Whether Wiz uses the credentials of an existing Azure connector, or a connection string with a SAS token."
+
+        - key: "azure_access_connector_id"
+          label: "Connector ID"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "AZURE_SERVICE_BUS"
+          helpText: "Required when Access Method = Connector Credentials — an existing Wiz Azure connector id."
+
+        - key: "azure_connection_string_with_sas"
+          label: "Connection String (with SAS)"
+          fieldType: "password"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "AZURE_SERVICE_BUS"
+          helpText: "Required when Access Method = Connection String With SAS. Write-only."
+
+    - name: "GCP Pub/Sub"
+      icon: "cloud"
+      description: "Shown when Type = GCP Pub/Sub"
+      fields:
+        - key: "gcp_project_id"
+          label: "GCP Project ID"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "GCP_PUB_SUB"
+          helpText: "The Google Cloud project id the topic belongs to."
+
+        - key: "gcp_topic_id"
+          label: "Topic ID"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "GCP_PUB_SUB"
+          helpText: "The Pub/Sub topic id Wiz publishes to."
+
+        - key: "gcp_access_method_type"
+          label: "Access Method"
+          fieldType: "select"
+          defaultValue: "CONNECTOR_CREDENTIALS"
+          visibleWhen:
+            field: "integration_type"
+            equals: "GCP_PUB_SUB"
+          options:
+            - { label: "Connector Credentials", value: "CONNECTOR_CREDENTIALS" }
+            - { label: "Service Account Key", value: "SERVICE_ACCOUNT_KEY" }
+          helpText: "Whether Wiz uses the credentials of an existing GCP connector, or a dedicated service-account key."
+
+        - key: "gcp_access_connector_id"
+          label: "Connector ID"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "GCP_PUB_SUB"
+          helpText: "Required when Access Method = Connector Credentials — an existing Wiz GCP connector id."
+
+        - key: "gcp_service_account_key"
+          label: "Service Account Key (JSON)"
+          fieldType: "password"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "GCP_PUB_SUB"
+          helpText: "Required when Access Method = Service Account Key — paste the full service-account JSON key. Write-only."
+
+    - name: "PagerDuty"
+      icon: "bell"
+      description: "Shown when Type = PagerDuty"
+      fields:
+        - key: "pagerduty_integration_key"
+          label: "Integration Key"
+          fieldType: "password"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "PAGER_DUTY"
+          helpText: "The PagerDuty Events API v2 integration key. Write-only."
+
+    - name: "Jira"
+      icon: "ticket"
+      description: "Shown when Type = Jira"
+      fields:
+        - key: "jira_server_url"
+          label: "Server URL"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "JIRA"
+          helpText: "Your Jira Cloud or on-prem server URL."
+
+        - key: "jira_server_type"
+          label: "Server Type"
+          fieldType: "select"
+          defaultValue: "CLOUD"
+          visibleWhen:
+            field: "integration_type"
+            equals: "JIRA"
+          options:
+            - { label: "Cloud", value: "CLOUD" }
+            - { label: "Self-Hosted", value: "SELF_HOSTED" }
+          helpText: "Jira Cloud vs. a self-hosted (Data Center/Server) instance."
+
+        - key: "jira_is_on_prem"
+          label: "On-Prem Endpoint"
+          fieldType: "checkbox"
+          defaultValue: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "JIRA"
+          helpText: "Whether Wiz reaches this Jira instance via an Outpost on a private network."
+
+        - key: "jira_tls_allow_insecure"
+          label: "Allow Insecure TLS"
+          fieldType: "checkbox"
+          defaultValue: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "JIRA"
+
+        - key: "jira_tls_server_ca"
+          label: "Server CA Certificate"
+          fieldType: "textarea"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "JIRA"
+          helpText: "Optional PEM CA certificate for a private/self-signed Jira instance."
+
+        - key: "jira_tls_client_cert_and_key"
+          label: "Client Certificate + Private Key (PEM)"
+          fieldType: "password"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "JIRA"
+          helpText: "Optional mutual-TLS client certificate and private key, PEM-encoded together. Write-only."
+
+        - key: "jira_auth_username"
+          label: "Username"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "JIRA"
+          helpText: "The Jira user's email (Cloud) or username (self-hosted) with permission to create tickets. Pair with the password below, or use a personal access token instead for self-hosted instances."
+
+        - key: "jira_auth_password"
+          label: "Password / API Token"
+          fieldType: "password"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "JIRA"
+          helpText: "The Jira Cloud API token, or self-hosted password. Write-only."
+
+        - key: "jira_auth_pat"
+          label: "Personal Access Token"
+          fieldType: "password"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "JIRA"
+          helpText: "Self-hosted only — a personal access token, used instead of username/password. Write-only."
+
+    - name: "ServiceNow"
+      icon: "ticket"
+      description: "Shown when Type = ServiceNow"
+      fields:
+        - key: "servicenow_url"
+          label: "Instance URL"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "SERVICE_NOW"
+          helpText: "Your ServiceNow instance URL."
+
+        - key: "servicenow_auth_username"
+          label: "Username"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "SERVICE_NOW"
+          helpText: "A ServiceNow user with permission to create tickets."
+
+        - key: "servicenow_auth_password"
+          label: "Password"
+          fieldType: "password"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "SERVICE_NOW"
+          helpText: "Write-only — never read back or compared by drift."
+
+        - key: "servicenow_auth_client_id"
+          label: "OAuth Client ID"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "SERVICE_NOW"
+          helpText: "Optional — set this and the OAuth client secret to use OAuth instead of basic auth alone."
+
+        - key: "servicenow_auth_client_secret"
+          label: "OAuth Client Secret"
+          fieldType: "password"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "SERVICE_NOW"
+          helpText: "Write-only."
+
+    - name: "Opsgenie"
+      icon: "bell"
+      description: "Shown when Type = Opsgenie"
+      fields:
+        - key: "opsgenie_key"
+          label: "API Key"
+          fieldType: "password"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "OPSGENIE"
+          helpText: "The Opsgenie API integration key. Write-only."
+
+    - name: "ClickUp"
+      icon: "check-square"
+      description: "Shown when Type = ClickUp"
+      fields:
+        - key: "clickup_key"
+          label: "API Key"
+          fieldType: "password"
+          required: false
+          visibleWhen:
+            field: "integration_type"
+            equals: "CLICK_UP"
+          helpText: "The ClickUp personal API token. Write-only."

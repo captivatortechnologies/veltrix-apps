@@ -1,0 +1,127 @@
+# =============================================================================
+# Canvas Template — Graylog Lookup Tables
+#
+# Declares ONE Graylog lookup table (the item) — the named %{lookup(...)} query
+# surface pipeline rules and other config reference, wiring a cache to a data
+# adapter. Users add as many as they need. Field keys must match
+# config-types/lookup-tables/validate.ts. Applied via the Graylog REST API
+# (POST/PUT/DELETE /api/system/lookup/tables[/{idOrName}]).
+#
+# NOTE: create the referenced cache and data adapter first (see the "Lookup
+# Caches" and "Lookup Data Adapters" configuration types) — their names are
+# resolved to ids at deploy time.
+# =============================================================================
+
+id: "graylog-lookup-tables"
+name: "Lookup Tables"
+toolType: "graylog"
+entityType: "lookup-tables"
+description: "Manage Graylog lookup tables — wiring a cache to a data adapter for pipeline-rule lookups — via the Graylog REST API (/api/system/lookup/tables)"
+
+item:
+  label: "Lookup Table"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Table"
+      icon: "table"
+      description: "Table identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "Machine-readable identifier (lowercase, letters/digits/dots/underscores/hyphens). Used as the stable identity for upsert and drift, and as the reference name pipeline rules use for lookup_table(...)."
+
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable table name shown in Graylog."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+
+    - name: "Wiring"
+      icon: "git-merge"
+      description: "Cache and data adapter this table uses"
+      fields:
+        - key: "cache_name"
+          label: "Cache Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "Name of the lookup cache to use (see the \"Lookup Caches\" configuration type). Resolved to the cache's id at deploy time."
+
+        - key: "data_adapter_name"
+          label: "Data Adapter Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "Name of the lookup data adapter to read from (see the \"Lookup Data Adapters\" configuration type). Resolved to the adapter's id at deploy time."
+
+    - name: "Defaults"
+      icon: "sliders"
+      description: "Fallback values when a key is not found"
+      fields:
+        - key: "default_single_value"
+          label: "Default Single Value"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Value returned by lookup_value(...) when the key is not found. Leave blank with type NULL for no default."
+
+        - key: "default_single_value_type"
+          label: "Default Single Value Type"
+          fieldType: "select"
+          required: false
+          defaultValue: "NULL"
+          options:
+            - label: "None"
+              value: "NULL"
+            - label: "String"
+              value: "STRING"
+            - label: "Number"
+              value: "NUMBER"
+            - label: "Boolean"
+              value: "BOOLEAN"
+            - label: "Object (JSON)"
+              value: "OBJECT"
+
+        - key: "default_multi_value"
+          label: "Default Multi Value"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Value returned by lookup(...) when the key is not found. Leave blank with type NULL for no default."
+
+        - key: "default_multi_value_type"
+          label: "Default Multi Value Type"
+          fieldType: "select"
+          required: false
+          defaultValue: "NULL"
+          options:
+            - label: "None"
+              value: "NULL"
+            - label: "String"
+              value: "STRING"
+            - label: "Number"
+              value: "NUMBER"
+            - label: "Boolean"
+              value: "BOOLEAN"
+            - label: "Object (JSON)"
+              value: "OBJECT"

@@ -1,0 +1,107 @@
+# =============================================================================
+# Canvas Template — Greenbone Overrides
+#
+# Declares ONE Greenbone override (the item) — a persistent rule that changes
+# the reported SEVERITY of a specific NVT's results (a risk-acceptance /
+# false-positive annotation). Field keys must match
+# config-types/overrides/validate.ts. Applied over GMP (XML over a TLS socket,
+# default port 9390) via create_override / modify_override / delete_override.
+#
+# IDENTITY: an override has no name field — this app tracks identity by the
+# canvas item itself (recorded in rollbackData across deploys), NOT by
+# content matching (same precedent as apps/pfsense/config-types/
+# firewall-rules for a resource with no name field).
+# =============================================================================
+
+id: "greenbone-overrides"
+name: "Overrides"
+toolType: "greenbone"
+entityType: "overrides"
+description: "Manage Greenbone overrides — change the reported severity of a specific NVT's results — over GMP (XML over TLS, 9390). Identity is tracked per canvas item (overrides have no name field)."
+
+item:
+  label: "Override"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Override"
+      icon: "shield-alert"
+      description: "What this override says, and about which NVT"
+      fields:
+        - key: "text"
+          label: "Text"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 2000
+          helpText: "Why this override exists — shown alongside the affected results in Greenbone."
+
+        - key: "nvtOid"
+          label: "NVT OID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[0-9.]+$"
+          helpText: "OID of the NVT this override applies to, e.g. 1.3.6.1.4.1.25623.1.0.12345."
+
+        - key: "newSeverity"
+          label: "New Severity"
+          fieldType: "number"
+          required: true
+          validation:
+            min: -1
+            max: 10
+          helpText: "Severity to report instead (0.0–10.0). -1 = False Positive, 0 = Log."
+
+        - key: "severity"
+          label: "Match Severity"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+            max: 10
+          helpText: "Optional — only apply this override to results at exactly this severity. Leave blank to match any severity."
+
+    - name: "Scope"
+      icon: "crosshair"
+      description: "Optional scoping — leave blank for the widest applicable scope"
+      fields:
+        - key: "hosts"
+          label: "Hosts"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Comma-separated hosts this override applies to. Leave blank to apply to all hosts."
+
+        - key: "port"
+          label: "Port"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^\\d{1,5}/(tcp|udp)$"
+          helpText: "Optional port/protocol, e.g. 80/tcp."
+
+        - key: "taskId"
+          label: "Task UUID"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          helpText: "Optional — scope this override to one scan task."
+
+        - key: "resultId"
+          label: "Result UUID"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          helpText: "Optional — scope this override to one specific scan result (a point-in-time finding)."
+
+        - key: "daysActive"
+          label: "Active For (days)"
+          fieldType: "number"
+          required: false
+          defaultValue: -1
+          helpText: "-1 = always active, 0 = inactive, N = active for N days from now."

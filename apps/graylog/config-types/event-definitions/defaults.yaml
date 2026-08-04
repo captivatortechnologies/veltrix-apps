@@ -1,0 +1,15 @@
+# Defaults for a new event-definition item. Seeds a medium-priority, enabled
+# aggregation definition with no notifications attached; the operator fills in
+# the title and the aggregation query/stream. Flat mapping of field key →
+# default (item form).
+description: ""
+priority: "2"
+alert: true
+enabled: true
+config: '{"type":"aggregation-v1","query":"","streams":[],"group_by":[],"series":[{"id":"count-1","function":"count","field":null}],"conditions":null,"search_within_ms":60000,"execute_every_ms":60000,"use_cron_scheduling":false}'
+field_spec: "{}"
+key_spec: "[]"
+notification_settings: '{"grace_period_ms":0,"backlog_size":0}'
+notifications: "[]"
+storage: "[]"
+tags: "[]"

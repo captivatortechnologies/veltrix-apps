@@ -1,0 +1,88 @@
+# =============================================================================
+# Canvas Template — Wiz Host Configuration Rules
+#
+# Declares ONE Wiz custom Host Configuration Rule — the item. Users add as many
+# as they need. Host Configuration Rules are the host/OS-assessment counterpart
+# to Cloud Configuration Rules (wiz-cloud-config-rules): each rule evaluates a
+# host's configuration against an OVAL (Open Vulnerability and Assessment
+# Language) definition instead of a cloud resource against Rego — the same
+# policy language behind Wiz's built-in CIS-benchmark host rules.
+#
+# VERIFIED shape: `createHostConfigurationRule` / `updateHostConfigurationRule`
+# / `deleteHostConfigurationRule` and the `hostConfigurationRules` list query
+# are all defined with full input/output types in terraform-provider-wiz's
+# generated internal/wiz Go package (github.com/AxtonGrams/terraform-provider-
+# wiz) — the `hostConfigurationRules` list query itself is directly verified
+# (it backs that provider's shipped `wiz_host_config_rules` data source).
+#
+# CAVEAT — operate with a little more caution than this app's other config
+# types: the reference provider defines the create/update/delete Go types for
+# this mutation but has never wired them into a working Terraform resource (it
+# only ships `wiz_host_config_rule_associations`, which maps EXISTING rules to
+# security sub-categories — a mapping this app already covers inline via the
+# `security_sub_categories` field on Controls and Cloud Configuration Rules).
+# This app implements the mutation directly against the verified input/output
+# shape; treat any deploy error here as a signal to check current Wiz
+# entitlements/support before assuming a bug in this app.
+#
+# Field keys must match config-types/wiz-host-config-rules/validate.ts.
+# =============================================================================
+
+id: "wiz-host-config-rules"
+name: "Wiz Host Configuration Rule"
+toolType: "wiz"
+entityType: "wiz-host-config-rules"
+description: "Define Wiz custom Host Configuration Rules (OVAL-based host/OS assessment, the host counterpart to Cloud Configuration Rules) as code through the GraphQL API. Reconciled by rule name against custom (non-builtin) rules."
+
+item:
+  label: "Host Configuration Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Rule"
+      icon: "shield-check"
+      description: "Name and state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The rule name — its logical identity among custom host configuration rules."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Wiz console."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the rule is active and evaluated."
+
+    - name: "Detection"
+      icon: "radar"
+      description: "What the rule targets and how it evaluates"
+      fields:
+        - key: "target_platform_ids"
+          label: "Target Platform IDs"
+          fieldType: "tags"
+          required: true
+          helpText: "The Wiz technology/platform ids this rule targets (e.g. specific OS/distribution ids) — find them in the Wiz console under Settings > Host Configuration Rules > Add Rule. At least one is required."
+
+        - key: "direct_oval"
+          label: "OVAL Definition"
+          fieldType: "textarea"
+          required: true
+          helpText: "The OVAL (Open Vulnerability and Assessment Language) definition evaluated against the host's configuration — the same policy language behind Wiz's built-in CIS-benchmark host rules."
+
+    - name: "Response"
+      icon: "list-tree"
+      description: "Framework mapping"
+      fields:
+        - key: "security_sub_categories"
+          label: "Security Sub-Category IDs"
+          fieldType: "tags"
+          helpText: "Optional Wiz security sub-category ids mapping this rule to a framework (same ids used by Controls, Cloud Configuration Rules and Security Frameworks)."

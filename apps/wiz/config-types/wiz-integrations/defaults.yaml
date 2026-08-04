@@ -1,0 +1,8 @@
+# Defaults for a new Wiz integration item.
+#
+# Intentionally empty: the platform starts a new item blank and users manage
+# their own default value sets. Any values here would be a FLAT map keyed by the
+# canvas field keys (name, integration_type, project_id,
+# is_accessible_to_all_projects, plus the per-type fields documented in
+# canvas.yaml — e.g. webhook_url/webhook_auth_password for WEBHOOK,
+# jira_server_url/jira_auth_password for JIRA, ...).

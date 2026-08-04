@@ -1,0 +1,150 @@
+# =============================================================================
+# Canvas Template — Graylog Extractors
+#
+# Declares ONE Graylog extractor (the item) attached to ONE input. Users add as
+# many as they need. Field keys must match config-types/extractors/validate.ts.
+# Applied via the Graylog REST API (POST/PUT/DELETE
+# /api/system/inputs/{inputId}/extractors[/{extractorId}]).
+#
+# NOTE: an extractor's true identity is the PAIR (input, title) — Graylog
+# assigns the extractor id. Two items with the same title are fine as long as
+# they target different inputs.
+# =============================================================================
+
+id: "graylog-extractors"
+name: "Extractors"
+toolType: "graylog"
+entityType: "extractors"
+description: "Manage Graylog input extractors — field extraction/parsing rules attached to a message input — via the Graylog REST API (/api/system/inputs/{inputId}/extractors)"
+
+item:
+  label: "Extractor"
+  identityField: "title"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "download"
+      description: "Which input this extractor attaches to"
+      fields:
+        - key: "input_title"
+          label: "Input Title"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Title of the Graylog input this extractor attaches to (see the \"Inputs\" configuration type). Resolved to the input's id at deploy time."
+
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable extractor name. Unique within the input above."
+
+    - name: "Extraction"
+      icon: "filter"
+      description: "What to extract and how"
+      fields:
+        - key: "extractor_type"
+          label: "Extractor Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "GROK"
+          options:
+            - label: "Substring"
+              value: "SUBSTRING"
+            - label: "Regular expression"
+              value: "REGEX"
+            - label: "Regular expression (replace)"
+              value: "REGEX_REPLACE"
+            - label: "Split & index"
+              value: "SPLIT_AND_INDEX"
+            - label: "Copy input"
+              value: "COPY_INPUT"
+            - label: "Grok pattern"
+              value: "GROK"
+            - label: "JSON"
+              value: "JSON"
+            - label: "Lookup table"
+              value: "LOOKUP_TABLE"
+          helpText: "Extractor algorithm. See the Graylog docs for the extractor_config keys each type expects."
+
+        - key: "cursor_strategy"
+          label: "Cursor Strategy"
+          fieldType: "select"
+          required: false
+          defaultValue: "COPY"
+          options:
+            - label: "Copy (leave the source field intact)"
+              value: "COPY"
+            - label: "Cut (remove the extracted portion from the source field)"
+              value: "CUT"
+
+        - key: "source_field"
+          label: "Source Field"
+          fieldType: "text"
+          required: false
+          defaultValue: "message"
+          validation:
+            maxLength: 255
+          helpText: "Message field to read from. Defaults to \"message\" (the raw log line)."
+
+        - key: "target_field"
+          label: "Target Field"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Message field the extracted value is written to."
+
+        - key: "extractor_config"
+          label: "Extractor Config (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            JSON object of the extractor type's own config keys — e.g. GROK takes
+            {"grok_pattern":"%{IP:client_ip}","named_captures_only":true}, REGEX takes
+            {"regex_value":"..."}, JSON takes {"flatten":true,"list_separator":", "}.
+
+        - key: "converters"
+          label: "Converters (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            JSON array of post-extraction converters, e.g.
+            [{"type":"uppercase","config":{}}]. Leave empty ([]) for none.
+
+    - name: "Condition"
+      icon: "code"
+      description: "When this extractor runs"
+      fields:
+        - key: "condition_type"
+          label: "Condition Type"
+          fieldType: "select"
+          required: false
+          defaultValue: "NONE"
+          options:
+            - label: "Always run"
+              value: "NONE"
+            - label: "Only if source field contains string"
+              value: "STRING"
+            - label: "Only if source field matches regular expression"
+              value: "REGEX"
+
+        - key: "condition_value"
+          label: "Condition Value"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "The string or regular expression to test the source field against. Required unless Condition Type is \"Always run\"."
+
+        - key: "order"
+          label: "Order"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+          helpText: "Run order among the input's extractors (lower runs first)."

@@ -1,0 +1,63 @@
+# =============================================================================
+# Canvas Template — Graylog Lookup Caches
+#
+# Declares ONE Graylog lookup cache (the item) — the caching layer a lookup
+# table sits in front of a data adapter with. Users add as many as they need.
+# Field keys must match config-types/lookup-caches/validate.ts. Applied via the
+# Graylog REST API (POST/PUT/DELETE /api/system/lookup/caches[/{idOrName}]).
+# =============================================================================
+
+id: "graylog-lookup-caches"
+name: "Lookup Caches"
+toolType: "graylog"
+entityType: "lookup-caches"
+description: "Manage Graylog lookup-table caches — the caching layer in front of a lookup data adapter — via the Graylog REST API (/api/system/lookup/caches)"
+
+item:
+  label: "Lookup Cache"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Cache"
+      icon: "database"
+      description: "Cache identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "Machine-readable identifier (lowercase, letters/digits/dots/underscores/hyphens). Used as the stable identity for upsert, drift and lookup-table references."
+
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable cache name shown in Graylog."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+
+    - name: "Configuration"
+      icon: "code"
+      description: "Cache implementation (JSON)"
+      fields:
+        - key: "config"
+          label: "Config (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            JSON object with a "type" discriminator selecting the cache implementation:
+            "guava_cache" (in-memory, e.g. {"type":"guava_cache","max_size":1000,
+            "expire_after_access":60,"expire_after_access_unit":"SECONDS","expire_after_write":0,
+            "expire_after_write_unit":"SECONDS"}) or "none" (no caching — every lookup hits the
+            adapter directly, e.g. {"type":"none"}).

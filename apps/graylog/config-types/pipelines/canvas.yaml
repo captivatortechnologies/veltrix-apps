@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — Graylog Pipelines
+#
+# Declares ONE Graylog processing pipeline (the item) — the stage/rule structure
+# that routes messages through pipeline rules. Users add as many as they need.
+# Field keys must match config-types/pipelines/validate.ts. Applied via the
+# Graylog REST API (POST/PUT /api/system/pipelines/pipeline,
+# DELETE /api/system/pipelines/pipeline/{id}).
+#
+# NOTE: Graylog names the pipeline from its DSL source (pipeline "NAME"), so the
+# Title below MUST match that name — validate.ts enforces this. Connect a
+# pipeline to streams with the "Pipeline Connections" configuration type.
+# =============================================================================
+
+id: "graylog-pipelines"
+name: "Pipelines"
+toolType: "graylog"
+entityType: "pipelines"
+description: "Manage Graylog processing pipelines — title, description and stage/rule DSL source — via the Graylog REST API (/api/system/pipelines/pipeline)"
+
+item:
+  label: "Pipeline"
+  identityField: "title"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Pipeline"
+      icon: "git-branch"
+      description: "Pipeline identity"
+      fields:
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Pipeline name. Must match the pipeline name in the source below (pipeline \"...\") — Graylog names the pipeline from its DSL. Cannot be \"Default Routing\" (reserved)."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this pipeline does — recorded on the pipeline in Graylog."
+
+    - name: "Source"
+      icon: "code"
+      description: "Pipeline DSL source (stages + rule references)"
+      fields:
+        - key: "source"
+          label: "Pipeline source (DSL)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            Graylog pipeline DSL. Structure: pipeline "name" stage <n> match either/all
+            rule "rule-name" [rule "other-rule"] ... stage <n+1> ... end. Rules referenced
+            by name must exist (see the "Pipeline Rules" configuration type).

@@ -1,0 +1,42 @@
+# =============================================================================
+# Canvas Template — Graylog Grok Patterns
+#
+# Declares ONE named Graylog grok pattern (the item), referenced as %{NAME} from
+# other grok patterns, GROK-type extractors and pipeline rules. Users add as
+# many as they need. Field keys must match
+# config-types/grok-patterns/validate.ts. Applied via the Graylog REST API
+# (POST/PUT/DELETE /api/system/grok[/{patternId}]).
+# =============================================================================
+
+id: "graylog-grok-patterns"
+name: "Grok Patterns"
+toolType: "graylog"
+entityType: "grok-patterns"
+description: "Manage Graylog grok patterns — named regular-expression building blocks used by extractors and pipeline rules — via the Graylog REST API (/api/system/grok)"
+
+item:
+  label: "Grok Pattern"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Pattern"
+      icon: "code"
+      description: "Pattern name and definition"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "Pattern name (letters, digits, underscores only). Referenced elsewhere as %{NAME}. Used as the stable identity for upsert and drift."
+
+        - key: "pattern"
+          label: "Pattern"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The grok pattern definition — a regular expression that may reference other
+            named patterns, e.g. %{IPV4:client_ip}:%{POSINT:client_port}.

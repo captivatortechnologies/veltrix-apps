@@ -1,0 +1,201 @@
+# =============================================================================
+# Canvas Template — Greenbone Alerts
+#
+# Declares ONE Greenbone alert (the item): fire METHOD when CONDITION on EVENT
+# is met. Field keys must match config-types/alerts/validate.ts. Applied over
+# GMP (XML over a TLS socket, default port 9390) via create_alert /
+# modify_alert / delete_alert.
+#
+# FLAG (GMP 22.5): only secret-free methods are offered (Email/HTTP Get/
+# Syslog/Start Task/SNMP) — see lib/gmp/alerts.ts's module doc for why
+# SCP/SMB/TippingPoint SMS/verinice Connector are excluded (they store a
+# Credential UUID reference; this app does not manage GMP credentials).
+# =============================================================================
+
+id: "greenbone-alerts"
+name: "Alerts"
+toolType: "greenbone"
+entityType: "alerts"
+description: "Manage Greenbone alerts — event/condition/method (secret-free methods only) — over GMP (XML over TLS, 9390)"
+
+item:
+  label: "Alert"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Alert"
+      icon: "bell"
+      description: "Identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable alert name shown in Greenbone. Used as the stable identity for upsert and drift."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this alert is configured — recorded in Greenbone for audit."
+
+    - name: "Trigger"
+      icon: "zap"
+      description: "The event and condition that fire this alert"
+      fields:
+        - key: "event"
+          label: "Event"
+          fieldType: "select"
+          required: true
+          defaultValue: "Task run status changed"
+          options:
+            - { label: "Task run status changed", value: "Task run status changed" }
+            - { label: "New SecInfo arrived", value: "New SecInfo arrived" }
+            - { label: "Updated SecInfo arrived", value: "Updated SecInfo arrived" }
+            - { label: "Ticket received", value: "Ticket received" }
+            - { label: "Assigned ticket changed", value: "Assigned ticket changed" }
+            - { label: "Owned ticket changed", value: "Owned ticket changed" }
+          helpText: "What triggers this alert."
+
+        - key: "eventStatus"
+          label: "Task Status"
+          fieldType: "select"
+          required: false
+          defaultValue: "Done"
+          visibleWhen: { field: "event", equals: "Task run status changed" }
+          options:
+            - { label: "Done", value: "Done" }
+            - { label: "New", value: "New" }
+            - { label: "Requested", value: "Requested" }
+            - { label: "Running", value: "Running" }
+            - { label: "Stop Requested", value: "Stop Requested" }
+            - { label: "Stopped", value: "Stopped" }
+          helpText: "Which task status transition fires the event. Other statuses may exist depending on your GMP version."
+
+        - key: "condition"
+          label: "Condition"
+          fieldType: "select"
+          required: true
+          defaultValue: "Always"
+          options:
+            - { label: "Always", value: "Always" }
+            - { label: "Error", value: "Error" }
+            - { label: "Severity at least", value: "Severity at least" }
+            - { label: "Severity changed", value: "Severity changed" }
+            - { label: "Filter count changed", value: "Filter count changed" }
+            - { label: "Filter count at least", value: "Filter count at least" }
+          helpText: "Additional condition the event must also satisfy."
+
+        - key: "conditionSeverity"
+          label: "Minimum Severity"
+          fieldType: "number"
+          required: false
+          visibleWhen: { field: "condition", equals: "Severity at least" }
+          validation:
+            min: 0
+            max: 10
+          helpText: "Fire only when severity is at least this value (0.0–10.0)."
+
+        - key: "conditionFilterId"
+          label: "Filter UUID"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "condition", in: ["Filter count changed", "Filter count at least"] }
+          validation:
+            pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          helpText: "UUID of a Greenbone filter (see the Filters config type) this condition counts against."
+
+        - key: "conditionFilterCount"
+          label: "Minimum Filter Count"
+          fieldType: "number"
+          required: false
+          visibleWhen: { field: "condition", equals: "Filter count at least" }
+          validation:
+            min: 0
+          helpText: "Fire only when at least this many results match the filter."
+
+    - name: "Method"
+      icon: "send"
+      description: "How the alert notifies (secret-free methods only — see the module notes)"
+      fields:
+        - key: "method"
+          label: "Method"
+          fieldType: "select"
+          required: true
+          defaultValue: "Email"
+          options:
+            - { label: "Email", value: "Email" }
+            - { label: "HTTP Get", value: "HTTP Get" }
+            - { label: "Syslog", value: "Syslog" }
+            - { label: "Start Task", value: "Start Task" }
+            - { label: "SNMP", value: "SNMP" }
+          helpText: "SCP, SMB, TippingPoint SMS and verinice Connector are not offered — they store a Credential UUID this app does not manage."
+
+        - key: "emailTo"
+          label: "To Address"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "method", equals: "Email" }
+          helpText: "Recipient email address."
+
+        - key: "emailFrom"
+          label: "From Address"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "method", equals: "Email" }
+          helpText: "Sender email address gvmd sends as."
+
+        - key: "emailSubject"
+          label: "Subject"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "method", equals: "Email" }
+
+        - key: "emailBody"
+          label: "Message"
+          fieldType: "textarea"
+          required: false
+          visibleWhen: { field: "method", equals: "Email" }
+          validation:
+            maxLength: 5000
+
+        - key: "httpUrl"
+          label: "URL"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "method", equals: "HTTP Get" }
+          helpText: "URL gvmd sends an HTTP GET to when the alert fires."
+
+        - key: "startTaskId"
+          label: "Task UUID to Start"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "method", equals: "Start Task" }
+          validation:
+            pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          helpText: "UUID of a Greenbone scan task (see the Scan Tasks config type) to start when the alert fires."
+
+        - key: "snmpAgent"
+          label: "SNMP Destination Host"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "method", equals: "SNMP" }
+
+        - key: "snmpCommunity"
+          label: "SNMP Community"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "method", equals: "SNMP" }
+          helpText: "Sent as a plaintext inline alert field by gvmd (not a vaulted credential)."
+
+        - key: "snmpMessage"
+          label: "SNMP Message"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "method", equals: "SNMP" }

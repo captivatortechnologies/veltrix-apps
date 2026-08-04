@@ -1,0 +1,5 @@
+# Defaults for a new output item. Seeds a GELF/TCP output (Graylog's bundled
+# forwarding output) as a sensible starting point; the operator fills in the
+# title and destination. Flat mapping of field key → default (item form).
+type: "org.graylog2.outputs.GelfOutput"
+configuration: '{"protocol":"TCP","hostname":"","port":12201,"tls_verification_enabled":false}'
