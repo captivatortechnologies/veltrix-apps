@@ -1,0 +1,106 @@
+# =============================================================================
+# Canvas Template — Cortex XDR Legacy Exceptions
+#
+# Declares ONE prevention-module exception rule (the item) — an allow-listed
+# hash / path / signer / command that bypasses a named protection module on
+# matching endpoints. Users add as many as they need. The NAME is the identity
+# used to reconcile — Cortex assigns a string exception id server-side on add,
+# so this type looks up the live exception by name and edits it by id, or adds
+# a new one. Field keys must match config-types/legacy-exceptions/validate.ts.
+# Applied over the Cortex XDR public REST API (legacy_exceptions/fetch, /add,
+# /edit, /delete) — a CONFIRMED full CRUD surface, base-license (no Cortex Cloud
+# add-on required — see the README).
+#
+# VERIFY the exact `module` id values (look them up via
+# /legacy_exceptions/get_modules/ or the console), the accepted platform values
+# and the module-specific `conditions` shape against a live Cortex XDR tenant.
+# =============================================================================
+
+id: "cortex-xdr-legacy-exceptions"
+name: "Cortex XDR Legacy Exceptions"
+toolType: "cortex-xdr"
+entityType: "legacy-exceptions"
+description: "Manage Cortex XDR prevention-module exceptions — allow-listed hash/path/signer/command bypasses scoped by platform, module and profile — via the Cortex XDR public REST API."
+
+item:
+  label: "Legacy Exception"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Exception"
+      icon: "shield-off"
+      description: "Identity and where it applies"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The exception's name — its stable identity for reconciliation. Unique within this canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+
+        - key: "platform"
+          label: "Platform"
+          fieldType: "select"
+          required: true
+          defaultValue: "windows"
+          options:
+            - { label: "Windows", value: "windows" }
+            - { label: "Linux", value: "linux" }
+            - { label: "macOS", value: "macos" }
+          helpText: "VERIFY the exact accepted values against your Cortex XDR tenant."
+
+        - key: "module"
+          label: "Module ID"
+          fieldType: "number"
+          required: true
+          helpText: "The numeric id of the prevention module this exception bypasses. Look it up via /legacy_exceptions/get_modules/ or the console (Endpoints > Policy Exceptions)."
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          required: true
+          defaultValue: "enabled"
+          options:
+            - { label: "Enabled", value: "enabled" }
+            - { label: "Disabled", value: "disabled" }
+
+    - name: "Scope"
+      icon: "target"
+      description: "Which endpoints this exception applies to"
+      fields:
+        - key: "scope"
+          label: "Scope"
+          fieldType: "select"
+          required: true
+          defaultValue: "global"
+          options:
+            - { label: "Global (all endpoints)", value: "global" }
+            - { label: "Specific profiles", value: "profile" }
+
+        - key: "profile_ids"
+          label: "Profile IDs"
+          fieldType: "tags"
+          required: false
+          helpText: "Prevention profile ids this exception is scoped to. Required when Scope is \"Specific profiles\"."
+
+    - name: "Conditions"
+      icon: "filter"
+      description: "What matches this exception"
+      fields:
+        - key: "conditions"
+          label: "Conditions (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 4000
+          helpText: 'The module-specific match criteria as a JSON object, e.g. { "hash": "..." }, { "path": "..." }, { "signer": "..." } or { "command": "..." } — the accepted keys depend on the module. VERIFY the exact shape for your chosen module via /legacy_exceptions/get_modules/.'

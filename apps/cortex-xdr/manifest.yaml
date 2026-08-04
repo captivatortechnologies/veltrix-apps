@@ -1,17 +1,21 @@
 id: cortex-xdr
 name: Cortex XDR
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Palo Alto Networks Cortex XDR configuration as code. Author threat
-  indicators (IOCs), hash exceptions (allow / block lists), endpoint groups and
-  alert exclusions, and drive them through the Security-as-Code pipeline —
+  indicators (IOCs), behavioral indicators (BIOC), correlation rules, hash
+  exceptions, endpoint groups, legacy exceptions, prevention profiles, agent
+  configuration settings, syslog integrations, external applications and alert
+  notification rules, and drive them through the Security-as-Code pipeline —
   validate, deploy, health check, drift detection and rollback — over the Cortex
   XDR public REST API (POST { request_data }, x-xdr-auth-id + Authorization
-  Standard auth). The connection endpoint is your Cortex XDR tenant API FQDN.
-  NOTE: the Cortex XDR public API is limited for config writes — only IOCs and
-  hash exceptions have confirmed write paths; endpoint-group and alert-exclusion
-  writes are best-effort against unverified endpoints (see the README).
+  Standard auth) and the newer Cortex Platform REST API
+  (platform/notifications/v1, platform/integration/v1). The connection endpoint
+  is your Cortex XDR tenant API FQDN. NOTE: alert-exclusion (suppression)
+  writes remain best-effort against unverified endpoints — the public API
+  documents no alert-exclusion management surface (see the README Coverage
+  section for the full endpoint-by-endpoint audit).
 category: EDR
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cortex-xdr
@@ -42,6 +46,30 @@ permissions:
     - resource: alert-exclusions
       actions: [read, write, delete]
       description: Manage Cortex XDR alert exclusions — no public API documented; deploy is best-effort (speculative)
+    - resource: biocs
+      actions: [read, write, delete]
+      description: Manage Cortex XDR Behavioral Indicators of Compromise (BIOC) — insert / update / delete
+    - resource: correlation-rules
+      actions: [read, write, delete]
+      description: Manage Cortex XDR correlation rules (XQL-based detections) — insert / update / delete
+    - resource: legacy-exceptions
+      actions: [read, write, delete]
+      description: Manage Cortex XDR prevention-module exceptions (base-license) — add / edit / delete
+    - resource: prevention-profiles
+      actions: [read, write]
+      description: Manage Cortex XDR prevention (agent security policy) profiles — add / edit (no public delete endpoint)
+    - resource: agent-configuration-settings
+      actions: [read, write]
+      description: Manage Cortex XDR tenant-wide agent configuration settings (content management, lifecycle, diagnostics)
+    - resource: syslog-integrations
+      actions: [read, write, delete]
+      description: Manage Cortex XDR syslog forwarding destinations — a confirmed full CRUD surface
+    - resource: external-applications
+      actions: [read, write, delete]
+      description: Manage Cortex XDR external application integrations (webhook, Splunk, AWS SQS/S3, syslog routing) via the Cortex Platform REST API
+    - resource: alert-notification-rules
+      actions: [read, write, delete]
+      description: Manage Cortex XDR alert notification (routing) rules via the Cortex Platform REST API
 
 pipeline:
   configurationTypes:
@@ -130,6 +158,192 @@ pipeline:
         healthCheck: config-types/alert-exclusions/healthCheck
         driftDetect: config-types/alert-exclusions/driftDetect
         getStatus: config-types/alert-exclusions/getStatus
+      targets:
+        componentTypes: [cortex-xdr-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: biocs
+      group: "Threat Intelligence"
+      name: Behavioral Indicators (BIOC)
+      description: >
+        Cortex XDR Behavioral Indicators of Compromise — name, MITRE-style
+        category, severity, status and match criteria — applied over the
+        confirmed public REST API (bioc/get, bioc/insert, bioc/delete). Same
+        get/insert/delete-by-filter shape as Threat Indicators (IOCs).
+      canvasTemplate: config-types/biocs/canvas.yaml
+      defaultConfig: config-types/biocs/defaults.yaml
+      handlers:
+        validate: config-types/biocs/validate
+        deploy: config-types/biocs/deploy
+        rollback: config-types/biocs/rollback
+        healthCheck: config-types/biocs/healthCheck
+        driftDetect: config-types/biocs/driftDetect
+        getStatus: config-types/biocs/getStatus
+      targets:
+        componentTypes: [cortex-xdr-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: correlation-rules
+      group: "Detection & Response"
+      name: Correlation Rules
+      description: >
+        Cortex XDR correlation rules — XQL query, severity, schedule and alert
+        mapping — applied over the confirmed public REST API
+        (correlations/get, correlations/insert, correlations/delete).
+      canvasTemplate: config-types/correlation-rules/canvas.yaml
+      defaultConfig: config-types/correlation-rules/defaults.yaml
+      handlers:
+        validate: config-types/correlation-rules/validate
+        deploy: config-types/correlation-rules/deploy
+        rollback: config-types/correlation-rules/rollback
+        healthCheck: config-types/correlation-rules/healthCheck
+        driftDetect: config-types/correlation-rules/driftDetect
+        getStatus: config-types/correlation-rules/getStatus
+      targets:
+        componentTypes: [cortex-xdr-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: legacy-exceptions
+      group: "Endpoint Protection"
+      name: Legacy Exceptions
+      description: >
+        Cortex XDR prevention-module exceptions — allow-listed hash / path /
+        signer / command bypasses scoped by platform, module and profile.
+        Applied over the confirmed, BASE-LICENSE public REST API
+        (legacy_exceptions/fetch, /add, /edit, /delete) — the unrestricted
+        equivalent of the newer Cloud-Posture-gated "Disable Prevention Rule"
+        API, which this app does not implement (see the README Coverage).
+      canvasTemplate: config-types/legacy-exceptions/canvas.yaml
+      defaultConfig: config-types/legacy-exceptions/defaults.yaml
+      handlers:
+        validate: config-types/legacy-exceptions/validate
+        deploy: config-types/legacy-exceptions/deploy
+        rollback: config-types/legacy-exceptions/rollback
+        healthCheck: config-types/legacy-exceptions/healthCheck
+        driftDetect: config-types/legacy-exceptions/driftDetect
+        getStatus: config-types/legacy-exceptions/getStatus
+      targets:
+        componentTypes: [cortex-xdr-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: prevention-profiles
+      group: "Endpoint Protection"
+      name: Prevention Profiles
+      description: >
+        Cortex XDR prevention (agent security policy) profiles — a named
+        bundle of protection-module configuration assignable to endpoints.
+        Read via endpoints/get_profiles (real); write via
+        profiles/prevention/add + /edit (confirmed, but RAW request bodies —
+        no { request_data } wrapper, unlike the rest of this app). No public
+        delete endpoint is documented — add-only for newly created profiles,
+        the same honesty this app already applies to Hash Exceptions.
+      canvasTemplate: config-types/prevention-profiles/canvas.yaml
+      defaultConfig: config-types/prevention-profiles/defaults.yaml
+      handlers:
+        validate: config-types/prevention-profiles/validate
+        deploy: config-types/prevention-profiles/deploy
+        rollback: config-types/prevention-profiles/rollback
+        healthCheck: config-types/prevention-profiles/healthCheck
+        driftDetect: config-types/prevention-profiles/driftDetect
+        getStatus: config-types/prevention-profiles/getStatus
+      targets:
+        componentTypes: [cortex-xdr-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: agent-configuration-settings
+      group: "Agent Configuration"
+      name: Agent Configuration Settings
+      description: >
+        Cortex XDR tenant-wide agent configuration settings — content
+        management / bandwidth, agent lifecycle, WildFire analysis, BTP
+        display, log collection, action center expiration, critical
+        environment versions, advanced analysis and endpoint administration
+        cleanup. A singleton applied over 9 confirmed GET/SET endpoint pairs
+        under configurations/agent/* (plus one partial-merge keyvalue map).
+      canvasTemplate: config-types/agent-configuration-settings/canvas.yaml
+      defaultConfig: config-types/agent-configuration-settings/defaults.yaml
+      handlers:
+        validate: config-types/agent-configuration-settings/validate
+        deploy: config-types/agent-configuration-settings/deploy
+        rollback: config-types/agent-configuration-settings/rollback
+        healthCheck: config-types/agent-configuration-settings/healthCheck
+        driftDetect: config-types/agent-configuration-settings/driftDetect
+        getStatus: config-types/agent-configuration-settings/getStatus
+      targets:
+        componentTypes: [cortex-xdr-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: syslog-integrations
+      group: "Integrations"
+      name: Syslog Integrations
+      description: >
+        Cortex XDR syslog forwarding destinations — address, port, protocol
+        and TLS. Applied over a CONFIRMED full CRUD public REST API
+        (integrations/syslog/create, /get, /update, /delete).
+      canvasTemplate: config-types/syslog-integrations/canvas.yaml
+      defaultConfig: config-types/syslog-integrations/defaults.yaml
+      handlers:
+        validate: config-types/syslog-integrations/validate
+        deploy: config-types/syslog-integrations/deploy
+        rollback: config-types/syslog-integrations/rollback
+        healthCheck: config-types/syslog-integrations/healthCheck
+        driftDetect: config-types/syslog-integrations/driftDetect
+        getStatus: config-types/syslog-integrations/getStatus
+      targets:
+        componentTypes: [cortex-xdr-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: external-applications
+      group: "Integrations"
+      name: External Applications
+      description: >
+        Cortex XDR external application integrations — webhook, Splunk, AWS
+        SQS, AWS S3 and Syslog routing targets that Alert Notification Rules
+        can forward to. Applied over the newer Cortex Platform REST API
+        (platform/integration/v1/external-application) — a CONFIRMED full CRUD
+        surface reached over a different prefix + verb style than the rest of
+        this app (see lib/cortexXdrApi.ts).
+      canvasTemplate: config-types/external-applications/canvas.yaml
+      defaultConfig: config-types/external-applications/defaults.yaml
+      handlers:
+        validate: config-types/external-applications/validate
+        deploy: config-types/external-applications/deploy
+        rollback: config-types/external-applications/rollback
+        healthCheck: config-types/external-applications/healthCheck
+        driftDetect: config-types/external-applications/driftDetect
+        getStatus: config-types/external-applications/getStatus
+      targets:
+        componentTypes: [cortex-xdr-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: alert-notification-rules
+      group: "Detection & Response"
+      name: Alert Notification Rules
+      description: >
+        Cortex XDR alert notification (routing) rules — filter,
+        email/Slack/Syslog forwarding and external application routing.
+        Applied over the newer Cortex Platform REST API
+        (platform/notifications/v1) — a CONFIRMED full CRUD surface, distinct
+        from this app's still-speculative Alert Exclusions type (exclusions
+        SUPPRESS alerts with no documented public API; notification rules
+        ROUTE alerts that already fired and are fully documented).
+      canvasTemplate: config-types/alert-notification-rules/canvas.yaml
+      defaultConfig: config-types/alert-notification-rules/defaults.yaml
+      handlers:
+        validate: config-types/alert-notification-rules/validate
+        deploy: config-types/alert-notification-rules/deploy
+        rollback: config-types/alert-notification-rules/rollback
+        healthCheck: config-types/alert-notification-rules/healthCheck
+        driftDetect: config-types/alert-notification-rules/driftDetect
+        getStatus: config-types/alert-notification-rules/getStatus
       targets:
         componentTypes: [cortex-xdr-tenant]
         requiresCredential: true

@@ -1,0 +1,189 @@
+# =============================================================================
+# Canvas Template — Cortex XDR Correlation Rules
+#
+# Declares ONE correlation rule (the item). Users add as many as they need. The
+# rule NAME is the stable identity used for upsert and drift. A correlation rule
+# runs an XQL query on a schedule (or in real time) and raises an alert when it
+# matches. Field keys must match config-types/correlation-rules/validate.ts.
+# Applied over the Cortex XDR public REST API (correlations/get,
+# correlations/insert, correlations/delete).
+#
+# VERIFY the exact enum values, the simple_schedule / crontab grammar and the
+# suppression semantics against a live Cortex XDR tenant.
+# =============================================================================
+
+id: "cortex-xdr-correlation-rules"
+name: "Cortex XDR Correlation Rules"
+toolType: "cortex-xdr"
+entityType: "correlation-rules"
+description: "Manage Cortex XDR correlation rules — XQL query, severity, schedule and alert mapping — via the Cortex XDR public REST API."
+
+item:
+  label: "Correlation Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Rule"
+      icon: "git-merge"
+      description: "The rule's identity and query"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The rule's name — its stable identity for upsert and drift. Unique within this canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+
+        - key: "xql_query"
+          label: "XQL Query"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 20000
+          helpText: "The XQL query this rule evaluates. Runs against the dataset below on the configured schedule."
+
+        - key: "dataset"
+          label: "Dataset"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 200
+          helpText: "The XQL dataset the query runs against, e.g. xdr_data. VERIFY the accepted dataset names against your tenant."
+
+        - key: "severity"
+          label: "Severity"
+          fieldType: "select"
+          required: true
+          defaultValue: "SEV_030_MEDIUM"
+          options:
+            - { label: "Informational", value: "SEV_010_INFO" }
+            - { label: "Low", value: "SEV_020_LOW" }
+            - { label: "Medium", value: "SEV_030_MEDIUM" }
+            - { label: "High", value: "SEV_040_HIGH" }
+
+        - key: "is_enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+
+    - name: "Schedule"
+      icon: "clock"
+      description: "When the query runs"
+      fields:
+        - key: "execution_mode"
+          label: "Execution Mode"
+          fieldType: "select"
+          required: true
+          defaultValue: "SCHEDULED"
+          options:
+            - { label: "Scheduled", value: "SCHEDULED" }
+            - { label: "Real Time", value: "REAL_TIME" }
+
+        - key: "simple_schedule"
+          label: "Simple Schedule"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 200
+          helpText: "A simple recurrence expression, e.g. \"every 1 hour\". Used when SCHEDULED and crontab is blank. VERIFY the exact grammar against your tenant."
+
+        - key: "crontab"
+          label: "Crontab"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 200
+          helpText: "A cron expression for the schedule, as an alternative to Simple Schedule. VERIFY the accepted format against your tenant."
+
+        - key: "search_window"
+          label: "Search Window"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 100
+          helpText: "How far back each run looks, e.g. \"2 HOURS\". VERIFY the accepted format against your tenant."
+
+        - key: "timezone"
+          label: "Timezone"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 100
+          helpText: "IANA timezone the schedule is evaluated in, e.g. America/New_York. Defaults to UTC."
+
+    - name: "Alert Mapping"
+      icon: "bell"
+      description: "How a match is presented as an alert"
+      fields:
+        - key: "alert_name"
+          label: "Alert Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+
+        - key: "alert_category"
+          label: "Alert Category"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 100
+          helpText: "A MITRE-style category, e.g. LATERAL_MOVEMENT. VERIFY the accepted values against your tenant."
+
+        - key: "alert_description"
+          label: "Alert Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+
+        - key: "drilldown_query_timeframe"
+          label: "Drilldown Query Timeframe"
+          fieldType: "select"
+          required: false
+          options:
+            - { label: "Query window", value: "QUERY" }
+            - { label: "Alert time", value: "ALERT" }
+
+        - key: "mapping_strategy"
+          label: "Field Mapping Strategy"
+          fieldType: "select"
+          required: false
+          options:
+            - { label: "Auto", value: "AUTO" }
+            - { label: "Custom", value: "CUSTOM" }
+
+    - name: "Suppression"
+      icon: "filter"
+      description: "Avoid duplicate alerts for repeated matches"
+      fields:
+        - key: "suppression_enabled"
+          label: "Suppression Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+
+        - key: "suppression_duration"
+          label: "Suppression Duration"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 100
+          helpText: "How long to suppress repeat matches, e.g. \"1 HOUR\". VERIFY the accepted format against your tenant."
+
+        - key: "suppression_fields"
+          label: "Suppression Fields"
+          fieldType: "tags"
+          required: false
+          helpText: "Field names that define a \"repeat\" match for suppression purposes."

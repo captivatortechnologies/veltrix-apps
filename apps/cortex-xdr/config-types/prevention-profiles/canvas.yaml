@@ -1,0 +1,83 @@
+# =============================================================================
+# Canvas Template — Cortex XDR Prevention Profiles
+#
+# Declares ONE prevention profile (the item) — the agent security POLICY
+# surface: a named bundle of protection-module configuration assignable to
+# endpoints. Users add as many as they need. The NAME is the identity used to
+# reconcile — Cortex assigns a numeric id server-side on create, so this type
+# looks up the live profile by name and edits it by id, or creates a new one.
+# Field keys must match config-types/prevention-profiles/validate.ts. Applied
+# over the Cortex XDR public REST API (endpoints/get_profiles for read,
+# profiles/prevention/add + /edit for write) — a CONFIRMED write surface, but
+# add/edit send their body RAW (no `{ request_data }` wrapper — see
+# lib/cortexXdrApi.ts and _shared.ts).
+#
+# LIMITATIONS: Cortex XDR documents NO delete endpoint for prevention profiles
+# (add + edit only — see the README), and default profiles (is_default) cannot
+# be edited.
+#
+# VERIFY the exact `profile_type` / `platform` value sets (Cortex's own docs
+# describe them only as untyped strings) and the module-specific `modules`
+# shape (via /profiles/prevention/get_modules/, not modeled here) against a
+# live Cortex XDR tenant.
+# =============================================================================
+
+id: "cortex-xdr-prevention-profiles"
+name: "Cortex XDR Prevention Profiles"
+toolType: "cortex-xdr"
+entityType: "prevention-profiles"
+description: "Manage Cortex XDR prevention (agent security policy) profiles — module configuration bundles assignable to endpoints — via the Cortex XDR public REST API."
+
+item:
+  label: "Prevention Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Profile"
+      icon: "shield"
+      description: "Identity and platform"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 600
+          helpText: "The profile's name — its stable identity for reconciliation. Unique within this canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+
+        - key: "profile_type"
+          label: "Profile Type"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: "Commonly-seen values: exploit, malware, restrictions, agent_settings, exceptions. VERIFY the exact accepted values against your Cortex XDR tenant."
+
+        - key: "platform"
+          label: "Platform"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: "Commonly-seen values: windows, mac, linux, android, ios, caas_linux, serverless. VERIFY the exact accepted values against your Cortex XDR tenant."
+
+    - name: "Modules"
+      icon: "settings"
+      description: "Module configuration"
+      fields:
+        - key: "modules"
+          label: "Modules (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 50000
+          helpText: "The protection-module configuration bundle as a JSON object, e.g. { \"anti_ransomware\": { ... } }. VERIFY the exact per-module shape via /profiles/prevention/get_modules/ (profile_type + platform) or by exporting an existing profile from the console."

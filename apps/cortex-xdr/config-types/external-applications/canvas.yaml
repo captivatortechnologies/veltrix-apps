@@ -1,0 +1,82 @@
+# =============================================================================
+# Canvas Template — Cortex XDR External Applications
+#
+# Declares ONE external application integration (the item) — a webhook, Splunk,
+# AWS SQS, AWS S3 or Syslog routing target that Alert Notification Rules can
+# forward to. Users add as many as they need. The NAME is the identity used to
+# reconcile — Cortex assigns a numeric id server-side on create, so this type
+# looks up the live application by name and updates it by id, or creates a new
+# one. Field keys must match config-types/external-applications/validate.ts.
+# Applied over the newer Cortex Platform REST API
+# (platform/integration/v1/external-application) — a CONFIRMED full CRUD
+# surface, but reached over a DIFFERENT prefix + verb style than the rest of
+# this app (see lib/cortexXdrApi.ts `request()`).
+#
+# VERIFY the exact per-type connection_config shape (Cortex's own docs describe
+# it only as "documented in the respective schemas" without printing them) and
+# the `/platform/*` auth requirement against a live Cortex XDR tenant.
+# =============================================================================
+
+id: "cortex-xdr-external-applications"
+name: "Cortex XDR External Applications"
+toolType: "cortex-xdr"
+entityType: "external-applications"
+description: "Manage Cortex XDR external application integrations — webhook, Splunk, AWS SQS, AWS S3 and Syslog routing targets — via the Cortex Platform REST API."
+
+item:
+  label: "External Application"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Application"
+      icon: "plug"
+      description: "Identity and type"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The application's name — its stable identity for reconciliation. Unique within this canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+
+        - key: "application_type"
+          label: "Application Type"
+          fieldType: "select"
+          required: true
+          options:
+            - { label: "Webhook", value: "webhook" }
+            - { label: "Splunk", value: "splunk" }
+            - { label: "AWS SQS", value: "aws_sqs" }
+            - { label: "AWS S3", value: "aws_s3" }
+            - { label: "Syslog", value: "syslog" }
+          helpText: "The integration target type. NOTE: for a syslog forwarding destination, prefer the dedicated Syslog Integrations config type unless Alert Notification Rules specifically need it registered here as well."
+
+    - name: "Connection"
+      icon: "settings"
+      description: "Provider-specific connection settings"
+      fields:
+        - key: "connection_config"
+          label: "Connection Config (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 20000
+          helpText: >
+            Provider-specific connection settings as a JSON object — its shape
+            depends on Application Type (e.g. a webhook URL + headers, a Splunk
+            HEC host/token/index, AWS SQS queue URL/region/credentials, or an
+            AWS S3 bucket/region/credentials). VERIFY the exact per-type shape
+            against your Cortex XDR tenant — export an existing application
+            from the console as a reference. May contain secrets (auth tokens,
+            AWS access keys); Cortex XDR commonly masks these on read, so drift
+            is not asserted on this field.

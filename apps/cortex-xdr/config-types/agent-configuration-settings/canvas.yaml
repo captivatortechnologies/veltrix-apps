@@ -1,0 +1,194 @@
+# =============================================================================
+# Canvas Template — Cortex XDR Agent Configuration Settings
+#
+# A TENANT-WIDE SINGLETON — declare this config type at most once per canvas.
+# Bundles 9 small GET/SET setting groups (each applied over its OWN endpoint
+# pair under /public_api/v1/configurations/agent/*) plus one genuine
+# partial-merge keyvalue map (Action Center Expiration). Every scalar field
+# below is ALWAYS sent on deploy — this config type owns those settings
+# outright, the same policy apps/auth0's tenant-settings config type uses.
+# Action Center Expiration is different: only the action-type keys you list are
+# ever touched (see config-types/agent-configuration-settings/_shared.ts).
+#
+# Field keys must match config-types/agent-configuration-settings/validate.ts
+# and _shared.ts (SCALAR_SETTING_GROUPS) exactly.
+#
+# VERIFY every field's accepted range and the complete Action Center action-type
+# key set (not enumerated in Cortex's own docs) against a live Cortex XDR
+# tenant.
+# =============================================================================
+
+id: "cortex-xdr-agent-configuration-settings"
+name: "Cortex XDR Agent Configuration Settings"
+toolType: "cortex-xdr"
+entityType: "agent-configuration-settings"
+description: "Manage Cortex XDR tenant-wide agent configuration settings — content management, agent lifecycle, WildFire analysis, diagnostics and endpoint administration cleanup — via the Cortex XDR public REST API. Tenant-wide singleton."
+
+item:
+  label: "Agent Configuration Settings"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Content & Updates"
+      icon: "download"
+      description: "Bandwidth control and content-version cadence"
+      fields:
+        - key: "enable_bandwidth_control"
+          label: "Enable Bandwidth Control"
+          fieldType: "checkbox"
+          required: true
+          defaultValue: false
+          helpText: "Limit agent network consumption during content updates and package downloads."
+
+        - key: "bandwidth_in_mbps"
+          label: "Bandwidth Limit (Mbps)"
+          fieldType: "number"
+          required: true
+          defaultValue: 1000
+          validation:
+            min: 20
+            max: 10000
+
+        - key: "enable_minor_content_version_updates"
+          label: "Enable Minor Content Version Updates"
+          fieldType: "checkbox"
+          required: true
+          defaultValue: true
+          helpText: "Deliver minor content updates between major content releases for faster threat coverage."
+
+        - key: "amount_of_parallel_upgrades"
+          label: "Parallel Agent Upgrades"
+          fieldType: "number"
+          required: true
+          defaultValue: 20
+          validation:
+            min: 1
+            max: 2000
+          helpText: "Maximum number of agents upgraded simultaneously during an auto-upgrade rollout."
+
+    - name: "Agent Lifecycle"
+      icon: "clock"
+      description: "What happens when an agent loses connection"
+      fields:
+        - key: "license_revocation_after_lost_connection"
+          label: "License Revocation (days)"
+          fieldType: "number"
+          required: true
+          defaultValue: 30
+          validation:
+            min: 2
+            max: 60
+          helpText: "Days after which the license is revoked when an agent loses connection to Cortex."
+
+        - key: "agent_deletion_retention"
+          label: "Agent Deletion Retention (days)"
+          fieldType: "number"
+          required: true
+          defaultValue: 180
+          validation:
+            min: 3
+            max: 360
+          helpText: "Days to retain agent data before deletion after loss of connection. Should be greater than the license revocation period."
+
+    - name: "Detection & Analysis"
+      icon: "search"
+      description: "WildFire, BTP display and advanced analysis"
+      fields:
+        - key: "enable_wildfire_analysis_scoring_for_benign_verdicts"
+          label: "WildFire Scoring for Benign Verdicts"
+          fieldType: "checkbox"
+          required: true
+          defaultValue: false
+          helpText: "Apply additional verification to Benign Low Confidence files using the active Malware Security profile."
+
+        - key: "display_unique_and_informative_btp_rules"
+          label: "Informative BTP Alert Names"
+          fieldType: "checkbox"
+          required: true
+          defaultValue: true
+          helpText: "Show unique, descriptive Behavioral Threat Protection alert names and descriptions."
+
+        - key: "automatically_upload_defined_issue_data_files"
+          label: "Auto-upload Issue Data Files"
+          fieldType: "checkbox"
+          required: true
+          defaultValue: false
+
+        - key: "automatically_apply_advanced_analysis_exceptions"
+          label: "Auto-apply Advanced Analysis Exceptions"
+          fieldType: "checkbox"
+          required: true
+          defaultValue: false
+
+    - name: "Diagnostics"
+      icon: "activity"
+      description: "Log collection and critical-environment enforcement"
+      fields:
+        - key: "allow_logs_collection"
+          label: "Allow Diagnostic Log Collection"
+          fieldType: "checkbox"
+          required: true
+          defaultValue: true
+
+        - key: "enabled_critical_environment_versions"
+          label: "Enforce Critical Environment Versions"
+          fieldType: "checkbox"
+          required: true
+          defaultValue: false
+          helpText: "Enable content/agent version enforcement for agents in critical environments."
+
+    - name: "Endpoint Administration Cleanup"
+      icon: "trash-2"
+      description: "Periodic duplicate-endpoint cleanup"
+      fields:
+        - key: "periodic_duplicate_cleanup"
+          label: "Enable Periodic Duplicate Cleanup"
+          fieldType: "checkbox"
+          required: true
+          defaultValue: false
+          helpText: "Automatically remove redundant endpoint entries, retaining only the most recent record per endpoint."
+
+        - key: "host_name"
+          label: "Match on Hostname"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+
+        - key: "ip"
+          label: "Match on IP Address"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+
+        - key: "mac"
+          label: "Match on MAC Address"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+
+        - key: "time_interval_hours"
+          label: "Cleanup Frequency (hours)"
+          fieldType: "select"
+          required: false
+          defaultValue: 24
+          options:
+            - { label: "Every 1 hour", value: 1 }
+            - { label: "Every 6 hours", value: 6 }
+            - { label: "Every 24 hours", value: 24 }
+            - { label: "Every 168 hours (weekly)", value: 168 }
+
+    - name: "Action Center Expiration"
+      icon: "hourglass"
+      description: "How long an authorized action stays valid before expiring"
+      fields:
+        - key: "action_center_expiration"
+          label: "Expiration by Action Type (hours)"
+          fieldType: "keyvalue"
+          required: false
+          helpText: >
+            Action type -> expiration duration in hours, e.g. isolate: "24".
+            Only the action types you list are touched — Cortex partial-merges
+            this field, unlike every setting above. VERIFY the complete set of
+            action-type keys against your Cortex XDR tenant (Action Center)
+            — it is not enumerated in Cortex's own docs.

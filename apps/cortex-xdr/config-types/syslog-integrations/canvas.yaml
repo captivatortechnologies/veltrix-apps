@@ -1,0 +1,99 @@
+# =============================================================================
+# Canvas Template — Cortex XDR Syslog Integrations
+#
+# Declares ONE syslog forwarding destination (the item). Users add as many as
+# they need. The NAME is the identity used to reconcile — Cortex assigns a
+# numeric id server-side on create, so this type looks up the live integration
+# by name and updates it by id, or creates a new one. Field keys must match
+# config-types/syslog-integrations/validate.ts. Applied over the Cortex XDR
+# public REST API (integrations/syslog/create, /get, /update, /delete) — a
+# CONFIRMED full CRUD surface.
+#
+# VERIFY the accepted `facility` keyword set and the exact response field names
+# against a live Cortex XDR tenant.
+# =============================================================================
+
+id: "cortex-xdr-syslog-integrations"
+name: "Cortex XDR Syslog Integrations"
+toolType: "cortex-xdr"
+entityType: "syslog-integrations"
+description: "Manage Cortex XDR syslog forwarding destinations — address, port, protocol and TLS — via the Cortex XDR public REST API (a confirmed full CRUD surface)."
+
+item:
+  label: "Syslog Integration"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Destination"
+      icon: "send"
+      description: "Where to forward syslog messages"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The integration's name — its stable identity for reconciliation. Unique within this canvas."
+
+        - key: "address"
+          label: "Address"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The syslog receiver's hostname or IP address."
+
+        - key: "port"
+          label: "Port"
+          fieldType: "number"
+          required: true
+          defaultValue: 514
+          validation:
+            min: 1
+            max: 65535
+
+        - key: "protocol"
+          label: "Protocol"
+          fieldType: "select"
+          required: true
+          defaultValue: "TCP"
+          options:
+            - { label: "TCP", value: "TCP" }
+            - { label: "UDP", value: "UDP" }
+            - { label: "TLS", value: "TLS" }
+
+        - key: "facility"
+          label: "Facility"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 50
+          helpText: "The syslog facility keyword, e.g. local0. VERIFY the accepted values against your Cortex XDR tenant."
+
+    - name: "TLS"
+      icon: "lock"
+      description: "Certificate settings — used only when Protocol is TLS"
+      fields:
+        - key: "certificate_name"
+          label: "Certificate Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+
+        - key: "certificate_content"
+          label: "Certificate Content (PEM)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: "The PEM-encoded certificate content. WRITE-ONLY — Cortex XDR never returns this on read, so drift is not asserted on it and a rollback cannot restore a value that changed."
+
+        - key: "ignore_cert_errors"
+          label: "Ignore Certificate Errors"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false

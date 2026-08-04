@@ -1,0 +1,122 @@
+# =============================================================================
+# Canvas Template — Cortex XDR Behavioral Indicators of Compromise (BIOC)
+#
+# Declares ONE BIOC rule (the item). Users add as many as they need. The rule
+# NAME is the stable identity used for upsert and drift. Field keys must match
+# config-types/biocs/validate.ts. Applied over the Cortex XDR public REST API
+# (bioc/get, bioc/insert, bioc/delete).
+#
+# VERIFY the exact `type` category list (the source docs' enum is not confirmed
+# exhaustive), the severity values and the `indicator` filter shape against a
+# live Cortex XDR tenant.
+# =============================================================================
+
+id: "cortex-xdr-biocs"
+name: "Cortex XDR Behavioral Indicators (BIOC)"
+toolType: "cortex-xdr"
+entityType: "biocs"
+description: "Manage Cortex XDR Behavioral Indicators of Compromise (BIOC) — name, category, severity, status and match criteria — via the Cortex XDR public REST API."
+
+item:
+  label: "BIOC Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Rule"
+      icon: "activity"
+      description: "The rule's identity and behavioral category"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The rule's name — its stable identity for upsert and drift. Unique within this canvas."
+
+        - key: "type"
+          label: "Category"
+          fieldType: "select"
+          required: true
+          defaultValue: "OTHER"
+          options:
+            - { label: "Other", value: "OTHER" }
+            - { label: "Persistence", value: "PERSISTENCE" }
+            - { label: "Evasion", value: "EVASION" }
+            - { label: "Tampering", value: "TAMPERING" }
+            - { label: "File Type Obfuscation", value: "FILE_TYPE_OBFUSCATION" }
+            - { label: "Privilege Escalation", value: "PRIVILEGE_ESCALATION" }
+            - { label: "Credential Access", value: "CREDENTIAL_ACCESS" }
+            - { label: "Lateral Movement", value: "LATERAL_MOVEMENT" }
+            - { label: "Execution", value: "EXECUTION" }
+            - { label: "Collection", value: "COLLECTION" }
+            - { label: "Exfiltration", value: "EXFILTRATION" }
+            - { label: "Infiltration", value: "INFILTRATION" }
+          helpText: "The MITRE-style behavioral category. VERIFY the complete accepted list against your Cortex XDR tenant — this list is not confirmed exhaustive."
+
+        - key: "severity"
+          label: "Severity"
+          fieldType: "select"
+          required: true
+          defaultValue: "SEV_030_MEDIUM"
+          options:
+            - { label: "Informational", value: "SEV_010_INFO" }
+            - { label: "Low", value: "SEV_020_LOW" }
+            - { label: "Medium", value: "SEV_030_MEDIUM" }
+            - { label: "High", value: "SEV_040_HIGH" }
+          helpText: "Severity assigned to alerts raised by this rule. NOTE: BIOC has no CRITICAL tier (unlike Threat Indicators)."
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          required: true
+          defaultValue: "enabled"
+          options:
+            - { label: "Enabled", value: "enabled" }
+            - { label: "Disabled", value: "disabled" }
+          helpText: "Whether the rule is active."
+
+    - name: "Match Criteria"
+      icon: "filter"
+      description: "The behavioral pattern this rule matches"
+      fields:
+        - key: "indicator"
+          label: "Indicator (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: "The behavioral-match criteria as a JSON object (an XQL-like filter tree over process/event fields). VERIFY the exact shape against your Cortex XDR tenant — export an existing rule from the console as a reference."
+
+        - key: "is_xql"
+          label: "XQL-based rule"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether this rule is authored as an XQL query rather than the classic indicator filter tree."
+
+    - name: "Metadata"
+      icon: "settings"
+      description: "Comment and MITRE ATT&CK mapping"
+      fields:
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this rule is configured — recorded for audit."
+
+        - key: "mitre_tactic_id_and_name"
+          label: "MITRE Tactics"
+          fieldType: "tags"
+          required: false
+          helpText: "MITRE ATT&CK tactic IDs and names this rule maps to, e.g. \"TA0005 - Defense Evasion\"."
+
+        - key: "mitre_technique_id_and_name"
+          label: "MITRE Techniques"
+          fieldType: "tags"
+          required: false
+          helpText: "MITRE ATT&CK technique IDs and names this rule maps to."

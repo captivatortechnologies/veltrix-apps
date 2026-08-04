@@ -3,6 +3,97 @@
 All notable changes to the Cortex XDR app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 0.3.0 — 2026-08-04
+
+### Added — re-verified the full Cortex XDR public API and closed the gap
+
+Re-audited the Cortex XDR public API end to end against the current "Cortex
+Platform" documentation (cortex-docs.paloaltonetworks.com/xdr-5-api, Cortex XDR
+5.1/5.2). The write surface has grown substantially since 0.2.0 — 8 new,
+genuinely-declarative configuration types were found and added, all reachable
+from the existing `cortex-xdr-tenant` connection:
+
+- **Behavioral Indicators (BIOC)** (`config-types/biocs`) — a CONFIRMED
+  get/insert/delete-by-filter surface (`bioc/get`, `bioc/insert`,
+  `bioc/delete`), the same shape as Threat Indicators. Reconciles by name.
+- **Correlation Rules** (`config-types/correlation-rules`) — XQL-based
+  detections, the same get/insert/delete shape as BIOC
+  (`correlations/get`, `/insert`, `/delete`).
+- **Legacy Exceptions** (`config-types/legacy-exceptions`) — prevention-module
+  exception rules via `legacy_exceptions/{fetch,add,edit,delete}`, a full CRUD,
+  BASE-LICENSE surface — the unrestricted equivalent of the newer
+  `disable_prevention/*` API, which requires the Cortex Cloud Posture
+  Management add-on and is intentionally NOT implemented (see Coverage).
+- **Prevention Profiles** (`config-types/prevention-profiles`) — the agent
+  security POLICY surface: named module-configuration bundles, read via
+  `endpoints/get_profiles` and written via `profiles/prevention/{add,edit}`.
+  These two write endpoints send their body RAW — no `{ request_data }`
+  wrapper, unlike every other endpoint in this app. No delete endpoint is
+  documented (add + edit only, the same honesty as Hash Exceptions).
+- **Agent Configuration Settings** (`config-types/agent-configuration-settings`)
+  — a tenant-wide singleton bundling 9 confirmed GET/SET setting pairs
+  (`configurations/agent/*`: content management/bandwidth, agent lifecycle,
+  WildFire analysis, BTP display, log collection, critical environment
+  versions, advanced analysis, endpoint administration cleanup) plus one
+  genuine partial-merge keyvalue map (action center expiration).
+- **Syslog Integrations** (`config-types/syslog-integrations`) — a CONFIRMED
+  full CRUD surface (`integrations/syslog/{create,get,update,delete}`) for
+  syslog forwarding destinations.
+- **External Applications** (`config-types/external-applications`) — webhook /
+  Splunk / AWS SQS / AWS S3 / Syslog routing targets, a CONFIRMED full CRUD
+  surface over the newer Cortex Platform REST API
+  (`platform/integration/v1/external-application`) — a different prefix and
+  plain REST verbs (GET/POST/PUT/DELETE), not the `/public_api/v1` RPC style
+  the rest of this app uses.
+- **Alert Notification Rules** (`config-types/alert-notification-rules`) —
+  alert routing (email/Slack/Syslog/external applications), a CONFIRMED full
+  CRUD surface over `platform/notifications/v1`. This is DIFFERENT from the
+  existing (still-speculative) Alert Exclusions type: exclusions SUPPRESS
+  alerts and have no documented public API; notification rules ROUTE alerts
+  that already fired and are fully documented.
+- **`lib/cortexXdrApi.ts`**: added `CortexXdrClient.request()`, a generic
+  REST-verb method for the `/platform/*` endpoint family (External
+  Applications, Alert Notification Rules) alongside the existing
+  `/public_api/v1` RPC-style `call`/`post`. Existing methods are unchanged.
+- **`lib/fields.ts`**: shared canvas-field readers (ported from
+  `apps/auth0/lib/fields.ts`) used by the new types.
+- Full handler set (validate / deploy / rollback / healthCheck / driftDetect /
+  getStatus) for each new type, registered in `pipeline.configurationTypes`,
+  plus 178 total tests (52 existing + 126 new).
+
+### Notes — re-verification also confirmed several surfaces are genuinely out of scope
+
+- **Detection Rules Management** (`/public_api/v1/rule*`) is Cortex Cloud /
+  ASPM / compliance domain (asset_types, compliance_metadata,
+  compliance_standards fields) — not Cortex XDR EDR. Excluded.
+- **Disable Prevention Rule** and **Disable Injection and Prevention Rules**
+  both require the **Cortex Cloud Posture Management add-on** license per
+  Cortex's own docs, and the latter is also an inherently temporary
+  (24-48h self-expiring) exception, not durable declarative state. Excluded —
+  Legacy Exceptions is the base-license-eligible equivalent that IS
+  implemented.
+- **Broker VM** (tenant + on-appliance) and its **Applets** are physical/
+  virtual-appliance resources whose provisioning is a bootstrap registration
+  token, not something a canvas item originates — the same reasoning
+  `cisco-meraki` uses to exclude device-scale resources. Excluded.
+- **Tags** (`tags/agents/{assign,create,remove,delete_permanently}`) have no
+  list-of-definitions endpoint and their primary use (assign/remove) is a
+  per-endpoint-filter fan-out action, not a durable named resource. Excluded.
+- **Distributions** / **Restore Distributions** are installer-package
+  generation/lifecycle actions (with an `eol_time`), not durable declarative
+  posture. Excluded.
+- Authentication Settings, API Keys and System Management/RBAC are
+  security-sensitive IAM bootstrap; Audit Log, Device Control violations and
+  the bulk of the Endpoint Management read surface are read-only; Response
+  Action, Script Execution and the Scripts library are imperative
+  (isolate/scan/quarantine/run) rather than declarative. All excluded — see
+  the README Coverage section for the complete endpoint-by-endpoint audit.
+- Every new endpoint path, request envelope, field name and enum value is
+  marked `VERIFY against live Cortex XDR` in the code — confirm against a live
+  tenant before production use. The `/platform/*` auth requirement (same
+  Standard/Advanced API key as `/public_api/v1`, per the Cortex Platform IAM
+  docs) is inferred, not directly confirmed with an explicit header example.
+
 ## 0.2.0 — 2026-08-01
 
 ### Added

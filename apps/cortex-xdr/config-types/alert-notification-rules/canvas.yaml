@@ -1,0 +1,166 @@
+# =============================================================================
+# Canvas Template — Cortex XDR Alert Notification Rules
+#
+# Declares ONE alert notification (routing) rule (the item). Users add as many
+# as they need. The NAME is the identity used to reconcile — Cortex assigns a
+# server-side rule_uuid on create, so this type looks up the live rule by name
+# and updates it by uuid, or creates a new one. Field keys must match
+# config-types/alert-notification-rules/validate.ts. Applied over the newer
+# Cortex Platform REST API (platform/notifications/v1) — a CONFIRMED full CRUD
+# surface, but reached over a DIFFERENT prefix + verb style than the rest of
+# this app (see lib/cortexXdrApi.ts `request()`).
+#
+# NOTE: this is DIFFERENT from the app's `alert-exclusions` config type —
+# exclusions SUPPRESS alerts (still speculative, no documented public API);
+# notification rules ROUTE alerts that already fired to email / Slack / Syslog /
+# external applications (fully documented).
+#
+# VERIFY the complete LogForwardType enum (not printed inline in Cortex's own
+# docs), the exact `filter` shape and the `/platform/*` auth requirement against
+# a live Cortex XDR tenant.
+# =============================================================================
+
+id: "cortex-xdr-alert-notification-rules"
+name: "Cortex XDR Alert Notification Rules"
+toolType: "cortex-xdr"
+entityType: "alert-notification-rules"
+description: "Manage Cortex XDR alert notification (routing) rules — filter, email/Slack/Syslog forwarding and external application routing — via the Cortex Platform REST API."
+
+item:
+  label: "Notification Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Rule"
+      icon: "bell"
+      description: "Identity and what it routes"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The rule's name — its stable identity for reconciliation. Unique within this canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+
+        - key: "forward_type"
+          label: "Forward Type"
+          fieldType: "text"
+          required: true
+          defaultValue: "alert"
+          validation:
+            maxLength: 100
+          helpText: "The log type this rule forwards, e.g. \"alert\". VERIFY the complete accepted value set (LogForwardType) against your Cortex XDR tenant — it is not printed inline in Cortex's own docs."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Applied via a separate enable/disable call after create or update."
+
+        - key: "filter"
+          label: "Filter (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 20000
+          helpText: "The alert-matching filter criteria as a JSON object. Export it from the Cortex XDR console (Alert Notification Rules > JSON export) as a reference — the exact schema is not printed inline in the docs."
+
+        - key: "time_zone"
+          label: "Timezone"
+          fieldType: "text"
+          required: false
+          defaultValue: "UTC"
+          validation:
+            maxLength: 100
+          helpText: "IANA timezone the schedule/aggregation windows are evaluated in, e.g. America/New_York. Defaults to UTC."
+
+    - name: "Email"
+      icon: "mail"
+      description: "Forward to a distribution list"
+      fields:
+        - key: "email_distribution_list"
+          label: "Distribution List"
+          fieldType: "tags"
+          required: false
+          helpText: "Email addresses that receive notifications from this rule."
+
+        - key: "email_aggregation"
+          label: "Aggregation Window (minutes)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+            max: 1440
+
+        - key: "email_custom_mail_subject"
+          label: "Custom Mail Subject"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+
+        - key: "mail_format"
+          label: "Mail Format"
+          fieldType: "select"
+          required: false
+          options:
+            - { label: "Issue", value: "issue" }
+            - { label: "Standard Alert", value: "standard_alert" }
+            - { label: "Legacy Alert", value: "legacy_alert" }
+          helpText: "Applies only when Forward Type is \"alert\"."
+
+    - name: "Slack"
+      icon: "message-square"
+      description: "Forward to Slack channels"
+      fields:
+        - key: "slack_channels"
+          label: "Channels"
+          fieldType: "tags"
+          required: false
+          helpText: "Slack channels that receive notifications from this rule."
+
+        - key: "slack_format"
+          label: "Slack Format"
+          fieldType: "select"
+          required: false
+          options:
+            - { label: "Issue", value: "issue" }
+            - { label: "Standard Alert", value: "standard_alert" }
+          helpText: "legacy_alert is not permitted for Slack. Applies only when Forward Type is \"alert\"."
+
+    - name: "Syslog & Applications"
+      icon: "share-2"
+      description: "Forward to a Syslog integration or external applications"
+      fields:
+        - key: "syslog_integration_id"
+          label: "Syslog Integration ID"
+          fieldType: "number"
+          required: false
+          helpText: "The numeric id of a Syslog Integration configured via this app's Syslog Integrations config type (or the console)."
+
+        - key: "syslog_format"
+          label: "Syslog Format"
+          fieldType: "select"
+          required: false
+          options:
+            - { label: "Issue", value: "issue" }
+            - { label: "Standard Alert", value: "standard_alert" }
+            - { label: "Legacy Alert", value: "legacy_alert" }
+          helpText: "Applies only when Forward Type is \"alert\"."
+
+        - key: "applications"
+          label: "External Application IDs"
+          fieldType: "tags"
+          required: false
+          helpText: "IDs of External Applications (webhook, Splunk, AWS SQS, AWS S3) configured via this app's External Applications config type (or the console)."

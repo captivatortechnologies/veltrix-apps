@@ -191,6 +191,53 @@ export class CortexXdrClient {
   async health(): Promise<CortexXdrResponse> {
     return this.call('/endpoints/get_endpoint_groups/', {})
   }
+
+  /**
+   * SEAM — the newer "Cortex Platform" REST-verb APIs (external application
+   * management, alert notification rules) live under `/platform/<area>/v1/...`
+   * rather than the RPC-style `/public_api/v1/...` every other config type in
+   * this app uses, and speak plain REST verbs (GET/POST/PUT/DELETE) with a bare
+   * JSON body — no `{ request_data }` / `{ reply }` envelope. The published
+   * OpenAPI fragments for these endpoints do not re-print the per-call auth
+   * parameters the `/public_api/v1/*` fragments show explicitly, but the
+   * Cortex Platform IAM docs describe a SINGLE API-key mechanism (scoped by the
+   * RBAC permissions attached to the key) for the whole platform, not a second
+   * credential type — so this reuses the same Standard-security headers.
+   * VERIFY the exact auth requirement for `/platform/*` against a live tenant
+   * before relying on write.
+   */
+  async request(method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE', fullPath: string, body?: unknown): Promise<CortexXdrResponse> {
+    const headers: Record<string, string> = {
+      ...this.standardAuthHeaders(),
+      Accept: 'application/json',
+    }
+    if (body !== undefined) headers['Content-Type'] = 'application/json'
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs)
+    try {
+      const res = await fetch(`${this.baseUrl}${fullPath}`, {
+        method,
+        headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
+      })
+      const text = await res.text()
+      let json: unknown = null
+      if (text) {
+        try {
+          json = JSON.parse(text)
+        } catch {
+          json = null
+        }
+      }
+      // Platform REST endpoints return their payload directly (often under
+      // `data`), not wrapped in `{ reply }` — expose the parsed body as `reply`
+      // too so callers can use one shape regardless of API generation.
+      return { status: res.status, ok: res.status >= 200 && res.status < 300, json, reply: json, body: text }
+    } finally {
+      clearTimeout(timer)
+    }
+  }
 }
 
 /**
