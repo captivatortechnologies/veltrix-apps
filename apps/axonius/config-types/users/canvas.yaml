@@ -1,0 +1,94 @@
+# =============================================================================
+# Canvas Template — Axonius Users
+#
+# Declares ONE Axonius internal system-user account (the item). Users add as
+# many as they need. Manages Axonius-internal accounts only (source
+# "internal") — never LDAP/SAML/SSO-provisioned identities. No password field:
+# a created user always gets an Axonius-generated password (the operator sends
+# a reset link from the Axonius GUI, or via the account's own email flow); an
+# updated user's password is never touched. Field keys must match
+# config-types/users/validate.ts. Applied via the Axonius REST API
+# (api/settings/users) on 443.
+# =============================================================================
+
+id: "axonius-users"
+name: "Users"
+toolType: "axonius"
+entityType: "users"
+description: "Manage Axonius internal system-user accounts and their role assignment — via the Axonius REST API (443). Passwords are never read or written by this config type."
+
+item:
+  label: "User"
+  identityField: "user_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Identity"
+      icon: "user"
+      description: "Login name and role"
+      fields:
+        - key: "user_name"
+          label: "User Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Axonius login name. Used as the stable identity for upsert and drift. Only Axonius-internal accounts are matched — an LDAP/SAML/SSO user with the same name is never touched."
+
+        - key: "role_name"
+          label: "Role Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Name of an existing Axonius role (built-in or from the roles config type). Resolved to its Axonius role id at deploy time."
+
+    - name: "Profile"
+      icon: "id-card"
+      description: "Optional profile fields"
+      fields:
+        - key: "email"
+          label: "Email"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+
+        - key: "first_name"
+          label: "First Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 100
+
+        - key: "last_name"
+          label: "Last Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 100
+
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 100
+
+        - key: "department"
+          label: "Department"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 100
+
+    - name: "Access"
+      icon: "shield"
+      description: "Role-assignment behavior"
+      fields:
+        - key: "ignore_role_assignment_rules"
+          label: "Ignore Automatic Role-Assignment Rules"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, Axonius's automatic role-assignment rules (e.g. SSO group-to-role mapping) never override this user's assigned role."

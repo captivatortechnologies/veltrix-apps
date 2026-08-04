@@ -1,7 +1,16 @@
 import React from 'react'
 import { Badge, Card, CardBody, Tabs } from '@veltrixsecops/app-sdk/ui'
 
-const MANAGES = ['Folders']
+const MANAGES = [
+  'Folders',
+  'Secret Policies',
+  'Groups',
+  'Users',
+  'IP Address Restrictions',
+  'Sites',
+  'Connection Managers',
+  'Distributed Engine Configuration',
+]
 
 /**
  * Step-by-step connection guide for Delinea Secret Server, rendered with the
@@ -85,10 +94,12 @@ export default function SetupGuidePage() {
         <Card variant="bordered" padding="md">
           <CardBody>
             <p>
-              Open the <strong>Configuration Canvas</strong>, pick the <strong>Folders</strong>{' '}
-              configuration type, author your folder tree (name, parent, permission and secret-policy
-              inheritance), and deploy through the pipeline. Drift detection and rollback are handled per
-              type.
+              Open the <strong>Configuration Canvas</strong> and pick a configuration type — grouped in the
+              sidebar under <strong>Vault Structure</strong> (Folders, Secret Policies),{' '}
+              <strong>Access &amp; Identity</strong> (Groups, Users, IP Address Restrictions) and{' '}
+              <strong>Distributed Engines</strong> (Sites, Connection Managers, Distributed Engine
+              Configuration) — author your configuration, and deploy through the pipeline. Drift detection
+              and rollback are handled per type.
             </p>
           </CardBody>
         </Card>

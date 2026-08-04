@@ -1,20 +1,23 @@
 import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
 import { buildTaniumBaseUrl, resolveTaniumSession, getJson, sendJson } from '../../lib/taniumApi'
-import { buildGroupBody, groupsFromList, groupFromResponse, findGroup, type TaniumGroup } from './_shared'
+import { buildGroupBody, groupModeOf, createResourceFor, groupsFromList, groupFromResponse, findGroup, type TaniumGroup } from './_shared'
 
 /**
- * Deploy Tanium computer groups over the REST v2 API (443):
- *   read (rollback): GET  /api/v2/groups              → find the live group by name
- *   create:          POST /api/v2/groups              with { name, text, filters? }
- *   update:          PUT  /api/v2/groups/{id}         with { name, text, filters? }
+ * Deploy Tanium computer groups over the REST v2 API (443). Two authoring modes,
+ * both landing in the SAME `/api/v2/groups` collection for read/update/delete:
+ *   read (rollback): GET   /api/v2/groups                    → find the live group by name
+ *   create (filter): POST  /api/v2/groups                    with { name, text, filters? }
+ *   create (manual): POST  /api/v2/computer_groups            with { name, computer_specs }
+ *   update (either): PUT   /api/v2/groups/{id}                with the mode's body
  *
  * The name is the stable identity used to upsert. rollbackData records, per group,
  * the prior group body (null when it did not exist) AND the group id — so rollback
  * can restore the prior body, or delete a group this deploy created.
  *
- * VERIFY AGAINST A LIVE TANIUM: PUT /api/v2/groups/{id} as an in-place update is a
- * REST v2 convention not exercised by Tanium's public integrations (which delete +
- * recreate). Verify update semantics before relying on it in production.
+ * VERIFY AGAINST A LIVE TANIUM: PUT /api/v2/groups/{id} as an in-place update (for
+ * either mode) is a REST v2 convention not exercised by Tanium's public
+ * integrations (which delete + recreate). Verify update semantics before relying
+ * on it in production.
  */
 async function listGroups(base: string, session: string): Promise<TaniumGroup[]> {
   try {
@@ -47,12 +50,13 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
 
       const existing = findGroup(live, name)
       const body = buildGroupBody(item.fields)
+      const resource = createResourceFor(groupModeOf(item.fields))
 
       if (existing && existing.id != null) {
         await sendJson('PUT', `${base}/groups/${encodeURIComponent(String(existing.id))}`, session, body)
         previous.push({ name, groupId: existing.id, group: existing })
       } else {
-        const created = groupFromResponse(await sendJson<unknown>('POST', `${base}/groups`, session, body))
+        const created = groupFromResponse(await sendJson<unknown>('POST', `${base}/${resource}`, session, body))
         previous.push({ name, groupId: created?.id ?? null, group: null })
       }
       applied.push(name)

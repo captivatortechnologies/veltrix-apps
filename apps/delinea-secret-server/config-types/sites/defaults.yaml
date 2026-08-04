@@ -1,0 +1,9 @@
+# Defaults for a new site item, matching Secret Server's own defaults for a
+# newly created Distributed Engine site.
+active: true
+siteConnectorId: 1
+callbackInterval: 300
+winRmEndpoint: "http://localhost:5985/wsman"
+enableCredSsp: false
+enableRdpProxy: false
+enableSshProxy: false

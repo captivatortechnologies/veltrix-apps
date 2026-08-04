@@ -1,13 +1,14 @@
 id: tanium
 name: Tanium
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
-  Manage Tanium endpoint management as code. Author Tanium computer groups, saved
-  questions and packages and drive them through the Security-as-Code pipeline —
-  validate, deploy, health check, drift detection and rollback — over the Tanium
-  REST v2 API (HTTPS 443, self-signed tolerated). Authenticates with a Tanium API
-  token or a username + password session login.
+  Manage Tanium endpoint management as code. Author Tanium computer groups
+  (filter-based or manual), saved questions, packages and sensors and drive them
+  through the Security-as-Code pipeline — validate, deploy, health check, drift
+  detection and rollback — over the Tanium REST v2 API (HTTPS 443, self-signed
+  tolerated). Authenticates with a Tanium API token or a username + password
+  session login.
 category: Endpoint Management
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/tanium
@@ -29,20 +30,23 @@ permissions:
   app:
     - resource: computer-groups
       actions: [read, write, delete]
-      description: Manage Tanium computer groups (add / edit / delete)
+      description: Manage Tanium computer groups — filter-based or manual (add / edit / delete)
     - resource: saved-questions
       actions: [read, write, delete]
       description: Manage Tanium saved questions (add / edit / delete)
     - resource: packages
       actions: [read, write, delete]
       description: Manage Tanium packages (add / edit / delete)
+    - resource: sensors
+      actions: [read, write, delete]
+      description: Manage Tanium sensors (add / edit / delete)
 
 pipeline:
   configurationTypes:
     - id: computer-groups
       group: "Endpoint Management"
       name: Computer Groups
-      description: Tanium computer groups — name and a filter expression that selects endpoints — applied over the Tanium REST v2 API (443)
+      description: Tanium computer groups — a dynamic filter expression or an explicit computer/IP list — applied over the Tanium REST v2 API (443)
       canvasTemplate: config-types/computer-groups/canvas.yaml
       defaultConfig: config-types/computer-groups/defaults.yaml
       handlers:
@@ -88,6 +92,24 @@ pipeline:
         healthCheck: config-types/packages/healthCheck
         driftDetect: config-types/packages/driftDetect
         getStatus: config-types/packages/getStatus
+      targets:
+        componentTypes: [tanium-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: sensors
+      group: "Endpoint Management"
+      name: Sensors
+      description: Tanium sensors — a name and a per-platform data-collection script — applied over the Tanium REST v2 API (443)
+      canvasTemplate: config-types/sensors/canvas.yaml
+      defaultConfig: config-types/sensors/defaults.yaml
+      handlers:
+        validate: config-types/sensors/validate
+        deploy: config-types/sensors/deploy
+        rollback: config-types/sensors/rollback
+        healthCheck: config-types/sensors/healthCheck
+        driftDetect: config-types/sensors/driftDetect
+        getStatus: config-types/sensors/getStatus
       targets:
         componentTypes: [tanium-server, standalone]
         requiresCredential: true

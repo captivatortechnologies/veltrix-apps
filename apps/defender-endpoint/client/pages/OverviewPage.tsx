@@ -44,11 +44,12 @@ export default function OverviewPage() {
     <Card>
       <CardBody>
         <p>
-          Manages Microsoft Defender for Endpoint threat intelligence as code — file, network and
-          certificate indicators via the Defender <code>/api/indicators</code> API, plus custom
-          detection rules (preview) via the Microsoft Graph beta API. Create a configuration in the
-          Configuration Canvas and deploy it through the pipeline — validate, deploy, health check,
-          drift detection and rollback are all handled per configuration type.
+          Manages Microsoft Defender for Endpoint threat intelligence and operational content as
+          code — file, network and certificate indicators, custom detection rules (preview), device
+          tags and business criticality, the Live Response script library, and Defender
+          Vulnerability Management authenticated (SNMP) network scan definitions. Create a
+          configuration in the Configuration Canvas and deploy it through the pipeline — validate,
+          deploy, health check, drift detection and rollback are all handled per configuration type.
         </p>
 
         <h3>Configuration Types</h3>

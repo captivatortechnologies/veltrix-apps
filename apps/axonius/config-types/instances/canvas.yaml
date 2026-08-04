@@ -1,0 +1,62 @@
+# =============================================================================
+# Canvas Template — Axonius Instances
+#
+# Declares desired attrs for ONE existing Axonius instance (cluster node) — the
+# item. Users add one item per node they want to manage. UPDATE-ONLY: an
+# instance already exists (it joined the cluster via its own installer), so
+# there is no create; a node_id that doesn't match a live instance fails
+# deploy with a clear error rather than creating anything. Field keys must
+# match config-types/instances/validate.ts. Applied via the Axonius REST API
+# (api/instances) on 443.
+# =============================================================================
+
+id: "axonius-instances"
+name: "Instances"
+toolType: "axonius"
+entityType: "instances"
+description: "Manage the display name, hostname and environment-name flag of existing Axonius instances (cluster nodes) — via the Axonius REST API (443). Update-only: never creates, deletes or deactivates a node."
+
+item:
+  label: "Instance"
+  identityField: "node_id"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Instance"
+      icon: "server"
+      description: "The existing instance this item manages"
+      fields:
+        - key: "node_id"
+          label: "Node ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The Axonius node_id of an EXISTING instance (from Settings > Lifecycle > Instances, or GET api/instances). Used as the stable identity — this config type never creates a node."
+
+    - name: "Attributes"
+      icon: "settings"
+      description: "The attributes this config type manages"
+      fields:
+        - key: "node_name"
+          label: "Display Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The instance's display name shown throughout the Axonius GUI."
+
+        - key: "hostname"
+          label: "Hostname"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "The instance's recorded hostname."
+
+        - key: "use_as_environment_name"
+          label: "Use as Environment Name"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Show this instance's name in the banner at the bottom of the Axonius GUI."

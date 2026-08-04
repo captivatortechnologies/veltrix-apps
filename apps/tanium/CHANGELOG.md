@@ -2,6 +2,41 @@
 
 All notable changes to the Tanium app are documented here.
 
+## 0.3.0 — 2026-08-04
+
+Exhausted the Tanium REST v2 config-as-code write surface against Tanium's own
+published Platform REST API reference plus its public integrations (Cortex
+XSOAR `Tanium_v2`, Splunk SOAR `taniumrest`) — one new configuration type
+shipped, one existing type gained a second authoring mode, and everything else
+researched is documented as an honest exclusion. See README "Coverage" for the
+full audit, citations, and exclusion reasons.
+
+- **Sensors** config type — add / edit / delete Tanium sensors
+  (`/api/v2/sensors`). A sensor is a name plus a primary per-platform script
+  (platform + script type + script), with optional description, category,
+  key/default-value parameters, a result max-age, and extra per-platform
+  scripts (`additionalQueriesJson`) for a multi-platform sensor. Full pipeline:
+  validate / deploy (upsert by name, delete + recreate) / rollback /
+  health-check / drift-detect (primary script + max age) / status. **Flagged:**
+  Tanium's public integrations and its own published Platform REST API
+  reference confirm only `GET` (list, by-name) for sensors — `POST` create and
+  `DELETE` follow the same generic named-entity convention already shipped for
+  packages/saved-questions, but neither verb is independently exercised for
+  sensors anywhere researched. Verify against a live Tanium.
+- **Computer Groups** — added a **Manual** authoring mode alongside the
+  existing filter-expression mode, confirmed by the same public integration
+  that documents the existing type (`tn-create-manual-group`): an explicit
+  `computerNames` / `ipAddresses` list, sent as `computer_specs` to
+  `POST /api/v2/computer_groups` (a different create endpoint from the
+  filter-based `POST /api/v2/groups`) — both modes then read / update / delete
+  through the same `/api/v2/groups` collection. Drift-detect now compares
+  membership (order-insensitive) for manual groups.
+- **Coverage section** added to the README: every confirmed operation with its
+  citation, and an itemized, cited exclusion list — action groups, saved
+  actions, user groups, roles, content sets, content-set roles, filter groups,
+  dashboards and Tanium Connect plugin schedules — each with the specific
+  reason it does not meet this app's bar for a config-as-code type.
+
 ## 0.2.0 — 2026-08-01
 
 Two new configuration types over the Tanium REST v2 API.

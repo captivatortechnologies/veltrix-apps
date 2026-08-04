@@ -1,0 +1,121 @@
+# =============================================================================
+# Canvas Template — Delinea Secret Server Distributed Engine Configuration
+#
+# Tenant-wide singleton over GET/PATCH /api/v1/distributed-engine/configuration
+# — the Distributed Engine feature toggle plus its messaging/proxy settings.
+# This is NOT a specific site or engine (see the "Sites" and
+# "Connection Managers" configuration types for those); declare this
+# configuration type at most once per canvas. Field keys must match
+# config-types/distributed-engine-config/_shared.ts + validate.ts.
+# =============================================================================
+
+id: "delinea-distributed-engine-config"
+name: "Distributed Engine Configuration"
+toolType: "delinea-secret-server"
+entityType: "distributed-engine-config"
+description: "Manage the tenant-wide Delinea Secret Server Distributed Engine feature configuration — enablement, transport/protocol, callback and heartbeat/retry timing — via the Secret Server REST API (/api/v1/distributed-engine/configuration). Tenant-wide singleton."
+
+item:
+  label: "Distributed Engine Configuration"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Feature"
+      icon: "settings"
+      description: "Whether Distributed Engine is enabled, and how engines communicate"
+      fields:
+        - key: "enabled"
+          label: "Enable Distributed Engines"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the Distributed Engine feature is enabled for this Secret Server instance."
+
+        - key: "protocol"
+          label: "Engine Protocol"
+          fieldType: "select"
+          options:
+            - value: "Http"
+              label: "Http"
+            - value: "Https"
+              label: "Https"
+            - value: "Tcp"
+              label: "Tcp"
+          defaultValue: "Https"
+          helpText: "Protocol engines use to communicate with Secret Server."
+
+        - key: "azureServiceBusTransportType"
+          label: "Azure Service Bus Transport Type"
+          fieldType: "select"
+          options:
+            - value: "Amqp"
+              label: "Amqp"
+            - value: "AmqpWebSockets"
+              label: "AmqpWebSockets"
+          defaultValue: "Amqp"
+          helpText: "Azure Service Bus transport used by Secret Server Cloud subscriptions. Not applicable on-premises."
+
+    - name: "Callback"
+      icon: "link"
+      description: "How engines reach back to Secret Server"
+      fields:
+        - key: "callbackUrl"
+          label: "Callback URL"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "URL engines use to call back to this Secret Server instance. Leave blank to leave the current value untouched."
+
+        - key: "callbackPort"
+          label: "Callback Port"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+            max: 65535
+          helpText: "Port engines use to call back to this Secret Server instance. Leave blank to leave the current value untouched."
+
+        - key: "responseBusSiteConnectorId"
+          label: "Response Bus Site Connector ID"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+          helpText: "ID of the Site Connector (see the Connection Managers configuration type) used for the response bus. A reference by ID only."
+
+    - name: "Message Timing"
+      icon: "clock"
+      description: "How long secret heartbeat and password-change messages live before they expire or are resent"
+      fields:
+        - key: "heartbeatTimeToLive"
+          label: "Heartbeat Message Time-to-Live (minutes)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+          helpText: "Minutes before a secret heartbeat message expires. Should exceed the retry interval below — verify against your Secret Server instance."
+
+        - key: "heartbeatRetry"
+          label: "Heartbeat Message Retry (minutes)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+          helpText: "Minutes before a secret heartbeat message is resent."
+
+        - key: "rpcTimeToLive"
+          label: "Password-Change Message Time-to-Live (minutes)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+          helpText: "Minutes before a secret password-change message expires. Should exceed the retry interval below — verify against your Secret Server instance."
+
+        - key: "rpcRetry"
+          label: "Password-Change Message Retry (minutes)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+          helpText: "Minutes before a secret password-change message is resent."

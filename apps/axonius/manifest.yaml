@@ -1,16 +1,37 @@
+# =============================================================================
+# Axonius (Veltrix app) — Manifest
+#
+# v0.1.0 shipped the first config type: Saved Queries. v0.2.0 added Enforcement
+# Sets and Tags. v0.3.0 exhausts the rest of Axonius's genuinely declarative
+# config-as-code write surface — five more configuration types across three
+# shapes:
+#   - per-object resources reconciled by name (same shape as saved-queries /
+#     enforcement-sets / tags): roles, users, data-scopes.
+#   - an update-only per-object resource reconciled by an existing node_id
+#     (never creates/deletes): instances.
+#   - a tenant-wide singleton, partial top-level JSON overlay (same shape as
+#     Auth0's tenant-settings singleton): lifecycle-settings.
+# See README.md's "Coverage" section for what is deliberately NOT managed
+# (adapter connection credentials, dashboards/charts, reports, instance
+# deactivation/tagging, ...) and why.
+# =============================================================================
+
 id: axonius
 name: Axonius
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Axonius (CAASM — Cyber Asset Attack Surface Management) as code. Author
-  saved queries (reusable asset views — a named AQL filter over the devices or
-  users module plus the columns to show), enforcement sets (named action policies
-  drawn from the Axonius action library plus their triggers) and asset tags (labels
-  applied to every device or user matching an AQL filter), and drive them all
-  through the Security-as-Code pipeline — validate, deploy, health check, drift
-  detection and rollback — over the Axonius REST API (HTTPS, api-key + api-secret
-  headers, self-signed tolerated).
+  saved queries (reusable asset views), enforcement sets (named action policies),
+  asset tags, roles (permission sets + optional data-scope restriction), internal
+  users (role-assigned accounts, no password material), data scopes (row-level
+  asset-visibility restriction), instance attributes (existing cluster nodes'
+  display name / hostname / environment-name flag) and a lifecycle (discovery
+  schedule) settings overlay, and drive them all through the Security-as-Code
+  pipeline — validate, deploy, health check, drift detection and rollback — over
+  the Axonius REST API (HTTPS, api-key + api-secret headers, self-signed
+  tolerated). See README.md "Coverage" for what is managed vs. intentionally
+  excluded.
 category: COMPLIANCE
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/axonius
@@ -39,6 +60,21 @@ permissions:
     - resource: tags
       actions: [read, write, delete]
       description: Manage Axonius asset tags (apply / remove labels on devices and users matching an AQL filter)
+    - resource: roles
+      actions: [read, write, delete]
+      description: Manage Axonius roles (create / edit / delete permission sets and their optional data-scope restriction)
+    - resource: users
+      actions: [read, write, delete]
+      description: Manage Axonius internal system-user accounts and their role assignment (never reads or writes password material)
+    - resource: data-scopes
+      actions: [read, write, delete]
+      description: Manage Axonius data scopes (create / edit / delete named asset-visibility restrictions used by roles)
+    - resource: instances
+      actions: [read, write]
+      description: Manage the display name, hostname and environment-name flag of existing Axonius instances (cluster nodes); never creates, deletes or deactivates a node
+    - resource: lifecycle-settings
+      actions: [read, write]
+      description: Manage a partial overlay of Axonius's discovery (lifecycle) schedule settings
 
 pipeline:
   configurationTypes:
@@ -91,6 +127,96 @@ pipeline:
         healthCheck: config-types/tags/healthCheck
         driftDetect: config-types/tags/driftDetect
         getStatus: config-types/tags/getStatus
+      targets:
+        componentTypes: [axonius, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: roles
+      group: "Access Control"
+      name: Roles
+      description: Axonius roles — a named permission set plus an optional data-scope restriction — applied over the Axonius REST API (443)
+      canvasTemplate: config-types/roles/canvas.yaml
+      defaultConfig: config-types/roles/defaults.yaml
+      handlers:
+        validate: config-types/roles/validate
+        deploy: config-types/roles/deploy
+        rollback: config-types/roles/rollback
+        healthCheck: config-types/roles/healthCheck
+        driftDetect: config-types/roles/driftDetect
+        getStatus: config-types/roles/getStatus
+      targets:
+        componentTypes: [axonius, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: users
+      group: "Access Control"
+      name: Users
+      description: Axonius internal system-user accounts and their role assignment (no password material) — applied over the Axonius REST API (443)
+      canvasTemplate: config-types/users/canvas.yaml
+      defaultConfig: config-types/users/defaults.yaml
+      handlers:
+        validate: config-types/users/validate
+        deploy: config-types/users/deploy
+        rollback: config-types/users/rollback
+        healthCheck: config-types/users/healthCheck
+        driftDetect: config-types/users/driftDetect
+        getStatus: config-types/users/getStatus
+      targets:
+        componentTypes: [axonius, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: data-scopes
+      group: "Access Control"
+      name: Data Scopes
+      description: Axonius data scopes — named asset-scope saved-query sets a role can be restricted to (requires the Data Scopes feature — Enterprise) — applied over the Axonius REST API (443)
+      canvasTemplate: config-types/data-scopes/canvas.yaml
+      defaultConfig: config-types/data-scopes/defaults.yaml
+      handlers:
+        validate: config-types/data-scopes/validate
+        deploy: config-types/data-scopes/deploy
+        rollback: config-types/data-scopes/rollback
+        healthCheck: config-types/data-scopes/healthCheck
+        driftDetect: config-types/data-scopes/driftDetect
+        getStatus: config-types/data-scopes/getStatus
+      targets:
+        componentTypes: [axonius, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: instances
+      group: "Instances"
+      name: Instances
+      description: Display name, hostname and environment-name flag of existing Axonius instances (cluster nodes); update-only — applied over the Axonius REST API (443)
+      canvasTemplate: config-types/instances/canvas.yaml
+      defaultConfig: config-types/instances/defaults.yaml
+      handlers:
+        validate: config-types/instances/validate
+        deploy: config-types/instances/deploy
+        rollback: config-types/instances/rollback
+        healthCheck: config-types/instances/healthCheck
+        driftDetect: config-types/instances/driftDetect
+        getStatus: config-types/instances/getStatus
+      targets:
+        componentTypes: [axonius, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: lifecycle-settings
+      group: "Discovery"
+      name: Lifecycle Settings
+      description: A partial, top-level JSON overlay of Axonius's discovery (lifecycle) schedule settings — tenant-wide singleton — applied over the Axonius REST API (443)
+      canvasTemplate: config-types/lifecycle-settings/canvas.yaml
+      defaultConfig: config-types/lifecycle-settings/defaults.yaml
+      handlers:
+        validate: config-types/lifecycle-settings/validate
+        deploy: config-types/lifecycle-settings/deploy
+        rollback: config-types/lifecycle-settings/rollback
+        healthCheck: config-types/lifecycle-settings/healthCheck
+        driftDetect: config-types/lifecycle-settings/driftDetect
+        getStatus: config-types/lifecycle-settings/getStatus
       targets:
         componentTypes: [axonius, standalone]
         requiresCredential: true

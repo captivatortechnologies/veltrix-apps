@@ -1,0 +1,144 @@
+# =============================================================================
+# Canvas Template — Tanium Sensors
+#
+# Declares ONE Tanium sensor (the item). Users add as many as they need. Field
+# keys must match config-types/sensors/validate.ts. Applied via the Tanium REST
+# v2 API (/api/v2/sensors, .../by-name/{name}, .../{id}) on port 443.
+#
+# A sensor is a name plus a primary per-platform script (platform + script type +
+# script) the Tanium Client runs to collect data, with optional description,
+# category, max result age, key/default-value parameters, and extra per-platform
+# scripts for a multi-platform sensor. Update = delete + recreate — REST v2's
+# confirmed sensor surface is read-only (list, by-name); create/update follow the
+# generic named-entity convention shared with packages and saved questions and
+# are UNVERIFIED against a live Tanium (see _shared.ts and the app README).
+# =============================================================================
+
+id: "tanium-sensors"
+name: "Sensors"
+toolType: "tanium"
+entityType: "sensors"
+description: "Manage Tanium sensors — a name and a per-platform data-collection script — via the Tanium REST v2 API (443)"
+
+item:
+  label: "Sensor"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Sensor"
+      icon: "activity"
+      description: "Sensor identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Sensor name shown in Tanium. Used as the stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Optional description of what this sensor collects."
+
+        - key: "category"
+          label: "Category"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Optional category grouping shown in the Tanium sensor list."
+
+    - name: "Primary Query"
+      icon: "code"
+      description: "The main platform-specific script this sensor runs"
+      fields:
+        - key: "platform"
+          label: "Platform"
+          fieldType: "select"
+          required: true
+          options:
+            - label: "Windows"
+              value: "Windows"
+            - label: "Linux"
+              value: "Linux"
+            - label: "Mac"
+              value: "Mac"
+            - label: "Solaris"
+              value: "Solaris"
+            - label: "AIX"
+              value: "AIX"
+          helpText: "Target platform for the primary script. Maps to queries[0].platform."
+
+        - key: "scriptType"
+          label: "Script Type"
+          fieldType: "select"
+          required: true
+          options:
+            - label: "VBScript"
+              value: "VBScript"
+            - label: "PowerShell"
+              value: "PowerShell"
+            - label: "Bash"
+              value: "Bash"
+            - label: "Python"
+              value: "Python"
+            - label: "Command Line"
+              value: "CommandLine"
+          helpText: "Script language for the primary script. Maps to queries[0].script_type."
+
+        - key: "script"
+          label: "Script"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 20000
+          helpText: "The script body that collects the sensor's data on the target platform. Maps to queries[0].script."
+
+        - key: "additionalQueriesJson"
+          label: "Additional Queries (advanced)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: >-
+            Optional JSON array of extra { platform, script, script_type } objects
+            for a sensor that runs a different script per platform, e.g. a Windows
+            primary script plus a Linux/Mac variant here. Leave blank for a
+            single-platform sensor. Verify the structured shape against your Tanium.
+
+    - name: "Parameters"
+      icon: "sliders"
+      description: "Optional sensor parameters (key and default value)"
+      fields:
+        - key: "parameters"
+          label: "Parameters"
+          fieldType: "keyvalue"
+          required: false
+          helpText: "Optional sensor parameters as key / default-value pairs. Maps to parameters[]."
+
+    - name: "Result Handling"
+      icon: "clock"
+      description: "How long Tanium caches this sensor's results"
+      fields:
+        - key: "maxAgeSeconds"
+          label: "Max Result Age (seconds)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+          helpText: "Optional maximum age, in seconds, of a cached result before Tanium re-runs the sensor. Maps to max_age_seconds."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this sensor is configured — recorded for audit"

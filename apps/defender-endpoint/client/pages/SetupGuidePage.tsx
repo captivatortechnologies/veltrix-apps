@@ -1,7 +1,12 @@
 import React from 'react'
 import { Badge, Card, CardBody, Tabs } from '@veltrixsecops/app-sdk/ui'
 
-const PERMISSIONS = ['Ti.ReadWrite.All (WindowsDefenderATP)', 'CustomDetection.ReadWrite.All (Graph — preview)']
+const PERMISSIONS = [
+  'Ti.ReadWrite.All (WindowsDefenderATP)',
+  'Machine.ReadWrite.All (WindowsDefenderATP)',
+  'Library.Manage (WindowsDefenderATP)',
+  'CustomDetection.ReadWrite.All (Graph — preview)',
+]
 
 /**
  * Step-by-step connection guide, rendered with the platform design-system
@@ -27,9 +32,12 @@ export default function SetupGuidePage() {
               ))}
             </div>
             <p>
-              Add <code>Ti.ReadWrite.All</code> under <strong>APIs my organization uses →
-              WindowsDefenderATP</strong>. The Graph permission is only needed for the (preview)
-              custom detection rules.
+              Add these under <strong>APIs my organization uses → WindowsDefenderATP</strong> (plus
+              the Graph permission separately). Grant only what the config types you plan to use
+              need: <code>Ti.ReadWrite.All</code> for indicators, <code>Machine.ReadWrite.All</code>{' '}
+              for machine tags / device values / scan definitions, <code>Library.Manage</code> for
+              the Live Response library, and the Graph permission only for the (preview) custom
+              detection rules.
             </p>
           </CardBody>
         </Card>

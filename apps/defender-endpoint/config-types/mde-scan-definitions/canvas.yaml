@@ -1,0 +1,172 @@
+# =============================================================================
+# Canvas Template — Defender Vulnerability Management Authenticated Scan
+# Definitions
+#
+# Declares ONE authenticated (SNMP) network-device scan definition — the item.
+# Users add as many as they need. The API assigns the `id`; this reconciles by
+# `scan_name` (list -> match by name, case-insensitive -> update or create),
+# the same upsert-by-name shape Cisco Meraki's group-policies type uses for a
+# server-assigned id. Field keys must match
+# config-types/mde-scan-definitions/validate.ts (extractScanDefinitionSpecs).
+#
+# Currently the ONLY documented scanType is "Network" and the only documented
+# authentication object is SNMP (@odata.type SnmpAuthParams) — this type does
+# not invent fields beyond what Microsoft documents.
+#
+# Needs the Machine.ReadWrite.All application permission — the SAME permission
+# already required by Machine Tags / Device Values, so no new Entra consent is
+# needed if you already use those config types.
+# =============================================================================
+
+id: "mde-scan-definitions"
+name: "Defender Authenticated Scan Definitions"
+toolType: "defender-endpoint"
+entityType: "mde-scan-definitions"
+description: "Manage Microsoft Defender Vulnerability Management authenticated (SNMP) network-device scan definitions as code via /api/DeviceAuthenticatedScanDefinitions. Needs the Machine.ReadWrite.All application permission."
+
+item:
+  label: "Scan Definition"
+  identityField: "scan_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Scan"
+      icon: "radar"
+      description: "The scan's name, schedule and active state"
+      fields:
+        - key: "scan_name"
+          label: "Scan name"
+          fieldType: "text"
+          required: true
+          helpText: "A unique, descriptive name for this scan (the identity used to reconcile it — Defender assigns its own internal id)."
+
+        - key: "is_active"
+          label: "Active"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the scan actively runs on its schedule."
+
+        - key: "interval_hours"
+          label: "Interval (hours)"
+          fieldType: "number"
+          required: true
+          defaultValue: 24
+          helpText: "How often the scan runs, in hours."
+
+    - name: "Targets"
+      icon: "target"
+      description: "What this scan targets"
+      fields:
+        - key: "target_type"
+          label: "Target type"
+          fieldType: "select"
+          required: true
+          defaultValue: "Ip"
+          options:
+            - { label: "IP address", value: "Ip" }
+            - { label: "Hostname", value: "Hostname" }
+          helpText: "Whether the targets below are IP addresses or hostnames."
+
+        - key: "target"
+          label: "Targets"
+          fieldType: "tags"
+          required: true
+          helpText: "One or more IP addresses or hostnames to scan (sent to Defender as a comma-separated list)."
+
+    - name: "Scanner Agent"
+      icon: "monitor"
+      description: "The onboarded device that performs the scan"
+      fields:
+        - key: "scanner_agent_device_type"
+          label: "Identify scanner device by"
+          fieldType: "select"
+          required: true
+          defaultValue: "id"
+          options:
+            - { label: "Device ID", value: "id" }
+            - { label: "Computer name", value: "name" }
+          helpText: "The device must already have the Defender Vulnerability Management scanner agent role configured — this app cannot install or assign it."
+
+        - key: "scanner_agent_device"
+          label: "Scanner device"
+          fieldType: "text"
+          required: true
+          helpText: "The 40-character hex Defender device id, or the computer's fully-qualified name. A computer name must resolve to EXACTLY one device — a scan has only one scanner agent."
+
+    - name: "SNMP Authentication"
+      icon: "key"
+      description: "Credentials the scanner uses to query targets over SNMP. All secret fields below are WRITE-ONLY — Defender never returns them, so they are re-sent on every deploy and are never drift-checked."
+      fields:
+        - key: "auth_mode"
+          label: "SNMP security level"
+          fieldType: "select"
+          required: true
+          defaultValue: "CommunityString"
+          options:
+            - { label: "Community string (SNMPv1/v2c)", value: "CommunityString" }
+            - { label: "No auth, no privacy (SNMPv3)", value: "NoAuthNoPriv" }
+            - { label: "Auth, no privacy (SNMPv3)", value: "AuthNoPriv" }
+            - { label: "Auth + privacy (SNMPv3)", value: "AuthPriv" }
+          helpText: "The SNMP security level Defender authenticates with."
+
+        - key: "use_key_vault"
+          label: "Use Azure Key Vault"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Retrieve the credential from Azure Key Vault instead of entering it inline below. When enabled, the inline fields below are ignored."
+
+        - key: "keyvault_url"
+          label: "Key Vault URL"
+          fieldType: "text"
+          visibleWhen: { field: "use_key_vault", equals: true }
+          helpText: "The Azure Key Vault URL the scanner should retrieve credentials from."
+
+        - key: "keyvault_secret_name"
+          label: "Key Vault secret name"
+          fieldType: "text"
+          visibleWhen: { field: "use_key_vault", equals: true }
+          helpText: "The secret name within the Key Vault holding the credential."
+
+        - key: "community_string"
+          label: "Community string"
+          fieldType: "password"
+          visibleWhen: { field: "auth_mode", equals: "CommunityString" }
+          helpText: "The SNMP community string. Ignored if Use Azure Key Vault is enabled."
+
+        - key: "username"
+          label: "Username"
+          fieldType: "text"
+          visibleWhen: { field: "auth_mode", in: ["NoAuthNoPriv", "AuthNoPriv", "AuthPriv"] }
+          helpText: "The SNMPv3 username. Ignored if Use Azure Key Vault is enabled."
+
+        - key: "auth_protocol"
+          label: "Auth protocol"
+          fieldType: "select"
+          visibleWhen: { field: "auth_mode", in: ["AuthNoPriv", "AuthPriv"] }
+          options:
+            - { label: "MD5", value: "MD5" }
+            - { label: "SHA1", value: "SHA1" }
+          helpText: "The SNMPv3 authentication protocol. Ignored if Use Azure Key Vault is enabled."
+
+        - key: "auth_password"
+          label: "Auth password"
+          fieldType: "password"
+          visibleWhen: { field: "auth_mode", in: ["AuthNoPriv", "AuthPriv"] }
+          helpText: "The SNMPv3 authentication password. Ignored if Use Azure Key Vault is enabled."
+
+        - key: "priv_protocol"
+          label: "Privacy protocol"
+          fieldType: "select"
+          visibleWhen: { field: "auth_mode", equals: "AuthPriv" }
+          options:
+            - { label: "DES", value: "DES" }
+            - { label: "3DES", value: "3DES" }
+            - { label: "AES", value: "AES" }
+          helpText: "The SNMPv3 privacy (encryption) protocol. Ignored if Use Azure Key Vault is enabled."
+
+        - key: "priv_password"
+          label: "Privacy password"
+          fieldType: "password"
+          visibleWhen: { field: "auth_mode", equals: "AuthPriv" }
+          helpText: "The SNMPv3 privacy password. Ignored if Use Azure Key Vault is enabled."

@@ -1,15 +1,18 @@
 id: defender-endpoint
 name: Microsoft Defender for Endpoint
-version: "1.3.1"
+version: "1.4.0"
 vendor: Veltrix
 description: >
-  Manage Microsoft Defender for Endpoint threat intelligence as code. Covers file,
-  network and certificate indicators (IoCs) via the Defender /api/indicators API,
-  plus custom detection rules (PREVIEW) via the Microsoft Graph beta API — with
-  validation, drift detection and rollback handled by the Security-as-Code
-  pipeline. Auth is an Azure AD app registration (OAuth2 client credentials); the
-  component hostname is the Defender API host (api.security.microsoft.com) and the
-  tenant is set via the Tenant ID app setting.
+  Manage Microsoft Defender for Endpoint threat intelligence and operational
+  content as code. Covers file, network and certificate indicators (IoCs) via
+  the Defender /api/indicators API, custom detection rules (PREVIEW) via the
+  Microsoft Graph beta API, device tags and business criticality, the Live
+  Response library, and Defender Vulnerability Management authenticated (SNMP)
+  network scan definitions — with validation, drift detection and rollback
+  handled by the Security-as-Code pipeline. Auth is an Azure AD app
+  registration (OAuth2 client credentials); the component hostname is the
+  Defender API host (api.security.microsoft.com) and the tenant is set via the
+  Tenant ID app setting.
 category: EDR
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/defender-endpoint
@@ -49,6 +52,12 @@ permissions:
     - resource: mde-device-values
       actions: [read, write]
       description: Manage Defender device value (business criticality)
+    - resource: mde-live-response-library
+      actions: [read, write, delete]
+      description: Manage Defender Live Response library scripts
+    - resource: mde-scan-definitions
+      actions: [read, write, delete]
+      description: Manage Defender Vulnerability Management authenticated (SNMP) scan definitions
 
 pipeline:
   configurationTypes:
@@ -155,6 +164,42 @@ pipeline:
         healthCheck: config-types/mde-device-values/healthCheck
         driftDetect: config-types/mde-device-values/driftDetect
         getStatus: config-types/mde-device-values/getStatus
+      targets:
+        componentTypes: [mde-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: mde-live-response-library
+      group: "Live Response"
+      name: Defender Live Response Library
+      description: Live Response library scripts via POST/DELETE /api/libraryfiles; reconciled by file name. Needs the Library.Manage application permission (separate from Ti.ReadWrite.All / Machine.ReadWrite.All)
+      canvasTemplate: config-types/mde-live-response-library/canvas.yaml
+      defaultConfig: config-types/mde-live-response-library/defaults.yaml
+      handlers:
+        validate: config-types/mde-live-response-library/validate
+        deploy: config-types/mde-live-response-library/deploy
+        rollback: config-types/mde-live-response-library/rollback
+        healthCheck: config-types/mde-live-response-library/healthCheck
+        driftDetect: config-types/mde-live-response-library/driftDetect
+        getStatus: config-types/mde-live-response-library/getStatus
+      targets:
+        componentTypes: [mde-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: mde-scan-definitions
+      group: "Vulnerability Management"
+      name: Defender Authenticated Scan Definitions
+      description: Defender Vulnerability Management authenticated (SNMP) network-device scan definitions via /api/DeviceAuthenticatedScanDefinitions; reconciled by scan name. Needs the Machine.ReadWrite.All application permission (already required by machine tags / device values)
+      canvasTemplate: config-types/mde-scan-definitions/canvas.yaml
+      defaultConfig: config-types/mde-scan-definitions/defaults.yaml
+      handlers:
+        validate: config-types/mde-scan-definitions/validate
+        deploy: config-types/mde-scan-definitions/deploy
+        rollback: config-types/mde-scan-definitions/rollback
+        healthCheck: config-types/mde-scan-definitions/healthCheck
+        driftDetect: config-types/mde-scan-definitions/driftDetect
+        getStatus: config-types/mde-scan-definitions/getStatus
       targets:
         componentTypes: [mde-tenant]
         requiresCredential: true

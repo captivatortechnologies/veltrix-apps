@@ -1,0 +1,112 @@
+# =============================================================================
+# Canvas Template — Delinea Secret Server Connection Managers
+#
+# Declares ONE connection manager — Secret Server's "Site Connector" — the
+# item. Users add as many as they need. Field keys must match
+# config-types/connection-managers/_shared.ts + validate.ts. Applied via the
+# Secret Server REST API (/api/v1/distributed-engine/site-connector[s]). A
+# connection manager is reconciled by its name, so `name` is the identity.
+#
+# This is the outbound-connection component that lets engines on an isolated
+# on-premises network reach Secret Server Cloud (or a hub Secret Server)
+# without an inbound firewall rule; sites reference it by ID (see the "Sites"
+# configuration type). This app never reads or writes the connector's own
+# service-account credential (GET .../credentials) — that is secret material
+# and out of scope.
+# =============================================================================
+
+id: "delinea-connection-managers"
+name: "Connection Managers"
+toolType: "delinea-secret-server"
+entityType: "connection-managers"
+description: "Manage Delinea Secret Server connection managers (Site Connectors) — name, hostname, transport, port and TLS — via the Secret Server REST API (/api/v1/distributed-engine/site-connector[s])"
+
+item:
+  label: "Connection Manager"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Connector"
+      icon: "link"
+      description: "Connector identity and state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The connection manager's name shown in Secret Server. Reconciled by name (upsert + drift)."
+
+        - key: "hostname"
+          label: "Hostname"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Hostname of the server running the Site Connector service."
+
+        - key: "active"
+          label: "Active"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the connection manager is active. Turn off to retire it without deleting it (deletion is not managed by this app)."
+
+    - name: "Transport"
+      icon: "settings"
+      description: "Service Bus transport this connector uses"
+      fields:
+        - key: "transportType"
+          label: "Transport Type"
+          fieldType: "select"
+          options:
+            - value: "MemoryMq"
+              label: "MemoryMq"
+            - value: "RabbitMq"
+              label: "RabbitMq"
+          defaultValue: "MemoryMq"
+          helpText: "Service Bus transport used between engines and this connector."
+
+        - key: "port"
+          label: "Port"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+            max: 65535
+          helpText: "Port the transport listens on. Optional — leave blank to use Secret Server's default for the selected transport."
+
+    - name: "TLS"
+      icon: "shield"
+      description: "Transport encryption"
+      fields:
+        - key: "useSsl"
+          label: "Use SSL"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Encrypt the connector's transport with SSL/TLS."
+
+        - key: "sslCertificateThumbprint"
+          label: "SSL Certificate Thumbprint"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 100
+          visibleWhen:
+            field: "useSsl"
+            equals: true
+          helpText: "Thumbprint of the certificate installed on the connector host. Required when Use SSL is on."
+
+    - name: "Audit"
+      icon: "book"
+      description: "Change record"
+      fields:
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this connection manager is configured — recorded for audit."

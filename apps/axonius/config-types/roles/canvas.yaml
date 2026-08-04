@@ -1,0 +1,64 @@
+# =============================================================================
+# Canvas Template — Axonius Roles
+#
+# Declares ONE Axonius role (the item). Users add as many as they need. A role
+# is a named permission set (a nested category → action dict — tenant/version
+# specific, see GET api/labels for your tenant's categories) plus an optional
+# Data Scope restriction. Field keys must match config-types/roles/validate.ts.
+# Applied via the Axonius REST API (api/settings/roles) on 443.
+# =============================================================================
+
+id: "axonius-roles"
+name: "Roles"
+toolType: "axonius"
+entityType: "roles"
+description: "Manage Axonius roles — a named permission set plus an optional data-scope restriction — via the Axonius REST API (443)"
+
+item:
+  label: "Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Role"
+      icon: "shield"
+      description: "Identity of the role"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Role name shown in Axonius. Used as the stable identity for upsert and drift. Must not collide with a built-in Axonius role name (Admin, Restricted, Viewer, ...)."
+
+    - name: "Permissions"
+      icon: "key"
+      description: "The role's permission set"
+      fields:
+        - key: "permissions"
+          label: "Permissions (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 20000
+          helpText: 'JSON object of category → action permissions, e.g. {"assets_devices": {"View": true, "Update": false}}. Categories and actions are tenant/version-specific — see GET api/labels on your tenant, or an existing role''s export, for the exact shape.'
+
+    - name: "Data Scope Restriction"
+      icon: "filter"
+      description: "Optional row-level-security restriction (requires the Data Scopes feature — Enterprise)"
+      fields:
+        - key: "data_scope_enabled"
+          label: "Restrict to a Data Scope"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, this role can only see assets matching the named Data Scope below."
+
+        - key: "data_scope_name"
+          label: "Data Scope Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Name of an existing data scope (from the data-scopes config type). Required when \"Restrict to a Data Scope\" is enabled — resolved to its Axonius uuid at deploy time."

@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — Axonius Data Scopes
+#
+# Declares ONE Axonius data scope (the item). Users add as many as they need. A
+# data scope is a named set of asset-scope saved queries (devices and/or users)
+# that a Role can be restricted to — Axonius's row-level-security primitive.
+# Requires the Data Scopes feature to be enabled on the tenant (Enterprise).
+# Field keys must match config-types/data-scopes/validate.ts. Applied via the
+# Axonius REST API (api/settings/data_scope) on 443.
+# =============================================================================
+
+id: "axonius-data-scopes"
+name: "Data Scopes"
+toolType: "axonius"
+entityType: "data-scopes"
+description: "Manage Axonius data scopes — named asset-scope saved-query sets a role can be restricted to — via the Axonius REST API (443). Requires the Data Scopes feature (Enterprise)."
+
+item:
+  label: "Data Scope"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Scope"
+      icon: "shield"
+      description: "Identity of the data scope"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Data scope name shown in Axonius. Used as the stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Optional description recorded on the data scope for audit"
+
+    - name: "Asset Scopes"
+      icon: "filter"
+      description: "The saved queries this data scope restricts visibility to — at least one is required, in either module"
+      fields:
+        - key: "devices_queries"
+          label: "Devices Saved Queries"
+          fieldType: "tags"
+          required: false
+          helpText: "Names of existing devices-module saved queries (from the saved-queries config type) that define what this scope can see. Resolved to their Axonius uuid at deploy time."
+
+        - key: "users_queries"
+          label: "Users Saved Queries"
+          fieldType: "tags"
+          required: false
+          helpText: "Names of existing users-module saved queries (from the saved-queries config type) that define what this scope can see. Resolved to their Axonius uuid at deploy time."

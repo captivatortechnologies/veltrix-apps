@@ -193,6 +193,17 @@ export class MdeClient {
     return this.send(this.graphResource, `https://${this.graphHost}/beta${path}`, method, opts)
   }
 
+  /**
+   * A multipart/form-data POST against the MDE API — used only by the Live
+   * Response library upload endpoint. No Content-Type header is set here: the
+   * platform's fetch (Node's undici) derives the correct
+   * `multipart/form-data; boundary=...` header from the FormData body itself,
+   * which a hand-set header would just conflict with.
+   */
+  async postMultipart(path: string, form: FormData): Promise<MdeResponse> {
+    return this.transport(this.apiResource, `${this.apiBase}${path}`, 'POST', { Accept: 'application/json' }, form)
+  }
+
   /** GET every page of an MDE OData collection, following `@odata.nextLink`. */
   async getAll<T = unknown>(
     path: string,
@@ -261,27 +272,39 @@ export class MdeClient {
     method: MdeMethod,
     opts: { query?: Record<string, string | number | boolean | undefined>; body?: unknown },
   ): Promise<MdeResponse> {
-    const auth = await this.acquireToken(resource)
-    if (!auth.token) return synthetic(auth.error ?? 'authentication failed')
-
     const target = new URL(url)
     for (const [key, value] of Object.entries(opts.query ?? {})) {
       if (value !== undefined) target.searchParams.set(key, String(value))
     }
+    const headers = { Accept: 'application/json', 'Content-Type': 'application/json' }
+    const body = opts.body === undefined ? undefined : JSON.stringify(opts.body)
+    return this.transport(resource, target.toString(), method, headers, body)
+  }
+
+  /**
+   * Shared token-acquire + fetch-with-retry transport for every request shape
+   * (JSON and multipart alike). Honors 429 Retry-After with a bounded retry and
+   * never throws on an HTTP error status — callers inspect `ok`/`status`.
+   */
+  private async transport(
+    resource: string,
+    url: string,
+    method: MdeMethod,
+    headers: Record<string, string>,
+    body: BodyInit | undefined,
+  ): Promise<MdeResponse> {
+    const auth = await this.acquireToken(resource)
+    if (!auth.token) return synthetic(auth.error ?? 'authentication failed')
 
     let attempts = 0
     while (true) {
       const controller = new AbortController()
       const timer = setTimeout(() => controller.abort(), this.timeoutMs)
       try {
-        const res = await fetch(target.toString(), {
+        const res = await fetch(url, {
           method,
-          headers: {
-            Authorization: `Bearer ${auth.token}`,
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-          },
-          body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
+          headers: { Authorization: `Bearer ${auth.token}`, ...headers },
+          body,
           signal: controller.signal,
         })
         const text = await res.text()

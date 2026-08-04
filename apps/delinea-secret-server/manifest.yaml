@@ -1,14 +1,18 @@
 id: delinea-secret-server
 name: Delinea Secret Server
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Delinea Secret Server (Privileged Access Management) configuration as
-  code through the Secret Server REST API. Author folders, secret policies and
-  groups as code and drive them through the Security-as-Code pipeline — validate,
-  deploy, health check, drift detection and rollback — over HTTPS (OAuth2
-  password-grant bearer token, self-signed tolerated). Works against on-prem
-  (<host>/SecretServer) and cloud (<tenant>.secretservercloud.com) instances.
+  code through the Secret Server REST API. Author folders, secret policies,
+  groups, users, Distributed Engine sites, connection managers (Site
+  Connectors), IP address restrictions and the Distributed Engine
+  configuration as code and drive them through the Security-as-Code pipeline —
+  validate, deploy, health check, drift detection and rollback — over HTTPS
+  (OAuth2 password-grant bearer token, self-signed tolerated). Works against
+  on-prem (<host>/SecretServer) and cloud (<tenant>.secretservercloud.com)
+  instances. Secret material (passwords, keys and actual secret contents) is
+  never read, written or stored by this app — see the README Coverage section.
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/delinea-secret-server
@@ -36,10 +40,26 @@ permissions:
     - resource: groups
       actions: [read, write, delete]
       description: Manage Delinea Secret Server local groups (create / update)
+    - resource: users
+      actions: [read, write, delete]
+      description: Manage profile attributes (display name, email, active state) for EXISTING Delinea Secret Server users — never creates a user and never sends a password
+    - resource: sites
+      actions: [read, write, delete]
+      description: Manage Delinea Secret Server Distributed Engine sites (create / update)
+    - resource: connection-managers
+      actions: [read, write, delete]
+      description: Manage Delinea Secret Server connection managers / Site Connectors (create / update) — never reads or writes the connector's own service-account credential
+    - resource: ip-address-restrictions
+      actions: [read, write, delete]
+      description: Manage Delinea Secret Server IP address restrictions / allowed IP ranges (create / update)
+    - resource: distributed-engine-config
+      actions: [read, write]
+      description: Manage the tenant-wide Delinea Secret Server Distributed Engine feature configuration (singleton update)
 
 pipeline:
   configurationTypes:
     - id: folders
+      group: "Vault Structure"
       name: Folders
       description: Secret Server folders (/api/v1/folders) — folder name, parent, permission and secret-policy inheritance; reconciled by name within a parent
       canvasTemplate: config-types/folders/canvas.yaml
@@ -57,6 +77,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: secret-policies
+      group: "Vault Structure"
       name: Secret Policies
       description: Secret Server secret policies (/api/v1/secret-policy) — policy name, description and active state; reconciled by name (upsert by name, PATCH grid-update)
       canvasTemplate: config-types/secret-policies/canvas.yaml
@@ -74,6 +95,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: groups
+      group: "Access & Identity"
       name: Groups
       description: Secret Server local groups (/api/v1/groups) — group name and enabled state; reconciled by name (create verified, PUT update flagged for live verification)
       canvasTemplate: config-types/groups/canvas.yaml
@@ -85,6 +107,96 @@ pipeline:
         healthCheck: config-types/groups/healthCheck
         driftDetect: config-types/groups/driftDetect
         getStatus: config-types/groups/getStatus
+      targets:
+        componentTypes: [delinea-secret-server]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: users
+      group: "Access & Identity"
+      name: Users
+      description: Profile attributes for EXISTING Secret Server users (/api/v1/users) — display name, email, active state, application-account flag; reconciled by username. Never creates a user and never sends a password.
+      canvasTemplate: config-types/users/canvas.yaml
+      defaultConfig: config-types/users/defaults.yaml
+      handlers:
+        validate: config-types/users/validate
+        deploy: config-types/users/deploy
+        rollback: config-types/users/rollback
+        healthCheck: config-types/users/healthCheck
+        driftDetect: config-types/users/driftDetect
+        getStatus: config-types/users/getStatus
+      targets:
+        componentTypes: [delinea-secret-server]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ip-address-restrictions
+      group: "Access & Identity"
+      name: IP Address Restrictions
+      description: Secret Server IP address restrictions / allowed IP ranges (/api/v1/ipaddress-restrictions) — name and CIDR/IP range; reconciled by name
+      canvasTemplate: config-types/ip-address-restrictions/canvas.yaml
+      defaultConfig: config-types/ip-address-restrictions/defaults.yaml
+      handlers:
+        validate: config-types/ip-address-restrictions/validate
+        deploy: config-types/ip-address-restrictions/deploy
+        rollback: config-types/ip-address-restrictions/rollback
+        healthCheck: config-types/ip-address-restrictions/healthCheck
+        driftDetect: config-types/ip-address-restrictions/driftDetect
+        getStatus: config-types/ip-address-restrictions/getStatus
+      targets:
+        componentTypes: [delinea-secret-server]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: sites
+      group: "Distributed Engines"
+      name: Sites
+      description: Secret Server Distributed Engine sites (/api/v1/distributed-engine/site[s]) — name, engine callback interval, WinRM/CredSSP and RDP/SSH proxy settings; reconciled by name
+      canvasTemplate: config-types/sites/canvas.yaml
+      defaultConfig: config-types/sites/defaults.yaml
+      handlers:
+        validate: config-types/sites/validate
+        deploy: config-types/sites/deploy
+        rollback: config-types/sites/rollback
+        healthCheck: config-types/sites/healthCheck
+        driftDetect: config-types/sites/driftDetect
+        getStatus: config-types/sites/getStatus
+      targets:
+        componentTypes: [delinea-secret-server]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: connection-managers
+      group: "Distributed Engines"
+      name: Connection Managers
+      description: Secret Server connection managers / Site Connectors (/api/v1/distributed-engine/site-connector[s]) — name, hostname, transport, port and TLS; reconciled by name
+      canvasTemplate: config-types/connection-managers/canvas.yaml
+      defaultConfig: config-types/connection-managers/defaults.yaml
+      handlers:
+        validate: config-types/connection-managers/validate
+        deploy: config-types/connection-managers/deploy
+        rollback: config-types/connection-managers/rollback
+        healthCheck: config-types/connection-managers/healthCheck
+        driftDetect: config-types/connection-managers/driftDetect
+        getStatus: config-types/connection-managers/getStatus
+      targets:
+        componentTypes: [delinea-secret-server]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: distributed-engine-config
+      group: "Distributed Engines"
+      name: Distributed Engine Configuration
+      description: Tenant-wide Distributed Engine feature configuration (/api/v1/distributed-engine/configuration) — enablement, transport/protocol, callback and heartbeat/retry timing. Singleton (GET/PATCH, no create/delete).
+      canvasTemplate: config-types/distributed-engine-config/canvas.yaml
+      defaultConfig: config-types/distributed-engine-config/defaults.yaml
+      handlers:
+        validate: config-types/distributed-engine-config/validate
+        deploy: config-types/distributed-engine-config/deploy
+        rollback: config-types/distributed-engine-config/rollback
+        healthCheck: config-types/distributed-engine-config/healthCheck
+        driftDetect: config-types/distributed-engine-config/driftDetect
+        getStatus: config-types/distributed-engine-config/getStatus
       targets:
         componentTypes: [delinea-secret-server]
         requiresCredential: true

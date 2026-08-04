@@ -1,0 +1,67 @@
+# =============================================================================
+# Canvas Template — Defender for Endpoint Live Response Library
+#
+# Declares ONE Live Response library file — the item. Users add as many scripts
+# / tools as they need. Identity is `file_name` (the library is a flat,
+# tenant-wide namespace — POST /api/libraryfiles with OverrideIfExists=true is
+# an upsert on that name). Field keys must match
+# config-types/mde-live-response-library/validate.ts (extractLibraryFileSpecs).
+#
+# Scope: TEXT content only (scripts — PowerShell / bash / Python / etc.). The
+# API also accepts arbitrary binaries (e.g. a memory-dump tool), but authoring
+# binary bytes in a text canvas field is impractical, so this type does not
+# attempt it — see the README Coverage section.
+#
+# Needs the Library.Manage application permission (separate from
+# Ti.ReadWrite.All / Machine.ReadWrite.All used by the other config types).
+# =============================================================================
+
+id: "mde-live-response-library"
+name: "Defender Live Response Library"
+toolType: "defender-endpoint"
+entityType: "mde-live-response-library"
+description: "Manage Microsoft Defender for Endpoint Live Response library scripts as code via the /api/libraryfiles API. Needs the Library.Manage application permission."
+
+item:
+  label: "Library File"
+  identityField: "file_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "File"
+      icon: "file-text"
+      description: "The library file's name and how it is described"
+      fields:
+        - key: "file_name"
+          label: "File name"
+          fieldType: "text"
+          required: true
+          helpText: "The name analysts see and use in a live response session, e.g. collect-triage.ps1. No path separators."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the library management page."
+
+        - key: "has_parameters"
+          label: "Accepts parameters"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether this script expects arguments when run in a live response session."
+
+        - key: "parameters_description"
+          label: "Parameters description"
+          fieldType: "text"
+          visibleWhen: { field: "has_parameters", equals: true }
+          helpText: "Describe the parameters this script accepts (shown to the analyst running it)."
+
+    - name: "Content"
+      icon: "code"
+      description: "The script's text content"
+      fields:
+        - key: "content"
+          label: "File content"
+          fieldType: "textarea"
+          required: true
+          helpText: "The full text of the script (max 20 MB). Binary tools are not supported by this text field — upload those from the Defender portal instead."

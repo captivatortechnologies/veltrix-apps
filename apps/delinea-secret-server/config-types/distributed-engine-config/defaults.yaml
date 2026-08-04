@@ -1,0 +1,7 @@
+# Defaults for the Distributed Engine Configuration singleton, matching
+# Secret Server's own defaults. Timing/callback fields are intentionally left
+# blank — they have no safe universal default and are left untouched (see
+# _shared.ts) until the operator sets them.
+enabled: true
+protocol: "Https"
+azureServiceBusTransportType: "Amqp"

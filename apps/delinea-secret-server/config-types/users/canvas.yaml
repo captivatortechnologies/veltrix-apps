@@ -1,0 +1,85 @@
+# =============================================================================
+# Canvas Template — Delinea Secret Server Users
+#
+# Declares ONE user's managed PROFILE ATTRIBUTES — the item. Users add as many
+# entries as they need. Field keys must match config-types/users/_shared.ts +
+# validate.ts. Applied via the Secret Server REST API (/api/v1/users). A user
+# is reconciled by its username, so `username` is the identity.
+#
+# NO PASSWORD FIELD — by design. Creating a local user over REST requires a
+# password, but storing/rotating passwords as canvas config is a
+# secret-handling anti-pattern for a PAM platform. This type manages profile
+# attributes (display name, email, active state, application-account flag)
+# for EXISTING users only — create the user in Secret Server (local) or via
+# Active Directory sync first. A user backed by Active Directory is skipped —
+# its profile is owned by the directory, not managed here.
+# =============================================================================
+
+id: "delinea-users"
+name: "Users"
+toolType: "delinea-secret-server"
+entityType: "users"
+description: "Manage profile attributes (display name, email, active state, application-account flag) for EXISTING Delinea Secret Server users via the Secret Server REST API (/api/v1/users). Passwords are out of scope; this app never creates users."
+
+item:
+  label: "User"
+  identityField: "username"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "user"
+      description: "Which existing user, and its display attributes"
+      fields:
+        - key: "username"
+          label: "Username"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "An EXISTING Secret Server username. This app manages profile attributes for users that already exist — it does not create users (creation requires a password, which is out of scope). A domain-linked (Active Directory) user is skipped; its profile is managed in the directory."
+
+        - key: "displayName"
+          label: "Display Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The user's display name shown throughout Secret Server."
+
+        - key: "emailAddress"
+          label: "Email Address"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "The user's email address."
+
+    - name: "Access"
+      icon: "shield"
+      description: "Account state"
+      fields:
+        - key: "enabled"
+          label: "Active"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the user account is active. Turn off to disable a user's access without deleting the account (deletion is not managed by this app)."
+
+        - key: "isApplicationAccount"
+          label: "Application Account"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Mark this user as a non-interactive application/service account."
+
+    - name: "Audit"
+      icon: "book"
+      description: "Change record"
+      fields:
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this user's profile is configured — recorded for audit."

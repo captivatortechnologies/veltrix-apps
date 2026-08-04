@@ -1,6 +1,6 @@
 import type { RollbackContext, RollbackResult } from '@veltrixsecops/app-sdk'
 import { buildTaniumBaseUrl, resolveTaniumSession, sendJson } from '../../lib/taniumApi'
-import { buildGroupBody, type TaniumGroup } from './_shared'
+import { restoreGroupBody, type TaniumGroup } from './_shared'
 
 /**
  * Undo a computer-groups deploy from rollbackData.previous (written by deploy()):
@@ -36,8 +36,8 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
       }
       const path = `${base}/groups/${encodeURIComponent(String(groupId))}`
       if (group) {
-        // Restore the prior body (name + filter) onto the existing group.
-        await sendJson('PUT', path, session, buildGroupBody({ name: group.name, filterText: group.text, filterJson: group.filters ? JSON.stringify(group.filters) : '' }))
+        // Restore the prior body (filter or manual, whichever mode it was) onto the existing group.
+        await sendJson('PUT', path, session, restoreGroupBody(group))
         restored++
       } else {
         // A group this deploy created — remove it.

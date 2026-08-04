@@ -1,0 +1,8 @@
+# Defaults for a new scan definition item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a flat map keyed by the
+# canvas field keys (scan_name, is_active, interval_hours, target_type, target,
+# scanner_agent_device_type, scanner_agent_device, auth_mode, use_key_vault,
+# keyvault_url, keyvault_secret_name, community_string, username,
+# auth_protocol, auth_password, priv_protocol, priv_password).

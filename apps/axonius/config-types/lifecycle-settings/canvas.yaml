@@ -1,0 +1,36 @@
+# =============================================================================
+# Canvas Template — Axonius Lifecycle Settings
+#
+# Tenant-wide SINGLETON over the discovery (lifecycle) schedule settings —
+# declare this config type at most once per canvas. The full settings surface
+# is generic and version-specific (api/settings/plugins/system_scheduler/
+# SystemSchedulerService), so this config type is a partial, shallow, top-level
+# JSON overlay: only the keys you declare in `overrides` are ever touched;
+# every other live key is left exactly as-is. Field keys must match
+# config-types/lifecycle-settings/validate.ts. Applied via the Axonius REST API
+# on 443.
+# =============================================================================
+
+id: "axonius-lifecycle-settings"
+name: "Lifecycle Settings"
+toolType: "axonius"
+entityType: "lifecycle-settings"
+description: "Manage a partial overlay of Axonius's discovery (lifecycle) schedule settings — via the Axonius REST API (443). Tenant-wide singleton; only the declared keys are touched."
+
+item:
+  label: "Lifecycle Settings"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Overrides"
+      icon: "clock"
+      description: "Top-level keys to shallow-merge onto the live discovery-schedule config"
+      fields:
+        - key: "overrides"
+          label: "Settings Overrides (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 20000
+          helpText: 'A JSON object of top-level keys to set on the live discovery-schedule config (GET api/settings/plugins/system_scheduler/SystemSchedulerService on your tenant to see the current shape), e.g. {"discovery_settings": {...}}. Only these keys are ever changed — everything else on the live config is left untouched.'

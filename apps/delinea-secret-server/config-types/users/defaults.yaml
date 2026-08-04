@@ -1,0 +1,5 @@
+# Defaults for a new user item. The operator fills in the username and
+# display name (the user must already exist in Secret Server — this app never
+# creates one); the account is active by default.
+enabled: true
+isApplicationAccount: false
