@@ -97,7 +97,7 @@ export interface PPResponse {
   body: string
 }
 
-export type PPMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
+export type PPMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 export class PPClient {
   private readonly baseUrl: string

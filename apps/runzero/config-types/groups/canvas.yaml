@@ -1,0 +1,73 @@
+# =============================================================================
+# Canvas Template — runZero Groups
+#
+# Declares ONE runZero Group (the item) — runZero's closest analogue to a "role":
+# a default role plus per-organization role overrides applied to every member.
+# Users add as many as they need. Field keys must match config-types/groups/validate.ts
+# and _shared.ts.
+#
+# SCOPE: groups are ACCOUNT-scoped resources (POST/PUT/DELETE /account/groups), so this
+# configuration requires the connection's API key to be an ACCOUNT-scoped runZero key —
+# an Organization key will be rejected (health check surfaces this). The group name is
+# the stable identity used to upsert.
+#
+# WARNING: rolling back a CREATE deletes the group, and with it every member's access
+# derived from it.
+# =============================================================================
+
+id: "runzero-groups"
+name: "Groups"
+toolType: "runzero"
+entityType: "groups"
+description: "Manage runZero groups — bundled default and per-organization role assignments — via the runZero console REST API (/account/groups). Requires an account-scoped API key."
+
+item:
+  label: "Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Group"
+      icon: "users"
+      description: "Group identity and membership expiry"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Group name shown in runZero. Used as the stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+
+        - key: "expiresAt"
+          label: "Expires At"
+          fieldType: "text"
+          required: false
+          helpText: "Optional expiry as an ISO 8601 date (e.g. 2027-01-01) or epoch seconds. Leave blank for a non-expiring group."
+
+    - name: "Roles"
+      icon: "shield"
+      description: "Default and per-organization role assignments for this group's members"
+      fields:
+        - key: "orgDefaultRole"
+          label: "Default Role"
+          fieldType: "text"
+          required: false
+          helpText: >
+            The role this group's members hold in every organization by default, e.g. admin, user,
+            viewer, annotator or billing (see help.runzero.com/docs/managing-your-team/ for what
+            each role can do).
+
+        - key: "orgRoles"
+          label: "Per-Organization Role Overrides"
+          fieldType: "keyvalue"
+          required: false
+          helpText: "Organization UUID → role name, overriding the default role for that one organization (see the Organizations configuration for org ids)."

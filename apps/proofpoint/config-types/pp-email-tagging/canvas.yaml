@@ -1,0 +1,104 @@
+# =============================================================================
+# Canvas Template — Proofpoint Essentials Email Tagging
+#
+# Organization-wide singleton: the granular Email Warning Tags and Email Subject
+# Tags settings. Declare this config type at most once per canvas.
+#
+# This is a dedicated GET/PUT sub-resource of the organization
+# (/orgs/{org}/email-tagging), applied as a single PUT every deploy with every
+# field explicitly declared (every field here has an explicit default). This is
+# more granular than the on/off `email_warning_tags` toggle managed by
+# `pp-org-features` — that toggle turns the whole feature on/off; this config
+# type controls exactly which warning conditions tag mail and what the tag/
+# banner text says. Field keys must match
+# config-types/pp-email-tagging/validate.ts.
+# =============================================================================
+
+id: "proofpoint-pp-email-tagging"
+name: "Proofpoint Essentials Email Tagging"
+toolType: "proofpoint"
+entityType: "pp-email-tagging"
+description: "Manage Proofpoint Essentials Email Warning Tags and Email Subject Tags settings as code via the Essentials Interface API (/orgs/{org}/email-tagging). Organization-wide singleton."
+
+item:
+  label: "Email Tagging Settings"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Warning Tags"
+      icon: "alert-triangle"
+      description: "Banner warnings added to the body of suspicious inbound mail"
+      fields:
+        - key: "warning_tags_enabled"
+          label: "Enable warning tags"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Master switch for email warning tags. The conditions below only apply while this is enabled."
+
+        - key: "info_tag_external_sender"
+          label: "Tag external senders"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Add an informational tag when the sender is external to the organization."
+
+        - key: "warning_tag_dmarc_failure"
+          label: "Tag DMARC failures"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Add a warning tag when a message fails DMARC authentication."
+
+        - key: "warning_tag_domain_age_failure"
+          label: "Tag newly registered domains"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Add a warning tag when the sending domain was recently registered."
+
+        - key: "warning_tag_geo_ip_failure"
+          label: "Tag unusual sender geography"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Add a warning tag when the sender's IP geolocation looks unusual for this organization."
+
+        - key: "learn_more_enabled"
+          label: "Show \"Learn more\" link"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Show a \"Learn more\" link alongside the warning tag."
+
+        - key: "learn_more_action_enabled"
+          label: "Enable \"Learn more\" action"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Enable the interactive action behind the \"Learn more\" link (e.g. reporting the message)."
+
+        - key: "banner_enabled"
+          label: "Add a custom banner"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Add an additional custom banner to tagged messages."
+
+        - key: "banner_content"
+          label: "Custom banner text"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "The text of the additional custom banner. Required when \"Add a custom banner\" is enabled."
+
+    - name: "Subject Tags"
+      icon: "tag"
+      description: "A text tag prepended to the subject line of suspicious inbound mail"
+      fields:
+        - key: "subject_tag_enabled"
+          label: "Enable subject tag"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Prepend the tag text below to the subject line of tagged messages."
+
+        - key: "subject_tag_content"
+          label: "Subject tag text"
+          fieldType: "text"
+          required: false
+          defaultValue: "[External]"
+          helpText: "The text prepended to the subject line, e.g. \"[External]\". Required when \"Enable subject tag\" is enabled."

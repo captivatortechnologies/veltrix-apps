@@ -1,11 +1,12 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildPPClient } from '../../lib/proofpoint'
-import { extractSenderSpecs, getOrg, readSenderList, senderKey } from './validate'
+import { extractSenderSpecs, getSenderLists, readSenderList, scopeKey, scopeLabel, senderKey } from './validate'
 
 /**
  * Detect drift between the deployed sender-list configuration and the live org.
- * Each declared entry that is no longer present in its target list is critical
- * drift (someone removed a managed safe/blocked sender).
+ * Declared entries are grouped by scope (org/user/group) so each scope's lists
+ * are fetched once; each declared entry that is no longer present in its target
+ * list within its scope is critical drift (someone removed a managed sender).
  */
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const diffs: DriftDiff[] = []
@@ -19,15 +20,29 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const specs = extractSenderSpecs(ctx.deployedConfig).filter((s) => s.sender)
   if (specs.length === 0) return { hasDrift: false, diffs: [] }
 
+  const byScope = new Map<string, { scope: string; scopeId: string }>()
+  for (const spec of specs) byScope.set(scopeKey(spec.scope, spec.scopeId), { scope: spec.scope, scopeId: spec.scopeId })
+
   try {
-    const org = await getOrg(client)
-    const safeKeys = new Set(readSenderList(org, 'safe').map(senderKey))
-    const blockedKeys = new Set(readSenderList(org, 'blocked').map(senderKey))
+    const listsByScope = new Map<string, { safe: Set<string>; blocked: Set<string> }>()
+    for (const [key, { scope, scopeId }] of byScope) {
+      const current = await getSenderLists(client, scope, scopeId)
+      listsByScope.set(key, {
+        safe: new Set(readSenderList(current, 'safe').map(senderKey)),
+        blocked: new Set(readSenderList(current, 'blocked').map(senderKey)),
+      })
+    }
 
     for (const spec of specs) {
-      const set = spec.listType === 'blocked' ? blockedKeys : safeKeys
-      if (!set.has(senderKey(spec.sender))) {
-        diffs.push({ field: `${spec.listType}:${spec.sender}`, expected: 'present', actual: 'missing', severity: 'critical' })
+      const lists = listsByScope.get(scopeKey(spec.scope, spec.scopeId))
+      const set = spec.listType === 'blocked' ? lists?.blocked : lists?.safe
+      if (!set?.has(senderKey(spec.sender))) {
+        diffs.push({
+          field: `${scopeLabel(spec.scope, spec.scopeId)}:${spec.listType}:${spec.sender}`,
+          expected: 'present',
+          actual: 'missing',
+          severity: 'critical',
+        })
       }
     }
   } catch (error) {

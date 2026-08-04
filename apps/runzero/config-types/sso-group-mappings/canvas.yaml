@@ -1,0 +1,56 @@
+# =============================================================================
+# Canvas Template — runZero SSO Group Mappings
+#
+# Declares ONE mapping from an identity-provider attribute/value pair to a runZero
+# Group (the item). Users add as many as they need. Field keys must match
+# config-types/sso-group-mappings/validate.ts and _shared.ts.
+#
+# SCOPE: SSO group mappings are ACCOUNT-scoped resources (POST/PUT/DELETE
+# /account/sso/groups), so this configuration requires the connection's API key to
+# be an ACCOUNT-scoped runZero key — an Organization key will be rejected (health
+# check surfaces this). The (SSO Attribute, SSO Value) pair is the stable identity
+# used to upsert — there is no single-field identity for this resource.
+# =============================================================================
+
+id: "runzero-sso-group-mappings"
+name: "SSO Group Mappings"
+toolType: "runzero"
+entityType: "sso-group-mappings"
+description: "Map identity-provider attribute/value pairs to runZero groups via the runZero console REST API (/account/sso/groups). Requires an account-scoped API key."
+
+item:
+  label: "SSO Group Mapping"
+  identityField: "ssoValue"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Mapping"
+      icon: "link"
+      description: "Which IdP attribute/value maps to which runZero group"
+      fields:
+        - key: "group"
+          label: "Group"
+          fieldType: "text"
+          required: true
+          helpText: "The runZero group members are placed in — its name (as shown in runZero) or its UUID (see the Groups configuration). The group must already exist."
+
+        - key: "ssoAttribute"
+          label: "SSO Attribute"
+          fieldType: "text"
+          required: true
+          helpText: 'The identity-provider attribute/claim name to match, e.g. "memberOf" or "groups". Matched exactly, case-sensitive.'
+
+        - key: "ssoValue"
+          label: "SSO Value"
+          fieldType: "text"
+          required: true
+          helpText: 'The attribute value that identifies membership, e.g. a SAML group claim value or LDAP group DN. Matched exactly, case-sensitive. Combined with SSO Attribute, this is the stable identity for upsert and drift.'
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this mapping is for — helps identify its purpose in the console."

@@ -1,0 +1,109 @@
+# =============================================================================
+# Canvas Template — runZero Users
+#
+# Declares ONE runZero user account (the item). Users add as many as they need.
+# Field keys must match config-types/users/validate.ts and _shared.ts.
+#
+# SCOPE: user accounts are ACCOUNT-scoped resources (PUT/PATCH/DELETE /account/users),
+# so this configuration requires the connection's API key to be an ACCOUNT-scoped
+# runZero key — an Organization key will be rejected (health check surfaces this).
+# The email address is the stable identity used to upsert.
+#
+# NO SECRETS: this configuration never sets or exposes a password. New accounts either
+# stay passwordless until an SSO/email-invite sign-in, or receive an email invite link.
+#
+# WARNING: rolling back a CREATE deletes the user account.
+# =============================================================================
+
+id: "runzero-users"
+name: "Users"
+toolType: "runzero"
+entityType: "users"
+description: "Manage runZero user accounts and role assignments via the runZero console REST API (/account/users). Requires an account-scoped API key."
+
+item:
+  label: "User"
+  identityField: "email"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Identity"
+      icon: "user"
+      description: "Who this account belongs to"
+      fields:
+        - key: "email"
+          label: "Email"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Login email address. Used as the stable identity for upsert and drift."
+
+        - key: "firstName"
+          label: "First Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+
+        - key: "lastName"
+          label: "Last Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+
+    - name: "Access"
+      icon: "shield"
+      description: "Account-wide privilege and per-organization roles"
+      fields:
+        - key: "clientAdmin"
+          label: "Client Admin (Superuser)"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Grants full account-wide administrative control (subscriptions, SSO, every organization). Grant sparingly."
+
+        - key: "orgDefaultRole"
+          label: "Default Role"
+          fieldType: "text"
+          required: false
+          helpText: >
+            The role this user holds in every organization by default, e.g. admin, user, viewer,
+            annotator or billing (see help.runzero.com/docs/managing-your-team/ for what each role
+            can do). Leave blank for no default access.
+
+        - key: "orgRoles"
+          label: "Per-Organization Role Overrides"
+          fieldType: "keyvalue"
+          required: false
+          helpText: >
+            Organization UUID → role name, overriding the default role for that one organization
+            (see the Organizations configuration for org ids). Leave empty to rely on the default
+            role everywhere.
+
+    - name: "Provisioning"
+      icon: "mail"
+      description: "How a new account is created (ignored when updating an existing user)"
+      fields:
+        - key: "sendInvite"
+          label: "Send Email Invite"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "On create, email the user a signup invite (PUT /account/users/invite). Unchecked creates the account directly with no email sent (PUT /account/users)."
+
+        - key: "inviteSubject"
+          label: "Invite Email Subject"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Optional custom subject line for the invite email. Only used when Send Email Invite is checked."
+
+        - key: "inviteMessage"
+          label: "Invite Email Message"
+          fieldType: "textarea"
+          required: false
+          helpText: "Optional custom body text for the invite email. Only used when Send Email Invite is checked."

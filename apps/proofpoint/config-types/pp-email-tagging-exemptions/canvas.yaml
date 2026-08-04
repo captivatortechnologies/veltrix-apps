@@ -1,0 +1,35 @@
+# =============================================================================
+# Canvas Template — Proofpoint Essentials Email Tagging Exemptions
+#
+# Declares ONE exempt sender — the item. Users add as many as they need. Exempt
+# senders are never tagged by Email Warning Tags / Email Subject Tags
+# (see the pp-email-tagging config type), regardless of what would otherwise
+# match. Deploy reads the org's current exemption list, adds each declared
+# sender that is missing from it, and POSTs the addition (additive — it never
+# removes exemptions it did not add). Identity for reconciliation is the sender
+# value. Field keys must match
+# config-types/pp-email-tagging-exemptions/validate.ts.
+# =============================================================================
+
+id: "proofpoint-pp-email-tagging-exemptions"
+name: "Proofpoint Essentials Email Tagging Exemptions"
+toolType: "proofpoint"
+entityType: "pp-email-tagging-exemptions"
+description: "Manage the Proofpoint Essentials Email Tagging exempt-sender list as code (/orgs/{org}/email-tagging/exemptions). Senders here are never tagged by Email Warning/Subject Tags; reconciled additively by sender value."
+
+item:
+  label: "Exempt Sender"
+  identityField: "sender"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Exempt Sender"
+      icon: "mail"
+      description: "A sender that email tagging should never tag"
+      fields:
+        - key: "sender"
+          label: "Sender email"
+          fieldType: "text"
+          required: true
+          helpText: "The sender's email address to exempt from Email Warning Tags / Email Subject Tags. This is the entry's identity."

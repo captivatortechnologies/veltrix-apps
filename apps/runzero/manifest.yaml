@@ -1,13 +1,15 @@
 id: runzero
 name: runZero
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage runZero (asset discovery / attack-surface / network inventory) as code.
-  Author runZero Sites — the scan-scope containers assets are grouped under — and
-  drive them through the Security-as-Code pipeline: validate, deploy, health
-  check, drift detection and rollback, over the runZero console REST API
-  (Organization API key, Bearer auth, https://console.runzero.com/api/v1.0).
+  Author runZero Sites, Scan Tasks and Scan Templates, plus account-level
+  Organizations, Users, Groups, SSO Group Mappings, Asset Ownership Types and
+  Custom Integrations, and Explorer scan-concurrency/site settings — driven
+  through the Security-as-Code pipeline: validate, deploy, health check, drift
+  detection and rollback, over the runZero console REST API (Organization or
+  account-scoped API key, Bearer auth, https://console.runzero.com/api/v1.0).
 category: COMPLIANCE
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/runzero
@@ -36,6 +38,27 @@ permissions:
     - resource: scan-templates
       actions: [read, write, delete]
       description: Manage runZero reusable scan templates (create / edit / delete) — requires an account-scoped API key
+    - resource: organizations
+      actions: [read, write, delete]
+      description: Manage runZero Organizations (create / edit / delete) — requires an account-scoped API key
+    - resource: users
+      actions: [read, write, delete]
+      description: Manage runZero user accounts and role assignments (create / edit / delete) — requires an account-scoped API key
+    - resource: groups
+      actions: [read, write, delete]
+      description: Manage runZero groups — bundled default and per-organization role assignments (create / edit / delete) — requires an account-scoped API key
+    - resource: sso-group-mappings
+      actions: [read, write, delete]
+      description: Manage runZero SSO group mappings (create / edit / delete) — requires an account-scoped API key
+    - resource: asset-ownership-types
+      actions: [read, write, delete]
+      description: Manage the runZero asset-ownership picklist (create / edit / delete) — requires an account-scoped API key
+    - resource: custom-integrations
+      actions: [read, write, delete]
+      description: Manage runZero custom-integration registrations (create / edit / delete) — requires an account-scoped API key
+    - resource: explorer-settings
+      actions: [read, write]
+      description: Tune an existing runZero Explorer's site assignment and scan concurrency (no create/delete — Explorers are installed out-of-band)
 
 pipeline:
   configurationTypes:
@@ -96,6 +119,154 @@ pipeline:
         healthCheck: config-types/scan-templates/healthCheck
         driftDetect: config-types/scan-templates/driftDetect
         getStatus: config-types/scan-templates/getStatus
+      targets:
+        componentTypes: [runzero-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: organizations
+      group: "Account"
+      name: Organizations
+      description: >
+        runZero Organizations — tenant containers for sites, assets and scans, including
+        hierarchy and data-retention settings — applied over the runZero console REST API
+        (/account/orgs). ACCOUNT-scoped: requires an account-scoped runZero API key.
+      canvasTemplate: config-types/organizations/canvas.yaml
+      defaultConfig: config-types/organizations/defaults.yaml
+      handlers:
+        validate: config-types/organizations/validate
+        deploy: config-types/organizations/deploy
+        rollback: config-types/organizations/rollback
+        healthCheck: config-types/organizations/healthCheck
+        driftDetect: config-types/organizations/driftDetect
+        getStatus: config-types/organizations/getStatus
+      targets:
+        componentTypes: [runzero-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: users
+      group: "Account"
+      name: Users
+      description: >
+        runZero user accounts — name, default role and per-organization role overrides — applied
+        over the runZero console REST API (/account/users, /account/users/invite). No secrets are
+        ever set or read. ACCOUNT-scoped: requires an account-scoped runZero API key.
+      canvasTemplate: config-types/users/canvas.yaml
+      defaultConfig: config-types/users/defaults.yaml
+      handlers:
+        validate: config-types/users/validate
+        deploy: config-types/users/deploy
+        rollback: config-types/users/rollback
+        healthCheck: config-types/users/healthCheck
+        driftDetect: config-types/users/driftDetect
+        getStatus: config-types/users/getStatus
+      targets:
+        componentTypes: [runzero-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: groups
+      group: "Account"
+      name: Groups
+      description: >
+        runZero groups — bundled default and per-organization role assignments applied to every
+        member — applied over the runZero console REST API (/account/groups). ACCOUNT-scoped:
+        requires an account-scoped runZero API key.
+      canvasTemplate: config-types/groups/canvas.yaml
+      defaultConfig: config-types/groups/defaults.yaml
+      handlers:
+        validate: config-types/groups/validate
+        deploy: config-types/groups/deploy
+        rollback: config-types/groups/rollback
+        healthCheck: config-types/groups/healthCheck
+        driftDetect: config-types/groups/driftDetect
+        getStatus: config-types/groups/getStatus
+      targets:
+        componentTypes: [runzero-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: sso-group-mappings
+      group: "Account"
+      name: SSO Group Mappings
+      description: >
+        Maps identity-provider attribute/value pairs to runZero groups, applied over the runZero
+        console REST API (/account/sso/groups). ACCOUNT-scoped: requires an account-scoped
+        runZero API key.
+      canvasTemplate: config-types/sso-group-mappings/canvas.yaml
+      defaultConfig: config-types/sso-group-mappings/defaults.yaml
+      handlers:
+        validate: config-types/sso-group-mappings/validate
+        deploy: config-types/sso-group-mappings/deploy
+        rollback: config-types/sso-group-mappings/rollback
+        healthCheck: config-types/sso-group-mappings/healthCheck
+        driftDetect: config-types/sso-group-mappings/driftDetect
+        getStatus: config-types/sso-group-mappings/getStatus
+      targets:
+        componentTypes: [runzero-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: asset-ownership-types
+      group: "Inventory"
+      name: Asset Ownership Types
+      description: >
+        The runZero asset-ownership picklist (e.g. Asset Owner, Security Contact), applied over
+        the runZero console REST API's batch endpoints (/account/assets/ownership-types).
+        ACCOUNT-scoped: requires an account-scoped runZero API key.
+      canvasTemplate: config-types/asset-ownership-types/canvas.yaml
+      defaultConfig: config-types/asset-ownership-types/defaults.yaml
+      handlers:
+        validate: config-types/asset-ownership-types/validate
+        deploy: config-types/asset-ownership-types/deploy
+        rollback: config-types/asset-ownership-types/rollback
+        healthCheck: config-types/asset-ownership-types/healthCheck
+        driftDetect: config-types/asset-ownership-types/driftDetect
+        getStatus: config-types/asset-ownership-types/getStatus
+      targets:
+        componentTypes: [runzero-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: custom-integrations
+      group: "Integrations"
+      name: Custom Integrations
+      description: >
+        runZero custom-integration registrations (name/icon/description for third-party
+        asset-data feeds) — applied over the runZero console REST API (/account/custom-integrations).
+        Registration metadata only; the Starlark ingestion script is authored separately.
+        ACCOUNT-scoped: requires an account-scoped runZero API key.
+      canvasTemplate: config-types/custom-integrations/canvas.yaml
+      defaultConfig: config-types/custom-integrations/defaults.yaml
+      handlers:
+        validate: config-types/custom-integrations/validate
+        deploy: config-types/custom-integrations/deploy
+        rollback: config-types/custom-integrations/rollback
+        healthCheck: config-types/custom-integrations/healthCheck
+        driftDetect: config-types/custom-integrations/driftDetect
+        getStatus: config-types/custom-integrations/getStatus
+      targets:
+        componentTypes: [runzero-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: explorer-settings
+      group: "Scanning"
+      name: Explorer Settings
+      description: >
+        Tunes an already-installed runZero Explorer's Site assignment and scan concurrency,
+        applied via PATCH /org/explorers/{id} over the runZero console REST API. No create/delete
+        — Explorers are installed/uninstalled out-of-band.
+      canvasTemplate: config-types/explorer-settings/canvas.yaml
+      defaultConfig: config-types/explorer-settings/defaults.yaml
+      handlers:
+        validate: config-types/explorer-settings/validate
+        deploy: config-types/explorer-settings/deploy
+        rollback: config-types/explorer-settings/rollback
+        healthCheck: config-types/explorer-settings/healthCheck
+        driftDetect: config-types/explorer-settings/driftDetect
+        getStatus: config-types/explorer-settings/getStatus
       targets:
         componentTypes: [runzero-org, standalone]
         requiresCredential: true

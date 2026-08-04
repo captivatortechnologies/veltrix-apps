@@ -1,26 +1,31 @@
 # =============================================================================
 # Canvas Template — Proofpoint Essentials Sender Lists
 #
-# Declares ONE sender-list entry — the item. Users add as many as they need. The
-# organization Safe and Blocked sender lists are attributes of the org object
-# (/orgs/{org}); deploy reads them, adds each declared entry that is missing from
-# its target list, and PUTs the org back (additive — it never removes entries it
-# did not add). Identity for reconciliation is the sender value. Field keys must
-# match config-types/pp-sender-lists/validate.ts.
+# Declares ONE sender-list entry — the item. Users add as many as they need. Safe
+# and Blocked sender entries are managed via the dedicated sender-lists resource,
+# scoped to the organization (default), a user, or a group:
+#   org    /orgs/{org}/sender-lists
+#   user   /orgs/{org}/users/{email}/sender-lists
+#   group  /orgs/{org}/groups/{id}/sender-lists
+# Deploy reads the scope's current lists, adds each declared entry that is
+# missing from its target list, and PATCHes the scope back (additive — it never
+# removes entries it did not add). Identity for reconciliation is the tuple
+# (scope, scope target, sender value). Field keys must match
+# config-types/pp-sender-lists/validate.ts.
 # =============================================================================
 
 id: "proofpoint-pp-sender-lists"
 name: "Proofpoint Essentials Sender List Configuration"
 toolType: "proofpoint"
 entityType: "pp-sender-lists"
-description: "Manage the Proofpoint Essentials organization Safe and Blocked sender lists as code. Each entry is an email, domain or IP/CIDR; reconciled additively by sender value."
+description: "Manage Proofpoint Essentials Safe and Blocked sender lists as code, scoped to the organization, a user or a group. Each entry is an email, domain or IP/CIDR; reconciled additively by (scope, sender) value."
 
 item:
   label: "Sender"
   identityField: "sender"
   repeatable: true
   minItems: 1
-  maxItems: 1000
+  maxItems: 2000
   groups:
     - name: "Sender"
       icon: "mail"
@@ -30,7 +35,7 @@ item:
           label: "Sender"
           fieldType: "text"
           required: true
-          helpText: "An email address (name@domain.com), a domain (domain.com or *@domain.com) or an IP/CIDR. This is the entry's identity."
+          helpText: "An email address (name@domain.com), a domain (domain.com or *@domain.com) or an IP/CIDR. Together with Scope, this is the entry's identity."
 
         - key: "list_type"
           label: "List"
@@ -40,4 +45,25 @@ item:
           options:
             - { label: "Safe (allow)", value: "safe" }
             - { label: "Blocked (deny)", value: "blocked" }
-          helpText: "Add the sender to the organization Safe list (always allow) or Blocked list (always deny)."
+          helpText: "Add the sender to the Safe list (always allow) or Blocked list (always deny) at the scope below."
+
+    - name: "Scope"
+      icon: "target"
+      description: "Where this sender entry applies — the whole organization, one user, or one group"
+      fields:
+        - key: "scope"
+          label: "Scope"
+          fieldType: "select"
+          required: true
+          defaultValue: "org"
+          options:
+            - { label: "Organization (all mail)", value: "org" }
+            - { label: "User", value: "user" }
+            - { label: "Group", value: "group" }
+          helpText: "Organization applies to all mail; User/Group overrides apply only to that user's or group's mail. The user/group must already exist in Proofpoint Essentials."
+
+        - key: "scope_id"
+          label: "Scope target"
+          fieldType: "text"
+          required: false
+          helpText: "Required when Scope is User or Group: the user's primary email address, or the group name/id. Leave blank for Organization scope."

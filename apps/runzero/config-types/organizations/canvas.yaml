@@ -1,0 +1,86 @@
+# =============================================================================
+# Canvas Template — runZero Organizations
+#
+# Declares ONE runZero Organization (the item). Users add as many as they need.
+# Field keys must match config-types/organizations/validate.ts and _shared.ts.
+#
+# SCOPE: organizations are ACCOUNT-scoped resources (PUT/PATCH/DELETE /account/orgs),
+# so this configuration requires the connection's API key to be an ACCOUNT-scoped
+# runZero key — an Organization key will be rejected (health check surfaces this).
+# The organization name is the stable identity used to upsert.
+#
+# WARNING: rolling back a CREATE deletes the organization — and everything created
+# under it (sites, assets, scans) in the meantime. See the app README before
+# deploying this configuration to production.
+# =============================================================================
+
+id: "runzero-organizations"
+name: "Organizations"
+toolType: "runzero"
+entityType: "organizations"
+description: "Manage runZero Organizations — tenant containers for sites, assets and scans — via the runZero console REST API (/account/orgs). Requires an account-scoped API key."
+
+item:
+  label: "Organization"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Organization"
+      icon: "building"
+      description: "Organization identity and hierarchy"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Organization name shown in runZero. Used as the stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this organization is — helps identify its purpose in the console."
+
+        - key: "parentId"
+          label: "Parent Organization ID"
+          fieldType: "text"
+          required: false
+          helpText: "Optional parent organization UUID, for organizational hierarchies. Leave blank for a top-level organization."
+
+    - name: "Data Retention"
+      icon: "clock"
+      description: "How long asset and scan data is retained before expiring"
+      fields:
+        - key: "expirationAssetsStaleDays"
+          label: "Stale Asset Expiration (days)"
+          fieldType: "number"
+          required: false
+          helpText: "Number of days before a stale (not recently seen) asset is expired. Leave blank for the runZero default."
+
+        - key: "expirationAssetsOfflineDays"
+          label: "Offline Asset Expiration (days)"
+          fieldType: "number"
+          required: false
+          helpText: "Number of days before an offline asset is expired. Leave blank for the runZero default."
+
+        - key: "expirationScansDays"
+          label: "Scan Data Expiration (days)"
+          fieldType: "number"
+          required: false
+          helpText: "Number of days before scan data is expired. Leave blank for the runZero default."
+
+        - key: "expirationSettingsJson"
+          label: "Advanced Expiration Settings (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional advanced retention settings as a JSON object — the modern replacement for the
+            deprecated per-field attribute/vulnerability expiration settings, e.g.
+            {"attributes": 7, "attributes_keep_latest": true, "vulnerabilities": 30}. Omitted keys
+            keep their current value. Leave blank to leave these settings untouched.

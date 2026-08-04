@@ -1,15 +1,17 @@
 id: proofpoint
 name: Proofpoint Essentials
-version: "1.1.0"
+version: "1.2.0"
 vendor: Veltrix
 description: >
   Manage Proofpoint Essentials email security configuration as code through the
   Essentials Interface API (v1). Covers protected domains and their inbound mail
-  routing, the organization Safe and Blocked sender lists, and the organization
-  security features (URL Defense, Attachment Defense, DLP, Encryption, and more) —
-  with validation, drift detection and rollback handled by the Security-as-Code
-  pipeline. Objects are scoped to the organization named in the Organization
-  (primary domain) setting.
+  routing, the organization Safe and Blocked sender lists (organization, user or
+  group scoped), the organization security features (URL Defense, Attachment
+  Defense, DLP, Encryption, and more), organization-wide MFA and Login/SSO
+  policy, SAML Identity Providers, and granular Email Warning/Subject Tag
+  settings and their sender exemptions — with validation, drift detection and
+  rollback handled by the Security-as-Code pipeline. Objects are scoped to the
+  organization named in the Organization (primary domain) setting.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/proofpoint
@@ -36,10 +38,22 @@ permissions:
       description: Manage Proofpoint Essentials protected domains
     - resource: pp-sender-lists
       actions: [read, write, delete]
-      description: Manage Proofpoint Essentials Safe / Blocked sender lists
+      description: Manage Proofpoint Essentials Safe / Blocked sender lists (organization, user or group scoped)
     - resource: pp-org-features
       actions: [read, write]
       description: Manage Proofpoint Essentials organization security features (URL Defense, Attachment Defense, DLP, ...)
+    - resource: pp-authentication-settings
+      actions: [read, write]
+      description: Manage Proofpoint Essentials organization-wide MFA and Login/SSO policy
+    - resource: pp-identity-providers
+      actions: [read, write, delete]
+      description: Manage Proofpoint Essentials SAML Identity Providers (SSO)
+    - resource: pp-email-tagging
+      actions: [read, write]
+      description: Manage Proofpoint Essentials granular Email Warning Tag and Email Subject Tag settings
+    - resource: pp-email-tagging-exemptions
+      actions: [read, write, delete]
+      description: Manage Proofpoint Essentials Email Tagging exempt-sender list
 
 pipeline:
   configurationTypes:
@@ -62,7 +76,7 @@ pipeline:
 
     - id: pp-sender-lists
       name: Proofpoint Sender Lists
-      description: Organization Safe (allow) and Blocked (deny) sender entries via the org object (/orgs/{org}); additive by sender value
+      description: Safe (allow) and Blocked (deny) sender entries via the sender-lists resource, scoped to the organization, a user or a group (/orgs/{org}[/users/{email}|/groups/{id}]/sender-lists); additive by (scope, sender) value
       canvasTemplate: config-types/pp-sender-lists/canvas.yaml
       defaultConfig: config-types/pp-sender-lists/defaults.yaml
       handlers:
@@ -89,6 +103,74 @@ pipeline:
         healthCheck: config-types/pp-org-features/healthCheck
         driftDetect: config-types/pp-org-features/driftDetect
         getStatus: config-types/pp-org-features/getStatus
+      targets:
+        componentTypes: [proofpoint]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: pp-authentication-settings
+      name: Proofpoint Authentication Settings
+      description: Organization-wide MFA policy and Login/SSO policy via /orgs/{org}/authentication/settings/{mfa,login} (GET/PUT); singleton, always declares the full managed state
+      canvasTemplate: config-types/pp-authentication-settings/canvas.yaml
+      defaultConfig: config-types/pp-authentication-settings/defaults.yaml
+      handlers:
+        validate: config-types/pp-authentication-settings/validate
+        deploy: config-types/pp-authentication-settings/deploy
+        rollback: config-types/pp-authentication-settings/rollback
+        healthCheck: config-types/pp-authentication-settings/healthCheck
+        driftDetect: config-types/pp-authentication-settings/driftDetect
+        getStatus: config-types/pp-authentication-settings/getStatus
+      targets:
+        componentTypes: [proofpoint]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: pp-identity-providers
+      name: Proofpoint Identity Providers
+      description: SAML Identity Providers (SSO) via /orgs/{org}/authentication/settings/idps (GET/POST list+create, GET/PUT/DELETE by id); upsert keyed on the IDP name
+      canvasTemplate: config-types/pp-identity-providers/canvas.yaml
+      defaultConfig: config-types/pp-identity-providers/defaults.yaml
+      handlers:
+        validate: config-types/pp-identity-providers/validate
+        deploy: config-types/pp-identity-providers/deploy
+        rollback: config-types/pp-identity-providers/rollback
+        healthCheck: config-types/pp-identity-providers/healthCheck
+        driftDetect: config-types/pp-identity-providers/driftDetect
+        getStatus: config-types/pp-identity-providers/getStatus
+      targets:
+        componentTypes: [proofpoint]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: pp-email-tagging
+      name: Proofpoint Email Tagging
+      description: Granular Email Warning Tags and Email Subject Tags settings via /orgs/{org}/email-tagging (GET/PUT); singleton, always declares the full managed state
+      canvasTemplate: config-types/pp-email-tagging/canvas.yaml
+      defaultConfig: config-types/pp-email-tagging/defaults.yaml
+      handlers:
+        validate: config-types/pp-email-tagging/validate
+        deploy: config-types/pp-email-tagging/deploy
+        rollback: config-types/pp-email-tagging/rollback
+        healthCheck: config-types/pp-email-tagging/healthCheck
+        driftDetect: config-types/pp-email-tagging/driftDetect
+        getStatus: config-types/pp-email-tagging/getStatus
+      targets:
+        componentTypes: [proofpoint]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: pp-email-tagging-exemptions
+      name: Proofpoint Email Tagging Exemptions
+      description: Email Tagging exempt-sender list via /orgs/{org}/email-tagging/exemptions (GET/POST/DELETE); additive by sender value
+      canvasTemplate: config-types/pp-email-tagging-exemptions/canvas.yaml
+      defaultConfig: config-types/pp-email-tagging-exemptions/defaults.yaml
+      handlers:
+        validate: config-types/pp-email-tagging-exemptions/validate
+        deploy: config-types/pp-email-tagging-exemptions/deploy
+        rollback: config-types/pp-email-tagging-exemptions/rollback
+        healthCheck: config-types/pp-email-tagging-exemptions/healthCheck
+        driftDetect: config-types/pp-email-tagging-exemptions/driftDetect
+        getStatus: config-types/pp-email-tagging-exemptions/getStatus
       targets:
         componentTypes: [proofpoint]
         requiresCredential: true

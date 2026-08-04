@@ -1,0 +1,83 @@
+# =============================================================================
+# Canvas Template — Proofpoint Essentials Identity Providers (SSO)
+#
+# Declares ONE SAML Identity Provider — the item. Users add as many as they
+# need. IDPs are a sub-resource of the organization
+# (/orgs/{org}/authentication/settings/idps); identity for reconciliation is the
+# display name. Deploy is an UPSERT keyed on the name (PUT an existing IDP by its
+# server-assigned UUID, POST a new one). Every field here is public SSO metadata
+# (entity id, login/logout URLs, the IDP's public verification certificate) — no
+# secret is ever sent or stored by this config type. Field keys must match
+# config-types/pp-identity-providers/validate.ts.
+# =============================================================================
+
+id: "proofpoint-pp-identity-providers"
+name: "Proofpoint Essentials Identity Providers"
+toolType: "proofpoint"
+entityType: "pp-identity-providers"
+description: "Manage Proofpoint Essentials SAML Identity Providers (SSO) as code through the Essentials Interface API (/orgs/{org}/authentication/settings/idps). Reconciled by IDP name."
+
+item:
+  label: "Identity Provider"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Identity Provider"
+      icon: "key"
+      description: "Basic details of this SAML Identity Provider"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The display name of this IDP, e.g. \"Okta\" or \"Azure AD\". This is the IDP's identity in Proofpoint Essentials."
+
+        - key: "is_active"
+          label: "Active"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether this IDP is active and available for SSO."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          helpText: "A description of this IDP's purpose."
+
+        - key: "icon_ref"
+          label: "Icon reference"
+          fieldType: "text"
+          required: false
+          helpText: "Reference name of the icon used when displaying this IDP (e.g. idp_icon_generic). Optional."
+
+    - name: "SAML Configuration"
+      icon: "shield"
+      description: "The IDP's SAML endpoint metadata (all public — no secret is stored here)"
+      fields:
+        - key: "idp_entity_id"
+          label: "IDP Entity ID"
+          fieldType: "text"
+          required: false
+          helpText: "The Entity ID of the IDP (e.g. Okta), not to be confused with an Essentials Entity ID (eid)."
+
+        - key: "idp_login_url"
+          label: "IDP Login URL"
+          fieldType: "text"
+          required: false
+          helpText: "The URL of the IDP's login application, where Essentials sends SAML AuthnRequests."
+
+        - key: "idp_logout_url"
+          label: "IDP Logout URL"
+          fieldType: "text"
+          required: false
+          helpText: "The IDP URL Essentials uses to log a user out (SAML SLO)."
+
+        - key: "idp_public_cert"
+          label: "IDP Public Certificate"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: "The IDP's x.509 certificate (PEM), used to validate SAML assertions and logout requests it sends. This is the IDP's public verification key, not a secret."

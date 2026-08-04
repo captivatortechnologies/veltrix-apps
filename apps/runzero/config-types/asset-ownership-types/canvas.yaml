@@ -1,0 +1,57 @@
+# =============================================================================
+# Canvas Template — runZero Asset Ownership Types
+#
+# Declares ONE asset ownership type — an "owner" category assets can be tagged
+# with (see Sites/Assets → Owners in the console). Users add as many as they need.
+# Field keys must match config-types/asset-ownership-types/validate.ts and _shared.ts.
+#
+# SCOPE: ownership types are ACCOUNT-scoped resources, applied via runZero's BATCH
+# create/update/delete endpoints (POST/PUT/DELETE /account/assets/ownership-types,
+# all array bodies) — this configuration requires the connection's API key to be an
+# ACCOUNT-scoped runZero key — an Organization key will be rejected (health check
+# surfaces this). The type name is the stable identity used to upsert.
+# =============================================================================
+
+id: "runzero-asset-ownership-types"
+name: "Asset Ownership Types"
+toolType: "runzero"
+entityType: "asset-ownership-types"
+description: "Manage the runZero asset-ownership picklist (e.g. Asset Owner, Security Contact) via the runZero console REST API's batch endpoints (/account/assets/ownership-types). Requires an account-scoped API key."
+
+item:
+  label: "Ownership Type"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Ownership Type"
+      icon: "tag"
+      description: "A selectable owner category for asset tagging"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Name shown in the owners picklist, e.g. \"Asset Owner\" or \"Security Contact\". Used as the stable identity for upsert and drift."
+
+        - key: "order"
+          label: "Sort Order"
+          fieldType: "number"
+          required: false
+          helpText: "Where this type appears in the picklist (lower sorts first). Leave blank to let runZero assign one."
+
+        - key: "hidden"
+          label: "Hidden"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Hide this type from the picklist without deleting it (existing assignments are preserved)."
+
+        - key: "reference"
+          label: "Reference (advanced)"
+          fieldType: "number"
+          required: false
+          helpText: "Advanced/legacy numeric reference code. Leave blank unless you know you need a specific value."

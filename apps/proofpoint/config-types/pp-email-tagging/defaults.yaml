@@ -1,0 +1,8 @@
+# Defaults for the Email Tagging Settings singleton.
+#
+# Intentionally empty: a new item starts blank and the canvas field defaults
+# (see canvas.yaml) apply. Values here would be a flat map keyed by the canvas
+# field keys (warning_tags_enabled, info_tag_external_sender,
+# warning_tag_dmarc_failure, warning_tag_domain_age_failure,
+# warning_tag_geo_ip_failure, learn_more_enabled, learn_more_action_enabled,
+# banner_enabled, banner_content, subject_tag_enabled, subject_tag_content).

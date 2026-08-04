@@ -1,0 +1,6 @@
+# Defaults for the Authentication Settings singleton.
+#
+# Intentionally empty: a new item starts blank and the canvas field defaults
+# (see canvas.yaml) apply. Values here would be a flat map keyed by the canvas
+# field keys (is_mfa_enabled, mfa_admins_only, allow_local_login,
+# allow_azure_login, force_azure_login, idp_for_forced_login).

@@ -1,0 +1,53 @@
+# =============================================================================
+# Canvas Template — runZero Explorer Settings
+#
+# Declares SETTINGS TO APPLY to one already-existing Explorer (the item) — this
+# configuration cannot create or remove an Explorer; it is installed/uninstalled
+# outside the API. Users add one item per Explorer they want to tune. Field keys
+# must match config-types/explorer-settings/validate.ts and _shared.ts. Applied via
+# PATCH /org/explorers/{id} over the runZero console REST API, using an Organization
+# API key (Bearer auth) — the same key as Sites/Scan Tasks.
+#
+# WRITE-ONLY FIELD: Max Concurrent Scans is accepted on write but never returned by
+# the API on read — drift detection cannot compare it and rollback cannot restore it
+# (every deploy simply re-applies the declared value). See the app README.
+# =============================================================================
+
+id: "runzero-explorer-settings"
+name: "Explorer Settings"
+toolType: "runzero"
+entityType: "explorer-settings"
+description: "Tune an existing runZero Explorer's site assignment and scan concurrency via the runZero console REST API (PATCH /org/explorers/{id})."
+
+item:
+  label: "Explorer Settings"
+  identityField: "explorer"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Explorer"
+      icon: "server"
+      description: "Which existing Explorer these settings apply to"
+      fields:
+        - key: "explorer"
+          label: "Explorer"
+          fieldType: "text"
+          required: true
+          helpText: "The Explorer to tune — its name (as shown in runZero) or its UUID. The Explorer must already be installed and checked in at least once; this configuration cannot create one."
+
+        - key: "site"
+          label: "Assign to Site"
+          fieldType: "text"
+          required: false
+          helpText: "Optional — reassign this Explorer to a different Site, by name (as shown in runZero) or UUID. Leave blank to leave the current assignment untouched."
+
+        - key: "maxConcurrentScans"
+          label: "Max Concurrent Scans"
+          fieldType: "number"
+          required: false
+          helpText: >
+            Optional — the maximum number of scans this Explorer runs at once. WRITE-ONLY: runZero
+            never reports the current value back, so drift detection cannot compare it and rollback
+            cannot restore a prior value — every deploy re-applies whatever is declared here. Leave
+            blank to leave the current concurrency untouched.

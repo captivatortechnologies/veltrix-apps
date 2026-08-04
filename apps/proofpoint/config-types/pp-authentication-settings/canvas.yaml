@@ -1,0 +1,74 @@
+# =============================================================================
+# Canvas Template — Proofpoint Essentials Authentication Settings
+#
+# Organization-wide singleton: the local-login MFA policy plus the Login /
+# Single Sign-On policy. Declare this config type at most once per canvas.
+#
+# Both are dedicated GET/PUT sub-resources of the organization, applied via two
+# independent PUTs every deploy (the "always send the full managed state"
+# idiom — every field below has an explicit default, so nothing is left
+# ambiguous):
+#   GET/PUT /orgs/{org}/authentication/settings/mfa    { is_mfa_enabled, mfa_admins_only }
+#   GET/PUT /orgs/{org}/authentication/settings/login  { allow_local_login, idp_for_forced_login,
+#                                                         allow_azure_login, force_azure_login }
+# `idp_for_forced_login` is the UUID of an Identity Provider managed by the
+# `pp-identity-providers` config type (or already configured in Essentials) —
+# leave it blank to not force SSO. Field keys must match
+# config-types/pp-authentication-settings/validate.ts.
+# =============================================================================
+
+id: "proofpoint-pp-authentication-settings"
+name: "Proofpoint Essentials Authentication Settings"
+toolType: "proofpoint"
+entityType: "pp-authentication-settings"
+description: "Manage the Proofpoint Essentials organization-wide MFA policy and Login/SSO policy as code via the Essentials Interface API (/orgs/{org}/authentication/settings/{mfa,login}). Organization-wide singleton."
+
+item:
+  label: "Authentication Settings"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Multi-Factor Authentication"
+      icon: "shield"
+      description: "Require MFA for local (username/password) logins"
+      fields:
+        - key: "is_mfa_enabled"
+          label: "Require MFA for local logins"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Should users logging in locally complete MFA? Does not affect SSO logins."
+
+        - key: "mfa_admins_only"
+          label: "Admins only"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "If enabled, MFA is required for admins only. If disabled (and MFA is required), it applies to all users (admins + end users)."
+
+    - name: "Login / Single Sign-On"
+      icon: "log-in"
+      description: "How users are allowed to authenticate"
+      fields:
+        - key: "allow_local_login"
+          label: "Allow local login"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Allow local authentication (username/password)."
+
+        - key: "allow_azure_login"
+          label: "Allow native Azure AD login"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Allow native Azure AD logins. These do not require a separate Identity Provider to be configured."
+
+        - key: "force_azure_login"
+          label: "Force Azure AD login"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Force native Azure AD login, overriding the other login options."
+
+        - key: "idp_for_forced_login"
+          label: "Forced SSO Identity Provider (UUID)"
+          fieldType: "text"
+          required: false
+          helpText: "If set, users are automatically forwarded to this Identity Provider for SSO instead of the local/Azure login page. Use the UUID of an IDP managed by the Identity Providers config type (leave blank to not force SSO)."

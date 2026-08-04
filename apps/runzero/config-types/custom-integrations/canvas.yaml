@@ -1,0 +1,54 @@
+# =============================================================================
+# Canvas Template — runZero Custom Integrations
+#
+# Declares ONE custom integration REGISTRATION (the item) — the name/icon/description
+# a third-party asset-data feed imports under. The Starlark script that produces the
+# data is authored separately (Custom Integration Scripts) and is not managed here.
+# Users add as many as they need. Field keys must match
+# config-types/custom-integrations/validate.ts and _shared.ts.
+#
+# SCOPE: custom integrations are ACCOUNT-scoped resources (POST/PATCH/DELETE
+# /account/custom-integrations), so this configuration requires the connection's API
+# key to be an ACCOUNT-scoped runZero key — an Organization key will be rejected
+# (health check surfaces this). The integration name is the stable identity used to
+# upsert.
+# =============================================================================
+
+id: "runzero-custom-integrations"
+name: "Custom Integrations"
+toolType: "runzero"
+entityType: "custom-integrations"
+description: "Manage runZero custom-integration registrations (name/icon/description for third-party asset-data feeds) via the runZero console REST API (/account/custom-integrations). Requires an account-scoped API key."
+
+item:
+  label: "Custom Integration"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Integration"
+      icon: "puzzle"
+      description: "Registration identity shown wherever this integration's assets appear"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique integration name, without spaces (e.g. my-custom-integration). Used as the stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this integration imports — helps identify its purpose in the console."
+
+        - key: "iconBase64"
+          label: "Icon (base64 PNG)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Optional base64-encoded PNG, maximum 256×256 pixels, shown as this integration's icon. Leave blank for the default icon."
