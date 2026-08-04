@@ -1,0 +1,128 @@
+# =============================================================================
+# Canvas Template — Elastic Security Value Lists
+#
+# Declares ONE value LIST — the item. Users add as many lists as they need.
+# A list's VALUE ITEMS are folded in as a JSON array field (itemsJson): one
+# canvas item = one list container plus every item that belongs to it — the
+# same shape config-types/exception-lists/canvas.yaml uses for exception items
+# (value lists are the DIFFERENT Kibana Lists API — /api/lists — used to
+# populate reusable value sets referenced FROM an exception item's "list" entry
+# type, not the exception lists/items themselves).
+#
+# Identity is the list `id` (caller-chosen — POST /api/lists also accepts an
+# omitted id and server-generates a UUID, but a stable, caller-chosen id is
+# required here so deploys are reconcilable). Each folded item is keyed by its
+# own `id`. config-types/value-lists/validate.ts enforces list id uniqueness
+# across the canvas and item id uniqueness within a list.
+#
+# The list `type` (ip, keyword, date_range, ...) is IMMUTABLE after creation —
+# Kibana's update endpoint does not accept it — so it is authored once.
+#
+# Field keys must match what config-types/value-lists/validate.ts checks.
+# =============================================================================
+
+id: "elastic-security-value-lists"
+name: "Value List Configuration"
+toolType: "elastic-security"
+entityType: "value-lists"
+description: "Define Elastic Security value lists (reusable IP/keyword/range value sets referenced by exception-item \"is in list\" entries) and their items as code through the Kibana Lists API. One list is deployed as a container plus its folded-in items, reconciled by item id."
+
+item:
+  label: "Value List"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "List"
+      icon: "list"
+      description: "The value-list container — identity, name and value type"
+      fields:
+        - key: "id"
+          label: "List ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            message: "A unique, stable list identifier (the logical key). Kibana matches and updates the list on this value."
+          helpText: "The list's stable identifier, e.g. known-vpn-ranges. This is the identity used to find and update the list on each deploy — keep it stable."
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The value list's display name, shown in the Kibana Security console."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          validation:
+            maxLength: 1000
+          helpText: "Optional description of what this value list contains."
+
+        - key: "type"
+          label: "Value Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "keyword"
+          options:
+            - label: "Keyword"
+              value: "keyword"
+            - label: "Text"
+              value: "text"
+            - label: "IP address"
+              value: "ip"
+            - label: "IP range"
+              value: "ip_range"
+            - label: "Long"
+              value: "long"
+            - label: "Long range"
+              value: "long_range"
+            - label: "Integer"
+              value: "integer"
+            - label: "Integer range"
+              value: "integer_range"
+            - label: "Double"
+              value: "double"
+            - label: "Double range"
+              value: "double_range"
+            - label: "Float"
+              value: "float"
+            - label: "Float range"
+              value: "float_range"
+            - label: "Half float"
+              value: "half_float"
+            - label: "Short"
+              value: "short"
+            - label: "Byte"
+              value: "byte"
+            - label: "Boolean"
+              value: "boolean"
+            - label: "Date"
+              value: "date"
+            - label: "Date range"
+              value: "date_range"
+            - label: "Date (nanos)"
+              value: "date_nanos"
+          helpText: >
+            The Elasticsearch field type every item's value is stored/validated
+            as. IMMUTABLE after creation — Kibana's update endpoint does not
+            accept a type change; changing it here after the list exists has no
+            effect on the live list (a warning is shown).
+
+    - name: "Items"
+      icon: "code"
+      description: "The value items folded into this list"
+      fields:
+        - key: "itemsJson"
+          label: "Items (JSON array)"
+          fieldType: "textarea"
+          helpText: >
+            A JSON ARRAY of value items, each an object with id (stable key,
+            chosen by you) and value (a string matching the list's Value Type,
+            e.g. an IP, a keyword, or a "start-end" range). Example:
+            [{"id":"vpn-1","value":"203.0.113.0/24"},{"id":"vpn-2","value":"198.51.100.5"}].
+            Items are reconciled by id — POST new, PUT existing, and only items
+            THIS config previously created but no longer declares are deleted.

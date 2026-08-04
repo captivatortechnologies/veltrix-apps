@@ -1,0 +1,115 @@
+# =============================================================================
+# Canvas Template — Elasticsearch Security Roles
+#
+# Declares ONE Elasticsearch role — the item. Users add as many roles as they
+# need. A role's logical identity is its NAME, carried in the request PATH
+# (PUT /_security/role/{name}); the same PUT both creates and updates, so a
+# deploy is a TRUE UPSERT keyed on the name.
+#
+# A role grants privileges across up to four categories (cluster, indices,
+# applications, run_as). The typed fields cover the common cluster / run_as
+# grants (simple string lists); indices and application privileges are
+# deeply-nested arrays authored as JSON, matching how detection-rules /
+# role-mappings carry their own deep bodies as JSON.
+#
+# PROTECTED — built-in roles: a live role carrying metadata._reserved=true
+# (e.g. superuser, kibana_admin, monitoring_user) is Elasticsearch/Kibana-owned;
+# deploy FAILS rather than modify it. Author metadata keys starting with "_"
+# are reserved and warned.
+#
+# Field keys must match what config-types/roles/validate.ts checks.
+# =============================================================================
+
+id: "elastic-security-roles"
+name: "Role Configuration"
+toolType: "elastic-security"
+entityType: "roles"
+description: "Define Elasticsearch security roles (cluster/index/application privileges, run_as) as code through the Elasticsearch _security API. The role name is the identity and PUT upserts; reserved/built-in roles are protected."
+
+item:
+  label: "Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Role"
+      icon: "shield"
+      description: "The role's name and description"
+      fields:
+        - key: "name"
+          label: "Role Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            message: "The role name — up to 255 characters. This is the logical identity used to create, update (upsert), read and delete the role."
+          helpText: >
+            The role name (e.g. secops-analyst). This is the logical identity:
+            the same name is used to create, update (upsert), read and delete
+            the role. Built-in roles (metadata._reserved=true, e.g. superuser,
+            kibana_admin) are Elasticsearch/Kibana-owned and cannot be modified.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          validation:
+            maxLength: 2000
+          helpText: "Optional free-text description of what this role is for."
+
+    - name: "Grants"
+      icon: "key"
+      description: "Cluster privileges and users this role may run as"
+      fields:
+        - key: "cluster"
+          label: "Cluster Privileges"
+          fieldType: "tags"
+          helpText: >
+            Cluster-level privilege names, e.g. monitor, manage_index_templates,
+            manage_ilm, manage_security. At least one of Cluster Privileges,
+            Index Privileges (JSON) or Application Privileges (JSON) is
+            required — Elasticsearch rejects a role that grants nothing.
+
+        - key: "runAs"
+          label: "Run As"
+          fieldType: "tags"
+          helpText: "Usernames this role is allowed to submit requests on behalf of (the run_as list). Leave empty for none."
+
+    - name: "Index Privileges"
+      icon: "database"
+      description: "Index-level access as JSON"
+      fields:
+        - key: "indicesJson"
+          label: "Index Privileges (JSON array)"
+          fieldType: "textarea"
+          helpText: >
+            A JSON ARRAY of index-permission objects, e.g.
+            [{"names":["logs-*"],"privileges":["read","view_index_metadata"],
+            "field_security":{"grant":["*"]},"query":"{\"term\":{...}}"}].
+            Leave blank for no index grants. Elasticsearch validates the full
+            shape at deploy time.
+
+    - name: "Application Privileges"
+      icon: "layout"
+      description: "Application-level access as JSON (e.g. Kibana feature privileges)"
+      fields:
+        - key: "applicationsJson"
+          label: "Application Privileges (JSON array)"
+          fieldType: "textarea"
+          helpText: >
+            A JSON ARRAY of application-privilege objects, e.g.
+            [{"application":"kibana-.kibana","privileges":["feature_siem.all"],
+            "resources":["space:default"]}]. Leave blank for no application
+            grants.
+
+    - name: "Metadata"
+      icon: "tag"
+      description: "Optional arbitrary metadata attached to the role"
+      fields:
+        - key: "metadataJson"
+          label: "Metadata (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional metadata as a JSON object, e.g. {"team":"secops"}. Leave
+            blank for none. Keys beginning with "_" are reserved for
+            Elasticsearch (e.g. _reserved) and are ignored / rejected on write.

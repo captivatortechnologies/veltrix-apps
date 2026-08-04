@@ -1,0 +1,113 @@
+# =============================================================================
+# Canvas Template — Fleet MDM Configuration Profiles
+#
+# Declares ONE OS settings configuration profile (the item) — a macOS/iOS/
+# iPadOS .mobileconfig / declaration (DDM) JSON, or a Windows XML profile.
+# Users add as many as they need, scoped per-team or to "Unassigned" hosts.
+#
+# Fleet's batch endpoint (/api/v1/fleet/configuration_profiles/batch) is a
+# WHOLE-LIST REPLACE per team scope: every deploy submits every declared
+# profile for a given Team ID together, and Fleet removes/edits to match. Field
+# keys must match config-types/config-profiles/validate.ts. Applied via the
+# Fleet REST API. Verify field semantics against a live Fleet (fleetdm)
+# instance.
+# =============================================================================
+
+id: "fleet-config-profiles"
+name: "Configuration Profiles"
+toolType: "fleet"
+entityType: "config-profiles"
+description: "Manage Fleet MDM OS settings configuration profiles (macOS/iOS/iPadOS .mobileconfig or declaration JSON, Windows XML) via the Fleet REST API (/api/v1/fleet/configuration_profiles/batch)"
+
+item:
+  label: "Configuration Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Profile"
+      icon: "file-text"
+      description: "The profile identity, target platform and its content"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9 ._:-]+$"
+            maxLength: 255
+          helpText: "Veltrix-side label used to match this profile across deploys. For Apple profiles Fleet actually names the profile from the embedded PayloadDisplayName — keep them the same to avoid confusion."
+
+        - key: "platform"
+          label: "Platform"
+          fieldType: "select"
+          required: true
+          defaultValue: "macos"
+          options:
+            - label: "macOS / iOS / iPadOS (.mobileconfig or DDM JSON)"
+              value: "macos"
+            - label: "Windows (.xml / SyncML)"
+              value: "windows"
+          helpText: "Which OS settings profile family this is — determines how Fleet parses the content below."
+
+        - key: "displayName"
+          label: "Display Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Required by Fleet for Windows and declaration (DDM) profiles. Not used for .mobileconfig profiles — Fleet reads the name from the profile's own PayloadDisplayName."
+
+        - key: "profileContent"
+          label: "Profile Content"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 200000
+          helpText: "The raw profile content: XML plist for a .mobileconfig, JSON for a declaration (DDM) profile, or XML/SyncML for a Windows profile. Authored as plain text — deploy base64-encodes it for the Fleet API."
+
+    - name: "Targeting"
+      icon: "target"
+      description: "Which team and hosts this profile applies to"
+      fields:
+        - key: "teamId"
+          label: "Team ID"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^[0-9]*$"
+            maxLength: 20
+          helpText: "Numeric Fleet team ID to scope this profile to (a Fleet Premium feature — Fleet's REST API calls this parameter fleet_id). Leave blank to apply to \"Unassigned\" hosts (Fleet Free: all hosts)."
+
+        - key: "labelsIncludeAll"
+          label: "Labels — Include All"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Comma-separated label names — Fleet Premium. Target only hosts with EVERY listed label. Mutually exclusive with the other two label fields below."
+
+        - key: "labelsIncludeAny"
+          label: "Labels — Include Any"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Comma-separated label names — Fleet Premium. Target hosts with ANY listed label. Mutually exclusive with the other two label fields."
+
+        - key: "labelsExcludeAny"
+          label: "Labels — Exclude Any"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Comma-separated label names — Fleet Premium. Target hosts with NONE of the listed labels. May be combined with Include All or Include Any (but not both)."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Optional change note for operators (not sent to Fleet)"

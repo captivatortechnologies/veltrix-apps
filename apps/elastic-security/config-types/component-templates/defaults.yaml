@@ -1,0 +1,6 @@
+# Defaults for a new component template item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (name, version, deprecated, templateJson, metaJson), since a
+# template's presentational groups share one flat item record.

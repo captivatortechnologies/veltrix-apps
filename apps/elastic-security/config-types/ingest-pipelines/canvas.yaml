@@ -1,0 +1,98 @@
+# =============================================================================
+# Canvas Template — Elasticsearch Ingest Pipelines
+#
+# Declares ONE ingest pipeline — the item. Users add as many pipelines as they
+# need. A pipeline's logical identity is its ID, carried in the request PATH
+# (PUT /_ingest/pipeline/{id}); the same PUT both creates and updates, so a
+# deploy is a TRUE UPSERT keyed on the id.
+#
+# The processor chain is a deeply-nested, per-processor-type array with no
+# fixed field set, so it is authored as freeform JSON — the same treatment
+# detection-rules gives the rule body and ILM policies give their phases.
+#
+# Names beginning with `.` are the Elastic-managed / internal convention (e.g.
+# `.fleet_globals-1`) and are rejected by validate.ts. Pipeline ids containing
+# "@" commonly belong to a Fleet/Elastic Agent integration's managed pipeline
+# chain (e.g. logs-nginx.access@package) — authoring one is allowed but warned,
+# since an integration may own and overwrite it.
+#
+# Field keys must match what config-types/ingest-pipelines/validate.ts checks.
+# =============================================================================
+
+id: "elastic-security-ingest-pipelines"
+name: "Ingest Pipeline Configuration"
+toolType: "elastic-security"
+entityType: "ingest-pipelines"
+description: "Define Elasticsearch ingest pipelines (processor chains) as code through the Elasticsearch _ingest API. The pipeline id is the identity and PUT upserts; Elastic-managed (dot-prefixed) pipelines are protected."
+
+item:
+  label: "Ingest Pipeline"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Pipeline"
+      icon: "git-branch"
+      description: "The pipeline's id and description"
+      fields:
+        - key: "id"
+          label: "Pipeline ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            pattern: "^[^.].*$"
+            message: "The pipeline id. Must not begin with '.' — that prefix is reserved for Elastic-managed / internal pipelines."
+          helpText: >
+            The ingest pipeline id (e.g. logs-app-enrich). This is the logical
+            identity: the same id is used to create, update (upsert), read and
+            delete the pipeline. Ids starting with '.' are reserved for
+            Elastic-managed pipelines and are rejected. Ids containing "@"
+            commonly belong to a Fleet integration's managed pipeline chain —
+            authoring one is allowed but flagged.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          validation:
+            maxLength: 2000
+          helpText: "Optional description of what this pipeline does."
+
+    - name: "Processors"
+      icon: "code"
+      description: "The processor chain as JSON"
+      fields:
+        - key: "processorsJson"
+          label: "Processors (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A JSON ARRAY of processor objects, each keyed by its processor type,
+            e.g. [{"set":{"field":"event.ingested","value":"{{_ingest.timestamp}}"}},
+            {"grok":{"field":"message","patterns":["%{COMBINEDAPACHELOG}"]}}].
+            Elasticsearch validates the full processor schema at deploy time.
+
+        - key: "onFailureJson"
+          label: "On Failure (JSON array)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON ARRAY of processors to run if any processor above
+            throws, e.g. [{"set":{"field":"error.message","value":"{{_ingest.on_failure_message}}"}}].
+            Leave blank for none.
+
+    - name: "Metadata"
+      icon: "tag"
+      description: "Optional versioning and metadata"
+      fields:
+        - key: "version"
+          label: "Version"
+          fieldType: "number"
+          helpText: "Optional external version number — informational only; Elasticsearch does not enforce it as an optimistic-concurrency token."
+
+        - key: "metaJson"
+          label: "Meta (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional arbitrary metadata as a JSON object (the pipeline's
+            `_meta`), e.g. {"managed_by":"veltrix"}. Leave blank for none.

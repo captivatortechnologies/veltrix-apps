@@ -1,0 +1,88 @@
+# =============================================================================
+# Canvas Template — Elasticsearch Component Templates
+#
+# Declares ONE component template — the item. Users add as many templates as
+# they need. A template's logical identity is its NAME, carried in the request
+# PATH (PUT /_component_template/{name}); the same PUT both creates and
+# updates, so a deploy is a TRUE UPSERT keyed on the name.
+#
+# The template body (mappings/settings/aliases/lifecycle) is a large,
+# deeply-nested object with no fixed field set, so it is a single freeform JSON
+# textarea — the same treatment ILM policies give their phases.
+#
+# Elastic ships built-in component templates (logs-mappings, logs-settings,
+# metrics-mappings, metrics-settings, synthetics-mapping, synthetics-settings)
+# plus dot-prefixed internal ones; both are rejected by validate.ts. Deploy
+# additionally refuses any live template carrying `_meta.managed: true`.
+#
+# Field keys must match what config-types/component-templates/validate.ts checks.
+# =============================================================================
+
+id: "elastic-security-component-templates"
+name: "Component Template Configuration"
+toolType: "elastic-security"
+entityType: "component-templates"
+description: "Define Elasticsearch component templates (reusable mappings/settings/aliases building blocks) as code through the Elasticsearch _component_template API. The template name is the identity and PUT upserts; Elastic-managed templates are protected."
+
+item:
+  label: "Component Template"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Template"
+      icon: "layers"
+      description: "The template's name and versioning"
+      fields:
+        - key: "name"
+          label: "Template Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            pattern: "^[^.@].*$"
+            message: "The component template name. Must not begin with '.' or '@' — those prefixes (and the built-in logs-*/metrics-*/synthetics-* names) are reserved for Elastic-managed templates."
+          helpText: >
+            The component template name (e.g. app-logs-mappings). This is the
+            logical identity: the same name is used to create, update (upsert),
+            read and delete the template. Names starting with '.' or '@', and
+            the built-in logs-mappings / logs-settings / metrics-mappings /
+            metrics-settings / synthetics-mapping / synthetics-settings names,
+            are reserved and rejected.
+
+        - key: "version"
+          label: "Version"
+          fieldType: "number"
+          helpText: "Optional external version number — informational only; not auto-generated or enforced as an optimistic-concurrency token."
+
+        - key: "deprecated"
+          label: "Deprecated"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Marks the template as deprecated — Elasticsearch logs a warning when it is referenced by a composable index template."
+
+    - name: "Definition"
+      icon: "code"
+      description: "The template body (mappings/settings/aliases/lifecycle) as JSON"
+      fields:
+        - key: "templateJson"
+          label: "Template (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The value of the "template" key as JSON — {"mappings":{...}?,
+            "settings":{...}?, "aliases":{...}?, "lifecycle":{...}?}. At least
+            one of mappings/settings/aliases should be present. Example:
+            {"settings":{"number_of_shards":1},"mappings":{"properties":{"host.name":{"type":"keyword"}}}}.
+
+    - name: "Metadata"
+      icon: "tag"
+      description: "Optional arbitrary metadata"
+      fields:
+        - key: "metaJson"
+          label: "Meta (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional arbitrary metadata as a JSON object (the template's
+            `_meta`), e.g. {"managed_by":"veltrix"}. Leave blank for none.

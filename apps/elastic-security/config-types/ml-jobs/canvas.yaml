@@ -1,0 +1,149 @@
+# =============================================================================
+# Canvas Template — Elasticsearch ML Anomaly Detection Jobs
+#
+# Declares ONE anomaly detection job plus its datafeed — the item. Users add as
+# many jobs as they need. A job's logical identity is its `job_id`; its
+# datafeed id defaults to `datafeed-<job_id>` when left blank (the Kibana ML
+# UI's own convention).
+#
+# `analysis_config` and `data_description` are IMMUTABLE after creation —
+# Elasticsearch's job _update endpoint does not accept them — so they are
+# authored once. The mutable job settings (description, groups, analysis
+# limits, model plot config, retention/persistence settings) go through
+# POST _update on every deploy. The datafeed (indices/query/advanced) is
+# re-sent in full on every deploy.
+#
+# A job is created CLOSED with a STOPPED datafeed; the Enabled toggle drives
+# whether deploy opens the job and starts its datafeed, or closes/stops them —
+# the same "enabled" convention detection-rules / transforms use for their own
+# runtime toggle. Requires an Elasticsearch subscription/trial with machine
+# learning enabled.
+#
+# Field keys must match what config-types/ml-jobs/validate.ts checks.
+# =============================================================================
+
+id: "elastic-security-ml-jobs"
+name: "ML Anomaly Detection Job Configuration"
+toolType: "elastic-security"
+entityType: "ml-jobs"
+description: "Define Elasticsearch machine learning anomaly detection jobs and their datafeeds as code through the Elasticsearch _ml API. The job id is the identity; analysis_config/data_description are immutable after creation. Requires an ML-enabled subscription or trial."
+
+item:
+  label: "ML Job"
+  identityField: "jobId"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Job"
+      icon: "activity"
+      description: "Identity, description and running state"
+      fields:
+        - key: "jobId"
+          label: "Job ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            message: "The anomaly detection job id. This is the logical identity used to create, update, read and delete the job."
+          helpText: "The job id (e.g. suspicious-login-rate). Cannot be changed after creation without deleting and recreating the job."
+
+        - key: "datafeedId"
+          label: "Datafeed ID"
+          fieldType: "text"
+          helpText: "Optional datafeed id. Defaults to \"datafeed-<Job ID>\" when left blank (the Kibana ML UI's own convention)."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          validation:
+            maxLength: 1000
+          helpText: "Optional description of what this job detects."
+
+        - key: "groups"
+          label: "Groups"
+          fieldType: "tags"
+          helpText: "Optional group names used to organize related jobs, e.g. security, network."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "On: the job is opened and its datafeed started (actively detecting). Off: the job exists but is closed with a stopped datafeed."
+
+    - name: "Analysis (immutable)"
+      icon: "code"
+      description: "The detector configuration and time-field description — set once at creation"
+      fields:
+        - key: "analysisConfigJson"
+          label: "Analysis Config (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The job's `analysis_config` as JSON — bucket_span, detectors,
+            influencers, etc. IMMUTABLE after creation; a later change here has
+            no effect on an existing job and is reported as drift. Example:
+            {"bucket_span":"15m","detectors":[{"function":"high_count","by_field_name":"user.name"}],"influencers":["user.name","source.ip"]}.
+
+        - key: "dataDescriptionJson"
+          label: "Data Description (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The job's `data_description` as JSON — at minimum the time field,
+            e.g. {"time_field":"@timestamp"}. IMMUTABLE after creation.
+
+        - key: "resultsIndexName"
+          label: "Results Index Name"
+          fieldType: "text"
+          helpText: "Optional custom results index name suffix. IMMUTABLE after creation."
+
+    - name: "Analysis Limits & Advanced (mutable)"
+      icon: "sliders"
+      description: "Settings applied on every deploy"
+      fields:
+        - key: "analysisLimitsJson"
+          label: "Analysis Limits (JSON)"
+          fieldType: "textarea"
+          helpText: 'Optional, e.g. {"model_memory_limit":"64mb"}. Applied on every deploy.'
+
+        - key: "modelPlotConfigJson"
+          label: "Model Plot Config (JSON)"
+          fieldType: "textarea"
+          helpText: 'Optional, e.g. {"enabled":true}. Applied on every deploy.'
+
+        - key: "jobAdvancedJson"
+          label: "Advanced Job Settings (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional catch-all JSON object for the remaining mutable job
+            settings — custom_settings, categorization_filters,
+            renormalization_window_days, results_retention_days,
+            model_snapshot_retention_days, background_persist_interval,
+            allow_lazy_open. Merged into the job body on every deploy.
+
+    - name: "Datafeed"
+      icon: "database"
+      description: "Where the job reads its source data from"
+      fields:
+        - key: "datafeedIndices"
+          label: "Datafeed Indices"
+          fieldType: "tags"
+          required: true
+          helpText: "One or more index patterns the datafeed reads from, e.g. logs-*."
+
+        - key: "datafeedQueryJson"
+          label: "Datafeed Query (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional Query DSL object to filter the source data, e.g.
+            {"term":{"event.category":"authentication"}}. Leave blank to match
+            all source documents.
+
+        - key: "datafeedAdvancedJson"
+          label: "Advanced Datafeed Settings (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional catch-all JSON object for the remaining datafeed settings —
+            frequency, scroll_size, aggregations, runtime_mappings,
+            chunking_config. Merged into the datafeed body on every deploy.

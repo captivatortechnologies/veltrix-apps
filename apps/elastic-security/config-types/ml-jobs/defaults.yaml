@@ -1,0 +1,9 @@
+# Defaults for a new ML job item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (jobId, datafeedId, description, groups, enabled,
+# analysisConfigJson, dataDescriptionJson, resultsIndexName,
+# analysisLimitsJson, modelPlotConfigJson, jobAdvancedJson, datafeedIndices,
+# datafeedQueryJson, datafeedAdvancedJson), since a job's presentational groups
+# share one flat item record.

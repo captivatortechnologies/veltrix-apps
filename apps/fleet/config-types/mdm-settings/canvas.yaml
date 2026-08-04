@@ -1,0 +1,210 @@
+# =============================================================================
+# Canvas Template — Fleet MDM Settings
+#
+# Declares ONE MDM settings record for a scope — the ORG-WIDE default, or ONE
+# team's override. Users add one item per scope they want to manage. Field
+# keys must match config-types/mdm-settings/validate.ts. Applied via the Fleet
+# REST API (PATCH /api/v1/fleet/config for the global scope, PATCH
+# /api/v1/fleet/fleets/{id} for a team scope — a Fleet Premium feature).
+#
+# Deploy reads the current mdm block first and merges declared fields into it
+# (like global-settings), so fields this canvas doesn't expose (e.g. macOS/
+# Windows custom_settings authored via Fleet's YAML) are left untouched.
+# Verify against a live Fleet (fleetdm) instance.
+# =============================================================================
+
+id: "fleet-mdm-settings"
+name: "MDM Settings"
+toolType: "fleet"
+entityType: "mdm-settings"
+description: "Manage Fleet's MDM settings — OS update deadlines, disk encryption enforcement and setup-experience toggles — globally or per team via the Fleet REST API (/api/v1/fleet/config, /api/v1/fleet/fleets/{id})"
+
+item:
+  label: "MDM Settings"
+  identityField: "teamId"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Scope"
+      icon: "target"
+      description: "Which scope this record configures"
+      fields:
+        - key: "teamId"
+          label: "Team ID"
+          fieldType: "text"
+          required: true
+          defaultValue: "global"
+          validation:
+            pattern: "^(global|[0-9]+)$"
+            maxLength: 20
+          helpText: "Type \"global\" for the org-wide default, or a numeric Fleet team ID for that team's override (a Fleet Premium feature)."
+
+    - name: "OS Updates"
+      icon: "refresh-cw"
+      description: "Minimum OS version and update deadlines"
+      fields:
+        - key: "macosMinVersion"
+          label: "macOS Minimum Version"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 32
+
+        - key: "macosDeadline"
+          label: "macOS Update Deadline"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+          helpText: "YYYY-MM-DD"
+
+        - key: "iosMinVersion"
+          label: "iOS Minimum Version"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 32
+
+        - key: "iosDeadline"
+          label: "iOS Update Deadline"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+          helpText: "YYYY-MM-DD"
+
+        - key: "ipadosMinVersion"
+          label: "iPadOS Minimum Version"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 32
+
+        - key: "ipadosDeadline"
+          label: "iPadOS Update Deadline"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+          helpText: "YYYY-MM-DD"
+
+        - key: "windowsDeadlineDays"
+          label: "Windows Update Deadline (days)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+
+        - key: "windowsGracePeriodDays"
+          label: "Windows Update Grace Period (days)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+
+    - name: "Disk Encryption & Recovery"
+      icon: "lock"
+      description: "Encryption enforcement (Fleet Premium)"
+      fields:
+        - key: "enableDiskEncryption"
+          label: "Enable Disk Encryption"
+          fieldType: "select"
+          required: false
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+
+        - key: "windowsRequireBitlockerPin"
+          label: "Require BitLocker PIN"
+          fieldType: "select"
+          required: false
+          defaultValue: "no"
+          visibleWhen:
+            field: "enableDiskEncryption"
+            equals: "yes"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+
+        - key: "enableRecoveryLockPassword"
+          label: "Enable Recovery Lock (macOS) — global only"
+          fieldType: "select"
+          required: false
+          defaultValue: "no"
+          visibleWhen:
+            field: "teamId"
+            equals: "global"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+
+        - key: "appleRequireHardwareAttestation"
+          label: "Require Apple Silicon Attestation — global only"
+          fieldType: "select"
+          required: false
+          defaultValue: "no"
+          visibleWhen:
+            field: "teamId"
+            equals: "global"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+
+    - name: "Setup Experience"
+      icon: "user-check"
+      description: "End-user enrollment behavior"
+      fields:
+        - key: "enableEndUserAuthentication"
+          label: "Require IdP Authentication at Enrollment"
+          fieldType: "select"
+          required: false
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+
+    - name: "macOS Migration — global only"
+      icon: "arrow-right-circle"
+      description: "Nudge end users to migrate from another MDM (global scope only)"
+      fields:
+        - key: "macosMigrationEnabled"
+          label: "Enable macOS Migration"
+          fieldType: "select"
+          required: false
+          defaultValue: "no"
+          visibleWhen:
+            field: "teamId"
+            equals: "global"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+
+        - key: "macosMigrationMode"
+          label: "Migration Mode"
+          fieldType: "select"
+          required: false
+          defaultValue: "voluntary"
+          visibleWhen:
+            field: "macosMigrationEnabled"
+            equals: "yes"
+          options:
+            - { label: "Voluntary", value: "voluntary" }
+            - { label: "Forced", value: "forced" }
+
+        - key: "macosMigrationWebhookUrl"
+          label: "Migration Webhook URL"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "macosMigrationEnabled"
+            equals: "yes"
+          validation:
+            maxLength: 500
+
+        - key: "windowsEnabledAndConfigured"
+          label: "Turn On Windows MDM"
+          fieldType: "select"
+          required: false
+          defaultValue: "no"
+          visibleWhen:
+            field: "teamId"
+            equals: "global"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Optional change note for operators (not sent to Fleet)"

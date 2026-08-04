@@ -1,0 +1,85 @@
+# =============================================================================
+# Canvas Template — Elastic Security Timeline Templates
+#
+# Declares ONE timeline TEMPLATE — the item (never an ad-hoc analyst timeline;
+# see the "Intentionally excluded" note in the app README). Users add as many
+# templates as they need.
+#
+# Identity is `templateTimelineId` — a caller-chosen, stable UUID/string. This
+# is exactly the field Elastic's own prepackaged timeline templates use for
+# portable identity across environments/versions (GET /api/timeline supports
+# looking a template up BY this field). The underlying Kibana saved object id
+# (`savedObjectId`) and its optimistic-concurrency `version` token are
+# server-managed and never authored.
+#
+# `templateTimelineVersion` (an incrementing integer Elastic itself uses to
+# detect "a newer definition exists") is also server-managed BY THIS APP: it is
+# set to 1 on create and incremented by 1 on every update — never authored.
+#
+# The rest of a timeline's definition (dataProviders, kqlQuery, filters,
+# columns, dateRange, sort, ...) is a large, deeply-nested object with no fixed
+# field set, so it is one freeform JSON textarea — the same treatment
+# detection-rules gives the rule body.
+#
+# Field keys must match what config-types/timeline-templates/validate.ts checks.
+# =============================================================================
+
+id: "elastic-security-timeline-templates"
+name: "Timeline Template Configuration"
+toolType: "elastic-security"
+entityType: "timeline-templates"
+description: "Define Elastic Security timeline TEMPLATES (reusable investigation timelines) as code through the Kibana Security Timeline API. Identity is the portable templateTimelineId; the Kibana saved-object id/version and templateTimelineVersion are server-managed."
+
+item:
+  label: "Timeline Template"
+  identityField: "templateTimelineId"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Template"
+      icon: "clock"
+      description: "Identity, title and description"
+      fields:
+        - key: "templateTimelineId"
+          label: "Template Timeline ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            message: "A unique, stable identifier (conventionally a UUID) — this is the identity Kibana matches the template on across deploys and environments."
+          helpText: >
+            A stable identifier for this template — a UUID is conventional
+            (generate one once and keep it; e.g. 6ce1b592-84e3-4b4a-9552-f189d4b82075).
+            This is the logical identity used to find and update the template
+            on each deploy — keep it stable.
+
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 500
+          helpText: "The template's display title shown in the Kibana Timelines gallery."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          validation:
+            maxLength: 2000
+          helpText: "Optional description of what this investigation timeline is for."
+
+    - name: "Definition"
+      icon: "code"
+      description: "Data providers, query, columns and filters as JSON"
+      fields:
+        - key: "definitionJson"
+          label: "Definition (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            The rest of the timeline body as a JSON object — any of
+            dataProviders, kqlQuery, kqlMode, filters, columns, sort,
+            dateRange, indexNames, eqlOptions, excludedRowRendererIds,
+            savedQueryId, dataViewId. Leave blank for an empty template (title
+            + description only). Example:
+            {"columns":[{"columnHeaderType":"not-filtered","id":"@timestamp"}],"kqlQuery":{"filterQuery":{"kuery":{"kind":"kuery","expression":"event.category:authentication"},"serializedQuery":"event.category:authentication"}}}.

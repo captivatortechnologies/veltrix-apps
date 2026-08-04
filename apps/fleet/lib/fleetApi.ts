@@ -13,6 +13,7 @@
 // =============================================================================
 
 import { request as httpsRequest } from 'node:https'
+import { randomBytes } from 'node:crypto'
 import type { ComponentRef, ConnectivityRef, CredentialRef } from '@veltrixsecops/app-sdk'
 
 export const DEFAULT_FLEET_PORT = 443
@@ -62,7 +63,7 @@ export interface FleetResponse {
  */
 export function fleetRequest(
   url: string,
-  init: { method?: string; headers?: Record<string, string>; body?: string; timeoutMs?: number } = {},
+  init: { method?: string; headers?: Record<string, string>; body?: string | Buffer; timeoutMs?: number } = {},
 ): Promise<FleetResponse> {
   const u = new URL(url)
   const timeoutMs = init.timeoutMs ?? 15_000
@@ -114,4 +115,101 @@ export async function sendJson<T>(
   })
   if (!res.ok) throw new Error(`${method} ${url} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
   return (res.body ? JSON.parse(res.body) : {}) as T
+}
+
+// -----------------------------------------------------------------------------
+// multipart/form-data — Fleet's Scripts library (POST/PATCH /api/v1/fleet/scripts)
+// has no JSON alternative: the script content must travel as an uploaded file
+// part. This is a plain RFC 2388 encoder over node:https (no external
+// dependency) — deliberately minimal, matching the size of what this app sends
+// (script source text, not arbitrary binaries).
+// -----------------------------------------------------------------------------
+
+export interface MultipartField {
+  name: string
+  value: string
+}
+
+export interface MultipartFilePart {
+  name: string
+  filename: string
+  content: string | Buffer
+  contentType?: string
+}
+
+/** Encode fields + files as a multipart/form-data body with a random boundary. */
+export function buildMultipartBody(
+  fields: MultipartField[],
+  files: MultipartFilePart[],
+): { body: Buffer; contentType: string } {
+  const boundary = `veltrixFleet${randomBytes(16).toString('hex')}`
+  const CRLF = '\r\n'
+  const parts: Buffer[] = []
+
+  for (const field of fields) {
+    parts.push(
+      Buffer.from(
+        `--${boundary}${CRLF}Content-Disposition: form-data; name="${field.name}"${CRLF}${CRLF}${field.value}${CRLF}`,
+        'utf8',
+      ),
+    )
+  }
+  for (const file of files) {
+    parts.push(
+      Buffer.from(
+        `--${boundary}${CRLF}Content-Disposition: form-data; name="${file.name}"; filename="${file.filename}"${CRLF}` +
+          `Content-Type: ${file.contentType ?? 'application/octet-stream'}${CRLF}${CRLF}`,
+        'utf8',
+      ),
+    )
+    parts.push(Buffer.isBuffer(file.content) ? file.content : Buffer.from(file.content, 'utf8'))
+    parts.push(Buffer.from(CRLF, 'utf8'))
+  }
+  parts.push(Buffer.from(`--${boundary}--${CRLF}`, 'utf8'))
+
+  return { body: Buffer.concat(parts), contentType: `multipart/form-data; boundary=${boundary}` }
+}
+
+/** POST/PATCH a multipart/form-data request (Fleet's Scripts library upload). */
+export async function sendMultipart<T>(
+  method: 'POST' | 'PATCH',
+  url: string,
+  headers: Record<string, string>,
+  fields: MultipartField[],
+  files: MultipartFilePart[],
+  timeoutMs?: number,
+): Promise<T> {
+  const { body, contentType } = buildMultipartBody(fields, files)
+  const res = await fleetRequest(url, {
+    method,
+    headers: { 'Content-Type': contentType, ...headers },
+    body,
+    timeoutMs,
+  })
+  if (!res.ok) throw new Error(`${method} ${url} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+  return (res.body ? JSON.parse(res.body) : {}) as T
+}
+
+/**
+ * Fetch every page of a Fleet list endpoint that pages via `meta.has_next_
+ * results` (page/per_page query params), concatenating the array found at
+ * `pluckItems`. Bounded at 50 pages as a runaway-loop guard.
+ */
+export async function getAllPages<TItem>(
+  urlWithoutPaging: string,
+  headers: Record<string, string>,
+  pluckItems: (page: unknown) => TItem[] | undefined,
+  perPage = 200,
+): Promise<TItem[]> {
+  const items: TItem[] = []
+  const sep = urlWithoutPaging.includes('?') ? '&' : '?'
+  for (let page = 0; page < 50; page++) {
+    const res = await getJson<{ meta?: { has_next_results?: boolean } }>(
+      `${urlWithoutPaging}${sep}page=${page}&per_page=${perPage}`,
+      headers,
+    )
+    items.push(...(pluckItems(res) ?? []))
+    if (!res.meta?.has_next_results) break
+  }
+  return items
 }

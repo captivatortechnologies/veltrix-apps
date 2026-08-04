@@ -1,0 +1,6 @@
+# Defaults for a new value list item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (id, name, description, type, itemsJson), since a value
+# list's presentational groups share one flat item record.

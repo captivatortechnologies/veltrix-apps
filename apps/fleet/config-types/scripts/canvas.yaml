@@ -1,0 +1,77 @@
+# =============================================================================
+# Canvas Template — Fleet Scripts Library
+#
+# Declares ONE library script (the item) — available to run on hosts assigned
+# to a team (or "Unassigned"). Users add as many as they need. Field keys must
+# match config-types/scripts/validate.ts. Applied via the Fleet REST API
+# (/api/v1/fleet/scripts) — the ONLY multipart/form-data config type in this
+# app, since Fleet has no JSON alternative for uploading script content. Verify
+# field semantics against a live Fleet (fleetdm) instance.
+# =============================================================================
+
+id: "fleet-scripts"
+name: "Scripts"
+toolType: "fleet"
+entityType: "scripts"
+description: "Manage the Fleet scripts library — shell/PowerShell scripts available to run on hosts — via the Fleet REST API (/api/v1/fleet/scripts)"
+
+item:
+  label: "Script"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Script"
+      icon: "terminal"
+      description: "The script identity, type and content"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_-]+$"
+            maxLength: 200
+          helpText: "Unique script name (no extension — deploy appends .sh or .ps1 based on Script Type below) used to upsert the script, e.g. rotate_bitlocker_key"
+
+        - key: "scriptType"
+          label: "Script Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "sh"
+          options:
+            - label: "Shell (macOS / Linux) — .sh"
+              value: "sh"
+            - label: "PowerShell (Windows) — .ps1"
+              value: "ps1"
+          helpText: "Determines the uploaded filename's extension, which is how Fleet infers the script's shell."
+
+        - key: "scriptContent"
+          label: "Script Content"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 9500
+          helpText: "The script source. Must be under 10,000 characters (Fleet's Run Script limit) to remain usable with ad hoc runs; line endings are normalized by Fleet."
+
+    - name: "Targeting"
+      icon: "target"
+      description: "Which team this script is available to"
+      fields:
+        - key: "teamId"
+          label: "Team ID"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^[0-9]*$"
+            maxLength: 20
+          helpText: "Numeric Fleet team ID this script is available to (a Fleet Premium feature — Fleet's REST API calls this parameter fleet_id). Leave blank to make it available only to \"Unassigned\" hosts."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Optional change note for operators (not sent to Fleet)"

@@ -1,0 +1,107 @@
+# =============================================================================
+# Canvas Template — Elasticsearch Transforms
+#
+# Declares ONE transform — the item. Users add as many transforms as they need.
+# A transform's logical identity is its ID, carried in the request PATH.
+# UNLIKE ILM policies / role mappings, PUT /_transform/{id} is CREATE-ONLY (it
+# fails if the id already exists) — updating an existing transform goes through
+# POST /_transform/{id}/_update instead, so deploy branches on existence.
+#
+# The pivot/latest definition (what the transform computes) is IMMUTABLE after
+# creation — Elasticsearch's _update endpoint does not accept it — so it is
+# authored once in the JSON Definition and only ever sent on create. The
+# mutable settings (frequency, sync, settings, retention_policy) live in the
+# SAME JSON blob and ARE sent on every update.
+#
+# A transform is created STOPPED; the Enabled toggle drives whether deploy
+# starts or stops it (POST _start / _stop), the same "enabled" convention
+# detection-rules and role-mappings use for their own runtime toggle.
+#
+# Field keys must match what config-types/transforms/validate.ts checks.
+# =============================================================================
+
+id: "elastic-security-transforms"
+name: "Transform Configuration"
+toolType: "elastic-security"
+entityType: "transforms"
+description: "Define Elasticsearch transforms (pivot/latest aggregations from a source index into a destination index) as code through the Elasticsearch _transform API. The transform id is the identity; pivot/latest is immutable after creation."
+
+item:
+  label: "Transform"
+  identityField: "transformId"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Transform"
+      icon: "shuffle"
+      description: "Identity, description and running state"
+      fields:
+        - key: "transformId"
+          label: "Transform ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            message: "The transform id. This is the logical identity used to create, update, read and delete the transform."
+          helpText: "The transform id (e.g. logs-by-host-hourly). Cannot be changed after creation without deleting and recreating the transform."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          validation:
+            maxLength: 1000
+          helpText: "Optional description of what this transform computes."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "On: the transform is started (running on its schedule/continuously). Off: the transform exists but is stopped."
+
+    - name: "Source & Destination"
+      icon: "database"
+      description: "Where the transform reads from and writes to"
+      fields:
+        - key: "sourceIndex"
+          label: "Source Index Pattern(s)"
+          fieldType: "tags"
+          required: true
+          helpText: "One or more source index patterns to read from, e.g. logs-*."
+
+        - key: "sourceQueryJson"
+          label: "Source Query (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional Query DSL object to filter the source data, e.g.
+            {"term":{"event.category":"network"}}. Leave blank to match all
+            source documents.
+
+        - key: "destIndex"
+          label: "Destination Index"
+          fieldType: "text"
+          required: true
+          helpText: "The index (or alias) the transform writes its results to."
+
+        - key: "destPipeline"
+          label: "Destination Ingest Pipeline"
+          fieldType: "text"
+          helpText: "Optional ingest pipeline name to run destination documents through."
+
+    - name: "Definition"
+      icon: "code"
+      description: "The pivot/latest aggregation (immutable) plus sync/frequency/settings (mutable) as JSON"
+      fields:
+        - key: "definitionJson"
+          label: "Definition (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A JSON object with EXACTLY ONE of "pivot" or "latest" (the
+            aggregation the transform computes — IMMUTABLE after creation; a
+            later change here has no effect on an existing transform and is
+            reported as drift), plus any of the MUTABLE settings "sync"
+            (continuous-mode config, e.g. {"time":{"field":"@timestamp","delay":"60s"}}),
+            "frequency", "settings" and "retention_policy" — all of which ARE
+            applied on every deploy. Example:
+            {"pivot":{"group_by":{"host":{"terms":{"field":"host.name"}}},"aggregations":{"count":{"value_count":{"field":"_id"}}}},"sync":{"time":{"field":"@timestamp","delay":"60s"}},"frequency":"5m"}.

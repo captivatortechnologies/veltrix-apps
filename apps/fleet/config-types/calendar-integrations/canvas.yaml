@@ -1,0 +1,75 @@
+# =============================================================================
+# Canvas Template — Fleet Calendar Integrations (per-team)
+#
+# Declares ONE team's calendar-automation toggle — whether Fleet books a
+# calendar event to remediate failing policies on a host, and where Fleet
+# notifies a webhook during that flow. Users add one item per team.
+#
+# The GLOBAL half of this feature (org_settings.integrations.google_calendar:
+# domain + a Google service-account API key JSON) is intentionally NOT managed
+# here — the API key is third-party credential material (see README
+# "Intentionally excluded"). Configure that once, out of band, in the Fleet UI
+# or fleetctl gitops with the key in a secret manager; THIS config type only
+# manages the non-secret per-team enable/webhook toggle, which Fleet requires
+# the global half to already exist for. Field keys must match config-types/
+# calendar-integrations/validate.ts. Applied via the Fleet REST API (PATCH
+# /api/v1/fleet/fleets/{id}) — a Fleet Premium feature. Verify against a live
+# Fleet (fleetdm) instance.
+# =============================================================================
+
+id: "fleet-calendar-integrations"
+name: "Calendar Integrations"
+toolType: "fleet"
+entityType: "calendar-integrations"
+description: "Manage Fleet's per-team calendar-automation toggle for failing-policy remediation via the Fleet REST API (/api/v1/fleet/fleets/{id})"
+
+item:
+  label: "Calendar Integration"
+  identityField: "teamId"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Team"
+      icon: "users"
+      description: "Which team this calendar automation applies to"
+      fields:
+        - key: "teamId"
+          label: "Team ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[0-9]+$"
+            maxLength: 20
+          helpText: "Numeric Fleet team ID (a Fleet Premium feature — Fleet's REST API calls this parameter fleet_id). Requires the org-wide Google Calendar integration to already be configured — see the note above."
+
+    - name: "Automation"
+      icon: "calendar"
+      description: "Failing-policy remediation via a booked calendar event"
+      fields:
+        - key: "enableCalendarEvents"
+          label: "Enable Calendar Events"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "When enabled, Fleet books a calendar event with end users whose hosts fail a calendar-eligible policy."
+
+        - key: "webhookUrl"
+          label: "Webhook URL"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "enableCalendarEvents"
+            equals: "yes"
+          validation:
+            maxLength: 500
+          helpText: "URL Fleet calls during a calendar event to trigger auto-remediation. Required when Enable Calendar Events is Yes."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Optional change note for operators (not sent to Fleet)"

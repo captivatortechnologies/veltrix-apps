@@ -1,0 +1,71 @@
+# =============================================================================
+# Canvas Template — Fleet Enroll Secrets
+#
+# Declares ONE valid enroll secret (the item), scoped globally or to a team.
+# Users add as many as they need — Fleet accepts multiple valid secrets per
+# scope at once (e.g. to rotate one out gradually). Fleet's enroll-secret
+# endpoints are a WHOLE-LIST REPLACE per scope, so every deploy submits every
+# declared secret for a given scope together.
+#
+# Unlike most secrets this app avoids (see README "Intentionally excluded"),
+# an enroll secret is not third-party credential material — it IS the
+# declared resource this config type manages (the shared token new hosts use
+# to enroll). Field keys must match config-types/enroll-secrets/validate.ts.
+# Applied via the Fleet REST API. Verify against a live Fleet (fleetdm)
+# instance.
+# =============================================================================
+
+id: "fleet-enroll-secrets"
+name: "Enroll Secrets"
+toolType: "fleet"
+entityType: "enroll-secrets"
+description: "Manage Fleet's valid enroll secrets — global or per-team — via the Fleet REST API (/api/v1/fleet/spec/enroll_secret, /api/v1/fleet/fleets/{id}/secrets)"
+
+item:
+  label: "Enroll Secret"
+  identityField: "label"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Secret"
+      icon: "key"
+      description: "Identity and scope"
+      fields:
+        - key: "label"
+          label: "Label"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9 ._:-]+$"
+            maxLength: 255
+          helpText: "Veltrix-side label for this secret, e.g. workstations-default — used to track it across deploys. Not sent to Fleet."
+
+        - key: "teamId"
+          label: "Team ID"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^[0-9]*$"
+            maxLength: 20
+          helpText: "Numeric Fleet team ID this secret enrolls hosts into (a Fleet Premium feature — Fleet's REST API calls this parameter fleet_id). Leave blank for the org-wide global secret."
+
+    - name: "Material"
+      icon: "lock"
+      description: "The enroll secret value"
+      fields:
+        - key: "value"
+          label: "Secret Value"
+          fieldType: "password"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The enroll secret string osquery/orbit uses to enroll. Fleet returns this value in plaintext on read, so drift detection can fully compare it — unlike a third-party API credential, this IS the config this type manages."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Optional change note for operators (not sent to Fleet)"

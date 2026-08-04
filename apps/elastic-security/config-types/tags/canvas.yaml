@@ -1,0 +1,67 @@
+# =============================================================================
+# Canvas Template — Kibana Saved Object Tags
+#
+# Declares ONE tag — the item. Users add as many tags as they need. A tag's
+# logical identity is its ID, carried in the request PATH (PUT /api/tags/{id});
+# the same PUT both creates and updates ("Upsert a tag" per the Kibana Tags
+# API), so a deploy is a TRUE UPSERT keyed on the id — the caller chooses the
+# id (rather than letting Kibana generate one via POST /api/tags), exactly like
+# a Kibana space's immutable id.
+#
+# Tags have no reserved/built-in set — Kibana ships none — so there is no
+# protected-id concept here (unlike spaces/ILM/role-mappings/roles).
+#
+# Field keys must match what config-types/tags/validate.ts checks.
+# =============================================================================
+
+id: "elastic-security-tags"
+name: "Tag Configuration"
+toolType: "elastic-security"
+entityType: "tags"
+description: "Define Kibana saved-object tags (used to organize dashboards, rules and other saved objects) as code through the Kibana Tags API. The tag id is the identity and PUT upserts."
+
+item:
+  label: "Tag"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Tag"
+      icon: "tag"
+      description: "Identity, name, color and description"
+      fields:
+        - key: "id"
+          label: "Tag ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-z0-9][a-z0-9_-]*$"
+            maxLength: 100
+            message: "Lowercase letters, digits, hyphens and underscores only; must begin with a letter or digit. The tag id is the identity used to create, update (upsert) and delete it."
+          helpText: "URL-friendly, stable tag identifier, e.g. team-secops. This is the logical identity — the same id is used to create, update (upsert), read and delete the tag."
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: "The tag's display name shown wherever tags are applied, e.g. Team: SecOps."
+
+        - key: "color"
+          label: "Color"
+          fieldType: "text"
+          required: true
+          defaultValue: "#0B64DD"
+          validation:
+            pattern: "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$"
+            message: "A hex color such as #0B64DD (6-digit) or #07C (3-digit)."
+          helpText: "The tag's display color, a hex value such as #0B64DD."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          validation:
+            maxLength: 2048
+          helpText: "Optional description of what this tag represents."

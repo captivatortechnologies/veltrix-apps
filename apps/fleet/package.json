@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-fleet",
   "private": true,
-  "version": "0.4.0",
-  "description": "Veltrix app: manage Fleet (open-source osquery fleet management) as code — saved osquery queries — over the Fleet REST API, with BYOL infrastructure groundwork",
+  "version": "0.5.0",
+  "description": "Veltrix app: manage Fleet (open-source osquery fleet management) as code — saved queries, policies, labels, teams, agent config, MDM configuration profiles, scripts, software, enroll secrets, global settings, MDM settings and calendar integrations — over the Fleet REST API, with BYOL infrastructure groundwork",
   "scripts": {
     "typecheck": "tsc --noEmit"
   },

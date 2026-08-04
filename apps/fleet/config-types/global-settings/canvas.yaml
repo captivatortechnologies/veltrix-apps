@@ -1,0 +1,288 @@
+# =============================================================================
+# Canvas Template — Fleet Global Settings (org config, non-secret slice)
+#
+# SINGLETON — declares the org-wide, non-secret slice of Fleet's configuration:
+# org_info, server_settings, features, host/activity expiry, webhook_settings
+# and fleet_desktop. Field keys must match config-types/global-settings/
+# validate.ts. Applied via the Fleet REST API (PATCH /api/v1/fleet/config).
+#
+# Deliberately EXCLUDED (see README "Intentionally excluded"): smtp_settings,
+# sso_settings and integrations (jira/zendesk/google_workspace/google_calendar)
+# all carry third-party credential material; agent_options is its own config
+# type (agent-config); mdm is its own config type (mdm-settings). Deploy reads
+# the current config first and merges declared fields into just these
+# sections, leaving every other section (and any field within these sections
+# this canvas doesn't expose) untouched. Verify against a live Fleet (fleetdm)
+# instance.
+# =============================================================================
+
+id: "fleet-global-settings"
+name: "Global Settings"
+toolType: "fleet"
+entityType: "global-settings"
+description: "Manage Fleet's non-secret org-wide settings — organization info, server settings, features, retention and webhooks — via the Fleet REST API (/api/v1/fleet/config)"
+
+item:
+  label: "Global Settings"
+  identityField: "scope"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Organization"
+      icon: "building"
+      description: "Organization identity shown in Fleet"
+      fields:
+        - key: "scope"
+          label: "Scope"
+          fieldType: "text"
+          required: true
+          defaultValue: "org"
+          validation:
+            maxLength: 32
+          helpText: "Fixed scope for the org-wide settings (singleton — leave as \"org\")"
+
+        - key: "orgName"
+          label: "Organization Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+
+        - key: "orgLogoUrlDarkMode"
+          label: "Logo URL (dark mode)"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+
+        - key: "orgLogoUrlLightMode"
+          label: "Logo URL (light mode)"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+
+        - key: "contactUrl"
+          label: "Contact URL"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Shown to end users needing to contact IT/security — can be an https URL or a file:// URI."
+
+    - name: "Server & Features"
+      icon: "server"
+      description: "Server behavior and host-facing feature toggles"
+      fields:
+        - key: "serverUrl"
+          label: "Server URL"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "WARNING: changing this requires every enrolled host to re-enroll — Fleet does not migrate them automatically."
+
+        - key: "enableAnalytics"
+          label: "Enable Analytics"
+          fieldType: "select"
+          required: false
+          defaultValue: "yes"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+
+        - key: "aiFeaturesDisabled"
+          label: "Disable AI Features"
+          fieldType: "select"
+          required: false
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+
+        - key: "enableHostUsers"
+          label: "Collect Host Users"
+          fieldType: "select"
+          required: false
+          defaultValue: "yes"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+
+        - key: "enableSoftwareInventory"
+          label: "Collect Software Inventory"
+          fieldType: "select"
+          required: false
+          defaultValue: "yes"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+
+    - name: "Retention"
+      icon: "clock"
+      description: "Automatic cleanup of hosts and activity history"
+      fields:
+        - key: "hostExpiryEnabled"
+          label: "Host Expiry Enabled"
+          fieldType: "select"
+          required: false
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+
+        - key: "hostExpiryWindowDays"
+          label: "Host Expiry Window (days)"
+          fieldType: "number"
+          required: false
+          defaultValue: 30
+          visibleWhen:
+            field: "hostExpiryEnabled"
+            equals: "yes"
+          validation:
+            min: 1
+
+        - key: "activityExpiryEnabled"
+          label: "Activity Expiry Enabled"
+          fieldType: "select"
+          required: false
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+
+        - key: "activityExpiryWindowDays"
+          label: "Activity Expiry Window (days)"
+          fieldType: "number"
+          required: false
+          defaultValue: 90
+          visibleWhen:
+            field: "activityExpiryEnabled"
+            equals: "yes"
+          validation:
+            min: 1
+
+    - name: "Webhooks"
+      icon: "webhook"
+      description: "Outbound automation for host status, failing policies, vulnerabilities and activities"
+      fields:
+        - key: "hostStatusWebhookEnabled"
+          label: "Host Status Webhook"
+          fieldType: "select"
+          required: false
+          defaultValue: "no"
+          options: [{ label: "Enabled", value: "yes" }, { label: "Disabled", value: "no" }]
+
+        - key: "hostStatusWebhookUrl"
+          label: "Host Status Webhook — Destination URL"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "hostStatusWebhookEnabled"
+            equals: "yes"
+          validation:
+            maxLength: 500
+
+        - key: "hostStatusWebhookPercentage"
+          label: "Host Status Webhook — Host Percentage"
+          fieldType: "number"
+          required: false
+          defaultValue: 5
+          visibleWhen:
+            field: "hostStatusWebhookEnabled"
+            equals: "yes"
+          validation:
+            min: 1
+            max: 100
+
+        - key: "hostStatusWebhookDaysCount"
+          label: "Host Status Webhook — Days Count"
+          fieldType: "number"
+          required: false
+          defaultValue: 7
+          visibleWhen:
+            field: "hostStatusWebhookEnabled"
+            equals: "yes"
+          validation:
+            min: 1
+
+        - key: "failingPoliciesWebhookEnabled"
+          label: "Failing Policies Webhook"
+          fieldType: "select"
+          required: false
+          defaultValue: "no"
+          options: [{ label: "Enabled", value: "yes" }, { label: "Disabled", value: "no" }]
+
+        - key: "failingPoliciesWebhookUrl"
+          label: "Failing Policies Webhook — Destination URL"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "failingPoliciesWebhookEnabled"
+            equals: "yes"
+          validation:
+            maxLength: 500
+
+        - key: "failingPoliciesWebhookBatchSize"
+          label: "Failing Policies Webhook — Host Batch Size"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+          visibleWhen:
+            field: "failingPoliciesWebhookEnabled"
+            equals: "yes"
+          validation:
+            min: 0
+          helpText: "0 = no batching (all failing hosts sent in one request)"
+
+        - key: "vulnerabilitiesWebhookEnabled"
+          label: "Vulnerabilities Webhook"
+          fieldType: "select"
+          required: false
+          defaultValue: "no"
+          options: [{ label: "Enabled", value: "yes" }, { label: "Disabled", value: "no" }]
+
+        - key: "vulnerabilitiesWebhookUrl"
+          label: "Vulnerabilities Webhook — Destination URL"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "vulnerabilitiesWebhookEnabled"
+            equals: "yes"
+          validation:
+            maxLength: 500
+
+        - key: "vulnerabilitiesWebhookBatchSize"
+          label: "Vulnerabilities Webhook — Host Batch Size"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+          visibleWhen:
+            field: "vulnerabilitiesWebhookEnabled"
+            equals: "yes"
+          validation:
+            min: 0
+
+        - key: "activitiesWebhookEnabled"
+          label: "Activities Webhook"
+          fieldType: "select"
+          required: false
+          defaultValue: "no"
+          options: [{ label: "Enabled", value: "yes" }, { label: "Disabled", value: "no" }]
+
+        - key: "activitiesWebhookUrl"
+          label: "Activities Webhook — Destination URL"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "activitiesWebhookEnabled"
+            equals: "yes"
+          validation:
+            maxLength: 500
+
+    - name: "Fleet Desktop"
+      icon: "monitor"
+      description: "End-user Fleet Desktop app behavior"
+      fields:
+        - key: "transparencyUrl"
+          label: "Transparency URL"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+
+        - key: "alternativeBrowserHost"
+          label: "Alternative Browser Host"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255

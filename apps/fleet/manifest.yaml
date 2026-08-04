@@ -1,6 +1,6 @@
 id: fleet
 name: Fleet
-version: "0.4.0"
+version: "0.5.0"
 vendor: Veltrix
 description: >
   Manage Fleet (open-source osquery fleet management) as code — endpoint
@@ -44,6 +44,27 @@ permissions:
     - resource: agent-config
       actions: [read, write]
       description: Manage the Fleet org-wide osquery agent options singleton (agent_options)
+    - resource: config-profiles
+      actions: [read, write, delete]
+      description: Manage Fleet MDM OS settings configuration profiles (macOS/iOS/iPadOS .mobileconfig or declaration JSON, Windows XML), per team or "Unassigned"
+    - resource: scripts
+      actions: [read, write, delete]
+      description: Manage the Fleet scripts library (shell/PowerShell scripts available to run on hosts), per team or "Unassigned"
+    - resource: software
+      actions: [read, write, delete]
+      description: Manage Fleet software titles (Fleet-maintained apps and App Store / VPP apps) made available for install, per team
+    - resource: enroll-secrets
+      actions: [read, write]
+      description: Manage Fleet's valid enroll secrets, globally or per team
+    - resource: global-settings
+      actions: [read, write]
+      description: Manage Fleet's non-secret org-wide settings singleton (organization info, server settings, features, retention, webhooks)
+    - resource: mdm-settings
+      actions: [read, write]
+      description: Manage Fleet's MDM settings (OS update deadlines, disk encryption enforcement, setup-experience toggles), globally or per team
+    - resource: calendar-integrations
+      actions: [read, write]
+      description: Manage Fleet's per-team calendar-automation toggle for failing-policy remediation
     - resource: byol
       actions: [read, write, delete]
       description: Manage BYOL Fleet stack infrastructure (server / MySQL / Redis)
@@ -145,6 +166,132 @@ pipeline:
         healthCheck: config-types/agent-config/healthCheck
         driftDetect: config-types/agent-config/driftDetect
         getStatus: config-types/agent-config/getStatus
+      targets:
+        componentTypes: [fleet-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: config-profiles
+      group: "MDM"
+      name: Configuration Profiles
+      description: Fleet MDM OS settings configuration profiles — macOS/iOS/iPadOS .mobileconfig or declaration (DDM) JSON, and Windows XML — per team or "Unassigned", via the Fleet REST API (/api/v1/fleet/configuration_profiles/batch)
+      canvasTemplate: config-types/config-profiles/canvas.yaml
+      defaultConfig: config-types/config-profiles/defaults.yaml
+      handlers:
+        validate: config-types/config-profiles/validate
+        deploy: config-types/config-profiles/deploy
+        rollback: config-types/config-profiles/rollback
+        healthCheck: config-types/config-profiles/healthCheck
+        driftDetect: config-types/config-profiles/driftDetect
+        getStatus: config-types/config-profiles/getStatus
+      targets:
+        componentTypes: [fleet-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: scripts
+      group: "Scripts"
+      name: Scripts
+      description: The Fleet scripts library — shell/PowerShell scripts available to run on hosts, per team or "Unassigned" — via the Fleet REST API (/api/v1/fleet/scripts, multipart upload)
+      canvasTemplate: config-types/scripts/canvas.yaml
+      defaultConfig: config-types/scripts/defaults.yaml
+      handlers:
+        validate: config-types/scripts/validate
+        deploy: config-types/scripts/deploy
+        rollback: config-types/scripts/rollback
+        healthCheck: config-types/scripts/healthCheck
+        driftDetect: config-types/scripts/driftDetect
+        getStatus: config-types/scripts/getStatus
+      targets:
+        componentTypes: [fleet-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: software
+      group: "Software"
+      name: Software
+      description: Fleet software titles — Fleet-maintained apps and App Store / Google Play (VPP) apps made available for install, per team — via the Fleet REST API (/api/v1/fleet/software/fleet_maintained_apps, /api/v1/fleet/software/app_store_apps)
+      canvasTemplate: config-types/software/canvas.yaml
+      defaultConfig: config-types/software/defaults.yaml
+      handlers:
+        validate: config-types/software/validate
+        deploy: config-types/software/deploy
+        rollback: config-types/software/rollback
+        healthCheck: config-types/software/healthCheck
+        driftDetect: config-types/software/driftDetect
+        getStatus: config-types/software/getStatus
+      targets:
+        componentTypes: [fleet-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: enroll-secrets
+      group: "Enrollment"
+      name: Enroll Secrets
+      description: Fleet's valid enroll secrets, globally or per team, via the Fleet REST API (/api/v1/fleet/spec/enroll_secret, /api/v1/fleet/fleets/{id}/secrets)
+      canvasTemplate: config-types/enroll-secrets/canvas.yaml
+      defaultConfig: config-types/enroll-secrets/defaults.yaml
+      handlers:
+        validate: config-types/enroll-secrets/validate
+        deploy: config-types/enroll-secrets/deploy
+        rollback: config-types/enroll-secrets/rollback
+        healthCheck: config-types/enroll-secrets/healthCheck
+        driftDetect: config-types/enroll-secrets/driftDetect
+        getStatus: config-types/enroll-secrets/getStatus
+      targets:
+        componentTypes: [fleet-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: global-settings
+      group: "Configuration"
+      name: Global Settings
+      description: Fleet's non-secret org-wide settings singleton — organization info, server settings, features, retention and webhooks — via the Fleet REST API (/api/v1/fleet/config)
+      canvasTemplate: config-types/global-settings/canvas.yaml
+      defaultConfig: config-types/global-settings/defaults.yaml
+      handlers:
+        validate: config-types/global-settings/validate
+        deploy: config-types/global-settings/deploy
+        rollback: config-types/global-settings/rollback
+        healthCheck: config-types/global-settings/healthCheck
+        driftDetect: config-types/global-settings/driftDetect
+        getStatus: config-types/global-settings/getStatus
+      targets:
+        componentTypes: [fleet-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: mdm-settings
+      group: "MDM"
+      name: MDM Settings
+      description: Fleet's MDM settings — OS update deadlines, disk encryption enforcement and setup-experience toggles — globally or per team, via the Fleet REST API (/api/v1/fleet/config, /api/v1/fleet/fleets/{id})
+      canvasTemplate: config-types/mdm-settings/canvas.yaml
+      defaultConfig: config-types/mdm-settings/defaults.yaml
+      handlers:
+        validate: config-types/mdm-settings/validate
+        deploy: config-types/mdm-settings/deploy
+        rollback: config-types/mdm-settings/rollback
+        healthCheck: config-types/mdm-settings/healthCheck
+        driftDetect: config-types/mdm-settings/driftDetect
+        getStatus: config-types/mdm-settings/getStatus
+      targets:
+        componentTypes: [fleet-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: calendar-integrations
+      group: "Integrations"
+      name: Calendar Integrations
+      description: Fleet's per-team calendar-automation toggle for failing-policy remediation, via the Fleet REST API (/api/v1/fleet/fleets/{id})
+      canvasTemplate: config-types/calendar-integrations/canvas.yaml
+      defaultConfig: config-types/calendar-integrations/defaults.yaml
+      handlers:
+        validate: config-types/calendar-integrations/validate
+        deploy: config-types/calendar-integrations/deploy
+        rollback: config-types/calendar-integrations/rollback
+        healthCheck: config-types/calendar-integrations/healthCheck
+        driftDetect: config-types/calendar-integrations/driftDetect
+        getStatus: config-types/calendar-integrations/getStatus
       targets:
         componentTypes: [fleet-server, standalone]
         requiresCredential: true

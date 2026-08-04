@@ -2,6 +2,45 @@
 
 All notable changes to the Fleet app are documented here.
 
+## 0.5.0 — 2026-08-04
+
+Coverage exhaustion of the Fleet REST API's config-as-code write surface — seven
+more config types, all reusing `lib/fleetApi.ts` (extended with a small
+multipart/form-data encoder and a paginated-list helper):
+
+- **Configuration Profiles** (`config-profiles`, group MDM) — macOS/iOS/iPadOS
+  `.mobileconfig`/declaration (DDM) JSON and Windows XML OS settings profiles,
+  per team or "Unassigned". Fleet's batch endpoint is a whole-list replace per
+  scope; deploy snapshots every existing profile's content (downloading each)
+  before replacing, so rollback restores the scope's exact prior state.
+- **Scripts** (`scripts`, group Scripts) — the Fleet scripts library. The only
+  multipart/form-data config type in this app (Fleet has no JSON path for
+  script upload), upserted by filename within a team scope.
+- **Software** (`software`, group Software) — Fleet-maintained apps and Apple
+  App Store / Google Play (VPP) apps made available for install, per team.
+  Custom uploaded package binaries are intentionally excluded (see README).
+- **Enroll Secrets** (`enroll-secrets`, group Enrollment) — Fleet's valid
+  enroll secrets, globally or per team; a whole-list replace per scope with
+  full drift detection (Fleet returns enroll secrets in plaintext on read).
+- **Global Settings** (`global-settings`, group Configuration) — a singleton
+  covering the non-secret slice of Fleet's org config: organization info,
+  server settings, features, host/activity expiry and webhooks. Deploy reads
+  the current config first and merges declared fields in, leaving every other
+  field (and section) untouched.
+- **MDM Settings** (`mdm-settings`, group MDM) — OS update deadlines, disk
+  encryption enforcement and setup-experience toggles, globally or per team
+  (Fleet Premium team overrides).
+- **Calendar Integrations** (`calendar-integrations`, group Integrations) —
+  the per-team calendar-automation enable/webhook toggle. The org-wide half
+  (a Google service-account API key) is credential material and is
+  deliberately not managed here.
+
+`lib/fleetApi.ts` gained `buildMultipartBody`/`sendMultipart` (a small RFC 2388
+encoder over `node:https`, used by Scripts) and `getAllPages` (pages a Fleet
+list endpoint via `meta.has_next_results`, used by Configuration Profiles and
+Scripts). See the README **Coverage** section for the full audited surface,
+including what was intentionally excluded and why.
+
 ## 0.4.0 — 2026-07-30
 
 Generic topology: the BYOL dialog now shows Fleet's own tiers (**Database

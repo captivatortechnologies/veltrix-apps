@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-elastic-security",
   "private": true,
-  "version": "1.2.0",
-  "description": "Veltrix app: manage Elastic Security configuration as code (detection rules, exception lists, ILM policies, role mappings, spaces) via the Kibana + Elasticsearch APIs",
+  "version": "1.3.0",
+  "description": "Veltrix app: manage Elastic Security configuration as code (detection rules, exception lists, value lists, ILM policies, role mappings, roles, ingest pipelines, component templates, transforms, ML jobs, Fleet package policies, spaces, tags, timeline templates) via the Kibana + Elasticsearch + Fleet APIs",
   "scripts": {
     "typecheck": "tsc --noEmit"
   },

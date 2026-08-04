@@ -1,0 +1,121 @@
+# =============================================================================
+# Canvas Template — Fleet Package Policies (Elastic Defend / integrations)
+#
+# Declares ONE Fleet package (integration) policy — the item. Users add as many
+# policies as they need. This is the generic Fleet Package Policies API — the
+# same mechanism the Elastic Defend (endpoint) integration uses, so it covers
+# authoring/managing endpoint protection policies as code, plus any other
+# Fleet-managed integration policy.
+#
+# Fleet ASSIGNS the internal `id` on create (unlike detection rules / exception
+# lists / spaces, which key on a caller-chosen identifier) — so this reconciles
+# by NAME within the deployment: list -> match by name -> update (PUT by id) or
+# create (POST), the same shape Cisco Meraki's group-policies config type uses
+# for a Meraki-assigned groupPolicyId.
+#
+# The deep, package-specific policy body (for Elastic Defend: the full
+# malware/ransomware/behavior-protection/memory-protection settings tree) lives
+# entirely inside `inputs[].config`, so — like detection-rules' rule body — the
+# `inputs` array is authored as one JSON blob rather than exploded per package.
+#
+# Field keys must match what config-types/fleet-package-policies/validate.ts checks.
+# =============================================================================
+
+id: "elastic-security-fleet-package-policies"
+name: "Fleet Package Policy Configuration"
+toolType: "elastic-security"
+entityType: "fleet-package-policies"
+description: "Define Fleet integration (package) policies — including Elastic Defend endpoint protection policies — as code through the Kibana Fleet API. Reconciled by name; Fleet assigns the internal id."
+
+item:
+  label: "Package Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Identity, target agent policies and integration package"
+      fields:
+        - key: "name"
+          label: "Policy Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            message: "A unique, stable policy name — this is the identity used to find and update the policy on each deploy (Fleet assigns the internal id)."
+          helpText: >
+            The integration policy's display name, e.g. Endpoint - Workstations.
+            Fleet enforces name uniqueness; this app reconciles by name since
+            Fleet (not the author) assigns the internal package-policy id.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          validation:
+            maxLength: 2000
+          helpText: "Optional description of what this policy configures."
+
+        - key: "namespace"
+          label: "Namespace"
+          fieldType: "text"
+          defaultValue: "default"
+          helpText: "The data-stream namespace this integration writes to (maps to `namespace`)."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "On: the integration is active on its assigned agent policies. Off: the policy exists but is not applied."
+
+        - key: "policyIds"
+          label: "Agent Policy IDs"
+          fieldType: "tags"
+          required: true
+          helpText: >
+            The Fleet agent policy id(s) this integration is attached to (maps
+            to `policy_ids`). Find an agent policy's id under Fleet > Agent
+            policies. At least one is required.
+
+    - name: "Package"
+      icon: "package"
+      description: "The integration package this policy configures"
+      fields:
+        - key: "packageName"
+          label: "Package Name"
+          fieldType: "text"
+          required: true
+          helpText: 'The integration package name, e.g. "endpoint" for Elastic Defend, "system", "nginx".'
+
+        - key: "packageVersion"
+          label: "Package Version"
+          fieldType: "text"
+          required: true
+          helpText: "The exact installed package version this policy targets, e.g. 8.16.0."
+
+        - key: "packageTitle"
+          label: "Package Title"
+          fieldType: "text"
+          helpText: 'Optional human-readable package title, e.g. "Elastic Defend". Defaults to the Package Name when left blank.'
+
+    - name: "Definition"
+      icon: "code"
+      description: "The inputs (and any top-level vars) as JSON"
+      fields:
+        - key: "inputsJson"
+          label: "Inputs (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The full `inputs` array as JSON — each entry is
+            {"type":"...","enabled":true,"streams":[...],"vars":{...}?,"config":{...}?}.
+            For Elastic Defend, the endpoint protection settings (malware,
+            ransomware, behavior protection, memory protection, ...) live under
+            the relevant input's `config.policy.value`. Elasticsearch/Fleet
+            validates the full per-package schema at deploy time.
+
+        - key: "varsJson"
+          label: "Top-level Vars (JSON)"
+          fieldType: "textarea"
+          helpText: "Optional top-level package variables as a JSON object (maps to `vars`). Leave blank for none."

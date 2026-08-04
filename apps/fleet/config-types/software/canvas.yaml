@@ -1,0 +1,202 @@
+# =============================================================================
+# Canvas Template — Fleet Software (Fleet-maintained apps & App Store / VPP apps)
+#
+# Declares ONE software title (the item) that Fleet makes available for
+# self-service or automatic install — either a Fleet-maintained app (Fleet
+# hosts and updates the installer) or an Apple App Store / Google Play (VPP)
+# app. Users add as many as they need, scoped to a team. Field keys must match
+# config-types/software/validate.ts. Applied via the Fleet REST API
+# (/api/v1/fleet/software/fleet_maintained_apps and .../app_store_apps).
+#
+# Custom uploaded packages (.pkg/.msi/.exe/.deb/.rpm/.tar.gz binaries, up to
+# 10GB) are intentionally NOT covered here — see the README Coverage section.
+# Verify field semantics against a live Fleet (fleetdm) instance.
+# =============================================================================
+
+id: "fleet-software"
+name: "Software"
+toolType: "fleet"
+entityType: "software"
+description: "Manage Fleet software titles — Fleet-maintained apps and App Store / VPP apps made available for install — via the Fleet REST API (/api/v1/fleet/software/fleet_maintained_apps, /api/v1/fleet/software/app_store_apps)"
+
+item:
+  label: "Software Title"
+  identityField: "identifier"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Source"
+      icon: "package"
+      description: "Where the software comes from"
+      fields:
+        - key: "sourceType"
+          label: "Source"
+          fieldType: "select"
+          required: true
+          defaultValue: "fleet_maintained"
+          options:
+            - label: "Fleet-maintained app"
+              value: "fleet_maintained"
+            - label: "App Store / Google Play (VPP) app"
+              value: "app_store"
+          helpText: "Fleet-maintained apps are hosted and kept up to date by Fleet; App Store / VPP apps come from Apple Business Manager or Google Play."
+
+        - key: "identifier"
+          label: "Identifier"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "The numeric Fleet-maintained app ID (see \"List Fleet-maintained apps\"), or the Apple App Store / Google Play app ID (or package name for Android)."
+
+        - key: "platform"
+          label: "Platform"
+          fieldType: "select"
+          required: true
+          defaultValue: "darwin"
+          visibleWhen:
+            field: "sourceType"
+            equals: "app_store"
+          options:
+            - label: "macOS"
+              value: "darwin"
+            - label: "iOS"
+              value: "ios"
+            - label: "iPadOS"
+              value: "ipados"
+            - label: "Android"
+              value: "android"
+          helpText: "The App Store / Google Play app's platform."
+
+    - name: "Targeting"
+      icon: "target"
+      description: "Which team this software is added to"
+      fields:
+        - key: "teamId"
+          label: "Team ID"
+          fieldType: "text"
+          required: true
+          defaultValue: "0"
+          validation:
+            pattern: "^[0-9]+$"
+            maxLength: 20
+          helpText: "Numeric Fleet team ID to add this software to (a Fleet Premium feature — Fleet's REST API calls this parameter fleet_id). Use 0 for \"Unassigned\" hosts."
+
+        - key: "labelsIncludeAll"
+          label: "Labels — Include All"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Comma-separated label names — Fleet Premium. Target only hosts with EVERY listed label. Mutually exclusive with Include Any."
+
+        - key: "labelsIncludeAny"
+          label: "Labels — Include Any"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Comma-separated label names — Fleet Premium. Target hosts with ANY listed label. Mutually exclusive with Include All."
+
+    - name: "Install Behavior"
+      icon: "download"
+      description: "Self-service, categories and (Fleet-maintained only) install scripts"
+      fields:
+        - key: "selfService"
+          label: "Self-Service"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options:
+            - label: "No"
+              value: "no"
+            - label: "Yes"
+              value: "yes"
+          helpText: "Whether end users can install this software themselves from Fleet Desktop. Required when Platform is Android."
+
+        - key: "categories"
+          label: "Self-Service Categories"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Comma-separated self-service category names already defined on the team, e.g. Productivity, Security."
+
+        - key: "installScript"
+          label: "Install Script"
+          fieldType: "textarea"
+          required: false
+          visibleWhen:
+            field: "sourceType"
+            equals: "fleet_maintained"
+          validation:
+            maxLength: 8000
+          helpText: "Fleet-maintained apps only. Overrides Fleet's default install command for this app."
+
+        - key: "postInstallScript"
+          label: "Post-Install Script"
+          fieldType: "textarea"
+          required: false
+          visibleWhen:
+            field: "sourceType"
+            equals: "fleet_maintained"
+          validation:
+            maxLength: 8000
+          helpText: "Fleet-maintained apps only. Runs after install; a non-zero exit rolls the install back."
+
+        - key: "preInstallQuery"
+          label: "Pre-Install Query (osquery SQL)"
+          fieldType: "textarea"
+          required: false
+          visibleWhen:
+            field: "sourceType"
+            equals: "fleet_maintained"
+          validation:
+            maxLength: 4000
+          helpText: "Fleet-maintained apps only. Install proceeds only if this query returns at least one row."
+
+        - key: "autoUpdateEnabled"
+          label: "Auto-Update (App Store)"
+          fieldType: "select"
+          required: false
+          defaultValue: "no"
+          visibleWhen:
+            field: "sourceType"
+            equals: "app_store"
+          options:
+            - label: "No"
+              value: "no"
+            - label: "Yes"
+              value: "yes"
+          helpText: "App Store apps only (iOS/iPadOS). Automatically updates the app within the maintenance window below."
+
+        - key: "autoUpdateWindowStart"
+          label: "Auto-Update Window Start"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "autoUpdateEnabled"
+            equals: "yes"
+          validation:
+            pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+          helpText: "Local device time, HH:MM. Required when Auto-Update is Yes."
+
+        - key: "autoUpdateWindowEnd"
+          label: "Auto-Update Window End"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "autoUpdateEnabled"
+            equals: "yes"
+          validation:
+            pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+          helpText: "Local device time, HH:MM. Required when Auto-Update is Yes."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Optional change note for operators (not sent to Fleet)"

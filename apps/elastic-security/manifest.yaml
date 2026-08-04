@@ -1,12 +1,15 @@
 id: elastic-security
 name: Elastic Security
-version: "1.2.0"
+version: "1.3.0"
 vendor: Veltrix
 description: >
-  Manage Elastic Security configuration as code through the Kibana and
-  Elasticsearch APIs. Covers detection rules, exception lists, index lifecycle
-  (ILM) policies, role mappings and Kibana spaces, with validation, drift
-  detection and rollback handled by the Security-as-Code pipeline.
+  Manage Elastic Security configuration as code through the Kibana,
+  Elasticsearch and Fleet APIs. Covers detection rules, exception lists, value
+  lists, index lifecycle (ILM) policies, role mappings, security roles,
+  ingest pipelines, component templates, transforms, ML anomaly detection
+  jobs, Fleet package (including Elastic Defend) policies, Kibana spaces,
+  tags and timeline templates — with validation, drift detection and rollback
+  handled by the Security-as-Code pipeline.
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/elastic-security
@@ -43,10 +46,38 @@ permissions:
     - resource: spaces
       actions: [read, write, delete]
       description: Manage Kibana spaces
+    - resource: value-lists
+      actions: [read, write, delete]
+      description: Manage Elastic Security value lists (reusable IP/keyword/range value sets) and their items
+    - resource: roles
+      actions: [read, write, delete]
+      description: Manage Elasticsearch security roles
+    - resource: ingest-pipelines
+      actions: [read, write, delete]
+      description: Manage Elasticsearch ingest pipelines
+    - resource: component-templates
+      actions: [read, write, delete]
+      description: Manage Elasticsearch component templates
+    - resource: transforms
+      actions: [read, write, delete]
+      description: Manage Elasticsearch transforms
+    - resource: ml-jobs
+      actions: [read, write, delete]
+      description: Manage Elasticsearch ML anomaly detection jobs and their datafeeds
+    - resource: fleet-package-policies
+      actions: [read, write, delete]
+      description: Manage Fleet integration (package) policies, including Elastic Defend endpoint protection policies
+    - resource: tags
+      actions: [read, write, delete]
+      description: Manage Kibana saved-object tags
+    - resource: timeline-templates
+      actions: [read, write, delete]
+      description: Manage Elastic Security timeline templates
 
 pipeline:
   configurationTypes:
     - id: detection-rules
+      group: "Detections & Lists"
       name: Detection Rules
       description: Kibana Security detection rules (query/EQL/threshold/ML...), keyed by rule_id
       canvasTemplate: config-types/detection-rules/canvas.yaml
@@ -64,6 +95,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: exception-lists
+      group: "Detections & Lists"
       name: Exception Lists
       description: Kibana exception lists and their items (keyed by list_id / item_id)
       canvasTemplate: config-types/exception-lists/canvas.yaml
@@ -81,6 +113,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: ilm-policies
+      group: "Elasticsearch"
       name: ILM Policies
       description: Elasticsearch index lifecycle policies (hot/warm/cold/delete phases); managed policies protected
       canvasTemplate: config-types/ilm-policies/canvas.yaml
@@ -98,6 +131,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: role-mappings
+      group: "Elasticsearch"
       name: Role Mappings
       description: Elasticsearch role mappings (roles + a rules DSL); reserved mappings protected
       canvasTemplate: config-types/role-mappings/canvas.yaml
@@ -115,6 +149,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: spaces
+      group: "Kibana"
       name: Spaces
       description: Kibana spaces (the default space is protected)
       canvasTemplate: config-types/spaces/canvas.yaml
@@ -126,6 +161,168 @@ pipeline:
         healthCheck: config-types/spaces/healthCheck
         driftDetect: config-types/spaces/driftDetect
         getStatus: config-types/spaces/getStatus
+      targets:
+        componentTypes: [elastic-deployment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: value-lists
+      group: "Detections & Lists"
+      name: Value Lists
+      description: Kibana Lists API value lists (reusable IP/keyword/range value sets referenced by exception-item "is in list" entries) and their items, keyed by list id / item id
+      canvasTemplate: config-types/value-lists/canvas.yaml
+      defaultConfig: config-types/value-lists/defaults.yaml
+      handlers:
+        validate: config-types/value-lists/validate
+        deploy: config-types/value-lists/deploy
+        rollback: config-types/value-lists/rollback
+        healthCheck: config-types/value-lists/healthCheck
+        driftDetect: config-types/value-lists/driftDetect
+        getStatus: config-types/value-lists/getStatus
+      targets:
+        componentTypes: [elastic-deployment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: roles
+      group: "Elasticsearch"
+      name: Roles
+      description: Elasticsearch security roles (cluster/index/application privileges, run_as); reserved/built-in roles protected
+      canvasTemplate: config-types/roles/canvas.yaml
+      defaultConfig: config-types/roles/defaults.yaml
+      handlers:
+        validate: config-types/roles/validate
+        deploy: config-types/roles/deploy
+        rollback: config-types/roles/rollback
+        healthCheck: config-types/roles/healthCheck
+        driftDetect: config-types/roles/driftDetect
+        getStatus: config-types/roles/getStatus
+      targets:
+        componentTypes: [elastic-deployment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ingest-pipelines
+      group: "Elasticsearch"
+      name: Ingest Pipelines
+      description: Elasticsearch ingest pipelines (processor chains); Elastic-managed (dot-prefixed) pipelines protected
+      canvasTemplate: config-types/ingest-pipelines/canvas.yaml
+      defaultConfig: config-types/ingest-pipelines/defaults.yaml
+      handlers:
+        validate: config-types/ingest-pipelines/validate
+        deploy: config-types/ingest-pipelines/deploy
+        rollback: config-types/ingest-pipelines/rollback
+        healthCheck: config-types/ingest-pipelines/healthCheck
+        driftDetect: config-types/ingest-pipelines/driftDetect
+        getStatus: config-types/ingest-pipelines/getStatus
+      targets:
+        componentTypes: [elastic-deployment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: component-templates
+      group: "Elasticsearch"
+      name: Component Templates
+      description: Elasticsearch component templates (reusable mappings/settings/aliases); Elastic-managed and built-in logs-*/metrics-*/synthetics-* templates protected
+      canvasTemplate: config-types/component-templates/canvas.yaml
+      defaultConfig: config-types/component-templates/defaults.yaml
+      handlers:
+        validate: config-types/component-templates/validate
+        deploy: config-types/component-templates/deploy
+        rollback: config-types/component-templates/rollback
+        healthCheck: config-types/component-templates/healthCheck
+        driftDetect: config-types/component-templates/driftDetect
+        getStatus: config-types/component-templates/getStatus
+      targets:
+        componentTypes: [elastic-deployment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: transforms
+      group: "Elasticsearch"
+      name: Transforms
+      description: Elasticsearch transforms (pivot/latest aggregations from a source index into a destination index); the aggregation is immutable after creation, Enabled drives start/stop
+      canvasTemplate: config-types/transforms/canvas.yaml
+      defaultConfig: config-types/transforms/defaults.yaml
+      handlers:
+        validate: config-types/transforms/validate
+        deploy: config-types/transforms/deploy
+        rollback: config-types/transforms/rollback
+        healthCheck: config-types/transforms/healthCheck
+        driftDetect: config-types/transforms/driftDetect
+        getStatus: config-types/transforms/getStatus
+      targets:
+        componentTypes: [elastic-deployment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ml-jobs
+      group: "Machine Learning"
+      name: ML Anomaly Detection Jobs
+      description: Elasticsearch ML anomaly detection jobs and their datafeeds; analysis_config/data_description are immutable after creation, Enabled drives open/close and start/stop. Requires an ML-enabled subscription or trial.
+      canvasTemplate: config-types/ml-jobs/canvas.yaml
+      defaultConfig: config-types/ml-jobs/defaults.yaml
+      handlers:
+        validate: config-types/ml-jobs/validate
+        deploy: config-types/ml-jobs/deploy
+        rollback: config-types/ml-jobs/rollback
+        healthCheck: config-types/ml-jobs/healthCheck
+        driftDetect: config-types/ml-jobs/driftDetect
+        getStatus: config-types/ml-jobs/getStatus
+      targets:
+        componentTypes: [elastic-deployment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: fleet-package-policies
+      group: "Endpoint"
+      name: Fleet Package Policies
+      description: Fleet integration (package) policies, including Elastic Defend endpoint protection policies; Fleet assigns the internal id so this reconciles by name
+      canvasTemplate: config-types/fleet-package-policies/canvas.yaml
+      defaultConfig: config-types/fleet-package-policies/defaults.yaml
+      handlers:
+        validate: config-types/fleet-package-policies/validate
+        deploy: config-types/fleet-package-policies/deploy
+        rollback: config-types/fleet-package-policies/rollback
+        healthCheck: config-types/fleet-package-policies/healthCheck
+        driftDetect: config-types/fleet-package-policies/driftDetect
+        getStatus: config-types/fleet-package-policies/getStatus
+      targets:
+        componentTypes: [elastic-deployment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: tags
+      group: "Kibana"
+      name: Tags
+      description: Kibana saved-object tags used to organize dashboards, rules and other saved objects
+      canvasTemplate: config-types/tags/canvas.yaml
+      defaultConfig: config-types/tags/defaults.yaml
+      handlers:
+        validate: config-types/tags/validate
+        deploy: config-types/tags/deploy
+        rollback: config-types/tags/rollback
+        healthCheck: config-types/tags/healthCheck
+        driftDetect: config-types/tags/driftDetect
+        getStatus: config-types/tags/getStatus
+      targets:
+        componentTypes: [elastic-deployment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: timeline-templates
+      group: "Kibana"
+      name: Timeline Templates
+      description: Elastic Security timeline templates (reusable investigation timelines), keyed by the portable templateTimelineId
+      canvasTemplate: config-types/timeline-templates/canvas.yaml
+      defaultConfig: config-types/timeline-templates/defaults.yaml
+      handlers:
+        validate: config-types/timeline-templates/validate
+        deploy: config-types/timeline-templates/deploy
+        rollback: config-types/timeline-templates/rollback
+        healthCheck: config-types/timeline-templates/healthCheck
+        driftDetect: config-types/timeline-templates/driftDetect
+        getStatus: config-types/timeline-templates/getStatus
       targets:
         componentTypes: [elastic-deployment]
         requiresCredential: true

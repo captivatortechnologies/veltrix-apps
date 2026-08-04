@@ -3,6 +3,78 @@
 All notable changes to the Elastic Security app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.3.0 — 2026-08-04
+
+### Added
+- **Nine new configuration types**, exhausting the rest of the genuinely
+  declarative Kibana Security + Elasticsearch config surface (research-first,
+  each verified against Elastic's official REST API docs / OpenAPI specs
+  before being modeled — see the README **Coverage** section for exact
+  operations and sources):
+  - **Value Lists** (`value-lists`) — Kibana Lists API value lists (reusable
+    IP/keyword/range value sets referenced by exception-item "is in list"
+    entries) and their items. Same container+folded-items shape as Exception
+    Lists; `type` is immutable after creation.
+  - **Roles** (`roles`) — Elasticsearch security roles (cluster/index/
+    application privileges, run_as). True upsert by name; reserved/built-in
+    roles (`metadata._reserved`) protected, the same convention Role Mappings
+    already uses.
+  - **Ingest Pipelines** (`ingest-pipelines`) — Elasticsearch ingest pipelines
+    (processor chains). True upsert by id; dot-prefixed Elastic-managed
+    pipelines protected, "@"-suffixed (Fleet-integration-owned) ids warned.
+  - **Component Templates** (`component-templates`) — Elasticsearch component
+    templates (reusable mappings/settings/aliases building blocks). True
+    upsert by name; Elastic's built-in logs-*/metrics-*/synthetics-* templates
+    and dot/@-prefixed names protected.
+  - **Transforms** (`transforms`) — Elasticsearch transforms (pivot/latest
+    aggregations from a source index to a destination index). Create-then-
+    update (the pivot/latest aggregation is immutable after creation — the
+    `_update` endpoint does not accept it); the Enabled toggle drives
+    start/stop.
+  - **ML Anomaly Detection Jobs** (`ml-jobs`) — Elasticsearch machine-learning
+    jobs plus their datafeed. `analysis_config` / `data_description` are
+    immutable after creation; the Enabled toggle drives open/close (job) and
+    start/stop (datafeed) in the correct order. Requires an ML-enabled
+    subscription/trial.
+  - **Fleet Package Policies** (`fleet-package-policies`) — Fleet integration
+    (package) policies, including **Elastic Defend** endpoint protection
+    policies. Fleet assigns the internal id on create, so this reconciles by
+    name (the same shape Cisco Meraki's group-policies config type uses for a
+    Meraki-assigned id).
+  - **Tags** (`tags`) — Kibana saved-object tags. True upsert by a
+    caller-chosen id (`PUT /api/tags/{id}` — documented as "Upsert a tag"),
+    unlike `POST /api/tags` which server-generates one.
+  - **Timeline Templates** (`timeline-templates`) — Elastic Security
+    investigation timeline templates, keyed by the portable
+    `templateTimelineId` (the same field Elastic's own prepackaged templates
+    use for cross-environment identity). Ad-hoc analyst timelines are
+    deliberately excluded — see Coverage.
+- **Configuration types are now grouped** in the sidebar (`group:` on every
+  `pipeline.configurationTypes` entry, including the five pre-existing types):
+  **Detections & Lists**, **Elasticsearch**, **Machine Learning**,
+  **Endpoint**, **Kibana**.
+- Drift attribution (`config-types/lib/elasticAudit.ts`) is wired for every
+  new type whose live object carries a modifier: **Value Lists** (list +
+  items, `updated_by`/`created_by`), **Fleet Package Policies**
+  (`updated_by`/`updated_at`) and **Timeline Templates** (Kibana's
+  camelCase `updatedBy`/`updated`, adapted into the shared helper's shape).
+  **Roles**, **Ingest Pipelines**, **Component Templates**, **Transforms**,
+  **ML Jobs** and **Tags** expose no per-object modifier through their APIs
+  and are unattributed by design — the same honest treatment already applied
+  to ILM policies, role mappings and spaces.
+
+### Intentionally not added (see README Coverage for the full list and reasons)
+- **Rule actions / connectors** (Kibana Actions/Connectors API) — a
+  connector's `secrets` object (API keys, webhook tokens, SMTP passwords) is
+  write-only and never returned on read. Authoring it here would mean
+  plaintext credential material sitting in canvas JSON outside the Credential
+  Vault, and drift/rollback can never reconcile a field Kibana will not echo
+  back — this is exactly the "secret material" this app's own Elastic API-key
+  design was built to avoid duplicating.
+- Detection rule exception lists + items were **already fully covered** by the
+  existing `exception-lists` type (container + folded items, reconciled by
+  `item_id`) — verified, not re-built.
+
 ## 1.2.0 — 2026-07-22
 
 ### Added
