@@ -1,0 +1,5 @@
+# Defaults for a new data-policy item. Intentionally minimal — the field-level
+# defaultValues in canvas.yaml seed the common settings (active and
+# reverse_if_false on, enforce_ui and inherit off, order=100). The operator
+# fills in the short description, table and condition; field-level rules are
+# added directly in ServiceNow (see README).

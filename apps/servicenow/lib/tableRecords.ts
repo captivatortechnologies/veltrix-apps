@@ -55,3 +55,44 @@ export function managedSnapshot(
   for (const col of columns) snap[col] = record[col] ?? ''
   return snap
 }
+
+/**
+ * Read a canvas "tags" field value as a trimmed, de-duplicated, order-preserving
+ * string array. Accepts a real array (the canvas's native shape) or a
+ * comma/newline-delimited string (defensive — e.g. a value round-tripped
+ * through defaults.yaml or an older snapshot).
+ */
+export function readStringArray(value: unknown): string[] {
+  const raw: string[] = Array.isArray(value)
+    ? value.map((v) => (typeof v === 'string' ? v : String(v ?? '')))
+    : typeof value === 'string'
+      ? value.split(/[\n,]+/)
+      : []
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const entry of raw) {
+    const trimmed = entry.trim()
+    if (trimmed && !seen.has(trimmed)) {
+      seen.add(trimmed)
+      out.push(trimmed)
+    }
+  }
+  return out
+}
+
+/** Join a tags array into the flat comma-separated form ServiceNow list-type columns store. */
+export function joinCsv(values: string[]): string {
+  return values.join(',')
+}
+
+/** Parse a ServiceNow comma-separated list column (e.g. recipient_users) into a sorted, deduped set. */
+export function normalizeCsvSet(value: unknown): string[] {
+  return readStringArray(value).slice().sort()
+}
+
+/** Order-insensitive equality for two comma-separated list columns — used for drift on `setColumns`. */
+export function csvSetEqual(expected: unknown, actual: unknown): boolean {
+  const a = normalizeCsvSet(expected)
+  const b = normalizeCsvSet(actual)
+  return a.length === b.length && a.every((v, i) => v === b[i])
+}

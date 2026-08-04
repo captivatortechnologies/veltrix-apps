@@ -1,15 +1,18 @@
 id: servicenow
 name: ServiceNow
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage ServiceNow configuration as code over the Table API (HTTPS, HTTP Basic
   auth) through the Security-as-Code pipeline (validate, deploy, health check,
-  drift detection and rollback). v0.2.0 manages four clean, security-relevant,
-  writable surfaces — business rules (sys_script), UI policies (sys_ui_policy),
-  script includes (sys_script_include) and scheduled jobs (sysauto_script) —
-  each upserted by a natural key. ServiceNow is a very large platform; these are
-  a focused, high-signal set of configuration types, with more to follow.
+  drift detection and rollback). v0.3.0 manages twelve clean, security-relevant,
+  writable surfaces across Security & Access (ACLs, roles), Platform Automation
+  (business rules, script includes, scheduled jobs, assignment rules, UI
+  actions), Forms & UI (UI policies, data policies, client scripts),
+  Notifications (email notifications) and Platform Settings (system
+  properties) — each upserted by a natural key. ServiceNow is a very large
+  platform; see README's Coverage section for what is managed vs intentionally
+  excluded and why.
 category: SOAR
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/servicenow
@@ -41,6 +44,30 @@ permissions:
     - resource: scheduled-jobs
       actions: [read, write, delete]
       description: Manage ServiceNow scheduled jobs (sysauto_script) — create / edit / delete
+    - resource: acls
+      actions: [read, write, delete]
+      description: Manage ServiceNow Access Control rules (sys_security_acl) — create / edit / delete
+    - resource: roles
+      actions: [read, write, delete]
+      description: Manage ServiceNow roles (sys_user_role) — create / edit / delete
+    - resource: email-notifications
+      actions: [read, write, delete]
+      description: Manage ServiceNow email notifications (sysevent_email_action) — create / edit / delete
+    - resource: data-policies
+      actions: [read, write, delete]
+      description: Manage ServiceNow data policies (sys_data_policy2) — create / edit / delete
+    - resource: assignment-rules
+      actions: [read, write, delete]
+      description: Manage ServiceNow assignment rules (sysrule_assignment) — create / edit / delete
+    - resource: ui-actions
+      actions: [read, write, delete]
+      description: Manage ServiceNow UI actions (sys_ui_action) — create / edit / delete
+    - resource: client-scripts
+      actions: [read, write, delete]
+      description: Manage ServiceNow client scripts (sys_script_client) — create / edit / delete
+    - resource: system-properties
+      actions: [read, write, delete]
+      description: Manage ServiceNow system properties (sys_properties) — create / edit / delete
 
 pipeline:
   configurationTypes:
@@ -111,6 +138,150 @@ pipeline:
         healthCheck: config-types/scheduled-jobs/healthCheck
         driftDetect: config-types/scheduled-jobs/driftDetect
         getStatus: config-types/scheduled-jobs/getStatus
+      targets:
+        componentTypes: [servicenow-instance]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: acls
+      group: "Security & Access"
+      name: ACLs
+      description: ServiceNow Access Control rules (sys_security_acl, type=record) — table/field security gated by roles (assigned in ServiceNow), a condition and/or a script — applied over the Table API
+      canvasTemplate: config-types/acls/canvas.yaml
+      defaultConfig: config-types/acls/defaults.yaml
+      handlers:
+        validate: config-types/acls/validate
+        deploy: config-types/acls/deploy
+        rollback: config-types/acls/rollback
+        healthCheck: config-types/acls/healthCheck
+        driftDetect: config-types/acls/driftDetect
+        getStatus: config-types/acls/getStatus
+      targets:
+        componentTypes: [servicenow-instance]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: roles
+      group: "Security & Access"
+      name: Roles
+      description: ServiceNow roles (sys_user_role) — the named permission grants ACLs check for — applied over the Table API
+      canvasTemplate: config-types/roles/canvas.yaml
+      defaultConfig: config-types/roles/defaults.yaml
+      handlers:
+        validate: config-types/roles/validate
+        deploy: config-types/roles/deploy
+        rollback: config-types/roles/rollback
+        healthCheck: config-types/roles/healthCheck
+        driftDetect: config-types/roles/driftDetect
+        getStatus: config-types/roles/getStatus
+      targets:
+        componentTypes: [servicenow-instance]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: assignment-rules
+      group: "Platform Automation"
+      name: Assignment Rules
+      description: ServiceNow assignment rules (sysrule_assignment) — auto-populate assignment group / assigned to on a task-derived table — applied over the Table API
+      canvasTemplate: config-types/assignment-rules/canvas.yaml
+      defaultConfig: config-types/assignment-rules/defaults.yaml
+      handlers:
+        validate: config-types/assignment-rules/validate
+        deploy: config-types/assignment-rules/deploy
+        rollback: config-types/assignment-rules/rollback
+        healthCheck: config-types/assignment-rules/healthCheck
+        driftDetect: config-types/assignment-rules/driftDetect
+        getStatus: config-types/assignment-rules/getStatus
+      targets:
+        componentTypes: [servicenow-instance]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: ui-actions
+      group: "Platform Automation"
+      name: UI Actions
+      description: ServiceNow UI actions (sys_ui_action) — buttons, links and context-menu items on forms/lists that run scripted logic when triggered — applied over the Table API
+      canvasTemplate: config-types/ui-actions/canvas.yaml
+      defaultConfig: config-types/ui-actions/defaults.yaml
+      handlers:
+        validate: config-types/ui-actions/validate
+        deploy: config-types/ui-actions/deploy
+        rollback: config-types/ui-actions/rollback
+        healthCheck: config-types/ui-actions/healthCheck
+        driftDetect: config-types/ui-actions/driftDetect
+        getStatus: config-types/ui-actions/getStatus
+      targets:
+        componentTypes: [servicenow-instance]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: data-policies
+      group: "Forms & UI"
+      name: Data Policies
+      description: ServiceNow data policies (sys_data_policy2) — server-side field mandatory/read-only enforcement for a table, driven by a condition — applied over the Table API
+      canvasTemplate: config-types/data-policies/canvas.yaml
+      defaultConfig: config-types/data-policies/defaults.yaml
+      handlers:
+        validate: config-types/data-policies/validate
+        deploy: config-types/data-policies/deploy
+        rollback: config-types/data-policies/rollback
+        healthCheck: config-types/data-policies/healthCheck
+        driftDetect: config-types/data-policies/driftDetect
+        getStatus: config-types/data-policies/getStatus
+      targets:
+        componentTypes: [servicenow-instance]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: client-scripts
+      group: "Forms & UI"
+      name: Client Scripts
+      description: ServiceNow client scripts (sys_script_client) — browser-side JavaScript that runs on a form's onLoad/onChange/onSubmit/onCellEdit event — applied over the Table API
+      canvasTemplate: config-types/client-scripts/canvas.yaml
+      defaultConfig: config-types/client-scripts/defaults.yaml
+      handlers:
+        validate: config-types/client-scripts/validate
+        deploy: config-types/client-scripts/deploy
+        rollback: config-types/client-scripts/rollback
+        healthCheck: config-types/client-scripts/healthCheck
+        driftDetect: config-types/client-scripts/driftDetect
+        getStatus: config-types/client-scripts/getStatus
+      targets:
+        componentTypes: [servicenow-instance]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: email-notifications
+      group: "Notifications"
+      name: Email Notifications
+      description: ServiceNow event-driven email notifications (sysevent_email_action) — subject, message, recipients and the event that fires them — applied over the Table API
+      canvasTemplate: config-types/email-notifications/canvas.yaml
+      defaultConfig: config-types/email-notifications/defaults.yaml
+      handlers:
+        validate: config-types/email-notifications/validate
+        deploy: config-types/email-notifications/deploy
+        rollback: config-types/email-notifications/rollback
+        healthCheck: config-types/email-notifications/healthCheck
+        driftDetect: config-types/email-notifications/driftDetect
+        getStatus: config-types/email-notifications/getStatus
+      targets:
+        componentTypes: [servicenow-instance]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: system-properties
+      group: "Platform Settings"
+      name: System Properties
+      description: ServiceNow system properties (sys_properties) — instance-wide configuration and security-hardening settings — applied over the Table API
+      canvasTemplate: config-types/system-properties/canvas.yaml
+      defaultConfig: config-types/system-properties/defaults.yaml
+      handlers:
+        validate: config-types/system-properties/validate
+        deploy: config-types/system-properties/deploy
+        rollback: config-types/system-properties/rollback
+        healthCheck: config-types/system-properties/healthCheck
+        driftDetect: config-types/system-properties/driftDetect
+        getStatus: config-types/system-properties/getStatus
       targets:
         componentTypes: [servicenow-instance]
         requiresCredential: true

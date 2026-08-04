@@ -2,6 +2,72 @@
 
 All notable changes to the Sysdig Secure app are documented here.
 
+## 0.3.0 — 2026-08-04
+
+Full config-as-code exhaustion — nine new config types spanning notifications,
+access/scoping, managed-policy tuning, CSPM posture and vulnerability
+management, taking this app from 4 to 13 config types. Endpoints were
+confirmed against the official `terraform-provider-sysdig` Go client
+(`sysdig/internal/client/v2`) — the exact source files and lines are recorded
+in each new config type's `_shared.ts`/`deploy.ts` header comment and in the
+README's Coverage section.
+
+- **Notification Channels** — Slack, Email, Webhook, PagerDuty, OpsGenie,
+  MS Teams, SNS, VictorOps, Team Email and Prometheus Alertmanager channels,
+  one polymorphic config type with type-conditional fields, over
+  `/api/notificationChannels`.
+- **Teams** — scope, capabilities, zone assignment (by name) and members (by
+  email, resolved to user ids) over `/api/teams`.
+- **Zones** — named, reusable resource scopes (the v1 rules-string API) over
+  `/platform/v1/zones`, referenced by name from Teams and the new Posture Zone
+  Assignments type.
+- **Managed Policies** — tunes (never creates/deletes) Sysdig's own built-in
+  runtime policies: enabled state, scope, response actions, disabled rules and
+  notification channels, over `/api/v2/policies`. `enabled: false` resets the
+  policy to Sysdig defaults, mirroring the Terraform provider's own destroy
+  behavior for this resource, since Sysdig-owned content cannot be deleted.
+- **Posture Controls** — custom CSPM controls (Rego evaluation rules) over
+  `/api/cspm/v1/policy/controls`. This endpoint has no list/search-by-name API
+  (confirmed against the Go client), so this type is the first in this app to
+  use the SDK's `DeploymentSummary.rollbackData` carry-forward mechanism
+  (`{canvas item id -> external id}`) instead of a live by-name lookup.
+- **Posture Policies** — CSPM compliance policies built from nested
+  requirement groups → requirements → named controls, over
+  `/api/cspm/v1/policy` (this API DOES support list-all-with-name, so it
+  follows the same by-name upsert pattern as the original four types).
+- **Posture Zone Assignments** — assigns an ordered set of Posture Policies
+  (by name) to a Zone (by name), a whole-list PUT over
+  `/api/cspm/v1/zones/{zoneId}/policies`. Unlike other cross-references in
+  this app, an unresolved zone or policy name fails the deploy outright rather
+  than being dropped silently — a compliance zone silently missing a policy is
+  a security-relevant surprise.
+- **Vulnerability Rule Bundles** — reusable pass/fail rules (package/vuln
+  denylists, severity thresholds, image-config checks) over
+  `/secure/vulnerability/v1/bundles`. No list/search-by-name API — uses the
+  same rollbackData carry-forward pattern as Posture Controls.
+- **Vulnerability Policies** — bundles plus pipeline/registry/runtime/
+  admission-control stage assignment (image-scanning policy assignment) over
+  `/secure/vulnerability/v1/policies`. References bundles by numeric id, not
+  name, since bundles have no list/search-by-name API either. Same
+  rollbackData carry-forward pattern.
+- `lib/sysdigApi.ts` gains the client methods and models for all of the above.
+
+> DROPPED (see README Coverage for the full reasoning): Cloud Account /
+> Cloud-Auth onboarding (cross-cloud trust-relationship bootstrap, no
+> credential-broker seam, provider docs admit instability); the v2
+> match-list rule types (`secure_rule_container/filesystem/network/process/
+> syscall`) — CONFIRMED DEPRECATED, the Sysdig backend has rejected these
+> `ruleType`s since 2026-02-28 per the provider's own docs; Stateful rule
+> exceptions (narrow, append-only, single source type); the legacy
+> CSPM-specific Posture Zone (`/api/cspm/v1/policy/zones`) — superseded by the
+> unified Zones + Zone Posture Policy Assignment modeled here; Managed
+> Rulesets (functionally redundant with Managed Policies); posture/
+> vulnerability risk-acceptance (a finding-triage action, not desired-state
+> config); Cloud Account onboarding, SSO, custom roles, group mappings, IP
+> filters and agent access keys (account/platform-wide administration outside
+> this app's per-tenant Sysdig-Secure-API-token connection boundary); Monitor-
+> side alerts/dashboards/silence rules (a different Sysdig product surface).
+
 ## 0.2.0 — 2026-08-01
 
 Threat-detection breadth — three new config types alongside Falco Rules, each

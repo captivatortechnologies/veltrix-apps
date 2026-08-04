@@ -1,0 +1,110 @@
+# =============================================================================
+# Canvas Template — ServiceNow Data Policies
+#
+# Declares ONE ServiceNow data policy (a sys_data_policy2 record). Operators
+# add as many as they need. Field keys must match
+# config-types/data-policies/_shared.ts and validate.ts. Applied over the
+# ServiceNow Table API (POST/PATCH /api/now/table/sys_data_policy2).
+#
+# The per-field mandatory/read-only rules (child sys_data_policy_rule table)
+# are NOT managed by this config type — add them directly in ServiceNow on the
+# policy's "Data Policy Rules" related list after it deploys (see README).
+#
+# Identity is the (short_description, table) pair.
+# =============================================================================
+
+id: "servicenow-data-policies"
+name: "Data Policies"
+toolType: "servicenow"
+entityType: "data-policies"
+description: "Manage ServiceNow data policies (sys_data_policy2) as code — server-side field mandatory/read-only enforcement for a table, driven by a condition — via the Table API"
+
+item:
+  label: "Data Policy"
+  identityField: "shortDescription"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "layout"
+      description: "What the policy is and the table it applies to"
+      fields:
+        - key: "shortDescription"
+          label: "Short description"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Human-readable name shown in ServiceNow. Identity is this description scoped to the table below."
+
+        - key: "table"
+          label: "Table"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-z][a-z0-9_]*$"
+            maxLength: 80
+          helpText: "Internal name of the table the policy applies to, e.g. incident, sn_si_incident."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Why this policy exists — recorded for audit. After this deploys, add the field-level mandatory/read-only rules on the policy's Data Policy Rules related list in ServiceNow."
+
+    - name: "Behavior"
+      icon: "settings"
+      description: "When and how strictly the policy is enforced"
+      fields:
+        - key: "active"
+          label: "Active"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the policy is enabled."
+
+        - key: "enforceUi"
+          label: "Enforce UI policy"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Also apply this policy's field rules as client-side UI Policy behavior (sys_data_policy2.enforce_ui), not just a server-side check."
+
+        - key: "reverseIfFalse"
+          label: "Reverse if false"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Undo the field rules when the condition is false (sys_data_policy2.reverse_if_false)."
+
+        - key: "inherit"
+          label: "Apply to extended tables"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Also enforce this policy on tables that extend the table above (sys_data_policy2.inherit)."
+
+        - key: "order"
+          label: "Order"
+          fieldType: "number"
+          required: false
+          defaultValue: 100
+          validation:
+            min: 0
+            max: 100000
+          helpText: "Execution order — lower numbers run first (default 100)."
+
+    - name: "Conditions"
+      icon: "filter"
+      description: "When the policy applies"
+      fields:
+        - key: "conditions"
+          label: "Conditions (encoded query)"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 4000
+          helpText: "ServiceNow encoded query the policy is evaluated against, e.g. priority=1^state!=6. Leave blank to always apply."

@@ -1,0 +1,9 @@
+# Defaults for a new notification channel item. Type-specific destination
+# fields are left for the operator to fill in.
+type: EMAIL
+enabled: true
+templateVersion: v2
+region: US
+includeAdminUsers: false
+allowInsecureConnections: false
+sendTestNotification: false

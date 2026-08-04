@@ -1,0 +1,75 @@
+# =============================================================================
+# Canvas Template — ServiceNow Roles
+#
+# Declares ONE ServiceNow role (a sys_user_role record). Operators add as many
+# as they need. Field keys must match config-types/roles/_shared.ts and
+# validate.ts (which map them to the sys_user_role columns). Applied over the
+# ServiceNow Table API (POST/PATCH /api/now/table/sys_user_role).
+#
+# Identity is `name`. ServiceNow does not allow renaming a role after it is
+# saved — renaming this item's name creates a NEW role rather than renaming
+# the live one; see README.
+# =============================================================================
+
+id: "servicenow-roles"
+name: "Roles"
+toolType: "servicenow"
+entityType: "roles"
+description: "Manage ServiceNow roles (sys_user_role) as code — the named permission grants ACLs and record ACLs check for — via the Table API"
+
+item:
+  label: "Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Role"
+      icon: "shield"
+      description: "Role identity and what it grants"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)*$"
+            maxLength: 255
+          helpText: "Role name, e.g. security_admin. A scoped-app role uses <scope>.<name>, e.g. x_1234_myapp.manager. Identity — ServiceNow does not allow renaming a role after it is saved, so changing this creates a new role."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 4000
+          helpText: "What this role grants — shown to admins assigning it."
+
+    - name: "Grant behavior"
+      icon: "settings"
+      description: "How the role is used once granted"
+      fields:
+        - key: "elevatedPrivilege"
+          label: "Requires elevated privilege"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When on, a user holding this role must explicitly elevate (Impersonate/Elevate Privilege) before its permissions take effect (sys_user_role.elevated_privilege). Use for high-risk roles such as security_admin."
+
+        - key: "requiresSubscription"
+          label: "Requires subscription"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether granting this role is gated behind a licensed subscription (sys_user_role.requires_subscription)."
+
+        - key: "assignableBy"
+          label: "Assignable by (role sys_ids)"
+          fieldType: "tags"
+          required: false
+          helpText: >
+            Advanced — raw sys_ids of the OTHER roles allowed to grant this role
+            to a user (sys_user_role.assignable_by), one per tag. Leave blank
+            unless you are restricting who can assign this role. Resolve a
+            role's sys_id from its list view in ServiceNow; this app does not
+            resolve names for this field (see README).

@@ -1,0 +1,63 @@
+# =============================================================================
+# Canvas Template — Sysdig Secure Zones
+#
+# Declares ONE Sysdig Secure zone (the item) — a named, reusable resource
+# scope referenced by Teams and by Posture Zone Assignments. Field keys must
+# match config-types/zones/validate.ts.
+# Applied via the Sysdig Secure REST API (/platform/v1/zones).
+# =============================================================================
+
+id: "sysdig-secure-zones"
+name: "Zones"
+toolType: "sysdig-secure"
+entityType: "zones"
+description: "Manage Sysdig Secure zones — named resource scopes referenced by Teams and Posture Zone Assignments — via the Sysdig Secure REST API (/platform/v1/zones)"
+
+item:
+  label: "Zone"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Zone"
+      icon: "map"
+      description: "Zone identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique zone name — the stable identity used for upsert and drift, and referenced by name from Teams and Posture Zone Assignments"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          validation:
+            maxLength: 1000
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "When on, the zone is present. When off, this app removes it — check nothing still references it by name first."
+
+    - name: "Scopes"
+      icon: "filter"
+      description: "The resources this zone covers"
+      fields:
+        - key: "scopesJson"
+          label: "Scopes (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 8000
+          helpText: >-
+            JSON array of at least one {"targetType":"aws","rules":"..."}.
+            targetType is one of aws, gcp, azure, kubernetes, image, host, git,
+            ibm, oci. rules is a Sysdig query-language filter expression scoping
+            that resource type, e.g. "account in (\"111111111111\")". This app
+            uses the v1 (rules-string) Zones API — see the README for why the
+            newer structured-expression v2 API is not modeled.

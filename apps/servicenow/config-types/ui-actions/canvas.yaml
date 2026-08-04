@@ -1,0 +1,209 @@
+# =============================================================================
+# Canvas Template — ServiceNow UI Actions
+#
+# Declares ONE ServiceNow UI action (a sys_ui_action record). Operators add as
+# many as they need. Field keys must match config-types/ui-actions/_shared.ts
+# and validate.ts. Applied over the ServiceNow Table API
+# (POST/PATCH /api/now/table/sys_ui_action).
+#
+# Identity is the (name, table) pair — a UI-action name is not globally
+# unique, so the same name on two different tables is two different actions.
+# =============================================================================
+
+id: "servicenow-ui-actions"
+name: "UI Actions"
+toolType: "servicenow"
+entityType: "ui-actions"
+description: "Manage ServiceNow UI actions (sys_ui_action) as code — buttons, links and context-menu items on forms and lists that run scripted logic — via the Table API"
+
+item:
+  label: "UI Action"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 300
+  groups:
+    - name: "Action"
+      icon: "code"
+      description: "Action identity and the table it appears on"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Label shown on the button/link/menu item. Identity is this name scoped to the table below."
+
+        - key: "table"
+          label: "Table"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-z][a-z0-9_]*$"
+            maxLength: 80
+          helpText: "Internal table the action appears on, e.g. incident, sn_si_incident."
+
+        - key: "actionName"
+          label: "Action name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 100
+          helpText: "Internal identifier other scripts can use to detect this action fired (sys_ui_action.action_name)."
+
+        - key: "active"
+          label: "Active"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the action is enabled."
+
+        - key: "order"
+          label: "Order"
+          fieldType: "number"
+          required: false
+          defaultValue: 100
+          validation:
+            min: 0
+            max: 100000
+          helpText: "Display/execution order — lower numbers first (default 100)."
+
+        - key: "hint"
+          label: "Hint"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Tooltip text shown when hovering the action."
+
+        - key: "comments"
+          label: "Comments"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 4000
+          helpText: "Free-text notes about this action — recorded for audit."
+
+    - name: "Placement"
+      icon: "layout"
+      description: "Where the action appears — enable at least one"
+      fields:
+        - key: "formButton"
+          label: "Form button"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Show as a button on the record form."
+
+        - key: "formLink"
+          label: "Form link"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Show as a related link on the record form."
+
+        - key: "formContextMenu"
+          label: "Form context menu"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Show in the form's right-click context menu."
+
+        - key: "listBannerButton"
+          label: "List banner button"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Show as a button above the list."
+
+        - key: "listChoice"
+          label: "List choice"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Show as a choice in the list's \"Actions on selected rows\" menu."
+
+        - key: "listContextMenu"
+          label: "List context menu"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Show in a list row's right-click context menu."
+
+        - key: "listLink"
+          label: "List link"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Show as a related link on the list."
+
+        - key: "showInsert"
+          label: "Show on insert"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Offer the action on a new (unsaved) record."
+
+        - key: "showUpdate"
+          label: "Show on update"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Offer the action on an existing (saved) record."
+
+        - key: "showQuery"
+          label: "Show on query"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Offer the action on the table's search/query view."
+
+        - key: "showMultipleUpdate"
+          label: "Show as list batch action"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Offer the action as a batch action across selected list rows."
+
+    - name: "Logic"
+      icon: "filter"
+      description: "The condition and the script(s) that run"
+      fields:
+        - key: "condition"
+          label: "Condition (encoded query)"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 4000
+          helpText: "Controls when the action is shown, e.g. current.active==true. Leave blank to always show."
+
+        - key: "client"
+          label: "Client"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Run client-side by calling the Onclick function below, instead of (or before) running the server Script."
+
+        - key: "onclick"
+          label: "Onclick function"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Client-side function to call when Client is on, e.g. escalateIncident(). Required when Client is checked."
+
+        - key: "isolateScript"
+          label: "Isolate script"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Run the server script in a scoped, isolated context (recommended)."
+
+        - key: "script"
+          label: "Script"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 100000
+          helpText: "Server-side script that runs when the action is triggered, e.g. (function executeAction(current) { current.setValue('state', 2); current.update(); })(current);"

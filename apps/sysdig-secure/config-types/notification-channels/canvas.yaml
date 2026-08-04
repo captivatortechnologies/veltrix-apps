@@ -1,0 +1,211 @@
+# =============================================================================
+# Canvas Template — Sysdig Secure Notification Channels
+#
+# Declares ONE notification channel (the item) — the destination Sysdig sends
+# an alert to (Slack, email, webhook, PagerDuty, ...) when a runtime policy or
+# other Secure feature fires. Field keys must match
+# config-types/notification-channels/validate.ts.
+# Applied via the Sysdig Secure REST API (/api/notificationChannels).
+# =============================================================================
+
+id: "sysdig-secure-notification-channels"
+name: "Notification Channels"
+toolType: "sysdig-secure"
+entityType: "notification-channels"
+description: "Manage Sysdig Secure notification channels — Slack, email, webhook, PagerDuty, OpsGenie, MS Teams, SNS, VictorOps, Team Email and Prometheus Alertmanager — via the Sysdig Secure REST API (/api/notificationChannels)"
+
+item:
+  label: "Notification Channel"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Channel"
+      icon: "bell"
+      description: "Channel identity and type"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique channel name — the stable identity used for upsert and drift"
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "EMAIL"
+          options:
+            - { label: "Email", value: "EMAIL" }
+            - { label: "Slack", value: "SLACK" }
+            - { label: "Webhook", value: "WEBHOOK" }
+            - { label: "PagerDuty", value: "PAGER_DUTY" }
+            - { label: "OpsGenie", value: "OPSGENIE" }
+            - { label: "Microsoft Teams", value: "MS_TEAMS" }
+            - { label: "Amazon SNS", value: "SNS" }
+            - { label: "VictorOps", value: "VICTOROPS" }
+            - { label: "Team Email", value: "TEAM_EMAIL" }
+            - { label: "Prometheus Alertmanager", value: "PROMETHEUS_ALERT_MANAGER" }
+          helpText: "The destination type. Fields below change based on this selection."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "When on, the channel is present and active. When off, this app removes it."
+
+    - name: "Destination"
+      icon: "link"
+      description: "Type-specific destination details"
+      fields:
+        - key: "url"
+          label: "URL"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            in: ["SLACK", "WEBHOOK", "OPSGENIE", "MS_TEAMS", "PROMETHEUS_ALERT_MANAGER"]
+          helpText: "Destination URL — Slack incoming webhook, generic webhook endpoint, OpsGenie/MS Teams/Prometheus Alertmanager webhook URL"
+
+        - key: "channel"
+          label: "Slack Channel"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "SLACK"
+          helpText: "The Slack channel name, e.g. #sysdig-alerts"
+
+        - key: "isPrivateChannel"
+          label: "Private Slack Channel"
+          fieldType: "checkbox"
+          defaultValue: false
+          visibleWhen:
+            field: "type"
+            equals: "SLACK"
+          helpText: "Cannot be changed after creation. Requires Private Channel URL below."
+
+        - key: "privateChannelUrl"
+          label: "Private Slack Channel URL"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "SLACK"
+          helpText: "The channel's link (not the webhook URL) — only set when Private Slack Channel is on"
+
+        - key: "templateVersion"
+          label: "Notification Template"
+          fieldType: "select"
+          defaultValue: "v2"
+          options:
+            - { label: "v1 (Detailed)", value: "v1" }
+            - { label: "v2 (Shortened)", value: "v2" }
+          visibleWhen:
+            field: "type"
+            in: ["SLACK", "MS_TEAMS"]
+          helpText: "The notification template Sysdig renders for this channel"
+
+        - key: "emailRecipients"
+          label: "Email Recipients"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "EMAIL"
+          helpText: "One or more recipient email addresses"
+
+        - key: "snsTopicArns"
+          label: "SNS Topic ARNs"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "SNS"
+          helpText: "One or more Amazon SNS topic ARNs, e.g. arn:aws:sns:us-east-1:123456789012:sysdig-alerts"
+
+        - key: "account"
+          label: "PagerDuty Account"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "PAGER_DUTY"
+          helpText: "The PagerDuty account subdomain"
+
+        - key: "serviceKey"
+          label: "PagerDuty Service Key"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "PAGER_DUTY"
+          helpText: "The PagerDuty integration/service key"
+
+        - key: "region"
+          label: "OpsGenie Region"
+          fieldType: "select"
+          defaultValue: "US"
+          options:
+            - { label: "US", value: "US" }
+            - { label: "EU", value: "EU" }
+          visibleWhen:
+            field: "type"
+            equals: "OPSGENIE"
+          helpText: "The OpsGenie API region this integration key belongs to"
+
+        - key: "apiKey"
+          label: "VictorOps API Key"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "VICTOROPS"
+          helpText: "The VictorOps REST API key"
+
+        - key: "routingKey"
+          label: "VictorOps Routing Key"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "VICTOROPS"
+          helpText: "The VictorOps routing key"
+
+        - key: "teamId"
+          label: "Team ID"
+          fieldType: "number"
+          visibleWhen:
+            field: "type"
+            equals: "TEAM_EMAIL"
+          helpText: "The numeric Sysdig Secure Team ID this channel emails (see the Teams config type)"
+
+        - key: "includeAdminUsers"
+          label: "Include Admin Users"
+          fieldType: "checkbox"
+          defaultValue: false
+          visibleWhen:
+            field: "type"
+            equals: "TEAM_EMAIL"
+          helpText: "Also email account administrators, in addition to the team's members"
+
+        - key: "allowInsecureConnections"
+          label: "Allow Insecure Connections"
+          fieldType: "checkbox"
+          defaultValue: false
+          visibleWhen:
+            field: "type"
+            in: ["WEBHOOK", "PROMETHEUS_ALERT_MANAGER"]
+          helpText: "Skip TLS certificate validation when calling the destination URL — only for trusted internal endpoints"
+
+        - key: "additionalHeaders"
+          label: "Additional Headers"
+          fieldType: "keyvalue"
+          visibleWhen:
+            field: "type"
+            in: ["WEBHOOK", "PROMETHEUS_ALERT_MANAGER"]
+          helpText: "Extra HTTP headers sent with every notification request, e.g. Authorization"
+
+    - name: "Advanced"
+      icon: "settings"
+      description: "Optional testing behavior"
+      fields:
+        - key: "sendTestNotification"
+          label: "Send Test Notification On Deploy"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Ask Sysdig to send one test notification to this channel each time it is created or updated"

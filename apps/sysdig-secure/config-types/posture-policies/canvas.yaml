@@ -1,0 +1,94 @@
+# =============================================================================
+# Canvas Template — Sysdig Secure Posture Policies
+#
+# Declares ONE CSPM compliance policy (the item) — a named tree of requirement
+# groups, each holding requirements, each holding named posture controls
+# (built-in Sysdig controls or ones from the Posture Controls config type).
+# Field keys must match config-types/posture-policies/validate.ts.
+# Applied via the Sysdig Secure REST API (/api/cspm/v1/policy).
+# =============================================================================
+
+id: "sysdig-secure-posture-policies"
+name: "Posture Policies"
+toolType: "sysdig-secure"
+entityType: "posture-policies"
+description: "Manage Sysdig Secure CSPM posture (compliance) policies — requirement groups built from named controls — via the Sysdig Secure REST API (/api/cspm/v1/policy)"
+
+item:
+  label: "Posture Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "clipboard-list"
+      description: "Policy identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique policy name — the stable identity used for upsert and drift, e.g. Internal Cloud Baseline"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 1000
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          defaultValue: "aws"
+          options:
+            - { label: "AWS", value: "aws" }
+            - { label: "GCP", value: "gcp" }
+            - { label: "Azure", value: "azure" }
+            - { label: "Kubernetes", value: "kubernetes" }
+            - { label: "Linux", value: "linux" }
+            - { label: "Docker", value: "docker" }
+            - { label: "OCI", value: "oci" }
+
+        - key: "link"
+          label: "Reference Link"
+          fieldType: "text"
+          helpText: "Optional URL to the compliance framework's public documentation"
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "When on, the policy is present. When off, this app removes it — check no Zone Posture Assignment still references it by name first."
+
+    - name: "Requirements"
+      icon: "list"
+      description: "The requirement groups this policy is built from"
+      fields:
+        - key: "requirementGroupsJson"
+          label: "Requirement Groups (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 32000
+          helpText: >-
+            JSON array of {"name":"Security","description":"...","requirements":
+            [{"name":"Enforce access control","description":"...","controls":
+            [{"name":"Create Pods","enabled":true}]}]}. Control "name" must
+            match an existing Sysdig control — built-in, or one declared in
+            the Posture Controls config type. "enabled" defaults to true when
+            omitted.
+
+        - key: "targetsJson"
+          label: "Version Targets (JSON, advanced)"
+          fieldType: "textarea"
+          validation:
+            maxLength: 4000
+          helpText: >-
+            Optional JSON array of {"platform":"EKS","minVersion":1.24,
+            "maxVersion":1.28} constraining which platform/version this policy
+            targets. Replaces the deprecated single platform/minKubeVersion/
+            maxKubeVersion fields, which this app does not expose.

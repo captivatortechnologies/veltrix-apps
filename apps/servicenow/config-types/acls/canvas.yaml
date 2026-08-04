@@ -1,0 +1,123 @@
+# =============================================================================
+# Canvas Template — ServiceNow ACLs
+#
+# Declares ONE ServiceNow Access Control rule (a sys_security_acl record,
+# type=record — table/field security). Operators add as many as they need.
+# Field keys must match config-types/acls/_shared.ts and validate.ts. Applied
+# over the ServiceNow Table API (POST/PATCH /api/now/table/sys_security_acl).
+#
+# SECURITY: role attachment (sys_security_acl_role) is NOT managed by this
+# config type (see README) — an ACL with no roles, no Condition and no Script
+# passes for EVERY user. Always pair a managed ACL with a Condition and/or
+# Script, or assign roles to it directly in ServiceNow after it deploys.
+#
+# Identity is the (table.field, operation) pair — ServiceNow allows multiple
+# ACLs for the same target/operation (they OR together); this identity governs
+# only the records this app creates/updates.
+# =============================================================================
+
+id: "servicenow-acls"
+name: "ACLs"
+toolType: "servicenow"
+entityType: "acls"
+description: "Manage ServiceNow Access Control rules (sys_security_acl, table/field security) as code via the Table API"
+
+item:
+  label: "ACL"
+  identityField: "table"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Target"
+      icon: "target"
+      description: "What this rule protects"
+      fields:
+        - key: "table"
+          label: "Table"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^(\\*|[a-z][a-z0-9_]*)$"
+            maxLength: 80
+          helpText: "Internal table name (e.g. incident, sn_si_incident) or * for a rule that applies to ALL tables."
+
+        - key: "field"
+          label: "Field (optional)"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^[a-z][a-z0-9_]*$"
+            maxLength: 80
+          helpText: "Leave blank for a table-level rule. Set a column name (e.g. caller_id) for a field-level rule scoped to the table above."
+
+        - key: "operation"
+          label: "Operation"
+          fieldType: "select"
+          required: true
+          defaultValue: "read"
+          options:
+            - { label: "Create", value: "create" }
+            - { label: "Read", value: "read" }
+            - { label: "Write", value: "write" }
+            - { label: "Delete", value: "delete" }
+            - { label: "Execute", value: "execute" }
+            - { label: "Report on", value: "report_on" }
+            - { label: "Query match", value: "query_match" }
+            - { label: "Query range", value: "query_range" }
+            - { label: "Conditional table query range", value: "conditional_table_query_range" }
+            - { label: "Data fabric", value: "data_fabric" }
+            - { label: "Edit task relations", value: "edit_task_relations" }
+            - { label: "Edit CI relations", value: "edit_ci_relations" }
+            - { label: "Save as template", value: "save_as_template" }
+            - { label: "Add to list", value: "add_to_list" }
+            - { label: "List edit", value: "list_edit" }
+            - { label: "Report view", value: "report_view" }
+            - { label: "Personalize choices", value: "personalize_choices" }
+          helpText: "Most SecOps ACLs use create/read/write/delete/execute; the rest gate specialized platform actions."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Why this rule exists — recorded for audit."
+
+    - name: "Enforcement"
+      icon: "shield"
+      description: "Whether the rule is active and how strictly it's enforced"
+      fields:
+        - key: "active"
+          label: "Active"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the rule is enabled."
+
+        - key: "adminOverrides"
+          label: "Admin overrides"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "When on, users with the admin role automatically pass this rule (sys_security_acl.admin_overrides). Turning this off requires the High Security Settings plugin to actually stop admins — see README."
+
+    - name: "Logic"
+      icon: "filter"
+      description: "The condition and script that decide access (roles are assigned in ServiceNow — see README)"
+      fields:
+        - key: "condition"
+          label: "Condition (encoded query)"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 4000
+          helpText: "Encoded query the current record must satisfy, e.g. active=true. Evaluated in addition to any roles assigned to this ACL in ServiceNow."
+
+        - key: "script"
+          label: "Script"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 100000
+          helpText: "Server-side script that must set the `answer` variable to true or false, e.g. answer = gs.getUser().hasRole('security_admin');"

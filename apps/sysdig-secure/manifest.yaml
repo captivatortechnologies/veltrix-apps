@@ -1,11 +1,14 @@
 id: sysdig-secure
 name: Sysdig Secure
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
-  Manage Sysdig Secure threat-detection as code — custom Falco rules, lists and
-  macros plus the runtime policies that reference them. Author each and drive it
-  through the Security-as-Code pipeline (validate, deploy, health check, drift
+  Manage Sysdig Secure as code — threat detection (custom Falco rules, lists,
+  macros and runtime policies, plus tuning of Sysdig's own managed policies),
+  notification channels, teams and zones, CSPM posture (custom controls,
+  compliance policies and zone assignment), and vulnerability management
+  (rule bundles and image-scanning policies). Author each and drive it through
+  the Security-as-Code pipeline (validate, deploy, health check, drift
   detection and rollback) over the Sysdig Secure REST API with a Bearer API
   token. Sysdig SaaS — no infrastructure to host.
 category: CLOUD
@@ -39,6 +42,33 @@ permissions:
     - resource: falco-macros
       actions: [read, write, delete]
       description: Manage Sysdig Secure custom Falco macros (create / edit / remove)
+    - resource: notification-channels
+      actions: [read, write, delete]
+      description: Manage Sysdig Secure notification channels (create / edit / remove)
+    - resource: teams
+      actions: [read, write, delete]
+      description: Manage Sysdig Secure teams (create / edit / remove)
+    - resource: zones
+      actions: [read, write, delete]
+      description: Manage Sysdig Secure zones (create / edit / remove)
+    - resource: managed-policies
+      actions: [read, write]
+      description: Tune Sysdig Secure's built-in managed runtime policies (Sysdig-owned content is never created or deleted)
+    - resource: posture-controls
+      actions: [read, write, delete]
+      description: Manage Sysdig Secure custom CSPM posture controls (create / edit / remove)
+    - resource: posture-policies
+      actions: [read, write, delete]
+      description: Manage Sysdig Secure CSPM posture (compliance) policies (create / edit / remove)
+    - resource: posture-zone-assignments
+      actions: [read, write, delete]
+      description: Assign Sysdig Secure posture policies to a zone (create / edit / remove)
+    - resource: vulnerability-rule-bundles
+      actions: [read, write, delete]
+      description: Manage Sysdig Secure vulnerability rule bundles (create / edit / remove)
+    - resource: vulnerability-policies
+      actions: [read, write, delete]
+      description: Manage Sysdig Secure vulnerability (image-scanning) policies (create / edit / remove)
 
 pipeline:
   configurationTypes:
@@ -109,6 +139,168 @@ pipeline:
         healthCheck: config-types/falco-macros/healthCheck
         driftDetect: config-types/falco-macros/driftDetect
         getStatus: config-types/falco-macros/getStatus
+      targets:
+        componentTypes: [sysdig-secure]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: managed-policies
+      group: "Threat Detection · Managed Policies"
+      name: Managed Policies
+      description: Tune Sysdig Secure's built-in managed runtime policies — enabled state, scope, response actions, disabled rules and notification channels — applied over the Sysdig Secure REST API (/api/v2/policies)
+      canvasTemplate: config-types/managed-policies/canvas.yaml
+      defaultConfig: config-types/managed-policies/defaults.yaml
+      handlers:
+        validate: config-types/managed-policies/validate
+        deploy: config-types/managed-policies/deploy
+        rollback: config-types/managed-policies/rollback
+        healthCheck: config-types/managed-policies/healthCheck
+        driftDetect: config-types/managed-policies/driftDetect
+        getStatus: config-types/managed-policies/getStatus
+      targets:
+        componentTypes: [sysdig-secure]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: notification-channels
+      group: "Notifications"
+      name: Notification Channels
+      description: Sysdig Secure notification channels — Slack, email, webhook, PagerDuty, OpsGenie, MS Teams, SNS, VictorOps, Team Email and Prometheus Alertmanager — applied over the Sysdig Secure REST API (/api/notificationChannels)
+      canvasTemplate: config-types/notification-channels/canvas.yaml
+      defaultConfig: config-types/notification-channels/defaults.yaml
+      handlers:
+        validate: config-types/notification-channels/validate
+        deploy: config-types/notification-channels/deploy
+        rollback: config-types/notification-channels/rollback
+        healthCheck: config-types/notification-channels/healthCheck
+        driftDetect: config-types/notification-channels/driftDetect
+        getStatus: config-types/notification-channels/getStatus
+      targets:
+        componentTypes: [sysdig-secure]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: teams
+      group: "Access & Teams"
+      name: Teams
+      description: Sysdig Secure teams — scope, capabilities, zone assignment and members — applied over the Sysdig Secure REST API (/api/teams)
+      canvasTemplate: config-types/teams/canvas.yaml
+      defaultConfig: config-types/teams/defaults.yaml
+      handlers:
+        validate: config-types/teams/validate
+        deploy: config-types/teams/deploy
+        rollback: config-types/teams/rollback
+        healthCheck: config-types/teams/healthCheck
+        driftDetect: config-types/teams/driftDetect
+        getStatus: config-types/teams/getStatus
+      targets:
+        componentTypes: [sysdig-secure]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: zones
+      group: "Zones"
+      name: Zones
+      description: Sysdig Secure zones — named resource scopes referenced by Teams and Posture Zone Assignments — applied over the Sysdig Secure REST API (/platform/v1/zones)
+      canvasTemplate: config-types/zones/canvas.yaml
+      defaultConfig: config-types/zones/defaults.yaml
+      handlers:
+        validate: config-types/zones/validate
+        deploy: config-types/zones/deploy
+        rollback: config-types/zones/rollback
+        healthCheck: config-types/zones/healthCheck
+        driftDetect: config-types/zones/driftDetect
+        getStatus: config-types/zones/getStatus
+      targets:
+        componentTypes: [sysdig-secure]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: posture-controls
+      group: "Posture (CSPM)"
+      name: Posture Controls
+      description: Sysdig Secure custom CSPM posture controls — named Rego evaluation rules referenced by Posture Policies — applied over the Sysdig Secure REST API (/api/cspm/v1/policy/controls)
+      canvasTemplate: config-types/posture-controls/canvas.yaml
+      defaultConfig: config-types/posture-controls/defaults.yaml
+      handlers:
+        validate: config-types/posture-controls/validate
+        deploy: config-types/posture-controls/deploy
+        rollback: config-types/posture-controls/rollback
+        healthCheck: config-types/posture-controls/healthCheck
+        driftDetect: config-types/posture-controls/driftDetect
+        getStatus: config-types/posture-controls/getStatus
+      targets:
+        componentTypes: [sysdig-secure]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: posture-policies
+      group: "Posture (CSPM)"
+      name: Posture Policies
+      description: Sysdig Secure CSPM posture (compliance) policies — requirement groups built from named controls — applied over the Sysdig Secure REST API (/api/cspm/v1/policy)
+      canvasTemplate: config-types/posture-policies/canvas.yaml
+      defaultConfig: config-types/posture-policies/defaults.yaml
+      handlers:
+        validate: config-types/posture-policies/validate
+        deploy: config-types/posture-policies/deploy
+        rollback: config-types/posture-policies/rollback
+        healthCheck: config-types/posture-policies/healthCheck
+        driftDetect: config-types/posture-policies/driftDetect
+        getStatus: config-types/posture-policies/getStatus
+      targets:
+        componentTypes: [sysdig-secure]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: posture-zone-assignments
+      group: "Posture (CSPM)"
+      name: Posture Zone Assignments
+      description: Assign Sysdig Secure posture (compliance) policies to a Zone — one whole-list assignment per zone — applied over the Sysdig Secure REST API (/api/cspm/v1/zones/{zoneId}/policies)
+      canvasTemplate: config-types/posture-zone-assignments/canvas.yaml
+      defaultConfig: config-types/posture-zone-assignments/defaults.yaml
+      handlers:
+        validate: config-types/posture-zone-assignments/validate
+        deploy: config-types/posture-zone-assignments/deploy
+        rollback: config-types/posture-zone-assignments/rollback
+        healthCheck: config-types/posture-zone-assignments/healthCheck
+        driftDetect: config-types/posture-zone-assignments/driftDetect
+        getStatus: config-types/posture-zone-assignments/getStatus
+      targets:
+        componentTypes: [sysdig-secure]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: vulnerability-rule-bundles
+      group: "Vulnerability Management"
+      name: Vulnerability Rule Bundles
+      description: Sysdig Secure vulnerability pass/fail rule bundles — package/vuln denylists, severity thresholds, image-config checks — applied over the Sysdig Secure REST API (/secure/vulnerability/v1/bundles)
+      canvasTemplate: config-types/vulnerability-rule-bundles/canvas.yaml
+      defaultConfig: config-types/vulnerability-rule-bundles/defaults.yaml
+      handlers:
+        validate: config-types/vulnerability-rule-bundles/validate
+        deploy: config-types/vulnerability-rule-bundles/deploy
+        rollback: config-types/vulnerability-rule-bundles/rollback
+        healthCheck: config-types/vulnerability-rule-bundles/healthCheck
+        driftDetect: config-types/vulnerability-rule-bundles/driftDetect
+        getStatus: config-types/vulnerability-rule-bundles/getStatus
+      targets:
+        componentTypes: [sysdig-secure]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: vulnerability-policies
+      group: "Vulnerability Management"
+      name: Vulnerability Policies
+      description: Sysdig Secure vulnerability (image-scanning) policies — rule bundles plus pipeline/registry/runtime/admission-control stage assignment — applied over the Sysdig Secure REST API (/secure/vulnerability/v1/policies)
+      canvasTemplate: config-types/vulnerability-policies/canvas.yaml
+      defaultConfig: config-types/vulnerability-policies/defaults.yaml
+      handlers:
+        validate: config-types/vulnerability-policies/validate
+        deploy: config-types/vulnerability-policies/deploy
+        rollback: config-types/vulnerability-policies/rollback
+        healthCheck: config-types/vulnerability-policies/healthCheck
+        driftDetect: config-types/vulnerability-policies/driftDetect
+        getStatus: config-types/vulnerability-policies/getStatus
       targets:
         componentTypes: [sysdig-secure]
         requiresCredential: true

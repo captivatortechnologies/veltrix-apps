@@ -154,7 +154,18 @@ export interface SysdigPolicy {
   type?: string
   version?: number
   notificationChannelIds?: number[]
+  /** True for a Sysdig-provided (managed) policy — never set on a custom one. */
+  isDefault?: boolean
+  runbook?: string
+  /** Per-rule enable/disable within a managed policy's fixed rule set. */
+  rules?: SysdigPolicyRuleToggle[]
   [key: string]: unknown
+}
+
+/** One entry of `Policy.rules` — `{ruleName, enabled}` (wire key is `ruleName`). */
+export interface SysdigPolicyRuleToggle {
+  ruleName: string
+  enabled: boolean
 }
 
 // --- Falco list model (mirror of the Sysdig Secure /api/secure/falco/lists JSON)
@@ -199,6 +210,244 @@ export function parseJson<T>(body: string): T | null {
   } catch {
     return null
   }
+}
+
+// --- Notification channel model (mirror of /api/notificationChannels JSON) -----
+// Endpoint + polymorphic `type`/`options` shape confirmed against
+// terraform-provider-sysdig's v2 client (notification_channels.go, model.go).
+
+/** Notification-channel `type` values this app's Secure-side canvas supports. */
+export const NOTIFICATION_CHANNEL_TYPES = new Set([
+  'EMAIL',
+  'SLACK',
+  'WEBHOOK',
+  'PAGER_DUTY',
+  'OPSGENIE',
+  'MS_TEAMS',
+  'SNS',
+  'VICTOROPS',
+  'TEAM_EMAIL',
+  'PROMETHEUS_ALERT_MANAGER',
+])
+
+/** The type-specific `options` bag — every field is used by exactly one `type`. */
+export interface NotificationChannelOptions {
+  emailRecipients?: string[]
+  snsTopicARNs?: string[]
+  apiKey?: string
+  routingKey?: string
+  url?: string
+  channel?: string
+  privateChannel?: boolean
+  privateChannelUrl?: string
+  account?: string
+  serviceKey?: string
+  additionalHeaders?: Record<string, unknown>
+  region?: string
+  allowInsecureConnections?: boolean
+  teamId?: number
+  includeAdminUsers?: boolean
+  templateConfiguration?: Array<{
+    templateKey: string
+    templateConfigurationSections: Array<{ sectionName: string; shouldShow: boolean }>
+  }>
+  notifyOnOk: boolean
+  notifyOnResolve: boolean
+  sendTestNotification: boolean
+  [key: string]: unknown
+}
+
+/** One Sysdig Secure notification channel. */
+export interface SysdigNotificationChannel {
+  id?: number
+  version?: number
+  type: string
+  name: string
+  enabled: boolean
+  teamId?: number | null
+  options: NotificationChannelOptions
+  [key: string]: unknown
+}
+
+// --- Team model (mirror of the Sysdig Secure /api/teams JSON) ------------------
+
+/** One `userRoles` entry — a team member plus their role in that team. */
+export interface SysdigUserRole {
+  userId?: number
+  userName?: string
+  role?: string
+  [key: string]: unknown
+}
+
+/** One Sysdig Secure team. */
+export interface SysdigTeam {
+  id?: number
+  version?: number
+  name: string
+  description?: string
+  theme?: string
+  scopeBy?: string
+  filter?: string
+  useSysdigCapture?: boolean
+  canUseAgentCli?: boolean
+  canUseRapidResponse?: boolean
+  default?: boolean
+  zoneIds?: number[]
+  allZones?: boolean
+  origin?: string
+  userRoles?: SysdigUserRole[]
+  [key: string]: unknown
+}
+
+/** One entry from GET /api/users/light — used to resolve a userRole's email to an id. */
+export interface SysdigUserLight {
+  id: number
+  email: string
+}
+
+// --- Zone model (mirror of the Sysdig Secure /platform/v1/zones JSON) ----------
+// The v1 (rules-string) zones API — stable and broadly supported; the newer v2
+// structured-expression zones API is intentionally not modeled (see README).
+
+/** One scope attached to a zone — a resource-type filter (Sysdig query syntax). */
+export interface SysdigZoneScope {
+  id?: number
+  targetType: string
+  rules: string
+}
+
+/** One Sysdig Secure zone — a named, reusable resource-scoping definition. */
+export interface SysdigZone {
+  id?: number
+  name: string
+  description?: string
+  scopes: SysdigZoneScope[]
+  [key: string]: unknown
+}
+
+// --- Posture control model (mirror of /api/cspm/v1/policy/controls JSON) -------
+
+/** One custom CSPM posture control — a named Rego evaluation rule. */
+export interface SysdigPostureControl {
+  id?: string
+  name: string
+  description: string
+  resourceKind: string
+  severity: string
+  rego: string
+  remediationDetails: string
+  [key: string]: unknown
+}
+
+// --- Posture policy model (mirror of the /api/cspm/v1/policy JSON) -------------
+
+export interface SysdigPostureRequirementControl {
+  name: string
+  enabled?: boolean
+}
+export interface SysdigPostureRequirement {
+  name: string
+  description?: string
+  controls?: SysdigPostureRequirementControl[]
+}
+export interface SysdigPostureRequirementGroup {
+  name: string
+  description?: string
+  requirements?: SysdigPostureRequirement[]
+}
+export interface SysdigPostureTarget {
+  platform?: string
+  minVersion?: number
+  maxVersion?: number
+}
+/** Slim shape returned by the posture-policies list endpoint (name lookup). */
+export interface SysdigPosturePolicySummary {
+  id: string
+  name: string
+  isCustom?: boolean
+}
+/** One CSPM posture (compliance) policy — a named tree of requirement groups. */
+export interface SysdigPosturePolicy {
+  id?: string
+  name: string
+  description?: string
+  type?: string
+  link?: string
+  groups?: SysdigPostureRequirementGroup[]
+  targets?: SysdigPostureTarget[]
+  [key: string]: unknown
+}
+
+// --- Zone posture-policy assignment (/api/cspm/v1/zones/{id}/policies) ---------
+
+/** The full (whole-list) set of posture policies assigned to one zone. */
+export interface SysdigZonePolicyAssignment {
+  zoneId?: string
+  policyIds: string[]
+}
+
+// --- Vulnerability rule bundle model (/secure/vulnerability/v1/bundles) --------
+
+export interface SysdigVulnerabilityRulePredicate {
+  type: string
+  extra?: Record<string, unknown>
+}
+export interface SysdigVulnerabilityRule {
+  ruleId?: string
+  ruleType: string
+  predicates: SysdigVulnerabilityRulePredicate[]
+}
+/** One reusable vulnerability pass/fail rule bundle. */
+export interface SysdigVulnerabilityRuleBundle {
+  id?: number
+  identifier?: string
+  name: string
+  description?: string
+  rules: SysdigVulnerabilityRule[]
+  [key: string]: unknown
+}
+
+// --- Vulnerability policy model (/secure/vulnerability/v1/policies) ------------
+
+export interface SysdigVulnerabilityStageConfig {
+  scope: string
+  behaviour?: string
+  unknownImageAction?: string
+}
+export interface SysdigVulnerabilityStage {
+  name: string
+  configuration?: SysdigVulnerabilityStageConfig[]
+}
+/** One image-scanning (vulnerability) policy — bundles plus per-stage scope/behavior. */
+export interface SysdigVulnerabilityPolicy {
+  id?: number
+  identifier?: string
+  name: string
+  description?: string
+  bundles: Array<{ id: number }>
+  stages?: SysdigVulnerabilityStage[]
+  [key: string]: unknown
+}
+
+// --- Cross-deploy identity carry -----------------------------------------------
+// Some CSPM/Vulnerability endpoints expose CRUD-by-id but no list/search-by-name
+// (confirmed against terraform-provider-sysdig — Posture Controls, Vulnerability
+// Policies and Vulnerability Rule Bundles have no "list all" client method, only
+// GetByID). Those config types persist {canvas item id -> external id} in
+// DeployResult.rollbackData; the next deploy reads it back via
+// ctx.platform.getLatestDeployment() to find the live object to update, exactly
+// the pattern the SDK's DeploymentSummary.rollbackData doc describes.
+
+export interface ExternalIdEntry {
+  externalId: string
+  name: string
+}
+export type ExternalIdMap = Record<string, ExternalIdEntry>
+
+/** Read the {itemId -> {externalId,name}} map this app stored on its last successful deploy. */
+export function priorExternalIds(rollbackData: unknown): ExternalIdMap {
+  const data = rollbackData as { externalIds?: ExternalIdMap } | null | undefined
+  return data && data.externalIds && typeof data.externalIds === 'object' ? data.externalIds : {}
 }
 
 /**
@@ -394,6 +643,261 @@ export class SysdigClient {
     })
     if (res.status !== 204 && res.status !== 200) {
       throw new Error(`DELETE /api/secure/falco/macros/${id} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    }
+  }
+
+  // --- Notification channels (/api/notificationChannels) ---------------------
+  // No by-name endpoint — callers list all and match on name (mirrors the
+  // official client's GetNotificationChannelByName, which does the same).
+
+  async listNotificationChannels(): Promise<SysdigNotificationChannel[]> {
+    const res = await this.request('GET', '/api/notificationChannels')
+    if (res.status === 404) return []
+    if (!res.ok) throw new Error(`GET /api/notificationChannels → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    const parsed = parseJson<{ notificationChannels?: SysdigNotificationChannel[] }>(res.body)
+    return Array.isArray(parsed?.notificationChannels) ? parsed.notificationChannels : []
+  }
+
+  async createNotificationChannel(channel: SysdigNotificationChannel): Promise<SysdigNotificationChannel> {
+    const res = await this.request('POST', '/api/notificationChannels', { body: { notificationChannel: channel } })
+    if (!res.ok) throw new Error(`POST /api/notificationChannels → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    const parsed = parseJson<{ notificationChannel?: SysdigNotificationChannel }>(res.body)
+    return parsed?.notificationChannel ?? channel
+  }
+
+  async updateNotificationChannel(id: number, channel: SysdigNotificationChannel): Promise<SysdigNotificationChannel> {
+    const res = await this.request('PUT', `/api/notificationChannels/${encodeURIComponent(String(id))}`, {
+      body: { notificationChannel: channel },
+    })
+    if (!res.ok) throw new Error(`PUT /api/notificationChannels/${id} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    const parsed = parseJson<{ notificationChannel?: SysdigNotificationChannel }>(res.body)
+    return parsed?.notificationChannel ?? channel
+  }
+
+  async deleteNotificationChannel(id: number): Promise<void> {
+    const res = await this.request('DELETE', `/api/notificationChannels/${encodeURIComponent(String(id))}`)
+    if (res.status !== 204 && res.status !== 200 && res.status !== 404) {
+      throw new Error(`DELETE /api/notificationChannels/${id} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    }
+  }
+
+  // --- Teams (/api/teams) -----------------------------------------------------
+
+  async listTeams(): Promise<SysdigTeam[]> {
+    const res = await this.request('GET', '/api/teams')
+    if (res.status === 404) return []
+    if (!res.ok) throw new Error(`GET /api/teams → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    const parsed = parseJson<{ teams?: SysdigTeam[] }>(res.body)
+    return Array.isArray(parsed?.teams) ? parsed.teams : []
+  }
+
+  /** GET /api/users/light — used to resolve a team member's email to a userId. */
+  async listUsersLight(): Promise<SysdigUserLight[]> {
+    const res = await this.request('GET', '/api/users/light')
+    if (!res.ok) throw new Error(`GET /api/users/light → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    const parsed = parseJson<{ users?: Array<{ id: number; username?: string }> }>(res.body)
+    return Array.isArray(parsed?.users) ? parsed.users.map((u) => ({ id: u.id, email: String(u.username ?? '') })) : []
+  }
+
+  async createTeam(team: SysdigTeam): Promise<SysdigTeam> {
+    const res = await this.request('POST', '/api/teams', { body: { team } })
+    if (!res.ok) throw new Error(`POST /api/teams → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    const parsed = parseJson<{ team?: SysdigTeam }>(res.body)
+    return parsed?.team ?? team
+  }
+
+  async updateTeam(id: number, team: SysdigTeam): Promise<SysdigTeam> {
+    const res = await this.request('PUT', `/api/teams/${encodeURIComponent(String(id))}`, { body: { team } })
+    if (!res.ok) throw new Error(`PUT /api/teams/${id} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    const parsed = parseJson<{ team?: SysdigTeam }>(res.body)
+    return parsed?.team ?? team
+  }
+
+  async deleteTeam(id: number): Promise<void> {
+    const res = await this.request('DELETE', `/api/teams/${encodeURIComponent(String(id))}`)
+    if (res.status !== 204 && res.status !== 200 && res.status !== 404) {
+      throw new Error(`DELETE /api/teams/${id} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    }
+  }
+
+  // --- Zones (/platform/v1/zones) ---------------------------------------------
+
+  async findZonesByName(name: string): Promise<SysdigZone[]> {
+    const res = await this.request('GET', '/platform/v1/zones', { query: { filter: `name:${name}` } })
+    if (res.status === 404) return []
+    if (!res.ok) throw new Error(`GET /platform/v1/zones → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    const parsed = parseJson<{ data?: SysdigZone[] }>(res.body)
+    return Array.isArray(parsed?.data) ? parsed.data : []
+  }
+
+  async createZone(zone: SysdigZone): Promise<SysdigZone> {
+    const res = await this.request('POST', '/platform/v1/zones', { body: zone })
+    if (!res.ok) throw new Error(`POST /platform/v1/zones → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    return parseJson<SysdigZone>(res.body) ?? zone
+  }
+
+  async updateZone(id: number, zone: SysdigZone): Promise<SysdigZone> {
+    const res = await this.request('PUT', `/platform/v1/zones/${encodeURIComponent(String(id))}`, { body: zone })
+    if (!res.ok) throw new Error(`PUT /platform/v1/zones/${id} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    return parseJson<SysdigZone>(res.body) ?? zone
+  }
+
+  async deleteZone(id: number): Promise<void> {
+    const res = await this.request('DELETE', `/platform/v1/zones/${encodeURIComponent(String(id))}`)
+    if (res.status !== 204 && res.status !== 200 && res.status !== 404) {
+      throw new Error(`DELETE /platform/v1/zones/${id} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    }
+  }
+
+  // --- Posture controls (/api/cspm/v1/policy/controls) ------------------------
+  // POST is a single upsert: an `id` in the body updates that control, an empty
+  // `id` creates a new one. No list/search-by-name — see `priorExternalIds`.
+
+  async createOrUpdatePostureControl(control: SysdigPostureControl): Promise<SysdigPostureControl> {
+    const res = await this.request('POST', '/api/cspm/v1/policy/controls', { body: control })
+    if (!res.ok) throw new Error(`POST /api/cspm/v1/policy/controls → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    const parsed = parseJson<{ data?: SysdigPostureControl }>(res.body)
+    return parsed?.data ?? control
+  }
+
+  async getPostureControlById(id: string): Promise<SysdigPostureControl | null> {
+    const res = await this.request('GET', `/api/cspm/v1/policy/controls/view/${encodeURIComponent(id)}`)
+    if (res.status === 404) return null
+    if (!res.ok) throw new Error(`GET /api/cspm/v1/policy/controls/view/${id} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    const parsed = parseJson<{ data?: SysdigPostureControl }>(res.body)
+    return parsed?.data ?? null
+  }
+
+  async deletePostureControlById(id: string): Promise<void> {
+    const res = await this.request('DELETE', `/api/cspm/v1/policy/controls/${encodeURIComponent(id)}`)
+    if (res.status !== 204 && res.status !== 200 && res.status !== 404) {
+      throw new Error(`DELETE /api/cspm/v1/policy/controls/${id} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    }
+  }
+
+  // --- Posture policies (/api/cspm/v1/policy) ---------------------------------
+
+  /** List-all with name — the one CSPM object family that DOES support this. */
+  async listPosturePolicies(): Promise<SysdigPosturePolicySummary[]> {
+    const res = await this.request('GET', '/api/cspm/v1/policy/policies/list')
+    if (res.status === 404) return []
+    if (!res.ok) throw new Error(`GET /api/cspm/v1/policy/policies/list → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    const parsed = parseJson<{ data?: SysdigPosturePolicySummary[] }>(res.body)
+    return Array.isArray(parsed?.data) ? parsed.data : []
+  }
+
+  async getPosturePolicyById(id: string): Promise<SysdigPosturePolicy | null> {
+    const res = await this.request('GET', `/api/cspm/v1/policy/posture/policies/${encodeURIComponent(id)}`, {
+      query: { include_controls: true },
+    })
+    if (res.status === 404) return null
+    if (!res.ok) throw new Error(`GET /api/cspm/v1/policy/posture/policies/${id} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    const parsed = parseJson<{ data?: SysdigPosturePolicy }>(res.body)
+    return parsed?.data ?? null
+  }
+
+  async createOrUpdatePosturePolicy(policy: SysdigPosturePolicy): Promise<SysdigPosturePolicy> {
+    const res = await this.request('POST', '/api/cspm/v1/policy', { body: policy })
+    if (!res.ok) throw new Error(`POST /api/cspm/v1/policy → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    const parsed = parseJson<{ data?: SysdigPosturePolicy }>(res.body)
+    return parsed?.data ?? policy
+  }
+
+  async deletePosturePolicyById(id: string): Promise<void> {
+    const res = await this.request('DELETE', `/api/cspm/v1/policy/policies/${encodeURIComponent(id)}`)
+    if (res.status !== 204 && res.status !== 200 && res.status !== 404) {
+      throw new Error(`DELETE /api/cspm/v1/policy/policies/${id} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    }
+  }
+
+  // --- Zone posture-policy assignment (/api/cspm/v1/zones/{id}/policies) ------
+  // Whole-list: PUT/POST replace the zone's entire assigned-policy set.
+
+  async getZonePolicyAssignment(zoneId: number): Promise<SysdigZonePolicyAssignment | null> {
+    const res = await this.request('GET', `/api/cspm/v1/zones/${encodeURIComponent(String(zoneId))}/policies`)
+    if (res.status === 404) return null
+    if (!res.ok) throw new Error(`GET /api/cspm/v1/zones/${zoneId}/policies → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    return parseJson<SysdigZonePolicyAssignment>(res.body)
+  }
+
+  async createZonePolicyAssignment(zoneId: number, policyIds: string[]): Promise<SysdigZonePolicyAssignment> {
+    const res = await this.request('POST', `/api/cspm/v1/zones/${encodeURIComponent(String(zoneId))}/policies`, {
+      body: { policyIds },
+    })
+    if (!res.ok) throw new Error(`POST /api/cspm/v1/zones/${zoneId}/policies → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    return parseJson<SysdigZonePolicyAssignment>(res.body) ?? { policyIds }
+  }
+
+  async updateZonePolicyAssignment(zoneId: number, policyIds: string[]): Promise<SysdigZonePolicyAssignment> {
+    const res = await this.request('PUT', `/api/cspm/v1/zones/${encodeURIComponent(String(zoneId))}/policies`, {
+      body: { policyIds },
+    })
+    if (!res.ok) throw new Error(`PUT /api/cspm/v1/zones/${zoneId}/policies → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    return parseJson<SysdigZonePolicyAssignment>(res.body) ?? { policyIds }
+  }
+
+  async deleteZonePolicyAssignment(zoneId: number): Promise<void> {
+    const res = await this.request('DELETE', `/api/cspm/v1/zones/${encodeURIComponent(String(zoneId))}/policies`)
+    if (res.status !== 204 && res.status !== 200 && res.status !== 404) {
+      throw new Error(`DELETE /api/cspm/v1/zones/${zoneId}/policies → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    }
+  }
+
+  // --- Vulnerability rule bundles (/secure/vulnerability/v1/bundles) ---------
+  // No list/search-by-name — see `priorExternalIds`.
+
+  async createVulnerabilityRuleBundle(bundle: SysdigVulnerabilityRuleBundle): Promise<SysdigVulnerabilityRuleBundle> {
+    const res = await this.request('POST', '/secure/vulnerability/v1/bundles', { body: bundle })
+    if (!res.ok) throw new Error(`POST /secure/vulnerability/v1/bundles → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    return parseJson<SysdigVulnerabilityRuleBundle>(res.body) ?? bundle
+  }
+
+  async getVulnerabilityRuleBundleById(id: number): Promise<SysdigVulnerabilityRuleBundle | null> {
+    const res = await this.request('GET', `/secure/vulnerability/v1/bundles/${encodeURIComponent(String(id))}`)
+    if (res.status === 404) return null
+    if (!res.ok) throw new Error(`GET /secure/vulnerability/v1/bundles/${id} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    return parseJson<SysdigVulnerabilityRuleBundle>(res.body)
+  }
+
+  async updateVulnerabilityRuleBundle(id: number, bundle: SysdigVulnerabilityRuleBundle): Promise<SysdigVulnerabilityRuleBundle> {
+    const res = await this.request('PUT', `/secure/vulnerability/v1/bundles/${encodeURIComponent(String(id))}`, { body: bundle })
+    if (!res.ok) throw new Error(`PUT /secure/vulnerability/v1/bundles/${id} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    return parseJson<SysdigVulnerabilityRuleBundle>(res.body) ?? bundle
+  }
+
+  async deleteVulnerabilityRuleBundleById(id: number): Promise<void> {
+    const res = await this.request('DELETE', `/secure/vulnerability/v1/bundles/${encodeURIComponent(String(id))}`)
+    if (res.status !== 204 && res.status !== 200 && res.status !== 404) {
+      throw new Error(`DELETE /secure/vulnerability/v1/bundles/${id} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    }
+  }
+
+  // --- Vulnerability policies (/secure/vulnerability/v1/policies) ------------
+  // No list/search-by-name — see `priorExternalIds`.
+
+  async createVulnerabilityPolicy(policy: SysdigVulnerabilityPolicy): Promise<SysdigVulnerabilityPolicy> {
+    const res = await this.request('POST', '/secure/vulnerability/v1/policies', { body: policy })
+    if (!res.ok) throw new Error(`POST /secure/vulnerability/v1/policies → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    return parseJson<SysdigVulnerabilityPolicy>(res.body) ?? policy
+  }
+
+  async getVulnerabilityPolicyById(id: number): Promise<SysdigVulnerabilityPolicy | null> {
+    const res = await this.request('GET', `/secure/vulnerability/v1/policies/${encodeURIComponent(String(id))}`)
+    if (res.status === 404) return null
+    if (!res.ok) throw new Error(`GET /secure/vulnerability/v1/policies/${id} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    return parseJson<SysdigVulnerabilityPolicy>(res.body)
+  }
+
+  async updateVulnerabilityPolicy(id: number, policy: SysdigVulnerabilityPolicy): Promise<SysdigVulnerabilityPolicy> {
+    const res = await this.request('PUT', `/secure/vulnerability/v1/policies/${encodeURIComponent(String(id))}`, { body: policy })
+    if (!res.ok) throw new Error(`PUT /secure/vulnerability/v1/policies/${id} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+    return parseJson<SysdigVulnerabilityPolicy>(res.body) ?? policy
+  }
+
+  async deleteVulnerabilityPolicyById(id: number): Promise<void> {
+    const res = await this.request('DELETE', `/secure/vulnerability/v1/policies/${encodeURIComponent(String(id))}`)
+    if (res.status !== 204 && res.status !== 200 && res.status !== 404) {
+      throw new Error(`DELETE /secure/vulnerability/v1/policies/${id} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
     }
   }
 }

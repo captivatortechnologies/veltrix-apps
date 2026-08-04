@@ -1,0 +1,5 @@
+# Defaults for a new ACL item. Intentionally minimal — the field-level
+# defaultValues in canvas.yaml seed the common settings (operation=read,
+# active on, admin_overrides on). The operator fills in the table and the
+# condition/script that decide access (see README — roles are not managed
+# here).

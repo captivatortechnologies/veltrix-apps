@@ -35,7 +35,15 @@ import {
   resultObject,
   serviceNowErrorMessage,
 } from './servicenowApi'
-import { normalizeBool, normalizeInt, encodedQuery, findByIdentity, managedSnapshot } from './tableRecords'
+import {
+  normalizeBool,
+  normalizeInt,
+  encodedQuery,
+  findByIdentity,
+  managedSnapshot,
+  csvSetEqual,
+  normalizeCsvSet,
+} from './tableRecords'
 
 /** Declarative description of one upsert-by-natural-key ServiceNow table config type. */
 export interface TableConfigSpec {
@@ -49,6 +57,12 @@ export interface TableConfigSpec {
   boolColumns?: readonly string[]
   /** Integer columns → default value (for drift comparison + coercion). */
   intColumns?: Readonly<Record<string, number>>
+  /**
+   * Comma-separated "list" columns (e.g. recipient_users, assignable_by) whose
+   * drift is compared as an unordered set rather than an exact string — avoids
+   * false-positive drift when ServiceNow (or an operator) reorders the list.
+   */
+  setColumns?: readonly string[]
   /** Columns whose drift is reported as `critical` (all others are `warning`). */
   criticalColumns?: readonly string[]
   /** Map a canvas item's fields → the identity column VALUES (trimmed). */
@@ -198,6 +212,7 @@ export async function driftTable(ctx: DriftContext, spec: TableConfigSpec): Prom
 
   const boolCols = new Set(spec.boolColumns ?? [])
   const intCols = spec.intColumns ?? {}
+  const setCols = new Set(spec.setColumns ?? [])
   const criticalCols = new Set(spec.criticalColumns ?? [])
   const identityCols = new Set(spec.identityColumns)
 
@@ -233,6 +248,8 @@ export async function driftTable(ctx: DriftContext, spec: TableConfigSpec): Prom
         mismatch = normalizeBool(exp) !== normalizeBool(act)
       } else if (col in intCols) {
         mismatch = normalizeInt(exp, intCols[col]) !== normalizeInt(act, intCols[col])
+      } else if (setCols.has(col)) {
+        mismatch = !csvSetEqual(exp, act)
       } else {
         mismatch = String(exp ?? '') !== String(act ?? '')
       }
@@ -240,8 +257,20 @@ export async function driftTable(ctx: DriftContext, spec: TableConfigSpec): Prom
       if (mismatch) {
         diffs.push({
           field: `${label}.${col}`,
-          expected: boolCols.has(col) ? normalizeBool(exp) : col in intCols ? normalizeInt(exp, intCols[col]) : exp,
-          actual: boolCols.has(col) ? normalizeBool(act) : col in intCols ? normalizeInt(act, intCols[col]) : (act ?? ''),
+          expected: boolCols.has(col)
+            ? normalizeBool(exp)
+            : col in intCols
+              ? normalizeInt(exp, intCols[col])
+              : setCols.has(col)
+                ? normalizeCsvSet(exp)
+                : exp,
+          actual: boolCols.has(col)
+            ? normalizeBool(act)
+            : col in intCols
+              ? normalizeInt(act, intCols[col])
+              : setCols.has(col)
+                ? normalizeCsvSet(act)
+                : (act ?? ''),
           severity: criticalCols.has(col) ? 'critical' : 'warning',
         })
       }

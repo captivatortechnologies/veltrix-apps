@@ -1,0 +1,93 @@
+# =============================================================================
+# Canvas Template — Sysdig Secure Posture Controls
+#
+# Declares ONE custom CSPM posture control (the item) — a named Rego rule that
+# evaluates cloud/Kubernetes/host resources, referenced by name from Posture
+# Policies. Field keys must match config-types/posture-controls/validate.ts.
+# Applied via the Sysdig Secure REST API (/api/cspm/v1/policy/controls).
+# =============================================================================
+
+id: "sysdig-secure-posture-controls"
+name: "Posture Controls"
+toolType: "sysdig-secure"
+entityType: "posture-controls"
+description: "Manage Sysdig Secure custom CSPM posture controls — named Rego evaluation rules referenced by Posture Policies — via the Sysdig Secure REST API (/api/cspm/v1/policy/controls)"
+
+item:
+  label: "Posture Control"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Control"
+      icon: "file-check"
+      description: "Control identity and classification"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique control name — the stable identity used for upsert and drift, e.g. S3 - Enabled Versioning"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 1000
+
+        - key: "resourceKind"
+          label: "Resource Kind"
+          fieldType: "text"
+          required: true
+          helpText: >-
+            The Sysdig CSPM resource-kind string this control evaluates, e.g.
+            AWS_S3_BUCKET, GCP_COMPUTE_GOOGLEAPIS_COM_INSTANCE,
+            AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES, a Kubernetes kind like
+            DEPLOYMENT, or host. Query GET
+            /api/cspm/v1/policy/controls/resource-template/kinds on your tenant
+            for the full valid list.
+
+        - key: "severity"
+          label: "Severity"
+          fieldType: "select"
+          required: true
+          defaultValue: "Medium"
+          options:
+            - { label: "High", value: "High" }
+            - { label: "Medium", value: "Medium" }
+            - { label: "Low", value: "Low" }
+          helpText: "Case-sensitive — Sysdig only accepts High, Medium or Low"
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "When on, the control is present. When off, this app removes it — check no Posture Policy still references it by name first."
+
+    - name: "Evaluation"
+      icon: "code"
+      description: "The Rego rule and its remediation"
+      fields:
+        - key: "rego"
+          label: "Rego"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 16000
+          helpText: >-
+            The Open Policy Agent Rego package that evaluates the resource,
+            e.g. package sysdig / default risky := false / risky if { ... }
+            Sysdig treats the resource as failing the control when `risky` is
+            true.
+
+        - key: "remediationDetails"
+          label: "Remediation Details"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 8000
+          helpText: "Operator-facing guidance for fixing a resource that fails this control"

@@ -1,0 +1,93 @@
+# =============================================================================
+# Canvas Template — Sysdig Secure Managed Policies
+#
+# Declares ONE tuning of an EXISTING Sysdig-provided (managed) runtime policy —
+# it never creates or deletes the policy itself, only its enabled state, scope,
+# response actions, disabled rules and notification channels. Complements the
+# Runtime Policies config type, which authors brand-new CUSTOM policies.
+# Field keys must match config-types/managed-policies/validate.ts.
+# Applied via the Sysdig Secure REST API (/api/v2/policies).
+# =============================================================================
+
+id: "sysdig-secure-managed-policies"
+name: "Managed Policies"
+toolType: "sysdig-secure"
+entityType: "managed-policies"
+description: "Tune Sysdig Secure's built-in managed runtime policies — enabled state, scope, response actions, disabled rules and notification channels — via the Sysdig Secure REST API (/api/v2/policies)"
+
+item:
+  label: "Managed Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Which managed policy this tunes"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Must exactly match an existing Sysdig-managed policy name, e.g. Sysdig Runtime Threat Detection"
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "falco"
+          options:
+            - { label: "Falco", value: "falco" }
+            - { label: "Kubernetes Audit", value: "k8s_audit" }
+            - { label: "AWS CloudTrail", value: "aws_cloudtrail" }
+            - { label: "GCP Audit Log", value: "gcp_auditlog" }
+            - { label: "Azure Platform Logs", value: "azure_platformlogs" }
+            - { label: "Okta", value: "okta" }
+            - { label: "GitHub", value: "github" }
+            - { label: "AWS GuardDuty", value: "guardduty" }
+          helpText: "Together with Name, identifies the managed policy to tune"
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "When off, this app resets the policy to Sysdig defaults (disabled, no scope/runbook/actions/notifications, every rule re-enabled) — the same reset the Terraform provider performs when a managed-policy resource is destroyed. It does not delete the policy — Sysdig owns it."
+
+        - key: "runbook"
+          label: "Runbook URL"
+          fieldType: "text"
+          helpText: "Optional URL shown alongside events this policy raises"
+
+    - name: "Scope & Response"
+      icon: "code"
+      description: "Where the policy applies and how Sysdig responds"
+      fields:
+        - key: "scope"
+          label: "Scope"
+          fieldType: "textarea"
+          validation:
+            maxLength: 2000
+          helpText: "Optional scope expression limiting where the policy applies, e.g. container.image.repository = myrepo/app"
+
+        - key: "actions"
+          label: "Response Actions"
+          fieldType: "multiselect"
+          defaultValue: []
+          options:
+            - { label: "Stop container", value: "stop" }
+            - { label: "Pause container", value: "pause" }
+            - { label: "Kill container", value: "kill" }
+          helpText: "Response applied when a rule in this policy fires. Leave empty for notify-only."
+
+        - key: "notificationChannelIds"
+          label: "Notification Channel IDs"
+          fieldType: "tags"
+          helpText: "Numeric notification channel IDs to notify when this policy fires (see the Notification Channels config type)"
+
+        - key: "disabledRuleNames"
+          label: "Disabled Rule Names"
+          fieldType: "tags"
+          helpText: "Names of rules WITHIN this managed policy's fixed rule set to turn off — all other rules stay enabled"

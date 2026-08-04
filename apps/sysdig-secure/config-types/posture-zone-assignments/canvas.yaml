@@ -1,0 +1,47 @@
+# =============================================================================
+# Canvas Template — Sysdig Secure Posture Zone Assignments
+#
+# Declares ONE zone's full set of assigned posture (compliance) policies — the
+# item is keyed on the ZONE, since each zone has at most one assignment and an
+# update REPLACES the entire policy list. Ties together the Zones and Posture
+# Policies config types by name. Field keys must match
+# config-types/posture-zone-assignments/validate.ts.
+# Applied via the Sysdig Secure REST API (/api/cspm/v1/zones/{zoneId}/policies).
+# =============================================================================
+
+id: "sysdig-secure-posture-zone-assignments"
+name: "Posture Zone Assignments"
+toolType: "sysdig-secure"
+entityType: "posture-zone-assignments"
+description: "Assign Sysdig Secure posture (compliance) policies to a Zone — one whole-list assignment per zone — via the Sysdig Secure REST API (/api/cspm/v1/zones/{zoneId}/policies)"
+
+item:
+  label: "Zone Assignment"
+  identityField: "zoneName"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Assignment"
+      icon: "link"
+      description: "Which zone this assigns policies to"
+      fields:
+        - key: "zoneName"
+          label: "Zone Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Must match an existing Zone (see the Zones config type) — resolved to its id at deploy. Each zone can have only one assignment."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "When on, the listed policies are assigned to the zone. When off, this app clears the zone's assignment entirely."
+
+        - key: "policyNames"
+          label: "Posture Policy Names"
+          fieldType: "tags"
+          required: true
+          helpText: "Names of Posture Policies (see the Posture Policies config type), in evaluation order — resolved to ids at deploy. Replaces the zone's entire assigned set."
