@@ -12,10 +12,9 @@
 #   domain  → domain names
 #   account → account UIDs
 #
-# FLAG (verify against a live Vectra): the official v2 API validates group type as
-# one of host / domain / ip. "account" groups exist in the product but are NOT in
-# that validation list — verify account-group creation before relying on it. A
-# group's `type` is set at create time only (the v2 PATCH body carries name /
+# RE-VERIFIED 2026-08 against Vectra's official Python client (vectra_api_tools):
+# the operative v2.5 create_group validation accepts host / domain / ip / account.
+# A group's `type` is set at create time only (the v2 PATCH body carries name /
 # description / members). Dynamic regex membership (`rules`) is out of scope for
 # this config type — only static members are managed.
 # =============================================================================
@@ -59,7 +58,7 @@ item:
               value: "domain"
             - label: "Account"
               value: "account"
-          helpText: "What the members are. host / ip / domain are confirmed by Vectra's v2 API; VERIFY 'account' against your Vectra. Type is set at create time only and cannot be changed on an existing group."
+          helpText: "What the members are. Confirmed by Vectra's v2.5 API (host / ip / domain / account). Type is set at create time only and cannot be changed on an existing group."
 
         - key: "description"
           label: "Description"

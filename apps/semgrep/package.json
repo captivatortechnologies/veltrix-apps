@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-semgrep",
   "private": true,
-  "version": "0.2.0",
-  "description": "Veltrix app: manage Semgrep AppSec Platform configuration as code — project settings (primary branch + tags), Managed Scans (hosted full/diff scan toggles), and findings triage over the Semgrep public REST API v1",
+  "version": "0.3.0",
+  "description": "Veltrix app: manage Semgrep AppSec Platform configuration as code — project settings (primary branch + tags), Managed Scans (hosted full/diff scan toggles), findings triage, and Detection/Remediation Policies over the Semgrep public REST API v1 and Policies V2 [Beta] API",
   "scripts": {
     "typecheck": "tsc --noEmit"
   },

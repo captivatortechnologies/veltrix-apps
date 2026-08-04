@@ -8,10 +8,17 @@
 //   update: PATCH  /groups/{id}       body { name, description, members }  (type immutable)
 //   delete: DELETE /groups/{id}
 //
+// RE-VERIFIED 2026-08 against Vectra's official Python client (vectra_api_tools,
+// modules/vectra.py): the class actually in effect for a v2.5 token-authenticated
+// client is VectraClientV2_4's create_group/update_group (VectraClientV2_5 does not
+// override them), which validates type ∈ {account, domain, host, ip} — "account" IS
+// accepted for create_group on v2.5 (an EARLIER, superseded VectraBaseClient
+// implementation restricts to {host, domain, ip}, but that is not the method a v2.5
+// client resolves to). update_group also flattens an account group's expanded
+// members via `member["uid"]` (vs `member["id"]` for host groups) — already handled
+// by normalizeMembers() below.
+//
 // FLAG (verify against a live Vectra):
-//   - The official v2 create_group validates type ∈ {host, domain, ip}. "account"
-//     groups exist in the product (O365/AWS/Entra account detections) but are NOT
-//     in that validation list — account-group creation is UNVERIFIED here.
 //   - `type` is set at create time only; the v2 PATCH body carries name/description/
 //     members. Changing a group's type requires recreating it.
 //   - Dynamic regex membership (a group's `rules`) has no documented object shape in
@@ -20,9 +27,9 @@
 //     than bare ids/strings; normalizeMembers() collapses them for write/rollback.
 
 /**
- * Group types offered by the canvas select. host / domain / ip are confirmed by the
- * official v2 create_group validation; "account" is FLAGGED — verify your Vectra
- * accepts account-group creation over the v2 API before relying on it.
+ * Group types offered by the canvas select. Confirmed by the official v2.5 client's
+ * operative create_group validation (host / domain / ip / account — see RE-VERIFIED
+ * note above).
  */
 export const GROUP_TYPES = new Set(['host', 'domain', 'ip', 'account'])
 

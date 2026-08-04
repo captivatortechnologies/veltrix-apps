@@ -1,0 +1,57 @@
+# =============================================================================
+# Canvas Template — Vectra Entity Tags
+#
+# Declares the COMPLETE desired tag set on ONE host or account, identified by its
+# numeric Vectra entity id (the same kind of id Groups' host-type membership
+# already declares directly). Applied via the Vectra Detect REST API
+# (/api/v2.5/tagging/{host|account}/{id}) on port 443. Full replace per entity —
+# tags not declared here are removed.
+#
+# Detection tags are NOT managed here — a detection is a single, short-lived event
+# instance, not a durable entity worth declaring desired state for.
+# =============================================================================
+
+id: "vectra-entity-tags"
+name: "Entity Tags"
+toolType: "vectra-ai"
+entityType: "entity-tags"
+description: "Manage the tag set on a Vectra host or account — via the Vectra Detect REST API (v2.5, 443). Full replace per entity."
+
+item:
+  label: "Entity"
+  identityField: "entity_id"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Entity"
+      icon: "tag"
+      description: "The host or account and its desired tags"
+      fields:
+        - key: "entity_type"
+          label: "Entity type"
+          fieldType: "select"
+          required: true
+          defaultValue: "host"
+          options:
+            - label: "Host"
+              value: "host"
+            - label: "Account"
+              value: "account"
+          helpText: "Whether entity_id below is a Vectra host id or account id."
+
+        - key: "entity_id"
+          label: "Entity ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 32
+          helpText: "Numeric Vectra host or account id. Used together with entity type as the stable identity for upsert and drift matching."
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 4000
+          helpText: "Comma- or newline-separated tags. Full replace — tags not listed here are removed from the entity."

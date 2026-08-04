@@ -15,6 +15,15 @@
 // FLAG (verify against a live Vectra): the exact list envelope key (`proxies` vs a
 // DRF `results`) and whether list items nest the fields under `proxy` or flatten
 // them — both shapes are read defensively below.
+//
+// RE-VERIFIED 2026-08 against Vectra's official Python client (vectra_api_tools):
+// update_proxy carries an explicit, still-open vendor caution — "TODO PATCH request
+// modifies the proxy ID and 404 is actually a 500 - APP-15864". A PATCH update can
+// therefore change the very id used to address it, and an invalid id surfaces as a
+// 500 rather than a 404. rollback.ts re-resolves a proxy's CURRENT id by its address
+// before restoring it (rather than trusting the id captured at deploy time) to stay
+// correct across this vendor bug; it falls back to the captured id only when a live
+// re-lookup isn't possible.
 
 /** One Vectra proxy, tolerant of the create/list envelope variations. */
 export interface VectraProxy {

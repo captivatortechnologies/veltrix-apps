@@ -1,0 +1,44 @@
+# =============================================================================
+# Canvas Template — Password Safe Address Groups
+#
+# Declares ONE address group (the item) — a named collection of IP addresses /
+# ranges used to scope Password Safe access policies and Smart Rules. Users add
+# as many groups as they need. Field keys must match
+# config-types/address-groups/validate.ts. Applied via the BeyondInsight REST
+# API (POST/PUT/DELETE /AddressGroups, POST/DELETE .../Addresses) inside a
+# PS-Auth session.
+#
+# Membership is authoritative: the declared address list is reconciled against
+# the live one on every deploy.
+# =============================================================================
+
+id: "beyondtrust-address-groups"
+name: "Address Groups"
+toolType: "beyondtrust"
+entityType: "address-groups"
+description: "Manage BeyondInsight address groups — named IP address / range collections used to scope access policies and Smart Rules — via the BeyondInsight REST API"
+
+item:
+  label: "Address Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Group"
+      icon: "network"
+      description: "Identity of the address group"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: "Name of the address group. This is its identity — a group with this name is created only if one does not already exist."
+
+        - key: "addresses"
+          label: "Addresses"
+          fieldType: "tags"
+          required: false
+          helpText: "IP addresses to include in this group. Each entry can be a single IP (10.0.0.1), a CIDR/range, or a comma-delimited list — passed through as Password Safe's IPAddress format. This list is authoritative: an address removed here is removed from the live group on the next deploy."

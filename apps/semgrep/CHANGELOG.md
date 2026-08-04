@@ -3,6 +3,112 @@
 All notable changes to the Semgrep app are documented here. This project adheres
 to [Semantic Versioning](https://semver.org/).
 
+## 0.3.0 — 2026-08-04
+
+### Added — Detection Policy + Remediation Policies (Policies V2 `[Beta]`)
+
+A full re-audit of Semgrep's write surface — **both** the public v1 OpenAPI spec
+(`https://semgrep.dev/api/v1/public_v1.openapi.yaml`) and the v2 spec
+(`https://semgrep.dev/api/v2/openapi.yaml`, documented at
+`https://docs.semgrep.dev/api-reference/v2/`) — found that the v1 `PoliciesService`
+this app previously rejected (0.2.0 CHANGELOG: *"considered and rejected — it is
+marked `deprecated: true`"*) has a real, documented, **non-deprecated**
+replacement: **Policies V2** (`PoliciesV2Service`, `[Beta]`). Its own description
+in the v1 spec says as much: *"Use the Policies V2 API instead… this service
+stops working after the migration."* Two new configuration types build on it:
+
+- **Detection Policy** (`config-types/detection-policy`) — the deployment-wide
+  rule **selection** for Semgrep Code (SAST) or Semgrep Secrets: registry
+  rulesets, individually added rules, explicitly disabled rules, and
+  per-project/tag include/exclude exceptions. One item per product.
+  - **Write path (REAL):** `PUT /api/policies/v2/deployments/{id}/detection-policy/{product}`
+    — a **strict, optimistically-concurrent** whole-bundle replace: the submitted
+    bundle overwrites rule selection and deletes any exception not in it. Guarded
+    by an `If-Match: state_version` header (`428` if missing, `409` with the
+    current version if stale — this app re-reads and retries **exactly once**,
+    `lib/semgrepApi.ts`'s `applyWithOptimisticRetry`).
+  - **Read path (drift + rollback snapshot):** `GET` the same path.
+  - **Live validate-time pre-flight:** `POST .../detection-policy/{product}:dryRun`
+    — validates a candidate bundle and returns the diff a strict apply would
+    produce, without writing. `validate.ts` runs this (best-effort, only when a
+    connection is available) and surfaces any `validation_errors` Semgrep itself
+    reports — a stronger guarantee than the static structural checks alone.
+  - **FLAGGED:** `[Beta]` Policies V2 surface; the targeted product must already
+    be **enabled** for the deployment (404 `PRODUCT_NOT_ENABLED` otherwise).
+
+- **Remediation Policies** (`config-types/remediation-policies`) — the
+  deployment's **whole** bundle of named policies: conditions (severity,
+  confidence, repository tag, …) that fire actions (`block`, `pr_comment`,
+  `jira`, `slack_app`, `webhook`, `triage`) when a finding matches. The declared
+  item list **is** the bundle.
+  - **Write path (REAL):** `PUT /api/policies/v2/deployments/{id}/remediation-policies`
+    — same strict, `If-Match`-guarded whole-list replace; a policy absent from
+    the submitted list is **deleted**. System-managed policies never appear in
+    the bundle and are unaffected; a slug colliding with one fails with
+    `RESERVED_SLUG`.
+  - **Read path + live dry-run:** mirrors Detection Policy
+    (`GET` / `POST .../remediation-policies:dryRun`).
+  - **FLAGGED:** `[Beta]` Policies V2 surface. Companion-action requirements
+    (e.g. `block` requires `pr_comment` in the same policy) and accepted
+    condition/action values are enforced **live** by the dry-run, not duplicated
+    client-side — discoverable at any time via
+    `GET /api/policies/v2/deployments/{id}/vocab?product=remediation`.
+
+Both types author their nested, per-entry-typed content (exceptions /
+conditions / actions) as a JSON array in a textarea, in the API's **exact**
+wire shape (snake_case field names) — the canvas has no first-class nested-list
+field type (the same constraint cisco-meraki's Group Policies / L7 rule "value"
+object hit), and authoring in the wire shape keeps a hand-written bundle aligned
+with Semgrep's own docs and dry-run error messages.
+
+### Changed
+
+- `lib/semgrepApi.ts` — added the Policies V2 client surface: `getDetectionPolicy`,
+  `applyDetectionPolicy`, `dryRunDetectionPolicy`, `getRemediationPolicies`,
+  `applyRemediationPolicies`, `dryRunRemediationPolicies`, `getPolicyVocab`,
+  `resolveDeploymentId` (Policies V2 keys on the numeric deployment id, not the
+  slug — resolved from the same `GET /deployments` call that discovers the
+  slug), plus response helpers (`detectionPolicyBundleFromResponse`,
+  `remediationPoliciesBundleFromResponse`, `stateVersionFromResponse`,
+  `validationErrorsFromResponse`, `deploymentIdFromResponse`) and the generic
+  `applyWithOptimisticRetry` concurrency helper. The `request()` method was
+  refactored onto a shared `doRequest` (now also backing the new `requestV2`,
+  which supports extra headers and targets the Semgrep root host — Policies V2
+  paths carry their own `/api/policies/v2/...` prefix, not the fixed v1 base
+  URL). No change to existing v1 methods or their behavior.
+- `lib/canvas.ts` — added `stringSetEqual`, a generic order-insensitive string-set
+  comparison shared by Detection Policy's drift (and available to future types).
+- Manifest registers the two new `configurationTypes` (group `"Policies"`) and
+  their `app` permission resources; bumped to 0.3.0 (additive, MINOR). README
+  documents both, updates the API/auth section for the two-API-family reality,
+  and gains a re-audited **Coverage** section covering v1 + v2 together;
+  DATAFLOW.md regenerated.
+
+### Notes — what "exhausted" now looks like for Semgrep
+
+- Re-auditing the v2 spec surfaced roughly 200 additional operations under
+  `/api/agent/...`, `/api/scm/...`, `/api/sca/...`, notifications, SCM app
+  installs, RBAC, AI "memories", and more. Nearly all are marked `Experimental`
+  in the spec (*"not originally designed for third-party use… expect
+  significant breaking changes"*), several (`IgnoresService`, most `/api/agent/`
+  read paths) are reachable **only** with a logged-in user's session token
+  (`SemgrepJWT`) and not this app's API token (`SemgrepWebToken`) at all, and a
+  few (`managed_scan_settings`) carry no maturity badge or description
+  whatsoever. None of these clear the bar for a production config-as-code type;
+  see the README's Coverage section for the full classification and reasoning
+  per family.
+- **RBAC Teams** (`[Beta]`, API-token-reachable) is the one genuinely viable
+  surface left on the table — deferred as out of this app's AppSec-configuration
+  scope (it manages org access, not scanning policy), the same boundary Cisco
+  Meraki draws around organization-wide administrators.
+- **No custom-rule-upload endpoint exists** in either spec — rule *content*
+  remains repo-side / Semgrep-Registry-side; only rule **selection** (which
+  rulesets/rules run) is a platform config object, which Detection Policy now
+  manages.
+- With Detection Policy + Remediation Policies added, Semgrep's non-deprecated,
+  API-token-reachable, third-party-safe (`Stable`/`Beta`) write surface is
+  considered **exhausted** for this app's scope.
+
 ## 0.2.0 — 2026-08-01
 
 ### Added — two more write-backed configuration types

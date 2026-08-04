@@ -1,6 +1,6 @@
 id: beyondtrust
 name: BeyondTrust
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage BeyondTrust Password Safe (privileged access management) as code. Author
@@ -38,6 +38,37 @@ permissions:
       description: >
         Manage BeyondInsight workgroups (create / list). Password Safe has no
         delete endpoint for workgroups, so there is no delete action.
+    - resource: managed-systems
+      actions: [read, write]
+      description: >
+        Manage Password Safe managed systems scoped to an existing workgroup
+        (create / list). No confirmed delete endpoint for a managed system
+        created this way, so there is no delete action.
+    - resource: managed-accounts
+      actions: [read, write, delete]
+      description: >
+        Manage Password Safe auto-managed accounts on an existing managed
+        system (create / update / list / delete). Never authors a password,
+        private key or passphrase — Password Safe generates and rotates the
+        secret itself.
+    - resource: directories
+      actions: [read, write, delete]
+      description: >
+        Manage BeyondInsight directory bindings (Active Directory / LDAP)
+        scoped to an existing workgroup (create / update / list / delete).
+        Never authors a bind credential — provision the matching Directory
+        Credential separately in BeyondInsight.
+    - resource: address-groups
+      actions: [read, write, delete]
+      description: >
+        Manage BeyondInsight address groups and their member IP addresses
+        (create / reconcile membership / list / delete).
+    - resource: attributes
+      actions: [read, write, delete]
+      description: >
+        Manage BeyondInsight attribute types and values used to tag managed
+        accounts/systems for Smart Rule scoping (create / list / delete
+        values). Attribute types are create-if-absent and never auto-deleted.
 
 pipeline:
   configurationTypes:
@@ -102,6 +133,121 @@ pipeline:
         healthCheck: config-types/workgroups/healthCheck
         driftDetect: config-types/workgroups/driftDetect
         getStatus: config-types/workgroups/getStatus
+      targets:
+        componentTypes: [beyondtrust-passwordsafe, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: managed-systems
+      group: "Password Safe"
+      name: Managed Systems
+      description: >
+        Password Safe managed systems scoped to an existing workgroup
+        (platform, timeout, password/DSS key rules, release windows) —
+        applied over the BeyondInsight REST API (PS-Auth session). Create-if-
+        absent: no confirmed update or delete endpoint for a managed system
+        created via a workgroup.
+      canvasTemplate: config-types/managed-systems/canvas.yaml
+      defaultConfig: config-types/managed-systems/defaults.yaml
+      handlers:
+        validate: config-types/managed-systems/validate
+        deploy: config-types/managed-systems/deploy
+        rollback: config-types/managed-systems/rollback
+        healthCheck: config-types/managed-systems/healthCheck
+        driftDetect: config-types/managed-systems/driftDetect
+        getStatus: config-types/managed-systems/getStatus
+      targets:
+        componentTypes: [beyondtrust-passwordsafe, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: managed-accounts
+      group: "Password Safe"
+      name: Managed Accounts
+      description: >
+        Password Safe auto-managed accounts on an existing managed system
+        (account name, domain, password/release policy) — applied over the
+        BeyondInsight REST API (PS-Auth session). Real upsert (create or
+        update) and delete. Always AutoManagementFlag — never authors a
+        password, private key or passphrase.
+      canvasTemplate: config-types/managed-accounts/canvas.yaml
+      defaultConfig: config-types/managed-accounts/defaults.yaml
+      handlers:
+        validate: config-types/managed-accounts/validate
+        deploy: config-types/managed-accounts/deploy
+        rollback: config-types/managed-accounts/rollback
+        healthCheck: config-types/managed-accounts/healthCheck
+        driftDetect: config-types/managed-accounts/driftDetect
+        getStatus: config-types/managed-accounts/getStatus
+      targets:
+        componentTypes: [beyondtrust-passwordsafe, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: directories
+      group: "Password Safe"
+      name: Directories
+      description: >
+        BeyondInsight directory bindings (Active Directory / LDAP domain,
+        forest, NetBIOS name, connection settings) scoped to an existing
+        workgroup — applied over the BeyondInsight REST API (PS-Auth
+        session). Real upsert (create or update) and delete. Never authors a
+        bind credential — provision the matching Directory Credential
+        separately in BeyondInsight.
+      canvasTemplate: config-types/directories/canvas.yaml
+      defaultConfig: config-types/directories/defaults.yaml
+      handlers:
+        validate: config-types/directories/validate
+        deploy: config-types/directories/deploy
+        rollback: config-types/directories/rollback
+        healthCheck: config-types/directories/healthCheck
+        driftDetect: config-types/directories/driftDetect
+        getStatus: config-types/directories/getStatus
+      targets:
+        componentTypes: [beyondtrust-passwordsafe, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: address-groups
+      group: "Password Safe"
+      name: Address Groups
+      description: >
+        BeyondInsight address groups — named IP address / range collections
+        used to scope access policies and Smart Rules — applied over the
+        BeyondInsight REST API (PS-Auth session). Membership is
+        authoritative: the declared address list is reconciled against the
+        live group on every deploy.
+      canvasTemplate: config-types/address-groups/canvas.yaml
+      defaultConfig: config-types/address-groups/defaults.yaml
+      handlers:
+        validate: config-types/address-groups/validate
+        deploy: config-types/address-groups/deploy
+        rollback: config-types/address-groups/rollback
+        healthCheck: config-types/address-groups/healthCheck
+        driftDetect: config-types/address-groups/driftDetect
+        getStatus: config-types/address-groups/getStatus
+      targets:
+        componentTypes: [beyondtrust-passwordsafe, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: attributes
+      group: "Password Safe"
+      name: Attributes
+      description: >
+        BeyondInsight attribute types and values used to tag managed
+        accounts/systems for Smart Rule scoping — applied over the
+        BeyondInsight REST API (PS-Auth session). Create-if-absent at both
+        tiers; a shared attribute type is never auto-deleted by rollback.
+      canvasTemplate: config-types/attributes/canvas.yaml
+      defaultConfig: config-types/attributes/defaults.yaml
+      handlers:
+        validate: config-types/attributes/validate
+        deploy: config-types/attributes/deploy
+        rollback: config-types/attributes/rollback
+        healthCheck: config-types/attributes/healthCheck
+        driftDetect: config-types/attributes/driftDetect
+        getStatus: config-types/attributes/getStatus
       targets:
         componentTypes: [beyondtrust-passwordsafe, standalone]
         requiresCredential: true

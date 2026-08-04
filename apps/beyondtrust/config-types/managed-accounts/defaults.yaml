@@ -1,0 +1,6 @@
+# Defaults for a new managed-account item — intentionally mostly blank; the
+# item starts empty and the operator fills in the system, account name and
+# optional password/release policy (matches the other apps). Auto-management
+# is always on for this config type — see _shared.ts.
+changeFrequencyType: ""
+checkPasswordFlag: false

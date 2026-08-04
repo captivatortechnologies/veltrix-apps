@@ -1,0 +1,46 @@
+# =============================================================================
+# Canvas Template — Vectra Match Ruleset Assignment
+#
+# Declares which sensor devices run ONE already-uploaded Vectra Match custom
+# ruleset (identified by its UUID — upload/manage ruleset CONTENT through the
+# Vectra UI or Vectra's vectra_match_workflow tooling; this config type only
+# reconciles the device assignment). Applied via the Vectra Detect REST API
+# (/api/v2.5/vectra-match/assignment) on port 443.
+#
+# Reconciled as a set: devices declared here but not currently assigned are
+# added; devices currently assigned but not declared here are removed. Requires
+# a valid Vectra Match license.
+# =============================================================================
+
+id: "vectra-match-assignments"
+name: "Match Ruleset Assignment"
+toolType: "vectra-ai"
+entityType: "match-assignments"
+description: "Assign an existing Vectra Match custom ruleset (by UUID) to sensor devices — via the Vectra Detect REST API (v2.5, 443). Reconciles device membership as a set; ruleset content is managed outside this config type."
+
+item:
+  label: "Ruleset assignment"
+  identityField: "ruleset_uuid"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Ruleset"
+      icon: "shield"
+      description: "The custom ruleset and the sensors it should run on"
+      fields:
+        - key: "ruleset_uuid"
+          label: "Ruleset UUID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[0-9a-fA-F-]{8,64}$"
+          helpText: "UUID of an existing Vectra Match custom ruleset (Vectra UI Coverage -> Vectra Match page, or the upload response). Used as the stable identity for this assignment."
+
+        - key: "device_serials"
+          label: "Assigned sensor serials"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 8000
+          helpText: "Comma- or newline-separated sensor device serials that should run this ruleset. Reconciled as a set — devices removed from this list are unassigned on deploy."

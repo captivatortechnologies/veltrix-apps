@@ -1,0 +1,90 @@
+# =============================================================================
+# Canvas Template — Semgrep Detection Policy
+#
+# Declares the deployment-wide detection policy BUNDLE for one product ("code"
+# for Semgrep Code/SAST, or "secrets" for Semgrep Secrets) — the rulesets/rules
+# that run, explicitly disabled rules, and per-project/tag exceptions. Applied
+# over the Semgrep Policies V2 [Beta] API:
+#   GET  /api/policies/v2/deployments/{deploymentId}/detection-policy/{product}
+#   PUT  /api/policies/v2/deployments/{deploymentId}/detection-policy/{product}
+#        (strict apply — optimistic concurrency via If-Match: state_version)
+#   POST /api/policies/v2/deployments/{deploymentId}/detection-policy/{product}:dryRun
+#
+# This is Semgrep's CURRENT policy-as-code surface — the v1 Policies API
+# (PUT .../policies/{id}) is marked deprecated: true in the v1 OpenAPI spec.
+# One item PER product — at most two (code, secrets). Field keys must match
+# config-types/detection-policy/validate.ts and _shared.ts.
+#
+# A product not yet enabled for this deployment fails deploy with a clear
+# message (404 PRODUCT_NOT_ENABLED) rather than silently doing nothing.
+# =============================================================================
+
+id: "semgrep-detection-policy"
+name: "Semgrep Detection Policy"
+toolType: "semgrep"
+entityType: "detection-policy"
+description: "Declare the deployment-wide detection policy (rule selection + exceptions) for Semgrep Code or Secrets via the Policies V2 [Beta] API."
+
+item:
+  label: "Detection Policy"
+  identityField: "product"
+  repeatable: true
+  minItems: 1
+  maxItems: 2
+  groups:
+    - name: "Product"
+      icon: "shield"
+      description: "Which Semgrep product this bundle applies to — one item per product"
+      fields:
+        - key: "product"
+          label: "Product"
+          fieldType: "select"
+          required: true
+          options:
+            - { label: "Semgrep Code (SAST)", value: "code" }
+            - { label: "Semgrep Secrets", value: "secrets" }
+          helpText: "The product the bundle applies to. Each product may only be declared once."
+
+    - name: "Rule selection"
+      icon: "list-checks"
+      description: "The registry rulesets and rules that run deployment-wide"
+      fields:
+        - key: "rulesets"
+          label: "Rulesets"
+          fieldType: "tags"
+          required: false
+          helpText: "Registry ruleset paths that run deployment-wide, e.g. p/owasp-top-10, p/cwe-top-25. Must be left empty for Secrets — Secrets rules are not registry rulesets."
+
+        - key: "rules"
+          label: "Individual rules"
+          fieldType: "tags"
+          required: false
+          helpText: "Registry rule paths added individually, on top of the selected rulesets, e.g. python.lang.security.audit.dangerous-system-call."
+
+        - key: "disabled"
+          label: "Disabled rules"
+          fieldType: "tags"
+          required: false
+          helpText: "Registry rule paths from the selected rulesets that are explicitly turned off."
+
+    - name: "Exceptions"
+      icon: "filter"
+      description: "Per-project or per-tag include/exclude overrides to the deployment-wide rule selection"
+      fields:
+        - key: "exceptionsJson"
+          label: "Exceptions (JSON)"
+          fieldType: "textarea"
+          required: false
+          defaultValue: "[]"
+          validation:
+            maxLength: 20000
+          helpText: >
+            A JSON array of exception objects, each: {"exception_type":
+            "include" | "exclude", "project": "org/repo" (OR
+            "project_tag_name": "tag-name" — exactly one of the two), "rule":
+            "registry.path.or.pack", "rule_type": "rule" | "pack"}. Example:
+            [{"exception_type": "exclude", "project": "my-org/legacy-svc",
+            "rule": "python.lang.security.audit.dangerous-system-call",
+            "rule_type": "rule"}]. Leave as [] for no exceptions. Field names
+            match the Semgrep API exactly (snake_case) so this JSON matches
+            Semgrep's own docs and dry-run validation errors.

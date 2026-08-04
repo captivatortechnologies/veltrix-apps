@@ -1,0 +1,64 @@
+# =============================================================================
+# Canvas Template — Password Safe Attributes
+#
+# Declares ONE attribute value (the item) plus the NAME of the attribute type
+# (category) it belongs to — the category is created if it does not already
+# exist and is shared across every item that names it. Users add as many
+# values as they need. Field keys must match config-types/attributes/validate.ts.
+# Applied via the BeyondInsight REST API (POST /AttributeTypes,
+# POST /AttributeTypes/{id}/Attributes) inside a PS-Auth session.
+#
+# Assigning a value to a managed account/system is a separate operation, not
+# part of this config type.
+# =============================================================================
+
+id: "beyondtrust-attributes"
+name: "Attributes"
+toolType: "beyondtrust"
+entityType: "attributes"
+description: "Manage BeyondInsight attribute types and values used to tag managed accounts/systems for Smart Rule scoping — via the BeyondInsight REST API"
+
+item:
+  label: "Attribute"
+  identityField: "shortName"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Category"
+      icon: "tag"
+      description: "The attribute type (category) this value belongs to"
+      fields:
+        - key: "attributeTypeName"
+          label: "Attribute Type"
+          fieldType: "text"
+          required: true
+          helpText: "Category name, e.g. Environment or Department. Created if it does not already exist, and shared by every item that names it — never deleted by rollback."
+
+    - name: "Value"
+      icon: "bookmark"
+      description: "Identity and presentation of this attribute value"
+      fields:
+        - key: "shortName"
+          label: "Short Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 64
+          helpText: "Short identifier for this value, e.g. prod. Together with the attribute type this is the value's identity."
+
+        - key: "longName"
+          label: "Long Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 64
+          helpText: "Display name for this value, e.g. Production."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "What this value represents — recorded for audit."

@@ -1,0 +1,122 @@
+# =============================================================================
+# Canvas Template — Semgrep Remediation Policies
+#
+# Declares the deployment's WHOLE remediation-policies bundle (the item list IS
+# the bundle) — named policies that fire actions (block, pr_comment, jira,
+# slack_app, webhook, triage) when findings match a set of conditions
+# (severity, confidence, repository_tag, …). Applied over the Semgrep Policies
+# V2 [Beta] API:
+#   GET  /api/policies/v2/deployments/{deploymentId}/remediation-policies
+#   PUT  /api/policies/v2/deployments/{deploymentId}/remediation-policies
+#        (strict apply — the submitted list REPLACES the current state;
+#        policies absent from it are DELETED; optimistic concurrency via
+#        If-Match: state_version)
+#   POST /api/policies/v2/deployments/{deploymentId}/remediation-policies:dryRun
+#
+# System-managed policies never appear in the bundle and are unaffected by an
+# apply. A slug colliding with a system-managed policy fails with
+# RESERVED_SLUG. Discover valid condition/action types (and companion
+# requirements, e.g. "block" requires "pr_comment") via
+# GET /api/policies/v2/deployments/{deploymentId}/vocab?product=remediation —
+# also enforced LIVE by the dry-run preview this type runs at validate time.
+# Field keys must match config-types/remediation-policies/validate.ts and
+# _shared.ts.
+# =============================================================================
+
+id: "semgrep-remediation-policies"
+name: "Semgrep Remediation Policies"
+toolType: "semgrep"
+entityType: "remediation-policies"
+description: "Declare the deployment's whole remediation-policies bundle (condition-matched actions on findings) via the Policies V2 [Beta] API."
+
+item:
+  label: "Remediation Policy"
+  identityField: "slug"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "shield-check"
+      description: "The policy's stable identity and display details"
+      fields:
+        - key: "slug"
+          label: "Slug"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 120
+          helpText: "The policy's stable, URL-safe identity — immutable after create (renaming only changes Name, never Slug). Must not collide with a system-managed policy's slug."
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 200
+          helpText: "The policy's display name."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "An optional free-form description of the policy."
+
+        - key: "active"
+          label: "Active"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the policy is evaluated."
+
+    - name: "Conditions"
+      icon: "filter"
+      description: "The conditions a finding must match for the policy's actions to fire"
+      fields:
+        - key: "filterMode"
+          label: "Combine conditions with"
+          fieldType: "select"
+          required: true
+          defaultValue: "all"
+          options:
+            - { label: "All (AND)", value: "all" }
+            - { label: "Any (OR)", value: "any" }
+          helpText: "How the conditions below combine (filters.mode)."
+
+        - key: "conditionsJson"
+          label: "Conditions (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 20000
+          helpText: >
+            A JSON array of condition objects, each: {"type": "severity",
+            "values": ["critical", "high"], "mode": "any"}. "mode" is "any"
+            (match any listed value — default) or "none" (match none of them).
+            Accepted "type" values (severity, confidence, repository_tag,
+            rule, category, product, exposure, transitivity, …) are listed at
+            GET .../vocab?product=remediation and enforced live by this
+            type's dry-run preview. At least one condition is required.
+
+    - name: "Actions"
+      icon: "zap"
+      description: "The actions that fire when a finding matches — the list is replaced as a unit on update"
+      fields:
+        - key: "actionsJson"
+          label: "Actions (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 20000
+          helpText: >
+            A JSON array of action objects, each: {"type": "block", "config":
+            {"key": "value", ...}}. "config" is action-specific (a "jira"
+            action takes project_id + credential_slug; a "webhook" action
+            takes a url; …) — downstream resources are referenced by slug or
+            name, never a numeric id. Some action types require a companion
+            in the same policy (e.g. "block" requires "pr_comment"); accepted
+            types and their companion requirements are listed at GET
+            .../vocab?product=remediation and enforced live by this type's
+            dry-run preview. At least one action is required.

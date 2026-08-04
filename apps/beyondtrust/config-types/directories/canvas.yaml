@@ -1,0 +1,122 @@
+# =============================================================================
+# Canvas Template — Password Safe Directories
+#
+# Declares ONE Directory binding (the item) — the record that binds an Active
+# Directory / LDAP domain to an EXISTING workgroup for account discovery and
+# linked-account management. Users add as many as they need. Field keys must
+# match config-types/directories/validate.ts. Applied via the BeyondInsight
+# REST API (POST /Workgroups/{workgroupId}/Directories, PUT /Directories/{id})
+# inside a PS-Auth session.
+#
+# NEVER carries a bind credential — provision the matching Directory Credential
+# separately in BeyondInsight (Configuration → Role Based Access → Directory
+# Credentials). See _shared.ts for why.
+# =============================================================================
+
+id: "beyondtrust-directories"
+name: "Directories"
+toolType: "beyondtrust"
+entityType: "directories"
+description: "Manage BeyondInsight directory bindings (Active Directory / LDAP domain, forest, NetBIOS name, connection settings) scoped to a workgroup — never a bind credential"
+
+item:
+  label: "Directory"
+  identityField: "domainName"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Binding"
+      icon: "globe"
+      description: "Which workgroup and domain this directory binds"
+      fields:
+        - key: "workgroupName"
+          label: "Workgroup"
+          fieldType: "text"
+          required: true
+          helpText: "Name of an EXISTING workgroup this directory belongs to (create it first via the Workgroups config type). Resolved to its id at deploy time."
+
+        - key: "platformId"
+          label: "Platform ID"
+          fieldType: "number"
+          required: true
+          validation:
+            min: 1
+          helpText: "Password Safe Platform ID for this directory (GET /Platforms), e.g. the Active Directory platform."
+
+        - key: "domainName"
+          label: "Domain Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "Fully-qualified domain name, e.g. corp.example.com. Together with the workgroup this is the directory's identity."
+
+        - key: "forestName"
+          label: "Forest Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 64
+          helpText: "Active Directory forest root domain, when this domain is a child in a multi-domain forest."
+
+        - key: "netBiosName"
+          label: "NetBIOS Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 15
+          helpText: "Pre-Windows 2000 (NetBIOS) domain name, e.g. CORP."
+
+    - name: "Connection"
+      icon: "settings"
+      description: "How Password Safe connects to this directory. Never a bind credential — configure the matching Directory Credential in BeyondInsight."
+      fields:
+        - key: "port"
+          label: "Port"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+          helpText: "LDAP/LDAPS port. Leave blank for the platform default."
+
+        - key: "useSSL"
+          label: "Use SSL"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Connect over LDAPS. SSL is required by the Password Safe public API transport regardless of this setting."
+
+        - key: "timeout"
+          label: "Timeout (seconds)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+          helpText: "Connection timeout Password Safe uses when querying this directory."
+
+        - key: "passwordRuleId"
+          label: "Password Rule ID"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+          helpText: "Optional: an existing Password Rule ID (GET /PasswordRules) for directory-linked accounts."
+
+    - name: "Presentation"
+      icon: "info"
+      description: "Contact and description metadata"
+      fields:
+        - key: "contactEmail"
+          label: "Contact Email"
+          fieldType: "text"
+          required: false
+          helpText: "Owner or contact for this directory binding."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Why this directory binding exists — recorded for audit."

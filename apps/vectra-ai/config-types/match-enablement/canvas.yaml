@@ -1,0 +1,44 @@
+# =============================================================================
+# Canvas Template — Vectra Match Enablement
+#
+# Declares whether Vectra Match (Suricata-based signature detection, requires a
+# Match license) is enabled on ONE sensor device. Users add one item per sensor.
+# Applied via the Vectra Detect REST API (/api/v2.5/vectra-match/enablement) on
+# port 443.
+#
+# FLAG (verify against a live Vectra): requires a valid Vectra Match license — an
+# unlicensed brain rejects the write with its own error. The exact GET response
+# field name for the current state is unconfirmed; read defensively.
+# =============================================================================
+
+id: "vectra-match-enablement"
+name: "Match Enablement"
+toolType: "vectra-ai"
+entityType: "match-enablement"
+description: "Enable or disable Vectra Match (Suricata-based signature detection) per sensor device — via the Vectra Detect REST API (v2.5, 443). Requires a Match license."
+
+item:
+  label: "Sensor"
+  identityField: "device_serial"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Sensor"
+      icon: "cpu"
+      description: "Which sensor device and its desired Vectra Match state"
+      fields:
+        - key: "device_serial"
+          label: "Device serial"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "Serial number of the Vectra sensor device (Configuration -> Coverage -> Vectra Match in the Vectra UI). Used as the stable identity for upsert and drift matching."
+
+        - key: "enabled"
+          label: "Vectra Match enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When on, this sensor runs Suricata-based Suspect Protocol Activity detections against its assigned ruleset(s). Requires a valid Vectra Match license."

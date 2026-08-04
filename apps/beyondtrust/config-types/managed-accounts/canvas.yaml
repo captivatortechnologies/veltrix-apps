@@ -1,0 +1,143 @@
+# =============================================================================
+# Canvas Template — Password Safe Managed Accounts
+#
+# Declares ONE Password Safe managed account (the item), scoped to an EXISTING
+# managed system by name (create it first via the Managed Systems config type,
+# or name an existing one). Users add as many accounts as they need. Field keys
+# must match config-types/managed-accounts/validate.ts. Applied via the
+# BeyondInsight REST API (POST/PUT /ManagedSystems.../ManagedAccounts) inside a
+# PS-Auth session.
+#
+# AUTO-MANAGED ONLY: this config type never authors a password, private key or
+# passphrase — Password Safe generates and rotates the account's secret itself.
+# See _shared.ts for why manual/static-password accounts are out of scope.
+# =============================================================================
+
+id: "beyondtrust-managed-accounts"
+name: "Managed Accounts"
+toolType: "beyondtrust"
+entityType: "managed-accounts"
+description: "Manage Password Safe auto-managed accounts on an existing managed system — Password Safe generates and rotates the secret, never authored here"
+
+item:
+  label: "Managed Account"
+  identityField: "accountName"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Account"
+      icon: "user"
+      description: "Identity of the managed account and its parent system"
+      fields:
+        - key: "systemName"
+          label: "Managed System"
+          fieldType: "text"
+          required: true
+          helpText: "SystemName of an EXISTING managed system this account lives on (create it first via the Managed Systems config type). Resolved at deploy time."
+
+        - key: "accountName"
+          label: "Account Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 245
+          helpText: "Account name WITHOUT the domain, e.g. svc-app. Together with the system and domain this is the account's identity."
+
+        - key: "domainName"
+          label: "Domain Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 50
+          helpText: "Domain of the account when the platform supports it. Leave blank for local accounts."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Why this managed account exists — recorded for audit."
+
+    - name: "Password Policy"
+      icon: "shield"
+      description: "How Password Safe generates, verifies and releases this account's secret — never a manually supplied password"
+      fields:
+        - key: "passwordRuleId"
+          label: "Password Rule ID"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+          helpText: "Optional: an existing Password Rule ID (GET /PasswordRules) governing the generated password. Leave blank to inherit the system's rule."
+
+        - key: "checkPasswordFlag"
+          label: "Verify Password on Schedule"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Periodically verify the stored password still authenticates."
+
+        - key: "changeFrequencyType"
+          label: "Change Frequency"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - label: "Inherit from system"
+              value: ""
+            - label: "First of the month"
+              value: "first"
+            - label: "Last of the month"
+              value: "last"
+            - label: "Every N days"
+              value: "xdays"
+          helpText: "When Password Safe rotates this account's password on a schedule (in addition to any release-triggered rotation)."
+
+        - key: "changeFrequencyDays"
+          label: "Change Every N Days"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+          visibleWhen:
+            field: "changeFrequencyType"
+            equals: "xdays"
+          helpText: "Required when Change Frequency is \"Every N days\"."
+
+        - key: "changeTime"
+          label: "Change Time (HH:MM)"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^([01]\\d|2[0-3]):[0-5]\\d$"
+          helpText: "Time of day for the scheduled password change, 24-hour HH:MM, e.g. 23:30. Leave blank for the system default."
+
+    - name: "Release Policy"
+      icon: "clock"
+      description: "How long a released password stays valid"
+      fields:
+        - key: "releaseDuration"
+          label: "Release Duration (minutes)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+          helpText: "Default password release duration for this account. Leave blank to inherit the system's setting."
+
+        - key: "maxReleaseDuration"
+          label: "Max Release Duration (minutes)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+          helpText: "Maximum release duration a requester may extend to."
+
+        - key: "isaReleaseDuration"
+          label: "ISA Release Duration (minutes)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+          helpText: "Release duration for Information Systems Administrator (ISA) emergency access."

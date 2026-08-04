@@ -1,0 +1,5 @@
+# Defaults for the Internal Networks singleton — starts fully blank; the operator
+# declares the exact subnets to manage (full replace on deploy).
+include: ""
+exclude: ""
+drop: ""

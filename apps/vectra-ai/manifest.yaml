@@ -1,11 +1,13 @@
 id: vectra-ai
 name: Vectra AI
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Vectra AI (Network Detection & Response) as code. Author triage rules,
-  groups and proxies — the scoping and tuning surfaces that shape how Vectra
-  classifies detections — and drive them through the Security-as-Code pipeline
+  groups, proxies, internal networks, Vectra Match (Suricata) sensor enablement
+  and ruleset assignment, assignment outcomes, and host/account tags — the
+  scoping, tuning and coverage surfaces that shape how Vectra classifies and
+  routes detections — and drive them through the Security-as-Code pipeline
   (validate, deploy, health check, drift detection, rollback) over the Vectra
   Detect REST API (v2.5, token auth).
 category: NETWORK
@@ -36,6 +38,21 @@ permissions:
     - resource: proxies
       actions: [read, write, delete]
       description: Manage Vectra proxy IPs (internal addresses treated as proxies)
+    - resource: internal-networks
+      actions: [read, write]
+      description: Manage the brain-wide internal / excluded / dropped subnet configuration
+    - resource: match-enablement
+      actions: [read, write]
+      description: Enable or disable Vectra Match (Suricata-based detection) per sensor
+    - resource: match-assignments
+      actions: [read, write, delete]
+      description: Assign existing Vectra Match custom rulesets to sensor devices
+    - resource: assignment-outcomes
+      actions: [read, write, delete]
+      description: Manage custom assignment-resolution outcome labels
+    - resource: entity-tags
+      actions: [read, write]
+      description: Manage the tag set on a Vectra host or account
 
 pipeline:
   configurationTypes:
@@ -97,6 +114,110 @@ pipeline:
         healthCheck: config-types/proxies/healthCheck
         driftDetect: config-types/proxies/driftDetect
         getStatus: config-types/proxies/getStatus
+      targets:
+        componentTypes: [vectra-brain, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: internal-networks
+      group: "Network Coverage"
+      name: Internal Networks
+      description: >
+        Vectra's brain-wide internal / excluded / dropped subnet configuration — a
+        full-replace singleton applied over the Vectra Detect REST API (v2.5, 443).
+      canvasTemplate: config-types/internal-networks/canvas.yaml
+      defaultConfig: config-types/internal-networks/defaults.yaml
+      handlers:
+        validate: config-types/internal-networks/validate
+        deploy: config-types/internal-networks/deploy
+        rollback: config-types/internal-networks/rollback
+        healthCheck: config-types/internal-networks/healthCheck
+        driftDetect: config-types/internal-networks/driftDetect
+        getStatus: config-types/internal-networks/getStatus
+      targets:
+        componentTypes: [vectra-brain, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: match-enablement
+      group: "Network Coverage"
+      name: Match Enablement
+      description: >
+        Enable or disable Vectra Match (Suricata-based Suspect Protocol Activity
+        detections, requires a Match license) per sensor device, over the Vectra
+        Detect REST API (v2.5, 443).
+      canvasTemplate: config-types/match-enablement/canvas.yaml
+      defaultConfig: config-types/match-enablement/defaults.yaml
+      handlers:
+        validate: config-types/match-enablement/validate
+        deploy: config-types/match-enablement/deploy
+        rollback: config-types/match-enablement/rollback
+        healthCheck: config-types/match-enablement/healthCheck
+        driftDetect: config-types/match-enablement/driftDetect
+        getStatus: config-types/match-enablement/getStatus
+      targets:
+        componentTypes: [vectra-brain, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: match-assignments
+      group: "Network Coverage"
+      name: Match Ruleset Assignment
+      description: >
+        Assign an existing Vectra Match custom ruleset (by UUID) to sensor devices,
+        reconciled as a set, over the Vectra Detect REST API (v2.5, 443). Ruleset
+        content is managed outside this config type.
+      canvasTemplate: config-types/match-assignments/canvas.yaml
+      defaultConfig: config-types/match-assignments/defaults.yaml
+      handlers:
+        validate: config-types/match-assignments/validate
+        deploy: config-types/match-assignments/deploy
+        rollback: config-types/match-assignments/rollback
+        healthCheck: config-types/match-assignments/healthCheck
+        driftDetect: config-types/match-assignments/driftDetect
+        getStatus: config-types/match-assignments/getStatus
+      targets:
+        componentTypes: [vectra-brain, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: assignment-outcomes
+      group: "Detection Tuning"
+      name: Assignment Outcomes
+      description: >
+        Custom resolution labels analysts choose when closing out a Vectra
+        detection assignment, applied over the Vectra Detect REST API (v2.5, 443).
+        Upsert by title.
+      canvasTemplate: config-types/assignment-outcomes/canvas.yaml
+      defaultConfig: config-types/assignment-outcomes/defaults.yaml
+      handlers:
+        validate: config-types/assignment-outcomes/validate
+        deploy: config-types/assignment-outcomes/deploy
+        rollback: config-types/assignment-outcomes/rollback
+        healthCheck: config-types/assignment-outcomes/healthCheck
+        driftDetect: config-types/assignment-outcomes/driftDetect
+        getStatus: config-types/assignment-outcomes/getStatus
+      targets:
+        componentTypes: [vectra-brain, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: entity-tags
+      group: "Scoping"
+      name: Entity Tags
+      description: >
+        The tag set on a Vectra host or account, identified by its numeric entity
+        id — a full replace per entity, applied over the Vectra Detect REST API
+        (v2.5, 443).
+      canvasTemplate: config-types/entity-tags/canvas.yaml
+      defaultConfig: config-types/entity-tags/defaults.yaml
+      handlers:
+        validate: config-types/entity-tags/validate
+        deploy: config-types/entity-tags/deploy
+        rollback: config-types/entity-tags/rollback
+        healthCheck: config-types/entity-tags/healthCheck
+        driftDetect: config-types/entity-tags/driftDetect
+        getStatus: config-types/entity-tags/getStatus
       targets:
         componentTypes: [vectra-brain, standalone]
         requiresCredential: true

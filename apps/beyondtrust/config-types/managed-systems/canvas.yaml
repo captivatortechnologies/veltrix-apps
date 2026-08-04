@@ -1,0 +1,180 @@
+# =============================================================================
+# Canvas Template — Password Safe Managed Systems
+#
+# Declares ONE Password Safe managed system (the item), scoped to an EXISTING
+# Workgroup by name (create it first via the Workgroups config type, or name an
+# existing one). Users add as many systems as they need. Field keys must match
+# config-types/managed-systems/validate.ts. Applied via the BeyondInsight REST
+# API (POST /Workgroups/{workgroupId}/ManagedSystems) inside a PS-Auth session.
+#
+# Create-if-absent: Password Safe has no confirmed update or delete endpoint for
+# a managed system created this way, so a system is only ever created, never
+# changed or removed by this app.
+# =============================================================================
+
+id: "beyondtrust-managed-systems"
+name: "Managed Systems"
+toolType: "beyondtrust"
+entityType: "managed-systems"
+description: "Manage Password Safe managed systems scoped to a workgroup — platform, timeout, password/DSS key rules and release windows — via the BeyondInsight REST API"
+
+item:
+  label: "Managed System"
+  identityField: "systemName"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "server"
+      description: "Where the managed system lives and what platform it is"
+      fields:
+        - key: "workgroupName"
+          label: "Workgroup"
+          fieldType: "text"
+          required: true
+          helpText: "Name of an EXISTING workgroup this managed system belongs to (create it first via the Workgroups config type). Resolved to its id at deploy time."
+
+        - key: "systemName"
+          label: "System Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "Name identifying this managed system. Together with the workgroup this is the system's identity."
+
+        - key: "platformId"
+          label: "Platform ID"
+          fieldType: "number"
+          required: true
+          validation:
+            min: 1
+          helpText: "Password Safe Platform ID for this system (GET /Platforms). Some platforms require additional fields this app does not model — verify against your instance."
+
+        - key: "functionalAccountId"
+          label: "Functional Account ID"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+          helpText: "Optional: the ID of an existing Functional Account (LoginAccountID) Password Safe uses to manage this system, e.g. one created via the Functional Accounts config type."
+
+    - name: "Presentation"
+      icon: "settings"
+      description: "Contact and description metadata"
+      fields:
+        - key: "contactEmail"
+          label: "Contact Email"
+          fieldType: "text"
+          required: false
+          helpText: "Owner or contact for this managed system."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Why this managed system exists — recorded for audit."
+
+        - key: "port"
+          label: "Port"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+          helpText: "Port Password Safe uses to manage this system. Leave blank for the platform default."
+
+        - key: "timeout"
+          label: "Timeout (seconds)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+          helpText: "Connection timeout Password Safe uses when managing this system. Leave blank for the platform default."
+
+        - key: "accountNameFormat"
+          label: "Account Name Format (Active Directory only)"
+          fieldType: "select"
+          required: false
+          defaultValue: 0
+          options:
+            - label: "Domain and account (DOMAIN\\account)"
+              value: 0
+            - label: "UPN"
+              value: 1
+            - label: "SAM account name"
+              value: 2
+          helpText: "Only applies to Active Directory platforms. Ignored otherwise."
+
+    - name: "Password & Session Policy"
+      icon: "shield"
+      description: "How Password Safe manages and releases credentials on this system"
+      fields:
+        - key: "passwordRuleId"
+          label: "Password Rule ID"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+          helpText: "Optional: an existing Password Rule ID (GET /PasswordRules) governing generated passwords on this system."
+
+        - key: "dssKeyRuleId"
+          label: "DSS Key Rule ID"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+          helpText: "Optional: an existing DSS Key Rule ID (GET /DSSKeyRules), for SSH-key-managed platforms."
+
+        - key: "releaseDuration"
+          label: "Release Duration (minutes)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+          helpText: "Default password release duration for accounts on this system."
+
+        - key: "maxReleaseDuration"
+          label: "Max Release Duration (minutes)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+          helpText: "Maximum password release duration a requester may extend to."
+
+        - key: "isaReleaseDuration"
+          label: "ISA Release Duration (minutes)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+          helpText: "Release duration for Information Systems Administrator (ISA) emergency access."
+
+        - key: "autoManagementFlag"
+          label: "Auto-Manage Passwords"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "When on, Password Safe automatically rotates managed account passwords on this system."
+
+        - key: "checkPasswordFlag"
+          label: "Verify Password on Schedule"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Periodically verify the stored password still authenticates."
+
+        - key: "changePasswordAfterAnyReleaseFlag"
+          label: "Change Password After Any Release"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Rotate the password immediately after any release, not just on schedule."
+
+        - key: "resetPasswordOnMismatchFlag"
+          label: "Reset Password on Mismatch"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "If a scheduled password check fails, reset it immediately rather than waiting for the next cycle."

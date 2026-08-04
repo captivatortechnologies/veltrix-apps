@@ -60,3 +60,11 @@ export function strList(value: unknown): string[] {
   }
   return out
 }
+
+/** Whether two string lists declare the same SET, ignoring order (exact-case compare). */
+export function stringSetEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false
+  const sa = [...a].sort()
+  const sb = [...b].sort()
+  return sa.every((v, i) => v === sb[i])
+}

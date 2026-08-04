@@ -1,0 +1,51 @@
+# =============================================================================
+# Canvas Template — Vectra Assignment Outcomes
+#
+# Declares ONE custom Assignment Outcome (the item). Users add as many as they
+# need. Field keys must match config-types/assignment-outcomes/validate.ts.
+# Applied via the Vectra Detect REST API (/api/v2.5/assignment_outcomes) on port
+# 443.
+#
+# Assignment outcomes are the resolution labels analysts choose when closing out
+# a detection assignment (e.g. "Confirmed Phishing"). Each outcome maps to one of
+# Vectra's three fixed resolution categories.
+# =============================================================================
+
+id: "vectra-assignment-outcomes"
+name: "Assignment Outcomes"
+toolType: "vectra-ai"
+entityType: "assignment-outcomes"
+description: "Manage the custom resolution labels analysts choose when closing out a Vectra detection assignment — via the Vectra Detect REST API (v2.5, 443)"
+
+item:
+  label: "Assignment Outcome"
+  identityField: "title"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Outcome"
+      icon: "check-circle"
+      description: "The label analysts see and which resolution bucket it maps to"
+      fields:
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Label shown to analysts when resolving an assignment (e.g. \"Confirmed Phishing\"). Used as the stable identity for upsert and drift matching — keep it unique per Vectra instance."
+
+        - key: "category"
+          label: "Category"
+          fieldType: "select"
+          required: true
+          defaultValue: "false_positive"
+          options:
+            - label: "Malicious — true positive"
+              value: "malicious_true_positive"
+            - label: "Benign — true positive"
+              value: "benign_true_positive"
+            - label: "False positive"
+              value: "false_positive"
+          helpText: "Which of Vectra's three fixed resolution buckets this custom outcome maps to."

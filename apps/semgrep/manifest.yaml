@@ -1,19 +1,22 @@
 id: semgrep
 name: Semgrep
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Semgrep AppSec Platform configuration as code. Author your Semgrep
   project settings (primary branch + tags), Managed Scans (hosted full/diff scan
-  toggles), and findings triage — and drive them through the Security-as-Code
-  pipeline (validate, deploy, health check, drift detection and rollback) over the
-  Semgrep public REST API v1 (Bearer token, fixed base URL
-  https://semgrep.dev/api/v1). Config-as-code only — no database, no
+  toggles), findings triage, and the Detection Policy + Remediation Policies that
+  govern SAST/Secrets rule selection and finding-matched actions — and drive them
+  through the Security-as-Code pipeline (validate, deploy, health check, drift
+  detection and rollback) over the Semgrep public REST API v1 (Bearer token,
+  fixed base URL https://semgrep.dev/api/v1) and the Policies V2 [Beta] API
+  (https://semgrep.dev/api/policies/v2). Config-as-code only — no database, no
   infrastructure. NOTE: Semgrep's public write surface is intentionally LIMITED —
   there is no create-project API (projects are created by connecting a repo and
-  scanning), Managed Scans is a [Beta] surface, and triage is an imperative bulk
-  action (no server-side triage-rule object). Every write path here is REAL and
-  documented — see the README and CHANGELOG for the honest per-type caveats.
+  scanning), Managed Scans and Policies V2 are [Beta] surfaces, and triage is an
+  imperative bulk action (no server-side triage-rule object). Every write path
+  here is REAL and documented — see the README's Coverage section and the
+  CHANGELOG for the honest per-type caveats.
 category: COMPLIANCE
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/semgrep
@@ -53,6 +56,24 @@ permissions:
         POST /deployments/{slug}/triage. Read (best-effort drift) is
         GET /deployments/{slug}/findings. IMPERATIVE action — Semgrep has no
         server-side triage-rule object.
+    - resource: detection-policy
+      actions: [read, write]
+      description: >
+        Declare the deployment-wide detection policy (rule selection +
+        exceptions) for Semgrep Code or Secrets over the Policies V2 [Beta] API.
+        Read is GET /api/policies/v2/deployments/{id}/detection-policy/{product};
+        write is a strict, optimistically-concurrent PUT to the same path
+        (If-Match: state_version), previewable via the ...:dryRun endpoint. The
+        current, non-deprecated replacement for the v1 Policies API.
+    - resource: remediation-policies
+      actions: [read, write]
+      description: >
+        Declare the deployment's whole remediation-policies bundle (condition-
+        matched actions on findings) over the Policies V2 [Beta] API. Read is
+        GET /api/policies/v2/deployments/{id}/remediation-policies; write is a
+        strict, optimistically-concurrent PUT to the same path (If-Match:
+        state_version), previewable via the ...:dryRun endpoint. System-managed
+        policies are excluded and unaffected.
 
 pipeline:
   configurationTypes:
@@ -134,6 +155,65 @@ pipeline:
         healthCheck: config-types/triage/healthCheck
         driftDetect: config-types/triage/driftDetect
         getStatus: config-types/triage/getStatus
+      targets:
+        componentTypes: [semgrep-deployment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: detection-policy
+      group: "Policies"
+      name: Detection Policy
+      description: >
+        Declare the deployment-wide detection policy for Semgrep Code (SAST) or
+        Semgrep Secrets — the registry rulesets/rules that run, explicitly
+        disabled rules, and per-project/tag exceptions — over the Policies V2
+        [Beta] API. One item per product (code, secrets). Read is
+        GET /api/policies/v2/deployments/{id}/detection-policy/{product}; write
+        is a STRICT, optimistically-concurrent PUT to the same path
+        (If-Match: state_version header, replacing the whole bundle), with a
+        live dry-run preview (...:dryRun) surfaced at validate time. This is
+        Semgrep's CURRENT policy-as-code surface — the v1 Policies API
+        (PUT .../policies/{id}) is marked deprecated: true in the v1 OpenAPI
+        spec and is not used. The product must be enabled for the deployment.
+      canvasTemplate: config-types/detection-policy/canvas.yaml
+      defaultConfig: config-types/detection-policy/defaults.yaml
+      handlers:
+        validate: config-types/detection-policy/validate
+        deploy: config-types/detection-policy/deploy
+        rollback: config-types/detection-policy/rollback
+        healthCheck: config-types/detection-policy/healthCheck
+        driftDetect: config-types/detection-policy/driftDetect
+        getStatus: config-types/detection-policy/getStatus
+      targets:
+        componentTypes: [semgrep-deployment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: remediation-policies
+      group: "Policies"
+      name: Remediation Policies
+      description: >
+        Declare the deployment's whole remediation-policies bundle — named
+        policies that fire actions (block, pr_comment, jira, slack_app,
+        webhook, triage) when findings match a set of conditions (severity,
+        confidence, repository tag, …) — over the Policies V2 [Beta] API. The
+        declared item list IS the bundle. Read is
+        GET /api/policies/v2/deployments/{id}/remediation-policies; write is a
+        STRICT, optimistically-concurrent PUT to the same path
+        (If-Match: state_version header, replacing the whole list — policies
+        absent from it are deleted), with a live dry-run preview
+        (...:dryRun) surfaced at validate time. System-managed policies never
+        appear in the bundle and are unaffected by an apply; a slug colliding
+        with one fails with RESERVED_SLUG.
+      canvasTemplate: config-types/remediation-policies/canvas.yaml
+      defaultConfig: config-types/remediation-policies/defaults.yaml
+      handlers:
+        validate: config-types/remediation-policies/validate
+        deploy: config-types/remediation-policies/deploy
+        rollback: config-types/remediation-policies/rollback
+        healthCheck: config-types/remediation-policies/healthCheck
+        driftDetect: config-types/remediation-policies/driftDetect
+        getStatus: config-types/remediation-policies/getStatus
       targets:
         componentTypes: [semgrep-deployment]
         requiresCredential: true

@@ -1,0 +1,57 @@
+# =============================================================================
+# Canvas Template — Vectra Internal Networks
+#
+# A brain-wide SINGLETON (not repeatable) — declare the COMPLETE desired set of
+# internal / excluded / dropped subnets. Applied via POST /api/v2.5/settings/
+# internal_network on the Vectra Detect REST API (v2.5, 443).
+#
+# WARNING: this is a FULL REPLACE, not a merge. Any subnet currently configured
+# on the brain that is not declared in one of the three lists below is REMOVED
+# on deploy — list every subnet you want kept.
+#
+# FLAG (verify against a live Vectra): the write body uses include / exclude / drop;
+# reading the config back uses included_subnets / excluded_subnets / dropped_subnets
+# (different key names for the same three lists) — confirmed from Vectra's official
+# Python client (vectra_api_tools), not yet confirmed against a live brain's raw wire
+# response.
+# =============================================================================
+
+id: "vectra-internal-networks"
+name: "Internal Networks"
+toolType: "vectra-ai"
+entityType: "internal-networks"
+description: "Declare the brain-wide internal / excluded / dropped subnet lists Vectra uses to identify internal traffic — via the Vectra Detect REST API (v2.5, 443). A full-replace singleton."
+
+item:
+  label: "Internal Networks"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Subnets"
+      icon: "network"
+      description: "The complete desired internal-network configuration for this Vectra brain"
+      fields:
+        - key: "include"
+          label: "Included subnets"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: "Comma- or newline-separated CIDRs/IPs Vectra should treat as internal (e.g. 10.0.0.0/8, 192.168.1.0/24). Full replace — list every subnet you want kept."
+
+        - key: "exclude"
+          label: "Excluded subnets"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: "Subnets carved OUT of the included range (treated as external). Full replace — list every subnet you want kept."
+
+        - key: "drop"
+          label: "Dropped subnets"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: "Subnets Vectra should drop from traffic analysis entirely. Full replace — list every subnet you want kept."
