@@ -39,6 +39,20 @@
 // untrusted cert by default (same posture as this platform's other on-prem
 // REST clients — Wazuh, Graylog) via node:https directly, gated by the
 // `verify_tls` app setting (default off).
+//
+// ERS vs. the newer OpenAPI surface (`/api/v1/...`, introduced around ISE 3.x):
+// this app deliberately manages EVERY config type over ERS, not OpenAPI. Wave 3
+// enumerated both — TrustSec SGT/SGACL, Downloadable ACLs, Allowed Protocols,
+// internal users, identity groups and endpoints ALL turned out to have a
+// stable, well-documented ERS resource (this file's exports below), so there
+// was no need for a second transport. ISE's OpenAPI domain instead covers
+// things that are either administrative actions rather than flat declarative
+// resources (backup/restore, patching, AD domain join, node deployment,
+// certificate/CSR lifecycle) or fundamentally ordered/hierarchical policy
+// authoring (network-access policy sets → authorization rules → condition
+// trees) that doesn't fit this app's flat, name-keyed "list of items" canvas
+// model — see the app README's Coverage section for the full excluded list and
+// why.
 // =============================================================================
 
 import { request as httpsRequest } from 'node:https'
@@ -279,6 +293,11 @@ export interface ErsResourceClient<T> {
  * key, and the resource's own field set differ, so this is the ONE transport
  * implementation every config type's `lib` usage builds on (DRY — see each
  * config type's `_shared.ts` for its resource-specific field mapping).
+ *
+ * `identityFilterField` overrides the ERS filter field used to find an
+ * existing resource by its stable identity — every resource so far filters by
+ * `name.EQ.<value>` (the default), EXCEPT Endpoint, which ISE keys by MAC
+ * address (`mac.EQ.<value>`) — see config-types/endpoints.
  */
 export function buildErsResourceClient<T extends { id?: string; name: string }>(
   base: string,
@@ -286,21 +305,23 @@ export function buildErsResourceClient<T extends { id?: string; name: string }>(
   wrapperKey: string,
   credential: CredentialRef,
   settings: IseSettings,
+  options: { identityFilterField?: string } = {},
 ): ErsResourceClient<T> {
   const headers = buildAuthHeader(credential)
   const resource = `${base}/${resourceSegment}`
   const jsonHeaders = { ...headers, 'Content-Type': 'application/json' }
   const opts = { verifyTls: settings.verifyTls, timeoutMs: settings.timeoutMs }
+  const identityFilterField = options.identityFilterField ?? 'name'
 
   const client: ErsResourceClient<T> = {
     async list() {
       return summariesFromSearchResult(await getJson<unknown>(resource, headers, opts))
     },
 
-    async findByName(name: string) {
-      const url = `${resource}?filter=${encodeURIComponent(`name.EQ.${name}`)}`
+    async findByName(identity: string) {
+      const url = `${resource}?filter=${encodeURIComponent(`${identityFilterField}.EQ.${identity}`)}`
       const matches = summariesFromSearchResult(await getJson<unknown>(url, headers, opts))
-      return matches.find((m) => m.name === name) ?? matches[0] ?? null
+      return matches.find((m) => m.name === identity) ?? matches[0] ?? null
     },
 
     async getById(id: string) {
@@ -452,5 +473,157 @@ export interface AuthorizationProfile {
   vlan?: AuthorizationProfileVlan
   airespaceACL?: string
   advancedAttributes?: AuthorizationProfileAdvancedAttribute[]
+  link?: ErsLink
+}
+
+// --- Internal User (InternalUser) resource — /ers/config/internaluser ---
+//
+// Verified against the community pyise-ers ERS client (add_user —
+// github.com/falkowich/pyise-ers, pyiseers/pyiseers.py). `password` and
+// `enablePassword` (the separate TACACS+ "enable" secret) are WRITE-ONLY — see
+// config-types/internal-users' module doc. `identityGroups` is a single
+// comma-separated string of identity-group IDS (not names, not a JSON array) —
+// this app resolves operator-facing group NAMES to ids via the IdentityGroup
+// resource client before sending it.
+export interface InternalUser {
+  id?: string
+  name: string
+  description?: string
+  /** ⚠ WRITE-ONLY. */
+  password?: string
+  /** ⚠ WRITE-ONLY — the separate TACACS+ "enable" secret. */
+  enablePassword?: string
+  firstName?: string
+  lastName?: string
+  email?: string
+  /** Comma-separated identity-group ids (NOT names). */
+  identityGroups?: string
+  link?: ErsLink
+}
+
+// --- (User) Identity Group (IdentityGroup) resource — /ers/config/identitygroup ---
+//
+// Fields verified against the official Cisco ISE Ansible collection
+// (github.com/CiscoISE/ansible-ise, plugins/modules/identitygroup.py):
+// name, description, parent. UNVERIFIED: the single-resource wrapper key —
+// every *Group ERS resource seen so far uses full intercapped PascalCase
+// (EndPointGroup, NetworkDeviceGroup), so "IdentityGroup" is used here by the
+// same pattern, but — unlike EndPointGroup/NetworkDeviceGroup/NetworkDevice/
+// InternalUser/AuthorizationProfile, all directly confirmed from working
+// request bodies — this exact wrapper string could not be confirmed from a
+// real request/response example. FLAG: verify against a live ISE node.
+//
+// Unlike Network Device Groups' "#"-path convention, User Identity Groups are
+// a genuine parent/child tree: `parent` is another identity group's id (NOT a
+// path) — ISE assigns a default parent when omitted.
+export interface IdentityGroup {
+  id?: string
+  name: string
+  description?: string
+  /** Another identity group's ID (not name) — resolved from an operator-facing name by this app. */
+  parent?: string
+  link?: ErsLink
+}
+
+// --- Endpoint (ERSEndPoint) resource — /ers/config/endpoint ---
+//
+// Verified against the community pyise-ers ERS client (add_endpoint /
+// get_endpoint / update_endpoint_group — github.com/falkowich/pyise-ers,
+// pyiseers/pyiseers.py) AND a Cisco-published curl example (networkjourney.com
+// ISE Mastery Training). The single-resource wrapper key is the IRREGULAR
+// **"ERSEndPoint"** (not "Endpoint") — confirmed identically by both sources.
+// Identity is the MAC address, not `name` — GET .../endpoint?filter=
+// mac.EQ.<mac> (see buildErsResourceClient's `identityFilterField`).
+// `staticGroupAssignment`/`staticProfileAssignment` are ERS-stringly-typed
+// booleans ("true"/"false"), the same quirk as NetworkDevice's enableKeyWrap.
+export interface IseEndpoint {
+  id?: string
+  /** Defaults to the MAC itself — ISE's own convention when no friendly name is set. */
+  name: string
+  description?: string
+  mac: string
+  /** Endpoint identity group id (NOT name) — resolved from an operator-facing name by this app. */
+  groupId?: string
+  staticGroupAssignment?: 'true' | 'false'
+  link?: ErsLink
+}
+
+// --- Downloadable ACL (Downloadableacl) resource — /ers/config/downloadableacl ---
+//
+// Verified against the official Cisco ISE Ansible collection
+// (github.com/CiscoISE/ansible-ise, plugins/modules/downloadable_acl.py),
+// including its exact SDK class name (`Downloadableacl`) — used as the
+// single-resource wrapper key.
+export interface DownloadableAcl {
+  id?: string
+  name: string
+  description?: string
+  /** The ACL content, e.g. "permit ip any any" (one or more lines). */
+  dacl: string
+  daclType?: 'IPV4' | 'IPV6' | 'IP_AGNOSTIC'
+  link?: ErsLink
+}
+
+// --- Security Group Tag (Sgt) resource — /ers/config/sgt ---
+//
+// Verified against BOTH the community pyise-ers ERS client (add_sgt) AND the
+// official Cisco ISE Ansible collection (sgt.py, SDK method
+// `sgt.Sgt.create_sgt`) — cross-validated wrapper key "Sgt". `value` is the
+// numeric SGT tag, 2-65519, or -1 to auto-generate (ansible-ise's documented
+// range). `propogateToApic` keeps Cisco's own field-name typo on the wire —
+// the ISE ERS schema has shipped it misspelled for years and it cannot be
+// corrected without breaking every existing integration.
+export interface Sgt {
+  id?: string
+  name: string
+  description?: string
+  value?: number
+  /** [sic] — this is ISE's actual wire field name, not a typo introduced here. */
+  propogateToApic?: boolean
+  /** Built-in SGTs (e.g. "Unknown") are read-only; ERS rejects a write to one. */
+  isReadOnly?: boolean
+  link?: ErsLink
+}
+
+// --- Security Group ACL (Sgacl) resource — /ers/config/sgacl ---
+//
+// Verified against the community pyise-ers ERS client (add_sgacl). ACL lines
+// are sent as ONE newline-joined string (`aclcontent`), not an array.
+export interface Sgacl {
+  id?: string
+  name: string
+  description?: string
+  ipVersion?: 'IPV4' | 'IPV6' | 'IP_AGNOSTIC'
+  aclcontent: string
+  link?: ErsLink
+}
+
+// --- Allowed Protocols (Allowedprotocols) resource — /ers/config/allowedprotocols ---
+//
+// Verified against the official Cisco ISE Ansible collection
+// (github.com/CiscoISE/ansible-ise, plugins/modules/allowed_protocols.py),
+// including its exact documented wrapper key "Allowedprotocols". The full
+// schema also nests per-protocol sub-objects (eapFast/eapTls/eapTtls/peap/
+// teap — each with a dozen+ of their own flags); this app manages only the
+// commonly-set TOP-LEVEL enable flags and `preferredEapProtocol` — see
+// config-types/allowed-protocols' module doc for the full drop list.
+export interface AllowedProtocols {
+  id?: string
+  name: string
+  description?: string
+  allowPapAscii?: boolean
+  allowChap?: boolean
+  allowMsChapV1?: boolean
+  allowMsChapV2?: boolean
+  allowEapMd5?: boolean
+  allowEapTls?: boolean
+  allowLeap?: boolean
+  allowPeap?: boolean
+  allowEapTtls?: boolean
+  allowEapFast?: boolean
+  allowTeap?: boolean
+  /** Free text — ISE's exact accepted values/casing (e.g. "PEAP") were not fully enumerable from available sources. */
+  preferredEapProtocol?: string
+  processHostLookup?: boolean
   link?: ErsLink
 }

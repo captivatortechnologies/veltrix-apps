@@ -1,0 +1,1 @@
+import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'; import { deployOrderedList } from '../../lib/merakiOrderedList'; import { normalizeSwitchAclRule, transport } from './_shared'; export default (ctx: DeployContext): Promise<DeployResult> => deployOrderedList(ctx, transport, normalizeSwitchAclRule)

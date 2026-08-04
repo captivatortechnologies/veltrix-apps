@@ -1,0 +1,81 @@
+# =============================================================================
+# Canvas Template — Datadog Log Archives
+#
+# Declares ONE Log Management archive (the item). Reconciled by archive
+# `name` (case-insensitive) against GET /api/v2/logs/config/archives.
+#
+# `destination` references a cloud storage bucket/container reached through a
+# cloud integration ALREADY configured in Datadog — every field is a
+# non-secret identifier (bucket name, IAM role name, service-account email,
+# AAD client id), never a credential. See the Destination field's help text
+# for the exact shape per cloud.
+#
+# NOT MANAGED: archive ORDER (a separate GET/PUT
+# /api/v2/logs/config/archive-order singleton) and reader-role grants (a
+# separate .../readers sub-resource) — out of scope for this release.
+#
+# Field keys must match config-types/log-archives/_shared.ts.
+# API reference: https://docs.datadoghq.com/api/latest/logs-archives/create-an-archive/
+# =============================================================================
+
+id: "datadog-log-archives"
+name: "Log Archive"
+toolType: "datadog"
+entityType: "log-archives"
+description: "Define Datadog Log Management archives as code through the Logs Archives API (/api/v2/logs/config/archives). Reconciled by archive name."
+
+item:
+  label: "Log Archive"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Archive"
+      icon: "archive"
+      description: "Identity and scope"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The archive name — this app's logical identity for the archive (matched case-insensitively against Datadog's live archives on every deploy)."
+
+        - key: "query"
+          label: "Query"
+          fieldType: "textarea"
+          required: true
+          helpText: 'Log search query selecting which logs this archive stores, e.g. source:nginx.'
+
+        - key: "rehydration_tags"
+          label: "Rehydration Tags"
+          fieldType: "tags"
+          helpText: "Log attribute names indexed for rehydration (restoring archived logs back into an index for search), e.g. host, service."
+
+        - key: "rehydration_max_scan_size_in_gb"
+          label: "Max Rehydration Scan Size (GB, optional)"
+          fieldType: "number"
+          required: false
+          helpText: "Caps how much archived data a single rehydration job may scan. Leave blank for no cap."
+
+    - name: "Destination"
+      icon: "cloud"
+      description: "The cloud storage destination, as JSON"
+      fields:
+        - key: "destination"
+          label: "Destination (JSON object)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A JSON object naming the cloud storage destination and the
+            ALREADY-CONFIGURED Datadog cloud integration used to reach it
+            (never a secret — the integration itself holds the credential).
+            "type" is "s3", "gcs" or "azure". S3:
+            {"type":"s3","bucket":"my-bucket","integration":{"account_id":"123456789012","role_name":"DatadogArchive"}}
+            (or {"access_key_id":"..."} instead of account_id/role_name).
+            GCS: {"type":"gcs","bucket":"my-bucket","integration":{"client_email":"...","project_id":"..."}}.
+            Azure: {"type":"azure","container":"my-container","storage_account":"mystorage","integration":{"client_id":"...","tenant_id":"..."}}.
+            Optional for all three: "path", plus S3-only "storage_class" and
+            "encryption".

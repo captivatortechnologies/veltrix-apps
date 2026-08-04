@@ -1,0 +1,5 @@
+import type { PipelineContext, ValidationResult } from '@veltrixsecops/app-sdk'
+import { validateSingleton } from '../../lib/merakiSingleton'
+import { transport } from './_shared'
+export default (ctx: PipelineContext): Promise<ValidationResult> => validateSingleton(ctx, transport)
+

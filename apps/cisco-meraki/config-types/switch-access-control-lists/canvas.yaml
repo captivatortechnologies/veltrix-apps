@@ -1,0 +1,25 @@
+id: "cisco-meraki-switch-access-control-lists"
+name: "Switch Access Control Lists"
+toolType: "cisco-meraki"
+entityType: "switch-access-control-lists"
+description: "Manage the ordered network switch ACL ruleset as code."
+item:
+  label: "Network Switch ACL"
+  identityField: "network_id"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Network"
+      fields:
+        - key: "network_id"
+          label: "Meraki Network ID"
+          fieldType: "text"
+          required: true
+    - name: "Rules"
+      fields:
+        - key: "rules"
+          label: "Rules (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: "Ordered Dashboard API rule objects; PUT replaces the entire ACL."

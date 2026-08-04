@@ -1,5 +1,10 @@
 import type { CanvasSnapshot, PipelineContext, ValidationResult } from '@veltrixsecops/app-sdk'
-import { objectKey, strList } from '../lib/checkpointShared'
+import { objectKey, RULE_POSITIONS, strList, type RulePosition } from '../lib/checkpointShared'
+
+// Re-exported so existing importers keep working unchanged — the position
+// enum now lives in the shared module reused by nat-rules too.
+export const POSITIONS = RULE_POSITIONS
+export type { RulePosition }
 
 // --- Shared types --------------------------------------------------------------
 
@@ -14,13 +19,6 @@ export type RuleAction = (typeof ACTIONS)[number]
 /** track.type — the predefined Check Point track-type object name. */
 export const TRACK_TYPES = ['None', 'Log', 'Alert'] as const
 export type TrackType = (typeof TRACK_TYPES)[number]
-
-/** The 4 position anchors add-access-rule / set-access-rule (as new-position)
- *  document — verified against the Ansible module + Terraform provider's
- *  position schema (top/bottom are absolute; above/below reference another
- *  rule or section by name). */
-export const POSITIONS = ['top', 'bottom', 'above', 'below'] as const
-export type RulePosition = (typeof POSITIONS)[number]
 
 export interface AccessRuleSpec {
   itemId?: string

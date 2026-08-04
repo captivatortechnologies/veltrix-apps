@@ -1,0 +1,166 @@
+# =============================================================================
+# Canvas Template — authentik Stages
+#
+# Declares ONE authentik Stage of a selected TYPE — identification, password,
+# authenticator-validate or user-login. Each type is a genuinely distinct
+# authentik model with its own REST endpoint:
+#   identification         GET/POST /stages/identification/,        GET/PATCH/DELETE /stages/identification/{stage_uuid}/
+#   password                GET/POST /stages/password/,               GET/PATCH/DELETE /stages/password/{stage_uuid}/
+#   authenticator-validate   GET/POST /stages/authenticator/validate/,  GET/PATCH/DELETE /stages/authenticator/validate/{stage_uuid}/
+#   user-login               GET/POST /stages/user_login/,             GET/PATCH/DELETE /stages/user_login/{stage_uuid}/
+#
+# IDENTITY: the path key is a server-assigned UUID (`stage_uuid`) for every
+# type — this config type upserts by NAME within the SELECTED type's endpoint.
+#
+# DROPPED for v0.4.0 (see README Coverage): per-flow STAGE BINDINGS (which
+# flow runs a stage, in what order, under what policy) are not authored here —
+# a stage exists as a standalone, reusable object; wiring it into a flow's
+# graph is a separate, more graph-heavy authentik concept (FlowStageBinding)
+# deferred for now. A stage created here is usable in authentik's flow editor
+# immediately.
+# =============================================================================
+
+id: "authentik-stages"
+name: "Stages"
+toolType: "authentik"
+entityType: "stages"
+description: "Manage authentik Stages (Identification, Password, Authenticator Validation, User Login) — the reusable steps flows are built from — via the authentik Core REST API"
+
+item:
+  label: "Stage"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "General"
+      icon: "key"
+      description: "Stage identity and type"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The stage's display name. Stable identity used for upsert and drift (stages have no user-declared path key)."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "identification"
+          options:
+            - { label: "Identification", value: "identification" }
+            - { label: "Password", value: "password" }
+            - { label: "Authenticator Validation (MFA)", value: "authenticator-validate" }
+            - { label: "User Login", value: "user-login" }
+          helpText: "Each type is a distinct authentik object with its own endpoint — see this file's header comment."
+
+    - name: "Identification (Type = Identification)"
+      icon: "settings"
+      description: "The first step of most login flows — asking who the user is"
+      fields:
+        - key: "user_fields"
+          label: "User Fields"
+          fieldType: "tags"
+          required: false
+          helpText: "Which user fields to match against: email, username, upn."
+
+        - key: "case_insensitive_matching"
+          label: "Case-insensitive matching"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+
+        - key: "show_matched_user"
+          label: "Show matched user"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+
+        - key: "pretend_user_exists"
+          label: "Pretend user always exists"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When enabled, this stage succeeds even for incorrect user info (prevents user enumeration)."
+
+        - key: "enrollment_flow"
+          label: "Enrollment Flow (UUID, optional)"
+          fieldType: "text"
+          required: false
+          helpText: "Optional enrollment Flow UUID linked at the bottom of the identification page."
+
+        - key: "recovery_flow"
+          label: "Recovery Flow (UUID, optional)"
+          fieldType: "text"
+          required: false
+          helpText: "Optional recovery Flow UUID linked at the bottom of the identification page."
+
+    - name: "Password (Type = Password)"
+      icon: "shield"
+      description: "Checks a submitted password against one or more backends"
+      fields:
+        - key: "backends"
+          label: "Backends"
+          fieldType: "tags"
+          required: false
+          helpText: "Required for Type = Password. One or more of: authentik.core.auth.InbuiltBackend, authentik.core.auth.TokenBackend, authentik.sources.ldap.auth.LDAPBackend, authentik.sources.kerberos.auth.KerberosBackend."
+
+        - key: "failed_attempts_before_cancel"
+          label: "Failed Attempts Before Cancel"
+          fieldType: "number"
+          required: false
+
+        - key: "allow_show_password"
+          label: "Allow \"show password\" toggle"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+
+    - name: "Authenticator Validation (Type = Authenticator Validation)"
+      icon: "list"
+      description: "MFA challenge — which device classes are accepted"
+      fields:
+        - key: "device_classes"
+          label: "Device Classes"
+          fieldType: "tags"
+          required: false
+          helpText: "One or more of: static, totp, webauthn, duo, sms, email."
+
+        - key: "not_configured_action"
+          label: "When no compatible device is configured"
+          fieldType: "select"
+          required: false
+          defaultValue: "configure"
+          options:
+            - { label: "Skip this stage", value: "skip" }
+            - { label: "Deny access", value: "deny" }
+            - { label: "Prompt to configure", value: "configure" }
+
+        - key: "last_auth_threshold"
+          label: "Last Auth Threshold"
+          fieldType: "text"
+          required: false
+          helpText: "Format hours=1;minutes=2;seconds=3 — skip this stage if a device was used within this window."
+
+    - name: "User Login (Type = User Login)"
+      icon: "clock"
+      description: "Finalizes authentication by starting the user's session"
+      fields:
+        - key: "session_duration"
+          label: "Session Duration"
+          fieldType: "text"
+          required: false
+          helpText: "Format hours=-1;minutes=-2;seconds=-3. Default of 0 means the session lasts until the browser closes."
+
+        - key: "terminate_other_sessions"
+          label: "Terminate other sessions"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+
+        - key: "remember_me_offset"
+          label: "Remember Me Offset"
+          fieldType: "text"
+          required: false
+          helpText: "Format hours=-1;minutes=-2;seconds=-3. Default of 0 hides the \"remember me\" option."

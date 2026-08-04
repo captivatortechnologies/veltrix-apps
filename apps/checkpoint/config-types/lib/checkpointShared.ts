@@ -1,9 +1,11 @@
 // =============================================================================
-// Shared spec/validation helpers reused across every Check Point config type
-// (network-hosts, network-objects, service-objects, access-rules). Kept here
-// — not duplicated per config type, not cross-imported between sibling config
-// type folders — so a fix (e.g. a better IPv6 matcher) lands everywhere at once.
+// Shared spec/validation/status helpers reused across every Check Point config
+// type. Kept here — not duplicated per config type, not cross-imported
+// between sibling config type folders — so a fix (e.g. a better IPv6
+// matcher) lands everywhere at once.
 // =============================================================================
+
+import type { ComponentConfigStatus, ConfigStatus, PipelineContext } from '@veltrixsecops/app-sdk'
 
 /** Read a canvas value that may be a `tags` array, a single string, or a comma list. */
 export function strList(value: unknown): string[] {
@@ -53,4 +55,86 @@ export function sameStringSet(a: string[], b: string[]): boolean {
   if (a.length !== b.length) return false
   const setA = new Set(a.map((s) => s.toLowerCase()))
   return b.every((s) => setA.has(s.toLowerCase()))
+}
+
+/** Deep, key-order-independent JSON serialization — for cheap structural equality in drift diffs. */
+export function canonicalObject(value: unknown): string {
+  const sort = (v: unknown): unknown =>
+    Array.isArray(v)
+      ? v.map(sort)
+      : v && typeof v === 'object'
+        ? Object.keys(v as Record<string, unknown>)
+            .sort()
+            .reduce<Record<string, unknown>>((o, k) => {
+              o[k] = sort((v as Record<string, unknown>)[k])
+              return o
+            }, {})
+        : v
+  return JSON.stringify(sort(value))
+}
+
+// --- Rulebase position (access-rules AND nat-rules) ---------------------------
+
+/**
+ * The 4 position anchors `add-access-rule`/`add-nat-rule` (and their
+ * `new-position` update equivalent) document — verified identical between
+ * both rule types against the Terraform provider's
+ * resource_checkpoint_management_access_rule.go and
+ * resource_checkpoint_management_nat_rule.go: top/bottom are absolute
+ * strings; above/below reference another rule or section BY NAME.
+ */
+export const RULE_POSITIONS = ['top', 'bottom', 'above', 'below'] as const
+export type RulePosition = (typeof RULE_POSITIONS)[number]
+
+export interface PositionedSpec {
+  position: RulePosition
+  /** Required when position is "above" or "below": the rule/section name to position relative to. */
+  positionAnchor: string
+}
+
+/**
+ * Build the `position` (create) / `new-position` (update) payload value.
+ * "above"/"below" reference another rule/section BY NAME, which must already
+ * exist — either pre-existing, or an earlier item in the SAME deploy (callers
+ * apply specs in canvas declaration order for exactly this reason).
+ */
+export function buildPositionPayload(spec: PositionedSpec): unknown {
+  if (spec.position === 'top') return 'top'
+  if (spec.position === 'bottom') return 'bottom'
+  return { [spec.position]: spec.positionAnchor }
+}
+
+// --- getStatus (identical across every config type) ---------------------------
+
+/**
+ * Every Check Point config type reports status the same way: whether the
+ * canvas has a SUCCEEDED deployment, and — if so — one ComponentConfigStatus
+ * per registered checkpoint-management component. Reads only the platform
+ * data API; never calls the Management API itself.
+ */
+export async function checkpointGetStatus(ctx: PipelineContext): Promise<ConfigStatus> {
+  const { canvas, platform } = ctx
+  const latestDeployment = await platform.getLatestDeployment(canvas.canvasId, { status: 'SUCCEEDED' })
+
+  if (!latestDeployment) {
+    return { deployed: false, version: String(canvas.version), lastDeployedAt: '', componentStatuses: [] }
+  }
+
+  const components = await platform.listComponents({ types: ['checkpoint-management'] })
+  const componentStatuses: ComponentConfigStatus[] = components.map((comp) => ({
+    componentId: comp.id,
+    hostname: comp.hostname,
+    deployed: true,
+    version: String(canvas.version),
+    lastDeployedAt: latestDeployment.completedAt || '',
+    healthy: latestDeployment.healthScore != null ? latestDeployment.healthScore >= 80 : undefined,
+    healthScore: latestDeployment.healthScore ?? undefined,
+  }))
+
+  return {
+    deployed: true,
+    version: String(canvas.version),
+    lastDeployedAt: latestDeployment.completedAt || latestDeployment.startedAt,
+    componentStatuses,
+  }
 }

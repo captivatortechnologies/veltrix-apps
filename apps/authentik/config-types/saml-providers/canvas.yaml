@@ -1,0 +1,111 @@
+# =============================================================================
+# Canvas Template — authentik SAML Providers
+#
+# Declares ONE authentik SAML Provider (the item). Field keys must match
+# config-types/saml-providers/validate.ts and _shared.ts. Applied via the
+# authentik Core REST API (GET/POST /providers/saml/, GET/PATCH/DELETE
+# /providers/saml/{id}/).
+#
+# IDENTITY: like OAuth2/OpenID Providers, a SAML provider's API path key is a
+# server-assigned integer `id` — this config type upserts by NAME (list
+# `?name=` → exact match → PATCH/POST).
+#
+# DELIBERATELY EXCLUDED for v0.4.0 (see README Coverage): signing/verification/
+# encryption keypair references (`signing_kp`/`verification_kp`/`encryption_kp`
+# — certificate management is out of scope), SLS (logout) URL/binding, NameID/
+# AuthnContextClassRef property-mapping overrides, digest/signature algorithm,
+# assertion/session validity windows, default relay state and default NameID
+# policy. These are real, writable fields authentik accepts as defaults when
+# omitted from a PATCH/POST.
+# =============================================================================
+
+id: "authentik-saml-providers"
+name: "SAML Providers"
+toolType: "authentik"
+entityType: "saml-providers"
+description: "Manage authentik SAML Providers — name, flows, ACS URL, audience, SP binding, assertion/response signing and scope mappings — via the authentik Core REST API"
+
+item:
+  label: "Provider"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "key"
+      description: "Provider identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The provider's display name in authentik. Stable identity used for upsert and drift (SAML providers have no user-declared path key)."
+
+    - name: "Flows"
+      icon: "link"
+      description: "authorization and invalidation flows (by Flow UUID pk)"
+      fields:
+        - key: "authorization_flow"
+          label: "Authorization Flow (UUID)"
+          fieldType: "text"
+          required: true
+          helpText: "The UUID pk of the Flow used when authorizing this provider. Required by authentik."
+
+        - key: "invalidation_flow"
+          label: "Invalidation Flow (UUID)"
+          fieldType: "text"
+          required: true
+          helpText: "The UUID pk of the Flow used to end the session for this provider. Required by authentik."
+
+    - name: "Service Provider"
+      icon: "settings"
+      description: "The Service Provider (SP) side of the exchange"
+      fields:
+        - key: "acs_url"
+          label: "ACS URL"
+          fieldType: "text"
+          required: true
+          helpText: "The Service Provider's Assertion Consumer Service URL. Required by authentik."
+
+        - key: "audience"
+          label: "Audience"
+          fieldType: "text"
+          required: false
+          helpText: "Value of the assertion's audience restriction field. Leave blank for no restriction."
+
+        - key: "sp_binding"
+          label: "SP Binding"
+          fieldType: "select"
+          required: false
+          defaultValue: "redirect"
+          options:
+            - { label: "Redirect", value: "redirect" }
+            - { label: "POST", value: "post" }
+          helpText: "How authentik sends the response back to the Service Provider."
+
+    - name: "Signing"
+      icon: "shield"
+      description: "Assertion and response signing"
+      fields:
+        - key: "sign_assertion"
+          label: "Sign assertions"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+
+        - key: "sign_response"
+          label: "Sign responses"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+
+    - name: "Access"
+      icon: "list"
+      description: "Scope (property) mappings"
+      fields:
+        - key: "property_mappings"
+          label: "Property Mappings (UUIDs)"
+          fieldType: "tags"
+          required: false
+          helpText: "Optional list of existing Property Mapping UUIDs. Leave empty to leave the provider's current mappings untouched on update."

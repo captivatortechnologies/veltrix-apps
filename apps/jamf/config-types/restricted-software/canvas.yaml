@@ -1,0 +1,88 @@
+# =============================================================================
+# Canvas Template — Jamf Pro Restricted Software
+#
+# Declares ONE Jamf Pro restricted software record — the item. Users add as
+# many as they need. Classic API only (XML, /JSSResource/restrictedsoftware —
+# no modern Jamf Pro API equivalent was found). Reconciled by name.
+#
+# Scope computer groups are referenced BY NAME and must already exist (e.g.
+# via this app's Smart/Static Computer Groups config types).
+#
+# Field keys must match config-types/restricted-software/validate.ts.
+# =============================================================================
+
+id: "jamf-restricted-software"
+name: "Jamf Pro Restricted Software Configuration"
+toolType: "jamf"
+entityType: "restricted-software"
+description: "Declare Jamf Pro restricted software records as code through the Classic API (XML, /JSSResource/restrictedsoftware). Reconciled by name; every update merges only the managed general+scope fields into the record's existing XML."
+
+item:
+  label: "Restricted Software"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 300
+  groups:
+    - name: "Identity"
+      icon: "shield-off"
+      description: "Name and the process it targets"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The record's display name in Jamf Pro — its logical identity for reconciliation."
+
+        - key: "process_name"
+          label: "Process Name"
+          fieldType: "text"
+          required: true
+          helpText: "The executable process name to detect and restrict, e.g. Chess.app or bad-tool."
+
+        - key: "match_exact_process_name"
+          label: "Match Exact Process Name"
+          fieldType: "checkbox"
+          defaultValue: false
+
+    - name: "Response"
+      icon: "bell"
+      description: "What happens when the process is detected"
+      fields:
+        - key: "send_notification"
+          label: "Send Notification"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "kill_process"
+          label: "Kill Process"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "delete_executable"
+          label: "Delete Executable"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "display_message"
+          label: "Display Message"
+          fieldType: "textarea"
+          helpText: "Message shown to the user when the process is detected (requires Send Notification)."
+
+    - name: "Scope"
+      icon: "target"
+      description: "Which computers the restriction applies to"
+      fields:
+        - key: "all_computers"
+          label: "All Computers"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "computer_group_names"
+          label: "Scoped Computer Group Names"
+          fieldType: "tags"
+          helpText: "Computer group names to scope the restriction to (must already exist in Jamf Pro). Ignored when All Computers is enabled."
+
+        - key: "exclusion_computer_group_names"
+          label: "Excluded Computer Group Names"
+          fieldType: "tags"

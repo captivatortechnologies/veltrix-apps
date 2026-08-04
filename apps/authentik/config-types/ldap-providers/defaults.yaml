@@ -1,0 +1,5 @@
+# Defaults for a new LDAP provider item — intentionally minimal; the operator
+# fills in the name, flow UUIDs and base DN.
+search_mode: "direct"
+bind_mode: "direct"
+mfa_support: false

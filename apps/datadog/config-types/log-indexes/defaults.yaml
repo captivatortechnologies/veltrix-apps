@@ -1,0 +1,6 @@
+# Defaults for a new Log Index item.
+#
+# Intentionally minimal: the per-field defaultValue in canvas.yaml already
+# seeds exclusion_filters. Any values here would be a FLAT map keyed by the
+# canvas field keys (name, filter_query, num_retention_days, daily_limit,
+# tags, exclusion_filters).

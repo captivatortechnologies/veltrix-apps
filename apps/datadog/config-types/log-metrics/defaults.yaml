@@ -1,0 +1,6 @@
+# Defaults for a new Log-Based Metric item.
+#
+# Intentionally minimal: the per-field defaultValue in canvas.yaml already
+# seeds aggregation_type, include_percentiles and group_by. Any values here
+# would be a FLAT map keyed by the canvas field keys (id, aggregation_type,
+# path, include_percentiles, filter_query, group_by).

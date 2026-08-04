@@ -1,0 +1,7 @@
+# Defaults for a new Policy item — intentionally minimal; the operator picks a
+# Type and fills in that type's fields.
+type: "expression"
+execution_logging: false
+check_ip: true
+check_username: true
+threshold: -5

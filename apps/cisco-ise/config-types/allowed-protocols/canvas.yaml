@@ -1,0 +1,113 @@
+# =============================================================================
+# Canvas Template — Cisco ISE Allowed Protocols
+#
+# Declares ONE Allowed Protocols service — the item. Users add as many as they
+# need. Field keys must match config-types/allowed-protocols/_shared.ts.
+# Applied via the ISE ERS API (POST/PUT/DELETE /ers/config/allowedprotocols).
+#
+# ISE's real schema also nests per-protocol sub-objects (eapFast/eapTls/
+# eapTtls/peap/teap — a dozen+ fields EACH). This config type manages only the
+# commonly-set TOP-LEVEL enable flags and the preferred EAP protocol — see the
+# app README's Coverage section for the full drop list.
+# =============================================================================
+
+id: "cisco-ise-allowed-protocols"
+name: "Allowed Protocols"
+toolType: "cisco-ise"
+entityType: "allowed-protocols"
+description: "Manage Cisco ISE Allowed Protocols services (top-level authentication-method enable flags) via the ERS API (/ers/config/allowedprotocols)"
+
+item:
+  label: "Allowed Protocols Service"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Service"
+      icon: "shield"
+      description: "Service identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The Allowed Protocols service name in ISE — referenced from a policy set's authentication protocol setting. Used as the stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this service is for — recorded on it in ISE."
+
+    - name: "Password-based"
+      icon: "lock"
+      description: "Non-EAP password authentication methods"
+      fields:
+        - key: "allow_pap_ascii"
+          label: "Allow PAP/ASCII"
+          fieldType: "checkbox"
+          defaultValue: true
+        - key: "allow_chap"
+          label: "Allow CHAP"
+          fieldType: "checkbox"
+          defaultValue: false
+        - key: "allow_ms_chap_v1"
+          label: "Allow MS-CHAPv1"
+          fieldType: "checkbox"
+          defaultValue: false
+        - key: "allow_ms_chap_v2"
+          label: "Allow MS-CHAPv2"
+          fieldType: "checkbox"
+          defaultValue: false
+
+    - name: "EAP methods"
+      icon: "key"
+      description: "EAP authentication methods (enable flags only — see the app README for what's not customizable here)"
+      fields:
+        - key: "allow_eap_md5"
+          label: "Allow EAP-MD5"
+          fieldType: "checkbox"
+          defaultValue: true
+        - key: "allow_leap"
+          label: "Allow LEAP"
+          fieldType: "checkbox"
+          defaultValue: false
+        - key: "allow_eap_tls"
+          label: "Allow EAP-TLS"
+          fieldType: "checkbox"
+          defaultValue: true
+        - key: "allow_peap"
+          label: "Allow PEAP"
+          fieldType: "checkbox"
+          defaultValue: true
+        - key: "allow_eap_ttls"
+          label: "Allow EAP-TTLS"
+          fieldType: "checkbox"
+          defaultValue: true
+        - key: "allow_eap_fast"
+          label: "Allow EAP-FAST"
+          fieldType: "checkbox"
+          defaultValue: true
+        - key: "allow_teap"
+          label: "Allow TEAP"
+          fieldType: "checkbox"
+          defaultValue: false
+        - key: "preferred_eap_protocol"
+          label: "Preferred EAP Protocol"
+          fieldType: "text"
+          required: false
+          helpText: >
+            Optional — e.g. "PEAP". Free text rather than a fixed list: ISE's
+            exact accepted values/casing beyond the one confirmed example
+            ("PEAP") were not fully verifiable from available sources; enter
+            it exactly as ISE's own UI would show it.
+        - key: "process_host_lookup"
+          label: "Process Host Lookup"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Look up the calling-station-id as a host in the identity store for MAB-style lookups."

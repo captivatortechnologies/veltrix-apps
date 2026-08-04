@@ -1,0 +1,9 @@
+# Defaults for a new Jamf Pro restricted software item.
+#
+# Intentionally empty: the platform starts a new item blank (the checkbox
+# fields' own defaultValue: false, set in canvas.yaml, already seed new
+# items) and users manage their own default value sets from there. Any
+# values here would be a FLAT map keyed by the canvas field keys (name,
+# process_name, match_exact_process_name, send_notification, kill_process,
+# delete_executable, display_message, all_computers, computer_group_names,
+# exclusion_computer_group_names).

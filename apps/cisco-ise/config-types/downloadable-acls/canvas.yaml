@@ -1,0 +1,63 @@
+# =============================================================================
+# Canvas Template — Cisco ISE Downloadable ACLs
+#
+# Declares ONE Downloadable ACL (DACL) — the item. Users add as many as they
+# need. Field keys must match config-types/downloadable-acls/_shared.ts.
+# Applied via the ISE ERS API (POST/PUT/DELETE /ers/config/downloadableacl).
+#
+# A DACL is referenced by name from an Authorization Profile's "Downloadable
+# ACL (DACL) Name" field (see the authorization-profiles config type) — ISE
+# pushes its content to the network device at authorization time.
+# =============================================================================
+
+id: "cisco-ise-downloadable-acls"
+name: "Downloadable ACLs"
+toolType: "cisco-ise"
+entityType: "downloadable-acls"
+description: "Manage Cisco ISE Downloadable ACLs (DACLs) — named ACL content pushed to network devices via RADIUS at authorization time — via the ERS API (/ers/config/downloadableacl)"
+
+item:
+  label: "Downloadable ACL"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "ACL"
+      icon: "shield"
+      description: "ACL identity and content"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The DACL name in ISE — referenced from an Authorization Profile's DACL Name field. Used as the stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this ACL is for — recorded on the DACL in ISE."
+
+        - key: "dacl_type"
+          label: "ACL Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "IPV4"
+          options:
+            - { label: "IPv4", value: "IPV4" }
+            - { label: "IPv6", value: "IPV6" }
+            - { label: "IP-agnostic", value: "IP_AGNOSTIC" }
+          helpText: "The IP version this DACL's rules apply to."
+
+        - key: "dacl"
+          label: "ACL Content"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            One ACL line per row, e.g. "permit ip any any" or "deny tcp any any
+            eq 22". Pushed verbatim to the network device's downloadable ACL.

@@ -1,0 +1,53 @@
+# =============================================================================
+# Canvas Template — Cisco Meraki Port Forwarding Rules
+#
+# Ordered whole-list singleton per network — same shape as L3/L7 Firewall
+# Rules (see lib/merakiOrderedList.ts). Applied via the Meraki Dashboard API v1
+# (PUT /networks/{networkId}/appliance/firewall/portForwardingRules).
+# =============================================================================
+
+id: "cisco-meraki-port-forwarding-rules"
+name: "Port Forwarding Rule"
+toolType: "cisco-meraki"
+entityType: "port-forwarding-rules"
+description: "Manage a Meraki network's port forwarding ruleset as code — one ordered list per network, applied as a whole-list replace via the Meraki Dashboard API."
+
+item:
+  label: "Network Port Forwarding Ruleset"
+  identityField: "network_id"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Network"
+      icon: "network"
+      description: "The Meraki network this ruleset applies to"
+      fields:
+        - key: "network_id"
+          label: "Meraki Network ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_-]+$"
+            maxLength: 64
+          helpText: "The Meraki Dashboard network id (e.g. L_646829496481099008 or N_646829496481099008) whose port forwarding ruleset this item manages."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this ruleset is configured — recorded for your own record-keeping only; not sent to Meraki."
+
+    - name: "Port Forwarding Rules"
+      icon: "shield"
+      description: "The ordered port forwarding rules"
+      fields:
+        - key: "rules"
+          label: "Rules (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 200000
+          helpText: 'The ordered ruleset as JSON — a bare [ ... ] array or a { "rules": [...] } object. Each rule is { "name", "lanIp", "uplink": "all"|"both"|"internet1"|"internet2"|"internet3"|"internet4", "publicPort", "localPort", "allowedIps": [...], "protocol": "tcp"|"udp" }.'

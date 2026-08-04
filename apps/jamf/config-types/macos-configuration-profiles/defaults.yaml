@@ -1,0 +1,9 @@
+# Defaults for a new Jamf Pro macOS configuration profile item.
+#
+# Intentionally empty: the platform starts a new item blank (the
+# distribution_method/level/user_removable fields' own defaultValue, set in
+# canvas.yaml, already seed new items) and users manage their own default
+# value sets from there. Any values here would be a FLAT map keyed by the
+# canvas field keys (name, description, distribution_method, level,
+# user_removable, payloads, all_computers, computer_group_names,
+# exclusion_computer_group_names).

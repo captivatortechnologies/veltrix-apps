@@ -1,0 +1,32 @@
+# =============================================================================
+# Canvas Template — Jamf Pro Departments
+#
+# Declares ONE Jamf Pro department — the item. Users add as many as they need.
+# Departments are created/updated through the modern Jamf Pro API
+# (POST/PUT /v1/departments) and identified for reconciliation by their `name`.
+#
+# Field keys must match config-types/departments/validate.ts.
+# =============================================================================
+
+id: "jamf-departments"
+name: "Jamf Pro Department Configuration"
+toolType: "jamf"
+entityType: "departments"
+description: "Declare Jamf Pro departments as code through the modern Jamf Pro API (GET/POST/PUT/DELETE /v1/departments). Reconciled by department name."
+
+item:
+  label: "Department"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Department"
+      icon: "briefcase"
+      description: "Name"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The department's display name (1-225 characters) — its logical identity for reconciliation."

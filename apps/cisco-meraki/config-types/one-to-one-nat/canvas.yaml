@@ -1,0 +1,55 @@
+# =============================================================================
+# Canvas Template — Cisco Meraki One-to-One NAT Rules
+#
+# Ordered whole-list singleton per network — same shape as L3/L7 Firewall
+# Rules (see lib/merakiOrderedList.ts). One canvas item manages one network's
+# complete one-to-one NAT ruleset, identified by `network_id`. Applied via the
+# Meraki Dashboard API v1
+# (PUT /networks/{networkId}/appliance/firewall/oneToOneNatRules).
+# =============================================================================
+
+id: "cisco-meraki-one-to-one-nat"
+name: "One-to-One NAT Rule"
+toolType: "cisco-meraki"
+entityType: "one-to-one-nat"
+description: "Manage a Meraki network's one-to-one NAT ruleset as code — one ordered list per network, applied as a whole-list replace via the Meraki Dashboard API."
+
+item:
+  label: "Network One-to-One NAT Ruleset"
+  identityField: "network_id"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Network"
+      icon: "network"
+      description: "The Meraki network this ruleset applies to"
+      fields:
+        - key: "network_id"
+          label: "Meraki Network ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_-]+$"
+            maxLength: 64
+          helpText: "The Meraki Dashboard network id (e.g. L_646829496481099008 or N_646829496481099008) whose one-to-one NAT ruleset this item manages."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this ruleset is configured — recorded for your own record-keeping only; not sent to Meraki."
+
+    - name: "NAT Rules"
+      icon: "shield"
+      description: "The ordered one-to-one NAT rules"
+      fields:
+        - key: "rules"
+          label: "Rules (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 200000
+          helpText: 'The ordered ruleset as JSON — a bare [ ... ] array or a { "rules": [...] } object. Each rule is { "name", "publicIp", "lanIp", "uplink": "internetN", "allowedInbound": [{ "protocol": "tcp"|"udp"|"icmp-ping"|"any", "destinationPorts": [...], "allowedIps": [...] }] }.'

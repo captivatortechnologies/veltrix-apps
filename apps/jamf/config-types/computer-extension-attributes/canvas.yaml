@@ -1,0 +1,127 @@
+# =============================================================================
+# Canvas Template — Jamf Pro Computer Extension Attributes
+#
+# Declares ONE Jamf Pro computer extension attribute — the item. Users add as
+# many as they need. Uses the MODERN Jamf Pro API (not Classic — see
+# validate.ts header for why) and is identified for reconciliation by `name`.
+#
+# Field keys must match config-types/computer-extension-attributes/validate.ts.
+# =============================================================================
+
+id: "jamf-computer-extension-attributes"
+name: "Jamf Pro Computer Extension Attribute Configuration"
+toolType: "jamf"
+entityType: "computer-extension-attributes"
+description: "Declare Jamf Pro computer extension attributes as code through the modern Jamf Pro API (GET/POST/PUT/DELETE /v1/computer-extension-attributes). Reconciled by attribute name."
+
+item:
+  label: "Computer Extension Attribute"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 300
+  groups:
+    - name: "Identity"
+      icon: "tag"
+      description: "Name and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The attribute's display name — its logical identity for reconciliation."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+
+    - name: "Collection"
+      icon: "database"
+      description: "How Jamf Pro populates and displays the value"
+      fields:
+        - key: "data_type"
+          label: "Data Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "STRING"
+          options:
+            - { label: "String", value: "STRING" }
+            - { label: "Integer", value: "INTEGER" }
+            - { label: "Date", value: "DATE" }
+
+        - key: "input_type"
+          label: "Input Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "TEXT"
+          options:
+            - { label: "Text Field", value: "TEXT" }
+            - { label: "Script", value: "SCRIPT" }
+            - { label: "Pop-up Menu", value: "POPUP" }
+            - { label: "Directory Service Attribute Mapping", value: "DIRECTORY_SERVICE_ATTRIBUTE_MAPPING" }
+          helpText: "Script requires Script Contents below; Pop-up Menu requires at least one choice; Directory Service Attribute Mapping requires an LDAP attribute."
+
+        - key: "inventory_display_type"
+          label: "Inventory Display Category"
+          fieldType: "select"
+          required: true
+          defaultValue: "EXTENSION_ATTRIBUTES"
+          options:
+            - { label: "Extension Attributes", value: "EXTENSION_ATTRIBUTES" }
+            - { label: "General", value: "GENERAL" }
+            - { label: "Hardware", value: "HARDWARE" }
+            - { label: "Operating System", value: "OPERATING_SYSTEM" }
+            - { label: "User and Location", value: "USER_AND_LOCATION" }
+            - { label: "Purchasing", value: "PURCHASING" }
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Only applicable to the Script input type."
+
+    - name: "Script"
+      icon: "file-code"
+      description: "Required when Input Type is Script"
+      fields:
+        - key: "script_contents"
+          label: "Script Contents"
+          fieldType: "textarea"
+          visibleWhen: { field: "input_type", equals: "SCRIPT" }
+          helpText: "The script Jamf Pro runs on the computer to compute the value; must print the result to stdout."
+
+    - name: "Pop-up Menu"
+      icon: "list"
+      description: "Required when Input Type is Pop-up Menu"
+      fields:
+        - key: "popup_menu_choices"
+          label: "Choices"
+          fieldType: "tags"
+          visibleWhen: { field: "input_type", equals: "POPUP" }
+
+    - name: "Directory Service Mapping"
+      icon: "link"
+      description: "Required when Input Type is Directory Service Attribute Mapping"
+      fields:
+        - key: "ldap_attribute_mapping"
+          label: "LDAP Attribute Mapping"
+          fieldType: "text"
+          visibleWhen: { field: "input_type", equals: "DIRECTORY_SERVICE_ATTRIBUTE_MAPPING" }
+
+        - key: "ldap_extension_attribute_allowed"
+          label: "Allow Multiple LDAP Values"
+          fieldType: "checkbox"
+          defaultValue: false
+          visibleWhen: { field: "input_type", equals: "DIRECTORY_SERVICE_ATTRIBUTE_MAPPING" }
+
+    - name: "Script Deactivation"
+      icon: "trash"
+      description: "Optional — only relevant when disabling a Script attribute that has collected data"
+      fields:
+        - key: "manage_existing_data"
+          label: "Existing Data on Disable"
+          fieldType: "select"
+          options:
+            - { label: "(unchanged)", value: "" }
+            - { label: "Retain", value: "RETAIN" }
+            - { label: "Delete", value: "DELETE" }

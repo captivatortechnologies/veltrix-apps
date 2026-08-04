@@ -1,0 +1,65 @@
+# =============================================================================
+# Canvas Template — authentik Scope (Property) Mappings
+#
+# Declares ONE authentik OAuth2/OpenID scope mapping (the item). Field keys
+# must match config-types/scope-property-mappings/validate.ts and _shared.ts.
+# Applied via the authentik Core REST API (GET/POST
+# /propertymappings/provider/scope/, GET/PATCH/DELETE
+# /propertymappings/provider/scope/{pm_uuid}/).
+#
+# IDENTITY: the API path key is a server-assigned UUID (`pm_uuid`) — this
+# config type upserts by NAME (list `?name=` → exact match → PATCH/POST).
+#
+# Scope mappings created here can be referenced by the OAuth2/OpenID Providers
+# configuration type's "Scope / Property Mappings" field (by this mapping's
+# UUID pk, from this type's deploy artifacts).
+# =============================================================================
+
+id: "authentik-scope-property-mappings"
+name: "Scope Property Mappings"
+toolType: "authentik"
+entityType: "scope-property-mappings"
+description: "Manage authentik OAuth2/OpenID scope (property) mappings — the scope name, its consent description and the Python expression that computes its claims — via the authentik Core REST API"
+
+item:
+  label: "Scope Mapping"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "key"
+      description: "Mapping identity and requested scope"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The mapping's display name in authentik. Stable identity used for upsert and drift."
+
+        - key: "scope_name"
+          label: "Scope Name"
+          fieldType: "text"
+          required: true
+          helpText: "The OAuth2/OpenID scope name a client requests to receive this mapping's claims, e.g. profile, email, or a custom scope. Required by authentik."
+
+    - name: "Consent"
+      icon: "settings"
+      description: "What the user sees when consenting"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          helpText: "Shown to the user when consenting to this scope. Leave blank and the user won't be informed of it."
+
+    - name: "Expression"
+      icon: "list"
+      description: "The Python expression that computes the scope's claims"
+      fields:
+        - key: "expression"
+          label: "Expression"
+          fieldType: "textarea"
+          required: true
+          helpText: "The Python expression evaluated to build this scope's claims, e.g. return {\"department\": request.user.group_attributes().get(\"department\")}. Required by authentik."

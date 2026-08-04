@@ -1,0 +1,7 @@
+# Defaults for a new Stage item — intentionally minimal; the operator picks a
+# Type and fills in that type's fields.
+type: "identification"
+case_insensitive_matching: true
+show_matched_user: true
+pretend_user_exists: false
+not_configured_action: "configure"

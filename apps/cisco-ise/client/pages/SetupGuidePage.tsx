@@ -1,7 +1,19 @@
 import React from 'react'
 import { Badge, Card, CardBody, Tabs } from '@veltrixsecops/app-sdk/ui'
 
-const MANAGES = ['Endpoint identity groups', 'Network device groups', 'Network devices', 'Authorization profiles']
+const MANAGES = [
+  'Endpoint identity groups',
+  'Network device groups',
+  'Network devices',
+  'Authorization profiles',
+  'Downloadable ACLs',
+  'Security Group Tags',
+  'Security Group ACLs',
+  'Allowed Protocols',
+  'Internal users',
+  'User identity groups',
+  'Endpoints',
+]
 
 /**
  * Step-by-step connection guide, rendered with the platform design-system
@@ -31,6 +43,14 @@ export default function SetupGuidePage() {
             <p>
               ERS runs on its own fixed HTTPS port, <code>9060</code>, which is closed until enabled — a
               request against it will simply time out rather than return an error until this step is done.
+            </p>
+            <p>
+              ISE also has a newer <strong>OpenAPI</strong> surface (<code>/api/v1/...</code>) for a few
+              domains (network-access policy sets, some administrative actions). This app manages{' '}
+              <em>everything</em> over ERS instead — every config type above turned out to have a stable
+              ERS resource, and OpenAPI's own policy-set/authorization-rule domain is an ordered,
+              hierarchical structure this app's flat item-list model doesn't fit. See the README&apos;s{' '}
+              <strong>Coverage</strong> section for the full picture.
             </p>
           </CardBody>
         </Card>

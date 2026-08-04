@@ -1,11 +1,13 @@
 // =============================================================================
 // Shared helpers used across every Cisco Meraki config type (l3/l7 firewall
-// rules, group policies, appliance VLANs). Pulled out once a second network-
-// scoped config type needed the same network-id validation and order/key
-// sensitive JSON comparison that l3-firewall-rules introduced in v0.1.0 — see
-// config-types/l3-firewall-rules/_shared.ts, which now re-exports these rather
-// than duplicating them.
+// rules, group policies, appliance VLANs, and the v0.3.0 additions). Pulled
+// out once a second network-scoped config type needed the same network-id
+// validation and order/key sensitive JSON comparison that l3-firewall-rules
+// introduced in v0.1.0 — see config-types/l3-firewall-rules/_shared.ts, which
+// now re-exports these rather than duplicating them.
 // =============================================================================
+
+import type { ComponentConfigStatus, ConfigStatus, PipelineContext } from '@veltrixsecops/app-sdk'
 
 /** Meraki network ids are opaque tokens (letters, digits, underscore, hyphen). */
 export const NETWORK_ID_RE = /^[A-Za-z0-9_-]+$/
@@ -78,4 +80,40 @@ export function parseJsonObject(raw: unknown, label: string): { value: Record<st
     return { value: null, error: `${label} must be a JSON object.` }
   }
   return { value: parsed as Record<string, unknown>, error: null }
+}
+
+/**
+ * Generic `getStatus` handler shared by every Cisco Meraki config type:
+ * deployment status comes from the platform's own record of the last
+ * successful deploy, plus every registered `meraki-organization` component.
+ * Identical logic previously duplicated per config type (see
+ * config-types/l3-firewall-rules/getStatus.ts and siblings, kept as-is);
+ * v0.3.0's new config types re-export this directly instead of repeating it.
+ */
+export async function merakiGetStatus(ctx: PipelineContext): Promise<ConfigStatus> {
+  const { canvas, platform } = ctx
+
+  const latestDeployment = await platform.getLatestDeployment(canvas.canvasId, { status: 'SUCCEEDED' })
+  if (!latestDeployment) {
+    return { deployed: false, version: String(canvas.version), lastDeployedAt: '', componentStatuses: [] }
+  }
+
+  const components = await platform.listComponents({ types: ['meraki-organization'] })
+
+  const componentStatuses: ComponentConfigStatus[] = components.map((comp) => ({
+    componentId: comp.id,
+    hostname: comp.hostname,
+    deployed: true,
+    version: String(canvas.version),
+    lastDeployedAt: latestDeployment.completedAt || '',
+    healthy: latestDeployment.healthScore != null ? latestDeployment.healthScore >= 80 : undefined,
+    healthScore: latestDeployment.healthScore ?? undefined,
+  }))
+
+  return {
+    deployed: true,
+    version: String(canvas.version),
+    lastDeployedAt: latestDeployment.completedAt || latestDeployment.startedAt,
+    componentStatuses,
+  }
 }

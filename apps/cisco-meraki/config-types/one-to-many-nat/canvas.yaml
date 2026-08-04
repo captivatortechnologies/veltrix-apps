@@ -1,0 +1,53 @@
+# =============================================================================
+# Canvas Template — Cisco Meraki One-to-Many NAT Rules
+#
+# Ordered whole-list singleton per network — same shape as L3/L7 Firewall
+# Rules (see lib/merakiOrderedList.ts). Applied via the Meraki Dashboard API v1
+# (PUT /networks/{networkId}/appliance/firewall/oneToManyNatRules).
+# =============================================================================
+
+id: "cisco-meraki-one-to-many-nat"
+name: "One-to-Many NAT Rule"
+toolType: "cisco-meraki"
+entityType: "one-to-many-nat"
+description: "Manage a Meraki network's one-to-many NAT ruleset as code — one ordered list per network, applied as a whole-list replace via the Meraki Dashboard API."
+
+item:
+  label: "Network One-to-Many NAT Ruleset"
+  identityField: "network_id"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Network"
+      icon: "network"
+      description: "The Meraki network this ruleset applies to"
+      fields:
+        - key: "network_id"
+          label: "Meraki Network ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_-]+$"
+            maxLength: 64
+          helpText: "The Meraki Dashboard network id (e.g. L_646829496481099008 or N_646829496481099008) whose one-to-many NAT ruleset this item manages."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this ruleset is configured — recorded for your own record-keeping only; not sent to Meraki."
+
+    - name: "NAT Rules"
+      icon: "shield"
+      description: "The ordered one-to-many NAT rules"
+      fields:
+        - key: "rules"
+          label: "Rules (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 200000
+          helpText: 'The ordered ruleset as JSON — a bare [ ... ] array or a { "rules": [...] } object. Each rule is { "publicIp", "uplink": "internetN", "portRules": [{ "name", "protocol": "tcp"|"udp", "publicPort", "localIp", "localPort", "allowedIps": [...] }] }.'

@@ -1,17 +1,17 @@
 id: authentik
 name: authentik
-version: "0.3.0"
+version: "0.4.0"
 vendor: Veltrix
 description: >
   Manage authentik (open-source Identity Provider) as code. Author authentik
-  Applications, OAuth2/OpenID Providers, Groups and Flows and drive them through
-  the Security-as-Code pipeline (validate, deploy, health check, drift
-  detection, rollback) over the authentik REST API (HTTPS, self-signed
-  tolerated), authenticated with a static API token. Applications bind to a
-  Provider (now authorable as OAuth2/OpenID Providers) via policy-based access
-  control. Now with BYOL infrastructure provisioning for the authentik stack
-  (server + worker nodes and PostgreSQL — authentik removed its Redis
-  dependency in the 2025.10 release).
+  Applications, Providers (OAuth2/OpenID, SAML, Proxy, LDAP), Groups, Flows &
+  Stages, Scope Property Mappings, Policies, Sources (OAuth, LDAP) and Brands,
+  and drive them through the Security-as-Code pipeline (validate, deploy,
+  health check, drift detection, rollback) over the authentik REST API (HTTPS,
+  self-signed tolerated), authenticated with a static API token. Plus BYOL
+  infrastructure provisioning for the authentik stack (server + worker nodes
+  and PostgreSQL — authentik removed its Redis dependency in the 2025.10
+  release).
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/authentik
@@ -43,6 +43,30 @@ permissions:
     - resource: flows
       actions: [read, write, delete]
       description: Manage authentik Flows (create / edit / delete)
+    - resource: saml-providers
+      actions: [read, write, delete]
+      description: Manage authentik SAML Providers
+    - resource: proxy-providers
+      actions: [read, write, delete]
+      description: Manage authentik Proxy Providers
+    - resource: ldap-providers
+      actions: [read, write, delete]
+      description: Manage authentik LDAP Providers
+    - resource: scope-property-mappings
+      actions: [read, write, delete]
+      description: Manage authentik OAuth2/OpenID scope (property) mappings
+    - resource: policies
+      actions: [read, write, delete]
+      description: Manage authentik Policies (Expression, Password, Reputation)
+    - resource: stages
+      actions: [read, write, delete]
+      description: Manage authentik Stages (Identification, Password, Authenticator Validation, User Login)
+    - resource: sources
+      actions: [read, write, delete]
+      description: Manage authentik federation Sources (OAuth, LDAP)
+    - resource: brands
+      actions: [read, write, delete]
+      description: Manage authentik Brands (per-domain tenant branding and default flows)
     - resource: byol
       actions: [read, write, delete]
       description: Manage BYOL authentik stack infrastructure
@@ -111,7 +135,7 @@ pipeline:
         requiresConnectivity: true
 
     - id: flows
-      group: "Flows"
+      group: "Flows & Stages"
       name: Flows
       description: authentik Flows — name, slug, title, designation and required authentication level — applied over the authentik Flows REST API (/api/v3/flows/instances/). A deployed flow's UUID can be referenced by the OAuth2/OpenID Providers configuration type.
       canvasTemplate: config-types/flows/canvas.yaml
@@ -123,6 +147,150 @@ pipeline:
         healthCheck: config-types/flows/healthCheck
         driftDetect: config-types/flows/driftDetect
         getStatus: config-types/flows/getStatus
+      targets:
+        componentTypes: [authentik-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: saml-providers
+      group: "Providers"
+      name: SAML Providers
+      description: authentik SAML Providers — name, flows, ACS URL, audience, SP binding, assertion/response signing and scope mappings — applied over the authentik Core REST API (/api/v3/providers/saml/). Upserts by NAME (the API path key is a server-assigned id).
+      canvasTemplate: config-types/saml-providers/canvas.yaml
+      defaultConfig: config-types/saml-providers/defaults.yaml
+      handlers:
+        validate: config-types/saml-providers/validate
+        deploy: config-types/saml-providers/deploy
+        rollback: config-types/saml-providers/rollback
+        healthCheck: config-types/saml-providers/healthCheck
+        driftDetect: config-types/saml-providers/driftDetect
+        getStatus: config-types/saml-providers/getStatus
+      targets:
+        componentTypes: [authentik-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: proxy-providers
+      group: "Providers"
+      name: Proxy Providers
+      description: authentik Proxy Providers — name, flows, mode (proxy/forward-auth), internal/external host, path exclusions and property mappings — applied over the authentik Core REST API (/api/v3/providers/proxy/). Upserts by NAME (the API path key is a server-assigned id).
+      canvasTemplate: config-types/proxy-providers/canvas.yaml
+      defaultConfig: config-types/proxy-providers/defaults.yaml
+      handlers:
+        validate: config-types/proxy-providers/validate
+        deploy: config-types/proxy-providers/deploy
+        rollback: config-types/proxy-providers/rollback
+        healthCheck: config-types/proxy-providers/healthCheck
+        driftDetect: config-types/proxy-providers/driftDetect
+        getStatus: config-types/proxy-providers/getStatus
+      targets:
+        componentTypes: [authentik-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: ldap-providers
+      group: "Providers"
+      name: LDAP Providers
+      description: authentik LDAP Providers — name, flows, base DN, uid/gid numbering, search/bind mode and MFA support — applied over the authentik Core REST API (/api/v3/providers/ldap/). Upserts by NAME (the API path key is a server-assigned id).
+      canvasTemplate: config-types/ldap-providers/canvas.yaml
+      defaultConfig: config-types/ldap-providers/defaults.yaml
+      handlers:
+        validate: config-types/ldap-providers/validate
+        deploy: config-types/ldap-providers/deploy
+        rollback: config-types/ldap-providers/rollback
+        healthCheck: config-types/ldap-providers/healthCheck
+        driftDetect: config-types/ldap-providers/driftDetect
+        getStatus: config-types/ldap-providers/getStatus
+      targets:
+        componentTypes: [authentik-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: scope-property-mappings
+      group: "Customization"
+      name: Scope Property Mappings
+      description: authentik OAuth2/OpenID scope (property) mappings — scope name, consent description and the Python expression that computes its claims — applied over the authentik Core REST API (/api/v3/propertymappings/provider/scope/). Upserts by NAME (the API path key is a server-assigned UUID).
+      canvasTemplate: config-types/scope-property-mappings/canvas.yaml
+      defaultConfig: config-types/scope-property-mappings/defaults.yaml
+      handlers:
+        validate: config-types/scope-property-mappings/validate
+        deploy: config-types/scope-property-mappings/deploy
+        rollback: config-types/scope-property-mappings/rollback
+        healthCheck: config-types/scope-property-mappings/healthCheck
+        driftDetect: config-types/scope-property-mappings/driftDetect
+        getStatus: config-types/scope-property-mappings/getStatus
+      targets:
+        componentTypes: [authentik-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: policies
+      group: "Policies"
+      name: Policies
+      description: authentik Policies (Expression, Password, Reputation) — access-control building blocks bound to flows/applications/groups elsewhere in authentik — applied over the authentik Core REST API (/api/v3/policies/expression/, /policies/password/, /policies/reputation/). Upserts by NAME within the item's selected type.
+      canvasTemplate: config-types/policies/canvas.yaml
+      defaultConfig: config-types/policies/defaults.yaml
+      handlers:
+        validate: config-types/policies/validate
+        deploy: config-types/policies/deploy
+        rollback: config-types/policies/rollback
+        healthCheck: config-types/policies/healthCheck
+        driftDetect: config-types/policies/driftDetect
+        getStatus: config-types/policies/getStatus
+      targets:
+        componentTypes: [authentik-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: stages
+      group: "Flows & Stages"
+      name: Stages
+      description: authentik Stages (Identification, Password, Authenticator Validation, User Login) — the reusable steps flows are built from — applied over the authentik Core REST API (/api/v3/stages/identification/, /stages/password/, /stages/authenticator/validate/, /stages/user_login/). Upserts by NAME within the item's selected type. Per-flow stage bindings are not authored here.
+      canvasTemplate: config-types/stages/canvas.yaml
+      defaultConfig: config-types/stages/defaults.yaml
+      handlers:
+        validate: config-types/stages/validate
+        deploy: config-types/stages/deploy
+        rollback: config-types/stages/rollback
+        healthCheck: config-types/stages/healthCheck
+        driftDetect: config-types/stages/driftDetect
+        getStatus: config-types/stages/getStatus
+      targets:
+        componentTypes: [authentik-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: sources
+      group: "Federation"
+      name: Sources
+      description: authentik federation Sources (OAuth, LDAP) — the external identity providers users can authenticate through or be enrolled from — applied over the authentik Core REST API (/api/v3/sources/oauth/, /api/v3/sources/ldap/). Identity is the source's slug (a direct path key, like Applications/Flows). Secrets (consumer_secret, bind_password) are write-only and never read back.
+      canvasTemplate: config-types/sources/canvas.yaml
+      defaultConfig: config-types/sources/defaults.yaml
+      handlers:
+        validate: config-types/sources/validate
+        deploy: config-types/sources/deploy
+        rollback: config-types/sources/rollback
+        healthCheck: config-types/sources/healthCheck
+        driftDetect: config-types/sources/driftDetect
+        getStatus: config-types/sources/getStatus
+      targets:
+        componentTypes: [authentik-server, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: brands
+      group: "System"
+      name: Brands
+      description: authentik Brands — per-domain tenant branding and default authentication/invalidation/recovery flows — applied over the authentik Core REST API (/api/v3/core/brands/). Upserts by DOMAIN (the API path key is a server-assigned UUID).
+      canvasTemplate: config-types/brands/canvas.yaml
+      defaultConfig: config-types/brands/defaults.yaml
+      handlers:
+        validate: config-types/brands/validate
+        deploy: config-types/brands/deploy
+        rollback: config-types/brands/rollback
+        healthCheck: config-types/brands/healthCheck
+        driftDetect: config-types/brands/driftDetect
+        getStatus: config-types/brands/getStatus
       targets:
         componentTypes: [authentik-server, standalone]
         requiresCredential: true

@@ -1,15 +1,31 @@
 import React from 'react'
 import { Badge, Card, CardBody, Tabs } from '@veltrixsecops/app-sdk/ui'
 
-const MANAGES = ['Security Monitoring Rules', 'Security Monitoring Suppressions', 'Log Pipelines', 'Monitors']
+const MANAGES = [
+  'Security Monitoring Rules',
+  'Security Monitoring Suppressions',
+  'Security Filters',
+  'Sensitive Data Scanner',
+  'Log Pipelines',
+  'Log Archives',
+  'Log-Based Metrics',
+  'Log Indexes',
+  'Monitors',
+  'SLOs',
+  'Roles',
+]
 
 const PERMISSIONS = [
   'security_monitoring_rules_read',
   'security_monitoring_rules_write',
   'security_monitoring_suppressions_read',
   'security_monitoring_suppressions_write',
+  'security_monitoring_filters_write',
   'monitors_write',
   'logs_write_pipelines',
+  'logs_modify_indexes',
+  'data_scanner_write',
+  'user_access_read',
 ]
 
 /**
@@ -39,9 +55,10 @@ export default function SetupGuidePage() {
             </div>
             <p>
               This app manages: {MANAGES.join(', ')}. Both the API key and the Application key are required for
-              every Security Monitoring Rules and Suppressions operation, including reads. The permissions above
-              are the ones this app's research directly confirmed against Datadog's docs — also grant standard
-              read access for Monitors and Logs Pipelines (e.g. the built-in Datadog Standard role covers both).
+              every operation, including reads, on Security Monitoring Rules/Suppressions/Filters. The
+              permissions above are the ones this app's research directly confirmed against Datadog's docs —
+              also grant standard read/write access for Log Archives, Log-Based Metrics, SLOs and Roles, or
+              simply use the built-in Datadog Admin role.
             </p>
           </CardBody>
         </Card>

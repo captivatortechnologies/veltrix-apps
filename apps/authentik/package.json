@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-authentik",
   "private": true,
-  "version": "0.3.0",
-  "description": "Veltrix app: manage authentik (open-source Identity Provider) as code — Applications, OAuth2/OpenID Providers, Groups and Flows over the authentik REST API, plus BYOL infrastructure provisioning for the authentik stack",
+  "version": "0.4.0",
+  "description": "Veltrix app: manage authentik (open-source Identity Provider) as code — Applications, Providers (OAuth2/OpenID, SAML, Proxy, LDAP), Groups, Flows & Stages, Scope Property Mappings, Policies, Sources and Brands over the authentik REST API, plus BYOL infrastructure provisioning for the authentik stack",
   "scripts": {
     "typecheck": "tsc --noEmit"
   },

@@ -1,0 +1,9 @@
+# Defaults for a new Jamf Pro computer extension attribute item.
+#
+# Intentionally empty: the platform starts a new item blank (the select/
+# checkbox fields' own defaultValue, set in canvas.yaml, already seed new
+# items) and users manage their own default value sets from there. Any values
+# here would be a FLAT map keyed by the canvas field keys (name, description,
+# data_type, input_type, inventory_display_type, enabled, script_contents,
+# popup_menu_choices, ldap_attribute_mapping, ldap_extension_attribute_allowed,
+# manage_existing_data).

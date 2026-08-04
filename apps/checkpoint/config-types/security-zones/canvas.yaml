@@ -1,0 +1,70 @@
+# =============================================================================
+# Canvas Template — Check Point Security Zones
+#
+# Declares ONE Check Point security-zone object — the item. Users add as
+# many as they need. A zone's identity is its NAME; deploy lists the
+# management database (show-security-zones), matches on the name, and uses
+# add-security-zone (create) / set-security-zone (update) to reconcile each
+# declared zone. Zones this app created but no longer declares are removed
+# (delete-security-zone).
+#
+# A security zone has no matching fields of its own — it exists purely as a
+# reference point that interface anti-spoofing settings and zone-based rule
+# matching (source/destination "zone") point to. Those referencing surfaces
+# (gateway topology, zone-based rules) are not managed by this config type;
+# see README.md.
+#
+# Field keys must match config-types/security-zones/validate.ts.
+# =============================================================================
+
+id: "checkpoint-security-zones"
+name: "Check Point Security Zone Configuration"
+toolType: "checkpoint"
+entityType: "security-zones"
+description: "Define Check Point Management API security-zone objects (add-security-zone / set-security-zone) as code. Reconciled by object name; a session-wide publish commits every change together, or discards them all on any error."
+
+item:
+  label: "Security Zone"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "map"
+      description: "Zone name"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The security zone's name — its identity in the Check Point
+            management database. Must be unique within this canvas; deploy
+            matches live objects on it.
+
+    - name: "Metadata"
+      icon: "tag"
+      description: "Optional comments, color and tags"
+      fields:
+        - key: "comments"
+          label: "Comments"
+          fieldType: "textarea"
+          required: false
+          helpText: "Optional description stored on the object."
+
+        - key: "color"
+          label: "Color"
+          fieldType: "text"
+          required: false
+          defaultValue: "black"
+          helpText: >
+            Object color shown in SmartConsole — see the object's color
+            picker in SmartConsole for the full list. Passed through as-is;
+            Check Point rejects an unknown color name at deploy time.
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          required: false
+          helpText: "Optional tag names applied to the object (created automatically if they don't already exist)."

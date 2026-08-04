@@ -1,0 +1,1 @@
+import type{HealthCheckContext,HealthCheckResult}from'@veltrixsecops/app-sdk';import{getPortForwardingRules}from'../../lib/merakiApi';import{healthCheckOrderedList}from'../../lib/merakiOrderedList';export default(ctx:HealthCheckContext):Promise<HealthCheckResult>=>healthCheckOrderedList(ctx,{get:getPortForwardingRules})

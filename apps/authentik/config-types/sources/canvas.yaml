@@ -1,0 +1,173 @@
+# =============================================================================
+# Canvas Template — authentik Sources
+#
+# Declares ONE authentik federation Source of a selected TYPE — OAuth or LDAP.
+# Field keys must match config-types/sources/validate.ts and _shared.ts.
+# Applied via the authentik Core REST API:
+#   oauth   GET/POST /sources/oauth/,  GET/PATCH/DELETE /sources/oauth/{slug}/
+#   ldap    GET/POST /sources/ldap/,   GET/PATCH/DELETE /sources/ldap/{slug}/
+#
+# IDENTITY: like Applications/Flows, a source's `slug` IS its API path key —
+# this config type retrieves by identity directly within the item's selected
+# type's endpoint.
+#
+# SECRETS ARE WRITE-ONLY. `consumer_secret` (OAuth) and `bind_password` (LDAP)
+# are `writeOnly: true` in authentik's own schema — the API NEVER returns them
+# on a GET, so this config type cannot read them back to diff or restore on
+# rollback. They are sent ONLY when the canvas item declares a non-blank
+# value (set/rotate); leaving the field blank on an update leaves the live
+# secret untouched. Rollback never touches a secret either way.
+# =============================================================================
+
+id: "authentik-sources"
+name: "Sources"
+toolType: "authentik"
+entityType: "sources"
+description: "Manage authentik federation Sources (OAuth, LDAP) — the external identity providers users can authenticate through or be enrolled from — via the authentik Core REST API"
+
+item:
+  label: "Source"
+  identityField: "slug"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "General"
+      icon: "key"
+      description: "Source identity and type"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The source's display name, shown on the login page."
+
+        - key: "slug"
+          label: "Slug"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[-a-zA-Z0-9_]+$"
+          helpText: "Internal source name, used in URLs. This is the stable identity used for upsert and drift."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "oauth"
+          options:
+            - { label: "OAuth", value: "oauth" }
+            - { label: "LDAP", value: "ldap" }
+          helpText: "Each type is a distinct authentik object with its own endpoint — see this file's header comment."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+
+        - key: "authentication_flow"
+          label: "Authentication Flow (UUID, optional)"
+          fieldType: "text"
+          required: false
+          helpText: "Flow to use when authenticating an existing user through this source."
+
+        - key: "enrollment_flow"
+          label: "Enrollment Flow (UUID, optional)"
+          fieldType: "text"
+          required: false
+          helpText: "Flow to use when enrolling a new user from this source."
+
+    - name: "OAuth (Type = OAuth)"
+      icon: "settings"
+      description: "OAuth2/OIDC application registration"
+      fields:
+        - key: "provider_type"
+          label: "Provider Type"
+          fieldType: "select"
+          required: false
+          defaultValue: "openidconnect"
+          options:
+            - { label: "OpenID Connect (generic)", value: "openidconnect" }
+            - { label: "Apple", value: "apple" }
+            - { label: "Discord", value: "discord" }
+            - { label: "Microsoft Entra ID", value: "entraid" }
+            - { label: "Facebook", value: "facebook" }
+            - { label: "GitHub", value: "github" }
+            - { label: "GitLab", value: "gitlab" }
+            - { label: "Google", value: "google" }
+            - { label: "Mailcow", value: "mailcow" }
+            - { label: "Okta", value: "okta" }
+            - { label: "Patreon", value: "patreon" }
+            - { label: "Reddit", value: "reddit" }
+            - { label: "Slack", value: "slack" }
+            - { label: "Twitch", value: "twitch" }
+            - { label: "Twitter / X", value: "twitter" }
+            - { label: "WeChat", value: "wechat" }
+
+        - key: "consumer_key"
+          label: "Consumer Key (Client ID)"
+          fieldType: "text"
+          required: false
+          helpText: "Required for Type = OAuth."
+
+        - key: "consumer_secret"
+          label: "Consumer Secret (Client Secret)"
+          fieldType: "password"
+          required: false
+          helpText: "Required for Type = OAuth on create. Write-only — leave blank on update to leave the live secret untouched."
+
+        - key: "authorization_url"
+          label: "Authorization URL"
+          fieldType: "text"
+          required: false
+          helpText: "Only needed for a generic OpenID Connect provider without a well-known URL."
+
+        - key: "access_token_url"
+          label: "Access Token URL"
+          fieldType: "text"
+          required: false
+
+        - key: "profile_url"
+          label: "Profile (Userinfo) URL"
+          fieldType: "text"
+          required: false
+
+        - key: "oidc_well_known_url"
+          label: "OIDC Well-Known URL"
+          fieldType: "text"
+          required: false
+          helpText: "When set, authentik discovers the endpoints above automatically."
+
+    - name: "LDAP (Type = LDAP)"
+      icon: "list"
+      description: "LDAP directory connection"
+      fields:
+        - key: "server_uri"
+          label: "Server URI"
+          fieldType: "text"
+          required: false
+          helpText: "Required for Type = LDAP, e.g. ldaps://ldap.example.com."
+
+        - key: "bind_cn"
+          label: "Bind CN"
+          fieldType: "text"
+          required: false
+
+        - key: "bind_password"
+          label: "Bind Password"
+          fieldType: "password"
+          required: false
+          helpText: "Write-only — leave blank on update to leave the live secret untouched. Leave both Bind CN and Bind Password blank for an anonymous bind."
+
+        - key: "base_dn"
+          label: "Base DN"
+          fieldType: "text"
+          required: false
+          helpText: "Required for Type = LDAP."
+
+        - key: "start_tls"
+          label: "Enable StartTLS"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false

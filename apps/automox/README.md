@@ -139,15 +139,48 @@ verification against a live tenant:
 - Automox's "Default Group ID" discovery mechanism for `parent_server_group_id` — this app requires the
   operator to supply it directly rather than guessing which live Server Group is the org's default.
 
-### Evaluated and declined — a 3rd config type
+## Coverage — the full Automox Console API surface
 
-`/users/{userId}/api_keys` (`POST`, create an API key for an existing Automox user) is the only other
-writable, non-imperative surface in the spec, but it requires a pre-existing `userId` (there is no
-`POST /users` — user provisioning isn't in the API) and is account/credential administration rather than
-an endpoint-security policy — tangential to this app's Endpoint Management scope and a poor fit for
-reconcile-by-identity Security-as-Code. `/servers` and `/servers/batch` are device-inventory/action
-endpoints (move group, patch-now), `/data-extracts` triggers an export job, and `/orgs` is
-account/billing settings — none are declarative policy state suited to this pipeline.
+This app's config-as-code surface was built by exhaustively walking `ax_console.yaml` end to end (the
+spec's `paths:` block: 31 distinct path templates, line 2754 to end of file) and classifying every one.
+**4 path templates are managed** (covering 3 Veltrix config types — `Policies` and `Worklets` both
+reconcile `/policies`, scoped by `policy_type_name`); the other **27 are excluded**, each for one of four
+reasons: the path is **read-only** (no write method at all), **inventory/operational** (writable, but
+device/runtime state with no create endpoint — not declarative policy), a **runtime action** (an
+imperative one-shot command or async job, not persisted reconcilable state), or **credential-admin**
+(API-key/secret lifecycle for a human user account). None of the 27 excluded paths is a declarative
+resource this pipeline's reconcile-by-identity model (list → match by name → create/update → capture
+prior state for rollback) fits.
+
+| Path(s) | Methods | Disposition | Why |
+| --- | --- | --- | --- |
+| `/policies`, `/policies/{id}` | GET/POST, GET/PUT/DELETE | **Managed** — Policies (patch) + Worklets (custom / required_software) | The only genuinely declarative, name-identified, fully-CRUD policy resource in the API. |
+| `/servergroups`, `/servergroups/{id}` | GET/POST, GET/PUT/DELETE | **Managed** — Server Groups | Same shape: named, fully CRUD, drives device/patch grouping. |
+| `/policies/{id}/files` | POST (multipart) | Excluded — **attachment** | Uploads an installer binary onto an existing Required Software policy. Not a standalone resource (no id/list/identity of its own — it's an attachment to an object `worklets` already manages) and multipart binary content doesn't fit a declarative text canvas; `installation_code` already covers the scripted-install path. Documented here as a known gap, not built. |
+| `/policies/{id}/action` | POST | Excluded — **runtime action** | "Schedule a Policy for Immediate Remediation" (`remediateAll`/`remediateServer`) — a one-shot imperative trigger, not state. |
+| `/policies/device-filters-preview` | POST | Excluded — **read-only** | Computes a dry-run preview of which devices a filter set would match; nothing is persisted. |
+| `/policystats` | GET | Excluded — **read-only** | Policy compliance statistics. |
+| `/servers`, `/servers/{id}/packages` | GET | Excluded — **read-only / inventory** | Device list and per-device installed/pending package inventory. |
+| `/servers/{id}` | GET/PUT/DELETE | Excluded — **inventory/operational** | PUT updates `server_group_id`/`tags`/`exception`/`custom_name`; DELETE deregisters a device. Writable, but there is **no `POST /servers`** — devices are created only by the Automox agent installing itself on an endpoint, never by this API. With no create path and no operator-chosen identity, "list → match by name → create if missing" doesn't apply; a device is ephemeral runtime inventory (like a host in an EDR/vuln app), not a security policy to author. |
+| `/servers/batch` | POST | Excluded — **runtime action** | Bulk tag apply/remove across up to 500 devices; returns an async `Batch` job with progress counters, not a resource. |
+| `/servers/{id}/queues` | GET/POST | Excluded — **runtime action** (GET is read-only) | POST issues an immediate device command (`Reboot`, `InstallUpdate`, `InstallAllUpdates`, `GetOS`, worklet test/remediate) — a one-shot command queue entry, not declarative config. |
+| `/orgs` | GET | Excluded — **read-only** | Used as this app's connectivity probe (see below); also the only endpoint here with no write method for org/billing settings. |
+| `/orgs/{id}/packages`, `/orgs/{id}/api_keys` | GET | Excluded — **read-only** | Org-wide package inventory; list of the org's API keys (no create/update/delete at this path — that lives under `/users/{userId}/api_keys`). |
+| `/reports/prepatch`, `/reports/noncompliance` (deprecated), `/reports/needs-attention` | GET | Excluded — **read-only** | Compliance/patch reports. |
+| `/approvals/{id}` | PUT | Excluded — **runtime action** | Approve/reject a manual-approval patch record. No `POST /approvals` — these are system-generated per pending patch event with ephemeral, non-operator-chosen ids; there is nothing to author or reconcile, only a binary decision to record. |
+| `/users`, `/users/{userId}` | GET | Excluded — **read-only** | No `POST /users` — user provisioning is not exposed by this API at all. |
+| `/users/{userId}/api_keys`, `/users/{userId}/api_keys/{id}`, `/users/{userId}/api_keys/{id}/decrypt` | GET/POST, GET/PUT/DELETE, POST | Excluded — **credential-admin** | Full CRUD + a **decrypt** endpoint for a human user's personal API keys. This is secret/credential lifecycle management (requires Full Administrator privileges; the decrypt route returns the plaintext key) — account administration, not an endpoint-security policy, and a poor fit for a pipeline that stores rollback state and drift-diffs in the clear. |
+| `/community-worklets`, `/community-worklets/{id}` | GET | Excluded — **read-only** | Browsable catalog of Automox's shared Worklet library (a future options-source for `worklets.evaluation_code`, not a resource of its own). |
+| `/data-extracts`, `/data-extracts/{id}`, `/data-extracts/{id}/download` | GET/POST, GET, GET | Excluded — **runtime action / async job** | POST queues a one-shot `patch-history` CSV export job (`queued → running → complete/failed/canceled/expired`); no update, and delete isn't offered — a job, not a resource with a lasting desired state. |
+| `/events` | GET | Excluded — **read-only** | Audit/event log (policy actions, device add/remove, user add/remove). |
+
+**Conclusion: the write surface is exhausted.** After this exhaustive pass, no further genuinely
+declarative, reconcile-by-identity config-as-code surface remains in the Automox Console API. This is
+consistent with (and now fully confirmed after) the 0.2.0 finding that Automox's config-as-code surface
+is inherently thin: it is fundamentally a patch/software-deployment product, not a policy-authoring
+platform, so almost everything beyond `/policies` and `/servergroups` is either inventory of
+agent-managed devices, one-shot operational commands, read-only reporting, or account/credential
+administration.
 
 ## References
 

@@ -6,6 +6,7 @@ import {
   MAX_PAGE_SIZE,
   type CheckpointClient,
 } from '../../lib/checkpointApi'
+import { buildPositionPayload } from '../lib/checkpointShared'
 import {
   extractAccessRuleSpecs,
   liveActionName,
@@ -17,6 +18,10 @@ import {
   type LiveAccessRule,
 } from './validate'
 
+// Re-exported for API stability — this config type's position logic now lives
+// in the shared module (nat-rules uses the identical top/bottom/above/below shape).
+export { buildPositionPayload }
+
 export interface RollbackEntry {
   itemId?: string
   name: string
@@ -27,19 +32,6 @@ export interface RollbackEntry {
   existed: boolean
   /** Prior managed FIELD values (not position — see README's ordering-rollback limitation). */
   prior?: Record<string, unknown>
-}
-
-/**
- * The `position` (add) / `new-position` (set) payload value. top/bottom are
- * absolute; above/below reference another rule or section BY NAME, which
- * must already exist — either pre-existing or an earlier item in the SAME
- * deploy (items are applied in canvas declaration order; declare an anchor
- * rule before anything that positions itself above/below it).
- */
-export function buildPositionPayload(spec: AccessRuleSpec): unknown {
-  if (spec.position === 'top') return 'top'
-  if (spec.position === 'bottom') return 'bottom'
-  return { [spec.position]: spec.positionAnchor }
 }
 
 /** Fields common to add-access-rule and set-access-rule — everything except identity/layer/position. */

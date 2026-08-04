@@ -1,0 +1,70 @@
+# =============================================================================
+# Canvas Template — Datadog Security Filters
+#
+# Declares ONE security filter (the item). A security filter EXCLUDES logs
+# from security analysis entirely — distinct from a Suppression (which still
+# analyzes but silences the resulting signal). Reconciled by filter `name`
+# (case-insensitive) against
+# GET /api/v2/security_monitoring/configuration/security_filters (a
+# JSON:API resource).
+#
+# Field keys must match config-types/security-filters/_shared.ts.
+# API reference: https://docs.datadoghq.com/api/latest/security-monitoring/create-a-security-filter/
+# =============================================================================
+
+id: "datadog-security-filters"
+name: "Security Filter"
+toolType: "datadog"
+entityType: "security-filters"
+description: "Define Datadog Security Monitoring security filters as code (exclude logs from security analysis) through the Security Filters API. Reconciled by filter name."
+
+item:
+  label: "Security Filter"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Filter"
+      icon: "filter"
+      description: "Identity, scope and lifecycle"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The security filter name — this app's logical identity for the filter (matched case-insensitively against Datadog's live filters on every deploy)."
+
+        - key: "query"
+          label: "Query"
+          fieldType: "textarea"
+          required: true
+          helpText: 'Log search query selecting which logs this filter excludes from security analysis, e.g. source:datadog.agent.'
+
+        - key: "is_enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the filter is active."
+
+        - key: "filtered_data_type"
+          label: "Filtered Data Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "logs"
+          options:
+            - { label: "Logs", value: "logs" }
+          helpText: '"logs" is the only value Datadog currently documents for this field.'
+
+    - name: "Exclusion Filters"
+      icon: "code"
+      description: "Narrow which of the matched logs are excluded, as JSON"
+      fields:
+        - key: "exclusion_filters"
+          label: "Exclusion Filters (JSON array, optional)"
+          fieldType: "textarea"
+          required: false
+          defaultValue: "[]"
+          helpText: 'Optional JSON array of {"name":"...","query":"..."} objects that scope the exclusion further (e.g. only exclude a subset within the matched query). Leave as [] to exclude every log the main query matches.'

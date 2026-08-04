@@ -1,0 +1,74 @@
+# =============================================================================
+# Canvas Template — Check Point Service Groups
+#
+# Declares ONE Check Point service group — the item. Users add as many as
+# they need. A service group's identity is its NAME; deploy lists the
+# management database (show-service-groups), matches on the name, and uses
+# add-service-group (create) / set-service-group (update) to reconcile each
+# declared group. set-service-group always sends the FULL declared member
+# list. Groups this app created but no longer declares are removed
+# (delete-service-group).
+#
+# Field keys must match config-types/service-groups/validate.ts.
+# =============================================================================
+
+id: "checkpoint-service-groups"
+name: "Check Point Service Group Configuration"
+toolType: "checkpoint"
+entityType: "service-groups"
+description: "Define Check Point Management API service-group objects (add-service-group / set-service-group) as code. Reconciled by object name; a session-wide publish commits every change together, or discards them all on any error."
+
+item:
+  label: "Service Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "plug"
+      description: "Group name and members"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The service group's name — its identity in the Check Point
+            management database. Must be unique within this canvas; deploy
+            matches live objects on it.
+
+        - key: "members"
+          label: "Members"
+          fieldType: "tags"
+          required: false
+          helpText: >
+            Member service object names (TCP/UDP/other services, or other
+            service groups). Update always sends the full list, so removing a
+            name here removes that member from the live group.
+
+    - name: "Metadata"
+      icon: "tag"
+      description: "Optional comments, color and tags"
+      fields:
+        - key: "comments"
+          label: "Comments"
+          fieldType: "textarea"
+          required: false
+          helpText: "Optional description stored on the object."
+
+        - key: "color"
+          label: "Color"
+          fieldType: "text"
+          required: false
+          defaultValue: "black"
+          helpText: >
+            Object color shown in SmartConsole — see the object's color
+            picker in SmartConsole for the full list. Passed through as-is;
+            Check Point rejects an unknown color name at deploy time.
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          required: false
+          helpText: "Optional tag names applied to the object (created automatically if they don't already exist)."

@@ -3,6 +3,84 @@
 All notable changes to the Check Point app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 0.3.0 — 2026-08-03
+
+Exhausts the config-as-code write surface for object management and adds a
+second ordered rulebase (NAT), bringing this app to 11 configuration types.
+
+### Added
+- **Address ranges (`address-ranges`).** `add-address-range` /
+  `set-address-range` / `delete-address-range` against `show-address-ranges`;
+  identity by name. Each range declares a complete IPv4 and/or IPv6
+  first/last endpoint pair; validation rejects a backwards IPv4 range.
+- **Network groups (`network-groups`).** `add-group` / `set-group` /
+  `delete-group` against `show-groups`; identity by name. Members (any
+  object type, resolved by Check Point) are declared as a plain list —
+  `set-group` always sends the FULL declared member list, so removing a name
+  from the canvas removes that member from the live group.
+- **Security zones (`security-zones`).** `add-security-zone` /
+  `set-security-zone` / `delete-security-zone` against
+  `show-security-zones`; identity by name. No fields beyond identity,
+  comments, color and tags — a zone is a pure reference point (see Coverage
+  for what points to it that this app does not manage).
+- **Service groups (`service-groups`).** `add-service-group` /
+  `set-service-group` / `delete-service-group` against
+  `show-service-groups`; identity by name; same full-member-list update
+  semantics as network groups.
+- **Application sites (`application-sites`).** `add-application-site` /
+  `set-application-site` / `delete-application-site` against
+  `show-application-sites`; identity by name. Matches traffic by URL/domain
+  pattern (wildcard glob or regular expression) plus an optional primary
+  category; application-signature-based matching is not modeled (flagged).
+- **Tags (`tags`).** `add-tag` / `set-tag` / `delete-tag` against
+  `show-tags`; identity by name; comments/color only (a tag has no `tags`
+  field of its own).
+- **NAT rules (`nat-rules`) — a second ordered rulebase.** `add-nat-rule` /
+  `set-nat-rule` / `delete-nat-rule` against `show-nat-rulebase`, sharing
+  `access-rules`' position model (`top`/`bottom`/`above`/`below`,
+  canvas-declaration-order application, position re-asserted on update,
+  rollback restores fields but not position) via the newly shared
+  `buildPositionPayload`/`RULE_POSITIONS` in `checkpointShared.ts`. Two
+  differences from access rules, both verified against the Terraform
+  provider source: NAT rulebases are **per-package** (no `layer` concept —
+  identity is name within `package`, requires management version R81+), and
+  `original-*`/`translated-*` are **single object names**, not arrays (blank
+  original → `"Any"`, blank translated → `"Original"`, both re-asserted on
+  every deploy). **Automatic NAT rules** (`auto-generated: true`, derived
+  from an object's own `nat-settings`) are filtered out at list time and are
+  never matched, updated, or deleted — even by a same-named declared rule.
+- **`group` on every configuration type** — added retroactively to
+  `network-hosts`/`network-objects`/`service-objects` ("Objects") and
+  `access-rules` ("Policy") from 0.1.0/0.2.0, which shipped without it.
+- **Shared `checkpointGetStatus`.** Every config type's `getStatus.ts` was
+  byte-for-byte identical (deployment + component status via the platform
+  data API only); factored into `config-types/lib/checkpointShared.ts` and
+  reused by all 11 config types instead of being duplicated per type.
+- **README Coverage section.** A complete map of the Check Point Management
+  API's configuration-as-code surface: every config type this app manages,
+  and every remaining surface (gateways/clusters/VPN communities that need
+  topology, Threat Prevention/HTTPS-Inspection/Desktop/QoS rulebases,
+  identity/user/administrator management, policy installation and other
+  imperative actions, and rulebase Sections) intentionally excluded, with
+  the reasoning for each.
+
+### References (new this release)
+- `github.com/CheckPointSW/terraform-provider-checkpoint` —
+  `resource_checkpoint_management_{address_range,group,security_zone,
+  service_group,application_site,tag,nat_rule}.go` and
+  `data_source_checkpoint_management_nat_rulebase.go` — verified exact
+  payload/response field names (`ipv4-address-first`, `auto-generated`, the
+  `nat-rulebase` response envelope identified by `package`) and confirmed
+  the NAT `position`/`new-position` payload shape is identical to access
+  rules'.
+- `github.com/CheckPointSW/CheckPointAnsibleMgmtCollection` —
+  `cp_mgmt_address_range[_facts].py`, `cp_mgmt_group[_facts].py`,
+  `cp_mgmt_security_zone[_facts].py`, `cp_mgmt_service_group[_facts].py`,
+  `cp_mgmt_application_site[_facts].py`, `cp_mgmt_tag[_facts].py`,
+  `cp_mgmt_nat_rule[_facts].py` — verified documented parameters, each
+  object's primary identifier, and the `show-groups` / `show-security-zones`
+  / `show-service-groups` / `show-tags` plural list command names.
+
 ## 0.2.0 — 2026-08-02
 
 ### Added

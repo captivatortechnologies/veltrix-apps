@@ -1,0 +1,100 @@
+# =============================================================================
+# Canvas Template — Jamf Pro macOS Configuration Profiles
+#
+# Declares ONE Jamf Pro macOS configuration profile — the item. Users add as
+# many as they need. Classic API only (XML, /JSSResource/osxconfigurationprofiles).
+# Reconciled by name.
+#
+# THE PAYLOAD IS OPAQUE: paste the FULL plist XML for the profile's payload(s)
+# (the same content you would import as a .mobileconfig) verbatim into
+# "Payload (plist XML)" below. This app does not parse, validate or generate
+# plist content — see config-types/macos-configuration-profiles/validate.ts.
+#
+# Scope computer groups are referenced BY NAME and must already exist (e.g.
+# via this app's Smart/Static Computer Groups config types).
+#
+# Field keys must match config-types/macos-configuration-profiles/validate.ts.
+# =============================================================================
+
+id: "jamf-macos-configuration-profiles"
+name: "Jamf Pro macOS Configuration Profile Configuration"
+toolType: "jamf"
+entityType: "macos-configuration-profiles"
+description: "Declare Jamf Pro macOS configuration profiles as code through the Classic API (XML, /JSSResource/osxconfigurationprofiles). Reconciled by name; the plist payload is an opaque passthrough — see validate.ts."
+
+item:
+  label: "macOS Configuration Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 300
+  groups:
+    - name: "Identity"
+      icon: "file-shield"
+      description: "Name and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The profile's display name in Jamf Pro — its logical identity for reconciliation."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+
+    - name: "Distribution"
+      icon: "send"
+      description: "How the profile is delivered and whether it can be removed"
+      fields:
+        - key: "distribution_method"
+          label: "Distribution Method"
+          fieldType: "select"
+          required: true
+          defaultValue: "Install Automatically"
+          options:
+            - { label: "Install Automatically", value: "Install Automatically" }
+            - { label: "Make Available in Self Service", value: "Make Available in Self Service" }
+          helpText: "Self Service branding (icon/description) is not managed by this app — set it in Jamf Pro after deploy if using Self Service."
+
+        - key: "level"
+          label: "Level"
+          fieldType: "select"
+          required: true
+          defaultValue: "computer"
+          options:
+            - { label: "Computer Level", value: "computer" }
+            - { label: "User Level", value: "user" }
+
+        - key: "user_removable"
+          label: "User Removable"
+          fieldType: "checkbox"
+          defaultValue: true
+
+    - name: "Payload"
+      icon: "file-code"
+      description: "The opaque, verbatim plist payload"
+      fields:
+        - key: "payloads"
+          label: "Payload (plist XML)"
+          fieldType: "textarea"
+          required: true
+          helpText: "The FULL plist XML for this profile's payload(s), exactly as it would appear in a .mobileconfig file. Passed through verbatim — not parsed or validated by this app."
+
+    - name: "Scope"
+      icon: "target"
+      description: "Which computers receive the profile"
+      fields:
+        - key: "all_computers"
+          label: "All Computers"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "computer_group_names"
+          label: "Scoped Computer Group Names"
+          fieldType: "tags"
+          helpText: "Computer group names to scope the profile to (must already exist in Jamf Pro). Ignored when All Computers is enabled."
+
+        - key: "exclusion_computer_group_names"
+          label: "Excluded Computer Group Names"
+          fieldType: "tags"

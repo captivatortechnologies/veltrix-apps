@@ -1,0 +1,1 @@
+import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'; import { deploySingleton } from '../../lib/merakiSingleton'; import { transport } from './_shared'; export default (ctx: DeployContext): Promise<DeployResult> => deploySingleton(ctx, transport)

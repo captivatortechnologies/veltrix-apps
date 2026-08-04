@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — Cisco ISE Endpoints
+#
+# Declares ONE endpoint (a specific MAC address) — the item. Users add as many
+# as they need. Field keys must match config-types/endpoints/_shared.ts.
+# Applied via the ISE ERS API (POST/PUT/DELETE /ers/config/endpoint).
+#
+# This is the individual-MAC resource — distinct from the Endpoint Identity
+# Groups config type (which manages the GROUPS themselves). Identity here is
+# the MAC address, not a name — ISE's own default "name" for an endpoint is
+# its MAC, which this app follows.
+# =============================================================================
+
+id: "cisco-ise-endpoints"
+name: "Endpoints"
+toolType: "cisco-ise"
+entityType: "endpoints"
+description: "Manage individual Cisco ISE endpoints (MAC addresses) and their static endpoint-identity-group assignment via the ERS API (/ers/config/endpoint)"
+
+item:
+  label: "Endpoint"
+  identityField: "mac"
+  repeatable: true
+  minItems: 1
+  maxItems: 2000
+  groups:
+    - name: "Endpoint"
+      icon: "hard-drive"
+      description: "MAC address and group assignment"
+      fields:
+        - key: "mac"
+          label: "MAC Address"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 17
+          helpText: >
+            The endpoint's MAC address, e.g. AA:BB:CC:DD:EE:FF (colons, dashes
+            or no separator all accepted — normalized before sending to ISE).
+            Used as the stable identity for upsert and drift.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+
+        - key: "group_name"
+          label: "Endpoint Identity Group"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: >
+            An endpoint identity group NAME (see the Endpoint Identity Groups
+            config type) — resolved to its id at deploy time; it must already
+            exist. Leave blank to let ISE's profiler assign a group instead of
+            a static one.

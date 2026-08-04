@@ -1,0 +1,5 @@
+# Defaults for a new SAML provider item — intentionally minimal; the operator
+# fills in the name, flow UUIDs and ACS URL.
+sp_binding: "redirect"
+sign_assertion: false
+sign_response: false

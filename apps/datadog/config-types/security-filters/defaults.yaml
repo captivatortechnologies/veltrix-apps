@@ -1,0 +1,6 @@
+# Defaults for a new Security Filter item.
+#
+# Intentionally minimal: the per-field defaultValue in canvas.yaml already
+# seeds is_enabled, filtered_data_type and exclusion_filters. Any values here
+# would be a FLAT map keyed by the canvas field keys (name, query, is_enabled,
+# filtered_data_type, exclusion_filters).

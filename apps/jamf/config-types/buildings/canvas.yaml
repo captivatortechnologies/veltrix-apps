@@ -1,0 +1,56 @@
+# =============================================================================
+# Canvas Template — Jamf Pro Buildings
+#
+# Declares ONE Jamf Pro building — the item. Users add as many as they need.
+# Buildings are created/updated through the modern Jamf Pro API
+# (POST/PUT /v1/buildings) and identified for reconciliation by their `name`.
+#
+# Field keys must match config-types/buildings/validate.ts.
+# =============================================================================
+
+id: "jamf-buildings"
+name: "Jamf Pro Building Configuration"
+toolType: "jamf"
+entityType: "buildings"
+description: "Declare Jamf Pro buildings as code through the modern Jamf Pro API (GET/POST/PUT/DELETE /v1/buildings). Reconciled by building name."
+
+item:
+  label: "Building"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Building"
+      icon: "building"
+      description: "Name and postal address"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The building's display name — its logical identity for reconciliation."
+
+        - key: "street_address_1"
+          label: "Street Address 1"
+          fieldType: "text"
+
+        - key: "street_address_2"
+          label: "Street Address 2"
+          fieldType: "text"
+
+        - key: "city"
+          label: "City"
+          fieldType: "text"
+
+        - key: "state_province"
+          label: "State / Province"
+          fieldType: "text"
+
+        - key: "zip_postal_code"
+          label: "ZIP / Postal Code"
+          fieldType: "text"
+
+        - key: "country"
+          label: "Country"
+          fieldType: "text"

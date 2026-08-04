@@ -3,6 +3,92 @@
 All notable changes to the authentik app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 0.4.0 — 2026-08-04
+
+Exhausts authentik's meaningful declarative config-as-code surface: eight new
+configuration types (12 total), every type now carries a sidebar `group`, and
+a full README **Coverage** section enumerates what is managed vs. what is
+intentionally excluded and why. BYOL infrastructure from 0.3.0 is untouched.
+`lib/authentikApi.ts` is reused unchanged by every new type (Bearer client,
+page-number pager, `findByName`); it gains one generalization —
+`findByField` — for the one resource whose upsert identity isn't `name`.
+
+- **SAML Providers (`saml-providers`, group "Providers")** — name, flows, ACS
+  URL, audience, SP binding, assertion/response signing, scope mappings, over
+  `/api/v3/providers/saml/`. Upserts by name (server-assigned integer `pk`,
+  same pattern as OAuth2/OpenID Providers). Signing/verification/encryption
+  keypair references, SLS (logout) URL/binding, NameID/AuthnContextClassRef
+  mapping overrides and validity-window overrides are dropped for now (real,
+  writable fields authentik defaults when omitted).
+- **Proxy Providers (`proxy-providers`, group "Providers")** — name, flows,
+  mode (proxy / forward-auth single / forward-auth domain), internal/external
+  host, upstream SSL validation, skip-auth path regexes, HTTP-Basic injection,
+  cookie domain, scope mappings, over `/api/v3/providers/proxy/`. `certificate`
+  (a keypair reference), JWT federation, and token-validity overrides are
+  dropped for now.
+- **LDAP Providers (`ldap-providers`, group "Providers")** — name, flows, base
+  DN, uid/gid start numbers, search/bind mode, MFA support, scope mappings,
+  over `/api/v3/providers/ldap/`. `certificate` and `tls_server_name` are
+  dropped for now.
+- **Scope Property Mappings (`scope-property-mappings`, group
+  "Customization")** — name, requested scope name, consent description and the
+  Python expression that computes the scope's claims, over
+  `/api/v3/propertymappings/provider/scope/`. Upserts by name
+  (server-assigned UUID). Unblocks a real dependency: a mapping's pk can be
+  pasted into an OAuth2/OpenID Provider's Scope/Property Mappings field.
+- **Policies (`policies`, group "Policies")** — Expression, Password and
+  Reputation policies, each a genuinely distinct authentik model with its own
+  endpoint (`/policies/expression/`, `/policies/password/`,
+  `/policies/reputation/`), unified behind one config type with a `type`
+  selector; upserts by name **within** the selected type's endpoint. Retyping
+  an existing item creates a new policy under the new endpoint rather than
+  migrating it — the prior one is left in place (documented in canvas.yaml).
+- **Stages (`stages`, group "Flows & Stages")** — Identification, Password,
+  Authenticator Validation and User Login stages, each its own endpoint
+  (`/stages/identification/`, `/stages/password/`,
+  `/stages/authenticator/validate/`, `/stages/user_login/`), unified behind one
+  config type with a `type` selector; upserts by name within the selected
+  type. A stage created here is immediately usable in authentik's own flow
+  editor — **per-flow stage bindings (ordering, policies) are NOT authored**;
+  see Coverage.
+- **Sources (`sources`, group "Federation")** — OAuth and LDAP federation
+  sources, each its own endpoint (`/sources/oauth/`, `/sources/ldap/`),
+  unified behind one config type with a `type` selector; identity is the
+  source's `slug` (a direct path key, like Applications/Flows — retrieves by
+  identity, not list+match). `consumer_secret` / `bind_password` are
+  `writeOnly: true` in authentik's own schema — never read back for drift or
+  rollback, sent only when the canvas item declares a non-blank value.
+- **Brands (`brands`, group "System")** — the per-domain tenant branding and
+  default authentication/invalidation/recovery flow record, over
+  `/api/v3/core/brands/`. Upserts by **domain** (server-assigned UUID path
+  key) via a new generic `findByField` helper in `lib/authentikApi.ts`
+  (`findByName` is now a thin wrapper over it). Secondary flow overrides,
+  custom CSS/map tiles, `default_application` and certificate references are
+  dropped for now.
+- **Re-grouped every configuration type** for the sidebar: Applications →
+  "Applications"; OAuth2/OpenID, SAML, Proxy, LDAP Providers → "Providers";
+  Groups → "Directory"; Flows and Stages → "Flows & Stages"; Scope Property
+  Mappings → "Customization"; Policies → "Policies"; Sources → "Federation";
+  Brands → "System".
+- **README Coverage section** — every authentik config surface, managed vs.
+  intentionally excluded and why (see README for the full table): user
+  lifecycle (provisioned via Sources/SCIM sync, not hand-authored), API
+  tokens/app passwords (credentials, not config), certificates/keypairs
+  (private key material, referenced by pk only), per-flow stage bindings and
+  policy bindings (graph-shaped ordering/conditions, not a flat item list),
+  outposts (infrastructure lifecycle, not REST config), and read-only/runtime
+  surfaces (events, tasks, system health, RBAC). Also notes legitimate
+  follow-up work not yet built: RAC/RADIUS/SCIM providers and the
+  non-scope property-mapping subtypes (SAML/LDAP/notification/…) — same
+  pattern, different endpoint, deferred for scope discipline rather than
+  infeasibility.
+
+> Cited against `https://api.goauthentik.io/schema.yml` (fetched directly and
+> grepped for every schema referenced above), plus the endpoint reference
+> pages at `https://api.goauthentik.io/reference/...`. See the README's
+> References section for the exact schema names and endpoint pages per config
+> type.
+
 ## 0.3.0 — 2026-08-02
 
 BYOL infrastructure hosting for the authentik stack — the app now owns

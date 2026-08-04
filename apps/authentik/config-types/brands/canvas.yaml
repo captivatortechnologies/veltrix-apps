@@ -1,0 +1,97 @@
+# =============================================================================
+# Canvas Template — authentik Brands
+#
+# Declares ONE authentik Brand (the item) — authentik's per-domain tenant
+# branding + default-flow configuration. Field keys must match
+# config-types/brands/validate.ts and _shared.ts. Applied via the authentik
+# Core REST API (GET/POST /core/brands/, GET/PATCH/DELETE
+# /core/brands/{brand_uuid}/).
+#
+# IDENTITY: the API path key is a server-assigned UUID (`brand_uuid`) — this
+# config type upserts by DOMAIN (list `?domain=` → exact match → PATCH/POST)
+# via the generic `findByField` helper in lib/authentikApi.ts.
+#
+# DELIBERATELY EXCLUDED for v0.4.0 (see README Coverage): `branding_custom_css`,
+# `branding_map_tiles`, the secondary flow overrides (`flow_user_switch`,
+# `flow_unenrollment`, `flow_user_settings`, `flow_device_code`,
+# `flow_lockdown`, `flow_request`), `default_application`, `web_certificate`
+# (a keypair reference) and `client_certificates`. These are real, writable
+# fields authentik accepts as defaults when omitted from a PATCH/POST.
+# =============================================================================
+
+id: "authentik-brands"
+name: "Brands"
+toolType: "authentik"
+entityType: "brands"
+description: "Manage authentik Brands — the per-domain tenant branding and default authentication/invalidation/recovery flows — via the authentik Core REST API"
+
+item:
+  label: "Brand"
+  identityField: "domain"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "key"
+      description: "Activating domain"
+      fields:
+        - key: "domain"
+          label: "Domain"
+          fieldType: "text"
+          required: true
+          helpText: "The domain that activates this brand, e.g. auth.example.com. Can be a superset (a.b matches aa.b and ba.b). Stable identity used for upsert and drift. Required by authentik."
+
+        - key: "default"
+          label: "Default brand"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Used when no other brand's domain matches the request."
+
+    - name: "Branding"
+      icon: "settings"
+      description: "What users see"
+      fields:
+        - key: "branding_title"
+          label: "Title"
+          fieldType: "text"
+          required: false
+
+        - key: "branding_logo"
+          label: "Logo URL"
+          fieldType: "text"
+          required: false
+
+        - key: "branding_favicon"
+          label: "Favicon URL"
+          fieldType: "text"
+          required: false
+
+    - name: "Default Flows"
+      icon: "link"
+      description: "Flow UUIDs used by this brand"
+      fields:
+        - key: "flow_authentication"
+          label: "Authentication Flow (UUID, optional)"
+          fieldType: "text"
+          required: false
+
+        - key: "flow_invalidation"
+          label: "Invalidation Flow (UUID, optional)"
+          fieldType: "text"
+          required: false
+
+        - key: "flow_recovery"
+          label: "Recovery Flow (UUID, optional)"
+          fieldType: "text"
+          required: false
+
+    - name: "Attributes"
+      icon: "list"
+      description: "Custom key/value attributes"
+      fields:
+        - key: "attributes"
+          label: "Attributes"
+          fieldType: "keyvalue"
+          required: false

@@ -1,0 +1,1 @@
+import type { RollbackContext, RollbackResult } from '@veltrixsecops/app-sdk'; import { rollbackOrderedList } from '../../lib/merakiOrderedList'; import { transport } from './_shared'; export default (ctx: RollbackContext): Promise<RollbackResult> => rollbackOrderedList(ctx, transport)

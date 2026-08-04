@@ -1,0 +1,8 @@
+# Defaults for a new Check Point NAT-rule item.
+#
+# A FLAT map keyed by the canvas field keys. Defaults to enabled, Hide NAT
+# (the more common ad-hoc outbound-NAT use case), and appended at the bottom
+# of the rulebase so a new rule never disturbs existing NAT precedence.
+enabled: true
+method: hide
+position: bottom

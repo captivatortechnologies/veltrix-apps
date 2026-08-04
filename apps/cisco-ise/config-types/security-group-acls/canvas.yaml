@@ -1,0 +1,66 @@
+# =============================================================================
+# Canvas Template — Cisco ISE Security Group ACLs (SGACL)
+#
+# Declares ONE Security Group ACL — the item. Users add as many as they need.
+# Field keys must match config-types/security-group-acls/_shared.ts. Applied
+# via the ISE ERS API (POST/PUT/DELETE /ers/config/sgacl).
+#
+# An SGACL is TrustSec's egress-policy enforcement content, referenced from the
+# TrustSec matrix (source SGT x destination SGT -> SGACL(s)) — matrix cell
+# authoring itself is out of scope (see the app README's Coverage section).
+# =============================================================================
+
+id: "cisco-ise-security-group-acls"
+name: "Security Group ACLs"
+toolType: "cisco-ise"
+entityType: "security-group-acls"
+description: "Manage Cisco ISE TrustSec Security Group ACLs (SGACLs) via the ERS API (/ers/config/sgacl)"
+
+item:
+  label: "Security Group ACL"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "ACL"
+      icon: "shield"
+      description: "SGACL identity and content"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The SGACL name in ISE. Must start with a letter and contain only
+            letters, numbers and underscores (ISE's own naming rule). Used as
+            the stable identity for upsert and drift.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this ACL enforces — recorded on the SGACL in ISE."
+
+        - key: "ip_version"
+          label: "IP Version"
+          fieldType: "select"
+          required: true
+          defaultValue: "IP_AGNOSTIC"
+          options:
+            - { label: "IPv4", value: "IPV4" }
+            - { label: "IPv6", value: "IPV6" }
+            - { label: "IP-agnostic", value: "IP_AGNOSTIC" }
+          helpText: "The IP version this SGACL's rules apply to."
+
+        - key: "acl_content"
+          label: "ACL Content"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            One ACL line per row, e.g. "permit tcp dst eq 443" or "deny ip".
+            Sent to ISE as a single newline-joined string.

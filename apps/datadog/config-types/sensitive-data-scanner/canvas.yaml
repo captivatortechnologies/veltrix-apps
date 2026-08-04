@@ -1,0 +1,95 @@
+# =============================================================================
+# Canvas Template — Datadog Sensitive Data Scanner (DLP)
+#
+# Declares ONE scanning GROUP (the item), with its scanning RULES authored as
+# a nested JSON array. Reconciled by group `name` (case-insensitive); rules
+# within a group are reconciled by rule `name` and are FULLY SYNCED — a live
+# rule in this group that is no longer declared here is DELETED (this app
+# treats the Rules field as the complete, authoritative rule set for the
+# group, the same "fully declare, fully replace" model used everywhere else
+# in this app).
+#
+# NOT MANAGED: group/rule ORDERING (a separate reorder operation on the
+# org-wide scanner configuration) — out of scope for this release.
+#
+# Field keys must match config-types/sensitive-data-scanner/_shared.ts.
+# API reference: https://docs.datadoghq.com/api/latest/sensitive-data-scanner/
+# =============================================================================
+
+id: "datadog-sensitive-data-scanner"
+name: "Scanning Group"
+toolType: "datadog"
+entityType: "sensitive-data-scanner"
+description: "Define Datadog Sensitive Data Scanner (DLP) scanning groups and their rules as code through the Sensitive Data Scanner API. Reconciled by group name; rules within a group are fully synced to what's declared."
+
+item:
+  label: "Scanning Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Group"
+      icon: "shield-alert"
+      description: "Identity and scope"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The scanning group name — this app's logical identity for the group (matched case-insensitively against Datadog's live groups on every deploy)."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+
+        - key: "is_enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "product_list"
+          label: "Products Scanned"
+          fieldType: "multiselect"
+          required: true
+          options:
+            - { label: "Logs", value: "logs" }
+            - { label: "RUM", value: "rum" }
+            - { label: "Events", value: "events" }
+            - { label: "APM (Spans)", value: "apm" }
+          helpText: "Which Datadog products this group scans."
+
+        - key: "filter_query"
+          label: "Filter Query"
+          fieldType: "text"
+          required: false
+          defaultValue: "*"
+          helpText: 'Search query narrowing which events within the selected products this group scans. Defaults to "*" (everything).'
+
+    - name: "Rules"
+      icon: "code"
+      description: "The group's scanning rules, as JSON — fully synced on every deploy"
+      fields:
+        - key: "rules"
+          label: "Rules (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A JSON array of rule objects. Each needs "name" and either a
+            custom "pattern" (regex string) OR a "standard_pattern_id" (from
+            Datadog's built-in library — GET
+            /api/v2/sensitive-data-scanner/config/standard-patterns) — never
+            both. Optional: "description", "is_enabled" (default true),
+            "priority" (1-5, default 3), "namespaces" (included log/span
+            attribute paths), "excluded_namespaces", "tags",
+            "included_keyword_configuration": {"keywords":[...],
+            "character_count":N}, "text_replacement": {"type":"none"|"hash"|
+            "replacement_string"|"partial_replacement_from_beginning"|
+            "partial_replacement_from_end", "replacement_string"?,
+            "number_of_chars"?}. Example:
+            [{"name":"Credit card","pattern":"\\b(?:\\d[ -]*?){13,16}\\b","priority":1,"text_replacement":{"type":"hash"}}].
+            A rule in this group that is later removed from this array is
+            DELETED on the next deploy.

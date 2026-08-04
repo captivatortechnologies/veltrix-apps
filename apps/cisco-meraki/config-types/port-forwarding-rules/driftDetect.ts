@@ -1,0 +1,1 @@
+import type{DriftContext,DriftResult}from'@veltrixsecops/app-sdk';import{getPortForwardingRules}from'../../lib/merakiApi';import{driftOrderedList}from'../../lib/merakiOrderedList';import{normalizePortForwardingRule}from'./_shared';export default(ctx:DriftContext):Promise<DriftResult>=>driftOrderedList(ctx,{get:getPortForwardingRules},normalizePortForwardingRule)

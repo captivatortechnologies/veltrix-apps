@@ -1,0 +1,111 @@
+# =============================================================================
+# Canvas Template — authentik LDAP Providers
+#
+# Declares ONE authentik LDAP Provider (the item). Field keys must match
+# config-types/ldap-providers/validate.ts and _shared.ts. Applied via the
+# authentik Core REST API (GET/POST /providers/ldap/, GET/PATCH/DELETE
+# /providers/ldap/{id}/).
+#
+# IDENTITY: like OAuth2/OpenID Providers, an LDAP provider's API path key is a
+# server-assigned integer `id` — this config type upserts by NAME.
+#
+# DELIBERATELY EXCLUDED for v0.4.0 (see README Coverage): `certificate`
+# (a keypair reference — certificate management is out of scope),
+# `tls_server_name`, `authentication_flow`.
+# =============================================================================
+
+id: "authentik-ldap-providers"
+name: "LDAP Providers"
+toolType: "authentik"
+entityType: "ldap-providers"
+description: "Manage authentik LDAP Providers — name, flows, base DN, uid/gid numbering, search/bind mode and MFA support — via the authentik Core REST API"
+
+item:
+  label: "Provider"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "key"
+      description: "Provider identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The provider's display name. Stable identity used for upsert and drift (LDAP providers have no user-declared path key)."
+
+    - name: "Flows"
+      icon: "link"
+      description: "authorization and invalidation flows (by Flow UUID pk)"
+      fields:
+        - key: "authorization_flow"
+          label: "Authorization Flow (UUID)"
+          fieldType: "text"
+          required: true
+          helpText: "The UUID pk of the Flow used when authorizing this provider. Required by authentik."
+
+        - key: "invalidation_flow"
+          label: "Invalidation Flow (UUID)"
+          fieldType: "text"
+          required: true
+          helpText: "The UUID pk of the Flow used to end the session for this provider. Required by authentik."
+
+    - name: "Directory"
+      icon: "settings"
+      description: "LDAP tree and POSIX numbering"
+      fields:
+        - key: "base_dn"
+          label: "Base DN"
+          fieldType: "text"
+          required: true
+          helpText: "The DN under which objects are accessible, e.g. DC=ldap,DC=example,DC=com. Required by authentik."
+
+        - key: "uid_start_number"
+          label: "UID Start Number"
+          fieldType: "number"
+          required: false
+          helpText: "Added to a user's pk to compute its uidNumber. authentik default is 2000."
+
+        - key: "gid_start_number"
+          label: "GID Start Number"
+          fieldType: "number"
+          required: false
+          helpText: "Added to a number generated from a group's pk to compute its gidNumber. authentik default is 4000."
+
+        - key: "search_mode"
+          label: "Search Mode"
+          fieldType: "select"
+          required: false
+          defaultValue: "direct"
+          options:
+            - { label: "Direct (query in real-time)", value: "direct" }
+            - { label: "Cached (query a local, periodically-refreshed cache)", value: "cached" }
+
+        - key: "bind_mode"
+          label: "Bind Mode"
+          fieldType: "select"
+          required: false
+          defaultValue: "direct"
+          options:
+            - { label: "Direct (query in real-time)", value: "direct" }
+            - { label: "Cached (query a local, periodically-refreshed cache)", value: "cached" }
+
+        - key: "mfa_support"
+          label: "MFA support (code appended to bind password)"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Only enable if every user binding to this provider has a TOTP device configured."
+
+    - name: "Access"
+      icon: "list"
+      description: "Scope (property) mappings"
+      fields:
+        - key: "property_mappings"
+          label: "Property Mappings (UUIDs)"
+          fieldType: "tags"
+          required: false
+          helpText: "Optional list of existing Property Mapping UUIDs. Leave empty to leave the provider's current mappings untouched on update."

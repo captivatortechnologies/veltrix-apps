@@ -1,0 +1,1 @@
+import type { HealthCheckContext, HealthCheckResult } from '@veltrixsecops/app-sdk'; import { healthCheckOrderedList } from '../../lib/merakiOrderedList'; import { transport } from './_shared'; export default (ctx: HealthCheckContext): Promise<HealthCheckResult> => healthCheckOrderedList(ctx, transport)

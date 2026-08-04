@@ -1,0 +1,62 @@
+# =============================================================================
+# Canvas Template — Check Point Tags
+#
+# Declares ONE Check Point tag object — the item. Users add as many as they
+# need. A tag's identity is its NAME; deploy lists the management database
+# (show-tags), matches on the name, and uses add-tag (create) / set-tag
+# (update) to reconcile each declared tag. Tags this app created but no
+# longer declares are removed (delete-tag).
+#
+# Most other config types in this app can implicitly create a tag by naming
+# it in their own `tags` field — Check Point auto-creates a referenced tag
+# that doesn't yet exist. Use THIS config type to declare a tag's own
+# color/comments explicitly, or to pre-create a tag no object references yet.
+#
+# Field keys must match config-types/tags/validate.ts.
+# =============================================================================
+
+id: "checkpoint-tags"
+name: "Check Point Tag Configuration"
+toolType: "checkpoint"
+entityType: "tags"
+description: "Define Check Point Management API tag objects (add-tag / set-tag) as code. Reconciled by object name; a session-wide publish commits every change together, or discards them all on any error."
+
+item:
+  label: "Tag"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "tag"
+      description: "Tag name"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The tag's name — its identity in the Check Point management
+            database. Must be unique within this canvas; deploy matches live
+            objects on it.
+
+    - name: "Metadata"
+      icon: "tag"
+      description: "Optional comments and color"
+      fields:
+        - key: "comments"
+          label: "Comments"
+          fieldType: "textarea"
+          required: false
+          helpText: "Optional description stored on the object."
+
+        - key: "color"
+          label: "Color"
+          fieldType: "text"
+          required: false
+          defaultValue: "black"
+          helpText: >
+            Object color shown in SmartConsole — see the object's color
+            picker in SmartConsole for the full list. Passed through as-is;
+            Check Point rejects an unknown color name at deploy time.

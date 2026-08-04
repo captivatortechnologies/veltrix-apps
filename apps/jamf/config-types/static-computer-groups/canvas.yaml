@@ -1,0 +1,54 @@
+# =============================================================================
+# Canvas Template — Jamf Pro Static Computer Groups
+#
+# Declares ONE Jamf Pro static computer group — the item. Users add as many
+# as they need. Static groups share the Classic API computer-groups resource
+# with Smart Computer Groups (https://<host>/JSSResource/computergroups) but
+# declare an explicit membership list instead of criteria. Reconciled by
+# group name, matched only against existing STATIC groups.
+#
+# Membership is declared by SERIAL NUMBER (stable, human-readable off the
+# physical device) and resolved to a live Jamf Pro computer id at deploy time
+# via the deprecated-but-functional Classic `/computers/serialnumber/{sn}`
+# lookup — see config-types/static-computer-groups/validate.ts header.
+#
+# NOTE: Jamf Pro does not enforce unique computer-group names server-side —
+# this canvas rejects duplicate names among the groups YOU declare, but if
+# the live tenant already has more than one STATIC group sharing a name
+# (created outside Veltrix), the first one Jamf Pro returns is treated as
+# the match.
+#
+# Field keys must match config-types/static-computer-groups/validate.ts.
+# =============================================================================
+
+id: "jamf-static-computer-groups"
+name: "Jamf Pro Static Computer Group Configuration"
+toolType: "jamf"
+entityType: "static-computer-groups"
+description: "Declare Jamf Pro static computer groups as code through the Classic API (XML, /JSSResource/computergroups, is_smart=false). Reconciled by group name; membership is declared by serial number and resolved to live computer ids at deploy time."
+
+item:
+  label: "Static Computer Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 300
+  groups:
+    - name: "Identity"
+      icon: "users"
+      description: "Name"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The group's display name in Jamf Pro — its logical identity for reconciliation. Referenced by name from a Policy's scope."
+
+    - name: "Membership"
+      icon: "list"
+      description: "Explicit member computers, by serial number"
+      fields:
+        - key: "member_serial_numbers"
+          label: "Member Serial Numbers"
+          fieldType: "tags"
+          helpText: "Serial numbers of the computers this group contains — each must already be enrolled in Jamf Pro. Resolved to a live computer id at deploy time; leave empty for an intentionally empty group."

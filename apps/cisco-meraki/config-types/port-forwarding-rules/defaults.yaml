@@ -1,0 +1,16 @@
+# Defaults for a new port forwarding ruleset item. Seeded with a single
+# illustrative rule so a new item starts from valid, well-formed JSON.
+network_id: ""
+comment: ""
+rules: |
+  [
+    {
+      "name": "HTTPS admin console",
+      "lanIp": "192.168.128.1",
+      "uplink": "both",
+      "publicPort": "8100-8101",
+      "localPort": "442-443",
+      "allowedIps": ["any"],
+      "protocol": "tcp"
+    }
+  ]

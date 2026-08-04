@@ -45,11 +45,11 @@ export default function OverviewPage() {
     <Card>
       <CardBody>
         <p>
-          Manages Datadog as code: Security Monitoring detection rules and suppression rules, Log Management
-          pipelines, and Monitors. Create a configuration in the Configuration Canvas and deploy it through the
-          pipeline — validate, deploy, health check, drift detection and rollback are all handled per
-          configuration type. The app authenticates with a Datadog API key and Application key against your
-          organization's Datadog site.
+          Manages Datadog as code: Security Monitoring rules/suppressions/filters, Sensitive Data Scanner (DLP),
+          Log Management (pipelines/archives/metrics/indexes), Monitors, SLOs and RBAC Roles. Create a
+          configuration in the Configuration Canvas and deploy it through the pipeline — validate, deploy,
+          health check, drift detection and rollback are all handled per configuration type. The app
+          authenticates with a Datadog API key and Application key against your organization's Datadog site.
         </p>
 
         <h3>Configuration Types</h3>

@@ -1,16 +1,17 @@
 id: checkpoint
 name: Check Point
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Check Point Security Management Server configuration as code through
-  the Check Point Management API (web_api) — network host objects, network
-  (subnet) objects, TCP/UDP service objects, and access-control rules
-  (add-access-rule / set-access-rule / delete-access-rule /
-  show-access-rulebase) — with validation, drift detection and rollback
-  handled by the Security-as-Code pipeline. Every deploy runs inside one
-  Management API session: login, make changes, publish (or discard on any
-  error), then logout.
+  the Check Point Management API (web_api) — network objects (hosts,
+  networks, address ranges, groups, security zones), TCP/UDP services and
+  service groups, custom application sites, tags, access-control rules and
+  manual NAT rules — with validation, drift detection and rollback handled by
+  the Security-as-Code pipeline. Every deploy runs inside one Management API
+  session: login, make changes, publish (or discard on any error), then
+  logout. See README.md's Coverage section for what is intentionally
+  excluded and why.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/checkpoint
@@ -37,12 +38,33 @@ permissions:
     - resource: network-objects
       actions: [read, write, delete]
       description: Manage Check Point network (subnet) objects (add-network / set-network / delete-network) in the management database
+    - resource: address-ranges
+      actions: [read, write, delete]
+      description: Manage Check Point address-range objects (add-address-range / set-address-range / delete-address-range) in the management database
+    - resource: network-groups
+      actions: [read, write, delete]
+      description: Manage Check Point group objects (add-group / set-group / delete-group) and their complete member sets in the management database
+    - resource: security-zones
+      actions: [read, write, delete]
+      description: Manage Check Point security-zone objects (add-security-zone / set-security-zone / delete-security-zone) in the management database
     - resource: service-objects
       actions: [read, write, delete]
       description: Manage Check Point TCP/UDP service objects (add-service-tcp / add-service-udp and their set-/delete- counterparts) in the management database
+    - resource: service-groups
+      actions: [read, write, delete]
+      description: Manage Check Point service-group objects (add-service-group / set-service-group / delete-service-group) and their complete member sets in the management database
+    - resource: application-sites
+      actions: [read, write, delete]
+      description: Manage Check Point custom URL-defined application-site objects (add-application-site / set-application-site / delete-application-site) in the management database
+    - resource: tags
+      actions: [read, write, delete]
+      description: Manage Check Point tag objects (add-tag / set-tag / delete-tag) in the management database
     - resource: access-rules
       actions: [read, write, delete]
       description: Manage Check Point access-control (firewall) rules (add-access-rule / set-access-rule / delete-access-rule) in a target access layer's rulebase
+    - resource: nat-rules
+      actions: [read, write, delete]
+      description: Manage Check Point manual NAT rules (add-nat-rule / set-nat-rule / delete-nat-rule) in a target policy package's NAT rulebase
 
 pipeline:
   configurationTypes:
@@ -91,6 +113,78 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: false
 
+    - id: address-ranges
+      name: Address Ranges
+      group: "Objects"
+      description: >
+        Address-range objects (add-address-range / set-address-range /
+        delete-address-range / show-address-ranges); identity by object name.
+        Each range declares an IPv4 and/or IPv6 first/last endpoint pair.
+        Missing ranges are created, existing ones are updated to the declared
+        spec, and ranges this app previously created but no longer declares
+        are removed.
+      canvasTemplate: config-types/address-ranges/canvas.yaml
+      defaultConfig: config-types/address-ranges/defaults.yaml
+      handlers:
+        validate: config-types/address-ranges/validate
+        deploy: config-types/address-ranges/deploy
+        rollback: config-types/address-ranges/rollback
+        healthCheck: config-types/address-ranges/healthCheck
+        driftDetect: config-types/address-ranges/driftDetect
+        getStatus: config-types/address-ranges/getStatus
+      targets:
+        componentTypes: [checkpoint-management]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: network-groups
+      name: Network Groups
+      group: "Objects"
+      description: >
+        Group objects (add-group / set-group / delete-group / show-group(s));
+        identity by object name. Members (hosts, networks, address ranges,
+        other groups, ...) are referenced by name. set-group always sends the
+        full declared member list, so removing a member from the canvas
+        removes it from the live group. Groups this app previously created
+        but no longer declares are removed.
+      canvasTemplate: config-types/network-groups/canvas.yaml
+      defaultConfig: config-types/network-groups/defaults.yaml
+      handlers:
+        validate: config-types/network-groups/validate
+        deploy: config-types/network-groups/deploy
+        rollback: config-types/network-groups/rollback
+        healthCheck: config-types/network-groups/healthCheck
+        driftDetect: config-types/network-groups/driftDetect
+        getStatus: config-types/network-groups/getStatus
+      targets:
+        componentTypes: [checkpoint-management]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: security-zones
+      name: Security Zones
+      group: "Objects"
+      description: >
+        Security-zone objects (add-security-zone / set-security-zone /
+        delete-security-zone / show-security-zones); identity by object
+        name. A zone has no matching fields of its own — it is a reference
+        point for interface anti-spoofing and zone-based rule matching
+        (neither of which this app manages; see README.md). Zones this app
+        previously created but no longer declares are removed.
+      canvasTemplate: config-types/security-zones/canvas.yaml
+      defaultConfig: config-types/security-zones/defaults.yaml
+      handlers:
+        validate: config-types/security-zones/validate
+        deploy: config-types/security-zones/deploy
+        rollback: config-types/security-zones/rollback
+        healthCheck: config-types/security-zones/healthCheck
+        driftDetect: config-types/security-zones/driftDetect
+        getStatus: config-types/security-zones/getStatus
+      targets:
+        componentTypes: [checkpoint-management]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: service-objects
       name: Service Objects
       group: "Objects"
@@ -109,6 +203,77 @@ pipeline:
         healthCheck: config-types/service-objects/healthCheck
         driftDetect: config-types/service-objects/driftDetect
         getStatus: config-types/service-objects/getStatus
+      targets:
+        componentTypes: [checkpoint-management]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: service-groups
+      name: Service Groups
+      group: "Objects"
+      description: >
+        Service-group objects (add-service-group / set-service-group /
+        delete-service-group / show-service-groups); identity by object name.
+        Member service objects are referenced by name; set-service-group
+        always sends the full declared member list. Groups this app
+        previously created but no longer declares are removed.
+      canvasTemplate: config-types/service-groups/canvas.yaml
+      defaultConfig: config-types/service-groups/defaults.yaml
+      handlers:
+        validate: config-types/service-groups/validate
+        deploy: config-types/service-groups/deploy
+        rollback: config-types/service-groups/rollback
+        healthCheck: config-types/service-groups/healthCheck
+        driftDetect: config-types/service-groups/driftDetect
+        getStatus: config-types/service-groups/getStatus
+      targets:
+        componentTypes: [checkpoint-management]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: application-sites
+      name: Application Sites
+      group: "Objects"
+      description: >
+        Custom application-site objects (add-application-site /
+        set-application-site / delete-application-site /
+        show-application-sites); identity by object name. Matches traffic by
+        URL/domain pattern only (application-signature-based matching is not
+        modeled; see README.md). Sites this app previously created but no
+        longer declares are removed.
+      canvasTemplate: config-types/application-sites/canvas.yaml
+      defaultConfig: config-types/application-sites/defaults.yaml
+      handlers:
+        validate: config-types/application-sites/validate
+        deploy: config-types/application-sites/deploy
+        rollback: config-types/application-sites/rollback
+        healthCheck: config-types/application-sites/healthCheck
+        driftDetect: config-types/application-sites/driftDetect
+        getStatus: config-types/application-sites/getStatus
+      targets:
+        componentTypes: [checkpoint-management]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: tags
+      name: Tags
+      group: "Objects"
+      description: >
+        Tag objects (add-tag / set-tag / delete-tag / show-tags); identity by
+        object name. Most other config types in this app can implicitly
+        create a tag by naming it in their own `tags` field — this config
+        type is for declaring a tag's own color/comments explicitly, or
+        pre-creating a tag no object references yet. Tags this app previously
+        created but no longer declares are removed.
+      canvasTemplate: config-types/tags/canvas.yaml
+      defaultConfig: config-types/tags/defaults.yaml
+      handlers:
+        validate: config-types/tags/validate
+        deploy: config-types/tags/deploy
+        rollback: config-types/tags/rollback
+        healthCheck: config-types/tags/healthCheck
+        driftDetect: config-types/tags/driftDetect
+        getStatus: config-types/tags/getStatus
       targets:
         componentTypes: [checkpoint-management]
         requiresCredential: true
@@ -134,6 +299,33 @@ pipeline:
         healthCheck: config-types/access-rules/healthCheck
         driftDetect: config-types/access-rules/driftDetect
         getStatus: config-types/access-rules/getStatus
+      targets:
+        componentTypes: [checkpoint-management]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: nat-rules
+      name: NAT Rules
+      group: "Policy"
+      description: >
+        Manual NAT rules (add-nat-rule / set-nat-rule / delete-nat-rule
+        against show-nat-rulebase) on a declared policy package's NAT
+        rulebase (per-package, unlike access rules' per-layer model);
+        identity by rule name, unique per package. Automatic NAT rules
+        (derived from a host/network/address-range's own NAT settings) are
+        never matched, updated, or deleted. Position (top / bottom / above /
+        below another named rule) is re-asserted on every deploy. See
+        README.md for the ordering and publish-semantics assumptions this
+        config type makes.
+      canvasTemplate: config-types/nat-rules/canvas.yaml
+      defaultConfig: config-types/nat-rules/defaults.yaml
+      handlers:
+        validate: config-types/nat-rules/validate
+        deploy: config-types/nat-rules/deploy
+        rollback: config-types/nat-rules/rollback
+        healthCheck: config-types/nat-rules/healthCheck
+        driftDetect: config-types/nat-rules/driftDetect
+        getStatus: config-types/nat-rules/getStatus
       targets:
         componentTypes: [checkpoint-management]
         requiresCredential: true

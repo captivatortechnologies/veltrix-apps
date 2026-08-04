@@ -3,30 +3,53 @@
 #
 # v0.1.0 shipped the first NETWORK configuration type: MX L3 (outbound)
 # Firewall Rules — an ordered SINGLETON per network (the same shape as Cribl's
-# Routes config type). v0.2.0 adds three more:
+# Routes config type). v0.2.0 added three more:
 #   - l7-firewall-rules — the same ordered-singleton shape as L3.
 #   - group-policies    — a PER-OBJECT resource, reconciled by name per
 #                          network (Meraki assigns the groupPolicyId).
 #   - appliance-vlans   — a PER-OBJECT resource, reconciled by the caller-
 #                          chosen VLAN id per network (Meraki assigns nothing).
-# All four share lib/merakiApi.ts (Bearer auth + 429/Retry-After backoff) and
-# lib/merakiCommon.ts (network-id validation, order/key-sensitive JSON diff).
+#
+# v0.3.0 exhausts the rest of the meaningfully declarative, network-scoped MX
+# appliance / switch write surface — nine more configuration types across
+# three shapes:
+#   - ordered whole-list singletons (same shape as L3/L7): one-to-one-nat,
+#     one-to-many-nat, port-forwarding-rules, switch-access-control-lists —
+#     all built on the new shared lib/merakiOrderedList.ts engine.
+#   - whole-object settings singletons (one JSON object per network, no
+#     array): appliance-security-intrusion, appliance-security-malware,
+#     appliance-content-filtering, site-to-site-vpn — all built on the new
+#     shared lib/merakiSingleton.ts engine (which also powers
+#     firewalled-services, modeling PUT-per-fixed-service as one settings
+#     object with a `services` array).
+#   - firewalled-services: the odd one out — a FIXED set of three named
+#     services (ICMP, web, SNMP) that always exist; every declared entry is
+#     an update, never a create/delete.
+# See README.md's "Coverage" section for what is deliberately NOT managed
+# (device/port-scale resources, org-wide resources, runtime/action endpoints,
+# licensing) and why.
+#
+# Every configuration type shares lib/merakiApi.ts (Bearer auth +
+# 429/Retry-After backoff) and lib/merakiCommon.ts (network-id validation,
+# order/key-sensitive JSON diff).
 # =============================================================================
 
 id: cisco-meraki
 name: Cisco Meraki
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Cisco Meraki Dashboard network security configuration as code through
-  the Meraki Dashboard API v1. Ships MX L3 (outbound) Firewall Rules
-  (l3-firewall-rules) and MX L7 (application-layer) Firewall Rules
-  (l7-firewall-rules) — both ordered rulesets applied as a whole-list replace —
-  plus Group Policies (group-policies) and Appliance VLANs (appliance-vlans),
-  both per-object resources reconciled by name / VLAN id per network, with
-  validation, drift detection and rollback handled by the Security-as-Code
-  pipeline. Authenticates with a Meraki Dashboard API key (Authorization:
-  Bearer) against the fixed api.meraki.com base.
+  the Meraki Dashboard API v1: MX L3/L7 firewall rules, one-to-one/one-to-many
+  NAT, port forwarding, firewalled management services, intrusion prevention,
+  malware protection, content filtering, site-to-site VPN and switch
+  access-control lists (all ordered-list or whole-object singletons per
+  network), plus group policies and appliance VLANs (per-object resources
+  reconciled by name / VLAN id). Validation, drift detection and rollback are
+  handled by the Security-as-Code pipeline. Authenticates with a Meraki
+  Dashboard API key (Authorization: Bearer) against the fixed api.meraki.com
+  base. See README.md "Coverage" for what is managed vs. intentionally
+  excluded.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cisco-meraki
@@ -60,6 +83,34 @@ permissions:
     - resource: appliance-vlans
       actions: [read, write, delete]
       description: Manage Meraki MX appliance VLANs (addressing, DHCP) per network
+    - resource: appliance-security-intrusion
+      actions: [read, write, delete]
+      description: Manage MX intrusion detection/prevention mode, IDS ruleset and protected networks.
+    - resource: appliance-security-malware
+      actions: [read, write, delete]
+      description: Manage MX malware protection mode and allowed file/URL exceptions.
+    - resource: appliance-content-filtering
+      actions: [read, write, delete]
+      description: Manage MX content-filtering categories and URL allow/block patterns.
+    - resource: one-to-one-nat
+      actions: [read, write, delete]
+      description: Manage the ordered MX one-to-one NAT ruleset as a whole-list replacement.
+    - resource: one-to-many-nat
+      actions: [read, write, delete]
+      description: Manage the ordered MX one-to-many NAT ruleset as a whole-list replacement.
+    - resource: port-forwarding-rules
+      actions: [read, write, delete]
+      description: Manage the ordered MX port-forwarding ruleset as a whole-list replacement.
+    - resource: firewalled-services
+      actions: [read, write, delete]
+      description: Manage access to the MX fixed ICMP, web and SNMP management services.
+    - resource: site-to-site-vpn
+      actions: [read, write, delete]
+      description: Manage MX site-to-site VPN mode, hubs and participating subnets.
+    - resource: switch-access-control-lists
+      actions: [read, write, delete]
+      description: Manage the ordered network switch ACL ruleset as a whole-list replacement.
+
 
 pipeline:
   configurationTypes:
@@ -157,6 +208,228 @@ pipeline:
         healthCheck: config-types/appliance-vlans/healthCheck
         driftDetect: config-types/appliance-vlans/driftDetect
         getStatus: config-types/appliance-vlans/getStatus
+      targets:
+        componentTypes: [meraki-organization]
+        requiresCredential: true
+        requiresConnectivity: false
+
+
+    - id: appliance-security-intrusion
+      group: "Appliance · Security"
+      name: Appliance Security Intrusion
+      description: >
+        MX intrusion detection/prevention (IPS) settings for one Meraki
+        network — mode (disabled/detection/prevention), the IDS ruleset
+        (connectivity/balanced/security) and the protected-networks scope —
+        applied as a whole-object replace via PUT
+        /networks/{networkId}/appliance/security/intrusion. A singleton per
+        network, identified by its `network_id`; the exact documented request
+        object is authored as JSON so new vendor fields pass through without
+        an app release.
+      canvasTemplate: config-types/appliance-security-intrusion/canvas.yaml
+      defaultConfig: config-types/appliance-security-intrusion/defaults.yaml
+      handlers:
+        validate: config-types/appliance-security-intrusion/validate
+        deploy: config-types/appliance-security-intrusion/deploy
+        rollback: config-types/appliance-security-intrusion/rollback
+        healthCheck: config-types/appliance-security-intrusion/healthCheck
+        driftDetect: config-types/appliance-security-intrusion/driftDetect
+        getStatus: config-types/appliance-security-intrusion/getStatus
+      targets:
+        componentTypes: [meraki-organization]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: appliance-security-malware
+      group: "Appliance · Security"
+      name: Appliance Security Malware
+      description: >
+        MX malware protection (AMP) settings for one Meraki network — mode
+        (enabled/disabled) plus allowed-URL and allowed-file (SHA256)
+        exceptions to the detection engine — applied as a whole-object
+        replace via PUT /networks/{networkId}/appliance/security/malware. A
+        singleton per network, identified by its `network_id`.
+      canvasTemplate: config-types/appliance-security-malware/canvas.yaml
+      defaultConfig: config-types/appliance-security-malware/defaults.yaml
+      handlers:
+        validate: config-types/appliance-security-malware/validate
+        deploy: config-types/appliance-security-malware/deploy
+        rollback: config-types/appliance-security-malware/rollback
+        healthCheck: config-types/appliance-security-malware/healthCheck
+        driftDetect: config-types/appliance-security-malware/driftDetect
+        getStatus: config-types/appliance-security-malware/getStatus
+      targets:
+        componentTypes: [meraki-organization]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: appliance-content-filtering
+      group: "Appliance · Security"
+      name: Appliance Content Filtering
+      description: >
+        MX content filtering for one Meraki network — allowed/blocked URL
+        patterns, blocked URL categories (ids from
+        GET .../contentFiltering/categories) and the category list size
+        (topSites/fullList) — applied as a whole-object replace via PUT
+        /networks/{networkId}/appliance/contentFiltering. A singleton per
+        network, identified by its `network_id`.
+      canvasTemplate: config-types/appliance-content-filtering/canvas.yaml
+      defaultConfig: config-types/appliance-content-filtering/defaults.yaml
+      handlers:
+        validate: config-types/appliance-content-filtering/validate
+        deploy: config-types/appliance-content-filtering/deploy
+        rollback: config-types/appliance-content-filtering/rollback
+        healthCheck: config-types/appliance-content-filtering/healthCheck
+        driftDetect: config-types/appliance-content-filtering/driftDetect
+        getStatus: config-types/appliance-content-filtering/getStatus
+      targets:
+        componentTypes: [meraki-organization]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: one-to-one-nat
+      group: "Appliance · Firewall"
+      name: One-to-One NAT Rules
+      description: >
+        The MX one-to-one NAT ruleset for one Meraki network — an ordered
+        list mapping a public IP to a LAN host with per-rule inbound
+        allow-lists — applied as a whole-list replace via PUT
+        /networks/{networkId}/appliance/firewall/oneToOneNatRules. Same
+        ordered-singleton-per-network shape as L3/L7 firewall rules,
+        identified by its `network_id`.
+      canvasTemplate: config-types/one-to-one-nat/canvas.yaml
+      defaultConfig: config-types/one-to-one-nat/defaults.yaml
+      handlers:
+        validate: config-types/one-to-one-nat/validate
+        deploy: config-types/one-to-one-nat/deploy
+        rollback: config-types/one-to-one-nat/rollback
+        healthCheck: config-types/one-to-one-nat/healthCheck
+        driftDetect: config-types/one-to-one-nat/driftDetect
+        getStatus: config-types/one-to-one-nat/getStatus
+      targets:
+        componentTypes: [meraki-organization]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: one-to-many-nat
+      group: "Appliance · Firewall"
+      name: One-to-Many NAT Rules
+      description: >
+        The MX one-to-many NAT ruleset for one Meraki network — an ordered
+        list mapping a public IP + WAN uplink to per-port forwarding rules
+        onto internal hosts — applied as a whole-list replace via PUT
+        /networks/{networkId}/appliance/firewall/oneToManyNatRules. Same
+        ordered-singleton-per-network shape as L3/L7 firewall rules,
+        identified by its `network_id`.
+      canvasTemplate: config-types/one-to-many-nat/canvas.yaml
+      defaultConfig: config-types/one-to-many-nat/defaults.yaml
+      handlers:
+        validate: config-types/one-to-many-nat/validate
+        deploy: config-types/one-to-many-nat/deploy
+        rollback: config-types/one-to-many-nat/rollback
+        healthCheck: config-types/one-to-many-nat/healthCheck
+        driftDetect: config-types/one-to-many-nat/driftDetect
+        getStatus: config-types/one-to-many-nat/getStatus
+      targets:
+        componentTypes: [meraki-organization]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: port-forwarding-rules
+      group: "Appliance · Firewall"
+      name: Port Forwarding Rules
+      description: >
+        The MX port forwarding ruleset for one Meraki network — an ordered
+        list forwarding a WAN uplink + public port to a LAN host's port,
+        scoped by an allowed-IPs list — applied as a whole-list replace via
+        PUT /networks/{networkId}/appliance/firewall/portForwardingRules.
+        Same ordered-singleton-per-network shape as L3/L7 firewall rules,
+        identified by its `network_id`.
+      canvasTemplate: config-types/port-forwarding-rules/canvas.yaml
+      defaultConfig: config-types/port-forwarding-rules/defaults.yaml
+      handlers:
+        validate: config-types/port-forwarding-rules/validate
+        deploy: config-types/port-forwarding-rules/deploy
+        rollback: config-types/port-forwarding-rules/rollback
+        healthCheck: config-types/port-forwarding-rules/healthCheck
+        driftDetect: config-types/port-forwarding-rules/driftDetect
+        getStatus: config-types/port-forwarding-rules/getStatus
+      targets:
+        componentTypes: [meraki-organization]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewalled-services
+      group: "Appliance · Firewall"
+      name: Firewalled Services
+      description: >
+        Access control (blocked/restricted/unrestricted + allowed IPs) for
+        the MX's fixed management services — ICMP, web and SNMP — via PUT
+        /networks/{networkId}/appliance/firewall/firewalledServices/{service}.
+        Unlike the other firewall types this is neither an ordered list nor a
+        create/delete resource: the three services always exist, so every
+        declared entry is an update. One canvas item per network declares the
+        desired state of every service it manages, identified by its
+        `network_id`.
+      canvasTemplate: config-types/firewalled-services/canvas.yaml
+      defaultConfig: config-types/firewalled-services/defaults.yaml
+      handlers:
+        validate: config-types/firewalled-services/validate
+        deploy: config-types/firewalled-services/deploy
+        rollback: config-types/firewalled-services/rollback
+        healthCheck: config-types/firewalled-services/healthCheck
+        driftDetect: config-types/firewalled-services/driftDetect
+        getStatus: config-types/firewalled-services/getStatus
+      targets:
+        componentTypes: [meraki-organization]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: site-to-site-vpn
+      group: "Appliance · VPN"
+      name: Site-to-Site VPN
+      description: >
+        MX site-to-site (Auto VPN) settings for one Meraki network — mode
+        (none/spoke/hub), hub list (spoke mode) and the participating
+        subnets (with optional VPN NAT translation) — applied as a
+        whole-object replace via PUT
+        /networks/{networkId}/appliance/vpn/siteToSiteVpn. A singleton per
+        network, identified by its `network_id`.
+      canvasTemplate: config-types/site-to-site-vpn/canvas.yaml
+      defaultConfig: config-types/site-to-site-vpn/defaults.yaml
+      handlers:
+        validate: config-types/site-to-site-vpn/validate
+        deploy: config-types/site-to-site-vpn/deploy
+        rollback: config-types/site-to-site-vpn/rollback
+        healthCheck: config-types/site-to-site-vpn/healthCheck
+        driftDetect: config-types/site-to-site-vpn/driftDetect
+        getStatus: config-types/site-to-site-vpn/getStatus
+      targets:
+        componentTypes: [meraki-organization]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: switch-access-control-lists
+      group: "Switch"
+      name: Switch Access Control Lists
+      description: >
+        The network-wide switch ACL ruleset — an ordered list of allow/deny
+        rules matched on protocol, source/destination CIDR and port, IP
+        version and VLAN — applied as a whole-list replace via PUT
+        /networks/{networkId}/switch/accessControlLists. Unlike L3 firewall
+        rules, Meraki documents that an EMPTY rules array clears all ACLs
+        rather than falling back to an implicit default rule; `validate`
+        warns accordingly. A singleton per network, identified by its
+        `network_id`.
+      canvasTemplate: config-types/switch-access-control-lists/canvas.yaml
+      defaultConfig: config-types/switch-access-control-lists/defaults.yaml
+      handlers:
+        validate: config-types/switch-access-control-lists/validate
+        deploy: config-types/switch-access-control-lists/deploy
+        rollback: config-types/switch-access-control-lists/rollback
+        healthCheck: config-types/switch-access-control-lists/healthCheck
+        driftDetect: config-types/switch-access-control-lists/driftDetect
+        getStatus: config-types/switch-access-control-lists/getStatus
       targets:
         componentTypes: [meraki-organization]
         requiresCredential: true

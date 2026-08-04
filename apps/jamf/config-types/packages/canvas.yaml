@@ -1,0 +1,129 @@
+# =============================================================================
+# Canvas Template — Jamf Pro Package Metadata
+#
+# Declares ONE Jamf Pro package RECORD — the item. Users add as many as they
+# need. Packages are created/updated through the modern Jamf Pro API
+# (POST/PUT /v1/packages) and identified for reconciliation by their `name`
+# (packageName).
+#
+# METADATA ONLY — this does not upload the .pkg/.dmg binary (a separate,
+# unlisted endpoint). Upload the binary in Jamf Pro first; `file_name` must
+# match the filename Jamf Pro already has on record. `category_name` must
+# name an existing category (e.g. via this app's own Categories config type)
+# — resolved to the live categoryId at deploy time.
+#
+# Field keys must match config-types/packages/validate.ts.
+# =============================================================================
+
+id: "jamf-packages"
+name: "Jamf Pro Package Metadata Configuration"
+toolType: "jamf"
+entityType: "packages"
+description: "Declare Jamf Pro package metadata records as code through the modern Jamf Pro API (GET/POST/PUT/DELETE /v1/packages). Reconciled by package name. Metadata only — binary upload is a separate, unmanaged step."
+
+item:
+  label: "Package"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "box"
+      description: "Name, source file and category"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The package's display name (packageName) — its logical identity for reconciliation. Referenced by name from a Policy's packages."
+
+        - key: "file_name"
+          label: "File Name"
+          fieldType: "text"
+          required: true
+          helpText: "The .pkg/.dmg filename already uploaded to Jamf Pro (this app does not upload binaries)."
+
+        - key: "category_name"
+          label: "Category"
+          fieldType: "text"
+          required: true
+          helpText: "An existing Jamf Pro category name (e.g. via this app's Categories config type) — resolved to its id at deploy time."
+
+        - key: "priority"
+          label: "Priority"
+          fieldType: "number"
+          required: true
+          defaultValue: 10
+          helpText: "Installation priority relative to other packages in the same policy."
+
+    - name: "Documentation"
+      icon: "book"
+      description: "Description, notes and OS requirements"
+      fields:
+        - key: "info"
+          label: "Info"
+          fieldType: "textarea"
+
+        - key: "notes"
+          label: "Notes"
+          fieldType: "textarea"
+
+        - key: "os_requirements"
+          label: "OS Requirements"
+          fieldType: "text"
+          helpText: "Optional OS version requirement string, e.g. 13.x."
+
+    - name: "Installation Behavior"
+      icon: "sliders"
+      description: "Flags controlling how the package installs"
+      fields:
+        - key: "fill_user_template"
+          label: "Fill User Template"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "fill_existing_users"
+          label: "Fill Existing Users"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "reboot_required"
+          label: "Reboot Required"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "os_install"
+          label: "OS Installer Package"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "suppress_updates"
+          label: "Suppress Software Update Check"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "suppress_from_dock"
+          label: "Suppress From Dock"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "suppress_eula"
+          label: "Suppress EULA"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "suppress_registration"
+          label: "Suppress Registration"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "ignore_conflicts"
+          label: "Ignore Conflicting Processes"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "install_language"
+          label: "Install Language"
+          fieldType: "text"
+          helpText: "Optional installer language override."

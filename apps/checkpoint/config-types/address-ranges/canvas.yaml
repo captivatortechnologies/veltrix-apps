@@ -1,0 +1,88 @@
+# =============================================================================
+# Canvas Template — Check Point Address Ranges
+#
+# Declares ONE Check Point address-range object — the item. Users add as many
+# as they need. An address range's identity is its NAME; deploy lists the
+# management database (show-address-ranges), matches on the name, and uses
+# add-address-range (create) / set-address-range (update) to reconcile each
+# declared range. Ranges this app created but no longer declares are removed
+# (delete-address-range).
+#
+# Field keys must match config-types/address-ranges/validate.ts.
+# =============================================================================
+
+id: "checkpoint-address-ranges"
+name: "Check Point Address Range Configuration"
+toolType: "checkpoint"
+entityType: "address-ranges"
+description: "Define Check Point Management API address-range objects (add-address-range / set-address-range) as code. Reconciled by object name; a session-wide publish commits every change together, or discards them all on any error."
+
+item:
+  label: "Address Range"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "globe"
+      description: "Object name and address range"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The address range's name — its identity in the Check Point
+            management database. Must be unique within this canvas; deploy
+            matches live objects on it.
+
+        - key: "ipv4First"
+          label: "IPv4 First Address"
+          fieldType: "text"
+          required: false
+          helpText: "The first IPv4 address in the range. At least one complete IPv4 or IPv6 pair is required."
+
+        - key: "ipv4Last"
+          label: "IPv4 Last Address"
+          fieldType: "text"
+          required: false
+          helpText: "The last IPv4 address in the range (must not be before the first)."
+
+        - key: "ipv6First"
+          label: "IPv6 First Address"
+          fieldType: "text"
+          required: false
+          helpText: "The first IPv6 address in the range."
+
+        - key: "ipv6Last"
+          label: "IPv6 Last Address"
+          fieldType: "text"
+          required: false
+          helpText: "The last IPv6 address in the range."
+
+    - name: "Metadata"
+      icon: "tag"
+      description: "Optional comments, color and tags"
+      fields:
+        - key: "comments"
+          label: "Comments"
+          fieldType: "textarea"
+          required: false
+          helpText: "Optional description stored on the object."
+
+        - key: "color"
+          label: "Color"
+          fieldType: "text"
+          required: false
+          defaultValue: "black"
+          helpText: >
+            Object color shown in SmartConsole — see the object's color
+            picker in SmartConsole for the full list. Passed through as-is;
+            Check Point rejects an unknown color name at deploy time.
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          required: false
+          helpText: "Optional tag names applied to the object (created automatically if they don't already exist)."

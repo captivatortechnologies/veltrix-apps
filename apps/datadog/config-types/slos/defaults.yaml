@@ -1,0 +1,6 @@
+# Defaults for a new SLO item.
+#
+# Intentionally minimal: the per-field defaultValue in canvas.yaml already
+# seeds type and thresholds. Any values here would be a FLAT map keyed by the
+# canvas field keys (name, type, description, tags, numerator, denominator,
+# monitor_ids, groups, thresholds).

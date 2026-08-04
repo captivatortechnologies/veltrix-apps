@@ -1,16 +1,20 @@
 id: cisco-ise
 name: Cisco ISE
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Cisco Identity Services Engine (ISE) — network access control (NAC) —
   configuration as code through the ISE External RESTful Services (ERS) API.
   Covers endpoint identity groups, network device groups (NDGs), network
-  devices (NAS/AAA clients) and standard authorization profiles — with
+  devices (NAS/AAA clients), standard authorization profiles, downloadable
+  ACLs, TrustSec Security Group Tags and ACLs, Allowed Protocols services,
+  internal users, user identity groups, and individual endpoints — with
   validation, drift detection and rollback handled by the Security-as-Code
   pipeline. Authenticates as an ISE administrator (the ERS-Admin or
   ERS-Operator group) via HTTP Basic auth against the PAN/admin node's
-  dedicated ERS port (9060).
+  dedicated ERS port (9060). ISE's newer OpenAPI surface (/api/v1/...) was
+  evaluated too — see the README's Coverage section for why every writable
+  config type here stays on ERS.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cisco-ise
@@ -42,6 +46,28 @@ permissions:
     - resource: authorization-profiles
       actions: [read, write, delete]
       description: Manage Cisco ISE standard (SWITCH) authorization profiles via the ERS API
+
+    - resource: downloadable-acls
+      actions: [read, write, delete]
+      description: Manage Cisco ISE downloadable ACL policy elements via the ERS API
+    - resource: security-group-tags
+      actions: [read, write, delete]
+      description: Manage writable Cisco TrustSec Security Group Tags via the ERS API
+    - resource: security-group-acls
+      actions: [read, write, delete]
+      description: Manage Cisco TrustSec Security Group ACLs (SGACLs) via the ERS API
+    - resource: allowed-protocols
+      actions: [read, write, delete]
+      description: Manage Cisco ISE Allowed Protocols services (top-level flags) via the ERS API
+    - resource: internal-users
+      actions: [read, write, delete]
+      description: Manage Cisco ISE internal (local) users via the ERS API
+    - resource: user-identity-groups
+      actions: [read, write, delete]
+      description: Manage Cisco ISE (user) Identity Groups via the ERS API
+    - resource: endpoints
+      actions: [read, write, delete]
+      description: Manage individual Cisco ISE endpoints (MAC addresses) via the ERS API
 
 pipeline:
   configurationTypes:
@@ -129,6 +155,154 @@ pipeline:
         healthCheck: config-types/authorization-profiles/healthCheck
         driftDetect: config-types/authorization-profiles/driftDetect
         getStatus: config-types/authorization-profiles/getStatus
+      targets:
+        componentTypes: [cisco-ise]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: downloadable-acls
+      group: "Policy Elements"
+      name: Downloadable ACLs
+      description: Named downloadable ACL content applied through /ers/config/downloadableacl.
+      canvasTemplate: config-types/downloadable-acls/canvas.yaml
+      defaultConfig: config-types/downloadable-acls/defaults.yaml
+      handlers:
+        validate: config-types/downloadable-acls/validate
+        deploy: config-types/downloadable-acls/deploy
+        rollback: config-types/downloadable-acls/rollback
+        healthCheck: config-types/downloadable-acls/healthCheck
+        driftDetect: config-types/downloadable-acls/driftDetect
+        getStatus: config-types/downloadable-acls/getStatus
+      targets:
+        componentTypes: [cisco-ise]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: security-group-tags
+      group: "TrustSec"
+      name: Security Group Tags
+      description: Writable Cisco TrustSec SGTs applied through /ers/config/sgt; built-in read-only tags are never authored.
+      canvasTemplate: config-types/security-group-tags/canvas.yaml
+      defaultConfig: config-types/security-group-tags/defaults.yaml
+      handlers:
+        validate: config-types/security-group-tags/validate
+        deploy: config-types/security-group-tags/deploy
+        rollback: config-types/security-group-tags/rollback
+        healthCheck: config-types/security-group-tags/healthCheck
+        driftDetect: config-types/security-group-tags/driftDetect
+        getStatus: config-types/security-group-tags/getStatus
+      targets:
+        componentTypes: [cisco-ise]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: security-group-acls
+      group: "TrustSec"
+      name: Security Group ACLs
+      description: >
+        TrustSec Security Group ACLs (SGACLs) — name-keyed, with IP-version and
+        newline-joined ACL content — applied over the ERS API
+        (/ers/config/sgacl). Referenced from the TrustSec egress matrix, which
+        this app does not author (see the README's Coverage section).
+      canvasTemplate: config-types/security-group-acls/canvas.yaml
+      defaultConfig: config-types/security-group-acls/defaults.yaml
+      handlers:
+        validate: config-types/security-group-acls/validate
+        deploy: config-types/security-group-acls/deploy
+        rollback: config-types/security-group-acls/rollback
+        healthCheck: config-types/security-group-acls/healthCheck
+        driftDetect: config-types/security-group-acls/driftDetect
+        getStatus: config-types/security-group-acls/getStatus
+      targets:
+        componentTypes: [cisco-ise]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: allowed-protocols
+      group: "Policy Elements"
+      name: Allowed Protocols
+      description: >
+        Allowed Protocols services — top-level authentication-method enable
+        flags and preferred EAP protocol — applied over the ERS API
+        (/ers/config/allowedprotocols). The nested per-protocol
+        (EAP-FAST/TLS/TTLS/PEAP/TEAP) sub-configuration is out of scope.
+      canvasTemplate: config-types/allowed-protocols/canvas.yaml
+      defaultConfig: config-types/allowed-protocols/defaults.yaml
+      handlers:
+        validate: config-types/allowed-protocols/validate
+        deploy: config-types/allowed-protocols/deploy
+        rollback: config-types/allowed-protocols/rollback
+        healthCheck: config-types/allowed-protocols/healthCheck
+        driftDetect: config-types/allowed-protocols/driftDetect
+        getStatus: config-types/allowed-protocols/getStatus
+      targets:
+        componentTypes: [cisco-ise]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: internal-users
+      group: "Identity Management"
+      name: Internal Users
+      description: >
+        Internal (local) users — username-keyed, with an optional identity
+        group assignment (resolved from names) — applied over the ERS API
+        (/ers/config/internaluser). The password and TACACS+ enable password
+        are write-only: ISE never returns them, so neither is ever diffed or
+        captured for rollback.
+      canvasTemplate: config-types/internal-users/canvas.yaml
+      defaultConfig: config-types/internal-users/defaults.yaml
+      handlers:
+        validate: config-types/internal-users/validate
+        deploy: config-types/internal-users/deploy
+        rollback: config-types/internal-users/rollback
+        healthCheck: config-types/internal-users/healthCheck
+        driftDetect: config-types/internal-users/driftDetect
+        getStatus: config-types/internal-users/getStatus
+      targets:
+        componentTypes: [cisco-ise]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: user-identity-groups
+      group: "Identity Management"
+      name: User Identity Groups
+      description: >
+        (User) Identity Groups — name-keyed, with an optional parent group
+        (resolved from a name, forming a genuine parent/child tree — unlike
+        Network Device Groups' "#"-path convention) — applied over the ERS API
+        (/ers/config/identitygroup).
+      canvasTemplate: config-types/user-identity-groups/canvas.yaml
+      defaultConfig: config-types/user-identity-groups/defaults.yaml
+      handlers:
+        validate: config-types/user-identity-groups/validate
+        deploy: config-types/user-identity-groups/deploy
+        rollback: config-types/user-identity-groups/rollback
+        healthCheck: config-types/user-identity-groups/healthCheck
+        driftDetect: config-types/user-identity-groups/driftDetect
+        getStatus: config-types/user-identity-groups/getStatus
+      targets:
+        componentTypes: [cisco-ise]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: endpoints
+      group: "Identity Management"
+      name: Endpoints
+      description: >
+        Individual endpoints (MAC addresses) — MAC-keyed (ISE's own identity
+        for this resource, not "name") — with an optional static endpoint
+        identity group assignment (resolved from a name) — applied over the
+        ERS API (/ers/config/endpoint, wrapper "ERSEndPoint"). Profiler policy
+        assignment, portal-user linkage and custom attributes are out of scope.
+      canvasTemplate: config-types/endpoints/canvas.yaml
+      defaultConfig: config-types/endpoints/defaults.yaml
+      handlers:
+        validate: config-types/endpoints/validate
+        deploy: config-types/endpoints/deploy
+        rollback: config-types/endpoints/rollback
+        healthCheck: config-types/endpoints/healthCheck
+        driftDetect: config-types/endpoints/driftDetect
+        getStatus: config-types/endpoints/getStatus
       targets:
         componentTypes: [cisco-ise]
         requiresCredential: true

@@ -1,0 +1,6 @@
+# Defaults for a new Scanning Group item.
+#
+# Intentionally minimal: the per-field defaultValue in canvas.yaml already
+# seeds is_enabled and filter_query. Any values here would be a FLAT map
+# keyed by the canvas field keys (name, description, is_enabled,
+# product_list, filter_query, rules).

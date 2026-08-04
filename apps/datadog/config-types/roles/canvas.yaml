@@ -1,0 +1,57 @@
+# =============================================================================
+# Canvas Template — Datadog Roles (RBAC)
+#
+# Declares ONE Datadog role (the item). Reconciled by role `name`
+# (case-insensitive) against GET /api/v2/roles. Permission names (e.g.
+# "monitors_write") are resolved to Datadog's opaque permission ids via
+# GET /api/v2/permissions at deploy time, then reconciled by diff against the
+# role's current grants (GET/POST/DELETE /api/v2/roles/{id}/permissions).
+#
+# Field keys must match config-types/roles/_shared.ts.
+# API reference: https://docs.datadoghq.com/api/latest/roles/
+# =============================================================================
+
+id: "datadog-roles"
+name: "Role"
+toolType: "datadog"
+entityType: "roles"
+description: "Define Datadog RBAC roles and their permission grants as code through the Roles API (/api/v2/roles). Reconciled by role name."
+
+item:
+  label: "Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Role"
+      icon: "shield"
+      description: "Identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The role name — this app's logical identity for the role (matched case-insensitively against Datadog's live roles on every deploy)."
+
+    - name: "Permissions"
+      icon: "key"
+      description: "Permissions granted by this role"
+      fields:
+        - key: "permissions"
+          label: "Permissions"
+          fieldType: "tags"
+          helpText: >
+            Permission names this role grants, e.g. monitors_write,
+            logs_write_pipelines, security_monitoring_rules_read. Find every
+            valid name in Datadog under Organization Settings > Roles >
+            (any role) > Permissions, or via GET /api/v2/permissions. An
+            unrecognized name fails the deploy with a clear error rather than
+            being silently skipped. ADDITIVE ONLY: this app grants every
+            permission listed here but never revokes one that isn't —
+            Datadog automatically adds several baseline read permissions
+            (Dashboards, Monitors, SLOs, …) to every new role, and this app
+            does not fight that. Remove a permission from a role in the
+            Datadog UI directly.

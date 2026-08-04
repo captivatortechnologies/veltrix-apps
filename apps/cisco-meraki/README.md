@@ -147,7 +147,7 @@ header (seconds); the client honors it with a bounded retry before failing.
 | --- | --- | --- |
 | `request_timeout_seconds` | `30` | Per-request timeout for Meraki Dashboard API calls. |
 
-## Known limitations (v0.2.0)
+## Known limitations (historical v0.2.0 notes; superseded by Coverage below)
 
 - One-to-one/one-to-many NAT, port forwarding, site-to-site VPN, wireless
   SSIDs, switch ports, etc. are not yet covered — planned as additional
@@ -182,3 +182,56 @@ node node_modules/typescript/bin/tsc --noEmit          # typecheck
 node ../../scripts/test-apps.mjs cisco-meraki          # run handler tests
 node ../../scripts/validate-app.mjs apps/cisco-meraki  # validate against the app contract
 ```
+
+## Coverage (v0.3.0)
+
+Coverage was audited against the Cisco Meraki Dashboard API v1 API Index and
+the endpoint-specific request schemas (API version 1.72.0 on 2026-08-03).
+
+### Managed declarative network configuration
+
+| Configuration type | Dashboard API operations |
+| --- | --- |
+| L3 firewall rules | `GET` / `PUT /networks/{networkId}/appliance/firewall/l3FirewallRules` |
+| L7 firewall rules | `GET` / `PUT /networks/{networkId}/appliance/firewall/l7FirewallRules` |
+| Group policies | list/create/get/update/delete `/networks/{networkId}/groupPolicies` |
+| Appliance VLANs | VLAN-enabled precheck plus list/create/update/delete `/networks/{networkId}/appliance/vlans` |
+| Intrusion prevention | `GET` / `PUT /networks/{networkId}/appliance/security/intrusion` |
+| Malware protection | `GET` / `PUT /networks/{networkId}/appliance/security/malware` |
+| Content filtering | `GET` / `PUT /networks/{networkId}/appliance/contentFiltering` (categories are read for reference) |
+| One-to-one NAT | `GET` / `PUT /networks/{networkId}/appliance/firewall/oneToOneNatRules` |
+| One-to-many NAT | `GET` / `PUT /networks/{networkId}/appliance/firewall/oneToManyNatRules` |
+| Port forwarding | `GET` / `PUT /networks/{networkId}/appliance/firewall/portForwardingRules` |
+| Firewalled services | list/get/update `/networks/{networkId}/appliance/firewall/firewalledServices` |
+| Site-to-site VPN | `GET` / `PUT /networks/{networkId}/appliance/vpn/siteToSiteVpn` |
+| Switch ACLs | `GET` / `PUT /networks/{networkId}/switch/accessControlLists` |
+
+Every whole-list endpoint is order-sensitive and captures the complete prior
+list for rollback. Singleton settings preserve the exact declared JSON object;
+this also permits newly added vendor fields without an app release.
+
+### Intentionally excluded
+
+- Device- and port-scale resources (switch ports, routing interfaces, device
+  management interfaces, per-radio settings) and wireless SSIDs/access-control
+  families are declarative, but require a separate component/target model and
+  can fan out to thousands of devices. They are not represented as a misleading
+  network singleton in this app.
+- Organization-wide administrators, networks, policy objects/adaptive policy,
+  templates, inventory/claiming and licensing are outside this app's
+  `meraki-organization` connection plus network-canvas ownership boundary.
+- Appliance settings, static routes, DHCP, BGP, cellular, traffic shaping,
+  uplinks, warm spare and Secure Router-only endpoints are valid future
+  configuration families, but are excluded until their hardware/license mode
+  prerequisites and rollback semantics can be modeled safely.
+- Live Tools, action endpoints, firmware upgrades, reboots, packet capture,
+  ping/wake/sensor actions and policy deploy jobs are imperative operations,
+  not durable desired state.
+- Events, clients, traffic, topology, health, usage, audit/configuration-change
+  logs and other monitor endpoints are read-only. Credential/API-key and SAML
+  administration is security-sensitive control-plane bootstrap, not canvas
+  configuration.
+
+Primary references: [Meraki API Index](https://developer.cisco.com/meraki/api-v1/api-index/),
+[supported resources](https://developer.cisco.com/meraki/api-v1/supported-resources/),
+and each endpoint page linked in `lib/merakiApi.ts`.

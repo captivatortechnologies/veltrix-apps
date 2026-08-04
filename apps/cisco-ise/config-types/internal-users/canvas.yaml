@@ -1,0 +1,92 @@
+# =============================================================================
+# Canvas Template — Cisco ISE Internal Users
+#
+# Declares ONE internal (local) user — the item. Users add as many as they
+# need. Field keys must match config-types/internal-users/_shared.ts. Applied
+# via the ISE ERS API (POST/PUT/DELETE /ers/config/internaluser).
+# =============================================================================
+
+id: "cisco-ise-internal-users"
+name: "Internal Users"
+toolType: "cisco-ise"
+entityType: "internal-users"
+description: "Manage Cisco ISE internal (local) users via the ERS API (/ers/config/internaluser)"
+
+item:
+  label: "Internal User"
+  identityField: "username"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "user"
+      description: "Username and profile"
+      fields:
+        - key: "username"
+          label: "Username"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The internal user's login name in ISE. Used as the stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+
+        - key: "first_name"
+          label: "First Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+
+        - key: "last_name"
+          label: "Last Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+
+        - key: "email"
+          label: "Email"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+
+        - key: "identity_groups"
+          label: "Identity Groups"
+          fieldType: "tags"
+          required: false
+          helpText: >
+            Identity group NAMEs to assign this user to (see the User Identity
+            Groups config type) — resolved to their ids at deploy time. Each
+            must already exist. Leave blank for no group assignment.
+
+    - name: "Credentials"
+      icon: "lock"
+      description: "Passwords — both are write-only"
+      fields:
+        - key: "password"
+          label: "Password"
+          fieldType: "password"
+          required: false
+          helpText: >
+            ⚠ WRITE-ONLY secret — ISE never returns it, so it cannot be diffed,
+            logged, or captured for rollback. Required by ISE when CREATING a
+            new user; leaving it blank on an EXISTING user keeps their current
+            password unchanged. To rotate a password, enter the new value here.
+
+        - key: "enable_password"
+          label: "Enable Password (TACACS+)"
+          fieldType: "password"
+          required: false
+          helpText: >
+            ⚠ WRITE-ONLY secret — the separate TACACS+ "enable" password. Same
+            write-only behavior as Password above; leave blank if this user
+            doesn't need TACACS+ privileged-mode access.

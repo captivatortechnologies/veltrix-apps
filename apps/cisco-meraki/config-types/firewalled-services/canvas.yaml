@@ -1,0 +1,24 @@
+id: "cisco-meraki-firewalled-services"
+name: "Firewalled Services"
+toolType: "cisco-meraki"
+entityType: "firewalled-services"
+description: "Manage access to the MX fixed management services (ICMP, web and SNMP)."
+item:
+  label: "Network Firewalled Services"
+  identityField: "network_id"
+  repeatable: true
+  minItems: 1
+  groups:
+    - name: "Network"
+      fields:
+        - key: "network_id"
+          label: "Meraki Network ID"
+          fieldType: "text"
+          required: true
+    - name: "Services"
+      fields:
+        - key: "settings"
+          label: "Services (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: "Object with a services array; each entry names the fixed service, access mode, and allowedIps."

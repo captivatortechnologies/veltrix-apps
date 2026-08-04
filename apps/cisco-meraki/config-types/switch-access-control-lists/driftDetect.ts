@@ -1,0 +1,1 @@
+import type { DriftContext, DriftResult } from '@veltrixsecops/app-sdk'; import { driftOrderedList } from '../../lib/merakiOrderedList'; import { normalizeSwitchAclRule, transport } from './_shared'; export default (ctx: DriftContext): Promise<DriftResult> => driftOrderedList(ctx, transport, normalizeSwitchAclRule)

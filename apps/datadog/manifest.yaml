@@ -1,10 +1,11 @@
 id: datadog
 name: Datadog
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
-  Manage Datadog as code: Security Monitoring detection rules and suppression
-  rules, Log Management pipelines, and Monitors — through the Datadog REST
+  Manage Datadog as code: Security Monitoring rules/suppressions/filters,
+  Sensitive Data Scanner (DLP), Log Management (pipelines/archives/
+  metrics/indexes), Monitors, SLOs and RBAC Roles — through the Datadog REST
   API — with validation, drift detection and rollback handled by the Veltrix
   Security-as-Code pipeline. Authenticates with a Datadog API key +
   Application key pair against the organization's Datadog site
@@ -41,6 +42,27 @@ permissions:
     - resource: monitors
       actions: [read, write, delete]
       description: Manage Datadog Monitors via the Monitors API
+    - resource: security-filters
+      actions: [read, write, delete]
+      description: Manage Datadog Security Monitoring security filters (log exclusion from security analysis) via the Security Filters API
+    - resource: sensitive-data-scanner
+      actions: [read, write, delete]
+      description: Manage Datadog Sensitive Data Scanner (DLP) scanning groups and rules via the Sensitive Data Scanner API
+    - resource: log-archives
+      actions: [read, write, delete]
+      description: Manage Datadog Log Management archives via the Logs Archives API
+    - resource: log-metrics
+      actions: [read, write, delete]
+      description: Manage Datadog log-based metrics via the Logs Metrics API
+    - resource: log-indexes
+      actions: [read, write, delete]
+      description: Manage Datadog Log Management indexes via the Logs Indexes API
+    - resource: roles
+      actions: [read, write, delete]
+      description: Manage Datadog RBAC roles and their permission grants via the Roles API
+    - resource: slos
+      actions: [read, write, delete]
+      description: Manage Datadog Service Level Objectives via the SLO API
 
 pipeline:
   configurationTypes:
@@ -136,6 +158,180 @@ pipeline:
         healthCheck: config-types/monitors/healthCheck
         driftDetect: config-types/monitors/driftDetect
         getStatus: config-types/monitors/getStatus
+      targets:
+        componentTypes: [datadog-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: security-filters
+      group: "Detection"
+      name: Security Filters
+      description: >
+        Datadog Security Monitoring security filters — exclude logs from
+        security analysis entirely (distinct from a suppression, which still
+        analyzes but silences the resulting signal) — via a JSON:API resource
+        at GET/POST/PATCH/DELETE
+        /api/v2/security_monitoring/configuration/security_filters[/{id}].
+        Reconciled by filter name; PATCH is partial but this app always sends
+        every managed attribute, including the filter's current
+        optimistic-lock version.
+      canvasTemplate: config-types/security-filters/canvas.yaml
+      defaultConfig: config-types/security-filters/defaults.yaml
+      handlers:
+        validate: config-types/security-filters/validate
+        deploy: config-types/security-filters/deploy
+        rollback: config-types/security-filters/rollback
+        healthCheck: config-types/security-filters/healthCheck
+        driftDetect: config-types/security-filters/driftDetect
+        getStatus: config-types/security-filters/getStatus
+      targets:
+        componentTypes: [datadog-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: sensitive-data-scanner
+      group: "Data Security"
+      name: Sensitive Data Scanner
+      description: >
+        Datadog Sensitive Data Scanner (DLP) scanning groups, each with a
+        nested list of scanning rules — via the JSON:API relationship-based
+        resource at /api/v2/sensitive-data-scanner/config/groups[/{id}] and
+        /api/v2/sensitive-data-scanner/config/rules[/{id}]. Reconciled by
+        group name (rules by name within their group; a rule no longer
+        declared in its group is deleted). Does NOT manage group/rule
+        ORDERING (a separate PATCH /api/v2/sensitive-data-scanner/config
+        reorder operation) — out of scope for this release.
+      canvasTemplate: config-types/sensitive-data-scanner/canvas.yaml
+      defaultConfig: config-types/sensitive-data-scanner/defaults.yaml
+      handlers:
+        validate: config-types/sensitive-data-scanner/validate
+        deploy: config-types/sensitive-data-scanner/deploy
+        rollback: config-types/sensitive-data-scanner/rollback
+        healthCheck: config-types/sensitive-data-scanner/healthCheck
+        driftDetect: config-types/sensitive-data-scanner/driftDetect
+        getStatus: config-types/sensitive-data-scanner/getStatus
+      targets:
+        componentTypes: [datadog-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: log-archives
+      group: "Log Management"
+      name: Log Archives
+      description: >
+        Datadog Log Management archives — long-term cold storage of logs in a
+        customer-owned S3/GCS/Azure destination via a pre-configured cloud
+        integration — via GET/POST/PUT/DELETE
+        /api/v2/logs/config/archives[/{archive_id}]. Reconciled by archive
+        name. Does NOT manage archive ORDER (a separate GET/PUT
+        /api/v2/logs/config/archive-order singleton) or reader-role grants (a
+        separate .../readers sub-resource) — out of scope for this release.
+      canvasTemplate: config-types/log-archives/canvas.yaml
+      defaultConfig: config-types/log-archives/defaults.yaml
+      handlers:
+        validate: config-types/log-archives/validate
+        deploy: config-types/log-archives/deploy
+        rollback: config-types/log-archives/rollback
+        healthCheck: config-types/log-archives/healthCheck
+        driftDetect: config-types/log-archives/driftDetect
+        getStatus: config-types/log-archives/getStatus
+      targets:
+        componentTypes: [datadog-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: log-metrics
+      group: "Log Management"
+      name: Log-Based Metrics
+      description: >
+        Datadog log-based metrics — turn matching logs into a custom metric
+        via GET/POST/PATCH/DELETE
+        /api/v2/logs/config/metrics/{metric_id}, where the metric_id IS the
+        user-chosen metric name (no separate server-assigned id, so this
+        reconciles by direct lookup rather than a list+match). compute.
+        aggregation_type and compute.path are create-only; update sends only
+        the mutable fields (filter, group_by, include_percentiles).
+      canvasTemplate: config-types/log-metrics/canvas.yaml
+      defaultConfig: config-types/log-metrics/defaults.yaml
+      handlers:
+        validate: config-types/log-metrics/validate
+        deploy: config-types/log-metrics/deploy
+        rollback: config-types/log-metrics/rollback
+        healthCheck: config-types/log-metrics/healthCheck
+        driftDetect: config-types/log-metrics/driftDetect
+        getStatus: config-types/log-metrics/getStatus
+      targets:
+        componentTypes: [datadog-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: log-indexes
+      group: "Log Management"
+      name: Log Indexes
+      description: >
+        Datadog Log Management indexes — retention, daily quota and exclusion
+        filters for the logs an index retains — via
+        GET/POST/PUT/DELETE /api/v1/logs/config/indexes/{name}, where the
+        index name IS its permanent identity (a direct lookup, not a
+        list+match). Does NOT manage index ORDER (a separate GET/PUT
+        /api/v1/logs/config/index-order singleton, which controls which index
+        a log lands in first) — out of scope for this release.
+      canvasTemplate: config-types/log-indexes/canvas.yaml
+      defaultConfig: config-types/log-indexes/defaults.yaml
+      handlers:
+        validate: config-types/log-indexes/validate
+        deploy: config-types/log-indexes/deploy
+        rollback: config-types/log-indexes/rollback
+        healthCheck: config-types/log-indexes/healthCheck
+        driftDetect: config-types/log-indexes/driftDetect
+        getStatus: config-types/log-indexes/getStatus
+      targets:
+        componentTypes: [datadog-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: roles
+      group: "Access"
+      name: Roles
+      description: >
+        Datadog RBAC roles and their permission grants — via the JSON:API
+        resource at GET/POST/PATCH/DELETE /api/v2/roles[/{role_id}] plus the
+        permissions relationship sub-resource
+        (GET/POST/DELETE /api/v2/roles/{role_id}/permissions). Reconciled by
+        role name; permission names are resolved to Datadog's opaque
+        permission ids via GET /api/v2/permissions, then GRANTED
+        additively — a role's permission set is never pruned, since Datadog
+        auto-adds several baseline read permissions to every new role that
+        this app must not fight.
+      canvasTemplate: config-types/roles/canvas.yaml
+      defaultConfig: config-types/roles/defaults.yaml
+      handlers:
+        validate: config-types/roles/validate
+        deploy: config-types/roles/deploy
+        rollback: config-types/roles/rollback
+        healthCheck: config-types/roles/healthCheck
+        driftDetect: config-types/roles/driftDetect
+        getStatus: config-types/roles/getStatus
+      targets:
+        componentTypes: [datadog-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: slos
+      group: "Monitors"
+      name: SLOs
+      description: >
+        Datadog Service Level Objectives (metric-based or monitor-based) via
+        GET/POST/PUT/DELETE /api/v1/slo[/{slo_id}]. Reconciled by SLO name.
+      canvasTemplate: config-types/slos/canvas.yaml
+      defaultConfig: config-types/slos/defaults.yaml
+      handlers:
+        validate: config-types/slos/validate
+        deploy: config-types/slos/deploy
+        rollback: config-types/slos/rollback
+        healthCheck: config-types/slos/healthCheck
+        driftDetect: config-types/slos/driftDetect
+        getStatus: config-types/slos/getStatus
       targets:
         componentTypes: [datadog-org]
         requiresCredential: true

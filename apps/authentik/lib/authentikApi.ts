@@ -273,9 +273,25 @@ export async function findByName<T extends { name?: string }>(
   name: string,
   opts: RequestOpts = {},
 ): Promise<T | null> {
-  const target = name.trim()
+  return findByField<T>(listUrl, token, 'name', name, opts)
+}
+
+/**
+ * Generalization of `findByName` for a resource whose upsert identity is a
+ * different field the list endpoint can filter on (e.g. `Brand.domain`).
+ * Narrows server-side via `<field>=<value>`, then verifies an exact match
+ * client-side. Returns `null` when nothing matches or `value` is blank.
+ */
+export async function findByField<T extends Record<string, unknown>>(
+  listUrl: string,
+  token: string,
+  field: string,
+  value: string,
+  opts: RequestOpts = {},
+): Promise<T | null> {
+  const target = value.trim()
   if (!target) return null
-  const url = appendQuery(listUrl, { name: target })
+  const url = appendQuery(listUrl, { [field]: target })
   const candidates = await listAll<T>(url, token, { ...opts, pageSize: 100, maxPages: 5 })
-  return candidates.find((c) => (c.name ?? '').trim() === target) ?? null
+  return candidates.find((c) => String(c[field] ?? '').trim() === target) ?? null
 }

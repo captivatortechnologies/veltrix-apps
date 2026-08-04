@@ -1,0 +1,148 @@
+# =============================================================================
+# Canvas Template — Check Point Manual NAT Rules
+#
+# Declares ONE Check Point NAT rule — the item. Users add as many as they
+# need, across as many policy packages as needed. A rule's identity is its
+# NAME, matched WITHIN its declared package (NAT rulebases are per-package,
+# unlike access rules' per-layer model). Deploy lists the target NAT
+# rulebase (show-nat-rulebase), matches on the name, and uses add-nat-rule
+# (create) / set-nat-rule (update) to reconcile each declared rule. Rules
+# this app created but no longer declares are removed (delete-nat-rule).
+# Automatic NAT rules (derived from an object's own NAT settings) are never
+# matched, updated, or deleted by this config type.
+#
+# ORDERING: items are applied top-to-bottom in the order they appear in this
+# canvas — same model and same limitation as access-rules (see README.md):
+# "Above"/"Below" positions reference another rule or section BY NAME, which
+# must already exist — either pre-existing, or an EARLIER item in this same
+# canvas. Position is re-asserted on every deploy, but rollback restores a
+# rule's field values only, not its exact prior position.
+#
+# Field keys must match config-types/nat-rules/validate.ts.
+# =============================================================================
+
+id: "checkpoint-nat-rules"
+name: "Check Point NAT Rule Configuration"
+toolType: "checkpoint"
+entityType: "nat-rules"
+description: "Define Check Point Management API manual NAT rules (add-nat-rule / set-nat-rule) as code. Reconciled by rule name within its policy package; a session-wide publish commits every change together, or discards them all on any error."
+
+item:
+  label: "NAT Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "shuffle"
+      description: "Rule name and target policy package"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The rule's name — its identity within its package. Must be
+            unique per package within this canvas. Naming a NAT rule
+            requires a Check Point management version of R81 or later.
+
+        - key: "package"
+          label: "Policy Package"
+          fieldType: "text"
+          required: true
+          helpText: "The policy package whose NAT rulebase this rule belongs to."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Unchecking disables the rule without deleting it."
+
+    - name: "Translation"
+      icon: "shuffle"
+      description: "Original traffic and how it is translated"
+      fields:
+        - key: "method"
+          label: "Method"
+          fieldType: "select"
+          required: true
+          defaultValue: "hide"
+          options:
+            - { label: "Hide", value: "hide" }
+            - { label: "Static", value: "static" }
+          helpText: "Hide NAT (many-to-one, e.g. PAT) or Static NAT (one-to-one)."
+
+        - key: "originalSource"
+          label: "Original Source"
+          fieldType: "text"
+          required: false
+          helpText: "Host/network/group object name. Leave empty for Any."
+
+        - key: "originalDestination"
+          label: "Original Destination"
+          fieldType: "text"
+          required: false
+          helpText: "Host/network/group object name. Leave empty for Any."
+
+        - key: "originalService"
+          label: "Original Service"
+          fieldType: "text"
+          required: false
+          helpText: "Service object name. Leave empty for Any."
+
+        - key: "translatedSource"
+          label: "Translated Source"
+          fieldType: "text"
+          required: false
+          helpText: "Host/network/group object name. Leave empty for Original (no translation)."
+
+        - key: "translatedDestination"
+          label: "Translated Destination"
+          fieldType: "text"
+          required: false
+          helpText: "Host/network/group object name. Leave empty for Original (no translation)."
+
+        - key: "translatedService"
+          label: "Translated Service"
+          fieldType: "text"
+          required: false
+          helpText: "Service object name. Leave empty for Original (no translation)."
+
+    - name: "Position"
+      icon: "arrow-up-down"
+      description: "Where the rule sits in the NAT rulebase"
+      fields:
+        - key: "position"
+          label: "Position"
+          fieldType: "select"
+          required: true
+          defaultValue: "bottom"
+          options:
+            - { label: "Top of the rulebase", value: "top" }
+            - { label: "Bottom of the rulebase", value: "bottom" }
+            - { label: "Above another rule/section", value: "above" }
+            - { label: "Below another rule/section", value: "below" }
+          helpText: "Re-asserted on every deploy — see the ordering note at the top of this template."
+
+        - key: "positionAnchor"
+          label: "Relative To"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "position", in: ["above", "below"] }
+          helpText: "The name of an existing rule or section to position above/below. Must already exist (see the ordering note)."
+
+    - name: "Metadata"
+      icon: "tag"
+      description: "Install target and comments"
+      fields:
+        - key: "installOn"
+          label: "Install On"
+          fieldType: "tags"
+          required: false
+          helpText: "Gateway/cluster object names. Leave empty to not manage this field — the rule's existing install target (or Check Point's own default) is left alone."
+
+        - key: "comments"
+          label: "Comments"
+          fieldType: "textarea"
+          required: false

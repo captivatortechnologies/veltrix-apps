@@ -1,0 +1,99 @@
+# =============================================================================
+# Canvas Template — Datadog SLOs
+#
+# Declares ONE Service Level Objective (the item). Reconciled by SLO `name`
+# (case-insensitive) against GET /api/v1/slo.
+#
+# type "metric" needs Numerator/Denominator queries; type "monitor" needs
+# Monitor IDs (and optionally Groups). type "time_slice" (a newer SLO type)
+# is accepted but NOT deep-validated — see _shared.ts.
+#
+# Field keys must match config-types/slos/_shared.ts.
+# API reference: https://docs.datadoghq.com/api/latest/service-level-objectives/
+# =============================================================================
+
+id: "datadog-slos"
+name: "SLO"
+toolType: "datadog"
+entityType: "slos"
+description: "Define Datadog Service Level Objectives as code through the SLO API (/api/v1/slo). Reconciled by SLO name."
+
+item:
+  label: "SLO"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "SLO"
+      icon: "target"
+      description: "Identity and type"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The SLO name — this app's logical identity for the SLO (matched case-insensitively against Datadog's live SLOs on every deploy)."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "metric"
+          options:
+            - { label: "Metric (numerator/denominator query)", value: "metric" }
+            - { label: "Monitor (uptime of one or more monitors)", value: "monitor" }
+            - { label: "Time Slice (advanced — not deep-validated by this app)", value: "time_slice" }
+          helpText: '"metric" and "monitor" are fully validated by this app. "time_slice" is passed through to Datadog as-authored.'
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+
+    - name: "Metric Query"
+      icon: "activity"
+      description: 'Required when Type is "metric"'
+      fields:
+        - key: "numerator"
+          label: "Numerator Query"
+          fieldType: "textarea"
+          required: false
+          helpText: 'Metric query counting the "good" events, e.g. sum:trace.http.request.hits{env:prod,!http.status_code:5*}.as_count().'
+
+        - key: "denominator"
+          label: "Denominator Query"
+          fieldType: "textarea"
+          required: false
+          helpText: 'Metric query counting ALL events, e.g. sum:trace.http.request.hits{env:prod}.as_count().'
+
+    - name: "Monitors"
+      icon: "bell"
+      description: 'Required when Type is "monitor"'
+      fields:
+        - key: "monitor_ids"
+          label: "Monitor IDs"
+          fieldType: "tags"
+          helpText: "The numeric Datadog monitor id(s) whose combined uptime this SLO measures, e.g. 12345678."
+
+        - key: "groups"
+          label: "Groups (optional)"
+          fieldType: "tags"
+          helpText: "Optional monitor group tags to scope the SLO to a subset of a multi-alert monitor's groups."
+
+    - name: "Thresholds"
+      icon: "code"
+      description: "Timeframe targets, as JSON"
+      fields:
+        - key: "thresholds"
+          label: "Thresholds (JSON array)"
+          fieldType: "textarea"
+          required: true
+          defaultValue: '[{"timeframe":"30d","target":99.9}]'
+          helpText: 'A JSON array of {"timeframe":"7d"|"30d"|"90d","target":<percent 0-100>,"warning":<percent, optional>} objects — at least one.'

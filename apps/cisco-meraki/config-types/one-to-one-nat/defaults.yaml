@@ -1,0 +1,16 @@
+# Defaults for a new one-to-one NAT ruleset item. Seeded with a single
+# illustrative rule so a new item starts from valid, well-formed JSON.
+network_id: ""
+comment: ""
+rules: |
+  [
+    {
+      "name": "Web server behind NAT",
+      "publicIp": "146.12.3.33",
+      "lanIp": "192.168.128.22",
+      "uplink": "internet1",
+      "allowedInbound": [
+        { "protocol": "tcp", "destinationPorts": ["80"], "allowedIps": ["any"] }
+      ]
+    }
+  ]

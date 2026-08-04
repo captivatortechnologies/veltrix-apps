@@ -1,0 +1,91 @@
+# =============================================================================
+# Canvas Template — Check Point Custom Application Sites
+#
+# Declares ONE Check Point custom application-site object — the item. Users
+# add as many as they need. A site's identity is its NAME; deploy lists the
+# management database (show-application-sites), matches on the name, and
+# uses add-application-site (create) / set-application-site (update) to
+# reconcile each declared site. Sites this app created but no longer
+# declares are removed (delete-application-site).
+#
+# This config type identifies traffic by URL/domain pattern only —
+# application-signature-based matching (the binary signature SmartConsole
+# captures from live traffic) is not modeled; see README.md.
+#
+# Field keys must match config-types/application-sites/validate.ts.
+# =============================================================================
+
+id: "checkpoint-application-sites"
+name: "Check Point Application Site Configuration"
+toolType: "checkpoint"
+entityType: "application-sites"
+description: "Define Check Point Management API custom application-site objects (add-application-site / set-application-site) as code. Reconciled by object name; a session-wide publish commits every change together, or discards them all on any error."
+
+item:
+  label: "Application Site"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "globe"
+      description: "Object name and URL matching"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The custom application's name — its identity in the Check Point
+            management database. Must be unique within this canvas; deploy
+            matches live objects on it.
+
+        - key: "urlList"
+          label: "URL Patterns"
+          fieldType: "tags"
+          required: true
+          helpText: "One or more URL/domain patterns this app matches, e.g. *.example.com. At least one is required."
+
+        - key: "urlsDefinedAsRegex"
+          label: "Patterns Are Regular Expressions"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, each URL pattern above is matched as a regular expression instead of a wildcard glob."
+
+        - key: "primaryCategory"
+          label: "Primary Category"
+          fieldType: "text"
+          required: false
+          helpText: "Optional — an existing application-category object name."
+
+    - name: "Metadata"
+      icon: "tag"
+      description: "Description, comments, color and tags"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+
+        - key: "comments"
+          label: "Comments"
+          fieldType: "textarea"
+          required: false
+          helpText: "Optional description stored on the object."
+
+        - key: "color"
+          label: "Color"
+          fieldType: "text"
+          required: false
+          defaultValue: "black"
+          helpText: >
+            Object color shown in SmartConsole — see the object's color
+            picker in SmartConsole for the full list. Passed through as-is;
+            Check Point rejects an unknown color name at deploy time.
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          required: false
+          helpText: "Optional tag names applied to the object (created automatically if they don't already exist)."

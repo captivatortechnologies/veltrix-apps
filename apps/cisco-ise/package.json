@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-cisco-ise",
   "private": true,
-  "version": "0.2.0",
-  "description": "Veltrix app: manage Cisco Identity Services Engine (ISE) network access control configuration as code — endpoint identity groups, network device groups, network devices and authorization profiles — through the ISE External RESTful Services (ERS) API",
+  "version": "0.3.0",
+  "description": "Veltrix app: manage Cisco Identity Services Engine (ISE) network access control configuration as code — identity groups, network devices, authorization profiles, DACLs, TrustSec SGT/SGACL, Allowed Protocols, internal users and endpoints — through the ISE External RESTful Services (ERS) API",
   "scripts": {
     "typecheck": "tsc --noEmit"
   },

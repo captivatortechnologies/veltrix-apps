@@ -1,0 +1,57 @@
+# =============================================================================
+# Canvas Template — Cisco ISE User Identity Groups
+#
+# Declares ONE (user) Identity Group — the item. Users add as many as they
+# need. Field keys must match config-types/user-identity-groups/_shared.ts.
+# Applied via the ISE ERS API (POST/PUT/DELETE /ers/config/identitygroup).
+#
+# Unlike Network Device Groups' "#"-path convention, User Identity Groups are a
+# genuine parent/child TREE: `parent` names another identity group (resolved to
+# its id at deploy time) rather than encoding the hierarchy into the name
+# itself. Leave it blank to let ISE assign its default parent.
+# =============================================================================
+
+id: "cisco-ise-user-identity-groups"
+name: "User Identity Groups"
+toolType: "cisco-ise"
+entityType: "user-identity-groups"
+description: "Manage Cisco ISE (user) Identity Groups — used to classify internal/external users for authorization policy — via the ERS API (/ers/config/identitygroup)"
+
+item:
+  label: "Identity Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Group"
+      icon: "users"
+      description: "Group identity, description and parent"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The identity group name in ISE. Used as the stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this group is for — recorded on the group in ISE."
+
+        - key: "parent"
+          label: "Parent Group Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: >
+            Another identity group's NAME (resolved to its id at deploy time —
+            it must already exist, e.g. deployed earlier in this same
+            configuration or pre-existing in ISE). Leave blank to let ISE
+            assign its own default parent.

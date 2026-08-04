@@ -1,0 +1,73 @@
+# =============================================================================
+# Canvas Template — Datadog Log Indexes
+#
+# Declares ONE log index (the item). The index `name` is chosen once and is
+# its PERMANENT identity (the URL path key for get/update/delete) — like
+# Log-Based Metrics, this is a DIRECT lookup by name rather than list+match.
+#
+# NOT MANAGED: index ORDER (a separate GET/PUT
+# /api/v1/logs/config/index-order singleton controlling which index a log
+# lands in first) — out of scope for this release.
+#
+# Field keys must match config-types/log-indexes/_shared.ts.
+# API reference: https://docs.datadoghq.com/api/latest/logs-indexes/
+# =============================================================================
+
+id: "datadog-log-indexes"
+name: "Log Index"
+toolType: "datadog"
+entityType: "log-indexes"
+description: "Define Datadog Log Management indexes as code through the Logs Indexes API (/api/v1/logs/config/indexes). The index name IS its permanent identity."
+
+item:
+  label: "Log Index"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Index"
+      icon: "database"
+      description: "Identity, filter and retention"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 80
+          helpText: 'The index''s permanent name, e.g. main. CANNOT be renamed after creation — a different value here targets a DIFFERENT (or new) index rather than renaming this one.'
+
+        - key: "filter_query"
+          label: "Filter Query"
+          fieldType: "textarea"
+          required: false
+          helpText: 'Log search query selecting which logs this index retains, e.g. source:python. Leave blank to match every log not already claimed by an earlier index (per your index order).'
+
+        - key: "num_retention_days"
+          label: "Retention (days, optional)"
+          fieldType: "number"
+          required: false
+          helpText: "How many days matching logs are retained in this index. Leave blank to keep Datadog's current/default value for this index (retention tiers are plan-dependent)."
+
+        - key: "daily_limit"
+          label: "Daily Limit (optional)"
+          fieldType: "number"
+          required: false
+          helpText: "Maximum number of log events indexed per day before this index stops indexing further events until the next reset. Leave blank for no limit."
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          helpText: "Tags attached to this index configuration."
+
+    - name: "Exclusion Filters"
+      icon: "filter"
+      description: "Logs matched by the filter above that are NOT indexed, as JSON"
+      fields:
+        - key: "exclusion_filters"
+          label: "Exclusion Filters (JSON array, optional)"
+          fieldType: "textarea"
+          required: false
+          defaultValue: "[]"
+          helpText: 'Optional JSON array of {"name":"...","is_enabled":true,"filter":{"query":"...","sample_rate":1}} objects — logs matching one of these (sampled at sample_rate, 0-1) are excluded from this index even though the main Filter Query matched. Leave as [] for no exclusions.'

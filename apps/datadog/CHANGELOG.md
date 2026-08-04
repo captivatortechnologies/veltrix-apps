@@ -3,6 +3,73 @@
 All notable changes to the Datadog app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 0.3.0 — 2026-08-04
+
+### Added
+- **Exhaustion pass — 7 new config types, every remaining verified writable
+  Datadog config surface this app's research could confirm.** See the
+  README's **Coverage** section for the full managed/excluded breakdown.
+- **Security Filters (`security-filters`, group "Detection").** Full
+  lifecycle for `/api/v2/security_monitoring/configuration/security_filters[/{id}]`
+  (a JSON:API resource distinct from Suppressions — a filter excludes logs
+  from security analysis entirely, rather than silencing a signal),
+  reconciled by name with optimistic-lock `version`, exclusion-filter drift,
+  rollback, and best-effort protection for a live filter marked
+  `is_builtin` (unverified field name, flagged).
+- **Sensitive Data Scanner (`sensitive-data-scanner`, group "Data
+  Security").** Scanning groups + nested scanning rules over the JSON:API
+  relationship graph at `/api/v2/sensitive-data-scanner/config/{groups,rules}`.
+  One canvas item = one group; rules are authored as a JSON array and fully
+  synced (a live rule no longer declared is deleted). Rollback recreates a
+  pruned rule, restores an updated rule's prior attributes, and deletes a
+  created rule/group. **Scope note:** group/rule ordering
+  (`PATCH .../config`) is not managed.
+- **Log Archives (`log-archives`, group "Log Management").** Full lifecycle
+  for `/api/v2/logs/config/archives[/{archive_id}]`, reconciled by name. The
+  cloud `destination` (S3/GCS/Azure) references a pre-configured Datadog
+  cloud integration by non-secret identifiers only. **Scope note:** archive
+  order and reader-role grants are not managed.
+- **Log-Based Metrics (`log-metrics`, group "Log Management").** Full
+  lifecycle for `/api/v2/logs/config/metrics/{metric_id}`, where the metric
+  `id` is its own permanent name — reconciled by direct lookup, not
+  list+match. `compute.aggregation_type`/`compute.path` are documented
+  create-only and are never sent on `PATCH`.
+- **Log Indexes (`log-indexes`, group "Log Management").** Full lifecycle
+  for `/api/v1/logs/config/indexes/{name}`, where the index name is its
+  permanent identity (direct lookup). Update is a full-replace `PUT`.
+  **Scope note:** index order is not managed.
+- **SLOs (`slos`, group "Monitors").** Full lifecycle for
+  `/api/v1/slo[/{slo_id}]`, reconciled by name, supporting both `metric` and
+  `monitor` SLO types with timeframe thresholds. `time_slice` is accepted
+  but not deep-validated (flagged — no confirmed request-body reference).
+  Delete never forces through a still-referenced SLO.
+- **Roles (`roles`, group "Access").** Full lifecycle for
+  `/api/v2/roles[/{role_id}]` plus the `.../permissions` relationship,
+  reconciled by name. Permission names are resolved to Datadog's opaque
+  permission ids via `GET /api/v2/permissions`. **ADDITIVE ONLY:**
+  permissions are granted but never revoked — Datadog automatically adds
+  several baseline read permissions (Dashboards, Monitors, SLOs, …) to every
+  new role, and a full grant/revoke sync would fight that baseline on every
+  deploy. Drift detection matches: only a missing declared permission is
+  reported.
+- **Dropped, not built: Downtimes (`/api/v2/downtime`).** A time-bound
+  operational action (mute a monitor's alerting for a window), not a
+  durable config object — and this app's rollback model (revert to prior
+  full state) would risk silently re-enabling a monitor's alerting during a
+  human-declared incident/maintenance window. See the README Coverage
+  section for the full reasoning.
+- All 7 new config types ship the full handler set (validate, deploy,
+  rollback, healthCheck, driftDetect, getStatus) and reuse
+  `lib/datadogApi.ts` unchanged.
+
+### Corrected
+- The stated Log Pipelines path in the original wave-3 ask
+  (`/api/v1/logs/pipelines`) is actually `/api/v1/logs/config/pipelines`
+  (already reflected in the 0.2.0 release); Sensitive Data Scanner,
+  Log Archives, Log Metrics and Log Indexes paths were all verified
+  independently against their official per-operation doc pages before
+  being wired up.
+
 ## 0.2.0 — 2026-08-02
 
 ### Added

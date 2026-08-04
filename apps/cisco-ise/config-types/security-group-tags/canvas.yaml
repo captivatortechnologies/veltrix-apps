@@ -1,0 +1,66 @@
+# =============================================================================
+# Canvas Template — Cisco ISE Security Group Tags (SGT)
+#
+# Declares ONE Security Group Tag — the item. Users add as many as they need.
+# Field keys must match config-types/security-group-tags/_shared.ts. Applied
+# via the ISE ERS API (POST/PUT/DELETE /ers/config/sgt).
+#
+# TrustSec SGTs are also exposed under ISE's newer OpenAPI surface
+# (/api/v1/trustsec/...); this app manages them over ERS instead — see
+# lib/iseApi.ts's module doc and the app README's Coverage section for why.
+# =============================================================================
+
+id: "cisco-ise-security-group-tags"
+name: "Security Group Tags"
+toolType: "cisco-ise"
+entityType: "security-group-tags"
+description: "Manage Cisco ISE TrustSec Security Group Tags (SGTs) via the ERS API (/ers/config/sgt)"
+
+item:
+  label: "Security Group Tag"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Tag"
+      icon: "tag"
+      description: "SGT identity and numeric value"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 32
+          helpText: >
+            The SGT name in ISE. Must be 32 characters or fewer and contain
+            only letters, numbers and underscores (ISE's own naming rule).
+            Used as the stable identity for upsert and drift. A name that
+            collides with a built-in read-only SGT (e.g. "Unknown") will fail
+            at deploy — ISE rejects writes to those.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "What this security group is for — recorded on the SGT in ISE."
+
+        - key: "value"
+          label: "Tag Value"
+          fieldType: "number"
+          required: false
+          defaultValue: -1
+          validation:
+            min: -1
+            max: 65519
+          helpText: "The numeric SGT tag, 2-65519. Leave at -1 to let ISE auto-assign the next available value."
+
+        - key: "propagate_to_apic"
+          label: "Propagate to APIC"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "ACI-specific — propagate this SGT to a connected Cisco APIC. Leave off unless you use ACI/TrustSec integration."

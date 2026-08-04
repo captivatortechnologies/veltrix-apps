@@ -2,6 +2,80 @@
 
 All notable changes to the Cisco ISE app are documented here.
 
+## 0.3.0 — 2026-08-04
+
+Exhaustion pass — enumerated Cisco ISE's ENTIRE declarative config-as-code
+surface across both ERS (`/ers/config/...`) and the newer OpenAPI domain
+(`/api/v1/...`) and added every remaining meaningful, safely-flat config type.
+Every config type (including 0.1.0's Endpoint Identity Groups) now declares a
+sidebar `group`. The README gained a **Coverage** section: every ISE config
+surface is either managed or excluded with a stated reason.
+
+- **Downloadable ACLs** config type — create / edit / delete named ACL content
+  over `/ers/config/downloadableacl` (wrapper `Downloadableacl`, confirmed from
+  the official Ansible collection's own SDK class name). Group: "Policy
+  Elements".
+- **Allowed Protocols** config type — create / edit / delete Allowed Protocols
+  services' TOP-LEVEL authentication-method flags over
+  `/ers/config/allowedprotocols` (wrapper `Allowedprotocols`, confirmed
+  writable/create-capable from the official Ansible module). Group: "Policy
+  Elements". The nested `eapFast`/`eapTls`/`eapTtls`/`peap`/`teap` sub-objects
+  (a dozen+ fields each) are out of scope — an update never touches them.
+- **Security Group Tags** (SGT) config type — create / edit / delete TrustSec
+  SGTs over `/ers/config/sgt` (wrapper `Sgt`, cross-validated against both
+  `pyise-ers` and the official Ansible `sgt.py` module). Group: "TrustSec".
+  `value: -1` (auto-assign) is preserved as the tag's existing value on an
+  UPDATE rather than resent literally. Built-in read-only tags are never
+  targeted.
+- **Security Group ACLs** (SGACL) config type — create / edit / delete
+  TrustSec SGACLs over `/ers/config/sgacl` (wrapper `Sgacl`, verified against
+  `pyise-ers`). Group: "TrustSec". ACL content is newline-joined into ERS's
+  single `aclcontent` string.
+- **Internal Users** config type — create / edit / delete local ISE users over
+  `/ers/config/internaluser` (wrapper `InternalUser`, verified against
+  `pyise-ers`'s `add_user`). Group: "Identity Management". Identity-group
+  names are resolved to ERS's comma-separated id-string format via a live
+  lookup. ⚠ `password` and the separate TACACS+ `enablePassword` are
+  write-only — never read back, diffed, logged, or captured for rollback.
+- **User Identity Groups** config type — create / edit / delete (user)
+  identity groups over `/ers/config/identitygroup` (verified fields/create
+  support against the official Ansible `identitygroup.py` module; the
+  `IdentityGroup` wrapper key itself is UNVERIFIED — flagged). Group:
+  "Identity Management". A genuine parent/child tree — `parent` is authored as
+  another group's NAME and resolved to an id via a live self-lookup.
+- **Endpoints** config type — create / edit / delete individual endpoint MAC
+  records over `/ers/config/endpoint` (the irregular `ERSEndPoint` wrapper key,
+  confirmed identically by `pyise-ers` and an independent Cisco curl example).
+  Group: "Identity Management". Identity is the MAC address, not `name` — ERS
+  filters by `mac.EQ.`, which required a new `identityFilterField` option on
+  `lib/iseApi.ts`'s generic client. An optional group name resolves against
+  the SAME `EndPointGroup` resource endpoint-identity-groups manages. Profiler
+  assignment, portal-user linkage and custom attributes are out of scope.
+- **`lib/iseApi.ts`** — added `identityFilterField` to `buildErsResourceClient`
+  (for MAC-keyed Endpoint), plus the `InternalUser`, `IdentityGroup`,
+  `IseEndpoint`, `DownloadableAcl`, `Sgt`, `Sgacl` and `AllowedProtocols` field
+  types.
+- **Coverage.** Evaluated and excluded, with reasons documented in the
+  README: OpenAPI network-access policy sets / authorization rules / condition
+  trees (ordered, hierarchical, position-sensitive — doesn't fit this app's
+  flat item-list model); certificates & CSR lifecycle; portals & guest/sponsor
+  workflows; per-node/deployment operations (backup/restore, patching, AD
+  join/leave, pxGrid); the TrustSec egress matrix; endpoint profiling; and
+  session/operational/reporting APIs.
+
+> API verification: `internaluser`, `endpoint` (and its irregular `ERSEndPoint`
+> wrapper), `sgt` and `sgacl` field shapes were verified against the community
+> `pyise-ers` ERS client (github.com/falkowich/pyise-ers, pyiseers/pyiseers.py),
+> actively exercised against real ISE deployments. `downloadableacl`,
+> `allowedprotocols`, `identitygroup` and (cross-validated) `sgt` field shapes
+> and wrapper keys were verified against the official Cisco ISE Ansible
+> collection (github.com/CiscoISE/ansible-ise, plugins/modules/*.py), generated
+> from Cisco's own ERS/OpenAPI definitions. All share the same
+> `SearchResult` / single-resource-envelope / `Location`-header /
+> `ERSResponse.messages` conventions already verified in 0.1.0/0.2.0.
+> **Verify against a live ISE node** before treating an edge case — or the one
+> unverified wrapper key (`IdentityGroup`) — as final.
+
 ## 0.2.0 — 2026-08-02
 
 Three new config types (wave 2) — all name-keyed upsert, all built on a new

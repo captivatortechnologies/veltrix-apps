@@ -1,18 +1,21 @@
 id: jamf
 name: Jamf
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Jamf Pro (Apple MDM / endpoint management) configuration as code
-  through both the modern Jamf Pro API and the legacy Classic (XML) API.
-  Covers Scripts and Categories (modern JSON API) and Smart Computer Groups
-  and Policies (Classic XML API — computer groups and policies are not yet
-  exposed for write on the modern API) — each reconciled by name, with
-  validation, drift detection and rollback handled by the Security-as-Code
-  pipeline. Authenticates as a Jamf Pro API-only account (username/password
-  exchanged for a short-lived Bearer token) against the tenant's Jamf Pro
-  server; the same Bearer token is reused for Classic API calls, with a
-  Basic-auth fallback. Configuration Profiles remain out of scope.
+  through both the modern Jamf Pro API and the legacy Classic (XML) API —
+  Scripts, Categories, Departments, Buildings, Computer Extension Attributes
+  and Package metadata on the modern JSON API; Smart/Static Computer Groups,
+  Policies, Restricted Software and macOS Configuration Profiles (opaque
+  plist payload passthrough) on the Classic XML API, since those resources
+  are not yet exposed for write on the modern API — each reconciled by name,
+  with validation, drift detection and rollback handled by the
+  Security-as-Code pipeline. Authenticates as a Jamf Pro API-only account
+  (username/password exchanged for a short-lived Bearer token) against the
+  tenant's Jamf Pro server; the same Bearer token is reused for Classic API
+  calls, with a Basic-auth fallback. See README § Coverage for every managed
+  vs. intentionally excluded Jamf Pro config surface.
 category: Endpoint Management
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/jamf
@@ -47,6 +50,27 @@ permissions:
     - resource: policies
       actions: [read, write, delete]
       description: Manage Jamf Pro policies — name/enabled/triggers/frequency, scope, scripts and packages (Classic API)
+    - resource: departments
+      actions: [read, write, delete]
+      description: Manage Jamf Pro departments (modern API)
+    - resource: buildings
+      actions: [read, write, delete]
+      description: Manage Jamf Pro buildings (modern API)
+    - resource: computer-extension-attributes
+      actions: [read, write, delete]
+      description: Manage Jamf Pro computer extension attributes (modern API)
+    - resource: packages
+      actions: [read, write, delete]
+      description: Manage Jamf Pro package metadata records (modern API; binary upload not included)
+    - resource: static-computer-groups
+      actions: [read, write, delete]
+      description: Manage Jamf Pro static computer groups (Classic API)
+    - resource: restricted-software
+      actions: [read, write, delete]
+      description: Manage Jamf Pro restricted software records (Classic API)
+    - resource: macos-configuration-profiles
+      actions: [read, write, delete]
+      description: Manage Jamf Pro macOS configuration profiles (Classic API; plist payload is an opaque passthrough)
 
 pipeline:
   configurationTypes:
@@ -137,6 +161,168 @@ pipeline:
         healthCheck: config-types/policies/healthCheck
         driftDetect: config-types/policies/driftDetect
         getStatus: config-types/policies/getStatus
+      targets:
+        componentTypes: [jamf-pro-server]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: departments
+      group: "Inventory"
+      name: Departments
+      description: >
+        Jamf Pro departments — name only — via the modern Jamf Pro API
+        (GET/POST/PUT/DELETE /v1/departments). Reconciled by department name.
+      canvasTemplate: config-types/departments/canvas.yaml
+      defaultConfig: config-types/departments/defaults.yaml
+      handlers:
+        validate: config-types/departments/validate
+        deploy: config-types/departments/deploy
+        rollback: config-types/departments/rollback
+        healthCheck: config-types/departments/healthCheck
+        driftDetect: config-types/departments/driftDetect
+        getStatus: config-types/departments/getStatus
+      targets:
+        componentTypes: [jamf-pro-server]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: buildings
+      group: "Inventory"
+      name: Buildings
+      description: >
+        Jamf Pro buildings — name plus a postal address — via the modern
+        Jamf Pro API (GET/POST/PUT/DELETE /v1/buildings). Reconciled by
+        building name.
+      canvasTemplate: config-types/buildings/canvas.yaml
+      defaultConfig: config-types/buildings/defaults.yaml
+      handlers:
+        validate: config-types/buildings/validate
+        deploy: config-types/buildings/deploy
+        rollback: config-types/buildings/rollback
+        healthCheck: config-types/buildings/healthCheck
+        driftDetect: config-types/buildings/driftDetect
+        getStatus: config-types/buildings/getStatus
+      targets:
+        componentTypes: [jamf-pro-server]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: computer-extension-attributes
+      group: "Content"
+      name: Computer Extension Attributes
+      description: >
+        Jamf Pro computer extension attributes — data type, input type
+        (Script/Text/Pop-up Menu/Directory Service Attribute Mapping) and its
+        input-specific fields — via the modern Jamf Pro API
+        (GET/POST/PUT/DELETE /v1/computer-extension-attributes). The Classic
+        API equivalent's own docs recommend this modern endpoint instead.
+        Reconciled by attribute name.
+      canvasTemplate: config-types/computer-extension-attributes/canvas.yaml
+      defaultConfig: config-types/computer-extension-attributes/defaults.yaml
+      handlers:
+        validate: config-types/computer-extension-attributes/validate
+        deploy: config-types/computer-extension-attributes/deploy
+        rollback: config-types/computer-extension-attributes/rollback
+        healthCheck: config-types/computer-extension-attributes/healthCheck
+        driftDetect: config-types/computer-extension-attributes/driftDetect
+        getStatus: config-types/computer-extension-attributes/getStatus
+      targets:
+        componentTypes: [jamf-pro-server]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: packages
+      group: "Content"
+      name: Packages
+      description: >
+        Jamf Pro package metadata records — packageName, fileName, category
+        (by name), priority and installation-behavior flags — via the modern
+        Jamf Pro API (GET/POST/PUT/DELETE /v1/packages). Metadata only: the
+        binary upload is a separate, unmanaged prerequisite. Reconciled by
+        package name.
+      canvasTemplate: config-types/packages/canvas.yaml
+      defaultConfig: config-types/packages/defaults.yaml
+      handlers:
+        validate: config-types/packages/validate
+        deploy: config-types/packages/deploy
+        rollback: config-types/packages/rollback
+        healthCheck: config-types/packages/healthCheck
+        driftDetect: config-types/packages/driftDetect
+        getStatus: config-types/packages/getStatus
+      targets:
+        componentTypes: [jamf-pro-server]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: static-computer-groups
+      group: "Scoping"
+      name: Static Computer Groups
+      description: >
+        Jamf Pro static computer groups — name and an explicit member list
+        declared by serial number — via the legacy Classic API (XML,
+        /JSSResource/computergroups, is_smart=false). The modern Jamf Pro API
+        v2 mirror is read-only. Reconciled by group name against existing
+        STATIC groups only; referenced by name from a Policy's scope.
+      canvasTemplate: config-types/static-computer-groups/canvas.yaml
+      defaultConfig: config-types/static-computer-groups/defaults.yaml
+      handlers:
+        validate: config-types/static-computer-groups/validate
+        deploy: config-types/static-computer-groups/deploy
+        rollback: config-types/static-computer-groups/rollback
+        healthCheck: config-types/static-computer-groups/healthCheck
+        driftDetect: config-types/static-computer-groups/driftDetect
+        getStatus: config-types/static-computer-groups/getStatus
+      targets:
+        componentTypes: [jamf-pro-server]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: restricted-software
+      group: "Policies"
+      name: Restricted Software
+      description: >
+        Jamf Pro restricted software records — the process to detect,
+        notify/kill/delete behavior, and computer-group scope — via the
+        legacy Classic API (XML, /JSSResource/restrictedsoftware). No modern
+        Jamf Pro API equivalent exists. Reconciled by name; every update
+        merges only the managed general+scope fields into the record's
+        existing XML.
+      canvasTemplate: config-types/restricted-software/canvas.yaml
+      defaultConfig: config-types/restricted-software/defaults.yaml
+      handlers:
+        validate: config-types/restricted-software/validate
+        deploy: config-types/restricted-software/deploy
+        rollback: config-types/restricted-software/rollback
+        healthCheck: config-types/restricted-software/healthCheck
+        driftDetect: config-types/restricted-software/driftDetect
+        getStatus: config-types/restricted-software/getStatus
+      targets:
+        componentTypes: [jamf-pro-server]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: macos-configuration-profiles
+      group: "Content"
+      name: macOS Configuration Profiles
+      description: >
+        Jamf Pro macOS configuration profiles — name, description,
+        distribution method, removability, level, computer-group scope, and
+        an OPAQUE plist payload passthrough — via the legacy Classic API
+        (XML, /JSSResource/osxconfigurationprofiles). The embedded
+        `.mobileconfig` plist is never parsed or validated by this app — see
+        config-types/macos-configuration-profiles/validate.ts. Reconciled by
+        name; every update merges only the managed fields into the profile's
+        existing XML, leaving Self Service branding and everything else
+        untouched.
+      canvasTemplate: config-types/macos-configuration-profiles/canvas.yaml
+      defaultConfig: config-types/macos-configuration-profiles/defaults.yaml
+      handlers:
+        validate: config-types/macos-configuration-profiles/validate
+        deploy: config-types/macos-configuration-profiles/deploy
+        rollback: config-types/macos-configuration-profiles/rollback
+        healthCheck: config-types/macos-configuration-profiles/healthCheck
+        driftDetect: config-types/macos-configuration-profiles/driftDetect
+        getStatus: config-types/macos-configuration-profiles/getStatus
       targets:
         componentTypes: [jamf-pro-server]
         requiresCredential: true

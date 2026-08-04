@@ -278,6 +278,7 @@ export class JamfClient {
   async listAll<TNode = unknown>(
     path: string,
     pageSize: number,
+    sortField = 'name',
   ): Promise<{ nodes: TNode[]; error: string | null }> {
     const nodes: TNode[] = []
     const size = pageSize > 0 ? pageSize : DEFAULT_PAGE_SIZE
@@ -286,7 +287,7 @@ export class JamfClient {
       const sep = path.includes('?') ? '&' : '?'
       const res = await this.request<JamfSearchResults<TNode>>(
         'GET',
-        `${path}${sep}page=${page}&page-size=${size}&sort=name%3Aasc`,
+        `${path}${sep}page=${page}&page-size=${size}&sort=${encodeURIComponent(`${sortField}:asc`)}`,
       )
       if (res.error) return { nodes, error: res.error }
       const results = res.data?.results

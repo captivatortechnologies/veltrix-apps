@@ -1,0 +1,8 @@
+# Defaults for a new Jamf Pro package item.
+#
+# Intentionally empty: the platform starts a new item blank (the checkbox
+# fields' own defaultValue: false and priority's defaultValue: 10, set in
+# canvas.yaml, already seed new items) and users manage their own default
+# value sets from there. Any values here would be a FLAT map keyed by the
+# canvas field keys (name, file_name, category_name, priority, info, notes,
+# os_requirements, and the installation-behavior checkboxes).

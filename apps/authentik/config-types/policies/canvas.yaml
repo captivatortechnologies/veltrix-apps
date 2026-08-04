@@ -1,0 +1,149 @@
+# =============================================================================
+# Canvas Template — authentik Policies
+#
+# Declares ONE authentik Policy of a selected TYPE — expression, password or
+# reputation. Field keys must match config-types/policies/validate.ts and
+# _shared.ts. Each type is a genuinely distinct authentik model with its own
+# REST endpoint:
+#   expression  GET/POST /policies/expression/,  GET/PATCH/DELETE /policies/expression/{policy_uuid}/
+#   password    GET/POST /policies/password/,    GET/PATCH/DELETE /policies/password/{policy_uuid}/
+#   reputation  GET/POST /policies/reputation/,  GET/PATCH/DELETE /policies/reputation/{policy_uuid}/
+#
+# IDENTITY: the path key is a server-assigned UUID (`policy_uuid`) for every
+# type — this config type upserts by NAME within the SELECTED type's endpoint
+# (list `?name=` → exact match → PATCH/POST).
+#
+# The fields below are grouped as "General" (every type) and one group per
+# type; only the fields for the item's selected Type are sent to authentik —
+# the others are ignored. Changing an existing item's Type after it has been
+# deployed creates a NEW policy under the new type's endpoint; the prior
+# policy under the old type is NOT deleted automatically (delete it directly
+# in authentik if you retype an existing item).
+#
+# DROPPED for v0.4.0 (see README Coverage): "reputation" scores themselves are
+# NOT authored (they are computed by authentik from live login/failure
+# events) — only the reputation POLICY (the threshold gate) is managed here.
+# Password policy's `symbol_charset`/`error_message`/`check_static_rules`/
+# `hibp_allowed_count`/`zxcvbn_score_threshold` are deferred as excess detail.
+# =============================================================================
+
+id: "authentik-policies"
+name: "Policies"
+toolType: "authentik"
+entityType: "policies"
+description: "Manage authentik Policies (Expression, Password, Reputation) — access-control building blocks bound to flows/applications/groups elsewhere in authentik — via the authentik Core REST API"
+
+item:
+  label: "Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "General"
+      icon: "key"
+      description: "Policy identity and type"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The policy's display name. Stable identity used for upsert and drift (policies have no user-declared path key)."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "expression"
+          options:
+            - { label: "Expression (Python)", value: "expression" }
+            - { label: "Password", value: "password" }
+            - { label: "Reputation", value: "reputation" }
+          helpText: "Each type is a distinct authentik object with its own endpoint — see this file's header comment."
+
+        - key: "execution_logging"
+          label: "Log every execution"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When enabled, every execution of this policy is logged (by default only failures are)."
+
+    - name: "Expression (Type = Expression)"
+      icon: "settings"
+      description: "The Python expression evaluated to allow/deny"
+      fields:
+        - key: "expression"
+          label: "Expression"
+          fieldType: "textarea"
+          required: false
+          helpText: "Required when Type = Expression. The Python expression evaluated to return True (allow) or False (deny)."
+
+    - name: "Password rules (Type = Password)"
+      icon: "shield"
+      description: "Composition requirements checked against a Prompt-stage password field"
+      fields:
+        - key: "password_field"
+          label: "Password Field"
+          fieldType: "text"
+          required: false
+          helpText: "The Prompt-stage field key holding the password to check."
+
+        - key: "length_min"
+          label: "Minimum Length"
+          fieldType: "number"
+          required: false
+
+        - key: "amount_uppercase"
+          label: "Minimum Uppercase Characters"
+          fieldType: "number"
+          required: false
+
+        - key: "amount_lowercase"
+          label: "Minimum Lowercase Characters"
+          fieldType: "number"
+          required: false
+
+        - key: "amount_digits"
+          label: "Minimum Digits"
+          fieldType: "number"
+          required: false
+
+        - key: "amount_symbols"
+          label: "Minimum Symbols"
+          fieldType: "number"
+          required: false
+
+        - key: "check_have_i_been_pwned"
+          label: "Check Have I Been Pwned"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+
+        - key: "check_zxcvbn"
+          label: "Check zxcvbn strength score"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+
+    - name: "Reputation (Type = Reputation)"
+      icon: "list"
+      description: "Gate on a user/IP's accumulated reputation score"
+      fields:
+        - key: "check_ip"
+          label: "Check IP reputation"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+
+        - key: "check_username"
+          label: "Check username reputation"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+
+        - key: "threshold"
+          label: "Threshold"
+          fieldType: "number"
+          required: false
+          defaultValue: -5
+          helpText: "The policy fails when the reputation score is below this threshold."

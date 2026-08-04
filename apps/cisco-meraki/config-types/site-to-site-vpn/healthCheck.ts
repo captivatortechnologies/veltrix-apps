@@ -1,0 +1,5 @@
+import type { HealthCheckContext, HealthCheckResult } from '@veltrixsecops/app-sdk'
+import { healthSingleton } from '../../lib/merakiSingleton'
+import { transport } from './_shared'
+export default (ctx: HealthCheckContext): Promise<HealthCheckResult> => healthSingleton(ctx, transport)
+

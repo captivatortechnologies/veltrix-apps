@@ -1,0 +1,117 @@
+# =============================================================================
+# Canvas Template — authentik Proxy Providers
+#
+# Declares ONE authentik Proxy Provider (the item). Field keys must match
+# config-types/proxy-providers/validate.ts and _shared.ts. Applied via the
+# authentik Core REST API (GET/POST /providers/proxy/, GET/PATCH/DELETE
+# /providers/proxy/{id}/).
+#
+# IDENTITY: like OAuth2/OpenID Providers, a proxy provider's API path key is a
+# server-assigned integer `id` — this config type upserts by NAME.
+#
+# DELIBERATELY EXCLUDED for v0.4.0 (see README Coverage): `certificate`
+# (a keypair reference — certificate management is out of scope),
+# `basic_auth_password_attribute`/`basic_auth_user_attribute`, JWT federation
+# sources/providers, access/refresh token validity overrides,
+# `intercept_header_auth`, `authentication_flow`.
+# =============================================================================
+
+id: "authentik-proxy-providers"
+name: "Proxy Providers"
+toolType: "authentik"
+entityType: "proxy-providers"
+description: "Manage authentik Proxy Providers — name, flows, mode, internal/external host, path exclusions and property mappings — via the authentik Core REST API"
+
+item:
+  label: "Provider"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "key"
+      description: "Provider identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The provider's display name. Stable identity used for upsert and drift (proxy providers have no user-declared path key)."
+
+    - name: "Flows"
+      icon: "link"
+      description: "authorization and invalidation flows (by Flow UUID pk)"
+      fields:
+        - key: "authorization_flow"
+          label: "Authorization Flow (UUID)"
+          fieldType: "text"
+          required: true
+          helpText: "The UUID pk of the Flow used when authorizing this provider. Required by authentik."
+
+        - key: "invalidation_flow"
+          label: "Invalidation Flow (UUID)"
+          fieldType: "text"
+          required: true
+          helpText: "The UUID pk of the Flow used to end the session for this provider. Required by authentik."
+
+    - name: "Proxy"
+      icon: "settings"
+      description: "Proxy mode and hosts"
+      fields:
+        - key: "mode"
+          label: "Mode"
+          fieldType: "select"
+          required: false
+          defaultValue: "proxy"
+          options:
+            - { label: "Proxy", value: "proxy" }
+            - { label: "Forward auth (single application)", value: "forward_single" }
+            - { label: "Forward auth (domain-wide)", value: "forward_domain" }
+          helpText: "Proxy mode, or forwardAuth (traefik/nginx auth_request) — exclusive with Internal Host."
+
+        - key: "internal_host"
+          label: "Internal Host"
+          fieldType: "text"
+          required: false
+          helpText: "The upstream host authentik proxies to. Not used in forwardAuth mode."
+
+        - key: "external_host"
+          label: "External Host"
+          fieldType: "text"
+          required: true
+          helpText: "The externally accessible URL for this provider's application. Required by authentik."
+
+        - key: "internal_host_ssl_validation"
+          label: "Validate upstream SSL certificates"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+
+        - key: "skip_path_regex"
+          label: "Skip Authentication Paths"
+          fieldType: "textarea"
+          required: false
+          helpText: "Regular expressions for paths that do not require authentication, one per line."
+
+        - key: "basic_auth_enabled"
+          label: "Set HTTP-Basic Authentication header"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+
+        - key: "cookie_domain"
+          label: "Cookie Domain"
+          fieldType: "text"
+          required: false
+          helpText: "Required for a domain-wide forward-auth deployment covering multiple subdomains."
+
+    - name: "Access"
+      icon: "list"
+      description: "Scope (property) mappings"
+      fields:
+        - key: "property_mappings"
+          label: "Property Mappings (UUIDs)"
+          fieldType: "tags"
+          required: false
+          helpText: "Optional list of existing Property Mapping UUIDs. Leave empty to leave the provider's current mappings untouched on update."

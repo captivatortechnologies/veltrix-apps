@@ -1,0 +1,79 @@
+# =============================================================================
+# Canvas Template — Datadog Log-Based Metrics
+#
+# Declares ONE log-based metric (the item). The metric's `id` (its name, e.g.
+# "logs.page.load.count") is chosen once and is its PERMANENT identity — there
+# is no separate server-assigned id, so this config type looks the metric up
+# directly by id rather than listing and matching by name.
+#
+# `aggregation_type` and `path` are CREATE-ONLY (Datadog does not document
+# them as updatable) — changing either after creation requires deleting and
+# recreating the metric under this app's model.
+#
+# Field keys must match config-types/log-metrics/_shared.ts.
+# API reference: https://docs.datadoghq.com/api/latest/logs-metrics/create-a-log-based-metric/
+# =============================================================================
+
+id: "datadog-log-metrics"
+name: "Log-Based Metric"
+toolType: "datadog"
+entityType: "log-metrics"
+description: "Define Datadog log-based metrics as code through the Logs Metrics API (/api/v2/logs/config/metrics). The metric id IS its name and permanent identity."
+
+item:
+  label: "Log-Based Metric"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Metric"
+      icon: "bar-chart"
+      description: "Identity and aggregation (create-only)"
+      fields:
+        - key: "id"
+          label: "Metric Name (id)"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 200
+          helpText: 'The metric''s permanent name/id, e.g. logs.page.load.count. CANNOT be changed after creation — a different value here creates a NEW metric rather than renaming the existing one.'
+
+        - key: "aggregation_type"
+          label: "Aggregation Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "count"
+          options:
+            - { label: "Count", value: "count" }
+            - { label: "Distribution", value: "distribution" }
+          helpText: "count: number of matching logs. distribution: percentile/statistical aggregation of a numeric log attribute (set Value Path below). CREATE-ONLY — not sent on update."
+
+        - key: "path"
+          label: "Value Path (distribution only)"
+          fieldType: "text"
+          required: false
+          helpText: 'The numeric log attribute to aggregate when Aggregation Type is "distribution", e.g. @duration. Ignored for "count". CREATE-ONLY — not sent on update.'
+
+        - key: "include_percentiles"
+          label: "Include Percentiles (distribution only)"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: 'Whether to compute p50/p75/p90/p95/p99 for a "distribution" metric.'
+
+    - name: "Filter & Grouping"
+      icon: "filter"
+      description: "Which logs count, and how to group them"
+      fields:
+        - key: "filter_query"
+          label: "Filter Query"
+          fieldType: "textarea"
+          required: false
+          helpText: 'Log search query selecting which logs feed this metric, e.g. service:web* AND @http.status_code:[200 TO 299]. Leave blank to match every log.'
+
+        - key: "group_by"
+          label: "Group By (JSON array, optional)"
+          fieldType: "textarea"
+          required: false
+          defaultValue: "[]"
+          helpText: 'Optional JSON array of {"path":"@http.status_code","tag_name":"status_code"} objects — each becomes a tag on the resulting metric.'

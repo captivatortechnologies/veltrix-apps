@@ -40,13 +40,42 @@
 //   https://developer.cisco.com/meraki/api-v1/create-network-appliance-vlan/
 //   https://developer.cisco.com/meraki/api-v1/update-network-appliance-vlan/
 //   https://developer.cisco.com/meraki/api-v1/delete-network-appliance-vlan/
+//   https://developer.cisco.com/meraki/api-v1/get-network-appliance-security-intrusion/
+//   https://developer.cisco.com/meraki/api-v1/update-network-appliance-security-intrusion/
+//   https://developer.cisco.com/meraki/api-v1/get-network-appliance-security-malware/
+//   https://developer.cisco.com/meraki/api-v1/update-network-appliance-security-malware/
+//   https://developer.cisco.com/meraki/api-v1/get-network-appliance-content-filtering/
+//   https://developer.cisco.com/meraki/api-v1/update-network-appliance-content-filtering/
+//   https://developer.cisco.com/meraki/api-v1/get-network-appliance-content-filtering-categories/
+//   https://developer.cisco.com/meraki/api-v1/get-network-appliance-vpn-site-to-site-vpn/
+//   https://developer.cisco.com/meraki/api-v1/update-network-appliance-vpn-site-to-site-vpn/
+//   https://developer.cisco.com/meraki/api-v1/get-network-appliance-firewall-one-to-one-nat-rules/
+//   https://developer.cisco.com/meraki/api-v1/update-network-appliance-firewall-one-to-one-nat-rules/
+//   https://developer.cisco.com/meraki/api-v1/get-network-appliance-firewall-one-to-many-nat-rules/
+//   https://developer.cisco.com/meraki/api-v1/update-network-appliance-firewall-one-to-many-nat-rules/
+//   https://developer.cisco.com/meraki/api-v1/get-network-appliance-firewall-port-forwarding-rules/
+//   https://developer.cisco.com/meraki/api-v1/update-network-appliance-firewall-port-forwarding-rules/
+//   https://developer.cisco.com/meraki/api-v1/get-network-appliance-firewall-firewalled-services/
+//   https://developer.cisco.com/meraki/api-v1/get-network-appliance-firewall-firewalled-service/
+//   https://developer.cisco.com/meraki/api-v1/update-network-appliance-firewall-firewalled-service/
+//   https://developer.cisco.com/meraki/api-v1/get-network-switch-access-control-lists/
+//   https://developer.cisco.com/meraki/api-v1/update-network-switch-access-control-lists/
 // =============================================================================
 
-import type { CredentialRef } from '@veltrixsecops/app-sdk'
+import type { CredentialRef, HealthCheck } from '@veltrixsecops/app-sdk'
 import type { MerakiL3FirewallRule } from '../config-types/l3-firewall-rules/_shared'
 import type { MerakiL7FirewallRule } from '../config-types/l7-firewall-rules/_shared'
 import type { MerakiGroupPolicy } from '../config-types/group-policies/_shared'
 import type { MerakiVlan } from '../config-types/appliance-vlans/_shared'
+import type { MerakiIntrusionSettings } from '../config-types/appliance-security-intrusion/_shared'
+import type { MerakiMalwareSettings } from '../config-types/appliance-security-malware/_shared'
+import type { MerakiContentFilteringSettings } from '../config-types/appliance-content-filtering/_shared'
+import type { MerakiSiteToSiteVpnSettings } from '../config-types/site-to-site-vpn/_shared'
+import type { MerakiOneToOneNatRule } from '../config-types/one-to-one-nat/_shared'
+import type { MerakiOneToManyNatRule } from '../config-types/one-to-many-nat/_shared'
+import type { MerakiPortForwardingRule } from '../config-types/port-forwarding-rules/_shared'
+import type { MerakiFirewalledService } from '../config-types/firewalled-services/_shared'
+import type { MerakiSwitchAclRule } from '../config-types/switch-access-control-lists/_shared'
 
 export const BASE_URL = 'https://api.meraki.com/api/v1'
 
@@ -413,4 +442,261 @@ export async function deleteVlan(client: MerakiClient, networkId: string, vlanId
     `/networks/${encodeURIComponent(networkId)}/appliance/vlans/${encodeURIComponent(vlanId)}`,
   )
   if (!res.ok) throw new Error(`Failed to delete VLAN "${vlanId}" in network "${networkId}": ${merakiErrorMessage(res)}`)
+}
+
+// --- Shared health check ------------------------------------------------------
+
+/**
+ * The reachability check every config type's `healthCheck` opens with: the
+ * Dashboard API answers and the API key is accepted (GET /organizations).
+ * Factored out once v0.3.0 added nine more config types that all need this
+ * exact check.
+ */
+export async function checkMerakiReachable(client: MerakiClient): Promise<HealthCheck> {
+  const started = Date.now()
+  try {
+    await listOrganizations(client)
+    return { name: 'meraki_reachable', passed: true, message: 'Meraki Dashboard API reachable and API key accepted.', latencyMs: Date.now() - started }
+  } catch (error) {
+    return {
+      name: 'meraki_reachable',
+      passed: false,
+      message: error instanceof Error ? error.message : 'Meraki Dashboard API unreachable',
+      latencyMs: Date.now() - started,
+    }
+  }
+}
+
+// --- Appliance security: intrusion (IPS) — singleton settings object --------
+
+/** GET /networks/{networkId}/appliance/security/intrusion. Throws on error. */
+export async function getIntrusionSettings(client: MerakiClient, networkId: string): Promise<MerakiIntrusionSettings> {
+  const res = await client.request('GET', `/networks/${encodeURIComponent(networkId)}/appliance/security/intrusion`)
+  if (!res.ok) throw new Error(`Failed to read intrusion settings for network "${networkId}": ${merakiErrorMessage(res)}`)
+  const parsed = parseJson<MerakiIntrusionSettings>(res.body)
+  if (!parsed) throw new Error(`Meraki returned an empty intrusion settings body for network "${networkId}"`)
+  return parsed
+}
+
+/** PUT /networks/{networkId}/appliance/security/intrusion. Throws on error. */
+export async function putIntrusionSettings(client: MerakiClient, networkId: string, body: MerakiIntrusionSettings): Promise<MerakiIntrusionSettings> {
+  const res = await client.request('PUT', `/networks/${encodeURIComponent(networkId)}/appliance/security/intrusion`, { body })
+  if (!res.ok) throw new Error(`Failed to update intrusion settings for network "${networkId}": ${merakiErrorMessage(res)}`)
+  const parsed = parseJson<MerakiIntrusionSettings>(res.body)
+  return parsed ?? body
+}
+
+// --- Appliance security: malware (AMP) — singleton settings object ----------
+
+/** GET /networks/{networkId}/appliance/security/malware. Throws on error. */
+export async function getMalwareSettings(client: MerakiClient, networkId: string): Promise<MerakiMalwareSettings> {
+  const res = await client.request('GET', `/networks/${encodeURIComponent(networkId)}/appliance/security/malware`)
+  if (!res.ok) throw new Error(`Failed to read malware settings for network "${networkId}": ${merakiErrorMessage(res)}`)
+  const parsed = parseJson<MerakiMalwareSettings>(res.body)
+  if (!parsed) throw new Error(`Meraki returned an empty malware settings body for network "${networkId}"`)
+  return parsed
+}
+
+/** PUT /networks/{networkId}/appliance/security/malware. Throws on error. */
+export async function putMalwareSettings(client: MerakiClient, networkId: string, body: MerakiMalwareSettings): Promise<MerakiMalwareSettings> {
+  const res = await client.request('PUT', `/networks/${encodeURIComponent(networkId)}/appliance/security/malware`, { body })
+  if (!res.ok) throw new Error(`Failed to update malware settings for network "${networkId}": ${merakiErrorMessage(res)}`)
+  const parsed = parseJson<MerakiMalwareSettings>(res.body)
+  return parsed ?? body
+}
+
+// --- Appliance content filtering — singleton settings object ----------------
+
+/** GET /networks/{networkId}/appliance/contentFiltering. Throws on error. */
+export async function getContentFilteringSettings(client: MerakiClient, networkId: string): Promise<MerakiContentFilteringSettings> {
+  const res = await client.request('GET', `/networks/${encodeURIComponent(networkId)}/appliance/contentFiltering`)
+  if (!res.ok) throw new Error(`Failed to read content filtering settings for network "${networkId}": ${merakiErrorMessage(res)}`)
+  const parsed = parseJson<MerakiContentFilteringSettings>(res.body)
+  if (!parsed) throw new Error(`Meraki returned an empty content filtering body for network "${networkId}"`)
+  return parsed
+}
+
+/** PUT /networks/{networkId}/appliance/contentFiltering. Throws on error. */
+export async function putContentFilteringSettings(
+  client: MerakiClient,
+  networkId: string,
+  body: MerakiContentFilteringSettings,
+): Promise<MerakiContentFilteringSettings> {
+  const res = await client.request('PUT', `/networks/${encodeURIComponent(networkId)}/appliance/contentFiltering`, { body })
+  if (!res.ok) throw new Error(`Failed to update content filtering settings for network "${networkId}": ${merakiErrorMessage(res)}`)
+  const parsed = parseJson<MerakiContentFilteringSettings>(res.body)
+  return parsed ?? body
+}
+
+/** GET /networks/{networkId}/appliance/contentFiltering/categories — the valid `blockedUrlCategories` ids. Throws on error. */
+export async function listContentFilteringCategories(
+  client: MerakiClient,
+  networkId: string,
+): Promise<Array<{ id?: string; name?: string }>> {
+  const res = await client.request('GET', `/networks/${encodeURIComponent(networkId)}/appliance/contentFiltering/categories`)
+  if (!res.ok) throw new Error(`Failed to list content filtering categories for network "${networkId}": ${merakiErrorMessage(res)}`)
+  const parsed = parseJson<{ categories?: Array<{ id?: string; name?: string }> }>(res.body)
+  return Array.isArray(parsed?.categories) ? parsed!.categories! : []
+}
+
+// --- Site-to-site VPN — singleton settings object ----------------------------
+
+/** GET /networks/{networkId}/appliance/vpn/siteToSiteVpn. Throws on error. */
+export async function getSiteToSiteVpn(client: MerakiClient, networkId: string): Promise<MerakiSiteToSiteVpnSettings> {
+  const res = await client.request('GET', `/networks/${encodeURIComponent(networkId)}/appliance/vpn/siteToSiteVpn`)
+  if (!res.ok) throw new Error(`Failed to read site-to-site VPN settings for network "${networkId}": ${merakiErrorMessage(res)}`)
+  const parsed = parseJson<MerakiSiteToSiteVpnSettings>(res.body)
+  if (!parsed) throw new Error(`Meraki returned an empty site-to-site VPN body for network "${networkId}"`)
+  return parsed
+}
+
+/** PUT /networks/{networkId}/appliance/vpn/siteToSiteVpn. Throws on error. */
+export async function putSiteToSiteVpn(
+  client: MerakiClient,
+  networkId: string,
+  body: MerakiSiteToSiteVpnSettings,
+): Promise<MerakiSiteToSiteVpnSettings> {
+  const res = await client.request('PUT', `/networks/${encodeURIComponent(networkId)}/appliance/vpn/siteToSiteVpn`, { body })
+  if (!res.ok) throw new Error(`Failed to update site-to-site VPN settings for network "${networkId}": ${merakiErrorMessage(res)}`)
+  const parsed = parseJson<MerakiSiteToSiteVpnSettings>(res.body)
+  return parsed ?? body
+}
+
+// --- One-to-one NAT rules — ordered whole list -------------------------------
+
+export interface MerakiOneToOneNatRuleset {
+  rules: MerakiOneToOneNatRule[]
+}
+
+/** GET /networks/{networkId}/appliance/firewall/oneToOneNatRules. Throws on error. */
+export async function getOneToOneNatRules(client: MerakiClient, networkId: string): Promise<MerakiOneToOneNatRuleset> {
+  const res = await client.request('GET', `/networks/${encodeURIComponent(networkId)}/appliance/firewall/oneToOneNatRules`)
+  if (!res.ok) throw new Error(`Failed to read one-to-one NAT rules for network "${networkId}": ${merakiErrorMessage(res)}`)
+  const parsed = parseJson<MerakiOneToOneNatRuleset>(res.body)
+  return { rules: Array.isArray(parsed?.rules) ? (parsed!.rules as MerakiOneToOneNatRule[]) : [] }
+}
+
+/** PUT /networks/{networkId}/appliance/firewall/oneToOneNatRules — whole-list replace. Throws on error. */
+export async function putOneToOneNatRules(
+  client: MerakiClient,
+  networkId: string,
+  rules: MerakiOneToOneNatRule[],
+): Promise<MerakiOneToOneNatRuleset> {
+  const res = await client.request('PUT', `/networks/${encodeURIComponent(networkId)}/appliance/firewall/oneToOneNatRules`, { body: { rules } })
+  if (!res.ok) throw new Error(`Failed to update one-to-one NAT rules for network "${networkId}": ${merakiErrorMessage(res)}`)
+  const parsed = parseJson<MerakiOneToOneNatRuleset>(res.body)
+  return { rules: Array.isArray(parsed?.rules) ? (parsed!.rules as MerakiOneToOneNatRule[]) : rules }
+}
+
+// --- One-to-many NAT rules — ordered whole list ------------------------------
+
+export interface MerakiOneToManyNatRuleset {
+  rules: MerakiOneToManyNatRule[]
+}
+
+/** GET /networks/{networkId}/appliance/firewall/oneToManyNatRules. Throws on error. */
+export async function getOneToManyNatRules(client: MerakiClient, networkId: string): Promise<MerakiOneToManyNatRuleset> {
+  const res = await client.request('GET', `/networks/${encodeURIComponent(networkId)}/appliance/firewall/oneToManyNatRules`)
+  if (!res.ok) throw new Error(`Failed to read one-to-many NAT rules for network "${networkId}": ${merakiErrorMessage(res)}`)
+  const parsed = parseJson<MerakiOneToManyNatRuleset>(res.body)
+  return { rules: Array.isArray(parsed?.rules) ? (parsed!.rules as MerakiOneToManyNatRule[]) : [] }
+}
+
+/** PUT /networks/{networkId}/appliance/firewall/oneToManyNatRules — whole-list replace. Throws on error. */
+export async function putOneToManyNatRules(
+  client: MerakiClient,
+  networkId: string,
+  rules: MerakiOneToManyNatRule[],
+): Promise<MerakiOneToManyNatRuleset> {
+  const res = await client.request('PUT', `/networks/${encodeURIComponent(networkId)}/appliance/firewall/oneToManyNatRules`, { body: { rules } })
+  if (!res.ok) throw new Error(`Failed to update one-to-many NAT rules for network "${networkId}": ${merakiErrorMessage(res)}`)
+  const parsed = parseJson<MerakiOneToManyNatRuleset>(res.body)
+  return { rules: Array.isArray(parsed?.rules) ? (parsed!.rules as MerakiOneToManyNatRule[]) : rules }
+}
+
+// --- Port forwarding rules — ordered whole list ------------------------------
+
+export interface MerakiPortForwardingRuleset {
+  rules: MerakiPortForwardingRule[]
+}
+
+/** GET /networks/{networkId}/appliance/firewall/portForwardingRules. Throws on error. */
+export async function getPortForwardingRules(client: MerakiClient, networkId: string): Promise<MerakiPortForwardingRuleset> {
+  const res = await client.request('GET', `/networks/${encodeURIComponent(networkId)}/appliance/firewall/portForwardingRules`)
+  if (!res.ok) throw new Error(`Failed to read port forwarding rules for network "${networkId}": ${merakiErrorMessage(res)}`)
+  const parsed = parseJson<MerakiPortForwardingRuleset>(res.body)
+  return { rules: Array.isArray(parsed?.rules) ? (parsed!.rules as MerakiPortForwardingRule[]) : [] }
+}
+
+/** PUT /networks/{networkId}/appliance/firewall/portForwardingRules — whole-list replace. Throws on error. */
+export async function putPortForwardingRules(
+  client: MerakiClient,
+  networkId: string,
+  rules: MerakiPortForwardingRule[],
+): Promise<MerakiPortForwardingRuleset> {
+  const res = await client.request('PUT', `/networks/${encodeURIComponent(networkId)}/appliance/firewall/portForwardingRules`, { body: { rules } })
+  if (!res.ok) throw new Error(`Failed to update port forwarding rules for network "${networkId}": ${merakiErrorMessage(res)}`)
+  const parsed = parseJson<MerakiPortForwardingRuleset>(res.body)
+  return { rules: Array.isArray(parsed?.rules) ? (parsed!.rules as MerakiPortForwardingRule[]) : rules }
+}
+
+// --- Firewalled services — fixed set, per-service PUT (no create/delete) ----
+
+/** GET /networks/{networkId}/appliance/firewall/firewalledServices — the network's fixed services (ICMP, web, SNMP). Throws on error. */
+export async function listFirewalledServices(client: MerakiClient, networkId: string): Promise<MerakiFirewalledService[]> {
+  const res = await client.request('GET', `/networks/${encodeURIComponent(networkId)}/appliance/firewall/firewalledServices`)
+  if (!res.ok) throw new Error(`Failed to list firewalled services for network "${networkId}": ${merakiErrorMessage(res)}`)
+  const parsed = parseJson<MerakiFirewalledService[]>(res.body)
+  return Array.isArray(parsed) ? parsed : []
+}
+
+/**
+ * PUT /networks/{networkId}/appliance/firewall/firewalledServices/{service} —
+ * the fixed service (ICMP / web / SNMP) always exists; this is always an
+ * UPDATE, never create/delete. Throws on error.
+ */
+export async function updateFirewalledService(
+  client: MerakiClient,
+  networkId: string,
+  service: string,
+  body: { access: string; allowedIps?: string[] },
+): Promise<MerakiFirewalledService> {
+  const res = await client.request(
+    'PUT',
+    `/networks/${encodeURIComponent(networkId)}/appliance/firewall/firewalledServices/${encodeURIComponent(service)}`,
+    { body },
+  )
+  if (!res.ok) {
+    throw new Error(`Failed to update firewalled service "${service}" for network "${networkId}": ${merakiErrorMessage(res)}`)
+  }
+  const parsed = parseJson<MerakiFirewalledService>(res.body)
+  return parsed ?? { service, ...body }
+}
+
+// --- Switch access control lists — ordered whole list ------------------------
+
+export interface MerakiSwitchAclRuleset {
+  rules: MerakiSwitchAclRule[]
+}
+
+/** GET /networks/{networkId}/switch/accessControlLists. Throws on error. */
+export async function getSwitchAcls(client: MerakiClient, networkId: string): Promise<MerakiSwitchAclRuleset> {
+  const res = await client.request('GET', `/networks/${encodeURIComponent(networkId)}/switch/accessControlLists`)
+  if (!res.ok) throw new Error(`Failed to read switch ACLs for network "${networkId}": ${merakiErrorMessage(res)}`)
+  const parsed = parseJson<MerakiSwitchAclRuleset>(res.body)
+  return { rules: Array.isArray(parsed?.rules) ? (parsed!.rules as MerakiSwitchAclRule[]) : [] }
+}
+
+/**
+ * PUT /networks/{networkId}/switch/accessControlLists — whole-list replace.
+ * An empty `rules` array CLEARS all switch ACLs (confirmed in the documented
+ * schema) rather than falling back to an implicit default rule the way L3
+ * firewall rules do — see validate.ts's EMPTY_RULES warning wording. Throws
+ * on error.
+ */
+export async function putSwitchAcls(client: MerakiClient, networkId: string, rules: MerakiSwitchAclRule[]): Promise<MerakiSwitchAclRuleset> {
+  const res = await client.request('PUT', `/networks/${encodeURIComponent(networkId)}/switch/accessControlLists`, { body: { rules } })
+  if (!res.ok) throw new Error(`Failed to update switch ACLs for network "${networkId}": ${merakiErrorMessage(res)}`)
+  const parsed = parseJson<MerakiSwitchAclRuleset>(res.body)
+  return { rules: Array.isArray(parsed?.rules) ? (parsed!.rules as MerakiSwitchAclRule[]) : rules }
 }

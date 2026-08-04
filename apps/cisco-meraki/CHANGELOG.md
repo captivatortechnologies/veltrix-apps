@@ -3,6 +3,67 @@
 All notable changes to the Cisco Meraki app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 0.3.0 — 2026-08-03
+
+### Added
+
+Nine more configuration types, exhausting the meaningfully declarative,
+network-scoped MX appliance / switch write surface — across three shapes:
+
+- **Ordered whole-list singletons** (same GET/PUT `{ rules: [...] }` shape as
+  L3/L7 Firewall Rules) — `one-to-one-nat`, `one-to-many-nat`,
+  `port-forwarding-rules`, `switch-access-control-lists`. Factored onto a new
+  shared engine, **`lib/merakiOrderedList.ts`**, so deploy/rollback/
+  driftDetect/healthCheck are thin per-type wrappers; each type keeps its own
+  `validate.ts` and rule-shape types since the item schemas genuinely differ
+  (NAT rules have nested `allowedInbound`/`portRules`; port forwarding has a
+  richer uplink enum than the NAT endpoints' "internetN"; switch ACLs add
+  `ipVersion`/`vlan`). **Switch ACLs flag a real behavioral asymmetry**: unlike
+  L3 firewall rules, Meraki documents that an *empty* `rules` array **clears**
+  all switch ACLs rather than falling back to an implicit default rule —
+  `validate` warns (`EMPTY_RULES_CLEARS_ACL`) rather than treating it the same
+  as L3's "only the default rule applies."
+- **Whole-object settings singletons** (one JSON object per network, GET/PUT,
+  no array) — `appliance-security-intrusion` (IPS: mode, IDS ruleset,
+  protected-networks scope), `appliance-security-malware` (AMP: mode plus
+  allowed-URL/allowed-file exceptions), `appliance-content-filtering`
+  (allowed/blocked URL patterns, blocked categories, category list size) and
+  `site-to-site-vpn` (Auto VPN mode, hubs, subnets, NAT). Factored onto a new
+  shared engine, **`lib/merakiSingleton.ts`**: the exact documented request
+  object is authored as one JSON blob (`settings`) per network — so new
+  vendor fields pass through without an app release — while
+  `transport.validate()` still checks every documented enum (intrusion's
+  `mode`/`idsRulesets`, malware's `mode`, content filtering's
+  `urlCategoryListSize`, VPN's `mode`) and the one conditional requirement
+  Meraki's own schema states: intrusion's `protectedNetworks.includedCidr` /
+  `excludedCidr` are **required** when `useDefault` is `false`. Drift
+  comparison uses a recursive `projectDeclared()` so only the keys actually
+  declared are compared against the live object, at any nesting depth — not
+  just top-level keys.
+- **Firewalled Services (`firewalled-services`)** — the one endpoint that fits
+  neither shape: ICMP, web and SNMP are a **fixed, uncreatable set**, so this
+  models the singleton engine's `settings` object as `{ services: [...] }` and
+  `put()` loops a `PUT .../firewalledServices/{service}` per declared entry.
+  Every declared entry is an update, never a create/delete. `validate` checks
+  the documented `access` enum (blocked/restricted/unrestricted) and that
+  every entry names a service.
+- **Coverage.** A new README section auditing the full Meraki Dashboard API v1
+  surface: every managed declarative endpoint, and — as important — what is
+  **intentionally excluded** and why (device/port-scale resources like switch
+  ports and per-radio wireless settings; organization-wide resources outside
+  this app's network-canvas ownership boundary; imperative Live Tools/action
+  endpoints; read-only monitoring/audit endpoints; licensing). Drop-don't-fake:
+  nothing here is stubbed or faked as "supported."
+- `lib/merakiApi.ts` extended with all nine endpoints' GET/PUT/POST/DELETE
+  operations (plus `listContentFilteringCategories` for reference) and a
+  shared `checkMerakiReachable()` health check, reusing the existing
+  Bearer-auth / 429-`Retry-After`-backoff transport unchanged since v0.1.0.
+- Every configuration type across all thirteen now declares a sidebar
+  `group`: "Appliance · Firewall" (L3/L7, NAT ×2, port forwarding, firewalled
+  services), "Appliance · Security" (intrusion, malware, content filtering),
+  "Appliance · VPN" (site-to-site VPN), "Network" (group policies, VLANs) and
+  "Switch" (switch ACLs).
+
 ## 0.2.0 — 2026-08-02
 
 ### Added
