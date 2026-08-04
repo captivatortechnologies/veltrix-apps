@@ -1,0 +1,8 @@
+# Defaults for a new service orchestration item — mostly blank; the operator
+# fills in the target service and its rule sets. `active` defaults to true (a
+# newly declared Service Orchestration is normally meant to take over event
+# processing for the service) and catch_all is pre-filled with PagerDuty's own
+# default. Values here are a FLAT map keyed by the canvas field keys (service,
+# active, sets, catch_all).
+active: true
+catch_all: '{"actions":{}}'

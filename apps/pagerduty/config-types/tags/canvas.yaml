@@ -1,0 +1,49 @@
+# =============================================================================
+# Canvas Template — PagerDuty Tags
+#
+# Declares ONE PagerDuty tag (the item). Users add as many as they need. Field
+# keys must match config-types/tags/_shared.ts. Applied via the PagerDuty REST
+# API v2 (/tags, /{entity_type}/{id}/change_tags) at https://api.pagerduty.com.
+#
+# PagerDuty assigns the server id, so identity for reconciliation is the tag
+# `label`. A tag can optionally be assigned to Users, Teams and/or Escalation
+# Policies (Services do not support tags).
+# =============================================================================
+
+id: "pagerduty-tags"
+name: "Tags"
+toolType: "pagerduty"
+entityType: "tags"
+description: "Manage PagerDuty tags and their assignment to users, teams and escalation policies — via the PagerDuty REST API v2 (/tags). Reconciled by label."
+
+item:
+  label: "Tag"
+  identityField: "label"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Tag"
+      icon: "tag"
+      description: "Tag identity and entity assignments"
+      fields:
+        - key: "label"
+          label: "Label"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 191
+          helpText: "The tag label shown in PagerDuty. Used as the stable identity for upsert and drift."
+
+        - key: "assignments"
+          label: "Assignments (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional JSON array of entities to attach this tag to, e.g.
+            [{"entity_type":"users","entity_name":"jane@example.com"},{"entity_type":"teams","entity_name":"Platform SRE"}].
+            entity_type must be one of "users", "escalation_policies" or "teams"
+            (PagerDuty does not support tagging services). For entity_type "users",
+            entity_name is the user's EMAIL (PagerDuty users' stable identifier);
+            for "teams" / "escalation_policies" it is the NAME. Leave blank to
+            create the tag without assigning it to anything.

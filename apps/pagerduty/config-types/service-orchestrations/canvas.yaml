@@ -1,0 +1,68 @@
+# =============================================================================
+# Canvas Template — PagerDuty Service Orchestrations
+#
+# Declares the Event Rules attached to ONE existing PagerDuty Service (the item).
+# Users add as many as they need — one per service. Field keys must match
+# config-types/service-orchestrations/_shared.ts. Applied via the PagerDuty REST
+# API v2 (/event_orchestrations/services/{service_id}) at https://api.pagerduty.com.
+#
+# A Service Orchestration is a SINGLETON attached to a Service — there is no
+# separate id, and reconciliation is per-service (the target Service's `name`).
+# List a given service in at most one item; a second item targeting the same
+# service will simply overwrite the first on every deploy.
+# =============================================================================
+
+id: "pagerduty-service-orchestrations"
+name: "Service Orchestrations"
+toolType: "pagerduty"
+entityType: "service-orchestrations"
+description: "Manage the Event Rules attached to a PagerDuty Service (a Service Orchestration) — its rule sets, catch-all and active flag — via the PagerDuty REST API v2 (/event_orchestrations/services/{service_id}). Reconciled by the target service's name; at most one item per service."
+
+item:
+  label: "Service Orchestration"
+  identityField: "service"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Service Orchestration"
+      icon: "workflow"
+      description: "The target service, its rule sets, catch-all and active flag"
+      fields:
+        - key: "service"
+          label: "Service (name)"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The NAME of an existing PagerDuty Service to attach this orchestration to. Resolved to its id at deploy time; the deploy fails if no service with this name exists. Reconciliation is per-service — list a given service in at most one item."
+
+        - key: "active"
+          label: "Active"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether this Service Orchestration is the active event-processing path for the service. When false, PagerDuty keeps whatever the service was previously using (e.g. legacy Service Event Rules) as its active path."
+
+        - key: "sets"
+          label: "Sets (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            Required JSON array of the Service Orchestration's rule sets,
+            evaluated starting from the set with id "start". Each set is
+            { "id": "<set id>", "rules"?: [ { "label"?, "conditions": [{"expression": "<PCL string>"}], "actions": {...}, "disabled"? } ] }.
+            Rule actions support the fuller vocabulary (suppress, priority,
+            escalation_policy, annotate, severity, event_action, variable[],
+            extraction[], automation_action, incident_custom_field_update). e.g.
+            [{"id":"start","rules":[{"label":"P1 critical alerts","conditions":[{"expression":"event.severity matches 'critical'"}],"actions":{"severity":"critical"}}]}].
+            Must contain at least one set.
+
+        - key: "catch_all"
+          label: "Catch-All (JSON object)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional catch_all applied when no rule in "Sets" above matches.
+            Shape: { "actions": {...} }. Leave blank to default to
+            {"actions":{}}, which leaves the event unmodified.

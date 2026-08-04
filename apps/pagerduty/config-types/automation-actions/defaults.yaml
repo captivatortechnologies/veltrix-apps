@@ -1,0 +1,11 @@
+# Defaults for a new automation action item. The item starts mostly blank; the
+# operator fills in the name, description, action type and action data. Only
+# the invocation/association booleans carry sensible defaults. Values here are
+# a FLAT map keyed by the canvas field keys (name, description, action_type,
+# action_data, runner, action_classification, teams, services,
+# map_to_all_services, only_invocable_on_unresolved_incidents,
+# allow_invocation_manually, allow_invocation_from_event_orchestration).
+only_invocable_on_unresolved_incidents: false
+allow_invocation_manually: true
+allow_invocation_from_event_orchestration: false
+map_to_all_services: false

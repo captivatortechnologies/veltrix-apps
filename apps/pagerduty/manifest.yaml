@@ -1,14 +1,18 @@
 id: pagerduty
 name: PagerDuty
-version: "0.2.0"
+version: "0.4.0"
 vendor: Veltrix
 description: >
   Manage PagerDuty incident-response configuration as code through the PagerDuty
-  REST API v2. Covers Escalation Policies, Services, on-call Schedules and Teams —
-  each driven through the Security-as-Code pipeline: validate, deploy (upsert by
-  name), health check, drift detection and rollback. Auth is a PagerDuty REST API
-  key (Authorization: Token token=…) against the fixed https://api.pagerduty.com
-  base.
+  REST API v2. Covers Escalation Policies, Services, on-call Schedules, Teams,
+  Users, Business Services, Event Orchestrations (global + per-service), Tags,
+  Automation Actions, generic Extensions and v3 Webhook Subscriptions — each
+  driven through the Security-as-Code pipeline: validate, deploy (upsert by
+  name), health check, drift detection and rollback. Auth is a PagerDuty REST
+  API key (Authorization: Token token=…) against the fixed
+  https://api.pagerduty.com base. Automation Actions Runners and per-service
+  Integrations are intentionally NOT managed here — see the README Coverage
+  section for why.
 category: SOAR
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/pagerduty
@@ -40,6 +44,30 @@ permissions:
     - resource: teams
       actions: [read, write, delete]
       description: Manage PagerDuty teams (create / edit / delete)
+    - resource: users
+      actions: [read, write, delete]
+      description: Manage PagerDuty user directory records (create / edit / delete)
+    - resource: business-services
+      actions: [read, write, delete]
+      description: Manage PagerDuty business services (create / edit / delete)
+    - resource: event-orchestrations
+      actions: [read, write, delete]
+      description: Manage PagerDuty global Event Orchestrations, Routers, and cross-service rules
+    - resource: service-orchestrations
+      actions: [read, write, delete]
+      description: Manage per-service PagerDuty Event Orchestration rules
+    - resource: extensions
+      actions: [read, write, delete]
+      description: Manage PagerDuty service extensions (generic webhooks and vendor extensions)
+    - resource: webhook-subscriptions
+      actions: [read, write, delete]
+      description: Manage PagerDuty v3 webhook subscriptions
+    - resource: tags
+      actions: [read, write, delete]
+      description: Manage PagerDuty tags and their assignment to users, teams and escalation policies
+    - resource: automation-actions
+      actions: [read, write, delete]
+      description: Manage PagerDuty Automation Actions (script / Process Automation actions)
 
 pipeline:
   configurationTypes:
@@ -122,6 +150,188 @@ pipeline:
         healthCheck: config-types/teams/healthCheck
         driftDetect: config-types/teams/driftDetect
         getStatus: config-types/teams/getStatus
+      targets:
+        componentTypes: [pagerduty-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: users
+      group: "On-Call"
+      name: Users
+      description: >
+        PagerDuty user directory records — name, email (identity), role, job
+        title, time zone, description and schedule color — applied over the
+        PagerDuty REST API v2 (/users). Reconciled by email. Contact methods,
+        notification rules and sessions are personal/PII and are never managed
+        here.
+      canvasTemplate: config-types/users/canvas.yaml
+      defaultConfig: config-types/users/defaults.yaml
+      handlers:
+        validate: config-types/users/validate
+        deploy: config-types/users/deploy
+        rollback: config-types/users/rollback
+        healthCheck: config-types/users/healthCheck
+        driftDetect: config-types/users/driftDetect
+        getStatus: config-types/users/getStatus
+      targets:
+        componentTypes: [pagerduty-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: business-services
+      group: "Service Ownership"
+      name: Business Services
+      description: >
+        PagerDuty business services — name, description, point of contact and
+        the owning team (referenced by name) — applied over the PagerDuty REST
+        API v2 (/business_services). Reconciled by name.
+      canvasTemplate: config-types/business-services/canvas.yaml
+      defaultConfig: config-types/business-services/defaults.yaml
+      handlers:
+        validate: config-types/business-services/validate
+        deploy: config-types/business-services/deploy
+        rollback: config-types/business-services/rollback
+        healthCheck: config-types/business-services/healthCheck
+        driftDetect: config-types/business-services/driftDetect
+        getStatus: config-types/business-services/getStatus
+      targets:
+        componentTypes: [pagerduty-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: event-orchestrations
+      group: "Event Orchestration"
+      name: Event Orchestrations
+      description: >
+        Global PagerDuty Event Orchestrations — the orchestration identity
+        (name/description/team), its Router rule sets (the single mandatory
+        entry point that routes events to services), and its optional Global
+        (cross-service) and Unrouted (catch-all) rule sets — applied over the
+        PagerDuty REST API v2 (/event_orchestrations, .../router, .../global,
+        .../unrouted). Reconciled by name.
+      canvasTemplate: config-types/event-orchestrations/canvas.yaml
+      defaultConfig: config-types/event-orchestrations/defaults.yaml
+      handlers:
+        validate: config-types/event-orchestrations/validate
+        deploy: config-types/event-orchestrations/deploy
+        rollback: config-types/event-orchestrations/rollback
+        healthCheck: config-types/event-orchestrations/healthCheck
+        driftDetect: config-types/event-orchestrations/driftDetect
+        getStatus: config-types/event-orchestrations/getStatus
+      targets:
+        componentTypes: [pagerduty-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: service-orchestrations
+      group: "Event Orchestration"
+      name: Service Orchestrations
+      description: >
+        Per-service PagerDuty Event Orchestration rules — the rule sets and
+        catch-all that process events already routed to one Service, plus
+        whether Service Orchestration is the active processing path for that
+        service — applied over the PagerDuty REST API v2
+        (/event_orchestrations/services/{service_id} and .../active).
+        Reconciled by the target service's name.
+      canvasTemplate: config-types/service-orchestrations/canvas.yaml
+      defaultConfig: config-types/service-orchestrations/defaults.yaml
+      handlers:
+        validate: config-types/service-orchestrations/validate
+        deploy: config-types/service-orchestrations/deploy
+        rollback: config-types/service-orchestrations/rollback
+        healthCheck: config-types/service-orchestrations/healthCheck
+        driftDetect: config-types/service-orchestrations/driftDetect
+        getStatus: config-types/service-orchestrations/getStatus
+      targets:
+        componentTypes: [pagerduty-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: extensions
+      group: "Integrations"
+      name: Extensions
+      description: >
+        PagerDuty service extensions — generic webhooks and vendor extensions
+        (name, extension schema, endpoint URL, the services they apply to and
+        vendor-specific config) — applied over the PagerDuty REST API v2
+        (/extensions). Reconciled by name.
+      canvasTemplate: config-types/extensions/canvas.yaml
+      defaultConfig: config-types/extensions/defaults.yaml
+      handlers:
+        validate: config-types/extensions/validate
+        deploy: config-types/extensions/deploy
+        rollback: config-types/extensions/rollback
+        healthCheck: config-types/extensions/healthCheck
+        driftDetect: config-types/extensions/driftDetect
+        getStatus: config-types/extensions/getStatus
+      targets:
+        componentTypes: [pagerduty-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: webhook-subscriptions
+      group: "Integrations"
+      name: Webhook Subscriptions
+      description: >
+        PagerDuty v3 webhook subscriptions — delivery URL, custom headers, the
+        subscribed incident event types, the account/service/team filter scope
+        and active state — applied over the PagerDuty REST API v2
+        (/webhook_subscriptions). Reconciled by description (used as the
+        stable identity since PagerDuty gives webhook subscriptions no name).
+      canvasTemplate: config-types/webhook-subscriptions/canvas.yaml
+      defaultConfig: config-types/webhook-subscriptions/defaults.yaml
+      handlers:
+        validate: config-types/webhook-subscriptions/validate
+        deploy: config-types/webhook-subscriptions/deploy
+        rollback: config-types/webhook-subscriptions/rollback
+        healthCheck: config-types/webhook-subscriptions/healthCheck
+        driftDetect: config-types/webhook-subscriptions/driftDetect
+        getStatus: config-types/webhook-subscriptions/getStatus
+      targets:
+        componentTypes: [pagerduty-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: tags
+      group: "Access & Tagging"
+      name: Tags
+      description: >
+        PagerDuty tags — the tag label and its assignment to users (by email),
+        teams and escalation policies (by name) — applied over the PagerDuty
+        REST API v2 (/tags, /{entity_type}/{id}/change_tags). Reconciled by
+        label.
+      canvasTemplate: config-types/tags/canvas.yaml
+      defaultConfig: config-types/tags/defaults.yaml
+      handlers:
+        validate: config-types/tags/validate
+        deploy: config-types/tags/deploy
+        rollback: config-types/tags/rollback
+        healthCheck: config-types/tags/healthCheck
+        driftDetect: config-types/tags/driftDetect
+        getStatus: config-types/tags/getStatus
+      targets:
+        componentTypes: [pagerduty-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: automation-actions
+      group: "Automation"
+      name: Automation Actions
+      description: >
+        PagerDuty Automation Actions — script or Process Automation actions
+        (name, description, action type, action data, the runner that executes
+        them, and the teams/services they're associated with) — applied over
+        the PagerDuty REST API v2 (/automation_actions/actions). Reconciled by
+        name.
+      canvasTemplate: config-types/automation-actions/canvas.yaml
+      defaultConfig: config-types/automation-actions/defaults.yaml
+      handlers:
+        validate: config-types/automation-actions/validate
+        deploy: config-types/automation-actions/deploy
+        rollback: config-types/automation-actions/rollback
+        healthCheck: config-types/automation-actions/healthCheck
+        driftDetect: config-types/automation-actions/driftDetect
+        getStatus: config-types/automation-actions/getStatus
       targets:
         componentTypes: [pagerduty-account]
         requiresCredential: true

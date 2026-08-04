@@ -116,6 +116,37 @@ export class PagerDutyClient {
     return { ok: true, items, status: lastStatus, body: lastBody }
   }
 
+  /**
+   * GET every page of a CURSOR-paginated collection, concatenating the array at
+   * `wrapperKey`. Unlike most of the REST API v2, the Automation Actions family
+   * (/automation_actions/actions, /automation_actions/runners) pages with an
+   * opaque `next_cursor` string instead of limit/offset + `more` — loop until the
+   * response carries no `next_cursor` (or an empty one).
+   */
+  async getAllCursor<T = unknown>(
+    path: string,
+    wrapperKey: string,
+    query: Record<string, string | number | boolean | undefined> = {},
+  ): Promise<{ ok: boolean; items: T[]; status: number; body: string }> {
+    const items: T[] = []
+    let cursor: string | undefined
+    let lastStatus = 0
+    let lastBody = ''
+    for (let page = 0; page < MAX_PAGES; page++) {
+      const res = await this.request('GET', path, { query: { ...query, limit: PER_PAGE, cursor } })
+      lastStatus = res.status
+      lastBody = res.body
+      if (!res.ok) return { ok: false, items, status: res.status, body: res.body }
+      const env = parseJson<Record<string, unknown>>(res.body)
+      const chunk = env && Array.isArray(env[wrapperKey]) ? (env[wrapperKey] as T[]) : []
+      items.push(...chunk)
+      const next = typeof env?.next_cursor === 'string' ? env.next_cursor : ''
+      if (!next) break
+      cursor = next
+    }
+    return { ok: true, items, status: lastStatus, body: lastBody }
+  }
+
   private async send(
     method: PagerDutyMethod,
     path: string,

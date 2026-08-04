@@ -1,0 +1,116 @@
+# =============================================================================
+# Canvas Template — PagerDuty Webhook Subscriptions
+#
+# Declares ONE PagerDuty v3 webhook subscription (the item) — an HTTP callback
+# for incident events. Users add as many as they need. Field keys must match
+# config-types/webhook-subscriptions/_shared.ts. Applied via the PagerDuty REST
+# API v2 (/webhook_subscriptions) at https://api.pagerduty.com.
+#
+# PagerDuty's own model gives this resource no unique/required name — only an
+# optional description. This app makes `description` REQUIRED and uses it as
+# the identity for reconciliation (an app-level convention; PagerDuty itself
+# does not enforce uniqueness on it).
+# =============================================================================
+
+id: "pagerduty-webhook-subscriptions"
+name: "Webhook Subscriptions"
+toolType: "pagerduty"
+entityType: "webhook-subscriptions"
+description: "Manage PagerDuty v3 webhook subscriptions — delivery URL, custom headers, subscribed incident events and the account/service/team filter scope — via the PagerDuty REST API v2 (/webhook_subscriptions). Reconciled by description."
+
+item:
+  label: "Webhook Subscription"
+  identityField: "description"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Subscription"
+      icon: "link"
+      description: "Identity, delivery target and active state"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 1024
+          helpText: "Required by this app as the stable identity for upsert/drift (PagerDuty itself does not require or enforce uniqueness on this field)."
+
+        - key: "url"
+          label: "Delivery URL"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 2048
+          helpText: "The HTTP(S) endpoint PagerDuty delivers webhook events to."
+
+        - key: "active"
+          label: "Active"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether this subscription produces webhook events."
+
+    - name: "Events"
+      icon: "bell"
+      description: "Which incident events this subscription receives"
+      fields:
+        - key: "events"
+          label: "Event Types (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            Required JSON array of incident event-type strings, e.g.
+            ["incident.triggered", "incident.resolved"]. Must be drawn from:
+            incident.acknowledged, incident.annotated, incident.delegated,
+            incident.escalated, incident.priority_updated,
+            incident.reassigned, incident.reopened, incident.resolved,
+            incident.responder.added, incident.responder.replied,
+            incident.status_update_published, incident.triggered,
+            incident.unacknowledged.
+
+    - name: "Filter"
+      icon: "filter"
+      description: "Which incidents this subscription applies to"
+      fields:
+        - key: "filter_type"
+          label: "Filter Type"
+          fieldType: "select"
+          required: true
+          options:
+            - label: "Entire account"
+              value: "account_reference"
+            - label: "A specific service"
+              value: "service_reference"
+            - label: "A specific team"
+              value: "team_reference"
+          helpText: "Whether this subscription covers every incident in the account, or is scoped to one service or team."
+
+        - key: "filter_target"
+          label: "Filter Target (name)"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "The NAME of the service or team to filter on. Required when Filter Type is \"A specific service\" or \"A specific team\"; resolved to its id at deploy time. Leave blank for \"Entire account\" — any value here is ignored for that filter type."
+
+    - name: "Custom Headers"
+      icon: "code"
+      description: "Optional HTTP headers sent with every delivery"
+      fields:
+        - key: "custom_headers"
+          label: "Custom Headers (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional JSON array of { "name": "...", "value": "..." } pairs sent
+            as HTTP headers with every delivery, e.g.
+            [{"name":"X-Auth-Token","value":"..."}]. A header value may carry
+            an auth secret for the destination endpoint — PagerDuty's own docs
+            recommend a custom header over embedding a token in the URL, but
+            either way this app stores and displays the value like any other
+            declared field (visible in the Configuration Canvas, drift diffs,
+            and audit history). Note: PagerDuty redacts header values when it
+            returns this subscription, so a value restored by rollback may not
+            match what you originally entered — re-enter it if needed.

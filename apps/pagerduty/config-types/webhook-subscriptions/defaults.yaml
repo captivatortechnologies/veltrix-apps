@@ -1,0 +1,7 @@
+# Defaults for a new webhook subscription item. The item starts mostly blank;
+# the operator fills in the description, delivery URL, events and filter. Only
+# active and filter_type carry sensible defaults. Values here are a FLAT map
+# keyed by the canvas field keys (description, url, active, events,
+# filter_type, filter_target, custom_headers).
+active: true
+filter_type: "account_reference"

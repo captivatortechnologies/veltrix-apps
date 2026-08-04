@@ -1,0 +1,159 @@
+# =============================================================================
+# Canvas Template — PagerDuty Automation Actions
+#
+# Declares ONE PagerDuty Automation Actions action (the item) — a script or
+# Process Automation job invokable from an incident, manually, or from an Event
+# Orchestration. Users add as many as they need. Field keys must match
+# config-types/automation-actions/_shared.ts. Applied via the PagerDuty REST API
+# v2 (/automation_actions/actions) at https://api.pagerduty.com.
+#
+# PagerDuty assigns the server id, so identity for reconciliation is the action
+# `name`. `action_type` is IMMUTABLE once set by PagerDuty itself — deploy fails
+# with a clear error if a redeploy tries to change it on an existing action
+# (delete it in PagerDuty, or declare it under a new name, to change type).
+#
+# The `runner` (execution target) is supplied by NAME and resolved to an id at
+# deploy time, but a runner is NOT itself managed by this config type — see the
+# app README Coverage section for why Automation Actions Runners are excluded.
+# Team and service associations are ADDITIVE ONLY (mirroring how this app's Tags
+# config type handles many-to-many assignment): a declared team/service is
+# attached if missing, but one removed from the canvas is left attached rather
+# than silently detached — the same restraint tags/_shared.ts documents for
+# assignments removed from a canvas.
+# =============================================================================
+
+id: "pagerduty-automation-actions"
+name: "Automation Actions"
+toolType: "pagerduty"
+entityType: "automation-actions"
+description: "Manage PagerDuty Automation Actions — script or Process Automation actions, their runner, classification, invocation rules and team/service associations — via the PagerDuty REST API v2 (/automation_actions/actions). Reconciled by name."
+
+item:
+  label: "Automation Action"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Action"
+      icon: "zap"
+      description: "Action identity, its type and the data it executes"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The action name shown in PagerDuty. Used as the stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 1024
+          helpText: "Required by the PagerDuty API when creating a new action."
+
+        - key: "action_type"
+          label: "Action Type"
+          fieldType: "select"
+          required: true
+          options:
+            - label: "Script (runs on a Runner)"
+              value: "script"
+            - label: "Process Automation job"
+              value: "process_automation"
+          helpText: "Cannot be changed once set — PagerDuty rejects changing an existing action's type. Choose carefully; changing it later means deleting and recreating the action."
+
+        - key: "action_data"
+          label: "Action Data (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            Required JSON object; its shape depends on Action Type. For
+            "script": { "script": "<script body>", "invocation_command":
+            "/usr/local/bin/python3" } — script is required, invocation_command
+            is optional. For "process_automation": {
+            "process_automation_job_id": "P123456",
+            "process_automation_job_arguments": "--flag value",
+            "process_automation_node_filter": "tags: web-server" } —
+            process_automation_job_id is required, the other two are optional.
+
+    - name: "Execution"
+      icon: "play"
+      description: "How and where the action runs, and who can invoke it"
+      fields:
+        - key: "runner"
+          label: "Runner (name)"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "The NAME of an existing PagerDuty Automation Actions runner to execute this action. Resolved to its id at deploy time; the deploy fails if no runner with this name exists in the account. Runners themselves are not managed by this app — see the README Coverage section."
+
+        - key: "action_classification"
+          label: "Classification"
+          fieldType: "select"
+          required: false
+          options:
+            - label: "Diagnostic"
+              value: "diagnostic"
+            - label: "Remediation"
+              value: "remediation"
+          helpText: "Optional category PagerDuty uses to label the action in its UI."
+
+        - key: "only_invocable_on_unresolved_incidents"
+          label: "Only Invocable on Unresolved Incidents"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When enabled, this action can only be invoked while its incident is unresolved."
+
+        - key: "allow_invocation_manually"
+          label: "Allow Manual Invocation"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether a user can invoke this action manually from the PagerDuty website."
+
+        - key: "allow_invocation_from_event_orchestration"
+          label: "Allow Invocation from Event Orchestration"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether this action can be invoked automatically from a PagerDuty Event Orchestration rule."
+
+    - name: "Service & Team Associations"
+      icon: "users"
+      description: "Which teams manage this action, and which services it applies to"
+      fields:
+        - key: "teams"
+          label: "Teams (JSON array of names)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional JSON array of team NAMES this action is associated with,
+            e.g. ["SRE Team", "Platform"]. Each name is resolved to a team id at
+            deploy time; the deploy fails if any named team does not exist in
+            the account. Associations are ADDITIVE ONLY — removing a name here
+            does not detach that team on redeploy.
+
+        - key: "services"
+          label: "Services (JSON array of names)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional JSON array of service NAMES this action applies to, e.g.
+            ["Checkout API"]. Ignored when "Applies to All Services" is
+            checked. Each name is resolved to a service id at deploy time; the
+            deploy fails if any named service does not exist in the account.
+            Associations are ADDITIVE ONLY — removing a name here does not
+            detach that service on redeploy.
+
+        - key: "map_to_all_services"
+          label: "Applies to All Services"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When enabled, this action is associated with every service in the account and the Services list above is ignored."

@@ -1,0 +1,8 @@
+# Defaults for a new event orchestration item — mostly blank; the operator fills
+# in the name and Router sets. router_catch_all is pre-filled with PagerDuty's own
+# default so a new item is deployable without extra edits. Global and Unrouted are
+# left blank on purpose — a blank *_sets field means this config type will not
+# manage that path at all. Values here are a FLAT map keyed by the canvas field
+# keys (name, description, team, router_sets, router_catch_all, global_sets,
+# global_catch_all, unrouted_sets, unrouted_catch_all).
+router_catch_all: '{"actions":{}}'

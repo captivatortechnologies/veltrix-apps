@@ -1,0 +1,134 @@
+# =============================================================================
+# Canvas Template — PagerDuty Event Orchestrations
+#
+# Declares ONE global PagerDuty Event Orchestration (the item). Users add as many
+# as they need. Field keys must match config-types/event-orchestrations/_shared.ts.
+# Applied via the PagerDuty REST API v2 (/event_orchestrations) at
+# https://api.pagerduty.com.
+#
+# PagerDuty assigns the server id, so identity for reconciliation is the
+# orchestration `name`. Every orchestration has a Router (required — its single
+# entry point) plus optional Global and Unrouted rule sets. Global/Unrouted are
+# only managed when their *_sets field is filled in; leaving them blank means
+# this config type does not touch whatever is already configured there.
+# =============================================================================
+
+id: "pagerduty-event-orchestrations"
+name: "Event Orchestrations"
+toolType: "pagerduty"
+entityType: "event-orchestrations"
+description: "Manage PagerDuty Event Orchestrations — identity, the required Router and optional Global / Unrouted rule sets — via the PagerDuty REST API v2 (/event_orchestrations). Reconciled by name."
+
+item:
+  label: "Event Orchestration"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "id-card"
+      description: "Orchestration name, description and owning team"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The Event Orchestration name shown in PagerDuty. Used as the stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1024
+          helpText: "Optional description of what this Event Orchestration is for."
+
+        - key: "team"
+          label: "Team (name)"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Optional NAME of an existing PagerDuty team to own this orchestration. Resolved to its id at deploy time; the deploy fails if no team with this name exists. Leave blank for an orchestration only admins can access."
+
+    - name: "Router"
+      icon: "route"
+      description: "The Router — the orchestration's single required entry point"
+      fields:
+        - key: "router_sets"
+          label: "Router Sets (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            Required JSON array of the Router's rule sets. The Router only ever
+            evaluates rules starting from the set with id "start", so this array
+            must include one. Each set is
+            { "id": "<set id>", "rules"?: [ { "label"?, "conditions": [{"expression": "<PCL string>"}], "actions": {...}, "disabled"? } ] }.
+            A rule's actions typically include "route_to" (a Service id) or
+            "dynamic_route_to". e.g.
+            [{"id":"start","rules":[{"label":"Route billing events","conditions":[{"expression":"event.summary matches part 'billing'"}],"actions":{"route_to":"<PagerDuty service id>"}}]}].
+
+        - key: "router_catch_all"
+          label: "Router Catch-All (JSON object)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional catch_all applied when no Router rule matches. Shape:
+            { "actions": { "route_to": "<service id>" | "unrouted" } }. Leave
+            blank to default to {"actions":{}}, which falls through to the
+            Unrouted Orchestration.
+
+    - name: "Global Rules"
+      icon: "globe"
+      description: "Optional rules applied to every event before it reaches a Service"
+      fields:
+        - key: "global_sets"
+          label: "Global Sets (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional JSON array of Global Orchestration rule sets — same shape as
+            Router Sets, but rule actions may use the fuller vocabulary
+            (drop_event, suppress, priority, escalation_policy, annotate,
+            severity, event_action, variable[], extraction[], automation_action,
+            incident_custom_field_update). Leave BLANK to leave the Global
+            Orchestration entirely unmanaged — this config type will not read,
+            write or overwrite whatever Global rules already exist. When
+            supplied, include a "start" set. e.g.
+            [{"id":"start","rules":[{"label":"Annotate all events","actions":{"annotate":"Handled by Veltrix"}}]}].
+
+        - key: "global_catch_all"
+          label: "Global Catch-All (JSON object)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional catch_all for the Global Orchestration; only sent when
+            "Global Sets" above is filled in. Shape: { "actions": {...} }. Leave
+            blank to default to {"actions":{}}.
+
+    - name: "Unrouted Rules"
+      icon: "shuffle"
+      description: "Optional rules applied to events the Router didn't route to a Service"
+      fields:
+        - key: "unrouted_sets"
+          label: "Unrouted Sets (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional JSON array of Unrouted Orchestration rule sets — same shape
+            and action vocabulary as Global Sets. Leave BLANK to leave the
+            Unrouted Orchestration entirely unmanaged. When supplied, include a
+            "start" set. e.g.
+            [{"id":"start","rules":[{"label":"Mark unmatched critical events","conditions":[{"expression":"event.severity matches 'critical'"}],"actions":{"severity":"critical"}}]}].
+
+        - key: "unrouted_catch_all"
+          label: "Unrouted Catch-All (JSON object)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional catch_all for the Unrouted Orchestration; only sent when
+            "Unrouted Sets" above is filled in. Shape: { "actions": {...} }.
+            Leave blank to default to {"actions":{}}.

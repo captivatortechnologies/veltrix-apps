@@ -1,0 +1,182 @@
+# =============================================================================
+# Canvas Template — PagerDuty Users
+#
+# Declares ONE PagerDuty user (the item). Users add as many as they need. Field
+# keys must match config-types/users/_shared.ts. Applied via the PagerDuty REST
+# API v2 (/users) at https://api.pagerduty.com.
+#
+# PagerDuty assigns the server id and `name` is not guaranteed unique, so
+# identity for reconciliation is the user's `email`. This config type manages a
+# user's identity + profile fields only — contact methods, notification rules,
+# oncall handoff notification rules, sessions and license are separate
+# endpoints holding PII or personal runtime preferences and are out of scope.
+# =============================================================================
+
+id: "pagerduty-users"
+name: "Users"
+toolType: "pagerduty"
+entityType: "users"
+description: "Manage PagerDuty users — name, email, role and profile fields — via the PagerDuty REST API v2 (/users). Reconciled by email."
+
+item:
+  label: "User"
+  identityField: "email"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "User"
+      icon: "user"
+      description: "User identity and profile"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The user's display name shown in PagerDuty."
+
+        - key: "email"
+          label: "Email"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The user's email address. Used as the stable identity for upsert and drift. Creating a new user sends them a PagerDuty account invitation email — do not add someone you haven't already told."
+
+        - key: "role"
+          label: "Role"
+          fieldType: "select"
+          required: false
+          options:
+            - label: "Admin"
+              value: "admin"
+            - label: "Limited User"
+              value: "limited_user"
+            - label: "Observer"
+              value: "observer"
+            - label: "Owner"
+              value: "owner"
+            - label: "Read-only User"
+              value: "read_only_user"
+            - label: "Read-only Limited User"
+              value: "read_only_limited_user"
+            - label: "Restricted Access"
+              value: "restricted_access"
+            - label: "User"
+              value: "user"
+          helpText: "The user's account role. Leave unset to let PagerDuty apply its own default. Some roles require account abilities (e.g. advanced permissions) to assign."
+
+        - key: "job_title"
+          label: "Job Title"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Optional job title shown on the user's profile."
+
+        - key: "time_zone"
+          label: "Time Zone (IANA)"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 64
+          helpText: "The user's time zone as an IANA name, e.g. \"America/New_York\". Leave blank to use the account default."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1024
+          helpText: "Optional human-friendly description of this user."
+
+        - key: "color"
+          label: "Schedule Color"
+          fieldType: "select"
+          required: false
+          options:
+            - label: "Purple"
+              value: "purple"
+            - label: "Red"
+              value: "red"
+            - label: "Green"
+              value: "green"
+            - label: "Blue"
+              value: "blue"
+            - label: "Teal"
+              value: "teal"
+            - label: "Orange"
+              value: "orange"
+            - label: "Brown"
+              value: "brown"
+            - label: "Turquoise"
+              value: "turquoise"
+            - label: "Dark Slate Blue"
+              value: "dark-slate-blue"
+            - label: "Cayenne"
+              value: "cayenne"
+            - label: "Orange Red"
+              value: "orange-red"
+            - label: "Dark Orchid"
+              value: "dark-orchid"
+            - label: "Dark Slate Grey"
+              value: "dark-slate-grey"
+            - label: "Lime"
+              value: "lime"
+            - label: "Dark Magenta"
+              value: "dark-magenta"
+            - label: "Lime Green"
+              value: "lime-green"
+            - label: "Midnight Blue"
+              value: "midnight-blue"
+            - label: "Deep Pink"
+              value: "deep-pink"
+            - label: "Dark Green"
+              value: "dark-green"
+            - label: "Dark Orange"
+              value: "dark-orange"
+            - label: "Dark Cyan"
+              value: "dark-cyan"
+            - label: "Darkolive Green"
+              value: "darkolive-green"
+            - label: "Dark Slate Gray"
+              value: "dark-slate-gray"
+            - label: "Grey20"
+              value: "grey20"
+            - label: "Firebrick"
+              value: "firebrick"
+            - label: "Maroon"
+              value: "maroon"
+            - label: "Crimson"
+              value: "crimson"
+            - label: "Dark Red"
+              value: "dark-red"
+            - label: "Dark Goldenrod"
+              value: "dark-goldenrod"
+            - label: "Chocolate"
+              value: "chocolate"
+            - label: "Medium Violet Red"
+              value: "medium-violet-red"
+            - label: "Sea Green"
+              value: "sea-green"
+            - label: "Olivedrab"
+              value: "olivedrab"
+            - label: "Forest Green"
+              value: "forest-green"
+            - label: "Dark Olive Green"
+              value: "dark-olive-green"
+            - label: "Blue Violet"
+              value: "blue-violet"
+            - label: "Royal Blue"
+              value: "royal-blue"
+            - label: "Indigo"
+              value: "indigo"
+            - label: "Slate Blue"
+              value: "slate-blue"
+            - label: "Saddle Brown"
+              value: "saddle-brown"
+            - label: "Steel Blue"
+              value: "steel-blue"
+          helpText: "Optional color PagerDuty uses to represent this user on schedules. Leave unset to let PagerDuty assign one."
