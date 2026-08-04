@@ -1,0 +1,63 @@
+# =============================================================================
+# Canvas Template — TheHive Page Templates (Knowledge Base)
+#
+# Declares ONE TheHive page template (the item) — reusable content offered when
+# an analyst creates a Knowledge Base / case / task page. Field keys must match
+# config-types/page-templates/validate.ts. Applied via the TheHive REST API
+# (/api/v1/pageTemplate). TheHive 5 ONLY — this feature has no TheHive 4
+# equivalent (see lib/thehiveApi.ts, PAGE_TEMPLATE_PATHS_V5 / README).
+# =============================================================================
+
+id: "thehive-page-templates"
+name: "Page Templates"
+toolType: "thehive"
+entityType: "page-templates"
+description: "Manage TheHive page templates (Knowledge Base) — title, category, content and sort order — via the TheHive REST API (Bearer API key). TheHive 5 only; there is no TheHive 4 equivalent."
+
+item:
+  label: "Page Template"
+  identityField: "title"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Template"
+      icon: "file-text"
+      description: "Template identity and where it appears"
+      fields:
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique template title — the stable identity used for upsert and drift, e.g. Phishing Triage Checklist"
+
+        - key: "category"
+          label: "Category"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Grouping shown in the page-template picker, e.g. Investigation, Remediation, Communication — free text, matches whatever categories your organisation uses"
+
+        - key: "order"
+          label: "Order"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+          validation:
+            min: 0
+          helpText: "Sort order among templates in the same category (lower first)"
+
+    - name: "Content"
+      icon: "layout"
+      description: "The body offered when this template is applied"
+      fields:
+        - key: "content"
+          label: "Content"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 20000
+          helpText: "Markdown/HTML body pre-filled onto the page when this template is chosen"

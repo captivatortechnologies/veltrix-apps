@@ -1,0 +1,53 @@
+# =============================================================================
+# Canvas Template — Orca Custom Roles
+#
+# Declares ONE Orca custom RBAC role — the item. Users add as many as they
+# need. Roles are created / updated through the Orca REST API
+# (POST /api/rbac/roles, PUT /api/rbac/roles/{id}) and reconciled by the role
+# id this app assigns and persists per item.
+#
+# This type manages role DEFINITIONS only — assigning a role to a user or
+# group is a separate, identity-bootstrap surface this app does not manage
+# (see README Coverage).
+#
+# Field keys must match config-types/custom-roles/validate.ts + _shared.ts.
+# =============================================================================
+
+id: "orca-custom-roles"
+name: "Custom Roles"
+toolType: "orca-security"
+entityType: "custom-roles"
+description: "Define Orca custom RBAC roles as code through the Orca REST API. Each role is a named set of permission groups a user or group can be assigned."
+
+item:
+  label: "Custom Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Role"
+      icon: "user-cog"
+      description: "Name, description and permissions"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The role name — its logical identity. Must be unique across your Orca org."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 2000
+          helpText: "Required by the Orca API — describe what this role is for."
+
+        - key: "permissionGroups"
+          label: "Permission Groups"
+          fieldType: "tags"
+          required: true
+          helpText: 'Orca permission-group strings, e.g. "assets.asset.read", "auth.tokens.write". These are Orca-internal and not enumerated by a public catalog endpoint — copy them from an existing role in the Orca UI (Settings > Roles).'

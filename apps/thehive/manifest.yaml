@@ -1,15 +1,17 @@
 id: thehive
 name: TheHive
-version: "0.3.0"
+version: "0.4.0"
 vendor: Veltrix
 description: >
   Manage TheHive (open-source Security Incident Response Platform / SOAR) as code.
-  Author case templates and drive them through the Security-as-Code pipeline —
-  validate, deploy, health check, drift detection and rollback — over the TheHive
-  REST API (Bearer API key, self-signed tolerated). Primary target is TheHive 5
-  (StrangeBee, /api/v1); TheHive 4 (/api/case/template) is a flagged alternate.
-  Also provides BYOL infrastructure provisioning for a self-managed TheHive 5
-  stack (application + Cassandra + Elasticsearch + object storage).
+  Author case templates, custom fields, observable types, users, organisations,
+  RBAC profiles and Knowledge Base page templates, and drive them through the
+  Security-as-Code pipeline — validate, deploy, health check, drift detection and
+  rollback — over the TheHive REST API (Bearer API key, self-signed tolerated).
+  Primary target is TheHive 5 (StrangeBee, /api/v1); TheHive 4
+  (/api/case/template) is a flagged alternate. Also provides BYOL infrastructure
+  provisioning for a self-managed TheHive 5 stack (application + Cassandra +
+  Elasticsearch + object storage).
 category: SOAR
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/thehive
@@ -41,6 +43,15 @@ permissions:
     - resource: users
       actions: [read, write, delete]
       description: Manage TheHive users (add / edit / delete)
+    - resource: organisations
+      actions: [read, write]
+      description: Manage TheHive organisations (add / edit). TheHive has no delete endpoint for organisations — removal locks instead.
+    - resource: profiles
+      actions: [read, write, delete]
+      description: Manage TheHive profiles / RBAC roles (add / edit / delete)
+    - resource: page-templates
+      actions: [read, write, delete]
+      description: Manage TheHive page templates / Knowledge Base (add / edit / delete). TheHive 5 only.
     - resource: byol
       actions: [read, write, delete]
       description: Manage BYOL TheHive stack infrastructure
@@ -121,6 +132,60 @@ pipeline:
         healthCheck: config-types/users/healthCheck
         driftDetect: config-types/users/driftDetect
         getStatus: config-types/users/getStatus
+      targets:
+        componentTypes: [thehive, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: organisations
+      group: "Organization"
+      name: Organisations
+      description: TheHive organisations (multi-tenant containers) — name, description, task/observable sharing rules and locked state — applied over the TheHive REST API (Bearer API key). TheHive has no delete endpoint for organisations; removing an item locks it rather than deleting it.
+      canvasTemplate: config-types/organisations/canvas.yaml
+      defaultConfig: config-types/organisations/defaults.yaml
+      handlers:
+        validate: config-types/organisations/validate
+        deploy: config-types/organisations/deploy
+        rollback: config-types/organisations/rollback
+        healthCheck: config-types/organisations/healthCheck
+        driftDetect: config-types/organisations/driftDetect
+        getStatus: config-types/organisations/getStatus
+      targets:
+        componentTypes: [thehive, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: profiles
+      group: "Organization"
+      name: Profiles
+      description: TheHive profiles (RBAC roles) — name and permission set — applied over the TheHive REST API (Bearer API key). TheHive's five built-in profiles other than "analyst" are immutable and will reject a write.
+      canvasTemplate: config-types/profiles/canvas.yaml
+      defaultConfig: config-types/profiles/defaults.yaml
+      handlers:
+        validate: config-types/profiles/validate
+        deploy: config-types/profiles/deploy
+        rollback: config-types/profiles/rollback
+        healthCheck: config-types/profiles/healthCheck
+        driftDetect: config-types/profiles/driftDetect
+        getStatus: config-types/profiles/getStatus
+      targets:
+        componentTypes: [thehive, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: page-templates
+      group: "Incident Response"
+      name: Page Templates
+      description: TheHive page templates (Knowledge Base) — title, category, content and sort order — applied over the TheHive REST API (Bearer API key). TheHive 5 only; there is no TheHive 4 equivalent.
+      canvasTemplate: config-types/page-templates/canvas.yaml
+      defaultConfig: config-types/page-templates/defaults.yaml
+      handlers:
+        validate: config-types/page-templates/validate
+        deploy: config-types/page-templates/deploy
+        rollback: config-types/page-templates/rollback
+        healthCheck: config-types/page-templates/healthCheck
+        driftDetect: config-types/page-templates/driftDetect
+        getStatus: config-types/page-templates/getStatus
       targets:
         componentTypes: [thehive, standalone]
         requiresCredential: true

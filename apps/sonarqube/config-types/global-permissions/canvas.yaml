@@ -1,0 +1,58 @@
+# =============================================================================
+# Canvas Template — SonarQube Global Permissions
+#
+# Declares ONE group's INSTANCE-WIDE (global) SonarQube permission grant (the item).
+# Users add as many as they need. Field keys must match
+# config-types/global-permissions/validate.ts. Applied via the SonarQube Web API
+# (/api/permissions/add_group, /remove_group, /groups) — sent WITHOUT projectId/
+# projectKey, which is what scopes the call to GLOBAL permissions. Distinct from the
+# permission-templates config type, which manages named templates auto-applied to
+# matching NEW projects: this type grants permissions DIRECTLY, right now, at the
+# instance level. Only the groups listed here are managed — undeclared groups are
+# left untouched. User-login overrides are out of scope (groups only).
+# =============================================================================
+
+id: "sonarqube-global-permissions"
+name: "Global Permissions"
+toolType: "sonarqube"
+entityType: "global-permissions"
+description: "Grant SonarQube instance-wide (global) permissions directly to groups via the SonarQube Web API"
+
+item:
+  label: "Group Grant"
+  identityField: "groupName"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Group"
+      icon: "users"
+      description: "The group this grant applies to"
+      fields:
+        - key: "groupName"
+          label: "Group name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 200
+          helpText: "Group name, or the literal 'anyone' (case-insensitive) to grant every user."
+
+    - name: "Permissions"
+      icon: "key"
+      description: "Global permissions granted to this group"
+      fields:
+        - key: "permissions"
+          label: "Permissions"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 1000
+          helpText: >
+            One or more of: admin, gateadmin, profileadmin, provisioning, scan,
+            applicationcreator, portfoliocreator — comma or newline separated. Only the
+            permissions you list are granted to this group; every other global permission
+            this group might already hold is left untouched (unless it's in this same list
+            and gets removed because you took it out on a later deploy — see below).
+            Redeploying this canvas with a permission removed from the list WILL revoke it
+            from this group (full reconcile scoped to the groups you declare) — but any
+            group NOT listed anywhere in this canvas is never touched.

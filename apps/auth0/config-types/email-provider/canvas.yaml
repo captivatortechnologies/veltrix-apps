@@ -1,0 +1,111 @@
+# =============================================================================
+# Canvas Template — Auth0 Email Provider
+#
+# True tenant-wide singleton, but unlike the other Auth0 singletons in this
+# app it does NOT always exist: GET /api/v2/emails/provider 404s until a
+# provider has ever been configured. Declare this config type at most once per
+# canvas. deploy.ts POSTs to configure it for the first time, or PATCHes an
+# existing one.
+#
+# Auth0 never returns credential values on GET — they are write-only — so
+# secret-bearing credential keys are excluded from drift comparison entirely
+# and CANNOT be restored on rollback; rolling back only restores name/enabled/
+# default_from_address/settings. Re-enter credentials after a rollback if you
+# need the exact prior secret values.
+#
+# Field keys must match config-types/email-provider/validate.ts and
+# _shared.ts. Applied via the Auth0 Management API v2:
+#   GET/POST/PATCH/DELETE /api/v2/emails/provider
+# =============================================================================
+
+id: "auth0-email-provider"
+name: "Email Provider"
+toolType: "auth0"
+entityType: "email-provider"
+description: "Configure the Auth0 tenant's outbound email provider (SES, SMTP, SendGrid, Mailgun, ...) via the Auth0 Management API v2 (/emails/provider). Tenant-wide singleton; does not exist until first configured."
+
+item:
+  label: "Email Provider"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Provider"
+      icon: "shield"
+      description: "The provider this tenant sends email through"
+      fields:
+        - key: "name"
+          label: "Provider"
+          fieldType: "select"
+          required: true
+          defaultValue: "smtp"
+          options:
+            - label: "Mailgun"
+              value: "mailgun"
+            - label: "Mandrill"
+              value: "mandrill"
+            - label: "SendGrid"
+              value: "sendgrid"
+            - label: "Resend"
+              value: "resend"
+            - label: "Amazon SES"
+              value: "ses"
+            - label: "SparkPost"
+              value: "sparkpost"
+            - label: "SMTP"
+              value: "smtp"
+            - label: "Azure Communication Services"
+              value: "azure_cs"
+            - label: "Microsoft 365"
+              value: "ms365"
+            - label: "Custom (webhook)"
+              value: "custom"
+          helpText: "The email provider Auth0 sends transactional email through."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether this provider is active. When disabled, Auth0 falls back to its own default (rate-limited) sender."
+
+        - key: "default_from_address"
+          label: "Default From Address"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 300
+          helpText: "The From address used for tenant emails when a template does not specify its own."
+
+    - name: "Credentials"
+      icon: "settings"
+      description: "Provider-specific write-only credentials"
+      fields:
+        - key: "credentials"
+          label: "Credentials (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 20000
+          helpText: >
+            Provider-specific, as a JSON object. Amazon SES: access_key_id,
+            secret_access_key, region. SMTP: smtp_host, smtp_port, smtp_user,
+            smtp_pass. SendGrid / Mandrill / SparkPost / Mailgun / Resend:
+            api_key (Mailgun also takes domain and region). Azure
+            Communication Services: azure_cs_connection_string. Microsoft 365:
+            ms365_tenant_id, ms365_client_id, ms365_client_secret. Auth0 never
+            returns credential values on a read, so secret-bearing keys are
+            excluded from drift comparison entirely and CANNOT be restored on
+            rollback — re-enter them if you need the exact prior secret values.
+
+    - name: "Settings"
+      icon: "settings"
+      description: "Provider-specific extra settings"
+      fields:
+        - key: "settings"
+          label: "Settings (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: "Provider-specific extra settings as a JSON object, e.g. SMTP headers or SES/Mandrill message configuration. Optional."

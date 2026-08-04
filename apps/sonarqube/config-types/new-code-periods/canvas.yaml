@@ -1,0 +1,79 @@
+# =============================================================================
+# Canvas Template — SonarQube New Code Periods
+#
+# Declares ONE new-code definition (the item) at the GLOBAL, PROJECT or BRANCH
+# level — one item per level the operator wants to manage. Field keys must match
+# config-types/new-code-periods/validate.ts. Applied via the SonarQube Web API
+# (/api/new_code_periods/set, /show, /unset). Verified live against a running
+# SonarQube instance's own `api/webservices` reflection endpoints.
+# =============================================================================
+
+id: "sonarqube-new-code-periods"
+name: "New Code Periods"
+toolType: "sonarqube"
+entityType: "new-code-periods"
+description: "Manage SonarQube's New Code definition — global, project or branch scoped — via the SonarQube Web API"
+
+item:
+  label: "New Code Period"
+  identityField: "project"
+  # The deploy handler never skips a blank project (blank means "global" — a
+  # meaningful, first-class level, not an incomplete item); it only skips an
+  # item with a blank `type`. identityDerived documents that an empty identity
+  # is intentional here, not an item the deploy will silently drop.
+  identityDerived: true
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Target"
+      icon: "target"
+      description: "The level this new-code definition applies to"
+      fields:
+        - key: "project"
+          label: "Project key"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 400
+          helpText: "Leave blank to set the GLOBAL default new-code definition. Set a project key to scope it to that project."
+
+        - key: "branch"
+          label: "Branch"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 400
+          helpText: "Leave blank to target the whole project (or the whole instance, if project is also blank). Requires project to be set."
+
+    - name: "Definition"
+      icon: "calendar"
+      description: "The new-code baseline SonarQube computes New Code metrics from"
+      fields:
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          options:
+            - label: "Previous version"
+              value: "PREVIOUS_VERSION"
+            - label: "Number of days"
+              value: "NUMBER_OF_DAYS"
+            - label: "Reference branch"
+              value: "REFERENCE_BRANCH"
+            - label: "Specific analysis (branch only)"
+              value: "SPECIFIC_ANALYSIS"
+          helpText: "How SonarQube determines what counts as new code at this level."
+
+        - key: "value"
+          label: "Value"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 200
+          helpText: >
+            No value for Previous version (leave blank). A number of days between 1 and
+            90 for Number of days. The reference branch name for Reference branch. The
+            uuid of an analysis for Specific analysis (branch only) — analysis uuids are
+            ephemeral and version-specific, since SonarQube purges old analyses over
+            time, so this type is fragile and should be used sparingly.

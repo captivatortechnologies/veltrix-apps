@@ -135,3 +135,21 @@ export function stringSetsEqual(a: string[], b: string[]): boolean {
   const setB = new Set(b)
   return a.every((v) => setB.has(v))
 }
+
+/**
+ * Key pattern for values Auth0 returns masked, redacted, or omitted entirely on
+ * read: secrets, passwords, private keys, certs, API keys and write keys. Shared
+ * across every config type that authors a provider-/strategy-shaped object
+ * (connection `options`, log-stream `sink`, email-provider `credentials`, …) so a
+ * live secret is never diffed for drift or replayed by a rollback restore.
+ */
+export const SECRET_LIKE_KEY = /secret|password|_pass\b|private|_key$|api_?key|token|cert|connection_string/i
+
+/** Drop secret-bearing keys from an object (Auth0 returns them masked or omits them). */
+export function stripSecretKeys<T extends Record<string, unknown>>(obj: T): Partial<T> {
+  const out: Partial<T> = {}
+  for (const [key, value] of Object.entries(obj)) {
+    if (!SECRET_LIKE_KEY.test(key)) (out as Record<string, unknown>)[key] = value
+  }
+  return out
+}

@@ -1,0 +1,81 @@
+# =============================================================================
+# Canvas Template — Orca Custom Tag Rules
+#
+# Declares ONE Orca custom tag rule — the item. Users add as many as they
+# need. Rules are created / updated through the Orca REST API
+# (POST /api/custom_tags, PUT /api/custom_tags/{id}) and reconciled by the
+# rule id this app assigns and persists per item.
+#
+# A rule automatically applies its tags to every asset matching a query —
+# either a Sonar (DSL) query string or a discovery (JSON) query, chosen by
+# Rule Type.
+#
+# Field keys must match config-types/custom-tag-rules/validate.ts + _shared.ts.
+# =============================================================================
+
+id: "orca-custom-tag-rules"
+name: "Custom Tag Rules"
+toolType: "orca-security"
+entityType: "custom-tag-rules"
+description: "Define Orca custom tag rules as code through the Orca REST API. Each rule automatically applies tags to every asset matching a Sonar or discovery query."
+
+item:
+  label: "Custom Tag Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Rule"
+      icon: "tag"
+      description: "Name, state and the tags to apply"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The rule name — its logical identity. Must be unique across your Orca org."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Optional description of what this rule tags and why."
+
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When on, the rule stops applying tags to newly matching assets. Matches the Orca API's own \"disabled\" naming."
+
+        - key: "tags"
+          label: "Tags to Apply"
+          fieldType: "keyvalue"
+          required: true
+          helpText: "One or more tag key/value pairs to apply to every asset matching the query below. Each tag key must be unique across all custom tag rules in your org."
+
+    - name: "Query"
+      icon: "search"
+      description: "Which assets this rule tags"
+      fields:
+        - key: "ruleType"
+          label: "Rule Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "string"
+          options:
+            - { label: "Sonar query (string)", value: "string" }
+            - { label: "Discovery query (JSON)", value: "json" }
+          helpText: "Whether the query below is a plain Sonar (DSL) query string, or a discovery query encoded as JSON."
+
+        - key: "rule"
+          label: "Query"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 20000
+          helpText: 'A Sonar query string (e.g. "AwsEc2Instance with PublicIps") when Rule Type is "string", or a JSON discovery query object when Rule Type is "json".'

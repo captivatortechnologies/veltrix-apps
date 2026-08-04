@@ -1,14 +1,16 @@
 id: orca-security
 name: Orca Security
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Orca Security (agentless CNAPP / CSPM) configuration as code through the
   Orca REST API. Covers custom alerts (custom Sonar rules), business units
-  (filters), automations and discovery views — created, updated, drift-checked
-  and rolled back by the Security-as-Code pipeline. Authenticates with an Orca
-  API token against the tenant's regional API endpoint (default
-  https://api.orcasecurity.io).
+  (filters), automations, discovery views, custom compliance frameworks, system
+  alert exceptions, discovery-based custom alerts, notification integrations
+  (Jira/Slack/webhook), custom tag rules, custom RBAC roles and trusted cloud
+  accounts — created, updated, drift-checked and rolled back by the
+  Security-as-Code pipeline. Authenticates with an Orca API token against the
+  tenant's regional API endpoint (default https://api.orcasecurity.io).
 category: CLOUD
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/orca-security
@@ -39,6 +41,27 @@ permissions:
     - resource: discovery-views
       actions: [read, write, delete]
       description: Manage Orca discovery views (saved inventory queries)
+    - resource: custom-compliance-frameworks
+      actions: [read, write, delete]
+      description: Manage Orca custom compliance frameworks (sections/controls)
+    - resource: alert-exceptions
+      actions: [read, write, delete]
+      description: Manage the enabled/disabled state of built-in Orca system alerts
+    - resource: discovery-alerts
+      actions: [read, write, delete]
+      description: Manage Orca discovery-based custom alerts
+    - resource: notification-integrations
+      actions: [read, write, delete]
+      description: Manage Orca notification integrations (Jira Cloud, Slack, webhook)
+    - resource: custom-tag-rules
+      actions: [read, write, delete]
+      description: Manage Orca custom tag rules (auto-tagging by Sonar/discovery query)
+    - resource: custom-roles
+      actions: [read, write, delete]
+      description: Manage Orca custom RBAC roles
+    - resource: trusted-cloud-accounts
+      actions: [read, write, delete]
+      description: Manage Orca trusted cloud accounts
 
 pipeline:
   configurationTypes:
@@ -127,6 +150,170 @@ pipeline:
         healthCheck: config-types/discovery-views/healthCheck
         driftDetect: config-types/discovery-views/driftDetect
         getStatus: config-types/discovery-views/getStatus
+      targets:
+        componentTypes: [orca-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: custom-compliance-frameworks
+      group: "Compliance"
+      name: Custom Compliance Frameworks
+      description: >
+        Orca custom compliance frameworks via /api/compliance/frameworks — a
+        named framework of sections, each containing tests (controls) that map
+        an existing Orca rule id to a control identifier (e.g. "1.1"). Orca's
+        read endpoint never returns section/test data (write-only), so drift can
+        only compare name/description and rollback restores from this app's own
+        last-declared body, not a live read. Reconciled by the framework id this
+        app assigns and persists per item.
+      canvasTemplate: config-types/custom-compliance-frameworks/canvas.yaml
+      defaultConfig: config-types/custom-compliance-frameworks/defaults.yaml
+      handlers:
+        validate: config-types/custom-compliance-frameworks/validate
+        deploy: config-types/custom-compliance-frameworks/deploy
+        rollback: config-types/custom-compliance-frameworks/rollback
+        healthCheck: config-types/custom-compliance-frameworks/healthCheck
+        driftDetect: config-types/custom-compliance-frameworks/driftDetect
+        getStatus: config-types/custom-compliance-frameworks/getStatus
+      targets:
+        componentTypes: [orca-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: alert-exceptions
+      group: "Alerts"
+      name: Alert Exceptions
+      description: >
+        Declarative enabled/disabled overrides for BUILT-IN Orca system (catalog)
+        alerts via PUT /api/sonar/rules/status/{rule_id} — a declarative
+        exception to Orca's default alert catalog state. System alerts are
+        predefined by Orca and cannot be created or deleted, only toggled, so
+        identity is the caller-supplied rule_id (from the Orca Alert Catalog),
+        not a server-assigned id.
+      canvasTemplate: config-types/alert-exceptions/canvas.yaml
+      defaultConfig: config-types/alert-exceptions/defaults.yaml
+      handlers:
+        validate: config-types/alert-exceptions/validate
+        deploy: config-types/alert-exceptions/deploy
+        rollback: config-types/alert-exceptions/rollback
+        healthCheck: config-types/alert-exceptions/healthCheck
+        driftDetect: config-types/alert-exceptions/driftDetect
+        getStatus: config-types/alert-exceptions/getStatus
+      targets:
+        componentTypes: [orca-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: discovery-alerts
+      group: "Alerts"
+      name: Discovery Alerts
+      description: >
+        Orca discovery-based custom alerts via /api/sonar/rules — the same base
+        resource as Custom Alerts but driven by a Discovery (graph) query
+        (rule_json) instead of a Sonar (DSL) string, with an optional custom
+        compliance framework association. Unlike Custom Alerts, Orca's discovery
+        alert payload has no enabled/disabled flag. Reconciled by the rule id
+        this app assigns and persists per item.
+      canvasTemplate: config-types/discovery-alerts/canvas.yaml
+      defaultConfig: config-types/discovery-alerts/defaults.yaml
+      handlers:
+        validate: config-types/discovery-alerts/validate
+        deploy: config-types/discovery-alerts/deploy
+        rollback: config-types/discovery-alerts/rollback
+        healthCheck: config-types/discovery-alerts/healthCheck
+        driftDetect: config-types/discovery-alerts/driftDetect
+        getStatus: config-types/discovery-alerts/getStatus
+      targets:
+        componentTypes: [orca-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: notification-integrations
+      group: "Integrations"
+      name: Notification Integrations
+      description: >
+        Orca notification integrations (Jira Cloud, Slack, generic/vendor
+        webhook) via /api/external_service/config — a per-service template that
+        controls how Orca alerts are forwarded. Identity is the caller-assigned
+        template_name plus service, which the API can look up directly
+        (GET .../config?service_name=&template_name=), so this type resolves
+        identity live rather than only from rollbackData.
+      canvasTemplate: config-types/notification-integrations/canvas.yaml
+      defaultConfig: config-types/notification-integrations/defaults.yaml
+      handlers:
+        validate: config-types/notification-integrations/validate
+        deploy: config-types/notification-integrations/deploy
+        rollback: config-types/notification-integrations/rollback
+        healthCheck: config-types/notification-integrations/healthCheck
+        driftDetect: config-types/notification-integrations/driftDetect
+        getStatus: config-types/notification-integrations/getStatus
+      targets:
+        componentTypes: [orca-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: custom-tag-rules
+      group: "Organization"
+      name: Custom Tag Rules
+      description: >
+        Orca custom tag rules via /api/custom_tags — automatically apply custom
+        tags to every asset matching a Sonar (string) or discovery (JSON) query.
+        Reconciled by the rule id this app assigns and persists per item.
+      canvasTemplate: config-types/custom-tag-rules/canvas.yaml
+      defaultConfig: config-types/custom-tag-rules/defaults.yaml
+      handlers:
+        validate: config-types/custom-tag-rules/validate
+        deploy: config-types/custom-tag-rules/deploy
+        rollback: config-types/custom-tag-rules/rollback
+        healthCheck: config-types/custom-tag-rules/healthCheck
+        driftDetect: config-types/custom-tag-rules/driftDetect
+        getStatus: config-types/custom-tag-rules/getStatus
+      targets:
+        componentTypes: [orca-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: custom-roles
+      group: "Access"
+      name: Custom Roles
+      description: >
+        Orca custom RBAC roles via /api/rbac/roles — a named set of permission
+        groups (e.g. "assets.asset.read") a user or group can be assigned.
+        Reconciled by the role id this app assigns and persists per item. Does
+        not manage role ASSIGNMENT to users/groups (a separate, identity-bootstrap
+        surface — see README Coverage).
+      canvasTemplate: config-types/custom-roles/canvas.yaml
+      defaultConfig: config-types/custom-roles/defaults.yaml
+      handlers:
+        validate: config-types/custom-roles/validate
+        deploy: config-types/custom-roles/deploy
+        rollback: config-types/custom-roles/rollback
+        healthCheck: config-types/custom-roles/healthCheck
+        driftDetect: config-types/custom-roles/driftDetect
+        getStatus: config-types/custom-roles/getStatus
+      targets:
+        componentTypes: [orca-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: trusted-cloud-accounts
+      group: "Organization"
+      name: Trusted Cloud Accounts
+      description: >
+        Orca trusted cloud accounts via /api/organization/trusted_accounts (id
+        carried as a query parameter, not a path segment) — marks a named cloud
+        account (e.g. a vendor's account with read access into yours) as
+        trusted. Reconciled by the numeric account id this app assigns and
+        persists per item.
+      canvasTemplate: config-types/trusted-cloud-accounts/canvas.yaml
+      defaultConfig: config-types/trusted-cloud-accounts/defaults.yaml
+      handlers:
+        validate: config-types/trusted-cloud-accounts/validate
+        deploy: config-types/trusted-cloud-accounts/deploy
+        rollback: config-types/trusted-cloud-accounts/rollback
+        healthCheck: config-types/trusted-cloud-accounts/healthCheck
+        driftDetect: config-types/trusted-cloud-accounts/driftDetect
+        getStatus: config-types/trusted-cloud-accounts/getStatus
       targets:
         componentTypes: [orca-tenant]
         requiresCredential: true

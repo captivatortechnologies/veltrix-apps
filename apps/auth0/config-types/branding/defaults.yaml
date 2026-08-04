@@ -1,0 +1,6 @@
+# Defaults for the branding singleton — New Universal Login with no branding
+# overrides and no custom HTML page, so a freshly added item makes no change
+# until the operator sets specific fields.
+universal_login_experience: "new"
+identifier_first: false
+webauthn_platform_first_factor: false

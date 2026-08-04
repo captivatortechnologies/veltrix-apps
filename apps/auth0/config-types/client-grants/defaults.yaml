@@ -1,0 +1,5 @@
+# Defaults for a new Auth0 Client Grant item — starts denying organization
+# usage (Auth0's own default); the operator fills in the client_id, audience
+# and scope.
+organization_usage: "deny"
+allow_any_organization: false

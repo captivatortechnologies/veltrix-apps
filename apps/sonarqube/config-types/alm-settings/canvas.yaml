@@ -1,0 +1,125 @@
+# =============================================================================
+# Canvas Template — SonarQube ALM Settings
+#
+# Declares ONE instance-level DevOps Platform Integration setting (the item) — the named
+# connection to GitHub / GitLab / Bitbucket Server / Bitbucket Cloud / Azure DevOps that
+# backs pull-request decoration and project import. Field keys must match
+# config-types/alm-settings/validate.ts. Applied via the SonarQube Web API
+# (/api/alm_settings/create_*, /update_*, /delete, /list_definitions).
+#
+# Out of scope (see _shared.ts header for the full rationale): per-project repository
+# bindings (set_github_binding, etc. — a different, project-scoped surface) and the
+# deprecated project-IMPORT actions (import_github_project, etc. — one-shot project
+# creation, not reconcilable state). This type manages only the instance-level connection
+# settings themselves.
+# =============================================================================
+
+id: "sonarqube-alm-settings"
+name: "ALM Settings"
+toolType: "sonarqube"
+entityType: "alm-settings"
+description: "Manage SonarQube's instance-level DevOps Platform Integrations — GitHub, GitLab, Bitbucket Server, Bitbucket Cloud and Azure DevOps connections — via the SonarQube Web API"
+
+item:
+  label: "ALM Setting"
+  identityField: "key"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Setting"
+      icon: "git-branch"
+      description: "The connection's identity, type and API URL"
+      fields:
+        - key: "key"
+          label: "Key"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 200
+          helpText: "A unique key identifying this DevOps Platform connection, e.g. gh-main. This is the identity used for upsert/drift."
+
+        - key: "almType"
+          label: "ALM type"
+          fieldType: "select"
+          required: true
+          options:
+            - label: "GitHub"
+              value: "github"
+            - label: "GitLab"
+              value: "gitlab"
+            - label: "Bitbucket Server"
+              value: "bitbucket"
+            - label: "Bitbucket Cloud"
+              value: "bitbucketcloud"
+            - label: "Azure DevOps"
+              value: "azure"
+          helpText: "Changing the ALM type of an EXISTING key is not supported by this app (SonarQube has no in-place type-change API, and prior secrets cannot be recovered to safely recreate it) — delete the setting in SonarQube and declare a new key instead."
+
+        - key: "url"
+          label: "URL"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "The provider's API URL. Required for GitHub, GitLab, Bitbucket Server and Azure DevOps. Not used for Bitbucket Cloud."
+
+    - name: "Credentials"
+      icon: "key"
+      description: "Provider credentials — write-only: SonarQube never returns them, so they can never be diffed for drift or restored on rollback"
+      fields:
+        - key: "personalAccessToken"
+          label: "Personal access token"
+          fieldType: "password"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Used by GitLab, Bitbucket Server, Azure DevOps. Required when first creating the setting; leave blank on a later deploy to keep the current stored token unchanged."
+
+        - key: "appId"
+          label: "App ID"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 100
+          helpText: "GitHub only. Required when creating."
+
+        - key: "clientId"
+          label: "Client ID"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 200
+          helpText: "Used by GitHub and Bitbucket Cloud. Required when creating."
+
+        - key: "clientSecret"
+          label: "Client secret"
+          fieldType: "password"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Used by GitHub and Bitbucket Cloud. Required when first creating; leave blank on a later deploy to keep the current stored secret unchanged."
+
+        - key: "privateKey"
+          label: "Private key"
+          fieldType: "password"
+          required: false
+          validation:
+            maxLength: 8000
+          helpText: "GitHub only (the GitHub App's private key, PEM). Required when first creating; leave blank on a later deploy to keep the current stored key unchanged."
+
+        - key: "webhookSecret"
+          label: "Webhook secret"
+          fieldType: "password"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "GitHub only, optional even at creation."
+
+        - key: "workspace"
+          label: "Workspace"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 200
+          helpText: "Bitbucket Cloud only. Required when creating."

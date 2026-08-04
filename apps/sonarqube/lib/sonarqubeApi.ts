@@ -70,11 +70,26 @@ export function buildAuthHeader(credential: CredentialRef): Record<string, strin
   return {}
 }
 
-/** Encode a flat param map as application/x-www-form-urlencoded, dropping blanks. */
-export function formEncode(params: Record<string, string | number | boolean | undefined | null>): string {
+/** A form param value: a scalar, or an array for a repeated field (see below). */
+export type FormParamValue = string | number | boolean | string[] | undefined | null
+
+/**
+ * Encode a flat param map as application/x-www-form-urlencoded, dropping blanks.
+ * An array value is encoded as the SAME key repeated once per element (SonarQube's
+ * convention for multi-value params, e.g. `api/settings/set`'s `values` and
+ * `fieldValues`) — blank/nullish elements are dropped individually.
+ */
+export function formEncode(params: Record<string, FormParamValue>): string {
   const usp = new URLSearchParams()
   for (const [key, value] of Object.entries(params)) {
     if (value === undefined || value === null || value === '') continue
+    if (Array.isArray(value)) {
+      for (const v of value) {
+        if (v === undefined || v === null || v === '') continue
+        usp.append(key, String(v))
+      }
+      continue
+    }
     usp.append(key, String(value))
   }
   return usp.toString()
@@ -141,7 +156,7 @@ export async function getJson<T>(url: string, headers: Record<string, string>, t
 export async function postForm<T>(
   url: string,
   headers: Record<string, string>,
-  params: Record<string, string | number | boolean | undefined | null>,
+  params: Record<string, FormParamValue>,
   timeoutMs?: number,
 ): Promise<T> {
   const res = await sonarqubeRequest(url, {

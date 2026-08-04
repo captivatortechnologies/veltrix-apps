@@ -1,14 +1,15 @@
 id: sonarqube
 name: SonarQube
-version: "0.3.0"
+version: "0.4.0"
 vendor: Veltrix
 description: >
-  Manage SonarQube as code. Author quality gates, quality profiles, webhooks and
-  permission templates — and drive them through the Security-as-Code pipeline
-  (validate, deploy, health check, drift detection and rollback) over the SonarQube
-  Web API (token authentication, self-signed TLS tolerated), with BYOL
-  infrastructure provisioning for the SonarQube stack (SonarQube web/compute +
-  Elasticsearch search + PostgreSQL).
+  Manage SonarQube as code. Author quality gates, quality profiles (with per-rule
+  overrides), webhooks, permission templates, global settings, new code periods,
+  global permissions and ALM (DevOps Platform) settings — and drive them through
+  the Security-as-Code pipeline (validate, deploy, health check, drift detection
+  and rollback) over the SonarQube Web API (token authentication, self-signed TLS
+  tolerated), with BYOL infrastructure provisioning for the SonarQube stack
+  (SonarQube web/compute + Elasticsearch search + PostgreSQL).
 category: COMPLIANCE
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/sonarqube
@@ -40,6 +41,21 @@ permissions:
     - resource: permission-templates
       actions: [read, write, delete]
       description: Manage SonarQube permission templates and their group grants (create / edit / delete)
+    - resource: global-settings
+      actions: [read, write, delete]
+      description: Manage SonarQube global instance settings (sonar.* properties)
+    - resource: new-code-periods
+      actions: [read, write, delete]
+      description: Manage the SonarQube New Code definition at the global, project or branch level
+    - resource: global-permissions
+      actions: [read, write, delete]
+      description: Manage SonarQube global permission grants to groups
+    - resource: quality-profile-rule-overrides
+      actions: [read, write, delete]
+      description: Manage per-rule severity, parameter and prioritization overrides within a quality profile
+    - resource: alm-settings
+      actions: [read, write, delete]
+      description: Manage SonarQube DevOps Platform (ALM) integration settings
     - resource: byol
       actions: [read, write, delete]
       description: Manage BYOL SonarQube stack infrastructure
@@ -132,6 +148,116 @@ pipeline:
         healthCheck: config-types/permission-templates/healthCheck
         driftDetect: config-types/permission-templates/driftDetect
         getStatus: config-types/permission-templates/getStatus
+      targets:
+        componentTypes: [sonarqube-server]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: global-settings
+      group: "Instance Configuration"
+      name: Global Settings
+      description: >
+        Arbitrary SonarQube instance-wide sonar.* properties — key, and a single
+        value or a multi-value list — applied over the SonarQube Web API
+        (/api/settings). Global scope only; PROPERTY_SET (fieldValues) settings
+        are not supported.
+      canvasTemplate: config-types/global-settings/canvas.yaml
+      defaultConfig: config-types/global-settings/defaults.yaml
+      handlers:
+        validate: config-types/global-settings/validate
+        deploy: config-types/global-settings/deploy
+        rollback: config-types/global-settings/rollback
+        healthCheck: config-types/global-settings/healthCheck
+        driftDetect: config-types/global-settings/driftDetect
+        getStatus: config-types/global-settings/getStatus
+      targets:
+        componentTypes: [sonarqube-server]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: new-code-periods
+      group: "Quality Standards"
+      name: New Code Periods
+      description: >
+        The SonarQube New Code definition (previous version, number of days,
+        reference branch or specific analysis) at the global, project or branch
+        level — applied over the SonarQube Web API (/api/new_code_periods).
+      canvasTemplate: config-types/new-code-periods/canvas.yaml
+      defaultConfig: config-types/new-code-periods/defaults.yaml
+      handlers:
+        validate: config-types/new-code-periods/validate
+        deploy: config-types/new-code-periods/deploy
+        rollback: config-types/new-code-periods/rollback
+        healthCheck: config-types/new-code-periods/healthCheck
+        driftDetect: config-types/new-code-periods/driftDetect
+        getStatus: config-types/new-code-periods/getStatus
+      targets:
+        componentTypes: [sonarqube-server]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: global-permissions
+      group: "Access & Governance"
+      name: Global Permissions
+      description: >
+        Direct instance-wide SonarQube permission grants to groups (admin,
+        gateadmin, profileadmin, provisioning, scan, applicationcreator,
+        portfoliocreator) — applied over the SonarQube Web API
+        (/api/permissions add_group/remove_group, global scope). Only the
+        groups you declare are reconciled.
+      canvasTemplate: config-types/global-permissions/canvas.yaml
+      defaultConfig: config-types/global-permissions/defaults.yaml
+      handlers:
+        validate: config-types/global-permissions/validate
+        deploy: config-types/global-permissions/deploy
+        rollback: config-types/global-permissions/rollback
+        healthCheck: config-types/global-permissions/healthCheck
+        driftDetect: config-types/global-permissions/driftDetect
+        getStatus: config-types/global-permissions/getStatus
+      targets:
+        componentTypes: [sonarqube-server]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: quality-profile-rule-overrides
+      group: "Quality Standards"
+      name: Quality Profile Rule Overrides
+      description: >
+        Per-rule severity, parameter and prioritization overrides within a
+        quality profile — applied over the SonarQube Web API
+        (/api/qualityprofiles/activate_rule, /deactivate_rule). Complements
+        the Quality Profiles config type's bulk rule activation.
+      canvasTemplate: config-types/quality-profile-rule-overrides/canvas.yaml
+      defaultConfig: config-types/quality-profile-rule-overrides/defaults.yaml
+      handlers:
+        validate: config-types/quality-profile-rule-overrides/validate
+        deploy: config-types/quality-profile-rule-overrides/deploy
+        rollback: config-types/quality-profile-rule-overrides/rollback
+        healthCheck: config-types/quality-profile-rule-overrides/healthCheck
+        driftDetect: config-types/quality-profile-rule-overrides/driftDetect
+        getStatus: config-types/quality-profile-rule-overrides/getStatus
+      targets:
+        componentTypes: [sonarqube-server]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: alm-settings
+      group: "Integrations"
+      name: ALM Settings
+      description: >
+        SonarQube DevOps Platform (ALM) integration settings — GitHub, GitLab,
+        Bitbucket Server, Bitbucket Cloud and Azure DevOps connections —
+        applied over the SonarQube Web API (/api/alm_settings). Instance-level
+        settings only; per-project repository bindings are out of scope.
+      canvasTemplate: config-types/alm-settings/canvas.yaml
+      defaultConfig: config-types/alm-settings/defaults.yaml
+      handlers:
+        validate: config-types/alm-settings/validate
+        deploy: config-types/alm-settings/deploy
+        rollback: config-types/alm-settings/rollback
+        healthCheck: config-types/alm-settings/healthCheck
+        driftDetect: config-types/alm-settings/driftDetect
+        getStatus: config-types/alm-settings/getStatus
       targets:
         componentTypes: [sonarqube-server]
         requiresCredential: true

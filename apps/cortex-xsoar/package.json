@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-cortex-xsoar",
   "private": true,
-  "version": "1.2.0",
-  "description": "Veltrix app: manage Cortex XSOAR (lists, incident types, jobs) configuration as code through the XSOAR REST API",
+  "version": "1.3.0",
+  "description": "Veltrix app: manage Cortex XSOAR (lists, incident types, incident/indicator fields, classifiers, mappers, jobs, integration instances) configuration as code through the XSOAR REST API",
   "scripts": { "typecheck": "tsc --noEmit" },
   "devDependencies": {
     "@types/jest": "^29.5.14",

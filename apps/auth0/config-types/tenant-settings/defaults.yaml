@@ -1,0 +1,5 @@
+# Defaults for the Tenant Settings singleton — intentionally empty. Every
+# scalar/array field is owned outright by this config type (see canvas.yaml)
+# and there is no safe universal default for a tenant's identity/session/
+# defaults values; `flags` is a partial-merge, so an absent map already means
+# "touch no flags".

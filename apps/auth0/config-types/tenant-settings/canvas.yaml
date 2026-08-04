@@ -1,0 +1,166 @@
+# =============================================================================
+# Canvas Template — Auth0 Tenant Settings
+#
+# Tenant-wide singleton over GET/PATCH /api/v2/tenants/settings. That endpoint
+# has a huge surface; this config type curates a safe, well-documented subset
+# (the same judgment call this app already makes for resource-servers' signing-
+# algorithm allowlist and connections' strategy allowlist) rather than exposing
+# every tenant setting. Declare this config type at most once per canvas.
+#
+# Every top-level scalar/array field below is ALWAYS sent on PATCH (even blank
+# — this config type owns those fields outright, so clearing a canvas field
+# clears the live setting too). `flags` is different: Auth0 does a genuine
+# partial-merge on tenant flags, so only the flag keys present in the keyvalue
+# map are ever sent — a blank/absent flags map touches no flags.
+#
+# Field keys must match config-types/tenant-settings/validate.ts and
+# _shared.ts. Applied via the Auth0 Management API v2:
+#   GET/PATCH /api/v2/tenants/settings
+# =============================================================================
+
+id: "auth0-tenant-settings"
+name: "Tenant Settings"
+toolType: "auth0"
+entityType: "tenant-settings"
+description: "Manage a curated subset of Auth0 Tenant Settings — identity, sessions, defaults, locales/logout URLs and feature flags — via the Auth0 Management API v2. Tenant-wide singleton."
+
+item:
+  label: "Tenant Settings"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Identity"
+      icon: "shield"
+      description: "How the tenant presents itself"
+      fields:
+        - key: "friendly_name"
+          label: "Friendly Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 200
+          helpText: "Tenant display name shown in Auth0-hosted pages and emails. Optional."
+
+        - key: "support_email"
+          label: "Support Email"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 200
+          helpText: "Support contact address shown to end users. Optional."
+
+        - key: "support_url"
+          label: "Support URL"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 600
+          helpText: "Support page URL shown to end users. Optional."
+
+        - key: "picture_url"
+          label: "Picture URL"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 600
+          helpText: "Tenant logo URL shown on Auth0-hosted pages. Optional."
+
+    - name: "Sessions"
+      icon: "settings"
+      description: "How long a session stays valid"
+      fields:
+        - key: "session_lifetime"
+          label: "Session Lifetime (hours)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+          helpText: "Hours a session stays valid without re-authentication. Auth0 default is 168 (7 days). Leave blank to leave this untouched (Auth0 rejects 0)."
+
+        - key: "idle_session_lifetime"
+          label: "Idle Session Lifetime (hours)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+          helpText: "Hours of inactivity before a session expires. Auth0 default is 72 (3 days). Leave blank to leave this untouched (Auth0 rejects 0)."
+
+    - name: "Defaults"
+      icon: "settings"
+      description: "Defaults applied when a request omits them"
+      fields:
+        - key: "default_audience"
+          label: "Default Audience"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 600
+          helpText: "API identifier used when a client's authorize call omits `audience`. Optional."
+
+        - key: "default_directory"
+          label: "Default Directory"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 200
+          helpText: "Name of the connection used for Resource Owner Password Grant when the request omits one. Optional."
+
+        - key: "default_redirection_uri"
+          label: "Default Redirection URI"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 600
+          helpText: "Default URL Auth0 redirects to when a request omits its own. Optional."
+
+        - key: "sandbox_version"
+          label: "Sandbox Version"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 50
+          helpText: "Node.js runtime version used for legacy custom database scripts. Optional."
+
+    - name: "Locales & Logout"
+      icon: "link"
+      description: "Universal Login locales and tenant-wide logout redirects"
+      fields:
+        - key: "enabled_locales"
+          label: "Enabled Locales"
+          fieldType: "tags"
+          required: false
+          helpText: "Locale codes enabled for Universal Login, e.g. en, es, fr — the first one listed is the tenant default."
+
+        - key: "allowed_logout_urls"
+          label: "Allowed Logout URLs"
+          fieldType: "textarea"
+          required: false
+          helpText: "Tenant-wide allowed logout redirect URLs, one per line."
+
+    - name: "Feature Flags"
+      icon: "settings"
+      description: "A curated allowlist of documented tenant flags"
+      fields:
+        - key: "flags"
+          label: "Flags"
+          fieldType: "keyvalue"
+          required: false
+          helpText: >
+            Documented tenant flags this config type manages, as flag name →
+            "true"/"false" (the literal string, not a boolean). Only the
+            following flags are supported: allow_legacy_delegation_grant_types,
+            allow_legacy_ro_grant_types, allow_legacy_tokeninfo_endpoint,
+            dashboard_insights_view, dashboard_log_streams_next,
+            disable_clickjack_protection_headers, disable_fields_map_fix,
+            disable_management_api_sms_obfuscation,
+            enable_adfs_waad_email_verification, enable_apis_section,
+            enable_client_connections, enable_custom_domain_in_emails,
+            enable_dynamic_client_registration, enable_idtoken_api2,
+            enable_legacy_logs_search_v2, enable_legacy_profile,
+            enable_pipeline2, enable_public_signup_user_exists_error,
+            enable_sso, mfa_show_factor_list_on_enrollment,
+            no_disclose_enterprise_connections, remove_alg_from_jwks,
+            revoke_refresh_token_grant, use_scope_descriptions_for_consent.
+            Only the flags you list here are touched — Auth0 partial-merges
+            this field, unlike the fields above.

@@ -1,0 +1,81 @@
+# =============================================================================
+# Canvas Template — Auth0 Client Grants
+#
+# Declares ONE Auth0 Client Grant (the item). Operators add as many as they
+# need. Field keys must match config-types/client-grants/validate.ts and
+# _shared.ts. Applied via the Auth0 Management API v2 (GET/POST
+# /client-grants, PATCH/DELETE /client-grants/{id}). A grant authorizes a
+# Machine-to-Machine Application (client_id) to request an access token for
+# an API (audience), with a scope list. The Management API keys a grant on
+# the server-assigned id; there is no single unique field on the resource, so
+# this config type upserts by the COMPOSITE (client_id, audience) pair — Auth0
+# normally allows only one grant per pair. client_id and audience are set at
+# creation and are NOT changed on update (the PATCH body omits both).
+# =============================================================================
+
+id: "auth0-client-grants"
+name: "Client Grants"
+toolType: "auth0"
+entityType: "client-grants"
+description: "Manage Auth0 Client Grants — authorize a Machine-to-Machine Application to request tokens for an API, with a scope list — via the Auth0 Management API v2"
+
+item:
+  label: "Client Grant"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Grant"
+      icon: "shield"
+      description: "The application and API this grant authorizes"
+      fields:
+        - key: "client_id"
+          label: "Client ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 64
+          helpText: "The Auth0-assigned Client ID of a Machine-to-Machine Application — paste it from the Applications (Clients) config type or the Auth0 dashboard. The Management API grants by client_id, not by application name. Immutable once created."
+
+        - key: "audience"
+          label: "Audience"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 600
+          helpText: "The API identifier / audience URI this grant authorizes, matching a Resource Server's Identifier. Immutable once created."
+
+    - name: "Scopes"
+      icon: "list"
+      description: "Permissions granted for this client + API pair"
+      fields:
+        - key: "scope"
+          label: "Scope"
+          fieldType: "tags"
+          required: false
+          helpText: "Permission scopes granted to this client for this API — each must already exist as a scope on the target Resource Server. No whitespace in a scope token."
+
+    - name: "Organization access"
+      icon: "settings"
+      description: "Whether organizations can use this grant in a client-credentials exchange"
+      fields:
+        - key: "organization_usage"
+          label: "Organization Usage"
+          fieldType: "select"
+          required: false
+          defaultValue: "deny"
+          options:
+            - label: "Deny"
+              value: "deny"
+            - label: "Allow"
+              value: "allow"
+            - label: "Require"
+              value: "require"
+          helpText: "Whether organizations can be used with client-credentials exchanges for this grant."
+
+        - key: "allow_any_organization"
+          label: "Allow Any Organization"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "If enabled, any organization can use this grant. If disabled, the grant must be explicitly assigned to organizations."

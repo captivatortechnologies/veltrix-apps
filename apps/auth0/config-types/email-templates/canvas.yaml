@@ -1,0 +1,128 @@
+# =============================================================================
+# Canvas Template — Auth0 Email Templates
+#
+# Declares ONE Auth0 Email Template (the item). Operators add one item per
+# template they want to customize (Auth0 pre-defines a FIXED set of template
+# names — there is no "create an arbitrary template"). Field keys must match
+# config-types/email-templates/validate.ts and _shared.ts. Applied via the
+# Auth0 Management API v2 (GET/POST /email-templates, PATCH
+# /email-templates/{templateName}). Templates are keyed by their fixed `template`
+# name, so this config type upserts by that name: GET to see whether it has ever
+# been customized (404 = never), POST to customize it for the first time, PATCH
+# on every later deploy. Auth0 has no delete for a template — see rollback.ts.
+# =============================================================================
+
+id: "auth0-email-templates"
+name: "Email Templates"
+toolType: "auth0"
+entityType: "email-templates"
+description: "Manage Auth0 Email Templates — body, sender, subject and behavior for the tenant's transactional emails — via the Auth0 Management API v2"
+
+item:
+  label: "Email Template"
+  identityField: "template"
+  repeatable: true
+  minItems: 1
+  maxItems: 20
+  groups:
+    - name: "Template"
+      icon: "mail"
+      description: "Which built-in template this customizes"
+      fields:
+        - key: "template"
+          label: "Template"
+          fieldType: "select"
+          required: true
+          options:
+            - label: "Verify Email (link)"
+              value: "verify_email"
+            - label: "Verify Email (code)"
+              value: "verify_email_by_code"
+            - label: "Welcome Email"
+              value: "welcome_email"
+            - label: "Reset Password (link)"
+              value: "reset_email"
+            - label: "Reset Password (code)"
+              value: "reset_email_by_code"
+            - label: "Blocked Account"
+              value: "blocked_account"
+            - label: "Stolen Credentials"
+              value: "stolen_credentials"
+            - label: "Enrollment Email"
+              value: "enrollment_email"
+            - label: "MFA OOB Code"
+              value: "mfa_oob_code"
+            - label: "User Invitation"
+              value: "user_invitation"
+            - label: "Async Approval"
+              value: "async_approval"
+            - label: "Change Password (legacy)"
+              value: "change_password"
+            - label: "Password Reset (legacy)"
+              value: "password_reset"
+          helpText: "One of Auth0's fixed built-in template names. Used as the stable identity for upsert and drift. change_password and password_reset are Auth0's legacy (pre-New-Universal-Login) templates — new tenants should use reset_email."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether Auth0 sends this template. Disabling a required system email (e.g. verify_email) can break flows that depend on it."
+
+    - name: "Content"
+      icon: "settings"
+      description: "Sender, subject and body"
+      fields:
+        - key: "from"
+          label: "From"
+          fieldType: "text"
+          required: false
+          helpText: "Sender address. Supports Liquid variables (e.g. {{ application.name }}). Leave blank for Auth0's default (sender@auth0.com)."
+
+        - key: "subject"
+          label: "Subject"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 300
+          helpText: "Email subject line. Supports Liquid variables."
+
+        - key: "syntax"
+          label: "Syntax"
+          fieldType: "text"
+          required: false
+          defaultValue: "liquid"
+          helpText: "Template language. Auth0 templates are Liquid; leave as \"liquid\" unless Auth0 documents another value for this template."
+
+        - key: "body"
+          label: "Body (HTML)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 100000
+          helpText: "The email body, HTML with Liquid variables (e.g. {{ user.email }}, {{ url }})."
+
+    - name: "Behavior"
+      icon: "shield"
+      description: "Link lifetime and post-action redirect"
+      fields:
+        - key: "result_url"
+          label: "Result URL"
+          fieldType: "text"
+          required: false
+          helpText: "Where to redirect the user after they complete the emailed action (e.g. after verifying their email). Leave blank for the Auth0 default page."
+
+        - key: "url_lifetime_in_seconds"
+          label: "URL Lifetime (seconds)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+          helpText: "How long the emailed link/code stays valid, in seconds. Leave blank for the Auth0 default (varies by template)."
+
+        - key: "include_email_in_redirect"
+          label: "Include Email in Redirect"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the user's email address is appended to the result URL's query string."

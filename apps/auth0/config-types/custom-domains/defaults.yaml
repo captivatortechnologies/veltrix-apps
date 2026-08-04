@@ -1,0 +1,5 @@
+# Defaults for a new Auth0 Custom Domain item — starts as an Auth0-managed
+# certificate on the Auth0 default TLS policy; the operator fills in the
+# domain.
+type: "auth0_managed_certs"
+tls_policy: ""

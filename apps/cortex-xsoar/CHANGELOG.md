@@ -3,6 +3,60 @@
 All notable changes to the Cortex XSOAR app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.3.0 — 2026-08-04
+
+### Added
+- **Incident fields configuration type (`xsoar-incident-fields`)** and
+  **indicator fields configuration type (`xsoar-indicator-fields`)**. Manage
+  custom Cortex XSOAR incident/indicator fields as code through the server
+  REST API. Incident and indicator fields are the same underlying server
+  object, sharing one listing endpoint (`GET /incidentfields`) and one import
+  endpoint (`POST /incidentfields/import`), discriminated by the `group`
+  number (0 = incident, 2 = indicator — XSOAR's own `GroupFieldTypes` enum)
+  and the `id` prefix. Each field reconciles by its **cliName** (lowercase
+  alphanumeric); the server `id` is always derived as `incident_<cliName>` /
+  `indicator_<cliName>` rather than authored directly, and a cliName that
+  collides with one of XSOAR's reserved internal columns (`name`, `type`,
+  `score`, …) is rejected at validate time. Field type is checked against the
+  exact enum each kind supports (indicator fields drop `attachments`,
+  `internal` and `timer`, which are incident-only). Built-in/locked fields
+  are never modified. Delete-on-rollback follows the same
+  `POST /<resource>/delete` action convention already shipped for lists and
+  incident types — flagged in the README as inferred rather than
+  independently confirmed, since no source documents an incident-field
+  delete contract.
+- **Classifiers configuration type (`xsoar-classifiers`)** and **mappers
+  configuration type (`xsoar-mappers`)**. Manage Cortex XSOAR classifiers and
+  incoming/outgoing mappers as code. Both are the same underlying server
+  object, sharing one listing endpoint (`POST /classifier/search`) and one
+  import endpoint (`POST /classifier/import`), discriminated by `type`
+  (`classification` vs. `mapping-incoming` / `mapping-outgoing`). Each
+  reconciles by a caller-chosen **id** (also the required `classifierId` sent
+  on every save). The classification-rule graph (`keyTypeMap` + `transformer`)
+  and the field-mapping graph (`mapping`) are deep, variable schemas — as with
+  Cisco Meraki's group-policies precedent, they are authored as one JSON blob
+  merged onto the typed fields rather than exhaustively modeled, and are not
+  diffed field-by-field by drift detection (only the typed fields and the
+  object's presence are reconciled). Built-in/locked classifiers/mappers are
+  never modified. Delete-on-rollback follows the same inferred
+  `POST /classifier/delete` convention, flagged the same way.
+- **Multipart upload support in the shared `XsoarClient`**
+  (`lib/xsoar.ts` `requestMultipart`). The four new configuration types all
+  save through XSOAR's "import" endpoints, which are genuine file uploads
+  (`multipart/form-data`) even though the file content is JSON — confirmed
+  against the official generated `demisto-py` client and `demisto-sdk`'s
+  content-graph upload path. Reuses the same auth-header building and 429
+  retry policy as the existing JSON request path.
+- Two shared plumbing modules for the new types, mirroring the existing
+  `config-types/lib/xsoarAudit.ts` convention: `config-types/lib/xsoarFields.ts`
+  (incident/indicator field id derivation, type/reserved-name tables, list/
+  save/delete) and `config-types/lib/xsoarClassification.ts` (classifier/mapper
+  kind detection, search/save/delete, JSON-blob parsing).
+- README **Coverage** section auditing the full Cortex XSOAR content-as-code
+  surface — every configuration type this app manages, plus what was
+  evaluated and intentionally excluded (pre-process rules, roles, playbooks,
+  integration secrets) with the specific reason for each.
+
 ## 1.2.0 — 2026-07-26
 
 ### Added

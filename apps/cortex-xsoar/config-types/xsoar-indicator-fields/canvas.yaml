@@ -1,0 +1,95 @@
+# =============================================================================
+# Canvas Template — Cortex XSOAR Indicator Fields
+#
+# Declares ONE custom indicator field — the item. Users add as many as they
+# need. Incident/indicator fields share one server collection
+# (GET /incidentfields); a field's server id is DERIVED as "indicator_<cliName>"
+# (never authored directly), so identity for reconciliation is the field
+# CLINAME. Field keys must match
+# config-types/xsoar-indicator-fields/validate.ts.
+# =============================================================================
+
+id: "cortex-xsoar-indicator-fields"
+name: "Cortex XSOAR Indicator Field Configuration"
+toolType: "cortex-xsoar"
+entityType: "xsoar-indicator-fields"
+description: "Define custom Cortex XSOAR indicator fields as code through the server REST API (/incidentfields). Reconciled by cliName (the field id is derived as indicator_<cliName>); upserted via /incidentfields/import and removed via /incidentfields/delete on rollback."
+
+item:
+  label: "Indicator Field"
+  identityField: "cliName"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Field"
+      icon: "type"
+      description: "Internal key, display name and value type"
+      fields:
+        - key: "cliName"
+          label: "CLI name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[0-9a-z]+$"
+            maxLength: 64
+          helpText: "Lowercase letters and digits only — the field's internal key. The server id is derived as \"indicator_<cliName>\" and cannot be changed later without recreating the field."
+
+        - key: "name"
+          label: "Display name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: "The field label shown on the indicator."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "shortText"
+          options:
+            - { label: "Short text", value: "shortText" }
+            - { label: "Long text", value: "longText" }
+            - { label: "Boolean", value: "boolean" }
+            - { label: "Single select", value: "singleSelect" }
+            - { label: "Multi select", value: "multiSelect" }
+            - { label: "Date", value: "date" }
+            - { label: "User", value: "user" }
+            - { label: "Role", value: "role" }
+            - { label: "Number", value: "number" }
+            - { label: "Tags select", value: "tagsSelect" }
+            - { label: "URL", value: "url" }
+            - { label: "Markdown", value: "markdown" }
+            - { label: "Grid", value: "grid" }
+            - { label: "HTML", value: "html" }
+          helpText: "The field's value type. Indicator fields support a narrower type set than incident fields (no attachments, internal or timer). Cannot be changed after creation without recreating the field."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional help text shown next to the field."
+
+    - name: "Behavior"
+      icon: "sliders"
+      description: "Required flag and indicator-type association"
+      fields:
+        - key: "required"
+          label: "Required"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, the field must be filled in when editing the indicator."
+
+        - key: "associatedToAll"
+          label: "Associate with all indicator types"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "When enabled, the field appears on every indicator type. Disable to scope it to specific indicator types below."
+
+        - key: "associatedTypes"
+          label: "Associated indicator types"
+          fieldType: "tags"
+          visibleWhen:
+            field: "associatedToAll"
+            equals: false
+          helpText: "Indicator type names (e.g. IP, Domain, CVE) this field is scoped to. Only used when \"Associate with all indicator types\" is disabled."

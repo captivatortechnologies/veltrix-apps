@@ -1,0 +1,277 @@
+# =============================================================================
+# Canvas Template — Orca Notification Integrations
+#
+# Declares ONE Orca notification integration (Jira Cloud, Slack, or a
+# generic/vendor webhook) — the item. Users add as many as they need, one
+# per template. All three services ride on the same Orca resource,
+# /api/external_service/config, discriminated by "service". A single item
+# holds ONE service; leave the other services' fields blank.
+#
+# UNLIKE every other Orca config type in this app, identity is looked up LIVE
+# by (service, template_name) — Orca's GET can filter by both — rather than
+# resolved only from this app's own rollbackData.
+#
+# businessUnits is CREATE-TIME ONLY for jira/slack (Orca rejects changing it on
+# update); webhook accepts changing it. See _shared.ts.
+#
+# Field keys must match config-types/notification-integrations/validate.ts + _shared.ts.
+# =============================================================================
+
+id: "orca-notification-integrations"
+name: "Notification Integrations"
+toolType: "orca-security"
+entityType: "notification-integrations"
+description: "Define Orca notification integrations (Jira Cloud, Slack, generic/vendor webhook) as code through the Orca REST API. A single item manages one service's template."
+
+item:
+  label: "Notification Integration"
+  identityField: "templateName"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Integration"
+      icon: "bell"
+      description: "Which service, and how it behaves"
+      fields:
+        - key: "templateName"
+          label: "Template Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The integration's identifier in Orca — also the lookup key for updates/deletes. Changing it creates a new integration rather than renaming this one."
+
+        - key: "service"
+          label: "Service"
+          fieldType: "select"
+          required: true
+          defaultValue: "webhook"
+          options:
+            - { label: "Jira Cloud", value: "jira" }
+            - { label: "Slack", value: "slack" }
+            - { label: "Webhook (generic / Torq / Tines / Opus / Coralogix / Panther)", value: "webhook" }
+          helpText: "Which Orca notification service this item manages. Fields below change based on this choice."
+
+        - key: "isEnabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the integration is active."
+
+        - key: "isDefault"
+          label: "Default integration"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether this is the organization's default integration for this service."
+
+        - key: "businessUnits"
+          label: "Business Unit IDs"
+          fieldType: "tags"
+          required: false
+          helpText: "Optional Orca business unit IDs that may use this integration. CREATE-TIME ONLY for Jira/Slack — Orca rejects changing this on update for those two services (webhook accepts changes). Leave empty for all business units."
+
+    - name: "Jira Cloud"
+      icon: "ticket"
+      description: "Shown when Service = Jira Cloud"
+      fields:
+        - key: "jiraResourceId"
+          label: "Jira OAuth Resource ID"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "service"
+            equals: "jira"
+          helpText: "UUID of the Jira Cloud OAuth resource carrying the credentials — create it in the Orca UI (Settings > Integrations > Jira Cloud) first, then paste its UUID here."
+
+        - key: "jiraResourceUrl"
+          label: "Jira Tenant URL"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "service"
+            equals: "jira"
+          helpText: "Your Atlassian Cloud tenant URL, e.g. https://acme.atlassian.net."
+
+        - key: "jiraProjectId"
+          label: "Jira Project ID"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "service"
+            equals: "jira"
+          helpText: "The Jira project ID Orca opens issues in."
+
+        - key: "jiraIssueTypeId"
+          label: "Jira Issue Type ID"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "service"
+            equals: "jira"
+          helpText: "The Jira issue type ID for the main ticket."
+
+        - key: "jiraSubtaskIssueTypeId"
+          label: "Jira Sub-task Issue Type ID"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "service"
+            equals: "jira"
+          helpText: "Optional Jira issue type ID for sub-task tickets."
+
+        - key: "jiraMappingJson"
+          label: "Field Mapping (JSON)"
+          fieldType: "textarea"
+          required: false
+          visibleWhen:
+            field: "service"
+            equals: "jira"
+          validation:
+            maxLength: 20000
+          helpText: 'Required for Jira. JSON object: keys are Jira field names; each value is a list where a bare string pulls an Orca alert field and {"value":"<literal>"} is a static value, e.g. {"summary":["alert_name","alert_id"]}.'
+
+        - key: "jiraAlertStatusMappingJson"
+          label: "Alert Status -> Jira Status (JSON)"
+          fieldType: "textarea"
+          required: false
+          visibleWhen:
+            field: "service"
+            equals: "jira"
+          validation:
+            maxLength: 5000
+          helpText: 'Optional JSON object mapping Orca alert statuses to Jira workflow status IDs, e.g. {"in_progress":"10001"}.'
+
+        - key: "jiraTicketStatusMappingJson"
+          label: "Jira Status -> Alert Status (JSON)"
+          fieldType: "textarea"
+          required: false
+          visibleWhen:
+            field: "service"
+            equals: "jira"
+          validation:
+            maxLength: 5000
+          helpText: 'Optional JSON object mapping Jira workflow status IDs back to an Orca alert state change, e.g. {"10000":{"status":"snoozed","snooze_days":1}}.'
+
+        - key: "jiraSubtaskAlertStatusMappingJson"
+          label: "Alert Status -> Jira Status, Sub-tasks (JSON)"
+          fieldType: "textarea"
+          required: false
+          visibleWhen:
+            field: "service"
+            equals: "jira"
+          validation:
+            maxLength: 5000
+          helpText: "Same shape as Alert Status -> Jira Status, applied to sub-task tickets."
+
+        - key: "jiraSubtaskTicketStatusMappingJson"
+          label: "Jira Status -> Alert Status, Sub-tasks (JSON)"
+          fieldType: "textarea"
+          required: false
+          visibleWhen:
+            field: "service"
+            equals: "jira"
+          validation:
+            maxLength: 5000
+          helpText: "Same shape as Jira Status -> Alert Status, applied to sub-task tickets."
+
+    - name: "Slack"
+      icon: "message-square"
+      description: "Shown when Service = Slack"
+      fields:
+        - key: "slackWorkspaceId"
+          label: "Slack Workspace ID"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "service"
+            equals: "slack"
+          helpText: "The Slack workspace (team) ID Orca posts to, e.g. T0A0KSCQ1B3. The workspace must already be connected to Orca via the Slack app."
+
+        - key: "slackChannels"
+          label: "Slack Channel IDs"
+          fieldType: "tags"
+          required: false
+          visibleWhen:
+            field: "service"
+            equals: "slack"
+          helpText: "Ordered Slack channel IDs Orca sends alerts to, e.g. C0AE82CGDH7."
+
+        - key: "slackShowActions"
+          label: "Show interactive action buttons"
+          fieldType: "checkbox"
+          defaultValue: true
+          visibleWhen:
+            field: "service"
+            equals: "slack"
+          helpText: "Whether Slack messages include interactive action buttons."
+
+        - key: "slackMappingJson"
+          label: "Field Mapping (JSON)"
+          fieldType: "textarea"
+          required: false
+          visibleWhen:
+            field: "service"
+            equals: "slack"
+          validation:
+            maxLength: 20000
+          helpText: 'Required for Slack. JSON object mapping a message section (title, description) to an ordered list of Orca alert field names, e.g. {"title":["alert_id","orca_score"],"description":["details","recommendation"]}.'
+
+    - name: "Webhook"
+      icon: "webhook"
+      description: "Shown when Service = Webhook"
+      fields:
+        - key: "webhookType"
+          label: "Webhook Variant"
+          fieldType: "select"
+          required: false
+          defaultValue: "common"
+          visibleWhen:
+            field: "service"
+            equals: "webhook"
+          options:
+            - { label: "Generic Webhook", value: "common" }
+            - { label: "Torq", value: "torq" }
+            - { label: "Tines", value: "tines" }
+            - { label: "Opus", value: "opus" }
+            - { label: "Coralogix", value: "coralogix" }
+            - { label: "Panther", value: "panther" }
+          helpText: "Several Orca UI integrations (Torq, Tines, Opus, Coralogix, Panther) are stored as webhook variants of this same resource — pick the target here rather than a separate integration type."
+
+        - key: "webhookUrl"
+          label: "Webhook URL"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "service"
+            equals: "webhook"
+          helpText: "Destination URL Orca posts events to."
+
+        - key: "webhookApiKey"
+          label: "API Key"
+          fieldType: "password"
+          required: false
+          visibleWhen:
+            field: "service"
+            equals: "webhook"
+          helpText: "Optional API key sent with each webhook request. Write-only: never read back or compared by drift, matching this app's other secret fields."
+
+        - key: "webhookBodyFields"
+          label: "Body Fields"
+          fieldType: "tags"
+          required: false
+          visibleWhen:
+            field: "service"
+            equals: "webhook"
+          helpText: "Optional list of Orca alert fields to include in the webhook request body. Leave empty to send the default payload."
+
+        - key: "webhookCustomHeadersJson"
+          label: "Custom Headers (JSON)"
+          fieldType: "textarea"
+          required: false
+          visibleWhen:
+            field: "service"
+            equals: "webhook"
+          validation:
+            maxLength: 5000
+          helpText: 'Optional JSON object of custom HTTP headers, e.g. {"X-Signing-Token":[{"custom":"<value>"}]}. Each header value is a list of {"custom":"<value>"} objects (Orca''s own wire shape) so one header name can carry multiple values.'

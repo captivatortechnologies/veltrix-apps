@@ -97,6 +97,18 @@ export interface XsoarSearchEnvelope<T = unknown> {
   total?: number
 }
 
+/** A file part for a multipart/form-data "import" request (see `requestMultipart`). */
+export interface XsoarMultipartFile {
+  /** Form field name the server expects the file under. Every import endpoint this app calls uses "file". */
+  fieldName?: string
+  /** Filename reported in the multipart part — cosmetic; XSOAR does not act on it. */
+  filename: string
+  /** File content, already serialized (every import this app does ships a JSON document). */
+  content: string
+  /** MIME type reported in the multipart part. */
+  contentType?: string
+}
+
 export class XsoarClient {
   private readonly baseUrl: string
   private readonly apiKey: string
@@ -115,6 +127,13 @@ export class XsoarClient {
     return this.authId !== null
   }
 
+  /** Auth headers shared by every request shape (JSON body or multipart). */
+  private authHeaders(): Record<string, string> {
+    const headers: Record<string, string> = { Authorization: this.apiKey, Accept: 'application/json' }
+    if (this.authId !== null) headers['x-xdr-auth-id'] = this.authId
+    return headers
+  }
+
   async request(
     method: XsoarMethod,
     path: string,
@@ -128,6 +147,55 @@ export class XsoarClient {
       attempts++
     }
     return res
+  }
+
+  /**
+   * POST a multipart/form-data request — the shape of XSOAR's content "import"
+   * endpoints (/classifier/import, /incidentfields/import, ...). These are FILE
+   * uploads even though the file content is a JSON document: the JSON is sent as
+   * a `file` part, with any additional server-required fields (e.g.
+   * `classifierId`) as plain form fields alongside it. Same 429 retry policy as
+   * `request()`. Content-Type (with its boundary) is set by `fetch` itself for a
+   * `FormData` body and must not be overridden.
+   */
+  async requestMultipart(
+    path: string,
+    opts: { file: XsoarMultipartFile; fields?: Record<string, string> },
+  ): Promise<XsoarResponse> {
+    let res = await this.sendMultipart(path, opts)
+    let attempts = 0
+    while (res.status === 429 && attempts < MAX_RATE_LIMIT_RETRIES) {
+      await sleep(RATE_LIMIT_BACKOFF_MS)
+      res = await this.sendMultipart(path, opts)
+      attempts++
+    }
+    return res
+  }
+
+  private async sendMultipart(
+    path: string,
+    opts: { file: XsoarMultipartFile; fields?: Record<string, string> },
+  ): Promise<XsoarResponse> {
+    const url = new URL(`${this.baseUrl}${path}`)
+    const form = new FormData()
+    const blob = new Blob([opts.file.content], { type: opts.file.contentType ?? 'application/json' })
+    form.append(opts.file.fieldName ?? 'file', blob, opts.file.filename)
+    for (const [key, value] of Object.entries(opts.fields ?? {})) form.append(key, value)
+
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs)
+    try {
+      const res = await fetch(url.toString(), {
+        method: 'POST',
+        headers: this.authHeaders(),
+        body: form,
+        signal: controller.signal,
+      })
+      const text = await res.text()
+      return { status: res.status, ok: res.status >= 200 && res.status < 300, body: text }
+    } finally {
+      clearTimeout(timer)
+    }
   }
 
   /**
@@ -157,11 +225,7 @@ export class XsoarClient {
       if (value !== undefined) url.searchParams.set(key, String(value))
     }
 
-    const headers: Record<string, string> = {
-      Authorization: this.apiKey,
-      Accept: 'application/json',
-    }
-    if (this.authId !== null) headers['x-xdr-auth-id'] = this.authId
+    const headers = this.authHeaders()
     // Only advertise a JSON body when there is one — a bodyless request that
     // still sets Content-Type is rejected by some gateways.
     if (opts.body !== undefined) headers['Content-Type'] = 'application/json'

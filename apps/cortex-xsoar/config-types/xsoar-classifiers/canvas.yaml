@@ -1,0 +1,71 @@
+# =============================================================================
+# Canvas Template — Cortex XSOAR Classifiers
+#
+# Declares ONE classifier — the item. Users add as many as they need.
+# Classifiers and mappers are the same underlying server object
+# (POST /classifier/search to list, POST /classifier/import to save), split
+# into two config types here for a clearer authoring model. A classifier's
+# identity is its caller-chosen ID (also the required `classifierId` sent on
+# every save). The classification RULES (keyTypeMap + transformer) are a deep,
+# variable schema — following the Cisco Meraki group-policies precedent, they
+# are authored as one JSON blob rather than exhaustively typed. Field keys must
+# match config-types/xsoar-classifiers/validate.ts.
+# =============================================================================
+
+id: "cortex-xsoar-classifiers"
+name: "Cortex XSOAR Classifier Configuration"
+toolType: "cortex-xsoar"
+entityType: "xsoar-classifiers"
+description: "Define Cortex XSOAR classifiers as code through the server REST API (/classifier). Reconciled by classifier id; upserted via /classifier/import and removed via /classifier/delete on rollback."
+
+item:
+  label: "Classifier"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Classifier"
+      icon: "git-branch"
+      description: "Identity and defaults"
+      fields:
+        - key: "id"
+          label: "Classifier ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "The classifier's identity in XSOAR — sent as classifierId on every save. Cannot be renamed later without recreating the classifier."
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: "The classifier's display name, e.g. \"Acme Alerts - Classification\"."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in Settings > Integrations > Classification & Mapping."
+
+        - key: "defaultIncidentType"
+          label: "Default incident type"
+          fieldType: "text"
+          helpText: "Incident type applied when no classification rule matches. Leave blank for XSOAR's own default."
+
+        - key: "feed"
+          label: "Feed classifier"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Enable for a classifier used by a feed integration rather than incident ingestion."
+
+    - name: "Classification Rules"
+      icon: "code"
+      description: "The routing logic — a JSON object merged onto the classifier"
+      fields:
+        - key: "classifierConfig"
+          label: "Classification rules (JSON)"
+          fieldType: "textarea"
+          helpText: "A JSON object with \"keyTypeMap\" (raw-field-value → incident type) and \"transformer\" (the field/script XSOAR reads to classify). Leave blank for an empty classifier (everything falls to the default incident type). Example: {\"keyTypeMap\": {\"alert\": \"Acme Alert\"}, \"transformer\": {\"simple\": \"type\"}}"

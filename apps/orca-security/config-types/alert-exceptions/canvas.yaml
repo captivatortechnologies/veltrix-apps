@@ -1,0 +1,53 @@
+# =============================================================================
+# Canvas Template — Orca Alert Exceptions
+#
+# Declares ONE enabled/disabled override for a BUILT-IN Orca system (catalog)
+# alert — the item. Users add as many as they need. Applied through
+# PUT /api/sonar/rules/status/{rule_id}.
+#
+# UNLIKE every other Orca config type here, identity is the rule_id itself —
+# a system alert already exists in Orca's catalog and can never be created or
+# deleted, only toggled. Find a rule_id in the Orca UI (Alert Catalog) or via
+# GET /api/alerts/catalog/category plus GET /api/sonar/rules/{rule_id}.
+#
+# Field keys must match config-types/alert-exceptions/validate.ts + _shared.ts.
+# =============================================================================
+
+id: "orca-alert-exceptions"
+name: "Alert Exceptions"
+toolType: "orca-security"
+entityType: "alert-exceptions"
+description: "Declare the enabled/disabled state of a built-in Orca system (catalog) alert as code — a declarative exception to Orca's default alert catalog. System alerts cannot be created or deleted, only toggled."
+
+item:
+  label: "Alert Exception"
+  identityField: "ruleId"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "System Alert"
+      icon: "shield-off"
+      description: "Which built-in alert, and its desired state"
+      fields:
+        - key: "ruleId"
+          label: "Rule ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 64
+          helpText: "The built-in Orca system alert's rule_id, e.g. r8ae477067a. Copy it from the Orca Alert Catalog UI — this app does not create or discover system alerts, only toggles an existing one."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Uncheck to declare this built-in alert DISABLED (an exception to Orca's default). Check to explicitly force it enabled."
+
+        - key: "note"
+          label: "Note (optional)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Optional free-text reason for this exception, for your own team's reference. Not sent to Orca."

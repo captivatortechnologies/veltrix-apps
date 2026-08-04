@@ -1,0 +1,91 @@
+# =============================================================================
+# Canvas Template — Auth0 Attack Protection
+#
+# Tenant-wide singleton: Auth0 Attack Protection covers three independent
+# sub-resources (Breached Password Detection, Brute-force Protection,
+# Suspicious IP Throttling), each of which always exists on the tenant
+# (GET/PATCH only — there is no create/delete, only enable/disable/tune).
+# Declare this config type at most once per canvas.
+#
+# Each sub-resource is authored as ONE JSON textarea holding the exact
+# documented Auth0 Management API v2 request object for that endpoint, so
+# unknown/future fields pass through untouched. Every field is OPTIONAL: a
+# blank field means "leave that sub-resource alone" and deploy.ts never calls
+# the API for it — it is NOT interpreted as "disable/clear it". This matters
+# because Attack Protection can be combined on a canvas with other tenant-wide
+# singletons and must never clobber a setting it wasn't asked to manage.
+#
+# Field keys must match config-types/attack-protection/validate.ts and
+# _shared.ts. Applied via the Auth0 Management API v2:
+#   GET/PATCH /api/v2/attack-protection/breached-password-detection
+#   GET/PATCH /api/v2/attack-protection/brute-force-protection
+#   GET/PATCH /api/v2/attack-protection/suspicious-ip-throttling
+# =============================================================================
+
+id: "auth0-attack-protection"
+name: "Attack Protection"
+toolType: "auth0"
+entityType: "attack-protection"
+description: "Manage Auth0 Attack Protection — Breached Password Detection, Brute-force Protection and Suspicious IP Throttling — via the Auth0 Management API v2. Tenant-wide singleton."
+
+item:
+  label: "Attack Protection"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Breached Password Detection"
+      icon: "shield"
+      description: "Detect logins and signups using credentials known to be breached elsewhere"
+      fields:
+        - key: "breached_password_detection"
+          label: "Breached Password Detection (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: >
+            Optional. The exact documented Auth0 request body for GET/PATCH
+            /attack-protection/breached-password-detection: { enabled: boolean,
+            shields?: string[] (block/user_notification/admin_notification),
+            admin_notification_frequency?: string[]
+            (immediately/daily/weekly/monthly), method?: "standard"|"enhanced",
+            pre_user_registration?: { shields: string[] (block/admin_notification) },
+            pre_change_password?: { shields: string[] (block/admin_notification) } }.
+            Leave blank to leave this sub-resource untouched on deploy.
+
+    - name: "Brute Force Protection"
+      icon: "shield"
+      description: "Block or throttle repeated failed login attempts against a single identifier"
+      fields:
+        - key: "brute_force_protection"
+          label: "Brute Force Protection (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: >
+            Optional. The exact documented Auth0 request body for GET/PATCH
+            /attack-protection/brute-force-protection: { enabled: boolean,
+            shields?: string[] (block/user_notification), allowlist?: string[]
+            (IPv4/IPv6/CIDR), mode?: "count_per_identifier_and_ip"|
+            "count_per_identifier", max_attempts?: number }.
+            Leave blank to leave this sub-resource untouched on deploy.
+
+    - name: "Suspicious IP Throttling"
+      icon: "shield"
+      description: "Throttle logins and signups from IPs generating unusually high traffic"
+      fields:
+        - key: "suspicious_ip_throttling"
+          label: "Suspicious IP Throttling (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: >
+            Optional. The exact documented Auth0 request body for GET/PATCH
+            /attack-protection/suspicious-ip-throttling: { enabled: boolean,
+            shields?: string[] (block/admin_notification), allowlist?: string[],
+            pre_login?: { max_attempts: number, rate: number },
+            pre_user_registration?: { max_attempts: number, rate: number } }.
+            Leave blank to leave this sub-resource untouched on deploy.

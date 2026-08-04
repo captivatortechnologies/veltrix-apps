@@ -1,0 +1,98 @@
+# =============================================================================
+# Canvas Template — Cortex XSOAR Incident Fields
+#
+# Declares ONE custom incident field — the item. Users add as many as they
+# need. Incident/indicator fields share one server collection
+# (GET /incidentfields); a field's server id is DERIVED as "incident_<cliName>"
+# (never authored directly), so identity for reconciliation is the field
+# CLINAME. Field keys must match
+# config-types/xsoar-incident-fields/validate.ts.
+# =============================================================================
+
+id: "cortex-xsoar-incident-fields"
+name: "Cortex XSOAR Incident Field Configuration"
+toolType: "cortex-xsoar"
+entityType: "xsoar-incident-fields"
+description: "Define custom Cortex XSOAR incident fields as code through the server REST API (/incidentfields). Reconciled by cliName (the field id is derived as incident_<cliName>); upserted via /incidentfields/import and removed via /incidentfields/delete on rollback."
+
+item:
+  label: "Incident Field"
+  identityField: "cliName"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Field"
+      icon: "type"
+      description: "Internal key, display name and value type"
+      fields:
+        - key: "cliName"
+          label: "CLI name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[0-9a-z]+$"
+            maxLength: 64
+          helpText: "Lowercase letters and digits only — the field's internal key. The server id is derived as \"incident_<cliName>\" and cannot be changed later without recreating the field."
+
+        - key: "name"
+          label: "Display name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: "The field label shown in the incident layout."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "shortText"
+          options:
+            - { label: "Short text", value: "shortText" }
+            - { label: "Long text", value: "longText" }
+            - { label: "Boolean", value: "boolean" }
+            - { label: "Single select", value: "singleSelect" }
+            - { label: "Multi select", value: "multiSelect" }
+            - { label: "Date", value: "date" }
+            - { label: "User", value: "user" }
+            - { label: "Role", value: "role" }
+            - { label: "Number", value: "number" }
+            - { label: "Attachments", value: "attachments" }
+            - { label: "Tags select", value: "tagsSelect" }
+            - { label: "Internal", value: "internal" }
+            - { label: "URL", value: "url" }
+            - { label: "Markdown", value: "markdown" }
+            - { label: "Grid", value: "grid" }
+            - { label: "Timer", value: "timer" }
+            - { label: "HTML", value: "html" }
+          helpText: "The field's value type. Cannot be changed after creation without recreating the field."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional help text shown next to the field in the incident layout."
+
+    - name: "Behavior"
+      icon: "sliders"
+      description: "Required flag and incident-type association"
+      fields:
+        - key: "required"
+          label: "Required"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, the field must be filled in before an incident can be closed."
+
+        - key: "associatedToAll"
+          label: "Associate with all incident types"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "When enabled, the field appears on every incident type. Disable to scope it to specific incident types below."
+
+        - key: "associatedTypes"
+          label: "Associated incident types"
+          fieldType: "tags"
+          visibleWhen:
+            field: "associatedToAll"
+            equals: false
+          helpText: "Incident type names this field is scoped to. Only used when \"Associate with all incident types\" is disabled."

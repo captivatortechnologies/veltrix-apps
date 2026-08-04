@@ -1,0 +1,98 @@
+# =============================================================================
+# Canvas Template — Auth0 Log Streams
+#
+# Declares ONE Auth0 Log Stream (the item). Operators add as many as they
+# need. Field keys must match config-types/log-streams/validate.ts and
+# _shared.ts. Applied via the Auth0 Management API v2 (GET/POST /log-streams,
+# PATCH/DELETE /log-streams/{id}). The Management API keys a log stream on the
+# server-assigned id, so this config type upserts by stream NAME (unique per
+# tenant). name and type (the sink kind) are set at creation and are NOT
+# changed on update — a sink's type cannot be swapped in place.
+#
+# Sink field names are the raw Management API's camelCase names (NOT the
+# snake_case names shown in Terraform-provider docs — Terraform renames them
+# on the way in/out).
+# =============================================================================
+
+id: "auth0-log-streams"
+name: "Log Streams"
+toolType: "auth0"
+entityType: "log-streams"
+description: "Manage Auth0 Log Streams — stream tenant logs to an external sink (HTTP, Datadog, Splunk, EventBridge, ...) — via the Auth0 Management API v2"
+
+item:
+  label: "Log Stream"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Stream"
+      icon: "rss"
+      description: "Stream identity, sink type and status"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: "Unique log stream name (max 100 chars). Used as the stable identity for upsert and drift. Cannot be changed after creation."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "http"
+          options:
+            - label: "HTTP"
+              value: "http"
+            - label: "Amazon EventBridge"
+              value: "eventbridge"
+            - label: "Azure Event Grid"
+              value: "eventgrid"
+            - label: "Datadog"
+              value: "datadog"
+            - label: "Splunk"
+              value: "splunk"
+            - label: "Sumo Logic"
+              value: "sumo"
+            - label: "Mixpanel"
+              value: "mixpanel"
+            - label: "Segment"
+              value: "segment"
+          helpText: "Sink type, immutable after creation."
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          required: false
+          defaultValue: "active"
+          options:
+            - label: "Active"
+              value: "active"
+            - label: "Paused"
+              value: "paused"
+            - label: "Suspended"
+              value: "suspended"
+          helpText: "Whether Auth0 is actively delivering events to this stream."
+
+    - name: "Sink"
+      icon: "code"
+      description: "Sink connection details, as JSON"
+      fields:
+        - key: "sink"
+          label: "Sink (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: "Sink configuration as a JSON object, whose keys depend on Type (camelCase, matching the raw Management API — not the snake_case names Terraform uses): HTTP → httpEndpoint (required), httpAuthorization, httpContentType, httpContentFormat (JSONLINES/JSONARRAY/JSONOBJECT), httpCustomHeaders. Amazon EventBridge → awsAccountId, awsRegion, awsPartnerEventSource. Azure Event Grid → azureSubscriptionId, azureResourceGroup, azureRegion, azurePartnerTopic. Datadog → datadogApiKey, datadogRegion (us/eu/us3/us5). Splunk → splunkDomain, splunkToken, splunkPort, splunkSecure. Sumo Logic → sumoSourceAddress. Mixpanel → mixpanelProjectId, mixpanelRegion, mixpanelServiceAccountUsername, mixpanelServiceAccountPassword. Segment → segmentWriteKey. Secret-bearing keys (httpAuthorization, datadogApiKey, splunkToken, mixpanelServiceAccountPassword, segmentWriteKey) are Auth0-masked on read, so they are excluded from drift comparison and never rewound on rollback."
+
+    - name: "Filters"
+      icon: "filter"
+      description: "Restrict which event categories are delivered"
+      fields:
+        - key: "filters"
+          label: "Filters (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: "JSON array of {\"type\":\"category\",\"name\":\"<event-category>\"}. Omit to deliver every event. Only type: \"category\" is currently supported by Auth0, with name selecting a predefined category like auth.login.success, management.fail, user.notification."

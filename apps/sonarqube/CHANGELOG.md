@@ -2,6 +2,70 @@
 
 All notable changes to the SonarQube app are documented here.
 
+## 0.4.0 — 2026-08-04
+
+Five new config types, exhausting SonarQube's remaining genuinely declarative
+Web API surface (research-first, verified live against a running SonarQube
+instance's own `api/webservices` reflection endpoints —
+`api/webservices/list?include_internals=true` and
+`api/webservices/response_example` — rather than scraped docs). Every type is
+driven through the full Security-as-Code pipeline (validate / deploy /
+rollback / health-check / drift-detect / status), bringing this app to **9**
+config types. See the README's new **Coverage** section for the complete
+managed-vs-excluded inventory and reasoning.
+
+- **Global Settings** config type — arbitrary instance-wide `sonar.*`
+  properties (key + a single value or a multi-value list) over
+  `/api/settings` (`set`, `reset`, `values`). Global scope only; `component`
+  is never sent, and PROPERTY_SET (`fieldValues`) settings are out of scope
+  (unpredictable per-setting field schemas). Rollback restores the prior
+  explicit value, or resets to default if this deploy introduced the first
+  override.
+- **New Code Periods** config type — the New Code baseline (Previous version /
+  Number of days / Reference branch / Specific analysis) at the global,
+  project or branch level over `/api/new_code_periods` (`set`, `show`,
+  `unset`). Specific-analysis overrides carry an explicit validation warning:
+  analysis ids are ephemeral and SonarQube purges old analyses over time.
+- **Global Permissions** config type — direct instance-wide permission grants
+  to groups (admin, gateadmin, profileadmin, provisioning, scan,
+  applicationcreator, portfoliocreator) over `/api/permissions`
+  (`add_group`/`remove_group`, sent without `projectId`/`projectKey` to target
+  the global scope; the internal `groups` action is the only way to read them
+  back — the same situation Permission Templates already faces with
+  `template_groups`). Only the groups you declare are reconciled; per-user
+  overrides are intentionally out of scope. Distinct from Permission
+  Templates, which auto-apply to matching *new* projects rather than granting
+  permissions directly.
+- **Quality Profile Rule Overrides** config type — an explicit severity,
+  parameter values and/or "prioritized rule" flag for one rule in one quality
+  profile, over `/api/qualityprofiles` (`activate_rule`, `deactivate_rule`)
+  plus `/api/rules/search?f=actives` to read back the live override. A
+  companion to Quality Profiles' bulk `activateRuleKeys` (which activates at
+  each rule's default severity) — whichever config type deploys last wins for
+  a given rule, a documented interaction rather than a bug. Never touches a
+  rule it did not itself declare.
+- **ALM Settings** config type — instance-level DevOps Platform Integration
+  connections (GitHub, GitLab, Bitbucket Server, Bitbucket Cloud, Azure
+  DevOps) over `/api/alm_settings` (`create_*`, `update_*`, `delete`,
+  `list_definitions`). Secrets (client secret, private key, webhook secret,
+  personal access token) are write-only — SonarQube never returns them, so
+  they can be set/updated but never diffed for drift or restored on rollback,
+  the same posture as this app's existing Webhooks secret. Changing an
+  existing key's ALM type is refused rather than silently deleted and
+  recreated, since the prior secrets could never be recovered to make that
+  safe or reversible. Per-project repository bindings and the deprecated
+  project-import actions are out of scope.
+- `lib/sonarqubeApi.ts`'s `formEncode`/`postForm` now also accept a
+  `string[]` value for a param, encoded as the same key repeated once per
+  element — SonarQube's convention for multi-value form params (used by
+  Global Settings' `values`).
+
+> **API notes.** `api/permissions/groups` and `api/qualityprofiles`'s
+> `activate_rule`/`rules/search?f=actives` shapes were confirmed against a
+> live, real-world SonarQube instance (SonarSource's own public reference
+> deployment), not just the documented schema — see each config type's
+> `_shared.ts` header for the exact verified response shapes.
+
 ## 0.3.0 — 2026-08-01
 
 **BYOL infrastructure hosting** — provision and manage a dedicated SonarQube stack

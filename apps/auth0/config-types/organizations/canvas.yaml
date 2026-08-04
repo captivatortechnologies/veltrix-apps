@@ -1,0 +1,118 @@
+# =============================================================================
+# Canvas Template — Auth0 Organizations
+#
+# Declares ONE Auth0 Organization (the item). Operators add as many as they
+# need. Field keys must match config-types/organizations/validate.ts and
+# _shared.ts. Applied via the Auth0 Management API v2 (GET/POST /organizations,
+# PATCH/DELETE /organizations/{id}) plus the enabled-connections sub-resource
+# (GET/POST /organizations/{id}/enabled_connections,
+# PATCH/DELETE /organizations/{id}/enabled_connections/{connectionId}). The
+# Management API keys organizations on the server-assigned id, so this config
+# type upserts by organization NAME (Auth0 enforces a unique name per tenant);
+# name is immutable after creation.
+# =============================================================================
+
+id: "auth0-organizations"
+name: "Organizations"
+toolType: "auth0"
+entityType: "organizations"
+description: "Manage Auth0 Organizations — name, display name, branding, metadata, third-party client access, token quota and enabled connections — via the Auth0 Management API v2"
+
+item:
+  label: "Organization"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Organization"
+      icon: "shield"
+      description: "Organization identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+            maxLength: 50
+          helpText: "Unique organization name (1–50 chars, lowercase letters, numbers and hyphens, starting and ending alphanumeric). Used as the stable identity for upsert and drift. Immutable after creation."
+
+        - key: "display_name"
+          label: "Display Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Friendly name shown to members. Optional."
+
+    - name: "Branding"
+      icon: "settings"
+      description: "Login page branding for members of this organization"
+      fields:
+        - key: "logo_url"
+          label: "Logo URL"
+          fieldType: "text"
+          required: false
+          helpText: "URL of the logo shown on the organization's login page. Optional."
+
+        - key: "colors_primary"
+          label: "Primary Color"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^#[0-9A-Fa-f]{6}$"
+          helpText: "Primary button color, hex e.g. #635DFF. Optional."
+
+        - key: "colors_page_background"
+          label: "Page Background Color"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^#[0-9A-Fa-f]{6}$"
+          helpText: "Login page background color, hex e.g. #000000. Optional."
+
+    - name: "Metadata & Access"
+      icon: "settings"
+      description: "Custom metadata, third-party client access and token quota"
+      fields:
+        - key: "metadata"
+          label: "Metadata"
+          fieldType: "keyvalue"
+          required: false
+          helpText: "Custom key/value pairs attached to the organization (Auth0 caps the number of properties and their size — keep this minimal)."
+
+        - key: "third_party_client_access"
+          label: "Third-Party Client Access"
+          fieldType: "select"
+          required: false
+          defaultValue: "block"
+          options:
+            - label: "Block (default)"
+              value: "block"
+            - label: "Allow"
+              value: "allow"
+          helpText: "Whether third-party (non-first-party) applications may be used with this organization."
+
+        - key: "token_quota"
+          label: "Token Quota (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: "Optional client-credentials token issuance quota, as the exact Auth0 request object, e.g. {\"client_credentials\":{\"enforce\":true,\"per_day\":1000,\"per_hour\":100}}. Leave blank for no quota."
+
+    - name: "Enabled Connections"
+      icon: "link"
+      description: "Identity providers members of this organization can sign in with"
+      fields:
+        - key: "enabled_connections"
+          label: "Enabled Connections"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            One connection per line: "<connection_id>" or
+            "<connection_id>|<flags>" where <flags> is a comma-separated subset of
+            assign_membership_on_login, is_signup_enabled, show_as_button (all
+            default to false when omitted), e.g.
+            con_AbCdEfGh12345678|assign_membership_on_login,show_as_button.
+            Connection IDs come from the Connections config type or the Auth0
+            dashboard (the sub-resource takes a connection id, not a name).

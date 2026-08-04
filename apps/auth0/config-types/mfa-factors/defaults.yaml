@@ -1,0 +1,13 @@
+# Defaults for the MFA Factors singleton — starts with MFA never required and
+# every factor disabled (the conservative, opt-in default); the operator picks
+# a policy and enables the factors they want to allow. Mirrors each field's own
+# canvas defaultValue.
+policy: "never"
+factor_sms: false
+factor_push_notification: false
+factor_otp: false
+factor_email: false
+factor_duo: false
+factor_webauthn_roaming: false
+factor_webauthn_platform: false
+factor_recovery_code: false

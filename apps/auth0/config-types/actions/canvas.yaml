@@ -1,0 +1,131 @@
+# =============================================================================
+# Canvas Template — Auth0 Actions
+#
+# Declares ONE Auth0 Action (the item). Operators add as many as they need.
+# Field keys must match config-types/actions/validate.ts and _shared.ts. Actions
+# are Auth0's current extensibility framework — the supported replacement for
+# the deprecated Rules and Hooks (see the app README for that migration note).
+# Applied via the Auth0 Management API v2:
+#   GET/POST /api/v2/actions/actions                create/list (match by name)
+#   PATCH/DELETE /api/v2/actions/actions/{id}        update / delete
+#   POST /api/v2/actions/actions/{id}/deploy         publish the latest version
+#   GET/PATCH /api/v2/actions/triggers/{id}/bindings  bind/unbind on its trigger
+#     (bindings PATCH owns the WHOLE ordered list for a trigger — every deploy
+#     reads the current list first and only touches this action's own entry,
+#     preserving every other bound action untouched)
+# The Management API keys an action on the server-assigned id, so this config
+# type upserts by action NAME.
+# =============================================================================
+
+id: "auth0-actions"
+name: "Actions"
+toolType: "auth0"
+entityType: "actions"
+description: "Manage Auth0 Actions (custom Node.js code bound to a trigger) — code, dependencies, secrets, runtime and trigger binding — via the Auth0 Management API v2"
+
+item:
+  label: "Action"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 300
+  groups:
+    - name: "Action"
+      icon: "shield"
+      description: "Action identity and runtime"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: "Action name. Used as the stable identity for upsert and drift. Cannot contain < or >."
+
+        - key: "runtime"
+          label: "Runtime"
+          fieldType: "select"
+          required: false
+          defaultValue: "node22"
+          options:
+            - label: "Node.js 22"
+              value: "node22"
+            - label: "Node.js 18"
+              value: "node18"
+          helpText: "The Node.js runtime the action code executes under."
+
+        - key: "deploy_after_update"
+          label: "Deploy After Update"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Publish (deploy) this action's latest version after every create/update so it actually runs when bound to its trigger. Disable to stage code changes without making them live yet."
+
+    - name: "Trigger"
+      icon: "link"
+      description: "Which extensibility point this action runs on"
+      fields:
+        - key: "trigger_id"
+          label: "Trigger"
+          fieldType: "select"
+          required: true
+          defaultValue: "post-login"
+          options:
+            - label: "Login / Post Login"
+              value: "post-login"
+            - label: "Machine to Machine (Credentials Exchange)"
+              value: "credentials-exchange"
+            - label: "Pre User Registration"
+              value: "pre-user-registration"
+            - label: "Post User Registration"
+              value: "post-user-registration"
+            - label: "Post Change Password"
+              value: "post-change-password"
+            - label: "Send Phone Message"
+              value: "send-phone-message"
+            - label: "Password Reset Post Challenge"
+              value: "password-reset-post-challenge"
+          helpText: "The extensibility point this action is written for. Determines the arguments/`api` object available in `code`."
+
+        - key: "trigger_version"
+          label: "Trigger Version"
+          fieldType: "text"
+          required: false
+          helpText: "The trigger's version (e.g. v3 for post-login, v2 for most others). Leave blank to use this app's current default for the selected trigger — see _shared.ts's TRIGGER_DEFAULT_VERSIONS."
+
+        - key: "trigger_binding_enabled"
+          label: "Bind to Trigger"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether this action is active (bound) on its trigger. Disabling unbinds it without deleting the action or its code — every OTHER action already bound to the same trigger is left untouched."
+
+        - key: "binding_display_name"
+          label: "Binding Display Name"
+          fieldType: "text"
+          required: false
+          helpText: "Display name shown for this action in the trigger's binding list. Leave blank to use the action's name."
+
+    - name: "Code"
+      icon: "settings"
+      description: "Action source, dependencies and secrets"
+      fields:
+        - key: "code"
+          label: "Code"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 500000
+          helpText: "The action's Node.js source, exporting the trigger's handler(s) (e.g. `exports.onExecutePostLogin = async (event, api) => { ... }`)."
+
+        - key: "dependencies"
+          label: "Dependencies"
+          fieldType: "textarea"
+          required: false
+          helpText: "npm packages the code requires, one per line as <name>@<version>, e.g. lodash@4.17.21."
+
+        - key: "secrets"
+          label: "Secrets"
+          fieldType: "textarea"
+          required: false
+          helpText: "Secrets available to the code as event.secrets, one per line as <name>=<value>. Auth0 never returns secret VALUES on read: they are excluded from drift comparison (only names are compared) and are NOT restored by rollback — re-declare them if you need to roll back to an exact prior value."

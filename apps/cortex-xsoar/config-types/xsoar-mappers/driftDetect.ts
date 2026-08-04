@@ -1,0 +1,72 @@
+import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
+import { buildXsoarClient } from '../../lib/xsoar'
+import { attachDriftActor, veltrixActorLogins } from '../lib/xsoarAudit'
+import { mapperDirectionOf, MAPPER_TYPE_BY_DIRECTION, searchClassifications, type LiveClassification } from '../lib/xsoarClassification'
+import { extractMapperSpecs } from './validate'
+
+/**
+ * Detect drift between the deployed mapper configuration and the live server.
+ * A missing mapper is critical drift; a changed direction or default incident
+ * type is informational drift. The field-mapping JSON blob is not diffed
+ * field-by-field (it is a deep, variable schema) — a live mapper's presence
+ * and its typed fields are the reconciled surface.
+ */
+export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
+  const diffs: DriftDiff[] = []
+
+  const built = buildXsoarClient(ctx.component.hostname, ctx.credential, ctx.settings)
+  if ('error' in built) {
+    return { hasDrift: false, diffs: [] }
+  }
+  const { client } = built
+
+  const specs = extractMapperSpecs(ctx.deployedConfig).filter((s) => s.id)
+  if (specs.length === 0) return { hasDrift: false, diffs: [] }
+
+  const excludeActorLogins = veltrixActorLogins(ctx.credential)
+
+  try {
+    const live = await searchClassifications(client)
+    const byId = new Map<string, LiveClassification>(
+      live.filter((c) => mapperDirectionOf(c.type) !== null && c.id).map((c) => [c.id as string, c]),
+    )
+
+    for (const spec of specs) {
+      const before = diffs.length
+      const found = byId.get(spec.id)
+      if (!found) {
+        diffs.push({ field: spec.id, expected: 'exists', actual: 'missing', severity: 'critical' })
+        await attachDriftActor(client, diffs.slice(before), { targetName: spec.id, excludeActorLogins })
+        continue
+      }
+      const expectedType = MAPPER_TYPE_BY_DIRECTION[spec.direction]
+      if (typeof found.type === 'string' && found.type !== expectedType) {
+        diffs.push({ field: `${spec.id}.direction`, expected: expectedType, actual: found.type, severity: 'info' })
+      }
+      const expectedDefault = spec.defaultIncidentType ?? ''
+      if (typeof found.defaultIncidentType === 'string' && found.defaultIncidentType !== expectedDefault) {
+        diffs.push({
+          field: `${spec.id}.defaultIncidentType`,
+          expected: expectedDefault,
+          actual: found.defaultIncidentType,
+          severity: 'info',
+        })
+      }
+      await attachDriftActor(client, diffs.slice(before), {
+        targetId: found.id ?? spec.id,
+        targetName: spec.id,
+        resource: found,
+        excludeActorLogins,
+      })
+    }
+  } catch (error) {
+    diffs.push({
+      field: 'cortex-xsoar',
+      expected: 'reachable',
+      actual: `unreachable: ${error instanceof Error ? error.message : 'unknown'}`,
+      severity: 'critical',
+    })
+  }
+
+  return { hasDrift: diffs.length > 0, diffs }
+}

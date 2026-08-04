@@ -1,0 +1,68 @@
+# =============================================================================
+# Canvas Template — Orca Trusted Cloud Accounts
+#
+# Declares ONE Orca trusted cloud account — the item. Users add as many as
+# they need. Accounts are created / updated through the Orca REST API
+# (POST /api/organization/trusted_accounts,
+# PUT /api/organization/trusted_accounts?id={id} — the id is a QUERY
+# parameter, not a path segment) and reconciled by the numeric account id
+# this app assigns and persists per item.
+#
+# A trusted cloud account marks a named cloud account (e.g. a vendor's account
+# with read access into yours) as trusted, so Orca does not flag its access.
+#
+# Field keys must match config-types/trusted-cloud-accounts/validate.ts + _shared.ts.
+# =============================================================================
+
+id: "orca-trusted-cloud-accounts"
+name: "Trusted Cloud Accounts"
+toolType: "orca-security"
+entityType: "trusted-cloud-accounts"
+description: "Define Orca trusted cloud accounts as code through the Orca REST API. Each entry marks a named cloud account as trusted so Orca does not flag its access."
+
+item:
+  label: "Trusted Cloud Account"
+  identityField: "accountName"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Trusted Account"
+      icon: "shield-check"
+      description: "Which account, and why it's trusted"
+      fields:
+        - key: "accountName"
+          label: "Account Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "A human-friendly name for the trusted cloud account — its logical identity in this canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 2000
+          helpText: "Required by the Orca API — describe why this account is trusted."
+
+        - key: "cloudProvider"
+          label: "Cloud Provider"
+          fieldType: "select"
+          required: true
+          options:
+            - { label: "Alibaba Cloud", value: "alicloud" }
+            - { label: "AWS", value: "aws" }
+            - { label: "Azure", value: "azure" }
+            - { label: "Google Cloud", value: "gcp" }
+            - { label: "Oracle Cloud", value: "oci" }
+          helpText: "The cloud provider the trusted account belongs to."
+
+        - key: "cloudAccountId"
+          label: "Cloud Account ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The account/subscription/project id at the cloud provider, e.g. an AWS account number."

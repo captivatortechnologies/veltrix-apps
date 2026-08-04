@@ -1,0 +1,6 @@
+# Defaults for a new Auth0 Action item — a post-login action, on Node 22,
+# deployed and bound as soon as it's created; the operator fills in the code.
+runtime: "node22"
+deploy_after_update: true
+trigger_id: "post-login"
+trigger_binding_enabled: true

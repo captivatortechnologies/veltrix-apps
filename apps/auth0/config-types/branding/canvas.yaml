@@ -1,0 +1,110 @@
+# =============================================================================
+# Canvas Template — Auth0 Branding & Login Experience (singleton)
+#
+# Universal Login branding, the New/Classic login-experience prompt settings and
+# the optional custom Classic Universal Login HTML page are all tenant-wide
+# singletons — there is exactly one live object of each per Auth0 tenant. Declare
+# this item at most once per canvas. Applied via the Auth0 Management API v2:
+#   GET/PATCH        /api/v2/branding
+#   GET/PATCH        /api/v2/prompts
+#   GET/PUT/DELETE   /api/v2/branding/templates/universal-login  (raw HTML, not JSON)
+#
+# Every field is OPTIONAL: leaving a field blank means "no opinion" and deploy
+# never touches that piece of live state for a field this canvas doesn't declare
+# — EXCEPT the two Login Experience checkboxes and the experience select, which
+# always have an explicit default and so are always applied.
+#
+# Field keys must match config-types/branding/validate.ts and _shared.ts.
+# =============================================================================
+
+id: "auth0-branding"
+name: "Branding & Login Experience"
+toolType: "auth0"
+entityType: "branding"
+description: "Manage Auth0 Universal Login branding, the login-experience prompt settings and an optional custom Classic Universal Login HTML page — via the Auth0 Management API v2"
+
+item:
+  label: "Branding"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Branding"
+      icon: "settings"
+      description: "Universal Login page appearance"
+      fields:
+        - key: "logo_url"
+          label: "Logo URL"
+          fieldType: "text"
+          required: false
+          helpText: "URL of the logo shown on the Universal Login page. Leave blank to make no change."
+
+        - key: "favicon_url"
+          label: "Favicon URL"
+          fieldType: "text"
+          required: false
+          helpText: "URL of the browser tab icon for the Universal Login page. Leave blank to make no change."
+
+        - key: "colors_primary"
+          label: "Primary Color"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^#[0-9A-Fa-f]{6}$"
+          helpText: "Primary button color, hex e.g. #635DFF. Leave blank to make no change."
+
+        - key: "colors_page_background"
+          label: "Page Background Color"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^#[0-9A-Fa-f]{6}$"
+          helpText: "Login page background color, hex e.g. #000000. Leave blank to make no change."
+
+        - key: "font_url"
+          label: "Custom Font URL"
+          fieldType: "text"
+          required: false
+          helpText: "URL of a custom font file used on the Universal Login page. Leave blank to use Auth0's default font."
+
+    - name: "Login Experience"
+      icon: "shield"
+      description: "Prompts — which Universal Login experience is used"
+      fields:
+        - key: "universal_login_experience"
+          label: "Universal Login Experience"
+          fieldType: "select"
+          required: false
+          defaultValue: "new"
+          options:
+            - label: "New Universal Login"
+              value: "new"
+            - label: "Classic Universal Login"
+              value: "classic"
+          helpText: "Which Universal Login experience the tenant uses."
+
+        - key: "identifier_first"
+          label: "Identifier First"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "On the New Universal Login experience, ask for the identifier (email/username) before the password/social choice."
+
+        - key: "webauthn_platform_first_factor"
+          label: "WebAuthn Platform First Factor"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Let the login screen use identifier + biometrics (WebAuthn platform authenticator) as the first factor. Requires WebAuthn Platform enabled in the mfa-factors config type."
+
+    - name: "Custom Login Page HTML"
+      icon: "settings"
+      description: "Advanced — Classic Universal Login custom HTML template"
+      fields:
+        - key: "universal_login_body"
+          label: "Custom Login Page HTML"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 100000
+          helpText: "Full HTML template for the Classic Universal Login page (Liquid syntax, e.g. {{ config }}). Leave blank to use Auth0's managed default page — clearing a previously-set value reverts to the default (DELETE /branding/templates/universal-login)."

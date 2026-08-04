@@ -1,0 +1,86 @@
+# =============================================================================
+# Canvas Template — Cortex XSOAR Mappers
+#
+# Declares ONE incoming or outgoing mapper — the item. Users add as many as
+# they need. Classifiers and mappers are the same underlying server object
+# (POST /classifier/search to list, POST /classifier/import to save), split
+# into two config types here for a clearer authoring model. A mapper's
+# identity is its caller-chosen ID (also the required `classifierId` sent on
+# every save). The field-mapping graph (`mapping`) is a deep, variable schema —
+# following the Cisco Meraki group-policies precedent, it is authored as one
+# JSON blob rather than exhaustively typed. Field keys must match
+# config-types/xsoar-mappers/validate.ts.
+# =============================================================================
+
+id: "cortex-xsoar-mappers"
+name: "Cortex XSOAR Mapper Configuration"
+toolType: "cortex-xsoar"
+entityType: "xsoar-mappers"
+description: "Define Cortex XSOAR incoming/outgoing mappers as code through the server REST API (/classifier). Reconciled by mapper id; upserted via /classifier/import and removed via /classifier/delete on rollback."
+
+item:
+  label: "Mapper"
+  identityField: "id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Mapper"
+      icon: "git-merge"
+      description: "Identity and direction"
+      fields:
+        - key: "id"
+          label: "Mapper ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "The mapper's identity in XSOAR — sent as classifierId on every save. Cannot be renamed later without recreating the mapper."
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: "The mapper's display name, e.g. \"Acme Alert - Incoming Mapper\"."
+
+        - key: "direction"
+          label: "Direction"
+          fieldType: "select"
+          required: true
+          defaultValue: "incoming"
+          options:
+            - { label: "Incoming (integration → incident)", value: "incoming" }
+            - { label: "Outgoing (incident → integration)", value: "outgoing" }
+          helpText: "Incoming maps raw source data onto incident/indicator fields; outgoing maps incident fields back out to an integration."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in Settings > Integrations > Classification & Mapping."
+
+        - key: "defaultIncidentType"
+          label: "Default incident type"
+          fieldType: "text"
+          helpText: "Incident type this mapper's field mapping applies to by default. Leave blank for XSOAR's own default."
+
+        - key: "definitionId"
+          label: "Definition ID"
+          fieldType: "text"
+          helpText: "Optional generic-definition scope for this mapper (used by generic/case-management modules). Leave blank for the default incident definition."
+
+        - key: "feed"
+          label: "Feed mapper"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Enable for a mapper used by a feed integration rather than incident ingestion."
+
+    - name: "Field Mapping"
+      icon: "code"
+      description: "The mapping graph — a JSON object merged onto the mapper's \"mapping\" property"
+      fields:
+        - key: "mapperConfig"
+          label: "Field mapping (JSON)"
+          fieldType: "textarea"
+          helpText: "A JSON object keyed by source event/incident type, each with \"internalMapping\" (target field → source expression). Leave blank for an empty mapper. Example: {\"Acme Alert\": {\"internalMapping\": {\"Acme Severity\": {\"simple\": \"severity\"}}}}"

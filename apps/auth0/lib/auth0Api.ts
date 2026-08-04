@@ -186,3 +186,55 @@ export async function deleteResource(url: string, accessToken: string, timeoutMs
   const res = await auth0Fetch(url, { method: 'DELETE', headers: bearer(accessToken), timeoutMs })
   if (!res.ok) throw new Error(`DELETE ${url} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
 }
+
+/**
+ * Read every page of a Management API offset-paginated list endpoint.
+ * `buildUrl(page)` returns the full URL for that zero-based page (the caller
+ * embeds `per_page`, `fields`, and any filters). Pagination stops at an empty
+ * or short page, or after `maxPages` — a generous ceiling, not a real limit
+ * (Auth0's offset pagination itself caps at 1000 results for most endpoints;
+ * a tenant beyond that should filter with query params the caller adds to
+ * `buildUrl`). Shared by every list-and-upsert-by-identity config type
+ * (clients, connections, resource-servers, roles, and the config types added
+ * on top of them) so the pagination loop is written once.
+ */
+export async function listAllPages<T>(
+  buildUrl: (page: number) => string,
+  accessToken: string,
+  opts: { perPage?: number; maxPages?: number; timeoutMs?: number } = {},
+): Promise<T[]> {
+  const perPage = opts.perPage ?? 100
+  const maxPages = opts.maxPages ?? 50
+  const all: T[] = []
+  for (let page = 0; page < maxPages; page++) {
+    const batch = await getJson<T[]>(buildUrl(page), accessToken, opts.timeoutMs)
+    if (!Array.isArray(batch) || batch.length === 0) break
+    all.push(...batch)
+    if (batch.length < perPage) break
+  }
+  return all
+}
+
+/**
+ * GET a Management API resource that returns raw text/HTML rather than JSON —
+ * the Universal Login custom-page template (`/branding/templates/universal-login`)
+ * is the one endpoint on this surface shaped this way. Returns `null` on a 404
+ * (no custom template set — the tenant is on the Auth0-managed default).
+ */
+export async function getTextOrNull(url: string, accessToken: string, timeoutMs?: number): Promise<string | null> {
+  const res = await auth0Fetch(url, { headers: { Accept: 'text/html', ...bearer(accessToken) }, timeoutMs })
+  if (res.status === 404) return null
+  if (!res.ok) throw new Error(`GET ${url} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+  return res.body
+}
+
+/** PUT raw text/HTML to a Management API resource (see {@link getTextOrNull}). */
+export async function putText(url: string, accessToken: string, body: string, timeoutMs?: number): Promise<void> {
+  const res = await auth0Fetch(url, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'text/html', ...bearer(accessToken) },
+    body,
+    timeoutMs,
+  })
+  if (!res.ok) throw new Error(`PUT ${url} → HTTP ${res.status}: ${res.body.slice(0, 300)}`)
+}

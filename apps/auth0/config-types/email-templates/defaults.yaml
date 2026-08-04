@@ -1,0 +1,7 @@
+# Defaults for a new Auth0 Email Template item — starts as the email-verification
+# template with Auth0's default syntax; the operator picks the real template and
+# fills in subject/body.
+template: "verify_email"
+enabled: true
+syntax: "liquid"
+include_email_in_redirect: true

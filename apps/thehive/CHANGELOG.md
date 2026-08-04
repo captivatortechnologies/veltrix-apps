@@ -2,6 +2,55 @@
 
 All notable changes to the TheHive app are documented here.
 
+## 0.4.0 — 2026-08-04
+
+Three new config types, exhausting the standalone declarative admin surface of
+TheHive's REST API alongside the existing case-templates / custom-fields /
+observable-types / users pipeline. See README **Coverage** for the full
+accounting of what's managed vs. deliberately excluded.
+
+- **Organisations** config type — add / edit TheHive organisations (multi-tenant
+  containers for cases/alerts): name, description, task/observable sharing
+  rules (`manual` / `autoShare`) and locked state, over `/api/v1/organisation`
+  (create `POST`, update `PATCH`, list via the query API). **TheHive has no
+  delete endpoint for organisations on either version** — deploy is
+  create/update-only, and rolling back a *created* organisation locks it
+  (the only safe, available undo) rather than deleting it.
+- **Profiles** config type — add / edit / delete TheHive profiles (RBAC roles):
+  name and a free-text permission list, over `/api/v1/profile` (full CRUD).
+  Upsert by **name**; rollback restores the prior permission set or deletes a
+  created profile. TheHive's permission catalog is version-dependent and not
+  exhaustively published anywhere public, so `permissions` is free text rather
+  than a hardcoded enum; validate.ts warns when a name matches one of TheHive's
+  five immutable built-in profiles (everything but `analyst`).
+- **Page Templates** config type — add / edit / delete TheHive page templates
+  (Knowledge Base): title, category, content and sort order, over
+  `/api/v1/pageTemplate` (full CRUD). **TheHive 5 only** — confirmed absent
+  from the TheHive 4 OpenAPI spec, so this bypasses the `THEHIVE_PATHS` v4/v5
+  seam entirely (`PAGE_TEMPLATE_PATHS_V5` / `isPageTemplateSupported()` in
+  `lib/thehiveApi.ts`) and deploy fails fast with a clear message rather than
+  guessing a v4 path.
+- **v4/v5 seam additions** — organisations share the SAME `/api/v1/organisation`
+  create/update path on both versions (list differs: v5 query API vs v4's
+  legacy `/api/v0/organisation` collection GET); profiles differ by VERSION
+  (`/api/v1/profile` on v5, `/api/v0/profile` on v4) — both confirmed via the
+  official TheHive 4 OpenAPI spec (`github.com/TheHive-Project/api-docs`),
+  not flagged as unverified like the v0.2.0 additions.
+- **Honest drops, researched and cited** (see README Coverage) — custom
+  case/alert statuses (real feature, confirmed via StrangeBee's admin docs, but
+  UI-only per those same docs and absent from `thehive4py`/the OpenAPI spec —
+  no verifiable endpoint to build against), taxonomies/tags (MISP-catalog
+  activate/deactivate model, not an authored list), analyzer templates
+  (Cortex report-rendering ZIP import, UI-only), dashboards (no authoring API
+  found anywhere), and "impact statuses" (not a concept that exists in
+  TheHive's documented status or observable model).
+
+> **Verify against a live TheHive (v4 vs v5).** Organisation and profile paths
+> are corroborated by the archived TheHive 4 OpenAPI spec in addition to
+> `thehive4py`; profile **permission strings** are not exhaustively documented
+> anywhere public — read the live catalog from your instance's Profiles →
+> "Add or Remove Permissions" screen before authoring one.
+
 ## 0.3.0 — 2026-08-01
 
 **BYOL infrastructure hosting** — provision and manage a dedicated, self-managed

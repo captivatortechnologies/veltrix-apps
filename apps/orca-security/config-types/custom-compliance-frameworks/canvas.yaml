@@ -1,0 +1,76 @@
+# =============================================================================
+# Canvas Template — Orca Custom Compliance Frameworks
+#
+# Declares ONE Orca custom compliance framework — the item. Users add as many
+# as they need. Frameworks are created / updated through the Orca REST API
+# (POST /api/compliance/frameworks, PUT /api/compliance/frameworks/{id}) and
+# reconciled by the framework id this app assigns and persists per item.
+#
+# A framework groups sections, each containing tests (controls) that map an
+# EXISTING Orca rule id (from a Custom Alert / Discovery Alert / system alert)
+# to a control identifier in this framework (e.g. "1.1"). Sections/tests are
+# authored as JSON, matching the API 1:1.
+#
+# IMPORTANT: Orca's read endpoint never returns section/test data (write-only)
+# — see _shared.ts. Drift can only compare name/description.
+#
+# Field keys must match config-types/custom-compliance-frameworks/validate.ts + _shared.ts.
+# =============================================================================
+
+id: "orca-custom-compliance-frameworks"
+name: "Custom Compliance Frameworks"
+toolType: "orca-security"
+entityType: "custom-compliance-frameworks"
+description: "Define Orca custom compliance frameworks as code through the Orca REST API. A framework groups sections of tests (controls), each mapping an existing Orca rule id to a control identifier."
+
+item:
+  label: "Compliance Framework"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Framework"
+      icon: "shield-check"
+      description: "Name and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The framework name — its logical identity. Shown in Orca's Compliance view."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 2000
+          helpText: "Required by the Orca API — describe what this framework covers."
+
+    - name: "Sections"
+      icon: "list-tree"
+      description: "Sections and their tests (controls), as JSON"
+      fields:
+        - key: "sections"
+          label: "Sections (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 20000
+          helpText: >
+            A JSON array of sections: [{"name":"Access Control","tests":[{"rule_id":"<existing Orca rule id>","rule_id_in_framework":"1.1"}]}].
+            Each test's rule_id must reference an existing Orca alert rule (custom or system). Write-only:
+            Orca's read endpoint never returns this data, so drift cannot detect out-of-band changes to
+            sections and rollback restores this app's own last-declared value rather than a live read.
+
+        - key: "checkedKeys"
+          label: "Checked Keys (advanced)"
+          fieldType: "tags"
+          required: false
+          helpText: >
+            Orca-internal field sent only on create; its purpose is undocumented outside the
+            official Terraform provider's source. Leave blank unless you have a specific value
+            to replicate from an existing framework.

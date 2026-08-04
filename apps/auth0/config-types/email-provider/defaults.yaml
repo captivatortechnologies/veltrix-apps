@@ -1,0 +1,5 @@
+# Defaults for the Email Provider singleton — starts as an enabled SMTP
+# provider (the most vendor-neutral choice); the operator picks the real
+# provider and fills in the from address and credentials.
+name: "smtp"
+enabled: true

@@ -1,0 +1,45 @@
+# =============================================================================
+# Canvas Template — TheHive Profiles (RBAC)
+#
+# Declares ONE TheHive profile (the item) — a named permission set assigned to
+# users (see the Users config type's "Profile" field). Field keys must match
+# config-types/profiles/validate.ts. Applied via the TheHive REST API
+# (v5: /api/v1/profile; v4: /api/v0/profile — see lib/thehiveApi.ts).
+# =============================================================================
+
+id: "thehive-profiles"
+name: "Profiles"
+toolType: "thehive"
+entityType: "profiles"
+description: "Manage TheHive profiles (RBAC roles) — name and permission set — via the TheHive REST API (Bearer API key)"
+
+item:
+  label: "Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "shield"
+      description: "The role this profile represents"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique profile name — the stable identity used for upsert and drift. TheHive ships admin, org-admin, analyst, read-only, external-reader and external-actor as built-ins; only analyst is editable/deletable — the others are immutable and TheHive will reject a write to them."
+
+    - name: "Permissions"
+      icon: "list"
+      description: "What this profile can do"
+      fields:
+        - key: "permissions"
+          label: "Permissions"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 4000
+          helpText: "Permission strings — one per line or comma-separated, e.g. manageCase, manageAlert/create, manageUser. The exact catalog is version-dependent; read it from your instance's Profiles → Add or Remove Permissions screen before authoring one here."

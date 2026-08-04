@@ -1,0 +1,95 @@
+# =============================================================================
+# Canvas Template — Auth0 Custom Domains
+#
+# Declares ONE Auth0 Custom Domain (the item). Operators add as many as they
+# need. Field keys must match config-types/custom-domains/validate.ts and
+# _shared.ts. Applied via the Auth0 Management API v2 (GET/POST
+# /custom-domains, PATCH/DELETE /custom-domains/{id}). The Management API
+# keys a custom domain on the server-assigned id, so this config type upserts
+# by DOMAIN (unique per tenant). domain and type are set at creation and are
+# NOT changed on update.
+#
+# IMPORTANT: a newly created custom domain comes back pending_verification and
+# requires a manual DNS/CNAME (or TXT) proof plus a POST
+# /custom-domains/{id}/verify call. This config type intentionally does NOT
+# automate verification — no config-as-code account credentials can prove DNS
+# ownership. Deploy only creates/updates the domain record; verification is a
+# manual follow-up step outside this pipeline.
+#
+# GET /custom-domains is NOT paginated (Auth0 caps a tenant at a small number
+# of custom domains) — it is read with a plain GET, unlike every other list
+# endpoint in this app.
+# =============================================================================
+
+id: "auth0-custom-domains"
+name: "Custom Domains"
+toolType: "auth0"
+entityType: "custom-domains"
+description: "Manage Auth0 Custom Domains for Universal Login — domain, certificate type, TLS policy and metadata — via the Auth0 Management API v2"
+
+item:
+  label: "Custom Domain"
+  identityField: "domain"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Domain"
+      icon: "globe"
+      description: "Domain identity and certificate type"
+      fields:
+        - key: "domain"
+          label: "Domain"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The custom domain, e.g. login.example.com. Used as the stable identity for upsert and drift. Immutable — set once at creation."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "auth0_managed_certs"
+          options:
+            - label: "Auth0-managed certificate"
+              value: "auth0_managed_certs"
+            - label: "Self-managed certificate"
+              value: "self_managed_certs"
+          helpText: "Immutable — set once at creation."
+
+    - name: "TLS"
+      icon: "lock"
+      description: "TLS policy and proxy client-IP header"
+      fields:
+        - key: "tls_policy"
+          label: "TLS Policy"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - label: "Auth0 default"
+              value: ""
+            - label: "Compatible"
+              value: "compatible"
+            - label: "Recommended"
+              value: "recommended"
+          helpText: "Only applies to Auth0-managed domains; cannot be set on self-managed domains."
+
+        - key: "custom_client_ip_header"
+          label: "Custom Client IP Header"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 128
+          helpText: "HTTP header Auth0 reads the client's real IP from behind a proxy, e.g. true-client-ip, cf-connecting-ip, or x-forwarded-for. Not available for Auth0-managed domains."
+
+    - name: "Metadata"
+      icon: "settings"
+      description: "Custom key/value properties on the domain"
+      fields:
+        - key: "domain_metadata"
+          label: "Domain Metadata"
+          fieldType: "keyvalue"
+          required: false
+          helpText: "Up to 10 custom key/value properties, 255 characters each."

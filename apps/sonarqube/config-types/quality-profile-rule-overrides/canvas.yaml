@@ -1,0 +1,104 @@
+# =============================================================================
+# Canvas Template — SonarQube Quality Profile Rule Overrides
+#
+# Declares ONE per-rule override within a quality profile (the item). Users add as
+# many as they need. Field keys must match
+# config-types/quality-profile-rule-overrides/validate.ts. Applied via the SonarQube
+# Web API's SINGULAR rule-activation actions (/api/qualityprofiles/activate_rule,
+# /deactivate_rule) — the sibling Quality Profiles config type bulk-activates rules
+# at their default severity via activate_rules; this type manages an explicit
+# per-rule severity, parameter values and/or "prioritized rule" flag instead.
+# Whichever config type deploys LAST wins for a given rule's severity in a given
+# profile — a known, documented interaction, not a bug. This type never deactivates
+# or resets a rule it did not itself declare on its own canvas.
+# =============================================================================
+
+id: "sonarqube-quality-profile-rule-overrides"
+name: "Quality Profile Rule Overrides"
+toolType: "sonarqube"
+entityType: "quality-profile-rule-overrides"
+description: "Manage per-rule severity, parameter and prioritization overrides within a SonarQube quality profile — via the SonarQube Web API's activate_rule/deactivate_rule"
+
+item:
+  label: "Rule Override"
+  identityField: "ruleKey"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Profile"
+      icon: "shield"
+      description: "The quality profile this override applies to"
+      fields:
+        - key: "profileName"
+          label: "Profile name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: "Quality profile name (combined with language, its identity — see the Quality Profiles config type)."
+
+        - key: "language"
+          label: "Language"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 40
+          helpText: "SonarQube language key, e.g. java, js, ts, py, cs, go."
+
+    - name: "Rule"
+      icon: "code"
+      description: "The rule being overridden"
+      fields:
+        - key: "ruleKey"
+          label: "Rule key"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: 'Full rule key as "<repository>:<rule>", e.g. java:S1067.'
+
+    - name: "Override"
+      icon: "settings"
+      description: "The severity, parameters, priority and/or reset to apply"
+      fields:
+        - key: "severity"
+          label: "Severity"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - { label: "(inherit / rule default)", value: "" }
+            - { label: "Info", value: "INFO" }
+            - { label: "Minor", value: "MINOR" }
+            - { label: "Major", value: "MAJOR" }
+            - { label: "Critical", value: "CRITICAL" }
+            - { label: "Blocker", value: "BLOCKER" }
+          helpText: 'Optional explicit severity for this rule in this profile. Leave as "(inherit / rule default)" to not override severity.'
+
+        - key: "params"
+          label: "Parameters"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: >
+            One parameter override per line as "key=value", e.g. max=5. Sent to
+            SonarQube as a semicolon-separated list. Lines starting with # are ignored.
+
+        - key: "prioritizedRule"
+          label: "Prioritized rule"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Mark this rule as prioritized in this profile (all matching Issues become mandatory to fix)."
+
+        - key: "reset"
+          label: "Reset to inherited/default"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: >
+            Reset this rule to its inherited/default severity and parameters instead
+            of applying an override. When on, severity/params/prioritized above are
+            ignored (matches the SonarQube API's own "reset" semantics).

@@ -1,14 +1,16 @@
 id: auth0
 name: Auth0
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
-  Manage Auth0 (Okta-owned enterprise identity platform) as code. Author Auth0
-  Applications (Clients), Connections (identity providers), Resource Servers (APIs)
-  and RBAC Roles and drive them through the Security-as-Code pipeline — validate,
-  deploy, health check, drift detection and rollback — over the Auth0 Management
-  API v2 (HTTPS), authenticated with a Machine-to-Machine client-credentials
-  access token.
+  Manage Auth0 (Okta-owned enterprise identity platform) as code across the full
+  declarative Management API v2 surface — Applications, Connections, Resource
+  Servers, Roles, Client Grants, Organizations, Actions, Log Streams, Email
+  Templates & Provider, Attack Protection, MFA (Guardian), Branding & Login
+  Experience, Tenant Settings and Custom Domains — driven through the
+  Security-as-Code pipeline (validate, deploy, health check, drift detection,
+  rollback), authenticated with a Machine-to-Machine client-credentials access
+  token.
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/auth0
@@ -40,6 +42,39 @@ permissions:
     - resource: roles
       actions: [read, write, delete]
       description: Manage Auth0 RBAC Roles and their API permissions (create / edit / delete)
+    - resource: client-grants
+      actions: [read, write, delete]
+      description: Manage Auth0 Client Grants — authorize Applications for API scopes (create / edit / delete)
+    - resource: organizations
+      actions: [read, write, delete]
+      description: Manage Auth0 Organizations, their branding/metadata and enabled connections (create / edit / delete)
+    - resource: actions
+      actions: [read, write, delete]
+      description: Manage Auth0 Actions — code, dependencies, secrets and trigger binding (create / edit / delete)
+    - resource: log-streams
+      actions: [read, write, delete]
+      description: Manage Auth0 Log Streams to external sinks (create / edit / delete)
+    - resource: email-templates
+      actions: [read, write]
+      description: Manage Auth0 Email Templates (customize / update — Auth0 has no delete for a built-in template)
+    - resource: email-provider
+      actions: [read, write, delete]
+      description: Manage the Auth0 tenant's outbound email provider (configure / edit / remove)
+    - resource: attack-protection
+      actions: [read, write]
+      description: Manage Auth0 Attack Protection (breached-password, brute-force, suspicious-IP throttling)
+    - resource: mfa-factors
+      actions: [read, write]
+      description: Manage the Auth0 tenant MFA policy and per-factor enable/disable toggles
+    - resource: branding
+      actions: [read, write]
+      description: Manage Auth0 Universal Login branding, login experience and custom login page HTML
+    - resource: tenant-settings
+      actions: [read, write]
+      description: Manage a curated subset of Auth0 tenant settings and feature flags
+    - resource: custom-domains
+      actions: [read, write, delete]
+      description: Manage Auth0 Custom Domains for Universal Login (create / edit / delete)
 
 pipeline:
   configurationTypes:
@@ -110,6 +145,204 @@ pipeline:
         healthCheck: config-types/roles/healthCheck
         driftDetect: config-types/roles/driftDetect
         getStatus: config-types/roles/getStatus
+      targets:
+        componentTypes: [auth0-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: client-grants
+      group: "Authorization"
+      name: Client Grants
+      description: Auth0 Client Grants — authorize a Machine-to-Machine Application (client_id) for an API (audience) with a scope list — applied over the Auth0 Management API v2 (/client-grants). Upserts by the composite (client_id, audience) pair; both are immutable.
+      canvasTemplate: config-types/client-grants/canvas.yaml
+      defaultConfig: config-types/client-grants/defaults.yaml
+      handlers:
+        validate: config-types/client-grants/validate
+        deploy: config-types/client-grants/deploy
+        rollback: config-types/client-grants/rollback
+        healthCheck: config-types/client-grants/healthCheck
+        driftDetect: config-types/client-grants/driftDetect
+        getStatus: config-types/client-grants/getStatus
+      targets:
+        componentTypes: [auth0-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: organizations
+      group: "Organizations"
+      name: Organizations
+      description: Auth0 Organizations — name, display name, branding, metadata, third-party client access, token quota and enabled connections — applied over the Auth0 Management API v2 (/organizations and the /organizations/{id}/enabled_connections sub-resource). Upserts by organization name; name is immutable.
+      canvasTemplate: config-types/organizations/canvas.yaml
+      defaultConfig: config-types/organizations/defaults.yaml
+      handlers:
+        validate: config-types/organizations/validate
+        deploy: config-types/organizations/deploy
+        rollback: config-types/organizations/rollback
+        healthCheck: config-types/organizations/healthCheck
+        driftDetect: config-types/organizations/driftDetect
+        getStatus: config-types/organizations/getStatus
+      targets:
+        componentTypes: [auth0-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: actions
+      group: "Extensibility"
+      name: Actions
+      description: Auth0 Actions — Node.js code, dependencies, secrets, runtime and trigger binding — applied over the Auth0 Management API v2 (/actions/actions, its /deploy sub-resource, and /actions/triggers/{id}/bindings). Upserts by action name; the current, supported replacement for the deprecated Rules and Hooks.
+      canvasTemplate: config-types/actions/canvas.yaml
+      defaultConfig: config-types/actions/defaults.yaml
+      handlers:
+        validate: config-types/actions/validate
+        deploy: config-types/actions/deploy
+        rollback: config-types/actions/rollback
+        healthCheck: config-types/actions/healthCheck
+        driftDetect: config-types/actions/driftDetect
+        getStatus: config-types/actions/getStatus
+      targets:
+        componentTypes: [auth0-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: log-streams
+      group: "Logging"
+      name: Log Streams
+      description: Auth0 Log Streams — stream tenant logs to an external sink (HTTP, Datadog, Splunk, EventBridge, Event Grid, Sumo Logic, Mixpanel, Segment) — applied over the Auth0 Management API v2 (/log-streams). Upserts by stream name; name and sink type are immutable.
+      canvasTemplate: config-types/log-streams/canvas.yaml
+      defaultConfig: config-types/log-streams/defaults.yaml
+      handlers:
+        validate: config-types/log-streams/validate
+        deploy: config-types/log-streams/deploy
+        rollback: config-types/log-streams/rollback
+        healthCheck: config-types/log-streams/healthCheck
+        driftDetect: config-types/log-streams/driftDetect
+        getStatus: config-types/log-streams/getStatus
+      targets:
+        componentTypes: [auth0-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: email-templates
+      group: "Communications"
+      name: Email Templates
+      description: Auth0 Email Templates — body, sender, subject and behavior for the tenant's fixed set of built-in transactional emails — applied over the Auth0 Management API v2 (/email-templates). Upserts by the fixed template name; Auth0 has no delete for a template.
+      canvasTemplate: config-types/email-templates/canvas.yaml
+      defaultConfig: config-types/email-templates/defaults.yaml
+      handlers:
+        validate: config-types/email-templates/validate
+        deploy: config-types/email-templates/deploy
+        rollback: config-types/email-templates/rollback
+        healthCheck: config-types/email-templates/healthCheck
+        driftDetect: config-types/email-templates/driftDetect
+        getStatus: config-types/email-templates/getStatus
+      targets:
+        componentTypes: [auth0-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: email-provider
+      group: "Communications"
+      name: Email Provider
+      description: The Auth0 tenant's outbound email provider (SES, SMTP, SendGrid, Mailgun, ...) and its write-only credentials — applied over the Auth0 Management API v2 (/emails/provider). Tenant-wide singleton that does not exist until first configured.
+      canvasTemplate: config-types/email-provider/canvas.yaml
+      defaultConfig: config-types/email-provider/defaults.yaml
+      handlers:
+        validate: config-types/email-provider/validate
+        deploy: config-types/email-provider/deploy
+        rollback: config-types/email-provider/rollback
+        healthCheck: config-types/email-provider/healthCheck
+        driftDetect: config-types/email-provider/driftDetect
+        getStatus: config-types/email-provider/getStatus
+      targets:
+        componentTypes: [auth0-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: attack-protection
+      group: "Security"
+      name: Attack Protection
+      description: Auth0 Attack Protection — Breached Password Detection, Brute-force Protection and Suspicious IP Throttling — applied over the Auth0 Management API v2 (/attack-protection/*). Tenant-wide singleton; every sub-resource always exists (enable/disable/tune only, no create/delete).
+      canvasTemplate: config-types/attack-protection/canvas.yaml
+      defaultConfig: config-types/attack-protection/defaults.yaml
+      handlers:
+        validate: config-types/attack-protection/validate
+        deploy: config-types/attack-protection/deploy
+        rollback: config-types/attack-protection/rollback
+        healthCheck: config-types/attack-protection/healthCheck
+        driftDetect: config-types/attack-protection/driftDetect
+        getStatus: config-types/attack-protection/getStatus
+      targets:
+        componentTypes: [auth0-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: mfa-factors
+      group: "Security"
+      name: MFA Factors
+      description: The Auth0 tenant MFA enforcement policy and per-factor enable/disable toggles (SMS, push, OTP, email, Duo, WebAuthn, recovery code) — applied over the Auth0 Management API v2 (/guardian/policies, /guardian/factors/{name}). Tenant-wide singleton.
+      canvasTemplate: config-types/mfa-factors/canvas.yaml
+      defaultConfig: config-types/mfa-factors/defaults.yaml
+      handlers:
+        validate: config-types/mfa-factors/validate
+        deploy: config-types/mfa-factors/deploy
+        rollback: config-types/mfa-factors/rollback
+        healthCheck: config-types/mfa-factors/healthCheck
+        driftDetect: config-types/mfa-factors/driftDetect
+        getStatus: config-types/mfa-factors/getStatus
+      targets:
+        componentTypes: [auth0-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: branding
+      group: "Branding"
+      name: Branding & Login Experience
+      description: Auth0 Universal Login branding (logo, colors, font), the login-experience prompt settings and an optional custom Classic Universal Login HTML page — applied over the Auth0 Management API v2 (/branding, /prompts, /branding/templates/universal-login). Tenant-wide singleton.
+      canvasTemplate: config-types/branding/canvas.yaml
+      defaultConfig: config-types/branding/defaults.yaml
+      handlers:
+        validate: config-types/branding/validate
+        deploy: config-types/branding/deploy
+        rollback: config-types/branding/rollback
+        healthCheck: config-types/branding/healthCheck
+        driftDetect: config-types/branding/driftDetect
+        getStatus: config-types/branding/getStatus
+      targets:
+        componentTypes: [auth0-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: tenant-settings
+      group: "Tenant"
+      name: Tenant Settings
+      description: A curated subset of Auth0 Tenant Settings — identity, sessions, defaults, locales/logout URLs and a documented feature-flag allowlist — applied over the Auth0 Management API v2 (/tenants/settings). Tenant-wide singleton.
+      canvasTemplate: config-types/tenant-settings/canvas.yaml
+      defaultConfig: config-types/tenant-settings/defaults.yaml
+      handlers:
+        validate: config-types/tenant-settings/validate
+        deploy: config-types/tenant-settings/deploy
+        rollback: config-types/tenant-settings/rollback
+        healthCheck: config-types/tenant-settings/healthCheck
+        driftDetect: config-types/tenant-settings/driftDetect
+        getStatus: config-types/tenant-settings/getStatus
+      targets:
+        componentTypes: [auth0-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: custom-domains
+      group: "Tenant"
+      name: Custom Domains
+      description: Auth0 Custom Domains for Universal Login — domain, certificate type, TLS policy and metadata — applied over the Auth0 Management API v2 (/custom-domains). Upserts by domain; domain and certificate type are immutable. DNS verification is a manual follow-up step this config type does not automate.
+      canvasTemplate: config-types/custom-domains/canvas.yaml
+      defaultConfig: config-types/custom-domains/defaults.yaml
+      handlers:
+        validate: config-types/custom-domains/validate
+        deploy: config-types/custom-domains/deploy
+        rollback: config-types/custom-domains/rollback
+        healthCheck: config-types/custom-domains/healthCheck
+        driftDetect: config-types/custom-domains/driftDetect
+        getStatus: config-types/custom-domains/getStatus
       targets:
         componentTypes: [auth0-tenant]
         requiresCredential: true

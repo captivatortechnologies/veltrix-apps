@@ -21,6 +21,19 @@
 // v5 is the primary because the maintained clients target it; the v4 paths are
 // declared here (flagged) so a v4 deployment is a one-line switch of API_VERSION.
 // VERIFY against a live TheHive before trusting either — see README (v4 vs v5).
+//
+// The v0.4.0 config types (organisations, profiles, page templates) add three
+// more nuances to the seam, confirmed against the official TheHive 4 OpenAPI
+// spec (github.com/TheHive-Project/api-docs, thehive.yaml) alongside thehive4py:
+//   - organisation: create/update share the SAME /api/v1/organisation path on
+//     BOTH versions (TheHive 4 grew a v1 organisation surface late in its life);
+//     only the LIST mechanism differs (v5 query API vs v4's legacy
+//     /api/v0/organisation collection GET).
+//   - profile: full CRUD, but on DIFFERENT versioned paths — v5 is
+//     /api/v1/profile, v4 is /api/v0/profile (confirmed, not flagged).
+//   - pageTemplate (Knowledge Base): a TheHive 5-ONLY feature, confirmed absent
+//     from the TheHive 4 spec — it bypasses this seam entirely (see
+//     PAGE_TEMPLATE_PATHS_V5 below) rather than pretending a v4 path exists.
 // =============================================================================
 
 import { request as httpsRequest } from 'node:https'
@@ -53,6 +66,15 @@ export const THEHIVE_PATHS = {
     user: '/api/v1/user',
     userById: (id: string) => `/api/v1/user/${encodeURIComponent(id)}`,
     userDelete: (id: string) => `/api/v1/user/${encodeURIComponent(id)}/force`,
+    // Organisations — create/update (no delete endpoint — see organisations
+    // config type; deploy is create/update-only, rollback of a create locks
+    // rather than deletes). List goes through the query API (listOrganisation).
+    organisation: '/api/v1/organisation',
+    organisationById: (id: string) => `/api/v1/organisation/${encodeURIComponent(id)}`,
+    // Profiles (RBAC) — full CRUD, real delete.
+    profile: '/api/v1/profile',
+    profileById: (id: string) => `/api/v1/profile/${encodeURIComponent(id)}`,
+    profileDelete: (id: string) => `/api/v1/profile/${encodeURIComponent(id)}`,
     query: '/api/v1/query',
     currentUser: '/api/v1/user/current',
   },
@@ -69,9 +91,40 @@ export const THEHIVE_PATHS = {
     userById: (id: string) => `/api/user/${encodeURIComponent(id)}`,
     userDelete: (id: string) => `/api/user/${encodeURIComponent(id)}`,
     search: '/api/case/template/_search',
+    // Organisations — CONFIRMED (TheHive 4 OpenAPI): create/update already lived
+    // at /api/v1/organisation before the v5 fork. Only list is v0-only (below).
+    organisation: '/api/v1/organisation',
+    organisationById: (id: string) => `/api/v1/organisation/${encodeURIComponent(id)}`,
+    // v0-only: the legacy collection GET used for listing (see listOrganisations).
+    // Not part of PRIMARY (v5 has no v0 counterpart) — same pattern as `search`.
+    organisationListV0: '/api/v0/organisation',
+    // Profiles — CONFIRMED (TheHive 4 OpenAPI): full CRUD, but on /api/v0
+    // (the versioned /api/v1/profile only exists in TheHive 5).
+    profile: '/api/v0/profile',
+    profileById: (id: string) => `/api/v0/profile/${encodeURIComponent(id)}`,
+    profileDelete: (id: string) => `/api/v0/profile/${encodeURIComponent(id)}`,
     currentUser: '/api/v1/user/current',
   },
 } as const
+
+/**
+ * Page Templates (Knowledge Base) — a TheHive 5-ONLY feature. Confirmed absent
+ * from the TheHive 4 OpenAPI spec (github.com/TheHive-Project/api-docs) and from
+ * thehive4py's TheHive4-era history, so — unlike every other path above — there
+ * is no v4 alternate to declare. This deliberately bypasses the THEHIVE_PATHS /
+ * PRIMARY seam: page-templates handlers import this directly and check
+ * `isPageTemplateSupported()` before calling out, rather than pretending a v4
+ * path exists. See README (Page Templates — v5 only).
+ */
+export const PAGE_TEMPLATE_PATHS_V5 = {
+  pageTemplate: '/api/v1/pageTemplate',
+  pageTemplateById: (id: string) => `/api/v1/pageTemplate/${encodeURIComponent(id)}`,
+} as const
+
+/** True when the active seam target is TheHive 5 — the only version Page Templates exist on. */
+export function isPageTemplateSupported(): boolean {
+  return API_VERSION === 'v5'
+}
 
 /** Switch to 'v4' only for a legacy TheHive 4 deployment (see README). */
 export const API_VERSION: 'v5' | 'v4' = 'v5'
@@ -213,4 +266,32 @@ export async function listObservableTypes<T>(base: string, headers: Record<strin
 export async function listUsers<T>(base: string, headers: Record<string, string>): Promise<T[]> {
   if (API_VERSION === 'v5') return queryListV5<T>(base, headers, 'listUser')
   return getJson<T[]>(`${base}${THEHIVE_PATHS.v4.user}`, headers)
+}
+
+/**
+ * List organisations. v5 → query `listOrganisation`; v4 → the legacy
+ * /api/v0/organisation collection GET (CONFIRMED via the TheHive 4 OpenAPI spec).
+ */
+export async function listOrganisations<T>(base: string, headers: Record<string, string>): Promise<T[]> {
+  if (API_VERSION === 'v5') return queryListV5<T>(base, headers, 'listOrganisation')
+  return getJson<T[]>(`${base}${THEHIVE_PATHS.v4.organisationListV0}`, headers)
+}
+
+/**
+ * List profiles. v5 → query `listProfile`; v4 → a plain GET on the /api/v0/profile
+ * collection (CONFIRMED via the TheHive 4 OpenAPI spec — the same path PRIMARY
+ * uses for create, since v4's profile collection doubles as its list).
+ */
+export async function listProfiles<T>(base: string, headers: Record<string, string>): Promise<T[]> {
+  if (API_VERSION === 'v5') return queryListV5<T>(base, headers, 'listProfile')
+  return getJson<T[]>(`${base}${PRIMARY.profile}`, headers)
+}
+
+/**
+ * List page templates (v5-only — see PAGE_TEMPLATE_PATHS_V5). Always uses the v5
+ * query API regardless of API_VERSION; callers must gate on isPageTemplateSupported()
+ * first.
+ */
+export async function listPageTemplates<T>(base: string, headers: Record<string, string>): Promise<T[]> {
+  return queryListV5<T>(base, headers, 'listPageTemplate')
 }

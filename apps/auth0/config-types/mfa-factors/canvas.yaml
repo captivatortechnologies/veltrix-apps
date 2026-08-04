@@ -1,0 +1,107 @@
+# =============================================================================
+# Canvas Template — Auth0 MFA (Guardian)
+#
+# Tenant-wide singleton: the MFA enforcement policy plus per-factor
+# enable/disable toggles. Declare this config type at most once per canvas.
+#
+# The 8 factor checkboxes are booleans with an explicit default (false), so
+# this config type always fully declares the whole managed factor set — every
+# deploy sends a PUT for all 8 factors (same "always send the full managed
+# state" approach as `clients`' URL arrays).
+#
+# Field keys must match config-types/mfa-factors/validate.ts and _shared.ts.
+# Applied via the Auth0 Management API v2 (Guardian):
+#   GET/PUT /api/v2/guardian/policies          bare JSON array
+#   GET     /api/v2/guardian/factors           all factors in one call
+#   PUT     /api/v2/guardian/factors/{name}    { enabled: boolean }
+# =============================================================================
+
+id: "auth0-mfa-factors"
+name: "MFA Factors"
+toolType: "auth0"
+entityType: "mfa-factors"
+description: "Manage the Auth0 tenant MFA enforcement policy and per-factor enable/disable toggles via the Auth0 Management API v2 (Guardian). Tenant-wide singleton."
+
+item:
+  label: "MFA Factors"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "When Auth0 requires multi-factor authentication"
+      fields:
+        - key: "policy"
+          label: "MFA Policy"
+          fieldType: "select"
+          required: true
+          defaultValue: "never"
+          options:
+            - label: "Never"
+              value: "never"
+            - label: "Always"
+              value: "all-applications"
+            - label: "Adaptive (confidence score)"
+              value: "confidence-score"
+          helpText: "Maps to the bare array body of PUT /guardian/policies — Never → [], Always → [\"all-applications\"], Adaptive → [\"confidence-score\"]."
+
+    - name: "Factors"
+      icon: "settings"
+      description: "Enable or disable individual MFA factors"
+      fields:
+        - key: "factor_sms"
+          label: "SMS"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Maps to Auth0 factor name \"sms\" (PUT /guardian/factors/sms)."
+
+        - key: "factor_push_notification"
+          label: "Push Notification"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Maps to Auth0 factor name \"push-notification\" (Guardian mobile app)."
+
+        - key: "factor_otp"
+          label: "One-Time Password (OTP)"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Maps to Auth0 factor name \"otp\" (authenticator apps, TOTP)."
+
+        - key: "factor_email"
+          label: "Email"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Maps to Auth0 factor name \"email\"."
+
+        - key: "factor_duo"
+          label: "Cisco Duo"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Maps to Auth0 factor name \"duo\"."
+
+        - key: "factor_webauthn_roaming"
+          label: "WebAuthn with Security Keys"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Maps to Auth0 factor name \"webauthn-roaming\" (external/roaming authenticators, e.g. a YubiKey)."
+
+        - key: "factor_webauthn_platform"
+          label: "WebAuthn with Device Biometrics"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Maps to Auth0 factor name \"webauthn-platform\" (built-in biometrics, e.g. Touch ID, Windows Hello)."
+
+        - key: "factor_recovery_code"
+          label: "Recovery Code"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Maps to Auth0 factor name \"recovery-code\"."

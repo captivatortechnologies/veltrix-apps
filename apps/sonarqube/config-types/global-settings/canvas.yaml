@@ -1,0 +1,57 @@
+# =============================================================================
+# Canvas Template — SonarQube Global Settings
+#
+# Declares ONE SonarQube global (instance-wide) `sonar.*` property (the item). Users add
+# as many as they need. Field keys must match config-types/global-settings/validate.ts.
+# Applied via the SonarQube Web API (/api/settings/set, /reset, /values) — GLOBAL scope
+# only, `component` is never sent; per-project settings are out of scope for this type.
+# =============================================================================
+
+id: "sonarqube-global-settings"
+name: "Global Settings"
+toolType: "sonarqube"
+entityType: "global-settings"
+description: "Manage SonarQube instance-wide sonar.* properties as declarative key/value pairs — global scope only — via the SonarQube Web API"
+
+item:
+  label: "Setting"
+  identityField: "key"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Setting"
+      icon: "settings"
+      description: "The property key and its value"
+      fields:
+        - key: "key"
+          label: "Key"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 200
+          helpText: "The sonar.* property key, e.g. sonar.forceAuthentication or sonar.core.serverBaseURL. Used as the setting's identity for upsert and drift."
+
+        - key: "value"
+          label: "Value"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 4000
+          helpText: >
+            Single scalar value for this setting, e.g. true or https://sonar.example.com.
+            Fill in exactly one of Value or Values below — never both. PROPERTY_SET
+            settings (fieldValues, multi-field occurrences) are not supported by this
+            config type; manage those directly in SonarQube.
+
+        - key: "values"
+          label: "Values"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 8000
+          helpText: >
+            One value per line, for a multi-value setting, e.g. a list of exclusion
+            patterns. Fill in exactly one of Value above or Values here — never both.
+            Lines starting with # are ignored. PROPERTY_SET settings (fieldValues) are
+            not supported by this config type.

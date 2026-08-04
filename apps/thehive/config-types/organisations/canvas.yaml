@@ -1,0 +1,82 @@
+# =============================================================================
+# Canvas Template — TheHive Organisations
+#
+# Declares ONE TheHive organisation (the item) — a multi-tenant container for
+# cases/alerts (division, business unit, customer, ...). Field keys must match
+# config-types/organisations/validate.ts. Applied via the TheHive REST API
+# (create/update: /api/v1/organisation on both v4 and v5 — see lib/thehiveApi.ts).
+# TheHive has NO delete endpoint for organisations — removing an item from the
+# canvas locks it on the next deploy rather than deleting it (see README).
+# =============================================================================
+
+id: "thehive-organisations"
+name: "Organisations"
+toolType: "thehive"
+entityType: "organisations"
+description: "Manage TheHive organisations — name, description and case/alert sharing rules — via the TheHive REST API (Bearer API key). TheHive has no delete endpoint for organisations; they are locked, not removed."
+
+item:
+  label: "Organisation"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "building"
+      description: "Who this organisation (tenant) is"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique organisation name — the stable identity used for upsert and drift, e.g. soc-eu or Acme Corp"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 2000
+          helpText: "What this organisation is — required by TheHive"
+
+    - name: "Sharing Rules"
+      icon: "shuffle"
+      description: "Default behaviour when a case is shared into this organisation"
+      fields:
+        - key: "taskRule"
+          label: "Task Sharing Rule"
+          fieldType: "select"
+          required: true
+          defaultValue: "manual"
+          options:
+            - label: "Manual — tasks require manual sharing"
+              value: "manual"
+            - label: "Auto-share — tasks share automatically"
+              value: "autoShare"
+          helpText: "How tasks behave when a case is shared with this organisation"
+
+        - key: "observableRule"
+          label: "Observable Sharing Rule"
+          fieldType: "select"
+          required: true
+          defaultValue: "manual"
+          options:
+            - label: "Manual — observables require manual sharing"
+              value: "manual"
+            - label: "Auto-share — observables share automatically"
+              value: "autoShare"
+          helpText: "How observables behave when a case is shared with this organisation"
+
+    - name: "Status"
+      icon: "lock"
+      description: "Enable or disable this organisation"
+      fields:
+        - key: "locked"
+          label: "Locked"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Lock this organisation to prevent its members from logging in. TheHive has no delete endpoint for organisations, so removing this item from the canvas locks it here rather than deleting it."
