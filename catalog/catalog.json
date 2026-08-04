@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-08-04T15:44:06.422Z",
+  "generatedAt": "2026-08-04T15:54:47.757Z",
   "apps": [
     {
       "appId": "akamai",
@@ -920,20 +920,20 @@
     {
       "appId": "pagerduty",
       "name": "PagerDuty",
-      "version": "0.2.0",
+      "version": "0.4.0",
       "vendor": "Veltrix",
-      "description": "Manage PagerDuty incident-response configuration as code through the PagerDuty REST API v2. Covers Escalation Policies, Services, on-call Schedules and Teams — each driven through the Security-as-Code pipeline: validate, deploy (upsert by name), health check, drift detection and rollback. Auth is a PagerDuty REST API key (Authorization: Token token=…) against the fixed https://api.pagerduty.com base.",
+      "description": "Manage PagerDuty incident-response configuration as code through the PagerDuty REST API v2. Covers Escalation Policies, Services, on-call Schedules, Teams, Users, Business Services, Event Orchestrations (global + per-service), Tags, Automation Actions, generic Extensions and v3 Webhook Subscriptions — each driven through the Security-as-Code pipeline: validate, deploy (upsert by name), health check, drift detection and rollback. Auth is a PagerDuty REST API key (Authorization: Token token=…) against the fixed https://api.pagerduty.com base. Automation Actions Runners and per-service Integrations are intentionally NOT managed here — see the README Coverage section for why.",
       "category": "SOAR",
       "icon": "📟",
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/pagerduty",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/pagerduty-v0.2.0/pagerduty.zip",
-      "sha256": "c85bdce4fa40835763e127890538974099f7362e7f4370fec0a62753509b3f55",
-      "sizeBytes": 123744,
-      "publishedAt": "2026-08-02T00:00:02.619Z",
-      "releaseNotes": "## 0.2.0 — 2026-08-01\n\nThree new configuration types, each with the full pipeline (validate, deploy —\nupsert by name, health check, drift detection and rollback) over the PagerDuty\nREST API v2.\n\n- **Services** configuration type (`services`, `/services`): author a service's\n  name, description, the escalation policy that backs it (referenced by NAME and\n  resolved to an `escalation_policy_reference` at deploy), `auto_resolve_timeout`\n  / `acknowledgement_timeout` (seconds) and `alert_creation` mode\n  (`create_incidents` / `create_alerts_and_incidents`). Note: PagerDuty has\n  deprecated `alert_creation` (all services are migrating to alerts and\n  incidents); it is surfaced for parity with existing services.\n- **Schedules** configuration type (`schedules`, `/schedules`): author an on-call\n  schedule's name, IANA `time_zone` (required) and `schedule_layers` (rotation\n  layers with `start`, `rotation_virtual_start`, `rotation_turn_length_seconds`\n  and the ordered `users` who rotate). Drift compares presence, time zone and the\n  layer count — it does not deep-diff the server-expanded rotation.\n- **Teams** configuration type (`teams`, `/teams`): author a team's name and\n  description.\n- Deploy now reads the account first (list-then-write) so every write is an\n  idempotent upsert keyed on the resource name, and records prior state so a\n  rollback deletes created resources and restores updated ones.\n- Registered all three in `manifest.pipeline.configurationTypes` with matching\n  `services` / `schedules` / `teams` app permissions (read / write / delete).",
-      "releasedAt": "2026-08-01T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/pagerduty-v0.4.0/pagerduty.zip",
+      "sha256": "d4dd9cf99c793e9e2ca78bf2efced08e3ab7b7859087b74be034abcb65850451",
+      "sizeBytes": 321370,
+      "publishedAt": "2026-08-04T15:54:47.729Z",
+      "releaseNotes": "## 0.4.0 — 2026-08-04\n\nThe manifest previously declared 14 configuration types, but three\n(`automation-actions`, `automation-actions-runners`, `service-integrations`)\nhad no handler directory on disk — every deploy of this app was broken. This\nrelease finishes **Automation Actions** with the full pipeline and removes the\nother two from the manifest, with the reasoning recorded below and in the\nREADME Coverage section.\n\n- **Automation Actions** configuration type (`automation-actions`,\n  `/automation_actions/actions`): author a script or Process Automation\n  action's name, description, `action_type` (immutable once set by PagerDuty —\n  deploy fails with a clear error rather than silently delete+recreate),\n  `action_data_reference` (shape depends on `action_type`), an optional runner\n  reference (by NAME, resolved to an id — the runner itself is not managed by\n  this app, see below), classification, invocation flags and team/service\n  associations. Associations are attached via\n  `POST .../actions/{id}/teams|services` and are **additive only** — removing a\n  name from the canvas does not detach it, mirroring how the Tags configuration\n  type already handles many-to-many assignment.\n- **Removed `automation-actions-runners`** from the manifest (was declared,\n  never implemented). Per the official `terraform-provider-pagerduty` resource\n  docs, the PagerDuty API can only ever CREATE a `runbook` runner, and doing so\n  requires embedding a Runbook Automation API key directly in the plain JSON\n  request body — a secret this app's Credential Vault model never stores\n  outside the Vault. The other runner type, `sidecar`, self-registers when its\n  agent is installed and cannot be created through the API at all. With no safe\n  way to create either runner type, a \"reconciled by name\" config type that\n  can never actually create its resource on a first deploy isn't a config type\n  this app can honestly offer — see README Coverage.\n- **Removed `service-integrations`** from the manifest (was declared, never\n  implemented). Every other config type in this app reconciles by listing the\n  live collection and matching a declared item by name — but the PagerDuty API\n  has no `GET /services/{id}/integrations` list endpoint; an integration can\n  only be read back by an id already known to the caller. The official\n  Terraform provider confirms this: its `pagerduty_service_integration`\n  resource never searches by name, it only ever tracks the id Terraform itself\n  stored at creation. A canvas-driven deploy has no equivalent stored state to\n  read on a fresh account, so a declarative \"does this named integration\n  already exist\" check cannot be answered without risking a duplicate\n  integration on every redeploy — see README Coverage.\n- Dropped the now-dangling `automation-actions-runners` and\n  `service-integrations` app permissions.\n- `app-id` validation now passes clean: 0 errors, 0 warnings.",
+      "releasedAt": "2026-08-04T00:00:00.000Z"
     },
     {
       "appId": "palo-alto-panorama",
