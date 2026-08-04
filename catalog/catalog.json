@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-08-04T14:42:05.786Z",
+  "generatedAt": "2026-08-04T14:50:21.011Z",
   "apps": [
     {
       "appId": "akamai",
@@ -731,7 +731,7 @@
     {
       "appId": "microsoft-entra-id",
       "name": "Microsoft Entra ID",
-      "version": "0.7.1",
+      "version": "0.8.0",
       "vendor": "Veltrix",
       "description": "Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the Microsoft Graph API. Covers Conditional Access, named locations, security groups, administrative units, custom roles and authentication strengths/contexts; the tenant authorization, security-defaults, authentication-methods, authentication-flows, admin-consent-request, permission-grant, cross-tenant access, app-management, token-issuance / lifetime / claims-mapping, home-realm-discovery, activity-timeout and feature-rollout policies; group directory settings, custom security attributes, external identity providers, delegated permission grants, user-flow attributes and self-service sign-up flows; and identity governance (entitlement catalogs, access packages, assignment policies, connected organizations, access reviews, lifecycle workflows and PIM role activation policies); plus company branding — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
@@ -740,12 +740,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-entra-id",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-entra-id-v0.7.1/microsoft-entra-id.zip",
-      "sha256": "48e1ca4432d1637f5fba30988256fd4cecf75be29da34c9c27d55427781ac6ad",
-      "sizeBytes": 777420,
-      "publishedAt": "2026-08-02T15:15:57.225Z",
-      "releaseNotes": "## 0.7.1 — 2026-08-02\n\nGrouped the 42 configuration types in the Configurations sidebar into ten\nsub-sections mirroring the Entra admin center, so the app is navigable instead\nof one flat list.\n\n- **Config sidebar groups** — each configuration type now declares a `group`:\n  Conditional Access · Directory · Tokens & Claims · Roles & PIM ·\n  Tenant Settings · Authentication Methods · Applications & Service Principals ·\n  External Identities · Custom Security Attributes · Identity Governance.\n  Organization-only — no change to any deploy/rollback/drift behavior.",
-      "releasedAt": "2026-08-02T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-entra-id-v0.8.0/microsoft-entra-id.zip",
+      "sha256": "3751e45bcb8323ec8bb18af39a0d78aa6267e7d93a6aae8e2e25fbaf1e28533f",
+      "sizeBytes": 787492,
+      "publishedAt": "2026-08-04T14:50:20.973Z",
+      "releaseNotes": "## 0.8.0 — 2026-08-04\n\nLive remote pickers for reference fields — config forms now pull related objects\nfrom the connected tenant instead of pasting display names / GUIDs.\n\n- **Shared live-options provider** (`config-types/lib/entraOptions.ts`) — 12\n  Graph-backed sources (groups, users, applications, servicePrincipals,\n  namedLocations, roleDefinitions, administrativeUnits, authStrengthPolicies,\n  termsOfUse, authContexts, accessPackageCatalogs, connectedOrganizations),\n  searchable server-side (`$search` where supported) and id→label on mount.\n- **Conditional Access Policies** — Included/Excluded Groups and Included Apps\n  are now searchable live pickers (Groups picker; Applications picker with the\n  All / Office365 / MicrosoftAdminPortals cloud-app sentinels).\n- **id-aware, backward compatible** — pickers store ids/appIds; a hand-typed\n  display name still resolves at deploy time.\n\nPhase 1 of a rollout wiring the same live pickers into every reference field\nacross all Entra config types.",
+      "releasedAt": "2026-08-04T00:00:00.000Z"
     },
     {
       "appId": "microsoft-intune",
