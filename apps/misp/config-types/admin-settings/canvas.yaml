@@ -1,0 +1,69 @@
+# =============================================================================
+# Canvas Template — MISP Admin Settings
+#
+# Declares ONE MISP server setting (the item), MISP's generic instance-wide
+# key/value configuration store (MISP.*, Security.*, Proxy.*, GnuPG.*, Plugin.*,
+# ...). Users add as many as they need. Field keys must match
+# config-types/admin-settings/validate.ts. Applied via the MISP REST API
+# (/servers/getSetting/{name}, /servers/serverSettingsEdit/{name}) on port 443.
+#
+# There is no separate "server-sync config" type: sync-shaping settings such as
+# MISP.host_org_id, MISP.baseurl and MISP.manager are just more rows in this
+# same generic store — see the README.
+# =============================================================================
+
+id: "misp-admin-settings"
+name: "Admin Settings"
+toolType: "misp"
+entityType: "admin-settings"
+description: "Manage MISP instance-wide server settings as declarative key/value pairs via the MISP REST API (443)"
+
+item:
+  label: "Setting"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 300
+  groups:
+    - name: "Setting"
+      icon: "sliders"
+      description: "The dotted setting name and its value"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The dotted MISP server setting name, e.g. MISP.host_org_id or Security.rest_client_baseurl_check. Used as the stable identity for upsert and drift."
+
+        - key: "value"
+          label: "Value"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 4000
+          helpText: >
+            The value to apply. MISP casts it to the setting's own type (boolean,
+            numeric or string) server-side — send true/false for a boolean setting,
+            a plain number for a numeric one.
+
+        - key: "force"
+          label: "Force"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options:
+            - label: "Yes"
+              value: "yes"
+            - label: "No"
+              value: "no"
+          helpText: "Bypass MISP's own validation test for this setting (mirrors the Server Settings UI's Force override). Use with care."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this setting is configured — recorded for audit"

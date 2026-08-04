@@ -1,0 +1,308 @@
+# =============================================================================
+# Canvas Template — MISP Roles
+#
+# Declares ONE MISP user role (the item). Users add as many as they need. Field
+# keys must match config-types/roles/validate.ts AND config-types/roles/_shared.ts
+# PERM_FIELDS. Applied via the MISP REST API (/roles/index, /admin/roles/add,
+# /admin/roles/edit/{id}, /admin/roles/delete/{id}) on port 443.
+# =============================================================================
+
+id: "misp-roles"
+name: "Roles"
+toolType: "misp"
+entityType: "roles"
+description: "Manage MISP user roles and their permission flags via the MISP REST API (443)"
+
+item:
+  label: "Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "shield"
+      description: "Role identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: "Role name shown in MISP, e.g. Analyst. Used as the stable identity for upsert and drift."
+
+    - name: "Base Permissions"
+      icon: "check-square"
+      description: "The legacy event-authoring permission levels"
+      fields:
+        - key: "perm_add"
+          label: "Add Events"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Allow creating events"
+        - key: "perm_modify"
+          label: "Modify Own Events"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Allow modifying the user's own events"
+        - key: "perm_modify_org"
+          label: "Modify Organisation Events"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Allow modifying any event belonging to the user's organisation"
+        - key: "perm_publish"
+          label: "Publish Organisation Events"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Allow publishing the user's organisation's events"
+
+    - name: "Administration"
+      icon: "settings"
+      description: "Site- and organisation-level administration"
+      fields:
+        - key: "perm_site_admin"
+          label: "Site Admin"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Unrestricted access to any data and functionality on this instance"
+        - key: "perm_admin"
+          label: "Org Admin"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Limited organisation admin — create and manage users of their own organisation"
+        - key: "perm_regexp_access"
+          label: "Regex Actions"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Modify the regex rules affecting how data is fed into MISP — caution: user-controlled executed regexes are dangerous"
+
+    - name: "Synchronisation"
+      icon: "refresh-cw"
+      description: "Server-to-server sync behaviour"
+      fields:
+        - key: "perm_sync"
+          label: "Sync Actions"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Connect two MISP instances and create data on behalf of other users — pair with tagging/tag-editor rights"
+        - key: "perm_sync_internal"
+          label: "Internal Sync Actions"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Synchronise using the internal strategy, where distribution is not downgraded after pulling"
+        - key: "perm_sync_authoritative"
+          label: "Authoritative Sync Actions"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Treat the sync source as authoritative — data such as tags is mirrored to match it, including deletions"
+        - key: "perm_auth"
+          label: "Auth Key Access"
+          fieldType: "select"
+          required: true
+          defaultValue: "yes"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Allow authenticating via an Auth key, granting API access"
+
+    - name: "Content & Sharing"
+      icon: "tag"
+      description: "Tagging, templates, sharing groups, sightings and galaxies"
+      fields:
+        - key: "perm_tagger"
+          label: "Tagger"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Attach or detach existing tags to and from events/attributes"
+        - key: "perm_tag_editor"
+          label: "Tag Editor"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Create new tags"
+        - key: "perm_template"
+          label: "Template Editor"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Create or modify templates used when populating events"
+        - key: "perm_sharing_group"
+          label: "Sharing Group Editor"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Create or modify sharing groups"
+        - key: "perm_delegate"
+          label: "Delegations Access"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Create delegation requests for the user's own-org-only events to trusted third parties"
+        - key: "perm_sighting"
+          label: "Sighting Creator"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Push feedback on attributes into MISP by providing sightings"
+        - key: "perm_object_template"
+          label: "Object Template Editor"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Create or modify MISP object templates"
+        - key: "perm_galaxy_editor"
+          label: "Galaxy Editor"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Create or modify MISP galaxies and galaxy clusters"
+        - key: "perm_decaying"
+          label: "Decaying Model Editor"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Create or modify MISP decaying models"
+        - key: "perm_warninglist"
+          label: "Warninglist Editor"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Manage warninglists"
+        - key: "perm_analyst_data"
+          label: "Analyst Data Creator"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Create or modify Analyst Data such as Analyst Notes or Opinions"
+        - key: "perm_view_feed_correlations"
+          label: "View Feed Correlations"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "View feed correlations — can come at a performance cost on large instances"
+
+    - name: "Publishing Integrations"
+      icon: "send"
+      description: "Outbound publish channels"
+      fields:
+        - key: "perm_publish_zmq"
+          label: "ZMQ Publisher"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Publish data to the ZMQ pubsub channel"
+        - key: "perm_publish_kafka"
+          label: "Kafka Publisher"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Publish data to Kafka"
+        - key: "perm_server_sign"
+          label: "Server Signing"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Access the CryptographicKeys/serverSign endpoint — useful for internal signing services, use with care"
+
+    - name: "Audit, Limits & Defaults"
+      icon: "bar-chart"
+      description: "Audit access, per-role resource limits, and role defaults"
+      fields:
+        - key: "perm_audit"
+          label: "Audit Actions"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Access the audit logs of the user's organisation"
+        - key: "perm_skip_otp"
+          label: "Skip OTP Requirement"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Skip creating/using OTP — useful for internal service accounts; has no effect when OTP is not required instance-wide"
+        - key: "default_role"
+          label: "Default Role"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Assign this role to new user accounts by default"
+        - key: "restricted_to_site_admin"
+          label: "Restricted To Site Admin"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Only a Site Admin may assign this role to a user"
+        - key: "enforce_rate_limit"
+          label: "Enforce Rate Limit"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options: [{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]
+          helpText: "Enforce an API rate limit for users with this role"
+        - key: "rate_limit_count"
+          label: "Rate Limit Count"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+          helpText: "Requests per minute allowed when Enforce Rate Limit is Yes. 0 = use the instance default."
+        - key: "memory_limit"
+          label: "Memory Limit"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "PHP memory limit override for this role's background tasks, e.g. 512M. Leave blank for the instance default."
+        - key: "max_execution_time"
+          label: "Max Execution Time"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "PHP max execution time override (seconds) for this role's background tasks. Leave blank for the instance default."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this role is configured — recorded for audit"

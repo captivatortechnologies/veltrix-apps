@@ -1,0 +1,113 @@
+# =============================================================================
+# Canvas Template — MISP Tags
+#
+# Declares ONE MISP tag (the item). Users add as many as they need. Field keys
+# must match config-types/tags/validate.ts. Applied via the MISP REST API
+# (/tags/index, /tags/add, /tags/edit/{id}, /tags/delete/{id}) on port 443.
+# =============================================================================
+
+id: "misp-tags"
+name: "Tags"
+toolType: "misp"
+entityType: "tags"
+description: "Manage MISP tags — name, colour, visibility and numeric weight — via the MISP REST API (443)"
+
+item:
+  label: "Tag"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Tag"
+      icon: "tag"
+      description: "Tag identity and appearance"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Tag name shown in MISP, e.g. tlp:amber or workflow:state=\"incomplete\". Used as the stable identity for upsert and drift — MISP enforces tag names are unique."
+
+        - key: "colour"
+          label: "Colour"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^#[0-9A-Fa-f]{6}$"
+            maxLength: 7
+          helpText: "Hex colour, e.g. #ffce3d. Leave blank to let MISP auto-generate a colour from the name on create, or leave an existing tag's colour untouched on edit."
+
+        - key: "exportable"
+          label: "Exportable"
+          fieldType: "select"
+          required: true
+          defaultValue: "yes"
+          options:
+            - label: "Yes"
+              value: "yes"
+            - label: "No"
+              value: "no"
+          helpText: "Whether this tag is included when this instance's data is exported, synced or pushed to other MISP servers"
+
+    - name: "Visibility"
+      icon: "eye"
+      description: "Who can see and use this tag"
+      fields:
+        - key: "local_only"
+          label: "Local Only"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options:
+            - label: "Yes"
+              value: "yes"
+            - label: "No"
+              value: "no"
+          helpText: "Keep this tag local to this instance — never synced or pushed to other MISP servers, regardless of Exportable"
+
+        - key: "hide_tag"
+          label: "Hide From Selector"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options:
+            - label: "Yes"
+              value: "yes"
+            - label: "No"
+              value: "no"
+          helpText: "Hide this tag from the tag-selection dropdown; it remains usable via direct search and stays attached where already applied"
+
+        - key: "org_id"
+          label: "Restrict To Organisation ID"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+          helpText: "Numeric MISP organisation ID allowed to use this tag. 0 = unrestricted (any local organisation). Find an org's ID via the Organisations config type or GET /organisations."
+
+        - key: "user_id"
+          label: "Restrict To User ID"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+          helpText: "Numeric MISP user ID allowed to use this tag. 0 = unrestricted (any user). Rare — most tags should leave this at 0."
+
+    - name: "Scoring"
+      icon: "hash"
+      description: "Optional numeric weight, used by some taxonomies for scoring"
+      fields:
+        - key: "numerical_value"
+          label: "Numerical Value"
+          fieldType: "number"
+          required: false
+          helpText: "Optional numeric weight attached to this tag, e.g. for a scored taxonomy predicate. Leave blank for none."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this tag is configured — recorded for audit"

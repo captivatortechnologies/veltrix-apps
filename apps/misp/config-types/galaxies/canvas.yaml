@@ -1,0 +1,124 @@
+# =============================================================================
+# Canvas Template — MISP Galaxies
+#
+# Declares ONE CUSTOM MISP galaxy — a taxonomy category, e.g. "Internal Threat
+# Actors" (the item). Users add as many as they need. Field keys must match
+# config-types/galaxies/validate.ts. Applied via the MISP REST API (/galaxies,
+# /galaxies/add, /galaxies/edit/{id}, /galaxies/enable|disable/{id}) on port 443.
+#
+# This type manages CUSTOM galaxies only — it never touches MISP's own default
+# galaxy library (mitre-attack-pattern, ...), which ships with MISP and is
+# updated via the (non-declarative) "update galaxies" action, not this API.
+# The individual entries inside a galaxy are authored with the separate
+# "Galaxy Clusters" config type.
+# =============================================================================
+
+id: "misp-galaxies"
+name: "Galaxies"
+toolType: "misp"
+entityType: "galaxies"
+description: "Manage custom MISP galaxies — taxonomy categories for galaxy clusters — via the MISP REST API (443)"
+
+item:
+  label: "Galaxy"
+  identityField: "type"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Galaxy"
+      icon: "layers"
+      description: "Galaxy identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Display name shown in MISP, e.g. Internal Threat Actors"
+
+        - key: "type"
+          label: "Type"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            pattern: "^[a-z0-9][a-z0-9-]*$"
+          helpText: >
+            Machine identifier for this galaxy, e.g. internal-threat-actor. Forms the
+            cluster tag prefix misp-galaxy:<type>="...". Used as the stable identity for
+            upsert and drift — MISP does not enforce type uniqueness at the database
+            level, so keep it unique yourself.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "What this galaxy classifies"
+
+        - key: "namespace"
+          label: "Namespace"
+          fieldType: "text"
+          required: false
+          defaultValue: "custom"
+          validation:
+            maxLength: 255
+          helpText: "Grouping namespace shown alongside MISP's own (misp, deprecated, ...). Defaults to custom."
+
+        - key: "icon"
+          label: "Icon"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Optional Font Awesome icon name (without the fa- prefix), e.g. user-secret"
+
+    - name: "State"
+      icon: "toggle-left"
+      description: "Availability and sync behaviour"
+      fields:
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "select"
+          required: true
+          defaultValue: "yes"
+          options:
+            - label: "Yes"
+              value: "yes"
+            - label: "No"
+              value: "no"
+          helpText: "Whether this galaxy is available for tagging"
+
+        - key: "local_only"
+          label: "Local Only"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options:
+            - label: "Yes"
+              value: "yes"
+            - label: "No"
+              value: "no"
+          helpText: "Keep this galaxy local to this instance — never synced or pushed to other MISP servers"
+
+        - key: "kill_chain_order"
+          label: "Kill Chain Order (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 4000
+          helpText: >
+            Optional raw JSON object mapping a kill-chain name to an ordered list of
+            phases, e.g. {"Lockheed Martin - Kill Chain":["Reconnaissance","Weaponization"]}.
+            Leave blank for none.
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this galaxy is configured — recorded for audit"

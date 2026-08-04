@@ -1,0 +1,213 @@
+# =============================================================================
+# Canvas Template — MISP Users
+#
+# Declares ONE MISP user account (the item). Users add as many as they need.
+# Field keys must match config-types/users/validate.ts. Applied via the MISP
+# REST API (/admin/users/index, /admin/users/add, /admin/users/edit/{id},
+# /admin/users/delete/{id}) on port 443.
+#
+# SECRET MATERIAL IS NEVER MANAGED HERE — there is no password or auth-key field.
+# A new account starts with no password; enable Notify to have MISP email the
+# user its own password-reset link. See config-types/users/_shared.ts.
+# =============================================================================
+
+id: "misp-users"
+name: "Users"
+toolType: "misp"
+entityType: "users"
+description: "Provision MISP user accounts — email, organisation, role and account state — via the MISP REST API (443)"
+
+item:
+  label: "User"
+  identityField: "email"
+  repeatable: true
+  minItems: 1
+  maxItems: 2000
+  groups:
+    - name: "Identity"
+      icon: "user"
+      description: "Account identity, organisation and role"
+      fields:
+        - key: "email"
+          label: "Email"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            pattern: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+          helpText: "The user's email address — MISP's login identity. Used as the stable identity for upsert and drift; MISP enforces email uniqueness."
+
+        - key: "org_id"
+          label: "Organisation ID"
+          fieldType: "number"
+          required: true
+          helpText: "Numeric MISP organisation ID this user belongs to. Find it via the Organisations config type or GET /organisations."
+
+        - key: "role_id"
+          label: "Role ID"
+          fieldType: "number"
+          required: true
+          helpText: "Numeric MISP role ID assigned to this user. Find it via the Roles config type or GET /roles/index."
+
+    - name: "Account State"
+      icon: "toggle-left"
+      description: "Login and lifecycle state"
+      fields:
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options:
+            - label: "Yes"
+              value: "yes"
+            - label: "No"
+              value: "no"
+          helpText: "Disable this account — a disabled user cannot log in or use the API"
+
+        - key: "change_pw"
+          label: "Force Password Change"
+          fieldType: "select"
+          required: true
+          defaultValue: "yes"
+          options:
+            - label: "Yes"
+              value: "yes"
+            - label: "No"
+              value: "no"
+          helpText: "Require the user to set a new password on next login"
+
+        - key: "termsaccepted"
+          label: "Terms Accepted"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options:
+            - label: "Yes"
+              value: "yes"
+            - label: "No"
+              value: "no"
+          helpText: "Whether the user has accepted this instance's terms of use — set Yes to skip the terms prompt for a provisioned account"
+
+        - key: "notify"
+          label: "Notify On Create"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options:
+            - label: "Yes"
+              value: "yes"
+            - label: "No"
+              value: "no"
+          helpText: "On create only: have MISP email the new user its own password-reset link. This app never sets or reads a password."
+
+        - key: "external_auth_required"
+          label: "External Auth Required"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options:
+            - label: "Yes"
+              value: "yes"
+            - label: "No"
+              value: "no"
+          helpText: "Require this user to authenticate via the configured external auth provider (SSO) instead of a local password"
+
+    - name: "Alerts"
+      icon: "bell"
+      description: "Email alert and notification digest preferences"
+      fields:
+        - key: "autoalert"
+          label: "Auto Alert"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options:
+            - label: "Yes"
+              value: "yes"
+            - label: "No"
+              value: "no"
+          helpText: "Email this user when a new or updated event is published"
+
+        - key: "contactalert"
+          label: "Contact Alert"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options:
+            - label: "Yes"
+              value: "yes"
+            - label: "No"
+              value: "no"
+          helpText: "Email this user when another user requests contact over an event"
+
+        - key: "notification_daily"
+          label: "Daily Digest"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options:
+            - label: "Yes"
+              value: "yes"
+            - label: "No"
+              value: "no"
+          helpText: "Send this user a daily notification digest"
+
+        - key: "notification_weekly"
+          label: "Weekly Digest"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options:
+            - label: "Yes"
+              value: "yes"
+            - label: "No"
+              value: "no"
+          helpText: "Send this user a weekly notification digest"
+
+        - key: "notification_monthly"
+          label: "Monthly Digest"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options:
+            - label: "Yes"
+              value: "yes"
+            - label: "No"
+              value: "no"
+          helpText: "Send this user a monthly notification digest"
+
+    - name: "Security & Public Keys"
+      icon: "key"
+      description: "Non-secret identifiers and public key material"
+      fields:
+        - key: "nids_sid"
+          label: "NIDS SID"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+          helpText: "Optional NIDS Snort/Suricata sensor ID range start assigned to this user. 0 = none."
+
+        - key: "gpgkey"
+          label: "GPG Public Key"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 8000
+          helpText: "This user's PUBLIC PGP key block (never a private key) — used to encrypt outbound notification emails"
+
+        - key: "certif_public"
+          label: "S/MIME Public Certificate"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 8000
+          helpText: "This user's PUBLIC S/MIME certificate (never a private key) — used to encrypt outbound notification emails"
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this user is configured — recorded for audit"

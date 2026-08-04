@@ -1,0 +1,70 @@
+# =============================================================================
+# Canvas Template — Wazuh API Policies
+#
+# Declares ONE RBAC policy (the item) — an actions + resources + effect triple
+# attached to roles via the API Roles config type. Field keys must match
+# config-types/api-policies/validate.ts. Applied via the Wazuh REST API
+# (/security/policies) on port 55000.
+# =============================================================================
+
+id: "wazuh-api-policies"
+name: "API Policies"
+toolType: "wazuh"
+entityType: "api-policies"
+description: "Manage Wazuh RBAC policies (actions + resources + effect) — via the Wazuh REST API (55000)"
+
+item:
+  label: "API Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Policy identity and effect"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: '^[\w.%-]+$'
+            maxLength: 64
+          helpText: "The policy name (letters, numbers, dot, underscore, percent, hyphen). Used as the stable identity for upsert and drift."
+
+        - key: "effect"
+          label: "Effect"
+          fieldType: "select"
+          required: true
+          defaultValue: "allow"
+          options:
+            - label: "Allow"
+              value: "allow"
+            - label: "Deny"
+              value: "deny"
+          helpText: "Whether the listed actions on the listed resources are allowed or denied."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this policy exists — recorded for audit only, never sent to the manager"
+
+    - name: "Rule Definition"
+      icon: "list"
+      description: "The actions + resources this policy governs"
+      fields:
+        - key: "actions"
+          label: "Actions"
+          fieldType: "tags"
+          required: true
+          helpText: 'RBAC action strings, e.g. "agent:read", "group:create" — each must match <resource-type>:<verb>. See GET /security/actions on your manager for the full catalog.'
+
+        - key: "resources"
+          label: "Resources"
+          fieldType: "tags"
+          required: true
+          helpText: 'RBAC resource-scope strings, e.g. "agent:id:*", "*:*:*", "group:id:default" — each is <type>:<attribute>:<value> (combine multiple dimensions in one entry with "&"). See GET /security/resources on your manager for the full catalog.'

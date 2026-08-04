@@ -2,6 +2,38 @@
 
 All notable changes to the MISP app are documented here.
 
+## 0.5.0 — 2026-08-04
+
+Config-as-code surface exhaustion — seven more config types (all over the MISP
+REST API), taking full coverage from 6 to 13 configuration types:
+
+- **Tags** (`tags`) — name, colour, exportable, local-only, hide-from-selector,
+  numeric weight and org/user restriction, full add/edit/delete.
+- **Galaxies** (`galaxies`) — custom galaxy (taxonomy category) add/edit/enable/
+  disable; never touches MISP's own default galaxy library.
+- **Galaxy Clusters** (`galaxy-clusters`) — entries within any galaxy (default or
+  custom): value, description, distribution, sharing group, authors and
+  key/value elements, with add/edit/publish.
+- **Noticelists** (`noticelists`) — enable/disable by name (same shape as
+  Taxonomies/Warninglists).
+- **Roles** (`roles`) — the full MISP permission-flag surface (28 `perm_*` flags
+  plus rate limiting, memory/execution overrides and default-role), add/edit/
+  delete.
+- **Users** (`users`) — email, organisation, role, account state and alert
+  preferences, add/edit/delete. Intentionally never manages a password or auth
+  key — a `Notify On Create` flag asks MISP to email its own reset link instead.
+- **Admin Settings** (`admin-settings`) — MISP's generic server-setting key/value
+  store (`MISP.*`, `Security.*`, `Proxy.*`, ...); redacted (secret) and CLI-only
+  settings are read-only detected and skipped, never written. Also the home for
+  sync-shaping settings like `MISP.host_org_id` — there is no separate
+  "server-sync config" REST surface; see the README for why.
+
+Dropped after verifying against the MISP core/PyMISP source (see README
+Coverage): Object Templates (read-only + a bulk-update action, no add/edit
+endpoint), Sightings (attribute/event-scoped observation records — threat data,
+not config), and per-attribute/event authoring in general (unchanged from prior
+releases).
+
 ## 0.4.0 — 2026-07-30
 
 Generic topology: BYOL dialog shows MISP tiers (Database nodes / MISP core nodes)

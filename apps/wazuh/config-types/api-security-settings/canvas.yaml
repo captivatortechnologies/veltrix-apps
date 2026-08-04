@@ -1,0 +1,66 @@
+# =============================================================================
+# Canvas Template — Wazuh API Security Settings
+#
+# A SINGLETON: exactly one item describes the manager-wide RBAC/auth-token
+# settings. Field keys must match config-types/api-security-settings/validate.ts.
+# Applied via the Wazuh REST API (/security/config) on port 55000.
+# =============================================================================
+
+id: "wazuh-api-security-settings"
+name: "API Security Settings"
+toolType: "wazuh"
+entityType: "api-security-settings"
+description: "Manage the Wazuh REST API's manager-wide security settings (auth token lifetime, RBAC mode) — via the Wazuh REST API (55000)"
+
+item:
+  label: "Security Settings"
+  identityField: "configLabel"
+  repeatable: true
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Identity"
+      icon: "shield"
+      description: "Fixed label — this config type is a manager-wide singleton"
+      fields:
+        - key: "configLabel"
+          label: "Label"
+          fieldType: "text"
+          required: true
+          defaultValue: "Security Settings"
+          validation:
+            maxLength: 100
+          helpText: "Display label only — there is exactly one Security Settings resource per manager."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why these settings were chosen — recorded for audit only, never sent to the manager"
+
+    - name: "Settings"
+      icon: "lock"
+      description: "Auth-token lifetime and the RBAC evaluation mode"
+      fields:
+        - key: "auth_token_exp_timeout"
+          label: "Auth Token Expiration (seconds)"
+          fieldType: "number"
+          required: true
+          defaultValue: 900
+          validation:
+            min: 0
+          helpText: "How many seconds an issued auth token stays valid before a caller must re-authenticate. Wazuh default is 900 (15 minutes)."
+
+        - key: "rbac_mode"
+          label: "RBAC Mode"
+          fieldType: "select"
+          required: true
+          defaultValue: "white"
+          options:
+            - label: "White (default-deny — only explicitly allowed actions are permitted)"
+              value: "white"
+            - label: "Black (default-allow — only explicitly denied actions are blocked)"
+              value: "black"
+          helpText: "⚠ Changing this can immediately change what every API user can do — including this app's own credential. Verify against a live manager before applying to production."

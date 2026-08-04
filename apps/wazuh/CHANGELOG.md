@@ -2,6 +2,47 @@
 
 All notable changes to the Wazuh app are documented here.
 
+## 0.5.0 — 2026-08-04
+
+Exhausted the remaining genuinely-declarative Wazuh REST API config surface —
+six new configuration types (10 total), grouped "Manager" and "Security &
+Access". Coverage was audited against the Wazuh API OpenAPI spec
+(`api/api/spec/spec.yaml`, tag `v4.14.7`, github.com/wazuh/wazuh) — every
+`PUT`/`POST`/`DELETE` path in the spec was reviewed; see the README's new
+**Coverage** section for the full accounting, including what was intentionally
+dropped and why.
+
+- **Manager Configuration** — the manager's entire `ossec.conf`, replaced
+  whole-file (`GET`/`PUT /manager/configuration`, `raw=true` for a byte-faithful
+  round-trip), same content-replace model as Custom Rules/Decoders. Deploy also
+  calls `GET /manager/configuration/validation` (best-effort syntax check) and
+  `PUT /manager/restart` (best-effort reload) and reports both in the result
+  message.
+- **API Users** — Wazuh REST API accounts: username/password (write-only,
+  Wazuh never returns it), the `allow_run_as` flag, and the user's complete
+  role set (by name, reconciled against `/security/users/{id}/roles`).
+- **API Roles** — RBAC roles: name plus the role's complete policy and RBAC-rule
+  sets (by name, reconciled against the `/security/roles/{id}/policies` and
+  `/security/roles/{id}/rules` relationship endpoints).
+- **API Policies** — RBAC policies: `actions` + `resources` + `effect`
+  (allow/deny), validated against the exact `ACTION_REGEX`/`RESOURCE_REGEX`
+  grammar in `framework/wazuh/rbac/orm.py`.
+- **RBAC Rules** — authentication-context matching conditions (Wazuh's
+  FIND/MATCH grammar) attached to roles — distinct from the ruleset "Custom
+  Rules" config type, which manages `etc/rules` detection content.
+- **API Security Settings** — the manager-wide `auth_token_exp_timeout` +
+  `rbac_mode` singleton (`GET`/`PUT`/`DELETE /security/config`); rollback falls
+  back to `DELETE` (Wazuh's own "restore defaults") when no prior snapshot
+  could be captured.
+- `lib/wazuhApi.ts` gained `listAffectedItems()`, a generic list-endpoint reader
+  for the id-keyed security resources (users/roles/policies/rules), which —
+  unlike the filename-keyed resources — have no lookup-by-name endpoint and
+  must be resolved by listing and matching client-side.
+- README gained a **Coverage** section auditing every config type against its
+  Wazuh API operations, plus an honest accounting of what's intentionally
+  excluded (per-agent runtime actions, secret-generating agent enrollment,
+  read-only endpoints, session/token security actions) and why.
+
 ## 0.4.0 — 2026-07-30
 
 Generic topology: BYOL dialog shows Wazuh tiers (Indexers / Manager workers) not

@@ -1,0 +1,56 @@
+# =============================================================================
+# Canvas Template — Wazuh RBAC Rules
+#
+# Declares ONE RBAC (security) rule (the item) — a context-matching condition
+# (e.g. FIND/MATCH against the authenticated user) attached to roles via the
+# API Roles config type. NOT to be confused with the "Custom Rules" config
+# type, which manages ruleset detection rules (etc/rules). Field keys must
+# match config-types/rbac-rules/validate.ts. Applied via the Wazuh REST API
+# (/security/rules) on port 55000.
+# =============================================================================
+
+id: "wazuh-rbac-rules"
+name: "RBAC Rules"
+toolType: "wazuh"
+entityType: "rbac-rules"
+description: "Manage Wazuh RBAC (security) rules — authentication-context matching conditions attached to roles — via the Wazuh REST API (55000). Distinct from the ruleset Custom Rules config type."
+
+item:
+  label: "RBAC Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Rule"
+      icon: "shield"
+      description: "RBAC rule identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: '^[\w.%-]+$'
+            maxLength: 64
+          helpText: "The RBAC rule name (letters, numbers, dot, underscore, percent, hyphen). Used as the stable identity for upsert and drift."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this rule exists — recorded for audit only, never sent to the manager"
+
+    - name: "Definition"
+      icon: "code"
+      description: "The context-matching condition Wazuh evaluates at authentication time"
+      fields:
+        - key: "ruleDefinition"
+          label: "Rule Definition (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 20000
+          helpText: 'A JSON object using Wazuh''s FIND/MATCH grammar, e.g. {"FIND": {"username": "admin"}} or {"MATCH": {"definition": "ldap_admins"}} — combine with "OR"/"AND" keys for compound conditions. See the Wazuh RBAC documentation for the full grammar.'

@@ -1,0 +1,132 @@
+# =============================================================================
+# Canvas Template — Rubrik Global Cluster Settings
+#
+# Bundles cluster identity and network settings that are genuinely declarative
+# and carry no secret material: name, timezone, geolocation, DNS nameservers /
+# search domains, NTP servers and the login banner. This item is a cluster
+# SINGLETON — it is NOT repeatable (minItems/maxItems 1) and has no identity
+# field. A canvas targeting more than one rubrik-cluster component applies the
+# SAME declared values to every one of them — use a separate canvas per cluster
+# if these must differ.
+#
+# Applied over the Rubrik CDM v1/internal REST API:
+#   PATCH /api/v1/cluster/me                      (name, timezone, geolocation)
+#   POST  /api/internal/cluster/me/dns_nameserver     (full replace)
+#   POST  /api/internal/cluster/me/dns_search_domain  (full replace)
+#   POST  /api/internal/cluster/me/ntp_server          (full replace)
+#   PUT   /api/internal/cluster/me/login_banner
+#
+# Field keys must match config-types/global-cluster-settings/validate.ts and
+# _shared.ts.
+# =============================================================================
+
+id: "rubrik-global-cluster-settings"
+name: "Global Cluster Settings"
+toolType: "rubrik"
+entityType: "global-cluster-settings"
+description: "Manage Rubrik cluster identity and network settings — name, timezone, geolocation, DNS, NTP and login banner — via the Rubrik CDM v1/internal REST API"
+
+item:
+  label: "Cluster Settings"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Identity"
+      icon: "shield"
+      description: "Cluster name, timezone and physical location"
+      fields:
+        - key: "clusterName"
+          label: "Cluster Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 128
+          helpText: "Rename the cluster. Leave blank to leave the current name unchanged."
+
+        - key: "timezone"
+          label: "Timezone"
+          fieldType: "select"
+          required: true
+          defaultValue: "UTC"
+          options:
+            - { label: "UTC", value: "UTC" }
+            - { label: "America/Anchorage", value: "America/Anchorage" }
+            - { label: "America/Araguaina", value: "America/Araguaina" }
+            - { label: "America/Barbados", value: "America/Barbados" }
+            - { label: "America/Chicago", value: "America/Chicago" }
+            - { label: "America/Denver", value: "America/Denver" }
+            - { label: "America/Los_Angeles", value: "America/Los_Angeles" }
+            - { label: "America/Mexico_City", value: "America/Mexico_City" }
+            - { label: "America/New_York", value: "America/New_York" }
+            - { label: "America/Noronha", value: "America/Noronha" }
+            - { label: "America/Phoenix", value: "America/Phoenix" }
+            - { label: "America/Toronto", value: "America/Toronto" }
+            - { label: "America/Vancouver", value: "America/Vancouver" }
+            - { label: "Asia/Bangkok", value: "Asia/Bangkok" }
+            - { label: "Asia/Dhaka", value: "Asia/Dhaka" }
+            - { label: "Asia/Dubai", value: "Asia/Dubai" }
+            - { label: "Asia/Hong_Kong", value: "Asia/Hong_Kong" }
+            - { label: "Asia/Karachi", value: "Asia/Karachi" }
+            - { label: "Asia/Kathmandu", value: "Asia/Kathmandu" }
+            - { label: "Asia/Kolkata", value: "Asia/Kolkata" }
+            - { label: "Asia/Magadan", value: "Asia/Magadan" }
+            - { label: "Asia/Singapore", value: "Asia/Singapore" }
+            - { label: "Asia/Tokyo", value: "Asia/Tokyo" }
+            - { label: "Atlantic/Cape_Verde", value: "Atlantic/Cape_Verde" }
+            - { label: "Australia/Perth", value: "Australia/Perth" }
+            - { label: "Australia/Sydney", value: "Australia/Sydney" }
+            - { label: "Europe/Amsterdam", value: "Europe/Amsterdam" }
+            - { label: "Europe/Athens", value: "Europe/Athens" }
+            - { label: "Europe/London", value: "Europe/London" }
+            - { label: "Europe/Moscow", value: "Europe/Moscow" }
+            - { label: "Pacific/Auckland", value: "Pacific/Auckland" }
+            - { label: "Pacific/Honolulu", value: "Pacific/Honolulu" }
+            - { label: "Pacific/Midway", value: "Pacific/Midway" }
+          helpText: "The cluster's timezone. Rubrik CDM accepts a curated list of IANA zones, not the full tz database."
+
+        - key: "location"
+          label: "Geolocation"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Free-text physical location shown in the Rubrik UI, e.g. Austin, TX. Leave blank to clear it."
+
+    - name: "DNS"
+      icon: "network"
+      description: "Name resolution used by the cluster"
+      fields:
+        - key: "dnsServers"
+          label: "DNS Nameservers"
+          fieldType: "tags"
+          required: false
+          helpText: "DNS server IPs the cluster uses for name resolution, one per entry. A full replace — leaving this empty clears the configured nameservers."
+
+        - key: "dnsSearchDomains"
+          label: "DNS Search Domains"
+          fieldType: "tags"
+          required: false
+          helpText: "DNS search domains appended to unqualified lookups, one per entry. A full replace."
+
+    - name: "Time Synchronization"
+      icon: "clock"
+      description: "NTP servers used to keep the cluster clock in sync"
+      fields:
+        - key: "ntpServers"
+          label: "NTP Servers"
+          fieldType: "tags"
+          required: false
+          helpText: "NTP server hostnames/IPs, one per entry. A full replace — leaving this empty clears the configured NTP servers."
+
+    - name: "Login Banner"
+      icon: "file"
+      description: "Text shown on the Rubrik CDM login page"
+      fields:
+        - key: "loginBanner"
+          label: "Login Banner Text"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 4000
+          helpText: "Text displayed on the cluster's login page, e.g. an authorized-access notice. Leave blank to clear it."

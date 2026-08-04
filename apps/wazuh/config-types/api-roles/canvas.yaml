@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — Wazuh API Roles
+#
+# Declares ONE RBAC role (the item), plus its full set of attached policies and
+# RBAC rules (both by NAME, resolved to ids at deploy time — see the API
+# Policies and RBAC Rules config types). Field keys must match
+# config-types/api-roles/validate.ts. Applied via the Wazuh REST API
+# (/security/roles + relationship endpoints) on port 55000.
+# =============================================================================
+
+id: "wazuh-api-roles"
+name: "API Roles"
+toolType: "wazuh"
+entityType: "api-roles"
+description: "Manage Wazuh RBAC roles and their attached policies/RBAC rules — via the Wazuh REST API (55000)"
+
+item:
+  label: "API Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Role"
+      icon: "shield"
+      description: "Role identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: '^[\w.%-]+$'
+            maxLength: 64
+          helpText: "The role name (letters, numbers, dot, underscore, percent, hyphen). Used as the stable identity for upsert and drift."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this role exists — recorded for audit only, never sent to the manager"
+
+    - name: "Permissions"
+      icon: "list"
+      description: "The full set of policies and RBAC rules attached to this role"
+      fields:
+        - key: "policies"
+          label: "Policies"
+          fieldType: "tags"
+          required: false
+          helpText: "Policy NAMEs to attach to this role (see the API Policies config type) — each must already exist. This is the role's COMPLETE policy set; removing a name here detaches it."
+
+        - key: "rules"
+          label: "RBAC Rules"
+          fieldType: "tags"
+          required: false
+          helpText: "RBAC Rule NAMEs to attach to this role (see the RBAC Rules config type) — each must already exist. This is the role's COMPLETE rule set; removing a name here detaches it."

@@ -156,3 +156,33 @@ export async function getToken(
   const token = await authenticate(baseUrl, credential)
   return { baseUrl, token }
 }
+
+// --- Id-keyed resource listing (security/RBAC) ------------------------------
+
+/** Generic Wazuh list-endpoint envelope: `{ data: { affected_items: T[] } }`. */
+export interface AffectedItemsEnvelope<T> {
+  data?: { affected_items?: T[] }
+}
+
+/**
+ * List every item at a Wazuh list endpoint, unwrapping the standard
+ * `{ data: { affected_items } }` envelope. Unlike the filename-keyed resources
+ * (CDB lists, rules, decoders, agent groups — each addressable by name in its
+ * own URL), the id-keyed security resources (users/roles/policies/rules) have
+ * no lookup-by-name endpoint, so upsert-by-name and relationship reconciliation
+ * both start by listing and matching client-side.
+ *
+ * `limit=500` is the API's own documented ceiling before responses "may be
+ * slower" (see the `limit` parameter in the Wazuh API spec) — ample for the
+ * RBAC object counts (users/roles/policies/rules) this is used for.
+ */
+export async function listAffectedItems<T>(
+  baseUrl: string,
+  headers: Record<string, string>,
+  path: string,
+  limit = 500,
+): Promise<T[]> {
+  const sep = path.includes('?') ? '&' : '?'
+  const envelope = await getJson<AffectedItemsEnvelope<T>>(`${baseUrl}${path}${sep}limit=${limit}`, headers)
+  return envelope.data?.affected_items ?? []
+}

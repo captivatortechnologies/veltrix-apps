@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-wazuh",
   "private": true,
-  "version": "0.4.0",
-  "description": "Veltrix app: manage Wazuh (SIEM/XDR/HIDS) as code — CDB lists over the Wazuh REST API (55000) — with BYOL cluster infrastructure groundwork",
+  "version": "0.5.0",
+  "description": "Veltrix app: manage Wazuh (SIEM/XDR/HIDS) as code — 10 config types (CDB lists, agent groups, custom rules/decoders, manager configuration, API users/roles/policies/RBAC rules, API security settings) over the Wazuh REST API (55000) — with BYOL cluster infrastructure groundwork",
   "scripts": {
     "typecheck": "tsc --noEmit"
   },

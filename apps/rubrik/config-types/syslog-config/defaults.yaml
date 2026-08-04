@@ -1,0 +1,5 @@
+# Defaults for the Syslog Configuration singleton. Flat mapping of field key ->
+# default (the canvas template uses the "item" form). The operator supplies the
+# syslog server hostname; protocol and port default to the common UDP/514.
+protocol: "UDP"
+port: 514

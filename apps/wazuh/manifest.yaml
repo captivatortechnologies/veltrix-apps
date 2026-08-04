@@ -1,13 +1,15 @@
 id: wazuh
 name: Wazuh
-version: "0.4.0"
+version: "0.5.0"
 vendor: Veltrix
 description: >
   Manage Wazuh (open-source SIEM / XDR / HIDS) as code. Author CDB lists,
-  and — over the Wazuh REST API (55000, self-signed, token-authenticated) —
-  drive them through the Security-as-Code pipeline with validation, drift
-  detection and rollback. BYOL cluster provisioning (manager / indexer /
-  dashboard) is declared as a generic InfraSpec.
+  custom rules/decoders, agent groups, the manager's ossec.conf, and the full
+  RBAC surface (API users/roles/policies/rules, security settings) — over the
+  Wazuh REST API (55000, self-signed, token-authenticated) — and drive them
+  through the Security-as-Code pipeline with validation, drift detection and
+  rollback. BYOL cluster provisioning (manager / indexer / dashboard) is
+  declared as a generic InfraSpec.
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/wazuh
@@ -39,6 +41,24 @@ permissions:
     - resource: custom-decoders
       actions: [read, write, delete]
       description: Manage Wazuh custom decoder files (etc/decoders)
+    - resource: manager-configuration
+      actions: [read, write, delete]
+      description: Manage the Wazuh manager's ossec.conf as a whole file
+    - resource: api-users
+      actions: [read, write, delete]
+      description: Manage Wazuh REST API users, their run_as flag and attached roles
+    - resource: api-roles
+      actions: [read, write, delete]
+      description: Manage Wazuh RBAC roles and their attached policies/RBAC rules
+    - resource: api-policies
+      actions: [read, write, delete]
+      description: Manage Wazuh RBAC policies (actions + resources + effect)
+    - resource: rbac-rules
+      actions: [read, write, delete]
+      description: Manage Wazuh RBAC (security) rules — authentication-context matching conditions
+    - resource: api-security-settings
+      actions: [read, write, delete]
+      description: Manage the Wazuh REST API's manager-wide security settings (auth token lifetime, RBAC mode)
     - resource: byol
       actions: [read, write, delete]
       description: Manage BYOL Wazuh cluster infrastructure
@@ -122,6 +142,114 @@ pipeline:
         healthCheck: config-types/custom-decoders/healthCheck
         driftDetect: config-types/custom-decoders/driftDetect
         getStatus: config-types/custom-decoders/getStatus
+      targets:
+        componentTypes: [manager, manager-master, manager-worker]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: manager-configuration
+      group: "Manager"
+      name: Manager Configuration
+      description: The Wazuh manager's ossec.conf, replaced whole-file, via the Wazuh REST API (55000); a manager restart activates the change
+      canvasTemplate: config-types/manager-configuration/canvas.yaml
+      defaultConfig: config-types/manager-configuration/defaults.yaml
+      handlers:
+        validate: config-types/manager-configuration/validate
+        deploy: config-types/manager-configuration/deploy
+        rollback: config-types/manager-configuration/rollback
+        healthCheck: config-types/manager-configuration/healthCheck
+        driftDetect: config-types/manager-configuration/driftDetect
+        getStatus: config-types/manager-configuration/getStatus
+      targets:
+        componentTypes: [manager, manager-master, manager-worker]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: api-users
+      group: "Security & Access"
+      name: API Users
+      description: Wazuh REST API users, their run_as flag and attached roles, via the Wazuh REST API (55000)
+      canvasTemplate: config-types/api-users/canvas.yaml
+      defaultConfig: config-types/api-users/defaults.yaml
+      handlers:
+        validate: config-types/api-users/validate
+        deploy: config-types/api-users/deploy
+        rollback: config-types/api-users/rollback
+        healthCheck: config-types/api-users/healthCheck
+        driftDetect: config-types/api-users/driftDetect
+        getStatus: config-types/api-users/getStatus
+      targets:
+        componentTypes: [manager, manager-master, manager-worker]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: api-roles
+      group: "Security & Access"
+      name: API Roles
+      description: Wazuh RBAC roles and their attached policies/RBAC rules, via the Wazuh REST API (55000)
+      canvasTemplate: config-types/api-roles/canvas.yaml
+      defaultConfig: config-types/api-roles/defaults.yaml
+      handlers:
+        validate: config-types/api-roles/validate
+        deploy: config-types/api-roles/deploy
+        rollback: config-types/api-roles/rollback
+        healthCheck: config-types/api-roles/healthCheck
+        driftDetect: config-types/api-roles/driftDetect
+        getStatus: config-types/api-roles/getStatus
+      targets:
+        componentTypes: [manager, manager-master, manager-worker]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: api-policies
+      group: "Security & Access"
+      name: API Policies
+      description: Wazuh RBAC policies (actions + resources + effect), via the Wazuh REST API (55000)
+      canvasTemplate: config-types/api-policies/canvas.yaml
+      defaultConfig: config-types/api-policies/defaults.yaml
+      handlers:
+        validate: config-types/api-policies/validate
+        deploy: config-types/api-policies/deploy
+        rollback: config-types/api-policies/rollback
+        healthCheck: config-types/api-policies/healthCheck
+        driftDetect: config-types/api-policies/driftDetect
+        getStatus: config-types/api-policies/getStatus
+      targets:
+        componentTypes: [manager, manager-master, manager-worker]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: rbac-rules
+      group: "Security & Access"
+      name: RBAC Rules
+      description: Wazuh RBAC (security) rules — authentication-context matching conditions attached to roles — via the Wazuh REST API (55000)
+      canvasTemplate: config-types/rbac-rules/canvas.yaml
+      defaultConfig: config-types/rbac-rules/defaults.yaml
+      handlers:
+        validate: config-types/rbac-rules/validate
+        deploy: config-types/rbac-rules/deploy
+        rollback: config-types/rbac-rules/rollback
+        healthCheck: config-types/rbac-rules/healthCheck
+        driftDetect: config-types/rbac-rules/driftDetect
+        getStatus: config-types/rbac-rules/getStatus
+      targets:
+        componentTypes: [manager, manager-master, manager-worker]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: api-security-settings
+      group: "Security & Access"
+      name: API Security Settings
+      description: The Wazuh REST API's manager-wide security settings (auth token lifetime, RBAC mode), via the Wazuh REST API (55000)
+      canvasTemplate: config-types/api-security-settings/canvas.yaml
+      defaultConfig: config-types/api-security-settings/defaults.yaml
+      handlers:
+        validate: config-types/api-security-settings/validate
+        deploy: config-types/api-security-settings/deploy
+        rollback: config-types/api-security-settings/rollback
+        healthCheck: config-types/api-security-settings/healthCheck
+        driftDetect: config-types/api-security-settings/driftDetect
+        getStatus: config-types/api-security-settings/getStatus
       targets:
         componentTypes: [manager, manager-master, manager-worker]
         requiresCredential: true

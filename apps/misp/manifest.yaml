@@ -1,6 +1,6 @@
 id: misp
 name: MISP
-version: "0.4.0"
+version: "0.5.0"
 vendor: Veltrix
 description: >
   Manage MISP (open-source Threat Intelligence Platform) as code. Author threat
@@ -45,6 +45,27 @@ permissions:
     - resource: sync-servers
       actions: [read, write, delete]
       description: Manage MISP sync servers (add / edit / pull / push)
+    - resource: tags
+      actions: [read, write, delete]
+      description: Manage MISP tags (add / edit / delete)
+    - resource: galaxies
+      actions: [read, write, delete]
+      description: Manage custom MISP galaxies (add / edit / enable / disable)
+    - resource: galaxy-clusters
+      actions: [read, write, delete]
+      description: Manage MISP galaxy clusters within a galaxy (add / edit / publish)
+    - resource: noticelists
+      actions: [read, write]
+      description: Enable or disable MISP noticelists
+    - resource: roles
+      actions: [read, write, delete]
+      description: Manage MISP user roles and their permission flags (add / edit)
+    - resource: users
+      actions: [read, write, delete]
+      description: Provision MISP user accounts (add / edit) — never manages passwords or auth keys
+    - resource: admin-settings
+      actions: [read, write]
+      description: Manage MISP instance-wide server settings as key/value pairs
     - resource: byol
       actions: [read, write, delete]
       description: Manage BYOL MISP stack infrastructure
@@ -161,6 +182,132 @@ pipeline:
         healthCheck: config-types/sync-servers/healthCheck
         driftDetect: config-types/sync-servers/driftDetect
         getStatus: config-types/sync-servers/getStatus
+      targets:
+        componentTypes: [misp-core, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: tags
+      group: "Vocabularies"
+      name: Tags
+      description: MISP tags — name, colour, visibility and numeric weight — applied over the MISP REST API (443)
+      canvasTemplate: config-types/tags/canvas.yaml
+      defaultConfig: config-types/tags/defaults.yaml
+      handlers:
+        validate: config-types/tags/validate
+        deploy: config-types/tags/deploy
+        rollback: config-types/tags/rollback
+        healthCheck: config-types/tags/healthCheck
+        driftDetect: config-types/tags/driftDetect
+        getStatus: config-types/tags/getStatus
+      targets:
+        componentTypes: [misp-core, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: galaxies
+      group: "Galaxies"
+      name: Galaxies
+      description: Custom MISP galaxies — taxonomy categories for galaxy clusters — applied over the MISP REST API (443)
+      canvasTemplate: config-types/galaxies/canvas.yaml
+      defaultConfig: config-types/galaxies/defaults.yaml
+      handlers:
+        validate: config-types/galaxies/validate
+        deploy: config-types/galaxies/deploy
+        rollback: config-types/galaxies/rollback
+        healthCheck: config-types/galaxies/healthCheck
+        driftDetect: config-types/galaxies/driftDetect
+        getStatus: config-types/galaxies/getStatus
+      targets:
+        componentTypes: [misp-core, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: galaxy-clusters
+      group: "Galaxies"
+      name: Galaxy Clusters
+      description: Entries within a MISP galaxy (default or custom) — value, distribution and metadata — applied over the MISP REST API (443)
+      canvasTemplate: config-types/galaxy-clusters/canvas.yaml
+      defaultConfig: config-types/galaxy-clusters/defaults.yaml
+      handlers:
+        validate: config-types/galaxy-clusters/validate
+        deploy: config-types/galaxy-clusters/deploy
+        rollback: config-types/galaxy-clusters/rollback
+        healthCheck: config-types/galaxy-clusters/healthCheck
+        driftDetect: config-types/galaxy-clusters/driftDetect
+        getStatus: config-types/galaxy-clusters/getStatus
+      targets:
+        componentTypes: [misp-core, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: noticelists
+      group: "Vocabularies"
+      name: Noticelists
+      description: Enable or disable MISP noticelists by name — applied over the MISP REST API (443)
+      canvasTemplate: config-types/noticelists/canvas.yaml
+      defaultConfig: config-types/noticelists/defaults.yaml
+      handlers:
+        validate: config-types/noticelists/validate
+        deploy: config-types/noticelists/deploy
+        rollback: config-types/noticelists/rollback
+        healthCheck: config-types/noticelists/healthCheck
+        driftDetect: config-types/noticelists/driftDetect
+        getStatus: config-types/noticelists/getStatus
+      targets:
+        componentTypes: [misp-core, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: roles
+      group: "Access Control"
+      name: Roles
+      description: MISP user roles and their permission flags — applied over the MISP REST API (443)
+      canvasTemplate: config-types/roles/canvas.yaml
+      defaultConfig: config-types/roles/defaults.yaml
+      handlers:
+        validate: config-types/roles/validate
+        deploy: config-types/roles/deploy
+        rollback: config-types/roles/rollback
+        healthCheck: config-types/roles/healthCheck
+        driftDetect: config-types/roles/driftDetect
+        getStatus: config-types/roles/getStatus
+      targets:
+        componentTypes: [misp-core, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: users
+      group: "Access Control"
+      name: Users
+      description: MISP user accounts — email, organisation, role and account state — applied over the MISP REST API (443)
+      canvasTemplate: config-types/users/canvas.yaml
+      defaultConfig: config-types/users/defaults.yaml
+      handlers:
+        validate: config-types/users/validate
+        deploy: config-types/users/deploy
+        rollback: config-types/users/rollback
+        healthCheck: config-types/users/healthCheck
+        driftDetect: config-types/users/driftDetect
+        getStatus: config-types/users/getStatus
+      targets:
+        componentTypes: [misp-core, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: admin-settings
+      group: "System Settings"
+      name: Admin Settings
+      description: MISP instance-wide server settings as declarative key/value pairs — applied over the MISP REST API (443)
+      canvasTemplate: config-types/admin-settings/canvas.yaml
+      defaultConfig: config-types/admin-settings/defaults.yaml
+      handlers:
+        validate: config-types/admin-settings/validate
+        deploy: config-types/admin-settings/deploy
+        rollback: config-types/admin-settings/rollback
+        healthCheck: config-types/admin-settings/healthCheck
+        driftDetect: config-types/admin-settings/driftDetect
+        getStatus: config-types/admin-settings/getStatus
       targets:
         componentTypes: [misp-core, standalone]
         requiresCredential: true

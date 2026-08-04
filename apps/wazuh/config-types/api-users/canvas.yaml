@@ -1,0 +1,75 @@
+# =============================================================================
+# Canvas Template — Wazuh API Users
+#
+# Declares ONE Wazuh API user (the item) — an account that authenticates
+# against the manager's REST API (distinct from Wazuh AGENTS, and distinct from
+# the credential this app itself uses to reach the API). Field keys must match
+# config-types/api-users/validate.ts. Applied via the Wazuh REST API
+# (/security/users + relationship endpoints) on port 55000.
+# =============================================================================
+
+id: "wazuh-api-users"
+name: "API Users"
+toolType: "wazuh"
+entityType: "api-users"
+description: "Manage Wazuh REST API users, their run_as flag and attached roles — via the Wazuh REST API (55000)"
+
+item:
+  label: "API User"
+  identityField: "username"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "User"
+      icon: "user"
+      description: "User identity"
+      fields:
+        - key: "username"
+          label: "Username"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: '^[\w.%-]+$'
+            minLength: 4
+            maxLength: 64
+          helpText: "The API username (4-64 characters; letters, numbers, dot, underscore, percent, hyphen). Used as the stable identity for upsert and drift."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this user exists — recorded for audit only, never sent to the manager"
+
+    - name: "Credentials"
+      icon: "lock"
+      description: "Password — write-only"
+      fields:
+        - key: "password"
+          label: "Password"
+          fieldType: "password"
+          required: false
+          helpText: >
+            ⚠ WRITE-ONLY secret — Wazuh never returns it, so it cannot be
+            diffed, logged, or captured for rollback. Required when CREATING a
+            new user; leaving it blank on an EXISTING user keeps their current
+            password unchanged. To rotate a password, enter the new value here.
+
+    - name: "Access"
+      icon: "shield"
+      description: "The run_as flag and the user's complete role set"
+      fields:
+        - key: "allow_run_as"
+          label: "Allow Run As"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Lets this user authenticate on behalf of another user (used by the Wazuh dashboard's service account and similar integrations)."
+
+        - key: "roles"
+          label: "Roles"
+          fieldType: "tags"
+          required: false
+          helpText: "Role NAMEs to attach to this user (see the API Roles config type) — each must already exist. This is the user's COMPLETE role set; removing a name here detaches it."

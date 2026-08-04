@@ -1,0 +1,127 @@
+# =============================================================================
+# Canvas Template — MISP Galaxy Clusters
+#
+# Declares ONE entry within a MISP galaxy (the item), e.g. galaxy "Threat Actor",
+# cluster "APT-Internal-1". Users add as many as they need. Field keys must match
+# config-types/galaxy-clusters/validate.ts. Applied via the MISP REST API
+# (/galaxies, /galaxy_clusters/index/{galaxyId}, /galaxy_clusters/add/{galaxyId},
+# /galaxy_clusters/edit/{id}, /galaxy_clusters/publish/{id}) on port 443.
+#
+# The target galaxy can be one of MISP's own default galaxies (mitre-attack-pattern,
+# ...) or a custom one authored with the separate "Galaxies" config type.
+# =============================================================================
+
+id: "misp-galaxy-clusters"
+name: "Galaxy Clusters"
+toolType: "misp"
+entityType: "galaxy-clusters"
+description: "Author entries within a MISP galaxy (default or custom) via the MISP REST API (443)"
+
+item:
+  label: "Galaxy Cluster"
+  identityField: "value"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Cluster"
+      icon: "git-branch"
+      description: "Which galaxy this cluster belongs to, and its identity"
+      fields:
+        - key: "galaxy"
+          label: "Galaxy"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The target galaxy's type, uuid, or name, e.g. mitre-attack-pattern or a custom galaxy's type. Resolved against GET /galaxies at deploy time."
+
+        - key: "value"
+          label: "Value"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "This cluster's name, e.g. APT-Internal-1. Used as the stable identity for upsert and drift within the target galaxy."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "What this cluster represents"
+
+        - key: "authors"
+          label: "Authors"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Comma-separated list of authors, e.g. Jane Doe, Threat Intel Team"
+
+    - name: "Sharing"
+      icon: "share-2"
+      description: "Who this cluster is distributed to"
+      fields:
+        - key: "distribution"
+          label: "Distribution"
+          fieldType: "select"
+          required: true
+          defaultValue: "0"
+          options:
+            - label: "Your Organisation Only"
+              value: "0"
+            - label: "This Community Only"
+              value: "1"
+            - label: "Connected Communities"
+              value: "2"
+            - label: "All Communities"
+              value: "3"
+            - label: "Sharing Group"
+              value: "4"
+          helpText: "Who this cluster is shared with when synced/pushed"
+
+        - key: "sharing_group_id"
+          label: "Sharing Group ID"
+          fieldType: "number"
+          required: false
+          visibleWhen:
+            field: "distribution"
+            equals: "4"
+          helpText: "Required when Distribution is Sharing Group — the numeric MISP sharing group ID. Find it via the Sharing Groups config type or GET /sharing_groups."
+
+        - key: "publish"
+          label: "Publish"
+          fieldType: "select"
+          required: true
+          defaultValue: "no"
+          options:
+            - label: "Yes"
+              value: "yes"
+            - label: "No"
+              value: "no"
+          helpText: "Publish this cluster immediately after applying it, making it visible for synchronisation"
+
+    - name: "Elements"
+      icon: "list"
+      description: "Optional key/value metadata attached to this cluster"
+      fields:
+        - key: "elements"
+          label: "Elements (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 8000
+          helpText: >
+            Optional JSON array of { "key": ..., "value": ... } objects describing this
+            cluster, e.g. [{"key":"country","value":"US"},{"key":"synonyms","value":"APT-X"}].
+            Leave blank for none.
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this cluster is configured — recorded for audit"

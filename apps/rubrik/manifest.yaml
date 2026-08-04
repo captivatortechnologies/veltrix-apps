@@ -1,15 +1,17 @@
 id: rubrik
 name: Rubrik
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Rubrik (backup, ransomware recovery and data security) configuration as
   code through the Rubrik CDM (Cloud Data Management) REST API. Author SLA Domains
-  (backup policies), Fileset Templates (what to back up on a host) and Managed
-  Volumes (SLA-protected storage targets), and drive them through the
-  Security-as-Code pipeline (validate, deploy, health check, drift detection and
-  rollback) over HTTPS with a service-account session (self-signed certificates
-  tolerated).
+  (backup policies), Fileset Templates (what to back up on a host), Managed
+  Volumes (SLA-protected storage targets), Organizations (multi-tenant
+  containers), Syslog Configuration (centralized log forwarding) and Global
+  Cluster Settings (name, timezone, DNS, NTP, login banner), and drive them
+  through the Security-as-Code pipeline (validate, deploy, health check, drift
+  detection and rollback) over HTTPS with a service-account session (self-signed
+  certificates tolerated).
 category: COMPLIANCE
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/rubrik
@@ -38,6 +40,15 @@ permissions:
     - resource: managed-volumes
       actions: [read, write, delete]
       description: Manage Rubrik Managed Volumes (SLA-protected storage targets — channels, size, exports)
+    - resource: organizations
+      actions: [read, write, delete]
+      description: Manage Rubrik Organizations (multi-tenant containers that partition SLA domains, filesets and users)
+    - resource: syslog-config
+      actions: [read, write, delete]
+      description: Manage the Rubrik cluster's syslog export target (centralized log forwarding)
+    - resource: global-cluster-settings
+      actions: [read, write, delete]
+      description: Manage Rubrik cluster identity and network settings (name, timezone, location, DNS, NTP, login banner)
 
 pipeline:
   configurationTypes:
@@ -90,6 +101,60 @@ pipeline:
         healthCheck: config-types/managed-volumes/healthCheck
         driftDetect: config-types/managed-volumes/driftDetect
         getStatus: config-types/managed-volumes/getStatus
+      targets:
+        componentTypes: [rubrik-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: organizations
+      group: "Multi-Tenancy"
+      name: Organizations
+      description: Rubrik Organizations — multi-tenant containers that partition SLA domains, filesets and users — applied over the Rubrik CDM internal REST API
+      canvasTemplate: config-types/organizations/canvas.yaml
+      defaultConfig: config-types/organizations/defaults.yaml
+      handlers:
+        validate: config-types/organizations/validate
+        deploy: config-types/organizations/deploy
+        rollback: config-types/organizations/rollback
+        healthCheck: config-types/organizations/healthCheck
+        driftDetect: config-types/organizations/driftDetect
+        getStatus: config-types/organizations/getStatus
+      targets:
+        componentTypes: [rubrik-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: syslog-config
+      group: "Notifications & Logging"
+      name: Syslog Configuration
+      description: Rubrik cluster syslog export target (hostname, protocol, port) for centralized log forwarding — a cluster singleton — applied over the Rubrik CDM internal REST API
+      canvasTemplate: config-types/syslog-config/canvas.yaml
+      defaultConfig: config-types/syslog-config/defaults.yaml
+      handlers:
+        validate: config-types/syslog-config/validate
+        deploy: config-types/syslog-config/deploy
+        rollback: config-types/syslog-config/rollback
+        healthCheck: config-types/syslog-config/healthCheck
+        driftDetect: config-types/syslog-config/driftDetect
+        getStatus: config-types/syslog-config/getStatus
+      targets:
+        componentTypes: [rubrik-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: global-cluster-settings
+      group: "Cluster Settings"
+      name: Global Cluster Settings
+      description: Rubrik cluster identity and network settings — name, timezone, geolocation, DNS servers/search domains, NTP servers and login banner — a cluster singleton — applied over the Rubrik CDM v1/internal REST API
+      canvasTemplate: config-types/global-cluster-settings/canvas.yaml
+      defaultConfig: config-types/global-cluster-settings/defaults.yaml
+      handlers:
+        validate: config-types/global-cluster-settings/validate
+        deploy: config-types/global-cluster-settings/deploy
+        rollback: config-types/global-cluster-settings/rollback
+        healthCheck: config-types/global-cluster-settings/healthCheck
+        driftDetect: config-types/global-cluster-settings/driftDetect
+        getStatus: config-types/global-cluster-settings/getStatus
       targets:
         componentTypes: [rubrik-cluster]
         requiresCredential: true

@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — Rubrik Syslog Configuration
+#
+# Rubrik CDM forwards cluster events/audit logs to a syslog server. The cluster
+# supports a SINGLE active syslog target, so this item is a SINGLETON — it is
+# NOT repeatable (minItems/maxItems 1) and has no identity field. Rubrik has no
+# PATCH for this resource: a deploy reads the current target and, when it
+# differs, deletes it and creates the declared one (a full replace). No field
+# here carries a secret. Applied over the Rubrik CDM internal REST API
+# (GET/POST/DELETE /api/internal/syslog).
+#
+# Field keys must match config-types/syslog-config/validate.ts and _shared.ts.
+# =============================================================================
+
+id: "rubrik-syslog-config"
+name: "Syslog Configuration"
+toolType: "rubrik"
+entityType: "syslog-config"
+description: "Configure the Rubrik cluster's syslog export target (hostname, protocol, port) for centralized log forwarding, via the Rubrik CDM internal REST API. A cluster singleton — Rubrik keeps one active target; declaring a new one replaces it."
+
+item:
+  label: "Syslog Target"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Syslog Server"
+      icon: "terminal"
+      description: "Where cluster event and audit logs are forwarded"
+      fields:
+        - key: "hostname"
+          label: "Syslog Server Hostname/IP"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The syslog server (hostname or IP) that receives Rubrik cluster events."
+
+        - key: "protocol"
+          label: "Protocol"
+          fieldType: "select"
+          required: true
+          defaultValue: "UDP"
+          options:
+            - label: "UDP"
+              value: "UDP"
+            - label: "TCP"
+              value: "TCP"
+          helpText: "Transport protocol used to reach the syslog server."
+
+        - key: "port"
+          label: "Port"
+          fieldType: "number"
+          required: true
+          defaultValue: 514
+          validation:
+            min: 1
+            max: 65535
+          helpText: "Syslog server listening port (traditionally 514)."

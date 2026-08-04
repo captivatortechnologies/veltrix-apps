@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template — Wazuh Manager Configuration
+#
+# A SINGLETON: exactly one item holds the manager's ENTIRE ossec.conf, replaced
+# whole-file on every deploy (same content-replace model as Custom Rules /
+# Custom Decoders / CDB Lists). Field keys must match
+# config-types/manager-configuration/validate.ts. Applied via the Wazuh REST
+# API (/manager/configuration) on port 55000; a manager restart activates the
+# change.
+# =============================================================================
+
+id: "wazuh-manager-configuration"
+name: "Manager Configuration"
+toolType: "wazuh"
+entityType: "manager-configuration"
+description: "Manage the Wazuh manager's ossec.conf as a whole file — via the Wazuh REST API (55000); a manager restart activates the change"
+
+item:
+  label: "Manager Configuration"
+  identityField: "configLabel"
+  repeatable: true
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Identity"
+      icon: "server"
+      description: "Fixed label — this config type is a manager-wide singleton"
+      fields:
+        - key: "configLabel"
+          label: "Label"
+          fieldType: "text"
+          required: true
+          defaultValue: "ossec.conf (manager)"
+          validation:
+            maxLength: 100
+          helpText: "Display label only — there is exactly one ossec.conf per manager."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this configuration exists — recorded for audit only, never sent to the manager"
+
+    - name: "Configuration"
+      icon: "file-code"
+      description: "The complete ossec.conf, replaced whole-file on every deploy"
+      fields:
+        - key: "ossecConfXml"
+          label: "ossec.conf (XML)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 300000
+          helpText: >
+            ⚠ REPLACES THE ENTIRE MANAGER CONFIGURATION FILE. Omitting a
+            section present in the live file (e.g. <global>, <ruleset>,
+            <remote>) removes it from the manager. The full document, e.g.
+            <ossec_config>…</ossec_config>. Verify carefully before deploying
+            to production.

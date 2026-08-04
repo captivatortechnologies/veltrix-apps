@@ -1,0 +1,8 @@
+# Defaults for the Global Cluster Settings singleton. Flat mapping of field key
+# -> default (the canvas template uses the "item" form). Only timezone has a
+# sensible default (UTC) — the rest are cluster-specific and left for the
+# operator to fill in.
+timezone: "UTC"
+dnsServers: []
+dnsSearchDomains: []
+ntpServers: []

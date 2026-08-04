@@ -1,0 +1,43 @@
+# =============================================================================
+# Canvas Template — Rubrik Organizations
+#
+# Declares ONE Rubrik Organization (the item) — a lightweight multi-tenancy
+# container that partitions SLA domains, filesets and users for a tenant or
+# business unit. Users add as many as they need. An organization's logical
+# identity is its NAME (Rubrik assigns the id on creation), so the item's
+# identityField is `name` and config-types/organizations/validate.ts enforces
+# name uniqueness across the canvas.
+#
+# An organization has no other verified declarative field in the public API —
+# renaming and assigning objects/users to an organization are not exposed as a
+# stable, non-security-sensitive REST resource (see _shared.ts and the app
+# README "Coverage" section). Applied over the Rubrik CDM internal REST API
+# (POST /api/internal/organization).
+#
+# Field keys must match config-types/organizations/validate.ts and _shared.ts.
+# =============================================================================
+
+id: "rubrik-organizations"
+name: "Organizations"
+toolType: "rubrik"
+entityType: "organizations"
+description: "Manage Rubrik Organizations (multi-tenant containers that partition SLA domains, filesets and users) via the Rubrik CDM internal REST API"
+
+item:
+  label: "Organization"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Organization"
+      icon: "shield"
+      description: "Organization identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The organization name shown in Rubrik, e.g. Finance or EMEA. This is the organization's logical identity (Rubrik assigns the id). There is no verified rename endpoint — changing this value creates a NEW organization rather than renaming the existing one."
