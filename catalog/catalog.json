@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-08-04T17:34:48.141Z",
+  "generatedAt": "2026-08-04T17:44:01.260Z",
   "apps": [
     {
       "appId": "akamai",
@@ -809,7 +809,7 @@
     {
       "appId": "misp",
       "name": "MISP",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "vendor": "Veltrix",
       "description": "Manage MISP (open-source Threat Intelligence Platform) as code. Author threat feeds and drive them through the Security-as-Code pipeline — validate, deploy, health check, drift detection and rollback — over the MISP REST API (HTTPS, self-signed tolerated), with BYOL infrastructure provisioning for the MISP stack (core + MariaDB + Redis).",
       "category": "Threat Intelligence",
@@ -817,12 +817,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/misp",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/misp-v0.4.0/misp.zip",
-      "sha256": "7c3a8d9716d9231132aed9cd1758ccf9373a0e5c02ff66fbc48af93e39e0df21",
-      "sizeBytes": 248058,
-      "publishedAt": "2026-07-31T02:57:27.737Z",
-      "releaseNotes": "## 0.4.0 — 2026-07-30\n\nGeneric topology: BYOL dialog shows MISP tiers (Database nodes / MISP core nodes)\nnot Splunk labels; adds `node_tiers` storage (migration 004).",
-      "releasedAt": "2026-07-30T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/misp-v0.5.0/misp.zip",
+      "sha256": "2568183f034653154348e2b9369bf4b5a61c51ea949da138614f57a6c86bb43a",
+      "sizeBytes": 386040,
+      "publishedAt": "2026-08-04T17:44:01.227Z",
+      "releaseNotes": "## 0.5.0 — 2026-08-04\n\nConfig-as-code surface exhaustion — seven more config types (all over the MISP\nREST API), taking full coverage from 6 to 13 configuration types:\n\n- **Tags** (`tags`) — name, colour, exportable, local-only, hide-from-selector,\n  numeric weight and org/user restriction, full add/edit/delete.\n- **Galaxies** (`galaxies`) — custom galaxy (taxonomy category) add/edit/enable/\n  disable; never touches MISP's own default galaxy library.\n- **Galaxy Clusters** (`galaxy-clusters`) — entries within any galaxy (default or\n  custom): value, description, distribution, sharing group, authors and\n  key/value elements, with add/edit/publish.\n- **Noticelists** (`noticelists`) — enable/disable by name (same shape as\n  Taxonomies/Warninglists).\n- **Roles** (`roles`) — the full MISP permission-flag surface (28 `perm_*` flags\n  plus rate limiting, memory/execution overrides and default-role), add/edit/\n  delete.\n- **Users** (`users`) — email, organisation, role, account state and alert\n  preferences, add/edit/delete. Intentionally never manages a password or auth\n  key — a `Notify On Create` flag asks MISP to email its own reset link instead.\n- **Admin Settings** (`admin-settings`) — MISP's generic server-setting key/value\n  store (`MISP.*`, `Security.*`, `Proxy.*`, ...); redacted (secret) and CLI-only\n  settings are read-only detected and skipped, never written. Also the home for\n  sync-shaping settings like `MISP.host_org_id` — there is no separate\n  \"server-sync config\" REST surface; see the README for why.\n\nDropped after verifying against the MISP core/PyMISP source (see README\nCoverage): Object Templates (read-only + a bulk-update action, no add/edit\nendpoint), Sightings (attribute/event-scoped observation records — threat data,\nnot config), and per-attribute/event authoring in general (unchanged from prior\nreleases).",
+      "releasedAt": "2026-08-04T00:00:00.000Z"
     },
     {
       "appId": "netskope",
@@ -1073,20 +1073,20 @@
     {
       "appId": "rubrik",
       "name": "Rubrik",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "vendor": "Veltrix",
-      "description": "Manage Rubrik (backup, ransomware recovery and data security) configuration as code through the Rubrik CDM (Cloud Data Management) REST API. Author SLA Domains (backup policies), Fileset Templates (what to back up on a host) and Managed Volumes (SLA-protected storage targets), and drive them through the Security-as-Code pipeline (validate, deploy, health check, drift detection and rollback) over HTTPS with a service-account session (self-signed certificates tolerated).",
+      "description": "Manage Rubrik (backup, ransomware recovery and data security) configuration as code through the Rubrik CDM (Cloud Data Management) REST API. Author SLA Domains (backup policies), Fileset Templates (what to back up on a host), Managed Volumes (SLA-protected storage targets), Organizations (multi-tenant containers), Syslog Configuration (centralized log forwarding) and Global Cluster Settings (name, timezone, DNS, NTP, login banner), and drive them through the Security-as-Code pipeline (validate, deploy, health check, drift detection and rollback) over HTTPS with a service-account session (self-signed certificates tolerated).",
       "category": "COMPLIANCE",
       "icon": "🛡️",
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/rubrik",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/rubrik-v0.2.0/rubrik.zip",
-      "sha256": "edc9fc6eb5b6bf866117e3f15cf74cee387c8b6839ad8d684d8d7bc2989b1b17",
-      "sizeBytes": 106221,
-      "publishedAt": "2026-08-02T02:39:56.426Z",
-      "releaseNotes": "## 0.2.0 — 2026-08-01\n\nTwo new configuration types, driven through the full Security-as-Code pipeline.\n\n- **Fileset Templates** configuration type (`/api/v1/fileset_template`): author\n  reusable definitions of *what to back up* on a host — OS family plus\n  include / exclude / exception path lists (full paths + wildcards) and optional\n  backup-script hooks. Upsert by name over `POST`/`PATCH /api/v1/fileset_template`,\n  with health check, drift detection (OS type + path sets) and rollback (restore\n  prior definition, or delete a created template).\n- **Managed Volumes** configuration type (`/api/internal/managed_volume`): declare\n  SLA-protected storage targets — channels, size (GiB → bytes), subnet, application\n  tag and export host patterns. Upsert by name (channels/size are fixed at\n  creation, so an existing volume is PATCHed with only its mutable fields), with\n  health check, drift detection and rollback (restore prior export config, or delete\n  a created volume).\n- New app permissions: `fileset-templates` and `managed-volumes` (read/write/delete).\n\n> Endpoints were verified against the Rubrik CDM v5.0.0-p1 REST postman collection\n> and body field names against the Rubrik PowerShell SDK; the exact create/patch\n> body shapes (and the fileset `operatingSystemType` `Linux` vs `UnixLike` naming on\n> CDM 4.2+) should be verified against a live Rubrik CDM cluster — see the `FLAG`\n> notes in each config type's `_shared.ts`.",
-      "releasedAt": "2026-08-01T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/rubrik-v0.3.0/rubrik.zip",
+      "sha256": "01dfa46f67a103cd94f8e4c992caaaf7d167fcc773630d8e34007b2139fa477a",
+      "sizeBytes": 167019,
+      "publishedAt": "2026-08-04T17:44:01.238Z",
+      "releaseNotes": "## 0.3.0 — 2026-08-04\n\nThree new configuration types, exhausting the genuinely-declarative,\nnon-secret slice of the Rubrik CDM config-as-code surface.\n\n- **Organizations** configuration type (`/api/internal/organization`): declare\n  multi-tenancy containers that partition SLA domains, filesets and users.\n  Create-by-name (`POST`), with rollback deleting only the organizations this\n  deploy created (there is no verified rename endpoint, so an organization\n  that already exists is left untouched).\n- **Syslog Configuration** configuration type (`/api/internal/syslog`): declare\n  the cluster's single syslog export target (hostname, protocol, port) for\n  centralized log forwarding. A cluster singleton with no `PATCH` — a changed\n  target is applied as delete-then-create — with health check, drift detection\n  and rollback (restore the prior target, or clear it if none existed before).\n- **Global Cluster Settings** configuration type (`/api/v1/cluster/me` +\n  `/api/internal/cluster/me/*`): declare cluster name, timezone, geolocation,\n  DNS nameservers/search domains, NTP servers and the login banner as one\n  cluster-singleton item. Five independent read-then-write-if-different steps,\n  each converging without a needless write; rollback restores each area's\n  captured prior value independently.\n- New app permissions: `organizations`, `syslog-config` and\n  `global-cluster-settings` (read/write/delete).\n- README \"Coverage\" section documents every configuration type covered and,\n  with citations, every candidate type that was evaluated and honestly\n  excluded (LDAP/AD, SMTP, local users, roles, SNMP, replication targets,\n  archival locations, certificate management, guest OS credentials) — nearly\n  all because the only verified create/update endpoint embeds a secret\n  (a bind/SMTP/user password, or a target-cluster/cloud credential) directly\n  in the request body, which this app's config-as-code canvas has no facility\n  to hold.\n\n> Endpoints were verified against the Rubrik PowerShell SDK's API data\n> (`Rubrik/Private/Get-RubrikAPIData.ps1`) and the Rubrik Python SDK's\n> `rubrik_cdm/cluster.py` (`configure_syslog`, `configure_dns_servers`,\n> `configure_ntp`, `configure_login_banner`, `configure_cluster_location`,\n> `configure_timezone`) — see the README \"Coverage\" section for the full\n> source list. The exact body shapes should still be confirmed against a live\n> Rubrik CDM cluster; see the `FLAG` notes in each new config type's `_shared.ts`.",
+      "releasedAt": "2026-08-04T00:00:00.000Z"
     },
     {
       "appId": "runzero",
@@ -1465,20 +1465,20 @@
     {
       "appId": "wazuh",
       "name": "Wazuh",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "vendor": "Veltrix",
-      "description": "Manage Wazuh (open-source SIEM / XDR / HIDS) as code. Author CDB lists, and — over the Wazuh REST API (55000, self-signed, token-authenticated) — drive them through the Security-as-Code pipeline with validation, drift detection and rollback. BYOL cluster provisioning (manager / indexer / dashboard) is declared as a generic InfraSpec.",
+      "description": "Manage Wazuh (open-source SIEM / XDR / HIDS) as code. Author CDB lists, custom rules/decoders, agent groups, the manager's ossec.conf, and the full RBAC surface (API users/roles/policies/rules, security settings) — over the Wazuh REST API (55000, self-signed, token-authenticated) — and drive them through the Security-as-Code pipeline with validation, drift detection and rollback. BYOL cluster provisioning (manager / indexer / dashboard) is declared as a generic InfraSpec.",
       "category": "SIEM",
       "icon": "🛡️",
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/wazuh",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/wazuh-v0.4.0/wazuh.zip",
-      "sha256": "3613d4055bacc01763e8b2ac911e16c85f262ce0be0613631692e9c6c061eb39",
-      "sizeBytes": 223295,
-      "publishedAt": "2026-07-31T02:57:27.748Z",
-      "releaseNotes": "## 0.4.0 — 2026-07-30\n\nGeneric topology: BYOL dialog shows Wazuh tiers (Indexers / Manager workers) not\nSplunk search-head labels; adds `node_tiers` storage (migration 004).\n\n- Wired the BYOL cluster form to the SDK's app-declared N-tier\n  `ByolInfrastructureManager` (`topology` prop) instead of the SDK's previous\n  fixed Splunk-shaped indexer/search-head pair — the New/Edit dialog and list\n  table now read \"Indexers\" / \"Manager workers\" throughout.\n- The create/update `POST`/`PUT /byol` body now sends a generic\n  `tiers: [{ key, count, placement }]` array; `lib/byolInput.ts` unpacks it\n  back into the indexer/manager-worker counts and placements the rest of the\n  app already speaks (with a legacy-body fallback for older clients).\n- New `node_tiers` JSONB column on `wazuh_byol_infrastructure`\n  (migration `004_wazuh_byol_node_tiers.sql`), backfilled from the existing\n  `indexer_count`/`search_head_count`/`indexer_placement`/`search_head_placement`\n  columns, which are kept for back-compat. The GET DTO now includes an ordered\n  `tiers` array alongside the legacy fields.",
-      "releasedAt": "2026-07-30T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/wazuh-v0.5.0/wazuh.zip",
+      "sha256": "ff5bd7f976e6235c448c9202bd156fd2cf83436dcd2a38b5b54b171f5d9ed0fb",
+      "sizeBytes": 341693,
+      "publishedAt": "2026-08-04T17:44:01.250Z",
+      "releaseNotes": "## 0.5.0 — 2026-08-04\n\nExhausted the remaining genuinely-declarative Wazuh REST API config surface —\nsix new configuration types (10 total), grouped \"Manager\" and \"Security &\nAccess\". Coverage was audited against the Wazuh API OpenAPI spec\n(`api/api/spec/spec.yaml`, tag `v4.14.7`, github.com/wazuh/wazuh) — every\n`PUT`/`POST`/`DELETE` path in the spec was reviewed; see the README's new\n**Coverage** section for the full accounting, including what was intentionally\ndropped and why.\n\n- **Manager Configuration** — the manager's entire `ossec.conf`, replaced\n  whole-file (`GET`/`PUT /manager/configuration`, `raw=true` for a byte-faithful\n  round-trip), same content-replace model as Custom Rules/Decoders. Deploy also\n  calls `GET /manager/configuration/validation` (best-effort syntax check) and\n  `PUT /manager/restart` (best-effort reload) and reports both in the result\n  message.\n- **API Users** — Wazuh REST API accounts: username/password (write-only,\n  Wazuh never returns it), the `allow_run_as` flag, and the user's complete\n  role set (by name, reconciled against `/security/users/{id}/roles`).\n- **API Roles** — RBAC roles: name plus the role's complete policy and RBAC-rule\n  sets (by name, reconciled against the `/security/roles/{id}/policies` and\n  `/security/roles/{id}/rules` relationship endpoints).\n- **API Policies** — RBAC policies: `actions` + `resources` + `effect`\n  (allow/deny), validated against the exact `ACTION_REGEX`/`RESOURCE_REGEX`\n  grammar in `framework/wazuh/rbac/orm.py`.\n- **RBAC Rules** — authentication-context matching conditions (Wazuh's\n  FIND/MATCH grammar) attached to roles — distinct from the ruleset \"Custom\n  Rules\" config type, which manages `etc/rules` detection content.\n- **API Security Settings** — the manager-wide `auth_token_exp_timeout` +\n  `rbac_mode` singleton (`GET`/`PUT`/`DELETE /security/config`); rollback falls\n  back to `DELETE` (Wazuh's own \"restore defaults\") when no prior snapshot\n  could be captured.\n- `lib/wazuhApi.ts` gained `listAffectedItems()`, a generic list-endpoint reader\n  for the id-keyed security resources (users/roles/policies/rules), which —\n  unlike the filename-keyed resources — have no lookup-by-name endpoint and\n  must be resolved by listing and matching client-side.\n- README gained a **Coverage** section auditing every config type against its\n  Wazuh API operations, plus an honest accounting of what's intentionally\n  excluded (per-agent runtime actions, secret-generating agent enrollment,\n  read-only endpoints, session/token security actions) and why.",
+      "releasedAt": "2026-08-04T00:00:00.000Z"
     },
     {
       "appId": "wiz",
