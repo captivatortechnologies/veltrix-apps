@@ -1,0 +1,64 @@
+# =============================================================================
+# Canvas Template — Recorded Future Fusion Files
+#
+# Declares ONE Fusion file (the item): a text feed file (CSV / JSON / plain text)
+# under the customer-writable `/home/...` path in Recorded Future's Fusion file
+# system — the content Fusion flows consume, or a custom risk list. The full PATH
+# is the item's stable identity, used to upsert and detect drift. Field keys must
+# match config-types/fusion-files/validate.ts. Applied over the Recorded Future
+# Fusion Files API (POST /fusion/v3/files/{path}, X-RFToken — same host/token as
+# Watch Lists).
+#
+# VERIFY the /home/{org}/ path-namespace semantics (whether the org segment must
+# be a literal Recorded Future org id) against a live account — see
+# config-types/fusion-files/_shared.ts.
+# =============================================================================
+
+id: "recorded-future-fusion-files"
+name: "Fusion Files"
+toolType: "recorded-future"
+entityType: "fusion-files"
+description: "Manage Recorded Future Fusion feed files as code — text file content at a path under /home/... — via the Recorded Future Fusion Files API (POST https://api.recordedfuture.com/fusion/v3/files/{path})."
+
+item:
+  label: "Fusion File"
+  identityField: "path"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "File"
+      icon: "file"
+      description: "The file's path in the Fusion file system"
+      fields:
+        - key: "path"
+          label: "Path"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 500
+          helpText: "The full Fusion file path, starting with /home/ (e.g. /home/acme-corp/watchlists/vendor-risk.csv). Only /home/... is customer-writable — /public/... is Recorded Future-managed and read-only. Used as this item's identity for upsert and drift."
+
+    - name: "Content"
+      icon: "code"
+      description: "The file's complete content"
+      fields:
+        - key: "content"
+          label: "Content"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 200000
+          helpText: "The file's COMPLETE text content (CSV, JSON or plain text) — deploy uploads exactly this, replacing whatever is at the path. Leaving this empty uploads a zero-byte file."
+
+    - name: "Metadata"
+      icon: "settings"
+      description: "Audit note"
+      fields:
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this file is configured — recorded for audit (not sent to Recorded Future)."

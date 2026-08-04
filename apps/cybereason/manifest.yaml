@@ -1,14 +1,16 @@
 id: cybereason
 name: Cybereason
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage the Cybereason Defense Platform as code. Author custom reputations
-  (allowlist / blocklist for file hashes, domains and IPs), sensor groups and
-  isolation (exception) rules, and drive them through the Security-as-Code
-  pipeline — validate, deploy, health check, drift detection and rollback — over
-  the Cybereason REST API. Auth is a session-cookie login (username / password →
-  JSESSIONID) reused on every subsequent /rest call.
+  (allowlist / blocklist for file hashes, domains and IPs), sensor groups,
+  isolation (exception) rules, sensor policies (anti-malware, anti-exploit,
+  behavioral rules engine and more) and per-sensor tags, and drive them through
+  the Security-as-Code pipeline — validate, deploy, health check, drift
+  detection and rollback — over the Cybereason REST API. Auth is a
+  session-cookie login (username / password → JSESSIONID) reused on every
+  subsequent /rest call.
 category: EDR
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cybereason
@@ -38,6 +40,12 @@ permissions:
     - resource: isolation-rules
       actions: [read, write, delete]
       description: Manage Cybereason isolation (exception) rules — which traffic is blocked / allowed while a sensor is isolated (/rest/settings/isolation-rule)
+    - resource: sensor-policies
+      actions: [read, write, delete]
+      description: Manage Cybereason sensor policies — anti-malware, anti-exploit, anti-ransomware, application control, PowerShell protection, the behavioral rules engine and more (/rest/policies)
+    - resource: sensor-tags
+      actions: [read, write, delete]
+      description: Manage per-sensor tags — department, location, device type, critical asset, custom tags (/rest/tagging/process_tags)
 
 pipeline:
   configurationTypes:
@@ -100,6 +108,53 @@ pipeline:
         healthCheck: config-types/isolation-rules/healthCheck
         driftDetect: config-types/isolation-rules/driftDetect
         getStatus: config-types/isolation-rules/getStatus
+      targets:
+        componentTypes: [cybereason-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: sensor-policies
+      group: "Sensor Policies"
+      name: Sensor Policies
+      description: >
+        Cybereason sensor policies — anti-malware, anti-exploit, anti-ransomware,
+        application control, PowerShell protection, the behavioral rules engine
+        and more — upserted by name over the Cybereason REST API (GET/POST
+        /rest/policies, GET/PUT/DELETE /rest/policies/{id}). List/get/create/
+        delete are confirmed writes; updating an EXISTING policy (PUT) is
+        FLAGGED — inferred by symmetry with the confirmed Groups endpoint and
+        not independently confirmed from public sources.
+      canvasTemplate: config-types/sensor-policies/canvas.yaml
+      defaultConfig: config-types/sensor-policies/defaults.yaml
+      handlers:
+        validate: config-types/sensor-policies/validate
+        deploy: config-types/sensor-policies/deploy
+        rollback: config-types/sensor-policies/rollback
+        healthCheck: config-types/sensor-policies/healthCheck
+        driftDetect: config-types/sensor-policies/driftDetect
+        getStatus: config-types/sensor-policies/getStatus
+      targets:
+        componentTypes: [cybereason-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: sensor-tags
+      group: "Sensor Management"
+      name: Sensor Tags
+      description: >
+        Per-sensor tags — department, location, device type, critical asset,
+        custom tags — applied by pylumId over the Cybereason REST API (POST
+        /rest/tagging/process_tags; read via POST /rest/sensors/query). A field
+        left blank removes that tag.
+      canvasTemplate: config-types/sensor-tags/canvas.yaml
+      defaultConfig: config-types/sensor-tags/defaults.yaml
+      handlers:
+        validate: config-types/sensor-tags/validate
+        deploy: config-types/sensor-tags/deploy
+        rollback: config-types/sensor-tags/rollback
+        healthCheck: config-types/sensor-tags/healthCheck
+        driftDetect: config-types/sensor-tags/driftDetect
+        getStatus: config-types/sensor-tags/getStatus
       targets:
         componentTypes: [cybereason-tenant]
         requiresCredential: true

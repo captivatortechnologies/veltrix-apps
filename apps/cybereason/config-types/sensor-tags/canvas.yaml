@@ -1,0 +1,84 @@
+# =============================================================================
+# Canvas Template — Cybereason Sensor Tags
+#
+# Declares the tag set (department / location / device type / critical asset /
+# custom tags) for ONE sensor (the item), identified by its Cybereason `pylumId`.
+# Users add as many as they need. Field keys must match
+# config-types/sensor-tags/validate.ts. Applied via the Cybereason REST API
+# (POST /rest/tagging/process_tags; read via POST /rest/sensors/query).
+#
+# A field left BLANK removes that tag from the sensor — Cybereason's own SET /
+# REMOVE model (see config-types/sensor-tags/_shared.ts).
+# =============================================================================
+
+id: "cybereason-sensor-tags"
+name: "Sensor Tags"
+toolType: "cybereason"
+entityType: "sensor-tags"
+description: "Manage per-sensor tags (department, location, device type, critical asset, custom tags) via the Cybereason REST API (/rest/tagging/process_tags)."
+
+item:
+  label: "Sensor Tag Set"
+  identityField: "pylumId"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Sensor"
+      icon: "laptop"
+      description: "Which sensor this tag set applies to"
+      fields:
+        - key: "pylumId"
+          label: "Sensor pylumId"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "The Cybereason sensor's pylumId (find it via the Sensors list, or GET /rest/sensors/query). Stable identity for upsert and drift."
+
+    - name: "Tags"
+      icon: "tag"
+      description: "Each field left blank REMOVES that tag from the sensor"
+      fields:
+        - key: "department"
+          label: "Department"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 100
+          helpText: "Leave blank to remove this tag from the sensor."
+
+        - key: "location"
+          label: "Location"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 100
+          helpText: "Leave blank to remove this tag from the sensor."
+
+        - key: "deviceType"
+          label: "Device Type"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 100
+          helpText: "Leave blank to remove this tag from the sensor."
+
+        - key: "criticalAsset"
+          label: "Critical Asset"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - { label: "Not set (remove tag)", value: "" }
+            - { label: "Critical", value: "true" }
+            - { label: "Not critical", value: "false" }
+          helpText: "Tri-state: leave as \"Not set\" to remove this tag entirely, rather than setting it to false."
+
+        - key: "customTags"
+          label: "Custom Tags"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 100
+          helpText: "Free-text custom tag value (100 characters max — Cybereason's own limit). Leave blank to remove."

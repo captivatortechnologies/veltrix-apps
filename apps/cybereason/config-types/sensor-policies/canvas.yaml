@@ -1,0 +1,76 @@
+# =============================================================================
+# Canvas Template — Cybereason Sensor Policies
+#
+# Declares ONE sensor policy (the item). Users add as many as they need. The
+# policy NAME is the stable identity used for upsert and drift. Field keys must
+# match config-types/sensor-policies/validate.ts. Applied via the Cybereason
+# REST API (GET/POST /rest/policies, GET/PUT/DELETE /rest/policies/{id}).
+#
+# FLAGGED: updating an EXISTING policy uses PUT /rest/policies/{id}, which is
+# inferred by symmetry with the confirmed Groups endpoint and is NOT
+# independently confirmed from public sources — VERIFY against a live tenant.
+# List/get/create/delete ARE confirmed (see config-types/sensor-policies/_shared.ts).
+# =============================================================================
+
+id: "cybereason-sensor-policies"
+name: "Sensor Policies"
+toolType: "cybereason"
+entityType: "sensor-policies"
+description: "Manage Cybereason sensor policies — anti-malware, anti-exploit, anti-ransomware, application control, PowerShell protection, the behavioral rules engine and more — via the Cybereason REST API (/rest/policies)."
+
+item:
+  label: "Sensor Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Policy identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The policy's name — its stable identity for upsert and drift. Unique within this canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "A short description of the policy's purpose — recorded for audit."
+
+        - key: "notes"
+          label: "Notes"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Free-text operator notes."
+
+    - name: "Configuration"
+      icon: "settings"
+      description: "The policy's prevention / detection configuration"
+      fields:
+        - key: "configuration"
+          label: "Configuration (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 50000
+          helpText: >-
+            The policy's configuration as one JSON object — sections such as
+            antiMalware, antiExploit, antiRansomware (arw), appControl,
+            rulesEngine (behavioral execution prevention), powershellProtection,
+            collectionFeatures, autoUpgrades, response, infrastructure. Export an
+            existing policy's "configuration" object from your tenant
+            (GET /rest/policies/{id}) as a starting point. Only a small set of
+            well-known enum fields are validated here (see README); the rest
+            passes through as declared and Cybereason validates it at deploy
+            time. FLAGGED: updating an existing policy (PUT) is UNVERIFIED —
+            see the config type description above.

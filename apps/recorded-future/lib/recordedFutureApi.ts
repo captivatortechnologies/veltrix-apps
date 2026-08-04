@@ -24,6 +24,11 @@
 //   DELETE /list/{listId}/entity/remove    { entity }
 //   Confirmed: https://docs.recordedfuture.com/reference/lists-create (+ siblings)
 //
+// A second writable surface is the Fusion Files API, rooted at `<base>/fusion/v3`
+// (same host + `X-RFToken`, but a raw-bytes contract, not JSON) — see `raw()`
+// below and config-types/fusion-files/_shared.ts.
+//   Confirmed: https://docs.recordedfuture.com/reference/fusion-files-upload (+ siblings)
+//
 // Handlers run in-process, so this uses fetch with an AbortController timeout and
 // never throws on an HTTP error status — callers inspect `status`/`ok`/`json`.
 // =============================================================================
@@ -99,6 +104,14 @@ export interface RecordedFutureResponse {
   body: string
 }
 
+/** A raw (non-JSON) Recorded Future API response — see `RecordedFutureClient.raw`. */
+export interface RecordedFutureRawResponse {
+  status: number
+  ok: boolean
+  body: string
+  headers: Headers
+}
+
 export class RecordedFutureClient {
   private readonly baseUrl: string
   private readonly token: string
@@ -155,6 +168,37 @@ export class RecordedFutureClient {
   }
   delete(path: string, body?: unknown): Promise<RecordedFutureResponse> {
     return this.request('DELETE', path, body)
+  }
+
+  /**
+   * Raw (non-JSON) request — for List API siblings whose contract isn't
+   * `application/json` (the Fusion Files API sends/receives raw bytes and is
+   * read via response headers like ETag). Same host/token/timeout as `request`;
+   * never throws on a non-2xx status, and returns the response `Headers` so a
+   * caller can read ETag / Last-Modified directly.
+   */
+  async raw(
+    method: 'GET' | 'HEAD' | 'POST' | 'DELETE',
+    path: string,
+    opts: { body?: string; contentType?: string } = {},
+  ): Promise<RecordedFutureRawResponse> {
+    const headers: Record<string, string> = { ...this.authHeaders() }
+    if (opts.body !== undefined) headers['Content-Type'] = opts.contentType ?? 'application/octet-stream'
+
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs)
+    try {
+      const res = await fetch(`${this.baseUrl}${path}`, {
+        method,
+        headers,
+        body: opts.body,
+        signal: controller.signal,
+      })
+      const body = method === 'HEAD' ? '' : await res.text()
+      return { status: res.status, ok: res.status >= 200 && res.status < 300, body, headers: res.headers }
+    } finally {
+      clearTimeout(timer)
+    }
   }
 
   /**

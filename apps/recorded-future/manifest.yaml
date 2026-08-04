@@ -1,15 +1,17 @@
 id: recorded-future
 name: Recorded Future
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Recorded Future Watch Lists as code. Author entity watch lists — custom
   and Third-Party lists that power queries, Threat Views and Alerts — plus the
-  tags on their entities, and drive them through the Security-as-Code pipeline
-  (validate, deploy, health check, drift detection and rollback) over the Recorded
-  Future List API (https://api.recordedfuture.com, X-RFToken auth). NOTE: the
-  Recorded Future API is largely READ (intelligence lookup / enrichment); the List
-  API is its one genuinely writable configuration surface — see the README.
+  tags on their entities and text feed files in the Fusion file system, and drive
+  them through the Security-as-Code pipeline (validate, deploy, health check,
+  drift detection and rollback) over the Recorded Future API
+  (https://api.recordedfuture.com, X-RFToken auth). NOTE: the Recorded Future API
+  is largely READ (intelligence lookup / enrichment); the List API and Fusion
+  Files API are its genuinely writable configuration surfaces — see the README's
+  Coverage section.
 category: Threat Intelligence
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/recorded-future
@@ -41,6 +43,13 @@ permissions:
         (Third-Parties Watch List) over the List API — read current tags
         (GET /list/{id}/entitiesWithTags) and replace the full set
         (POST /list/{id}/entity/tags)
+    - resource: fusion-files
+      actions: [read, write, delete]
+      description: >
+        Manage text feed files in the Recorded Future Fusion file system, under
+        the customer-writable /home/... path, over the Fusion Files API
+        (GET/POST/HEAD/DELETE /fusion/v3/files/{path}) — same host and
+        X-RFToken auth as the List API
 
 pipeline:
   configurationTypes:
@@ -82,6 +91,28 @@ pipeline:
         healthCheck: config-types/entity-tags/healthCheck
         driftDetect: config-types/entity-tags/driftDetect
         getStatus: config-types/entity-tags/getStatus
+      targets:
+        componentTypes: [recorded-future-cloud]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: fusion-files
+      group: "Threat Intelligence"
+      name: Fusion Files
+      description: >
+        Text feed files (CSV / JSON / plain text) at a path under /home/... in
+        Recorded Future's Fusion file system — applied over the Recorded Future
+        Fusion Files API (POST https://api.recordedfuture.com/fusion/v3/files/{path},
+        X-RFToken — same host and credential as Watch Lists).
+      canvasTemplate: config-types/fusion-files/canvas.yaml
+      defaultConfig: config-types/fusion-files/defaults.yaml
+      handlers:
+        validate: config-types/fusion-files/validate
+        deploy: config-types/fusion-files/deploy
+        rollback: config-types/fusion-files/rollback
+        healthCheck: config-types/fusion-files/healthCheck
+        driftDetect: config-types/fusion-files/driftDetect
+        getStatus: config-types/fusion-files/getStatus
       targets:
         componentTypes: [recorded-future-cloud]
         requiresCredential: true

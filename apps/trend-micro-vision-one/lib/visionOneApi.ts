@@ -22,6 +22,10 @@
 //
 // Handlers run in-process, so this uses fetch with an AbortController timeout and
 // never throws on an HTTP error status — callers inspect `status`/`ok`/`json`.
+//
+// v0.3.0 added `patch()` (IAM account updates use PATCH, not POST) and the
+// `*Beta()` method family (Cloud Risk Management custom rules hang off `/beta`,
+// not `/v3.0` — see `API_BETA_PATH`).
 // =============================================================================
 
 import type { CredentialRef } from '@veltrixsecops/app-sdk'
@@ -29,6 +33,15 @@ import type { CredentialRef } from '@veltrixsecops/app-sdk'
 const REQUEST_TIMEOUT_MS = 30_000
 /** All Trend Vision One public API paths hang off this version prefix. */
 export const API_VERSION_PATH = '/v3.0'
+/**
+ * Cloud Risk Management custom compliance rules (`/cloudPosture/customRules`) hang
+ * off this prefix instead of `/v3.0` — confirmed against the official Trend
+ * `vision-one-mcp-server` Go client (trendmicro/vision-one-mcp-server,
+ * internal/v1client/cloudposture.go). The `beta` prefix is Trend's own naming, not
+ * a Veltrix designation — VERIFY it has not since graduated to `/v3.0` on your
+ * tenant.
+ */
+export const API_BETA_PATH = '/beta'
 
 export interface VisionOneSettings {
   timeoutMs: number
@@ -103,14 +116,19 @@ export class VisionOneClient {
     return { status: res.status, ok: res.status >= 200 && res.status < 300, json, body: text, headers }
   }
 
-  private async request(method: string, path: string, body?: unknown): Promise<VisionOneResponse> {
+  private async request(
+    method: string,
+    path: string,
+    body?: unknown,
+    basePath: string = API_VERSION_PATH,
+  ): Promise<VisionOneResponse> {
     const headers: Record<string, string> = { ...this.authHeaders(), Accept: 'application/json' }
     if (body !== undefined) headers['Content-Type'] = 'application/json'
 
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), this.timeoutMs)
     try {
-      const res = await fetch(`${this.baseUrl}${API_VERSION_PATH}${path}`, {
+      const res = await fetch(`${this.baseUrl}${basePath}${path}`, {
         method,
         headers,
         body: body === undefined ? undefined : JSON.stringify(body),
@@ -132,9 +150,34 @@ export class VisionOneClient {
     return this.request('POST', path, body)
   }
 
+  /** PATCH a JSON `body` to a public-API `path` (e.g. `/iam/accounts/{id}`, partial update). */
+  async patch(path: string, body: unknown): Promise<VisionOneResponse> {
+    return this.request('PATCH', path, body)
+  }
+
   /** DELETE a public-API `path` (e.g. `/response/customScripts/{id}`). Never throws on a non-2xx status. */
   async del(path: string): Promise<VisionOneResponse> {
     return this.request('DELETE', path)
+  }
+
+  /** GET a `beta`-prefixed path (e.g. `/cloudPosture/customRules`). See `API_BETA_PATH`. */
+  async getBeta(path: string): Promise<VisionOneResponse> {
+    return this.request('GET', path, undefined, API_BETA_PATH)
+  }
+
+  /** POST a JSON `body` to a `beta`-prefixed path. Never throws on a non-2xx status. */
+  async postBeta(path: string, body: unknown): Promise<VisionOneResponse> {
+    return this.request('POST', path, body, API_BETA_PATH)
+  }
+
+  /** PATCH a JSON `body` to a `beta`-prefixed path (partial update). Never throws on a non-2xx status. */
+  async patchBeta(path: string, body: unknown): Promise<VisionOneResponse> {
+    return this.request('PATCH', path, body, API_BETA_PATH)
+  }
+
+  /** DELETE a `beta`-prefixed path. Never throws on a non-2xx status. */
+  async delBeta(path: string): Promise<VisionOneResponse> {
+    return this.request('DELETE', path, undefined, API_BETA_PATH)
   }
 
   /**

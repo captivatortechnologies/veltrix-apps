@@ -1,0 +1,162 @@
+# =============================================================================
+# Canvas Template — Trend Vision One Cloud Risk Management Custom Rules
+#
+# Declares ONE Cloud Risk Management custom compliance rule — an organization-
+# wide, cloud-provider-scoped detection rule evaluated against every connected
+# cloud account for that provider. Users add as many rules as they need. The
+# rule NAME is the stable identity used for upsert and drift (Vision One assigns
+# the rule id on create). Field keys must match
+# config-types/custom-compliance-rules/validate.ts.
+#
+# Applied over the Trend Vision One BETA API (/beta/cloudPosture/customRules —
+# see lib/visionOneApi.ts `*Beta()` methods, NOT the /v3.0 prefix the rest of
+# this app uses). Creating/updating a custom rule requires the Master
+# Administrator role on the Vision One side (a Vision One API permission, not a
+# Veltrix concept) — VERIFY against your tenant.
+#
+# `attributes` (what to extract from a matched resource) and `eventRules` (the
+# pass/fail conditions evaluated over those attributes) are deeply nested and
+# vendor-specific, so — following this app's own custom-scripts precedent for
+# free-form content, and Cisco Meraki's group-policies precedent for large
+# nested schemas — they are authored as JSON arrays rather than flattened into
+# dozens of canvas fields. VERIFY their exact shape and the beta endpoint's
+# stability against a live Vision One tenant.
+# =============================================================================
+
+id: "trend-vision-one-custom-compliance-rules"
+name: "Custom Compliance Rules"
+toolType: "trend-micro-vision-one"
+entityType: "custom-compliance-rules"
+description: "Manage Trend Vision One Cloud Risk Management custom compliance rules — organization-wide cloud-resource detection rules — via the Vision One Cloud Posture beta REST API. Rules are reconciled by name."
+
+item:
+  label: "Custom Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Rule"
+      icon: "flag"
+      description: "Identity and classification"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The rule's name — its logical identity. Vision One assigns the rule id on create."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 2000
+          helpText: "What this rule checks for, and why."
+
+        - key: "categories"
+          label: "Categories"
+          fieldType: "multiselect"
+          required: true
+          options:
+            - { label: "Security", value: "security" }
+            - { label: "Cost Optimisation", value: "cost-optimisation" }
+            - { label: "Reliability", value: "reliability" }
+            - { label: "Performance Efficiency", value: "performance-efficiency" }
+            - { label: "Operational Excellence", value: "operational-excellence" }
+            - { label: "Sustainability", value: "sustainability" }
+          helpText: "At least one Well-Architected-style category for this rule."
+
+        - key: "riskLevel"
+          label: "Risk Level"
+          fieldType: "select"
+          required: true
+          defaultValue: "MEDIUM"
+          options:
+            - { label: "Low", value: "LOW" }
+            - { label: "Medium", value: "MEDIUM" }
+            - { label: "High", value: "HIGH" }
+            - { label: "Very High", value: "VERY_HIGH" }
+            - { label: "Extreme", value: "EXTREME" }
+          helpText: "Risk level assigned to a resource that matches this rule."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Enabled rules are immediately evaluated against every connected cloud account for the chosen provider."
+
+    - name: "Scope"
+      icon: "cloud"
+      description: "The cloud resource this rule targets"
+      fields:
+        - key: "provider"
+          label: "Cloud Provider"
+          fieldType: "select"
+          required: true
+          options:
+            - { label: "AWS", value: "aws" }
+            - { label: "Azure", value: "azure" }
+            - { label: "Google Cloud", value: "gcp" }
+            - { label: "Oracle Cloud", value: "oci" }
+            - { label: "Alibaba Cloud", value: "alibabaCloud" }
+          helpText: "The cloud provider this rule applies to."
+
+        - key: "service"
+          label: "Service"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: 'The provider service this rule inspects, e.g. "S3", "EC2". VERIFY the exact accepted service identifiers against your tenant.'
+
+        - key: "resourceType"
+          label: "Resource Type"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "The resource type within the service this rule inspects. VERIFY against your tenant."
+
+    - name: "Logic"
+      icon: "code"
+      description: "What to extract and evaluate (JSON)"
+      fields:
+        - key: "attributes"
+          label: "Attributes (JSON array)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 20000
+          helpText: 'The attributes to extract from a matched resource for evaluation — a JSON array of objects, each with "name", "path" and optionally "required". VERIFY the exact schema against a live Vision One tenant.'
+
+        - key: "eventRules"
+          label: "Event Rules (JSON array)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 20000
+          helpText: 'The pass/fail conditions evaluated over the extracted attributes — a JSON array of objects, each with "conditions" and "description". VERIFY the exact schema against a live Vision One tenant.'
+
+    - name: "Remediation"
+      icon: "wrench"
+      description: "Optional operator guidance"
+      fields:
+        - key: "resolutionReferenceLink"
+          label: "Resolution Reference Link"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "A URL to remediation documentation."
+
+        - key: "remediationNote"
+          label: "Remediation Note"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Freeform notes on how to remediate a finding."

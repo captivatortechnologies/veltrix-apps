@@ -1,0 +1,86 @@
+# =============================================================================
+# Canvas Template — Trend Vision One IAM User Accounts
+#
+# Declares ONE Trend Vision One console user account. Users add as many as they
+# need. The account's EMAIL is the stable identity used for upsert and drift —
+# Vision One assigns the account id on invite. Field keys must match
+# config-types/user-accounts/validate.ts. Applied over the Trend Vision One
+# public REST API (/v3.0/iam/accounts).
+#
+# A new account is created by sending an email invitation; the invitee accepts
+# it out-of-band (or signs in via SAML) before the account is fully active — this
+# app manages the invitation + role/status/description, not the acceptance.
+# VERIFY the exact accepted role names (Vision One custom RBAC roles are
+# tenant-defined) and the list-response envelope against a live Vision One
+# tenant.
+# =============================================================================
+
+id: "trend-vision-one-user-accounts"
+name: "User Accounts"
+toolType: "trend-micro-vision-one"
+entityType: "user-accounts"
+description: "Manage Trend Vision One console user accounts — invite by email, assign a role, and control sign-in status — via the Vision One IAM public REST API. Accounts are reconciled by email."
+
+item:
+  label: "User Account"
+  identityField: "email"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "user"
+      description: "Who this account belongs to and how they sign in"
+      fields:
+        - key: "email"
+          label: "Email"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 320
+          helpText: "The user's email address. A new account is invited by email; this is used as the account's stable identity for upsert and drift."
+
+        - key: "authType"
+          label: "Auth Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "local"
+          options:
+            - { label: "Local", value: "local" }
+            - { label: "SAML", value: "saml" }
+            - { label: "SAML Group", value: "samlGroup" }
+          helpText: "The account's sign-in method. Only used when INVITING a new account — Vision One does not support changing an existing account's auth type, so this is ignored once the account exists."
+
+    - name: "Access"
+      icon: "shield"
+      description: "Role and sign-in status"
+      fields:
+        - key: "role"
+          label: "Role"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: 'The exact name of a Vision One user role (built-in, e.g. "Master Administrator", or a tenant custom role) as shown under Administration -> User Roles. VERIFY against your tenant — roles are tenant-defined, not a fixed set.'
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          required: false
+          defaultValue: "enabled"
+          options:
+            - { label: "Enabled", value: "enabled" }
+            - { label: "Disabled", value: "disabled" }
+          helpText: "Sign-in status. Only meaningful for an EXISTING account — a newly invited account's initial status is controlled by Vision One (pending acceptance), not by this field."
+
+    - name: "Metadata"
+      icon: "settings"
+      description: "Audit note"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "A brief note about the account — recorded for audit."

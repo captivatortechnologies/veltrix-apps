@@ -1,15 +1,16 @@
 id: trend-micro-vision-one
 name: Trend Micro Vision One
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
-  Manage Trend Micro Vision One threat intelligence and response configuration as
-  code. Author the user-defined Suspicious Object List, its Exception (safe / allow)
-  List and the Response Management custom-script library, and drive them through the
-  Security-as-Code pipeline (validate, deploy, health check, drift detection and
-  rollback) over the Trend Vision One public REST API (v3.0, Bearer token). The
-  connection endpoint is your regional Vision One API host (e.g.
-  api.xdr.trendmicro.com).
+  Manage Trend Micro Vision One threat intelligence, identity and response
+  configuration as code. Author the user-defined Suspicious Object List, its
+  Exception (safe / allow) List, the Response Management custom-script library,
+  IAM user accounts and Cloud Risk Management custom compliance rules, and drive
+  them through the Security-as-Code pipeline (validate, deploy, health check,
+  drift detection and rollback) over the Trend Vision One public REST API (v3.0
+  and beta, Bearer token). The connection endpoint is your regional Vision One
+  API host (e.g. api.xdr.trendmicro.com).
 category: EDR
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/trend-micro-vision-one
@@ -37,6 +38,12 @@ permissions:
     - resource: custom-scripts
       actions: [read, write, delete]
       description: Manage the Trend Vision One Response Management custom-script library (add / update / remove)
+    - resource: user-accounts
+      actions: [read, write, delete]
+      description: Manage Trend Vision One IAM console user accounts — invite by email, assign a role, control status (add / update / remove)
+    - resource: custom-compliance-rules
+      actions: [read, write, delete]
+      description: Manage Trend Vision One Cloud Risk Management custom compliance rules (add / update / remove)
 
 pipeline:
   configurationTypes:
@@ -101,6 +108,50 @@ pipeline:
         healthCheck: config-types/custom-scripts/healthCheck
         driftDetect: config-types/custom-scripts/driftDetect
         getStatus: config-types/custom-scripts/getStatus
+      targets:
+        componentTypes: [trend-vision-one-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: user-accounts
+      group: "Identity & Access"
+      name: User Accounts
+      description: >
+        Trend Vision One IAM console user accounts — invite by email, assign a
+        role, control sign-in status and record a description — over the Vision
+        One public REST API (/v3.0/iam/accounts). Reconciled by email.
+      canvasTemplate: config-types/user-accounts/canvas.yaml
+      defaultConfig: config-types/user-accounts/defaults.yaml
+      handlers:
+        validate: config-types/user-accounts/validate
+        deploy: config-types/user-accounts/deploy
+        rollback: config-types/user-accounts/rollback
+        healthCheck: config-types/user-accounts/healthCheck
+        driftDetect: config-types/user-accounts/driftDetect
+        getStatus: config-types/user-accounts/getStatus
+      targets:
+        componentTypes: [trend-vision-one-tenant]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: custom-compliance-rules
+      group: "Cloud Risk Management"
+      name: Custom Compliance Rules
+      description: >
+        Trend Vision One Cloud Risk Management custom compliance rules —
+        organization-wide, cloud-provider-scoped detection rules evaluated
+        against every connected cloud account — over the Vision One Cloud
+        Posture beta REST API (/beta/cloudPosture/customRules). Reconciled by
+        name.
+      canvasTemplate: config-types/custom-compliance-rules/canvas.yaml
+      defaultConfig: config-types/custom-compliance-rules/defaults.yaml
+      handlers:
+        validate: config-types/custom-compliance-rules/validate
+        deploy: config-types/custom-compliance-rules/deploy
+        rollback: config-types/custom-compliance-rules/rollback
+        healthCheck: config-types/custom-compliance-rules/healthCheck
+        driftDetect: config-types/custom-compliance-rules/driftDetect
+        getStatus: config-types/custom-compliance-rules/getStatus
       targets:
         componentTypes: [trend-vision-one-tenant]
         requiresCredential: true
