@@ -41,16 +41,14 @@ describe('pim-role-eligibility validate', () => {
     expect(r.errors.some((e) => e.field.endsWith('justification') && e.code === 'required')).toBe(true)
   })
 
-  it('rejects a non-GUID principal id', () => {
-    const r = validate(ctxWith([{ fields: { principalId: 'alice', roleDefinitionId: ROLE, justification: 'x' } }]))
-    expect(r.valid).toBe(false)
-    expect(r.errors.some((e) => e.code === 'invalid_principal_id')).toBe(true)
+  it('accepts a hand-typed principal display name (pre-picker canvases) — resolved at deploy time', () => {
+    const r = validate(ctxWith([{ fields: { principalId: 'Alice', roleDefinitionId: ROLE, justification: 'x' } }]))
+    expect(r.valid).toBe(true)
   })
 
-  it('rejects a non-GUID role id', () => {
+  it('accepts a hand-typed role display name (pre-picker canvases) — resolved at deploy time', () => {
     const r = validate(ctxWith([{ fields: { principalId: PRINCIPAL, roleDefinitionId: 'Global Administrator', justification: 'x' } }]))
-    expect(r.valid).toBe(false)
-    expect(r.errors.some((e) => e.code === 'invalid_role_id')).toBe(true)
+    expect(r.valid).toBe(true)
   })
 
   it('requires an end date/time when expiration is afterDateTime', () => {

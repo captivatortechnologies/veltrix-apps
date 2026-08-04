@@ -12,8 +12,12 @@ import {
   readGraphSettings,
   resolveGraphCredential,
   MISSING_CREDENTIAL_MESSAGE,
+  type GraphClient,
 } from '../../lib/graph'
 import { assignmentKey, extractRoleAssignmentSpecs, type RoleAssignmentSpec, type LiveRoleAssignment } from './validate'
+import { buildRoleNameToId, resolveRef } from '../lib/nameMaps'
+import { buildPrincipalNameMaps, resolvePrincipal, type PrincipalNameMaps } from '../lib/principals'
+import { buildDirectoryScopeNameMaps, resolveDirectoryScope, type DirectoryScopeNameMaps } from '../lib/directoryScope'
 
 const BASE = '/roleManagement/directory/roleAssignments'
 
@@ -26,12 +30,59 @@ export interface RollbackEntry {
   id?: string
 }
 
-/** POST body — the full assignment tuple. */
-export function buildCreateBody(spec: RoleAssignmentSpec): Record<string, unknown> {
+/** A tuple with every reference already resolved to its live Graph id/scope string. */
+export interface ResolvedAssignment {
+  roleDefinitionId: string
+  principalId: string
+  directoryScopeId: string
+}
+
+/** POST body — the full assignment tuple, already resolved. */
+export function buildCreateBody(resolved: ResolvedAssignment): Record<string, unknown> {
   return {
-    roleDefinitionId: spec.roleDefinitionId,
-    principalId: spec.principalId,
-    directoryScopeId: spec.directoryScopeId || '/',
+    roleDefinitionId: resolved.roleDefinitionId,
+    principalId: resolved.principalId,
+    directoryScopeId: resolved.directoryScopeId || '/',
+  }
+}
+
+interface NameMaps {
+  role: Map<string, string>
+  principal: PrincipalNameMaps
+  scope: DirectoryScopeNameMaps
+}
+
+async function buildNameMaps(client: GraphClient): Promise<NameMaps> {
+  const [role, principal, scope] = await Promise.all([
+    buildRoleNameToId(client),
+    buildPrincipalNameMaps(client),
+    buildDirectoryScopeNameMaps(client),
+  ])
+  return { role, principal, scope }
+}
+
+/**
+ * Resolve one spec's role/principal/scope references. A picker-selected
+ * value passes straight through; a hand-typed display name resolves via the
+ * live maps built once per deploy/drift run (see ../lib/nameMaps,
+ * ../lib/principals, ../lib/directoryScope). Returns the unresolved
+ * reference(s) as `missing` when any lookup fails.
+ */
+export function resolveAssignment(
+  spec: Pick<RoleAssignmentSpec, 'roleDefinitionId' | 'principalId' | 'directoryScopeId'>,
+  maps: NameMaps
+): { resolved: ResolvedAssignment; missing: string[] } {
+  const role = resolveRef(spec.roleDefinitionId, maps.role)
+  const principal = resolvePrincipal(spec.principalId, maps.principal)
+  const scope = resolveDirectoryScope(spec.directoryScopeId, maps.scope)
+  const missing = [
+    ...(role.missing ? [spec.roleDefinitionId] : []),
+    ...(principal.missing ? [spec.principalId] : []),
+    ...(scope.missing ? [scope.missing] : []),
+  ]
+  return {
+    resolved: { roleDefinitionId: role.id, principalId: principal.id, directoryScopeId: scope.scope || '/' },
+    missing,
   }
 }
 
@@ -70,13 +121,26 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     if (a.id) liveByKey.set(assignmentKey(a), a)
   }
 
+  // Resolve every spec's role/principal/scope references once, using name
+  // maps built once for the whole deploy (mirrors conditional-access-policies).
+  const maps = await buildNameMaps(client)
+
   const prior = await loadPriorEntries(ctx)
   const priorByKey = new Map(prior.map((e) => [e.name, e]))
   const entries: RollbackEntry[] = []
   const failures: string[] = []
+  const declared = new Set<string>()
 
   for (const spec of specs) {
-    const key = assignmentKey(spec)
+    const { resolved, missing } = resolveAssignment(spec, maps)
+    if (missing.length) {
+      const label = spec.label || `${spec.roleDefinitionId} -> ${spec.principalId}`
+      failures.push(`${label}: unknown target(s) ${missing.join(', ')} — create/verify them first or fix the name`)
+      continue
+    }
+
+    const key = assignmentKey(resolved)
+    declared.add(key)
     const live = liveByKey.get(key) ?? null
 
     if (live?.id) {
@@ -91,7 +155,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         id: live.id,
       })
     } else {
-      const resp = await client.post(BASE, buildCreateBody(spec))
+      const resp = await client.post(BASE, buildCreateBody(resolved))
       if (!resp.ok) {
         failures.push(`${key}: ${graphErrorMessage(resp)}`)
         continue
@@ -101,15 +165,20 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     }
   }
 
-  // Reconcile: delete assignments THIS app created previously but no longer declares.
-  const declared = new Set(specs.map((s) => assignmentKey(s)))
+  // Reconcile: delete assignments THIS app created previously but no longer
+  // declares. A spec whose reference failed to resolve THIS run is still
+  // "declared" by canvas item — protected via itemId — so a transient lookup
+  // failure (e.g. a typo, or the live directory being briefly unreachable for
+  // one lookup) never deletes a privileged assignment the user still intends
+  // to keep; only removing the item from the canvas does.
+  const declaredItemIds = new Set(specs.map((s) => s.itemId).filter((v): v is string => Boolean(v)))
   const keptIds = new Set(entries.map((e) => e.id).filter(Boolean) as string[])
   for (const p of prior) {
-    if (!p.existed && p.id && !keptIds.has(p.id) && !declared.has(p.name)) {
-      const resp = await client.delete(`${BASE}/${p.id}`)
-      if (!resp.ok && resp.status !== 404) {
-        failures.push(`delete ${p.name}: ${graphErrorMessage(resp)}`)
-      }
+    if (p.existed || !p.id || keptIds.has(p.id)) continue
+    if (declared.has(p.name) || (p.itemId && declaredItemIds.has(p.itemId))) continue
+    const resp = await client.delete(`${BASE}/${p.id}`)
+    if (!resp.ok && resp.status !== 404) {
+      failures.push(`delete ${p.name}: ${graphErrorMessage(resp)}`)
     }
   }
 

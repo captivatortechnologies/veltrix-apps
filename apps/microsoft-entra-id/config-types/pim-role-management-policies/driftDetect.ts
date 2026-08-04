@@ -2,6 +2,7 @@ import type { DriftContext, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildGraphClient, readGraphSettings, resolveGraphCredential } from '../../lib/graph'
 import { desiredEnabledRules, extractPimPolicySpecs, RULE_IDS, type LivePimRule } from './validate'
 import { resolvePolicyId } from './deploy'
+import { buildRoleNameToId, resolveRef } from '../lib/nameMaps'
 
 const POLICIES = '/policies/roleManagementPolicies'
 
@@ -18,12 +19,24 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const client = buildGraphClient(cred, settings)
 
   const specs = extractPimPolicySpecs(ctx.deployedConfig).filter((s) => s.roleDefinitionId)
+  const roleNameToId = await buildRoleNameToId(client)
 
   const diffs: Diffs = []
   for (const spec of specs) {
-    const policyId = await resolvePolicyId(client, spec.roleDefinitionId)
+    const role = resolveRef(spec.roleDefinitionId, roleNameToId)
+    if (role.missing) {
+      diffs.push({
+        field: spec.roleDefinitionId,
+        expected: 'resolvable',
+        actual: `unknown role: ${spec.roleDefinitionId}`,
+        severity: 'critical',
+      })
+      continue
+    }
+    const roleDefinitionId = role.id
+    const policyId = await resolvePolicyId(client, roleDefinitionId)
     if (!policyId) {
-      diffs.push({ field: spec.roleDefinitionId, expected: 'policy present', actual: 'absent', severity: 'critical' })
+      diffs.push({ field: roleDefinitionId, expected: 'policy present', actual: 'absent', severity: 'critical' })
       continue
     }
     const rulesRes = await client.getAll<LivePimRule>(`${POLICIES}/${policyId}/rules`)

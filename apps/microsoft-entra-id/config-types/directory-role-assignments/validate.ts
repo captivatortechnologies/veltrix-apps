@@ -74,32 +74,20 @@ export default function validate(ctx: PipelineContext): ValidationResult {
   specs.forEach((spec, i) => {
     const prefix = `items[${i}]`
 
+    // roleDefinitionId / principalId / directoryScopeId are now live-picker
+    // fields whose stored value is either a Graph id/shaped-scope-string
+    // (the normal path) or a hand-typed display name from a canvas saved
+    // before the picker existed (still valid — resolved via a live
+    // displayName -> id map at deploy time, same as conditional-access-policies'
+    // group/user/role fields). Neither can be verified offline without a live
+    // Graph call, so an unresolvable value surfaces as a clear deploy/drift
+    // error instead of a local format error here.
     if (!spec.roleDefinitionId) {
-      errors.push({ field: `${prefix}.roleDefinitionId`, message: 'Role definition ID is required', code: 'required' })
-    } else if (!isGuid(spec.roleDefinitionId)) {
-      errors.push({
-        field: `${prefix}.roleDefinitionId`,
-        message: `"${spec.roleDefinitionId}" is not a valid GUID (a role template id or custom roleDefinition id)`,
-        code: 'invalid_guid',
-      })
+      errors.push({ field: `${prefix}.roleDefinitionId`, message: 'Role is required', code: 'required' })
     }
 
     if (!spec.principalId) {
-      errors.push({ field: `${prefix}.principalId`, message: 'Principal (object) ID is required', code: 'required' })
-    } else if (!isGuid(spec.principalId)) {
-      errors.push({
-        field: `${prefix}.principalId`,
-        message: `"${spec.principalId}" is not a valid object id GUID`,
-        code: 'invalid_guid',
-      })
-    }
-
-    if (!spec.directoryScopeId.startsWith('/')) {
-      errors.push({
-        field: `${prefix}.directoryScopeId`,
-        message: 'Directory scope must start with "/" (e.g. "/" for tenant-wide or "/administrativeUnits/{id}")',
-        code: 'invalid_scope',
-      })
+      errors.push({ field: `${prefix}.principalId`, message: 'Principal is required', code: 'required' })
     }
 
     if (spec.roleDefinitionId && spec.principalId) {

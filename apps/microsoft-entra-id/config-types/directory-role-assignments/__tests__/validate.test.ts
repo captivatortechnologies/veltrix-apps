@@ -26,18 +26,16 @@ describe('directory-role-assignments validate', () => {
     expect(r.errors.filter((e) => e.code === 'required').length).toBe(2)
   })
 
-  it('rejects a non-GUID role definition id', () => {
-    const r = validate(ctxWith([{ fields: { roleDefinitionId: 'not-a-guid', principalId: PRINCIPAL } }]))
-    expect(r.valid).toBe(false)
-    expect(r.errors.some((e) => e.code === 'invalid_guid')).toBe(true)
+  it('accepts a hand-typed role/principal display name (pre-picker canvases) — resolved at deploy time', () => {
+    const r = validate(ctxWith([{ fields: { roleDefinitionId: 'Global Administrator', principalId: 'Ada Lovelace' } }]))
+    expect(r.valid).toBe(true)
   })
 
-  it('rejects a directory scope that does not start with "/"', () => {
+  it('accepts a directory scope that is a hand-typed display name (not "/"-prefixed) — resolved at deploy time', () => {
     const r = validate(
-      ctxWith([{ fields: { roleDefinitionId: ROLE, principalId: PRINCIPAL, directoryScopeId: 'administrativeUnits/x' } }]),
+      ctxWith([{ fields: { roleDefinitionId: ROLE, principalId: PRINCIPAL, directoryScopeId: 'West Region' } }]),
     )
-    expect(r.valid).toBe(false)
-    expect(r.errors.some((e) => e.code === 'invalid_scope')).toBe(true)
+    expect(r.valid).toBe(true)
   })
 
   it('rejects duplicate tuples', () => {

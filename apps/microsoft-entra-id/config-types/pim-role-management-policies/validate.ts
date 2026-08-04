@@ -10,7 +10,6 @@ import type { CanvasSnapshot, PipelineContext, ValidationResult } from '@veltrix
 // approval stages are preserved). Other rules (notifications, admin/eligibility
 // rules) are left untouched.
 
-const GUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
 const ISO8601_DURATION_RE = /^P(?:\d+D)?(?:T(?:\d+H)?(?:\d+M)?(?:\d+S)?)?$/
 
 export const RULE_IDS = {
@@ -90,12 +89,15 @@ export default function validate(ctx: PipelineContext): ValidationResult {
   specs.forEach((spec, i) => {
     const prefix = `items[${i}]`
 
+    // roleDefinitionId is now a live-picker field whose stored value is
+    // either a Graph id (the normal path) or a hand-typed display name from a
+    // canvas saved before the picker existed (still valid — resolved via a
+    // live displayName -> id map at deploy time). This can't be verified
+    // offline without a live Graph call, so an unresolvable value surfaces as
+    // a clear deploy/drift error instead of a local format error here.
     if (!spec.roleDefinitionId) {
-      errors.push({ field: `${prefix}.roleDefinitionId`, message: 'Role definition id is required', code: 'required' })
+      errors.push({ field: `${prefix}.roleDefinitionId`, message: 'Role is required', code: 'required' })
     } else {
-      if (!GUID_RE.test(spec.roleDefinitionId)) {
-        errors.push({ field: `${prefix}.roleDefinitionId`, message: 'Role definition id must be a GUID (a role template id)', code: 'invalid_role_id' })
-      }
       const key = spec.roleDefinitionId.toLowerCase()
       if (seen.has(key)) {
         errors.push({ field: `${prefix}.roleDefinitionId`, message: `Duplicate role "${spec.roleDefinitionId}" — each may only be declared once per canvas`, code: 'duplicate_role' })

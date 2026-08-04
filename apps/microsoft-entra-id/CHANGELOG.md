@@ -8,6 +8,23 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.8.2 — 2026-08-04
+
+Live pickers Phase 2 (batch 1) — Roles / PIM / Directory. Reference fields on
+these config types now search/select from the live tenant like Conditional Access:
+
+- **directory-role-assignments** — role → live directory-role picker; principal →
+  merged users/groups/service-principals picker; scope → tenant / administrative-unit
+  / application picker.
+- **pim-role-eligibility** — same role / principal / scope live pickers.
+- **pim-role-management-policies** — role → live directory-role picker.
+- **administrative-units** — members → merged users/groups/**devices** picker, with
+  provenance-tracked membership (only removes members this app added; `/$ref` delete
+  semantics handled so a member object is never deleted from the directory).
+- New shared option sources: `devices`, `applicationObjects` (object-id, distinct
+  from the appId-keyed `applications`); reusable `nameMaps`/`principals`/`directoryScope`
+  resolver libs. All id-aware + backward compatible (hand-typed names still resolve).
+
 ## 0.8.1 — 2026-08-04
 
 Conditional Access — full targeting surface as live pickers. Building on 0.8.0,

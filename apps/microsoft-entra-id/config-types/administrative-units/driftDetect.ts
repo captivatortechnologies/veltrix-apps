@@ -1,11 +1,16 @@
 import type { DriftContext, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildGraphClient, readGraphSettings, resolveGraphCredential } from '../../lib/graph'
 import { extractAdministrativeUnitSpecs, graphVisibility, type LiveAdministrativeUnit } from './validate'
+import { buildDeviceNameToId, buildGroupNameToId, buildUserNameToId, resolveAcrossMapsMany } from '../lib/nameMaps'
 
 const BASE = '/directory/administrativeUnits'
 const SELECT = '?$select=id,displayName,description,visibility,membershipType'
 
 type Diffs = DriftResult['diffs']
+
+function sortedJson(v: string[]): string {
+  return JSON.stringify([...v].sort())
+}
 
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readGraphSettings(ctx.settings)
@@ -19,6 +24,12 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const liveByName = new Map(
     listed.items.filter((u) => u.displayName).map((u) => [u.displayName!.toLowerCase(), u])
   )
+
+  const [userMap, groupMap, deviceMap] = await Promise.all([
+    buildUserNameToId(client),
+    buildGroupNameToId(client),
+    buildDeviceNameToId(client),
+  ])
 
   const diffs: Diffs = []
   for (const spec of specs) {
@@ -44,6 +55,34 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         field: `${spec.name}.visibility`,
         expected: wantVisibility,
         actual: liveVisibility,
+        severity: 'warning',
+      })
+    }
+
+    if (!live.id) continue
+    const memberResolution = resolveAcrossMapsMany(spec.members, [userMap, groupMap, deviceMap])
+    if (memberResolution.missing.length) {
+      diffs.push({
+        field: `${spec.name}.members`,
+        expected: 'resolvable',
+        actual: `unknown member(s): ${memberResolution.missing.join(', ')}`,
+        severity: 'critical',
+      })
+      continue
+    }
+    const liveMembers = await client.getAll<{ id?: string }>(`${BASE}/${live.id}/members?$select=id`)
+    if (!liveMembers.ok) continue
+    const liveIds = liveMembers.items.map((m) => m.id).filter((id): id is string => Boolean(id))
+    // A declared member missing from the live set is what matters for
+    // "is the canvas applied" — an EXTRA live member (never declared, or
+    // pre-existing) is expected and not itself drift, matching the
+    // deploy-time "never touch what we didn't add" rule.
+    const missingLive = memberResolution.ids.filter((id) => !liveIds.includes(id))
+    if (missingLive.length) {
+      diffs.push({
+        field: `${spec.name}.members`,
+        expected: sortedJson(memberResolution.ids),
+        actual: sortedJson(liveIds),
         severity: 'warning',
       })
     }

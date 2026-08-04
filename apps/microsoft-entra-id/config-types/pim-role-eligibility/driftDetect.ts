@@ -7,6 +7,10 @@ import {
   extractEligibilitySpecs,
   type LiveEligibilitySchedule,
 } from './validate'
+import { buildRoleNameToId } from '../lib/nameMaps'
+import { buildPrincipalNameMaps } from '../lib/principals'
+import { buildDirectoryScopeNameMaps } from '../lib/directoryScope'
+import { resolveEligibilitySpec } from './deploy'
 
 const SCHEDULES = '/roleManagement/directory/roleEligibilitySchedules'
 const SCHEDULE_SELECT = '?$select=id,principalId,roleDefinitionId,directoryScopeId,status,scheduleInfo,createdDateTime,modifiedDateTime'
@@ -30,9 +34,26 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     }
   }
 
+  const [role, principal, scope] = await Promise.all([
+    buildRoleNameToId(client),
+    buildPrincipalNameMaps(client),
+    buildDirectoryScopeNameMaps(client),
+  ])
+
   const diffs: Diffs = []
-  for (const spec of specs) {
-    const label = eligibilityLabel(spec)
+  for (const rawSpec of specs) {
+    const { resolved: spec, missing } = resolveEligibilitySpec(rawSpec, { role, principal, scope })
+    const label = eligibilityLabel(rawSpec)
+    if (missing.length) {
+      diffs.push({
+        field: label,
+        expected: 'resolvable',
+        actual: `unknown target(s): ${missing.join(', ')}`,
+        severity: 'critical',
+      })
+      continue
+    }
+
     const live = byKey.get(eligibilityKey(spec.principalId, spec.roleDefinitionId, spec.directoryScopeId))
 
     // A declared eligibility missing from the applied schedules is critical —

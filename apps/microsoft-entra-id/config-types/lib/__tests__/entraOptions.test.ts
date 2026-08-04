@@ -137,6 +137,44 @@ describe('entraOptions — servicePrincipals (value=object id, no sentinels)', (
   })
 })
 
+describe('entraOptions — applicationObjects (value=object id, distinct from applications)', () => {
+  it('uses the object id as the value and the appId as the description — the opposite of `applications`', async () => {
+    mockGraphFetch(() => ({
+      status: 200,
+      body: { value: [{ id: 'obj-1', appId: 'app-1', displayName: 'Contoso Portal' }] },
+    }))
+    const opts = await entraOptions({ ...baseCtx, source: 'applicationObjects', credential: cred })
+    expect(opts).toEqual([{ value: 'obj-1', label: 'Contoso Portal', description: 'app-1' }])
+  })
+
+  it('gets no cloud-app sentinels — those are specific to the `applications` (appId) source', async () => {
+    mockGraphFetch(() => ({ status: 200, body: { value: [] } }))
+    const opts = await entraOptions({ ...baseCtx, source: 'applicationObjects', credential: cred })
+    expect(opts.some((o) => o.value === 'All')).toBe(false)
+  })
+})
+
+describe('entraOptions — devices', () => {
+  it('lists live devices, mapping id/displayName to value/label', async () => {
+    mockGraphFetch((u) =>
+      u.includes('/devices')
+        ? { status: 200, body: { value: [{ id: 'd1', displayName: "Ada's Laptop" }] } }
+        : { status: 404, body: {} },
+    )
+    const opts = await entraOptions({ ...baseCtx, source: 'devices', credential: cred })
+    expect(opts).toEqual([{ value: 'd1', label: "Ada's Laptop", description: 'd1' }])
+  })
+
+  it('sends $search + ConsistencyLevel: eventual when a query is given', async () => {
+    const calls = mockGraphFetch(() => ({ status: 200, body: { value: [] } }))
+    await entraOptions({ ...baseCtx, source: 'devices', query: 'laptop', credential: cred })
+    const graphCall = calls.find((c) => c.url.includes('/devices'))
+    expect(graphCall).toBeDefined()
+    expect(graphCall!.url).toContain('$search=')
+    expect(graphCall!.headers.ConsistencyLevel).toBe('eventual')
+  })
+})
+
 describe('entraOptions — namedLocations (not a $search-capable resource)', () => {
   it('labels each location by its named-location kind', async () => {
     mockGraphFetch(() => ({

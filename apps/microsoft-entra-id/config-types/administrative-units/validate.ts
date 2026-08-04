@@ -14,6 +14,8 @@ export interface AdministrativeUnitSpec {
   description: string
   /** 'public' | 'hiddenmembership'. */
   visibility: string
+  /** Member object ids, UPNs or display names (users, groups or devices) — resolved at deploy time. */
+  members: string[]
 }
 
 /** An administrative unit as returned by Graph GET /directory/administrativeUnits. */
@@ -27,6 +29,15 @@ export interface LiveAdministrativeUnit {
 
 function asString(v: unknown): string {
   return typeof v === 'string' ? v.trim() : ''
+}
+
+/** Coerce a multiselect (array) or a delimited string into trimmed tokens. */
+function asStringArray(v: unknown): string[] {
+  if (Array.isArray(v)) return v.map((x) => String(x).trim()).filter((t) => t.length > 0)
+  return asString(v)
+    .split(/[\n,]/)
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0)
 }
 
 /** The Graph visibility value for a spec: 'HiddenMembership', or null for public. */
@@ -43,6 +54,7 @@ export function extractAdministrativeUnitSpecs(canvas: CanvasSnapshot): Administ
       name: asString(f.name) || item.name,
       description: asString(f.description),
       visibility: (asString(f.visibility) || 'public').toLowerCase(),
+      members: asStringArray(f.members),
     }
   })
 }

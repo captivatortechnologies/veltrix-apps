@@ -31,27 +31,42 @@ item:
       description: "Role, principal and scope"
       fields:
         - key: "roleDefinitionId"
-          label: "Role Definition ID"
-          fieldType: "text"
+          label: "Role"
+          fieldType: "remote-select"
+          optionsSource: "roleDefinitions"
           required: true
           helpText: >
-            The role's template GUID (e.g. 62e90394-69f5-4237-9190-012177145e10
-            for Global Administrator) or a custom roleDefinition id.
+            The directory role to assign — pick from the live tenant's built-in
+            and custom roles. Stores the role's id (for a built-in role, this
+            IS its template GUID, e.g. 62e90394-69f5-4237-9190-012177145e10 for
+            Global Administrator); a hand-typed display name from an older
+            canvas also resolves at deploy time.
 
         - key: "principalId"
-          label: "Principal (object) ID"
-          fieldType: "text"
+          label: "Principal"
+          fieldType: "remote-select"
+          optionsSource: "directoryPrincipals"
           required: true
-          helpText: "Object id of the user, role-assignable group or service principal that receives the role."
+          helpText: >
+            The user, role-assignable group or service principal that
+            receives the role — pick from the live tenant (each option is
+            labelled by kind). Stores the principal's object id; a hand-typed
+            display name, UPN or object id from an older canvas also resolves
+            at deploy time.
 
         - key: "directoryScopeId"
           label: "Directory Scope"
-          fieldType: "text"
+          fieldType: "remote-select"
+          optionsSource: "directoryScope"
           required: false
           defaultValue: "/"
           helpText: >
-            Scope of the assignment. "/" is tenant-wide; use
-            "/administrativeUnits/{id}" to scope to an administrative unit.
+            Scope of the assignment — pick Tenant-wide, an administrative
+            unit, or a resource application from the live tenant. Stores the
+            Graph-shaped scope string ("/", "/administrativeUnits/{id}" or
+            "/{application-objectID}"); a hand-typed display name or an
+            already Graph-shaped value from an older canvas also resolves at
+            deploy time.
 
         - key: "label"
           label: "Label (display only)"

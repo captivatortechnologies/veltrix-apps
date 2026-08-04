@@ -6,9 +6,12 @@
 # lists units, matches on the name (or a stored id, rename-safe), and PATCHes
 # (update) or POSTs (create) accordingly.
 #
-# This configuration type manages the unit's name, description and visibility.
-# Membership and scoped role assignments are NOT managed here. Reconcile only
-# deletes units this app created.
+# This configuration type manages the unit's name, description, visibility and
+# member list (users, groups and devices). Scoped role assignments are NOT
+# managed here. Reconcile only deletes units this app created, and only
+# removes MEMBERS this app itself added — a member that already belonged to
+# the unit before this app touched it is left alone even if it is later
+# dropped from the canvas.
 #
 # Field keys must match what config-types/administrative-units/validate.ts checks.
 # =============================================================================
@@ -17,7 +20,7 @@ id: "microsoft-entra-id-administrative-units"
 name: "Administrative Unit Configuration"
 toolType: "microsoft-entra-id"
 entityType: "administrative-units"
-description: "Define Entra ID administrative units (name, description, visibility) as code through the Microsoft Graph API. Membership and scoped role assignments are not managed."
+description: "Define Entra ID administrative units (name, description, visibility, members) as code through the Microsoft Graph API. Scoped role assignments are not managed."
 
 item:
   label: "Administrative Unit"
@@ -61,3 +64,22 @@ item:
           helpText: >
             Public units show their membership to non-members. Hidden membership
             hides the member list from non-members.
+
+    - name: "Members"
+      icon: "users"
+      description: "Users, groups and devices that belong to this administrative unit"
+      fields:
+        - key: "members"
+          label: "Members"
+          fieldType: "remote-multiselect"
+          optionsSource: "administrativeUnitMembers"
+          optionsMulti: true
+          required: false
+          helpText: >
+            Users, groups and devices to add as members — pick from the live
+            tenant (each option is labelled by kind). Stores each member's
+            object id; a hand-typed display name, UPN or object id from an
+            older canvas also resolves at deploy time. This app only ever
+            removes a member it itself added — a pre-existing member left off
+            this list is never removed. Leave empty to manage no membership
+            through this canvas.

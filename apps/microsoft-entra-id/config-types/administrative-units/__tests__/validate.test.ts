@@ -1,5 +1,5 @@
-import validate, { graphVisibility } from '../validate'
-import type { PipelineContext } from '@veltrixsecops/app-sdk'
+import validate, { graphVisibility, extractAdministrativeUnitSpecs } from '../validate'
+import type { CanvasSnapshot, PipelineContext } from '@veltrixsecops/app-sdk'
 
 function ctxWith(
   items: Array<{ id?: string; name: string; fields: Record<string, unknown> }>
@@ -44,7 +44,26 @@ describe('administrative-units validate', () => {
 
 describe('graphVisibility', () => {
   it('maps hidden membership to HiddenMembership and public to null', () => {
-    expect(graphVisibility({ name: 'a', description: '', visibility: 'hiddenmembership' })).toBe('HiddenMembership')
-    expect(graphVisibility({ name: 'a', description: '', visibility: 'public' })).toBe(null)
+    expect(graphVisibility({ name: 'a', description: '', visibility: 'hiddenmembership', members: [] })).toBe('HiddenMembership')
+    expect(graphVisibility({ name: 'a', description: '', visibility: 'public', members: [] })).toBe(null)
+  })
+})
+
+describe('extractAdministrativeUnitSpecs — members', () => {
+  it('reads members as an array (multiselect) value', () => {
+    const canvas = { items: [{ fields: { name: 'AU', members: ['Ada Lovelace', 'g-1'] } }] } as unknown as CanvasSnapshot
+    const [spec] = extractAdministrativeUnitSpecs(canvas)
+    expect(spec.members).toEqual(['Ada Lovelace', 'g-1'])
+  })
+
+  it('defaults to an empty array when members is omitted', () => {
+    const canvas = { items: [{ fields: { name: 'AU' } }] } as unknown as CanvasSnapshot
+    const [spec] = extractAdministrativeUnitSpecs(canvas)
+    expect(spec.members).toEqual([])
+  })
+
+  it('validate() accepts a unit with members declared', () => {
+    const r = validate(ctxWith([{ name: 'AU', fields: { name: 'AU', members: ['Ada Lovelace'] } }]))
+    expect(r.valid).toBe(true)
   })
 })

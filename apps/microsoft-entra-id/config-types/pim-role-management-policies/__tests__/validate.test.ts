@@ -22,10 +22,9 @@ describe('pim-role-management-policies validate', () => {
     expect(r.errors.some((e) => e.code === 'required')).toBe(true)
   })
 
-  it('rejects a non-GUID role id', () => {
+  it('accepts a hand-typed role display name (pre-picker canvases) — resolved at deploy time', () => {
     const r = validate(ctxWith([{ fields: { roleDefinitionId: 'Global Administrator' } }]))
-    expect(r.valid).toBe(false)
-    expect(r.errors.some((e) => e.code === 'invalid_role_id')).toBe(true)
+    expect(r.valid).toBe(true)
   })
 
   it('requires a duration when expiration is required', () => {

@@ -34,29 +34,42 @@ item:
       description: "Who becomes eligible for which role, and at what scope"
       fields:
         - key: "principalId"
-          label: "Principal (object) ID"
-          fieldType: "text"
+          label: "Principal"
+          fieldType: "remote-select"
+          optionsSource: "directoryPrincipals"
           required: true
           helpText: >
-            Object id (a GUID) of the user, group or service principal that
-            becomes eligible to activate the role.
+            The user, group or service principal that becomes eligible to
+            activate the role — pick from the live tenant (each option is
+            labelled by kind). Stores the principal's object id; a hand-typed
+            display name, UPN or object id from an older canvas also resolves
+            at deploy time.
 
         - key: "roleDefinitionId"
-          label: "Role Definition ID"
-          fieldType: "text"
+          label: "Role"
+          fieldType: "remote-select"
+          optionsSource: "roleDefinitions"
           required: true
           helpText: >
-            The directory role template id (a GUID) the principal is eligible
-            for, e.g. the Global Administrator role template id.
+            The directory role the principal is eligible for — pick from the
+            live tenant's built-in and custom roles. Stores the role's id (for
+            a built-in role, this IS its template id, e.g. the Global
+            Administrator role template id); a hand-typed display name from an
+            older canvas also resolves at deploy time.
 
         - key: "directoryScopeId"
           label: "Directory Scope"
-          fieldType: "text"
+          fieldType: "remote-select"
+          optionsSource: "directoryScope"
           required: false
           defaultValue: "/"
           helpText: >
-            Scope of the eligibility. "/" is tenant-wide; an administrative-unit
-            or directory-object id narrows it. Part of the eligibility identity.
+            Scope of the eligibility — pick Tenant-wide, an administrative
+            unit, or a resource application from the live tenant. Stores the
+            Graph-shaped scope string ("/", "/administrativeUnits/{id}" or
+            "/{application-objectID}"); a hand-typed display name or an
+            already Graph-shaped value from an older canvas also resolves at
+            deploy time. Part of the eligibility identity.
 
     - name: "Eligibility Window"
       icon: "clock"

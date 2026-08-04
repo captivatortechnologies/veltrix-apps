@@ -19,6 +19,9 @@ import {
   type ExpirationPattern,
   type LiveEligibilitySchedule,
 } from './validate'
+import { buildRoleNameToId, resolveRef } from '../lib/nameMaps'
+import { buildPrincipalNameMaps, resolvePrincipal, type PrincipalNameMaps } from '../lib/principals'
+import { buildDirectoryScopeNameMaps, resolveDirectoryScope, type DirectoryScopeNameMaps } from '../lib/directoryScope'
 
 const SCHEDULES = '/roleManagement/directory/roleEligibilitySchedules'
 const REQUESTS = '/roleManagement/directory/roleEligibilityScheduleRequests'
@@ -74,6 +77,45 @@ export function buildRequestBody(
   return body
 }
 
+interface NameMaps {
+  role: Map<string, string>
+  principal: PrincipalNameMaps
+  scope: DirectoryScopeNameMaps
+}
+
+async function buildNameMaps(client: GraphClient): Promise<NameMaps> {
+  const [role, principal, scope] = await Promise.all([
+    buildRoleNameToId(client),
+    buildPrincipalNameMaps(client),
+    buildDirectoryScopeNameMaps(client),
+  ])
+  return { role, principal, scope }
+}
+
+/**
+ * Resolve one spec's principal/role/scope references, leaving every other
+ * field (justification, ticketing, expiration window) untouched. A
+ * picker-selected value passes straight through; a hand-typed display name
+ * resolves via the live maps built once per deploy/drift run.
+ */
+export function resolveEligibilitySpec(
+  spec: EligibilitySpec,
+  maps: NameMaps
+): { resolved: EligibilitySpec; missing: string[] } {
+  const role = resolveRef(spec.roleDefinitionId, maps.role)
+  const principal = resolvePrincipal(spec.principalId, maps.principal)
+  const scope = resolveDirectoryScope(spec.directoryScopeId, maps.scope)
+  const missing = [
+    ...(role.missing ? [spec.roleDefinitionId] : []),
+    ...(principal.missing ? [spec.principalId] : []),
+    ...(scope.missing ? [scope.missing] : []),
+  ]
+  return {
+    resolved: { ...spec, principalId: principal.id, roleDefinitionId: role.id, directoryScopeId: scope.scope || '/' },
+    missing,
+  }
+}
+
 async function loadPriorEntries(ctx: DeployContext): Promise<RollbackEntry[]> {
   try {
     const prev = await ctx.platform.getLatestDeployment(ctx.canvas.canvasId, { status: 'SUCCEEDED' })
@@ -119,6 +161,10 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     }
   }
 
+  // Resolve every spec's principal/role/scope references once, using name
+  // maps built once for the whole deploy (mirrors conditional-access-policies).
+  const maps = await buildNameMaps(client)
+
   const prior = await loadPriorEntries(ctx)
   const priorByKey = new Map(
     prior.map((e) => [eligibilityKey(e.principalId, e.roleDefinitionId, e.directoryScopeId), e]),
@@ -126,9 +172,17 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const entries: RollbackEntry[] = []
   const failures: string[] = []
   const pending: string[] = []
+  const declaredKeys = new Set<string>()
 
-  for (const spec of specs) {
+  for (const rawSpec of specs) {
+    const { resolved: spec, missing } = resolveEligibilitySpec(rawSpec, maps)
+    if (missing.length) {
+      failures.push(`${eligibilityLabel(rawSpec)}: unknown target(s) ${missing.join(', ')} — create/verify them first or fix the name`)
+      continue
+    }
+
     const key = eligibilityKey(spec.principalId, spec.roleDefinitionId, spec.directoryScopeId)
+    declaredKeys.add(key)
     const match = live.byKey.get(key)
     const label = eligibilityLabel(spec)
     // Sticky provenance: once this app created the eligibility (existed:false),
@@ -193,12 +247,15 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   // Reconcile: revoke eligibilities THIS app created previously but no longer
   // declares. Keyed on provenance (existed:false) alone — an app-created
   // eligibility that was later updated (or unchanged) must still be revoked, so we
-  // no longer also require the last action to have been adminAssign.
-  const declaredKeys = new Set(specs.map((s) => eligibilityKey(s.principalId, s.roleDefinitionId, s.directoryScopeId)))
+  // no longer also require the last action to have been adminAssign. A spec
+  // whose reference failed to resolve THIS run is still "declared" by canvas
+  // item — protected via itemId — so a transient lookup failure never revokes
+  // an eligibility the user still intends to keep.
+  const declaredItemIds = new Set(specs.map((s) => s.itemId).filter((v): v is string => Boolean(v)))
   for (const p of prior) {
     if (p.existed) continue
     const key = eligibilityKey(p.principalId, p.roleDefinitionId, p.directoryScopeId)
-    if (declaredKeys.has(key)) continue
+    if (declaredKeys.has(key) || (p.itemId && declaredItemIds.has(p.itemId))) continue
     // Only revoke if it is actually still present as an applied eligibility.
     if (!live.byKey.has(key)) continue
     const removeSpec = {

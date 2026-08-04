@@ -1,6 +1,6 @@
 id: microsoft-entra-id
 name: Microsoft Entra ID
-version: "0.8.1"
+version: "0.8.2"
 vendor: Veltrix
 description: >
   Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the
@@ -46,7 +46,7 @@ permissions:
       description: Manage Entra Conditional Access policies (user/group + cloud-app targeting, grant controls; report-only by default)
     - resource: administrative-units
       actions: [read, write, delete]
-      description: Manage Entra administrative units (name, description, visibility; membership not managed)
+      description: Manage Entra administrative units (name, description, visibility, members; scoped role assignments not managed)
     - resource: authentication-strength-policies
       actions: [read, write, delete]
       description: Manage custom Entra Conditional Access authentication strengths (allowed method combinations; built-in strengths protected)
@@ -223,7 +223,7 @@ pipeline:
     - id: administrative-units
       group: "Directory"
       name: Administrative Units
-      description: Administrative units — name, description and visibility (membership not managed)
+      description: Administrative units — name, description, visibility and members (users/groups/devices; scoped role assignments not managed)
       canvasTemplate: config-types/administrative-units/canvas.yaml
       defaultConfig: config-types/administrative-units/defaults.yaml
       handlers:
@@ -233,6 +233,7 @@ pipeline:
         healthCheck: config-types/administrative-units/healthCheck
         driftDetect: config-types/administrative-units/driftDetect
         getStatus: config-types/administrative-units/getStatus
+        options: config-types/administrative-units/options
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true
@@ -809,6 +810,7 @@ pipeline:
         healthCheck: config-types/pim-role-management-policies/healthCheck
         driftDetect: config-types/pim-role-management-policies/driftDetect
         getStatus: config-types/pim-role-management-policies/getStatus
+        options: config-types/pim-role-management-policies/options
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true
@@ -827,6 +829,7 @@ pipeline:
         healthCheck: config-types/directory-role-assignments/healthCheck
         driftDetect: config-types/directory-role-assignments/driftDetect
         getStatus: config-types/directory-role-assignments/getStatus
+        options: config-types/directory-role-assignments/options
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true
@@ -844,6 +847,7 @@ pipeline:
         healthCheck: config-types/pim-role-eligibility/healthCheck
         driftDetect: config-types/pim-role-eligibility/driftDetect
         getStatus: config-types/pim-role-eligibility/getStatus
+        options: config-types/pim-role-eligibility/options
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true

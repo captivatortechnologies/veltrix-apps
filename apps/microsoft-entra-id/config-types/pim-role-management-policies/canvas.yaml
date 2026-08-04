@@ -33,12 +33,17 @@ item:
       description: "The privileged role this policy governs"
       fields:
         - key: "roleDefinitionId"
-          label: "Role Definition ID"
-          fieldType: "text"
+          label: "Role"
+          fieldType: "remote-select"
+          optionsSource: "roleDefinitions"
           required: true
           helpText: >
-            The directory role template id (a GUID), e.g. the Global Administrator
-            role template id. The Directory-scope policy is resolved from it.
+            The directory role this activation policy governs — pick from the
+            live tenant's built-in and custom roles. Stores the role's id (for
+            a built-in role, this IS its template id, e.g. the Global
+            Administrator role template id); a hand-typed display name from an
+            older canvas also resolves at deploy time. The Directory-scope
+            policy is resolved from it.
 
     - name: "Activation Requirements"
       icon: "lock"

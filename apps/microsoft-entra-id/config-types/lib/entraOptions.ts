@@ -9,7 +9,9 @@
 //   groups                 GET /groups                                                  ($search: yes)
 //   users                  GET /users                                                    ($search: yes)
 //   applications           GET /applications            (value = appId, not id)          ($search: yes)
+//   applicationObjects     GET /applications            (value = id, not appId)          ($search: yes)
 //   servicePrincipals      GET /servicePrincipals        (value = id, not appId)          ($search: yes)
+//   devices                GET /devices                                                  ($search: yes)
 //   administrativeUnits    GET /directory/administrativeUnits                             ($search: yes)
 //   namedLocations         GET /identity/conditionalAccess/namedLocations                 ($search: no)
 //   roleDefinitions        GET /roleManagement/directory/roleDefinitions                  ($search: no)
@@ -25,8 +27,12 @@
 // administrativeUnit, application, device, group, servicePrincipal and user
 // are "directory objects" that support it (with the `ConsistencyLevel:
 // eventual` header — $search, unlike $filter's ne/not, does NOT also need
-// $count). The other sources here are governance/policy resources, not
-// directory objects, and do not support $search — confirmed per-endpoint:
+// $count). `devices` additionally confirmed directly on GET /devices's own
+// page, which documents $search on displayName with the identical
+// `$search="displayName:..."` + `ConsistencyLevel: eventual` shape used here
+// (https://learn.microsoft.com/graph/api/device-list). The other sources here
+// are governance/policy resources, not directory objects, and do not support
+// $search — confirmed per-endpoint:
 // namedLocations documents $count/$filter/$orderby/$select/$skip/$top only
 // (https://learn.microsoft.com/graph/api/conditionalaccessroot-list-namedlocations),
 // roleDefinitions documents $filter (eq/in) on id/displayName/isBuiltIn only
@@ -36,17 +42,31 @@
 // Those sources fetch a page and filter on the label in memory instead — the
 // same fallback okta-identity's provider uses for its non-searchable sources.
 //
-// `applications` and `servicePrincipals` deliberately use DIFFERENT value
-// spaces: `applications` returns the appId because that's what
-// conditionalAccessApplications.include/excludeApplications (and every other
-// "target this app" field) actually stores
-// (https://learn.microsoft.com/graph/api/resources/conditionalaccessapplications).
-// `servicePrincipals` returns the object id because that's what the OTHER
-// Graph relationships this app manages key on instead — appRoleAssignments,
-// oauth2PermissionGrants, roleAssignment principalIds, etc. Only
-// `applications` gets the cloud-app sentinels below; prepending them to
-// `servicePrincipals` would inject appId-shaped literals into an
-// object-id-keyed field.
+// `applications`, `applicationObjects` and `servicePrincipals` deliberately
+// use DIFFERENT value spaces — three separate sources over what is, for the
+// first two, the SAME Graph collection:
+//   - `applications` returns the appId because that's what
+//     conditionalAccessApplications.include/excludeApplications (and every
+//     other "target this app" field) actually stores
+//     (https://learn.microsoft.com/graph/api/resources/conditionalaccessapplications).
+//   - `applicationObjects` returns the application's OBJECT id (Graph's `id`,
+//     never `appId`) because that's the id space
+//     unifiedRoleAssignment.directoryScopeId's app-scope pattern
+//     "/{application-objectID}" requires — confirmed by the worked example on
+//     the roleAssignments CREATE page ("The object ID of the application
+//     registration is 661e1310-..." used directly as
+//     `directoryScopeId: "/661e1310-..."`,
+//     https://learn.microsoft.com/graph/api/rbacapplication-post-roleassignments).
+//     Conflating this with `applications` above would silently inject an
+//     appId where Graph expects an object id (and vice versa) — a wrong id
+//     shape that still LOOKS valid (both are GUIDs) until the write fails, so
+//     the two are kept as fully separate sources rather than one aliased pair.
+//   - `servicePrincipals` returns the object id because that's what the OTHER
+//     Graph relationships this app manages key on instead — appRoleAssignments,
+//     oauth2PermissionGrants, roleAssignment principalIds, etc.
+// Only `applications` gets the cloud-app sentinels below; prepending them to
+// `servicePrincipals` or `applicationObjects` would inject appId-shaped
+// literals into an object-id-keyed field.
 // =============================================================================
 
 import type { OptionItem, OptionsProvider } from '@veltrixsecops/app-sdk'
@@ -159,6 +179,14 @@ const SIMPLE_SOURCES: Record<string, SimpleSource> = {
     // (and app-targeting fields generally) store the appId, not the object id.
     toOption: (a) => opt(a.appId, a.displayName, a.id),
   },
+  applicationObjects: {
+    path: '/applications',
+    select: 'id,appId,displayName',
+    searchable: true,
+    // value = the application's OBJECT id (Graph's `id`), NOT appId — see the
+    // module header for why this is a separate source from `applications`.
+    toOption: (a) => opt(a.id, a.displayName, a.appId),
+  },
   servicePrincipals: {
     path: '/servicePrincipals',
     select: 'id,appId,displayName',
@@ -166,6 +194,12 @@ const SIMPLE_SOURCES: Record<string, SimpleSource> = {
     // value = object id: appRoleAssignments / oauth2PermissionGrants / role
     // assignment principalIds all key on the SP's id, not its appId.
     toOption: (s) => opt(s.id, s.displayName, s.appId),
+  },
+  devices: {
+    path: '/devices',
+    select: 'id,displayName',
+    searchable: true,
+    toOption: (d) => opt(d.id, d.displayName, d.id),
   },
   administrativeUnits: {
     path: '/directory/administrativeUnits',

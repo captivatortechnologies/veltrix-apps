@@ -10,7 +10,6 @@ import type { CanvasSnapshot, PipelineContext, ValidationResult } from '@veltrix
 // scheduleInfo.expiration, whose `type` is noExpiration | afterDateTime |
 // afterDuration (with endDateTime or duration respectively).
 
-const GUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
 const ISO8601_DURATION_RE = /^P(?:\d+Y)?(?:\d+M)?(?:\d+W)?(?:\d+D)?(?:T(?:\d+H)?(?:\d+M)?(?:\d+S)?)?$/
 
 export const EXPIRATION_TYPES = ['noExpiration', 'afterDateTime', 'afterDuration'] as const
@@ -160,16 +159,19 @@ export default function validate(ctx: PipelineContext): ValidationResult {
   specs.forEach((spec, i) => {
     const prefix = `items[${i}]`
 
+    // principalId / roleDefinitionId / directoryScopeId are now live-picker
+    // fields whose stored value is either a Graph id/shaped-scope-string (the
+    // normal path) or a hand-typed display name from a canvas saved before
+    // the picker existed (still valid — resolved via a live displayName -> id
+    // map at deploy time). Neither can be verified offline without a live
+    // Graph call, so an unresolvable value surfaces as a clear deploy/drift
+    // error instead of a local format error here.
     if (!spec.principalId) {
-      errors.push({ field: `${prefix}.principalId`, message: 'Principal (object) id is required', code: 'required' })
-    } else if (!GUID_RE.test(spec.principalId)) {
-      errors.push({ field: `${prefix}.principalId`, message: 'Principal id must be an object id (a GUID)', code: 'invalid_principal_id' })
+      errors.push({ field: `${prefix}.principalId`, message: 'Principal is required', code: 'required' })
     }
 
     if (!spec.roleDefinitionId) {
-      errors.push({ field: `${prefix}.roleDefinitionId`, message: 'Role definition id is required', code: 'required' })
-    } else if (!GUID_RE.test(spec.roleDefinitionId)) {
-      errors.push({ field: `${prefix}.roleDefinitionId`, message: 'Role definition id must be a role template id (a GUID)', code: 'invalid_role_id' })
+      errors.push({ field: `${prefix}.roleDefinitionId`, message: 'Role is required', code: 'required' })
     }
 
     if (!spec.justification) {

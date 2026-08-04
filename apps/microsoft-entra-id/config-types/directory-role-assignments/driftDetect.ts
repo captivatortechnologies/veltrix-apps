@@ -3,6 +3,9 @@
 import type { DriftContext, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildGraphClient, readGraphSettings, resolveGraphCredential } from '../../lib/graph'
 import { assignmentKey, extractRoleAssignmentSpecs, type LiveRoleAssignment } from './validate'
+import { buildRoleNameToId, resolveRef } from '../lib/nameMaps'
+import { buildPrincipalNameMaps, resolvePrincipal } from '../lib/principals'
+import { buildDirectoryScopeNameMaps, resolveDirectoryScope } from '../lib/directoryScope'
 
 const BASE = '/roleManagement/directory/roleAssignments'
 
@@ -20,13 +23,38 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   if (!listed.ok) return { hasDrift: false, diffs: [] }
   const liveByKey = new Map(listed.items.filter((a) => a.id).map((a) => [assignmentKey(a), a]))
 
+  const [role, principal, scope] = await Promise.all([
+    buildRoleNameToId(client),
+    buildPrincipalNameMaps(client),
+    buildDirectoryScopeNameMaps(client),
+  ])
+
   const diffs: Diffs = []
   for (const spec of specs) {
-    const key = assignmentKey(spec)
+    const roleRef = resolveRef(spec.roleDefinitionId, role)
+    const principalRef = resolvePrincipal(spec.principalId, principal)
+    const scopeRef = resolveDirectoryScope(spec.directoryScopeId, scope)
+    const label = spec.label || `${spec.roleDefinitionId} -> ${spec.principalId}`
+    const missing = [
+      ...(roleRef.missing ? [spec.roleDefinitionId] : []),
+      ...(principalRef.missing ? [spec.principalId] : []),
+      ...(scopeRef.missing ? [scopeRef.missing] : []),
+    ]
+    if (missing.length) {
+      diffs.push({
+        field: label,
+        expected: 'resolvable',
+        actual: `unknown target(s): ${missing.join(', ')}`,
+        severity: 'critical',
+      })
+      continue
+    }
+
+    const key = assignmentKey({ roleDefinitionId: roleRef.id, principalId: principalRef.id, directoryScopeId: scopeRef.scope })
     if (!liveByKey.has(key)) {
       // A truncated listing can't prove absence — skip the (false) critical.
       if (listed.truncated) continue
-      diffs.push({ field: spec.label || key, expected: 'present', actual: 'absent', severity: 'critical' })
+      diffs.push({ field: label, expected: 'present', actual: 'absent', severity: 'critical' })
     }
   }
 

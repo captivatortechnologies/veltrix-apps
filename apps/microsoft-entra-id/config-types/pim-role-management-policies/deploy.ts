@@ -16,6 +16,7 @@ import {
   type LivePimRule,
   type PimPolicySpec,
 } from './validate'
+import { buildRoleNameToId, resolveRef } from '../lib/nameMaps'
 
 const POLICIES = '/policies/roleManagementPolicies'
 
@@ -78,20 +79,29 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const specs = extractPimPolicySpecs(ctx.canvas).filter((s) => s.roleDefinitionId)
   // Loaded for parity with sibling handlers; PIM rules are never created/deleted.
   await loadPriorEntries(ctx)
+  // A picker-selected value passes straight through; a hand-typed display
+  // name (a canvas saved before the picker existed) resolves via this map.
+  const roleNameToId = await buildRoleNameToId(client)
 
   const entries: RollbackEntry[] = []
   const failures: string[] = []
 
   for (const spec of specs) {
-    const policyId = await resolvePolicyId(client, spec.roleDefinitionId)
+    const role = resolveRef(spec.roleDefinitionId, roleNameToId)
+    if (role.missing) {
+      failures.push(`${spec.roleDefinitionId}: unknown role — create/verify it first or fix the name`)
+      continue
+    }
+    const roleDefinitionId = role.id
+    const policyId = await resolvePolicyId(client, roleDefinitionId)
     if (!policyId) {
-      failures.push(`${spec.roleDefinitionId}: no Directory-scope role management policy found`)
+      failures.push(`${roleDefinitionId}: no Directory-scope role management policy found`)
       continue
     }
 
     const rulesRes = await client.getAll<LivePimRule>(`${POLICIES}/${policyId}/rules`)
     if (!rulesRes.ok) {
-      failures.push(`${spec.roleDefinitionId}: ${graphErrorMessage(rulesRes.lastError!)}`)
+      failures.push(`${roleDefinitionId}: ${graphErrorMessage(rulesRes.lastError!)}`)
       continue
     }
     const rulesById = new Map<string, LivePimRule>()
@@ -111,7 +121,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     for (const t of targets) {
       const resp = await client.patch(`${POLICIES}/${policyId}/rules/${t.id}`, t.body)
       if (!resp.ok) {
-        failures.push(`${spec.roleDefinitionId} (${t.id}): ${graphErrorMessage(resp)}`)
+        failures.push(`${roleDefinitionId} (${t.id}): ${graphErrorMessage(resp)}`)
         failed = true
         break
       }
@@ -136,7 +146,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         setting: liveApproval?.setting ?? { isApprovalRequired: false },
       },
     }
-    entries.push({ itemId: spec.itemId, name: spec.roleDefinitionId, existed: true, policyId, priorRules })
+    entries.push({ itemId: spec.itemId, name: roleDefinitionId, existed: true, policyId, priorRules })
   }
 
   // PIM rules are system-provisioned per scope+role — never created or deleted,
