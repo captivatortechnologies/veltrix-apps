@@ -1,0 +1,80 @@
+# =============================================================================
+# Canvas Template — OpenCTI TAXII Collections (Data Sharing)
+#
+# Declares ONE OpenCTI TAXII 2.1 collection (the item). Users add as many as
+# they need. Field keys must match config-types/taxii-collections/validate.ts.
+# Applied via the OpenCTI GraphQL API (taxiiCollectionAdd /
+# taxiiCollectionEdit.fieldPatch), verified against the OpenCTI GraphQL
+# backend schema (opencti-platform/opencti,
+# src/modules/dataSharing/taxiiCollection.graphql).
+#
+# OUT OF SCOPE: `taxii_public_user_id` (the user a public collection is
+# attributed to) and `authorized_members` (per-member ACLs on the collection)
+# — user-id/ACL wiring left for a future pass.
+# =============================================================================
+
+id: "opencti-taxii-collections"
+name: "TAXII Collections"
+toolType: "opencti"
+entityType: "taxii-collections"
+description: "Manage OpenCTI TAXII collections — what data this feed exposes and to whom — via the OpenCTI GraphQL API (443)"
+
+item:
+  label: "TAXII Collection"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "TAXII Collection"
+      icon: "share-2"
+      description: "The collection's identity and exposure options"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The TAXII collection name and the stable identity for upsert/drift, e.g. All Malware."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Human-readable description of what this collection exposes."
+
+        - key: "taxii_public"
+          label: "Public"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether the collection is reachable without platform authentication."
+
+        - key: "include_inferences"
+          label: "Include Inferences"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether inferred (not just asserted) relationships are included in this collection's output."
+
+        - key: "score_to_confidence"
+          label: "Score to Confidence"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether an indicator's score is mapped to its STIX confidence when exported."
+
+    - name: "Filters"
+      icon: "filter"
+      description: "What data this TAXII collection exposes"
+      fields:
+        - key: "filters"
+          label: "Filters"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 10000
+          helpText: "JSON-encoded OpenCTI FilterGroup string defining what this TAXII collection exposes. Passed through verbatim."

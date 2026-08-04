@@ -1,0 +1,79 @@
+# =============================================================================
+# Canvas Template — OpenCTI Entity Settings
+#
+# Declares the settings for ONE OpenCTI entity type (the item), e.g. "Report" or
+# "Case-Incident". Field keys must match config-types/entity-settings/validate.ts.
+# Applied via the OpenCTI GraphQL API (entitySettingsFieldPatch), verified
+# against the OpenCTI GraphQL backend schema (opencti-platform/opencti,
+# src/modules/entitySetting/entitySetting.graphql).
+#
+# UNIQUE among this app's config types: OpenCTI seeds one EntitySetting per
+# entity type at platform install — there is no create/delete here, only
+# field-patching an existing one. `target_type` must already exist on the
+# target OpenCTI instance; deploy fails clearly rather than creating anything.
+# =============================================================================
+
+id: "opencti-entity-settings"
+name: "Entity Settings"
+toolType: "opencti"
+entityType: "entity-settings"
+description: "Manage OpenCTI per-entity-type platform settings — visibility, reference enforcement and attribute overrides — via the OpenCTI GraphQL API (443)"
+
+item:
+  label: "Entity Setting"
+  identityField: "target_type"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Entity Type"
+      icon: "settings"
+      description: "Which OpenCTI entity type this setting applies to"
+      fields:
+        - key: "target_type"
+          label: "Target Type"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: 'The exact OpenCTI entity type name, e.g. Report, Indicator, Case-Incident. Must already exist on the target instance — this type never creates an entity setting, only patches an existing one.'
+
+    - name: "Platform Behavior"
+      icon: "toggle-left"
+      description: "How OpenCTI treats this entity type platform-wide"
+      fields:
+        - key: "platform_hidden_type"
+          label: "Hide From UI"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Hide this entity type from the OpenCTI UI entirely."
+
+        - key: "enforce_reference"
+          label: "Enforce External Reference"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Require at least one external reference before creating or updating an object of this type."
+
+        - key: "platform_entity_files_ref"
+          label: "Files As References"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+
+    - name: "Advanced (JSON)"
+      icon: "code"
+      description: "Deeply-nested per-attribute overrides and overview layout"
+      fields:
+        - key: "attributes_configuration"
+          label: "Attributes Configuration (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: "JSON string controlling per-attribute overrides (mandatory/default-value/scale). Passed through verbatim — not deep-validated. Leave blank to keep the existing value untouched."
+
+        - key: "overview_layout_customization"
+          label: "Overview Layout Customization (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: 'JSON array of { key, width, label } describing this type''s overview page widget layout. Passed through verbatim. Leave blank to keep the existing value untouched.'

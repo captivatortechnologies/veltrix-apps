@@ -73,20 +73,20 @@ test('validate errors when there are no items', async () => {
   assert.ok(res.errors.some((e) => e.code === 'EMPTY'))
 })
 
-test('buildMarkingInput omits blank color/order but keeps type + definition', () => {
+test('buildMarkingInput omits blank color but defaults order to 0 (x_opencti_order is required)', () => {
   const input = buildMarkingInput({ definition_type: 'TLP', definition: 'TLP:GREEN', x_opencti_color: '', x_opencti_order: '' })
-  assert.deepEqual(input, { definition_type: 'TLP', definition: 'TLP:GREEN' })
+  assert.deepEqual(input, { definition_type: 'TLP', definition: 'TLP:GREEN', x_opencti_order: 0 })
 
   const full = buildMarkingInput(good)
   assert.equal(full.x_opencti_color, '#d68100')
   assert.equal(full.x_opencti_order, 3)
 })
 
-test('buildMarkingPatch stringifies order and never patches the identity', () => {
+test('buildMarkingPatch sends order as a native number (EditInput.value is [Any], not [String]) and never patches the identity', () => {
   const patch = buildMarkingPatch(good)
   assert.ok(patch.every((p) => p.key !== 'definition'))
   const order = patch.find((p) => p.key === 'x_opencti_order')
-  assert.deepEqual(order?.value, ['3'])
+  assert.deepEqual(order?.value, [3])
 })
 
 test('markingsFromList unwraps the edges/node connection', () => {

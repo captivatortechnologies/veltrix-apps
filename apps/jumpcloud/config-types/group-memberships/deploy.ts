@@ -2,9 +2,7 @@ import type { DeployContext, DeployResult } from '@veltrixsecops/app-sdk'
 import {
   buildJumpCloudClient,
   jumpCloudErrorMessage,
-  parseJson,
   JUMPCLOUD_API_BASE,
-  PAGE_LIMIT,
   type JumpCloudClient,
 } from '../../lib/jumpcloudApi'
 import {
@@ -159,23 +157,13 @@ async function applyMemberOp(
 
 /**
  * List every system user over the JumpCloud v1 API. Unlike the v2 list endpoints
- * (bare JSON arrays), v1 /systemusers returns a `{ results, totalCount }` wrapper,
- * so this walks limit/skip pagination itself. FLAGGED — verify the wrapper key.
+ * (bare JSON arrays), v1 /systemusers returns a `{ results, totalCount }` wrapper —
+ * walked by the shared `listAllV1` helper. FLAGGED — verify the wrapper key.
  */
 export async function listSystemUsers(v1: JumpCloudClient): Promise<JumpCloudSystemUser[]> {
-  const users: JumpCloudSystemUser[] = []
-  let skip = 0
-  for (let page = 0; page < 1000; page++) {
-    const res = await v1.request('GET', '/systemusers', { query: { limit: PAGE_LIMIT, skip } })
-    if (!res.ok) {
-      throw new Error(`Failed to list system users: ${jumpCloudErrorMessage(res)}`)
-    }
-    const parsed = parseJson<{ results?: JumpCloudSystemUser[] }>(res.body)
-    const rows = parsed?.results ?? []
-    if (!Array.isArray(rows) || rows.length === 0) break
-    users.push(...rows)
-    if (rows.length < PAGE_LIMIT) break
-    skip += PAGE_LIMIT
+  const res = await v1.listAllV1<JumpCloudSystemUser>('/systemusers')
+  if (!res.ok) {
+    throw new Error(`Failed to list system users: ${jumpCloudErrorMessage({ status: res.status, ok: res.ok, body: res.body })}`)
   }
-  return users
+  return res.items
 }

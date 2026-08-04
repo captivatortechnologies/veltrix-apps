@@ -1,19 +1,27 @@
 // Shared helpers for the OpenCTI Groups (RBAC) config type (deploy + rollback + drift).
 //
-// The GraphQL operations below follow OpenCTI conventions. OpenCTI exposes group
-// edits through a nested editor mutation — `groupEdit(id) { fieldPatch(input) }` —
-// rather than a top-level `groupFieldPatch`. This is the most likely shape; VERIFY
-// the operation names (groupEdit vs groupFieldPatch, groupDelete vs
-// groupEdit(id){delete}) and every field against a live OpenCTI instance.
+// Verified against the OpenCTI GraphQL backend schema (opencti-platform/opencti,
+// config/schema/opencti.graphql). Two corrections from an earlier, unverified
+// "follow OpenCTI conventions" guess:
+//   1. Delete is NOT a top-level `groupDelete(id)` — that operation does not
+//      exist. Both fieldPatch AND delete live under the nested editor mutation
+//      `groupEdit(id) { fieldPatch(input) / delete }`.
+//   2. `GroupAddInput` REQUIRES `group_confidence_level: ConfidenceLevelInput!`
+//      (`{ max_confidence: Int, overrides: [ConfidenceLevelOverrideInput!]! }`).
+//      Omitting it (as the earlier version did) fails schema validation on every
+//      create. The per-entity-type `overrides` list is out of scope for this
+//      declarative surface — always sent as `[]`; only the scalar
+//      `max_confidence` ceiling is exposed as a canvas field.
 
 /**
  * The node fields we read back on every group (list + mutation payloads).
- * NOTE: `auto_new_marking` is included so drift can compare it; the task's list
- * shape stops at `default_assignation`. Verify `auto_new_marking` is selectable.
+ * `group_confidence_level` selects only `max_confidence` — `overrides` is never
+ * read back or diffed (out of scope, see above).
  */
-export const GROUP_NODE_FIELDS = 'id name description default_assignation auto_new_marking'
+export const GROUP_NODE_FIELDS =
+  'id name description default_assignation auto_new_marking group_confidence_level { max_confidence }'
 
-// --- GraphQL documents (verify against a live OpenCTI instance) --------------
+// --- GraphQL documents (verified against the OpenCTI backend schema) --------
 
 /** List every group (paginated `edges { node }` connection). */
 export const LIST_GROUPS_QUERY = `query Groups {
@@ -37,13 +45,17 @@ export const PATCH_GROUP_MUTATION = `mutation GroupEdit($id: ID!, $input: [EditI
   }
 }`
 
-/**
- * Delete one group by id — returns the deleted id. VERIFY: OpenCTI may instead
- * expose the delete under the editor as `groupEdit(id) { delete }`.
- */
-export const DELETE_GROUP_MUTATION = `mutation GroupDelete($id: ID!) {
-  groupDelete(id: $id)
+/** Delete one group via the nested editor mutation — returns the deleted id. */
+export const DELETE_GROUP_MUTATION = `mutation GroupEditDelete($id: ID!) {
+  groupEdit(id: $id) {
+    delete
+  }
 }`
+
+/** A `ConfidenceLevel`/`ConfidenceLevelInput` restricted to the scalar ceiling we manage. */
+export interface GroupConfidenceLevel {
+  max_confidence?: number | null
+}
 
 /** One OpenCTI group node. */
 export interface OpenctiGroup {
@@ -52,21 +64,29 @@ export interface OpenctiGroup {
   description?: string | null
   default_assignation?: boolean | null
   auto_new_marking?: boolean | null
+  group_confidence_level?: GroupConfidenceLevel | null
   [key: string]: unknown
 }
 
-/** The `input` for groupAdd. */
+/** The `input` for groupAdd. `group_confidence_level` is required by the schema. */
 export interface GroupAddInput {
   name: string
   description?: string
   default_assignation?: boolean
   auto_new_marking?: boolean
+  group_confidence_level: { max_confidence: number | null; overrides: [] }
 }
 
-/** One EditInput entry for groupEdit.fieldPatch (`value` is a list of strings). */
+/**
+ * One EditInput entry for groupEdit.fieldPatch. `value` is `[Any]` in the OpenCTI
+ * schema (an unconstrained passthrough scalar) — send native JSON types, never
+ * stringify booleans/numbers (confirmed against pycti, which forwards raw
+ * values). An object-valued attribute like `group_confidence_level` is patched
+ * as a single-element array containing the object.
+ */
 export interface EditInput {
   key: string
-  value: string[]
+  value: unknown[]
 }
 
 /** Unwrap an OpenCTI `{ groups: { edges: [{ node }] } }` connection into a flat array. */
@@ -99,9 +119,23 @@ export function normalizeText(value: unknown): string | undefined {
   return s === '' ? undefined : s
 }
 
-/** Build the groupAdd input from canvas fields. */
+/** Coerce a canvas number field to a confidence ceiling (null when blank — no ceiling). */
+export function normalizeConfidenceLevel(value: unknown): number | null {
+  if (value === undefined || value === null || value === '') return null
+  const n = Number(value)
+  return Number.isFinite(n) ? Math.trunc(n) : null
+}
+
+/**
+ * Build the groupAdd input from canvas fields. `group_confidence_level` is
+ * REQUIRED by the schema — always sent, with an empty `overrides` list (the
+ * per-entity-type override table is out of scope for this declarative surface).
+ */
 export function buildGroupInput(fields: Record<string, unknown>): GroupAddInput {
-  const input: GroupAddInput = { name: String(fields.name ?? '').trim() }
+  const input: GroupAddInput = {
+    name: String(fields.name ?? '').trim(),
+    group_confidence_level: { max_confidence: normalizeConfidenceLevel(fields.confidence_level_max), overrides: [] },
+  }
   const description = normalizeText(fields.description)
   if (description !== undefined) input.description = description
   const defaultAssignation = normalizeBool(fields.default_assignation)
@@ -112,20 +146,24 @@ export function buildGroupInput(fields: Record<string, unknown>): GroupAddInput 
 }
 
 /**
- * Build the fieldPatch `input` (an array of EditInput) from canvas fields. OpenCTI's
- * generic field patch takes `value` as a list of strings, so booleans are
- * stringified ('true'/'false'). Only mutable fields are patched — `name` is the
- * identity and is not rewritten. Verify the EditInput value-as-string-list shape
- * (and boolean-as-string) against a live OpenCTI instance.
+ * Build the groupEdit.fieldPatch `input` (an array of EditInput) from canvas
+ * fields. `value` is `[Any]` — booleans are sent as native booleans, never
+ * stringified. Only mutable fields are patched — `name` is the identity and is
+ * not rewritten. `group_confidence_level` is an object-valued attribute, patched
+ * as a single-element array containing the object.
  */
 export function buildGroupPatch(fields: Record<string, unknown>): EditInput[] {
   const patch: EditInput[] = []
   const description = normalizeText(fields.description)
   if (description !== undefined) patch.push({ key: 'description', value: [description] })
   const defaultAssignation = normalizeBool(fields.default_assignation)
-  if (defaultAssignation !== undefined) patch.push({ key: 'default_assignation', value: [String(defaultAssignation)] })
+  if (defaultAssignation !== undefined) patch.push({ key: 'default_assignation', value: [defaultAssignation] })
   const autoNewMarking = normalizeBool(fields.auto_new_marking)
-  if (autoNewMarking !== undefined) patch.push({ key: 'auto_new_marking', value: [String(autoNewMarking)] })
+  if (autoNewMarking !== undefined) patch.push({ key: 'auto_new_marking', value: [autoNewMarking] })
+  patch.push({
+    key: 'group_confidence_level',
+    value: [{ max_confidence: normalizeConfidenceLevel(fields.confidence_level_max), overrides: [] }],
+  })
   return patch
 }
 
@@ -133,7 +171,11 @@ export function buildGroupPatch(fields: Record<string, unknown>): EditInput[] {
 export function buildRestorePatch(prior: OpenctiGroup): EditInput[] {
   const patch: EditInput[] = []
   if (prior.description != null) patch.push({ key: 'description', value: [String(prior.description)] })
-  if (prior.default_assignation != null) patch.push({ key: 'default_assignation', value: [String(prior.default_assignation)] })
-  if (prior.auto_new_marking != null) patch.push({ key: 'auto_new_marking', value: [String(prior.auto_new_marking)] })
+  if (prior.default_assignation != null) patch.push({ key: 'default_assignation', value: [prior.default_assignation] })
+  if (prior.auto_new_marking != null) patch.push({ key: 'auto_new_marking', value: [prior.auto_new_marking] })
+  patch.push({
+    key: 'group_confidence_level',
+    value: [{ max_confidence: prior.group_confidence_level?.max_confidence ?? null, overrides: [] }],
+  })
   return patch
 }

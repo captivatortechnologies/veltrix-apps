@@ -1,0 +1,132 @@
+# =============================================================================
+# Canvas Template — JumpCloud Conditional Access (Authentication) Policies
+#
+# Declares ONE JumpCloud Authentication Policy (the item) — JumpCloud's
+# Conditional Access mechanism: allow/deny access to the User Portal, an SSO
+# Application, LDAP, or the Admin Portal, gated by conditions like device
+# trust, managed-device status, source IP (via an IP List) or country. ONE
+# item = ONE policy, matched on its NAME. Field keys must match
+# config-types/conditional-access-policies/validate.ts.
+#
+# `targets` and `conditions` are compound, deeply-nested objects — authored here
+# as raw JSON (same pattern as the "Policies" config type's `values` field)
+# rather than as dozens of individual canvas fields. See the helpText below for
+# the exact grammar, taken verbatim from JumpCloud's own API documentation.
+#
+# VERIFIED against JumpCloud's published API v2 OpenAPI spec
+# (github.com/TheJumpCloud/jumpcloud-docs-public, docs/api/2.0/index.yaml):
+#   GET/POST       /api/v2/authn/policies
+#   GET/PATCH/DELETE /api/v2/authn/policies/{id}
+# AuthnPolicy: { id, name, description, disabled, monitorOnly, effect, targets, type, conditions }
+# Auth is the `x-api-key` header (plus optional `x-org-id` for multi-tenant admins).
+# =============================================================================
+
+id: "jumpcloud-conditional-access-policies"
+name: "Conditional Access Policies"
+toolType: "jumpcloud"
+entityType: "conditional-access-policies"
+description: "Define JumpCloud Authentication (Conditional Access) Policies as code — allow/deny + MFA obligations gated by device trust, IP List membership or country — through the JumpCloud API v2 (/authn/policies)."
+
+item:
+  label: "Authentication Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Policy identity and scope"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The policy's display name. Must be unique within the canvas — this is the stable identity used to find, update and drift-check the policy on each deploy."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          helpText: "Optional description shown in the JumpCloud Admin Console."
+
+        - key: "type"
+          label: "Applies To"
+          fieldType: "select"
+          required: true
+          options:
+            - { label: "User Portal", value: "user_portal" }
+            - { label: "SSO Application", value: "application" }
+            - { label: "LDAP", value: "ldap" }
+            - { label: "Admin Portal", value: "admin_portal" }
+          helpText: "Which JumpCloud authentication surface this policy governs. A policy's type cannot be changed after creation."
+
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When enabled, the policy is saved but not enforced."
+
+        - key: "monitorOnly"
+          label: "Monitor Only"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When enabled, the policy's evaluation is logged but not enforced — useful for validating conditions before turning them on."
+
+    - name: "Effect"
+      icon: "check-circle"
+      description: "What happens when the policy's conditions match"
+      fields:
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "allow"
+          options:
+            - { label: "Allow", value: "allow" }
+            - { label: "Deny", value: "deny" }
+          helpText: "Whether a matching request is allowed or denied."
+
+        - key: "mfaRequired"
+          label: "Require MFA"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When enabled, a matching (allowed) request must also complete MFA (effect.obligations.mfa.required)."
+
+    - name: "Targets"
+      icon: "target"
+      description: "Who / what this policy applies to (raw JSON)"
+      fields:
+        - key: "targetsRaw"
+          label: "Targets (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >-
+            A JSON object describing who this policy applies to, e.g.
+            {"users":{"inclusions":["ALL"]},"userGroups":{"exclusions":["<user_group_id>"]},"resources":[{"type":"user_portal"}]}.
+            Supported keys: users.inclusions[] (ids or "ALL"), userGroups.inclusions[]/exclusions[]
+            (ids), resources[] ({type, id?} — id omitted means "all resources of that type"),
+            excludedApplications[] (SSO application ids, when resources targets all applications).
+            Leave empty to apply to all resources of the selected type.
+
+    - name: "Conditions"
+      icon: "filter"
+      description: "When this policy applies (raw JSON)"
+      fields:
+        - key: "conditionsRaw"
+          label: "Conditions (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >-
+            A JSON object using JumpCloud's condition grammar:
+            <expression> ::= {"deviceEncrypted": bool} | {"deviceManaged": bool} |
+            {"ipAddressIn": [ip_list_id, ...]} | {"locationIn": {"countries": [iso_3166, ...]}} |
+            {"not": <expression>} | {"all": [<expression>, ...]} | {"any": [<expression>, ...]}.
+            Example — restrict to a known IP List: {"ipAddressIn": ["<ip_list_object_id>"]}.
+            Reference the "IP Lists" config type's deployed id for ipAddressIn. Leave empty for an
+            unconditional policy (applies whenever its targets match).

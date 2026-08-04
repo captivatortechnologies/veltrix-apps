@@ -68,7 +68,7 @@ export interface JumpCloudResponse {
   body: string
 }
 
-export type JumpCloudMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
+export type JumpCloudMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 export class JumpCloudClient {
   private readonly baseUrl: string
@@ -137,6 +137,34 @@ export class JumpCloudClient {
       lastBody = res.body
       if (!res.ok) return { ok: false, items, status: res.status, body: res.body }
       const rows = parseJson<T[]>(res.body)
+      if (!Array.isArray(rows) || rows.length === 0) break
+      items.push(...rows)
+      if (rows.length < PAGE_LIMIT) break
+      skip += PAGE_LIMIT
+    }
+    return { ok: true, items, status: lastStatus, body: lastBody }
+  }
+
+  /**
+   * GET every page of a v1 list endpoint, following `limit` + `skip` pagination
+   * over the `{ results, totalCount }` wrapper v1 list endpoints use (unlike v2's
+   * bare arrays) — e.g. `/systemusers`, `/commands`, `/radiusservers`. Stops on
+   * the first error.
+   */
+  async listAllV1<T = unknown>(
+    path: string,
+  ): Promise<{ ok: boolean; items: T[]; status: number; body: string }> {
+    const items: T[] = []
+    let skip = 0
+    let lastStatus = 0
+    let lastBody = ''
+    for (let page = 0; page < 1000; page++) {
+      const res = await this.request('GET', path, { query: { limit: PAGE_LIMIT, skip } })
+      lastStatus = res.status
+      lastBody = res.body
+      if (!res.ok) return { ok: false, items, status: res.status, body: res.body }
+      const parsed = parseJson<{ results?: T[] }>(res.body)
+      const rows = parsed?.results ?? []
       if (!Array.isArray(rows) || rows.length === 0) break
       items.push(...rows)
       if (rows.length < PAGE_LIMIT) break

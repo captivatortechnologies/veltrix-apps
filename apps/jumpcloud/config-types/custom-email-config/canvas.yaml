@@ -1,0 +1,88 @@
+# =============================================================================
+# Canvas Template — JumpCloud Custom Email Configuration
+#
+# Declares ONE JumpCloud custom transactional email template override (the
+# item). ONE item = ONE email `type`, which IS the resource's identity — a fixed
+# 8-value enum, so there is no rename concern and no id-tracking needed the way
+# other config types need it.
+#
+# VERIFIED against JumpCloud's published API v2 OpenAPI spec
+# (github.com/TheJumpCloud/jumpcloud-docs-public, docs/api/2.0/index.yaml):
+#   POST           /api/v2/customemails                    (create; body includes `type`)
+#   GET/PUT/DELETE /api/v2/customemails/{custom_email_type}
+#   GET            /api/v2/customemail/templates            (reference: available template variables)
+# CustomEmail body: { type*, subject*, title, header, body, button, nextStepContactInfo }
+# Auth is the `x-api-key` header (plus optional `x-org-id` for multi-tenant admins).
+# =============================================================================
+
+id: "jumpcloud-custom-email-config"
+name: "Custom Email Configuration"
+toolType: "jumpcloud"
+entityType: "custom-email-config"
+description: "Define JumpCloud's custom transactional email overrides (subject, header, body, button, contact info) as code through the JumpCloud API v2 (/customemails)."
+
+item:
+  label: "Custom Email"
+  identityField: "type"
+  repeatable: true
+  minItems: 1
+  maxItems: 8
+  groups:
+    - name: "Email"
+      icon: "mail"
+      description: "Which transactional email this overrides"
+      fields:
+        - key: "type"
+          label: "Email Type"
+          fieldType: "select"
+          required: true
+          options:
+            - { label: "Activate Google Workspace User", value: "activate_gapps_user" }
+            - { label: "Activate Office 365 User", value: "activate_o365_user" }
+            - { label: "Account Lockout Notice", value: "lockout_notice_user" }
+            - { label: "Password Expiration", value: "password_expiration" }
+            - { label: "Password Expiration Warning", value: "password_expiration_warning" }
+            - { label: "Password Reset Confirmation", value: "password_reset_confirmation" }
+            - { label: "User Change Password", value: "user_change_password" }
+            - { label: "Activate User (Custom)", value: "activate_user_custom" }
+          helpText: "The transactional email this override applies to. This IS the resource's identity — JumpCloud allows at most one custom configuration per type, so each value may only be declared once per canvas."
+
+    - name: "Content"
+      icon: "edit"
+      description: "Email content"
+      fields:
+        - key: "subject"
+          label: "Subject"
+          fieldType: "text"
+          required: true
+          helpText: "The email's subject line."
+
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: false
+          helpText: "Heading shown at the top of the email body."
+
+        - key: "header"
+          label: "Header"
+          fieldType: "text"
+          required: false
+          helpText: "Text shown directly under the title."
+
+        - key: "body"
+          label: "Body"
+          fieldType: "textarea"
+          required: false
+          helpText: "The main email content. See GET /api/v2/customemail/templates in the JumpCloud Admin Console / API for the template variables available for this type."
+
+        - key: "button"
+          label: "Button Label"
+          fieldType: "text"
+          required: false
+          helpText: "Label for the email's call-to-action button, where applicable."
+
+        - key: "nextStepContactInfo"
+          label: "Next-Step Contact Info"
+          fieldType: "text"
+          required: false
+          helpText: "Contact information shown as the next step (e.g. IT helpdesk email or phone)."

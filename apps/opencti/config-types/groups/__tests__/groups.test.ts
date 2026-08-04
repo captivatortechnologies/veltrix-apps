@@ -54,23 +54,30 @@ test('normalizeBool coerces checkbox-ish values', () => {
   assert.equal(normalizeBool(undefined), undefined)
 })
 
-test('buildGroupInput keeps name + set fields and omits blanks', () => {
+test('buildGroupInput keeps name + set fields, omits blanks, and always sends group_confidence_level (required by the schema)', () => {
   const input = buildGroupInput({ name: 'Analysts', description: '', default_assignation: true })
-  assert.deepEqual(input, { name: 'Analysts', default_assignation: true })
+  assert.deepEqual(input, {
+    name: 'Analysts',
+    default_assignation: true,
+    group_confidence_level: { max_confidence: null, overrides: [] },
+  })
 
-  const full = buildGroupInput(good)
+  const full = buildGroupInput({ ...good, confidence_level_max: 75 })
   assert.equal(full.description, 'Tier-1 analysts')
   assert.equal(full.default_assignation, true)
   assert.equal(full.auto_new_marking, false)
+  assert.deepEqual(full.group_confidence_level, { max_confidence: 75, overrides: [] })
 })
 
-test('buildGroupPatch stringifies booleans and never patches the identity', () => {
+test('buildGroupPatch sends booleans natively (EditInput.value is [Any], not [String]) and never patches the identity', () => {
   const patch = buildGroupPatch(good)
   assert.ok(patch.every((p) => p.key !== 'name'))
   const dflt = patch.find((p) => p.key === 'default_assignation')
-  assert.deepEqual(dflt?.value, ['true'])
+  assert.deepEqual(dflt?.value, [true])
   const auto = patch.find((p) => p.key === 'auto_new_marking')
-  assert.deepEqual(auto?.value, ['false'])
+  assert.deepEqual(auto?.value, [false])
+  const confidence = patch.find((p) => p.key === 'group_confidence_level')
+  assert.deepEqual(confidence?.value, [{ max_confidence: null, overrides: [] }])
 })
 
 test('groupsFromList unwraps the edges/node connection', () => {

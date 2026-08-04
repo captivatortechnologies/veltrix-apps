@@ -1,0 +1,40 @@
+# =============================================================================
+# Canvas Template — OpenCTI Roles (RBAC)
+#
+# Declares ONE OpenCTI role (the item). Users add as many as they need. Field
+# keys must match config-types/roles/validate.ts. Applied via the OpenCTI
+# GraphQL API (roleAdd / roleEdit.fieldPatch).
+# =============================================================================
+
+id: "opencti-roles"
+name: "Roles"
+toolType: "opencti"
+entityType: "roles"
+description: "Manage OpenCTI RBAC roles — name and description — via the OpenCTI GraphQL API (443)"
+
+item:
+  label: "Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Role"
+      icon: "shield"
+      description: "The role's identity and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The role name and the stable identity for upsert/drift, e.g. Administrator."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Human-readable description of what this role grants."

@@ -57,8 +57,16 @@ item:
             - label: "TAXII 2.1"
               value: "v21"
             - label: "TAXII 2.0"
-              value: "v20"
+              value: "v2"
+            - label: "TAXII 1.x"
+              value: "v1"
           helpText: "The TAXII protocol version the server speaks."
+
+        - key: "user_id"
+          label: "OpenCTI User ID"
+          fieldType: "text"
+          required: true
+          helpText: "Internal id of an existing OpenCTI user that ingested data is attributed to. Find it via that user's profile URL, or the `users` query, on your OpenCTI instance."
 
     - name: "Authentication"
       icon: "lock"

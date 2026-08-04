@@ -1,15 +1,18 @@
 id: opencti
 name: OpenCTI
-version: "0.3.0"
+version: "0.4.0"
 vendor: Veltrix
 description: >
   Manage OpenCTI (open-source cyber threat-intelligence platform) as code. Author
   threat-intel configuration — data-marking definitions (TLP / PAP / statement),
-  labels, RBAC groups and TAXII2 ingestion feeds — and drive it through the
-  Security-as-Code pipeline: validate, deploy, health check, drift detection and
-  rollback, over the OpenCTI GraphQL API (HTTPS, Bearer token, self-signed
-  tolerated), with BYOL infrastructure provisioning for the OpenCTI stack
-  (platform + workers + Elasticsearch + Redis + RabbitMQ + object storage).
+  labels, kill-chain phases, vocabularies, RBAC groups/roles, case + task
+  templates, notifiers and notification triggers, retention rules, stream/TAXII
+  collections, rolling export feeds, status templates, entity settings and
+  TAXII2 ingestion feeds — and drive it through the Security-as-Code pipeline:
+  validate, deploy, health check, drift detection and rollback, over the OpenCTI
+  GraphQL API (HTTPS, Bearer token, self-signed tolerated), with BYOL
+  infrastructure provisioning for the OpenCTI stack (platform + workers +
+  Elasticsearch + Redis + RabbitMQ + object storage).
 category: Threat Intelligence
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/opencti
@@ -35,9 +38,48 @@ permissions:
     - resource: labels
       actions: [read, write, delete]
       description: Manage OpenCTI labels (add / edit / delete)
+    - resource: kill-chain-phases
+      actions: [read, write, delete]
+      description: Manage OpenCTI kill-chain phases (add / edit / delete)
+    - resource: vocabularies
+      actions: [read, write, delete]
+      description: Manage OpenCTI open-vocabulary entries (add / edit / delete)
+    - resource: status-templates
+      actions: [read, write, delete]
+      description: Manage OpenCTI status templates (add / edit / delete)
     - resource: groups
       actions: [read, write, delete]
       description: Manage OpenCTI RBAC groups (add / edit / delete)
+    - resource: roles
+      actions: [read, write, delete]
+      description: Manage OpenCTI RBAC roles (add / edit / delete)
+    - resource: case-templates
+      actions: [read, write, delete]
+      description: Manage OpenCTI case templates (add / edit / delete)
+    - resource: case-task-templates
+      actions: [read, write, delete]
+      description: Manage OpenCTI case task templates (add / edit / delete)
+    - resource: notifiers
+      actions: [read, write, delete]
+      description: Manage OpenCTI notifiers (add / edit / delete)
+    - resource: notification-triggers
+      actions: [read, write, delete]
+      description: Manage OpenCTI live knowledge-event notification triggers (add / edit / delete)
+    - resource: retention-rules
+      actions: [read, write, delete]
+      description: Manage OpenCTI data retention rules (add / edit / delete)
+    - resource: stream-collections
+      actions: [read, write, delete]
+      description: Manage OpenCTI live stream collections (add / edit / delete)
+    - resource: taxii-collections
+      actions: [read, write, delete]
+      description: Manage OpenCTI TAXII collections (add / edit / delete)
+    - resource: feeds
+      actions: [read, write, delete]
+      description: Manage OpenCTI rolling CSV/TAXII export feeds (add / edit / delete)
+    - resource: entity-settings
+      actions: [read, write]
+      description: Manage OpenCTI per-entity-type platform settings (patch only — OpenCTI never creates or deletes these singletons)
     - resource: ingestion-feeds
       actions: [read, write, delete]
       description: Manage OpenCTI TAXII2 ingestion feeds (add / edit / delete)
@@ -90,6 +132,60 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: true
 
+    - id: kill-chain-phases
+      group: "Data Management"
+      name: Kill Chain Phases
+      description: OpenCTI kill-chain phases — chain name, phase name and order — applied over the OpenCTI GraphQL API (443)
+      canvasTemplate: config-types/kill-chain-phases/canvas.yaml
+      defaultConfig: config-types/kill-chain-phases/defaults.yaml
+      handlers:
+        validate: config-types/kill-chain-phases/validate
+        deploy: config-types/kill-chain-phases/deploy
+        rollback: config-types/kill-chain-phases/rollback
+        healthCheck: config-types/kill-chain-phases/healthCheck
+        driftDetect: config-types/kill-chain-phases/driftDetect
+        getStatus: config-types/kill-chain-phases/getStatus
+      targets:
+        componentTypes: [opencti-platform, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: vocabularies
+      group: "Data Management"
+      name: Vocabularies
+      description: OpenCTI open-vocabulary entries — category, name, description, order and aliases — applied over the OpenCTI GraphQL API (443)
+      canvasTemplate: config-types/vocabularies/canvas.yaml
+      defaultConfig: config-types/vocabularies/defaults.yaml
+      handlers:
+        validate: config-types/vocabularies/validate
+        deploy: config-types/vocabularies/deploy
+        rollback: config-types/vocabularies/rollback
+        healthCheck: config-types/vocabularies/healthCheck
+        driftDetect: config-types/vocabularies/driftDetect
+        getStatus: config-types/vocabularies/getStatus
+      targets:
+        componentTypes: [opencti-platform, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: status-templates
+      group: "Data Management"
+      name: Status Templates
+      description: OpenCTI status templates — name and color — applied over the OpenCTI GraphQL API (443)
+      canvasTemplate: config-types/status-templates/canvas.yaml
+      defaultConfig: config-types/status-templates/defaults.yaml
+      handlers:
+        validate: config-types/status-templates/validate
+        deploy: config-types/status-templates/deploy
+        rollback: config-types/status-templates/rollback
+        healthCheck: config-types/status-templates/healthCheck
+        driftDetect: config-types/status-templates/driftDetect
+        getStatus: config-types/status-templates/getStatus
+      targets:
+        componentTypes: [opencti-platform, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
     - id: groups
       group: "Access Control"
       name: Groups
@@ -103,6 +199,186 @@ pipeline:
         healthCheck: config-types/groups/healthCheck
         driftDetect: config-types/groups/driftDetect
         getStatus: config-types/groups/getStatus
+      targets:
+        componentTypes: [opencti-platform, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: roles
+      group: "Access Control"
+      name: Roles
+      description: OpenCTI RBAC roles — name and description — applied over the OpenCTI GraphQL API (443)
+      canvasTemplate: config-types/roles/canvas.yaml
+      defaultConfig: config-types/roles/defaults.yaml
+      handlers:
+        validate: config-types/roles/validate
+        deploy: config-types/roles/deploy
+        rollback: config-types/roles/rollback
+        healthCheck: config-types/roles/healthCheck
+        driftDetect: config-types/roles/driftDetect
+        getStatus: config-types/roles/getStatus
+      targets:
+        componentTypes: [opencti-platform, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: case-templates
+      group: "Case Management"
+      name: Case Templates
+      description: OpenCTI case templates — name, description and attached task templates — applied over the OpenCTI GraphQL API (443)
+      canvasTemplate: config-types/case-templates/canvas.yaml
+      defaultConfig: config-types/case-templates/defaults.yaml
+      handlers:
+        validate: config-types/case-templates/validate
+        deploy: config-types/case-templates/deploy
+        rollback: config-types/case-templates/rollback
+        healthCheck: config-types/case-templates/healthCheck
+        driftDetect: config-types/case-templates/driftDetect
+        getStatus: config-types/case-templates/getStatus
+      targets:
+        componentTypes: [opencti-platform, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: case-task-templates
+      group: "Case Management"
+      name: Case Task Templates
+      description: OpenCTI case task templates — reusable task name/description pairs attached to Case Templates — applied over the OpenCTI GraphQL API (443)
+      canvasTemplate: config-types/case-task-templates/canvas.yaml
+      defaultConfig: config-types/case-task-templates/defaults.yaml
+      handlers:
+        validate: config-types/case-task-templates/validate
+        deploy: config-types/case-task-templates/deploy
+        rollback: config-types/case-task-templates/rollback
+        healthCheck: config-types/case-task-templates/healthCheck
+        driftDetect: config-types/case-task-templates/driftDetect
+        getStatus: config-types/case-task-templates/getStatus
+      targets:
+        componentTypes: [opencti-platform, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: notifiers
+      group: "Notifications"
+      name: Notifiers
+      description: OpenCTI notifiers — named delivery channels fired by Notification Triggers — applied over the OpenCTI GraphQL API (443)
+      canvasTemplate: config-types/notifiers/canvas.yaml
+      defaultConfig: config-types/notifiers/defaults.yaml
+      handlers:
+        validate: config-types/notifiers/validate
+        deploy: config-types/notifiers/deploy
+        rollback: config-types/notifiers/rollback
+        healthCheck: config-types/notifiers/healthCheck
+        driftDetect: config-types/notifiers/driftDetect
+        getStatus: config-types/notifiers/getStatus
+      targets:
+        componentTypes: [opencti-platform, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: notification-triggers
+      group: "Notifications"
+      name: Notification Triggers
+      description: OpenCTI live knowledge-event notification triggers — event types, filters and notifiers — applied over the OpenCTI GraphQL API (443)
+      canvasTemplate: config-types/notification-triggers/canvas.yaml
+      defaultConfig: config-types/notification-triggers/defaults.yaml
+      handlers:
+        validate: config-types/notification-triggers/validate
+        deploy: config-types/notification-triggers/deploy
+        rollback: config-types/notification-triggers/rollback
+        healthCheck: config-types/notification-triggers/healthCheck
+        driftDetect: config-types/notification-triggers/driftDetect
+        getStatus: config-types/notification-triggers/getStatus
+      targets:
+        componentTypes: [opencti-platform, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: retention-rules
+      group: "Platform Administration"
+      name: Retention Rules
+      description: OpenCTI data retention rules — scope, max retention period and optional filters — applied over the OpenCTI GraphQL API (443)
+      canvasTemplate: config-types/retention-rules/canvas.yaml
+      defaultConfig: config-types/retention-rules/defaults.yaml
+      handlers:
+        validate: config-types/retention-rules/validate
+        deploy: config-types/retention-rules/deploy
+        rollback: config-types/retention-rules/rollback
+        healthCheck: config-types/retention-rules/healthCheck
+        driftDetect: config-types/retention-rules/driftDetect
+        getStatus: config-types/retention-rules/getStatus
+      targets:
+        componentTypes: [opencti-platform, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: entity-settings
+      group: "Platform Administration"
+      name: Entity Settings
+      description: OpenCTI per-entity-type platform settings — visibility, reference enforcement and attribute overrides — applied over the OpenCTI GraphQL API (443)
+      canvasTemplate: config-types/entity-settings/canvas.yaml
+      defaultConfig: config-types/entity-settings/defaults.yaml
+      handlers:
+        validate: config-types/entity-settings/validate
+        deploy: config-types/entity-settings/deploy
+        rollback: config-types/entity-settings/rollback
+        healthCheck: config-types/entity-settings/healthCheck
+        driftDetect: config-types/entity-settings/driftDetect
+        getStatus: config-types/entity-settings/getStatus
+      targets:
+        componentTypes: [opencti-platform, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: stream-collections
+      group: "Data Sharing"
+      name: Stream Collections
+      description: OpenCTI live stream collections — what events stream out and to whom — applied over the OpenCTI GraphQL API (443)
+      canvasTemplate: config-types/stream-collections/canvas.yaml
+      defaultConfig: config-types/stream-collections/defaults.yaml
+      handlers:
+        validate: config-types/stream-collections/validate
+        deploy: config-types/stream-collections/deploy
+        rollback: config-types/stream-collections/rollback
+        healthCheck: config-types/stream-collections/healthCheck
+        driftDetect: config-types/stream-collections/driftDetect
+        getStatus: config-types/stream-collections/getStatus
+      targets:
+        componentTypes: [opencti-platform, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: taxii-collections
+      group: "Data Sharing"
+      name: TAXII Collections
+      description: OpenCTI TAXII collections — what data this collection exposes and to whom — applied over the OpenCTI GraphQL API (443)
+      canvasTemplate: config-types/taxii-collections/canvas.yaml
+      defaultConfig: config-types/taxii-collections/defaults.yaml
+      handlers:
+        validate: config-types/taxii-collections/validate
+        deploy: config-types/taxii-collections/deploy
+        rollback: config-types/taxii-collections/rollback
+        healthCheck: config-types/taxii-collections/healthCheck
+        driftDetect: config-types/taxii-collections/driftDetect
+        getStatus: config-types/taxii-collections/getStatus
+      targets:
+        componentTypes: [opencti-platform, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: feeds
+      group: "Data Sharing"
+      name: Feeds
+      description: OpenCTI rolling CSV/TAXII export feeds — format, schedule and attribute mappings — applied over the OpenCTI GraphQL API (443)
+      canvasTemplate: config-types/feeds/canvas.yaml
+      defaultConfig: config-types/feeds/defaults.yaml
+      handlers:
+        validate: config-types/feeds/validate
+        deploy: config-types/feeds/deploy
+        rollback: config-types/feeds/rollback
+        healthCheck: config-types/feeds/healthCheck
+        driftDetect: config-types/feeds/driftDetect
+        getStatus: config-types/feeds/getStatus
       targets:
         componentTypes: [opencti-platform, standalone]
         requiresCredential: true

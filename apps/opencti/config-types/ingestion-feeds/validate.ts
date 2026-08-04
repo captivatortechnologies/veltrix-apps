@@ -29,6 +29,7 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
     const authType = String(item.fields.authentication_type ?? '').trim()
     const authValue = String(item.fields.authentication_value ?? '').trim()
     const addedAfter = String(item.fields.added_after_start ?? '').trim()
+    const userId = String(item.fields.user_id ?? '').trim()
 
     if (!name) {
       errors.push({ field: `items[${i}].name`, message: 'Feed name is required.', code: 'EMPTY_NAME' })
@@ -53,6 +54,14 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
 
     if (!collection) {
       errors.push({ field: `items[${i}].collection`, message: 'Collection is required.', code: 'EMPTY_COLLECTION' })
+    }
+
+    if (!userId) {
+      errors.push({
+        field: `items[${i}].user_id`,
+        message: 'OpenCTI User ID is required — IngestionTaxiiAddInput.user_id is a required field.',
+        code: 'EMPTY_USER_ID',
+      })
     }
 
     if (!TAXII_VERSIONS.has(version)) {

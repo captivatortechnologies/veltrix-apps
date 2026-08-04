@@ -1,13 +1,16 @@
 id: jumpcloud
 name: JumpCloud
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
-  Manage JumpCloud directory configuration as code through the JumpCloud REST
-  API. Author User Groups, System (device) Groups, Policies and User Group
-  Memberships, and drive them through the Security-as-Code pipeline (validate,
-  deploy, health check, drift detection and rollback) over the JumpCloud API
-  (x-api-key).
+  Manage JumpCloud directory, policy, network-access and organization
+  configuration as code through the JumpCloud REST API (v1 + v2). Thirteen
+  configuration types spanning Directory (User/System Groups, Memberships, LDAP
+  Server Settings), Policies (Policies, Policy Groups), Access Control (IP
+  Lists, RADIUS Servers, Conditional Access Policies), Automation (Commands)
+  and Organization (Custom Email, Password Manager Policies, Software Apps),
+  each driven through the Security-as-Code pipeline (validate, deploy, health
+  check, drift detection and rollback) over the JumpCloud API (x-api-key).
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/jumpcloud
@@ -38,6 +41,33 @@ permissions:
     - resource: group-memberships
       actions: [read, write, delete]
       description: Manage JumpCloud User Group memberships (add / remove users)
+    - resource: ldap-server-settings
+      actions: [read, write]
+      description: Manage settings on an existing JumpCloud LDAP-as-a-Service server (no create/delete — none exists in the API)
+    - resource: policy-groups
+      actions: [read, write, delete]
+      description: Manage JumpCloud Policy Groups and their member Policies
+    - resource: ip-lists
+      actions: [read, write, delete]
+      description: Manage JumpCloud IP Lists (named IP / CIDR collections)
+    - resource: radius-servers
+      actions: [read, write, delete]
+      description: Manage JumpCloud RADIUS servers (create / edit / delete)
+    - resource: conditional-access-policies
+      actions: [read, write, delete]
+      description: Manage JumpCloud Authentication (Conditional Access) Policies
+    - resource: commands
+      actions: [read, write, delete]
+      description: Manage JumpCloud Commands (saved scripts)
+    - resource: custom-email-config
+      actions: [read, write, delete]
+      description: Manage JumpCloud custom transactional email overrides
+    - resource: password-manager-policies
+      actions: [read, write]
+      description: Manage the JumpCloud Password Manager organization policy (a tenant singleton)
+    - resource: software-apps
+      actions: [read, write, delete]
+      description: Manage JumpCloud catalog-based managed Software Apps
 
 pipeline:
   configurationTypes:
@@ -108,6 +138,168 @@ pipeline:
         healthCheck: config-types/group-memberships/healthCheck
         driftDetect: config-types/group-memberships/driftDetect
         getStatus: config-types/group-memberships/getStatus
+      targets:
+        componentTypes: [jumpcloud-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ldap-server-settings
+      group: "Directory"
+      name: LDAP Server Settings
+      description: Settings on an existing JumpCloud LDAP-as-a-Service server — name, lockout action, password-expiration action — applied over the JumpCloud API v2 (/ldapservers/{id}). PATCH only; cannot create or delete a server.
+      canvasTemplate: config-types/ldap-server-settings/canvas.yaml
+      defaultConfig: config-types/ldap-server-settings/defaults.yaml
+      handlers:
+        validate: config-types/ldap-server-settings/validate
+        deploy: config-types/ldap-server-settings/deploy
+        rollback: config-types/ldap-server-settings/rollback
+        healthCheck: config-types/ldap-server-settings/healthCheck
+        driftDetect: config-types/ldap-server-settings/driftDetect
+        getStatus: config-types/ldap-server-settings/getStatus
+      targets:
+        componentTypes: [jumpcloud-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: policy-groups
+      group: "Policies"
+      name: Policy Groups
+      description: JumpCloud Policy Groups — a name plus the exact set of member Policies — applied over the JumpCloud API v2 (/policygroups)
+      canvasTemplate: config-types/policy-groups/canvas.yaml
+      defaultConfig: config-types/policy-groups/defaults.yaml
+      handlers:
+        validate: config-types/policy-groups/validate
+        deploy: config-types/policy-groups/deploy
+        rollback: config-types/policy-groups/rollback
+        healthCheck: config-types/policy-groups/healthCheck
+        driftDetect: config-types/policy-groups/driftDetect
+        getStatus: config-types/policy-groups/getStatus
+      targets:
+        componentTypes: [jumpcloud-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ip-lists
+      group: "Access Control"
+      name: IP Lists
+      description: JumpCloud IP Lists — named IP / CIDR collections referenced by Conditional Access Policies and RADIUS — applied over the JumpCloud API v2 (/iplists)
+      canvasTemplate: config-types/ip-lists/canvas.yaml
+      defaultConfig: config-types/ip-lists/defaults.yaml
+      handlers:
+        validate: config-types/ip-lists/validate
+        deploy: config-types/ip-lists/deploy
+        rollback: config-types/ip-lists/rollback
+        healthCheck: config-types/ip-lists/healthCheck
+        driftDetect: config-types/ip-lists/driftDetect
+        getStatus: config-types/ip-lists/getStatus
+      targets:
+        componentTypes: [jumpcloud-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: radius-servers
+      group: "Access Control"
+      name: RADIUS Servers
+      description: JumpCloud RADIUS servers — network source, shared secret, MFA and certificate settings — applied over the JumpCloud API v1 (/radiusservers)
+      canvasTemplate: config-types/radius-servers/canvas.yaml
+      defaultConfig: config-types/radius-servers/defaults.yaml
+      handlers:
+        validate: config-types/radius-servers/validate
+        deploy: config-types/radius-servers/deploy
+        rollback: config-types/radius-servers/rollback
+        healthCheck: config-types/radius-servers/healthCheck
+        driftDetect: config-types/radius-servers/driftDetect
+        getStatus: config-types/radius-servers/getStatus
+      targets:
+        componentTypes: [jumpcloud-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: conditional-access-policies
+      group: "Access Control"
+      name: Conditional Access Policies
+      description: JumpCloud Authentication Policies — allow/deny + MFA obligations gated by device trust, IP List membership or country — applied over the JumpCloud API v2 (/authn/policies)
+      canvasTemplate: config-types/conditional-access-policies/canvas.yaml
+      defaultConfig: config-types/conditional-access-policies/defaults.yaml
+      handlers:
+        validate: config-types/conditional-access-policies/validate
+        deploy: config-types/conditional-access-policies/deploy
+        rollback: config-types/conditional-access-policies/rollback
+        healthCheck: config-types/conditional-access-policies/healthCheck
+        driftDetect: config-types/conditional-access-policies/driftDetect
+        getStatus: config-types/conditional-access-policies/getStatus
+      targets:
+        componentTypes: [jumpcloud-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: commands
+      group: "Automation"
+      name: Commands
+      description: JumpCloud Commands — saved scripts (OS, run-as user, schedule/trigger) — applied over the JumpCloud API v1 (/commands)
+      canvasTemplate: config-types/commands/canvas.yaml
+      defaultConfig: config-types/commands/defaults.yaml
+      handlers:
+        validate: config-types/commands/validate
+        deploy: config-types/commands/deploy
+        rollback: config-types/commands/rollback
+        healthCheck: config-types/commands/healthCheck
+        driftDetect: config-types/commands/driftDetect
+        getStatus: config-types/commands/getStatus
+      targets:
+        componentTypes: [jumpcloud-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: custom-email-config
+      group: "Organization"
+      name: Custom Email Configuration
+      description: JumpCloud custom transactional email overrides (subject, header, body, button, contact info) — applied over the JumpCloud API v2 (/customemails)
+      canvasTemplate: config-types/custom-email-config/canvas.yaml
+      defaultConfig: config-types/custom-email-config/defaults.yaml
+      handlers:
+        validate: config-types/custom-email-config/validate
+        deploy: config-types/custom-email-config/deploy
+        rollback: config-types/custom-email-config/rollback
+        healthCheck: config-types/custom-email-config/healthCheck
+        driftDetect: config-types/custom-email-config/driftDetect
+        getStatus: config-types/custom-email-config/getStatus
+      targets:
+        componentTypes: [jumpcloud-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: password-manager-policies
+      group: "Organization"
+      name: Password Manager Policies
+      description: The JumpCloud Password Manager organization policy (vault export control) — a tenant singleton — applied over the JumpCloud API v2 (/passwordmanager/company/policies)
+      canvasTemplate: config-types/password-manager-policies/canvas.yaml
+      defaultConfig: config-types/password-manager-policies/defaults.yaml
+      handlers:
+        validate: config-types/password-manager-policies/validate
+        deploy: config-types/password-manager-policies/deploy
+        rollback: config-types/password-manager-policies/rollback
+        healthCheck: config-types/password-manager-policies/healthCheck
+        driftDetect: config-types/password-manager-policies/driftDetect
+        getStatus: config-types/password-manager-policies/getStatus
+      targets:
+        componentTypes: [jumpcloud-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: software-apps
+      group: "Organization"
+      name: Software Apps (Catalog)
+      description: JumpCloud catalog-based managed Software Apps — auto-update, delay and install/uninstall state — applied over the JumpCloud API v2 (/softwareapps)
+      canvasTemplate: config-types/software-apps/canvas.yaml
+      defaultConfig: config-types/software-apps/defaults.yaml
+      handlers:
+        validate: config-types/software-apps/validate
+        deploy: config-types/software-apps/deploy
+        rollback: config-types/software-apps/rollback
+        healthCheck: config-types/software-apps/healthCheck
+        driftDetect: config-types/software-apps/driftDetect
+        getStatus: config-types/software-apps/getStatus
       targets:
         componentTypes: [jumpcloud-org]
         requiresCredential: true

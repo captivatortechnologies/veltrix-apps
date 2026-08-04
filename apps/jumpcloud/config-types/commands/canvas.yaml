@@ -1,0 +1,125 @@
+# =============================================================================
+# Canvas Template — JumpCloud Commands
+#
+# Declares ONE JumpCloud Command (the item) — a saved script definition that can
+# be run manually, on a schedule, or by a trigger. ONE item = ONE Command,
+# matched on its NAME. This config type manages the Command DEFINITION only —
+# binding it to specific systems / system groups is done via
+# POST /api/v2/commands/{id}/associations (out of scope here; the v1 Command
+# object's own `systems` field is explicitly documented by JumpCloud as
+# "Not used" for that purpose). Field keys must match
+# config-types/commands/validate.ts.
+#
+# VERIFIED against JumpCloud's published API v1 OpenAPI spec
+# (github.com/TheJumpCloud/jumpcloud-docs-public, docs/api/1.0/index.yaml):
+#   GET/POST       /api/commands           (list is a { results, totalCount } wrapper)
+#   GET/PUT/DELETE /api/commands/{id}
+# Auth is the `x-api-key` header (plus optional `x-org-id` for multi-tenant admins).
+# =============================================================================
+
+id: "jumpcloud-commands"
+name: "Commands"
+toolType: "jumpcloud"
+entityType: "commands"
+description: "Define JumpCloud Commands (saved scripts) as code — the command, OS, run-as user and schedule/trigger — through the JumpCloud API v1 (/commands)."
+
+item:
+  label: "Command"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Command"
+      icon: "terminal"
+      description: "What runs, on which OS, as which user"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The Command's display name. Must be unique within the canvas — this is the stable identity used to find, update and drift-check the command on each deploy."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          helpText: "Optional description shown in the JumpCloud Admin Console."
+
+        - key: "command"
+          label: "Command"
+          fieldType: "textarea"
+          required: true
+          helpText: "The script / command text to execute, up to 10,000 characters."
+
+        - key: "commandType"
+          label: "OS"
+          fieldType: "select"
+          required: true
+          defaultValue: "linux"
+          options:
+            - { label: "Linux", value: "linux" }
+            - { label: "Windows", value: "windows" }
+            - { label: "macOS", value: "mac" }
+          helpText: "Which agent OS this command targets."
+
+        - key: "shell"
+          label: "Shell"
+          fieldType: "text"
+          required: false
+          helpText: "Shell used to run the command (e.g. /bin/bash). Leave blank for the agent's default."
+
+        - key: "user"
+          label: "Run As (User Id)"
+          fieldType: "text"
+          required: false
+          helpText: "The JumpCloud system-user id to run the command as. Required by JumpCloud unless this command is trigger-launched."
+
+        - key: "sudo"
+          label: "Run with sudo"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Linux/macOS only — run the command with elevated (sudo) privileges."
+
+    - name: "Execution"
+      icon: "clock"
+      description: "How and when the command runs"
+      fields:
+        - key: "launchType"
+          label: "Launch Type"
+          fieldType: "text"
+          required: false
+          helpText: "How the command is launched, e.g. \"manual\" (run on demand / via Run Now), \"repeated\" (on the schedule below), \"trigger\" (fired by the named trigger), \"one_time\". JumpCloud's public API does not publish a closed enum for this field — see JumpCloud's Commands documentation for the current accepted values."
+
+        - key: "schedule"
+          label: "Schedule (crontab)"
+          fieldType: "text"
+          required: false
+          helpText: "A crontab of the form [seconds] [minutes] [hours] [day-of-month] [month] [weekday], or \"immediate\". Used when Launch Type is repeated/scheduled."
+
+        - key: "scheduleRepeatType"
+          label: "Schedule Repeat Type"
+          fieldType: "text"
+          required: false
+          helpText: "When the command repeats (JumpCloud-defined value paired with the schedule above)."
+
+        - key: "trigger"
+          label: "Trigger Name"
+          fieldType: "text"
+          required: false
+          helpText: "The name of the webhook-style trigger that launches this command, when Launch Type is trigger."
+
+        - key: "timeout"
+          label: "Timeout (seconds)"
+          fieldType: "text"
+          required: false
+          helpText: "How long to allow the command to run, in seconds (maximum 86400 = 1 day)."
+
+        - key: "commandRunners"
+          label: "Command Runner User Ids"
+          fieldType: "tags"
+          required: false
+          helpText: "JumpCloud system-user ids permitted to execute this command on demand (Run Now), beyond its normal schedule/trigger."

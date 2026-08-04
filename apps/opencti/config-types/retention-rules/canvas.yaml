@@ -1,0 +1,92 @@
+# =============================================================================
+# Canvas Template — OpenCTI Retention Rules
+#
+# Declares ONE OpenCTI data retention rule (the item). Users add as many as they
+# need. Field keys must match config-types/retention-rules/validate.ts. Applied
+# via the OpenCTI GraphQL API (retentionRuleAdd / retentionRuleEdit.fieldPatch),
+# verified against the OpenCTI GraphQL backend schema (opencti-platform/opencti,
+# src/modules/retentionRules/retentionRules.graphql).
+# =============================================================================
+
+id: "opencti-retention-rules"
+name: "Retention Rules"
+toolType: "opencti"
+entityType: "retention-rules"
+description: "Manage OpenCTI data retention rules — scope, max retention period and optional filters — via the OpenCTI GraphQL API (443)"
+
+item:
+  label: "Retention Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Retention Rule"
+      icon: "clock"
+      description: "What this rule prunes and how long it keeps it"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The rule name and the stable identity for upsert/drift, e.g. Purge old workbenches."
+
+        - key: "scope"
+          label: "Scope"
+          fieldType: "select"
+          required: true
+          options:
+            - label: "Knowledge"
+              value: "knowledge"
+            - label: "File"
+              value: "file"
+            - label: "Workbench"
+              value: "workbench"
+            - label: "History"
+              value: "history"
+            - label: "Activity"
+              value: "activity"
+          helpText: "Which category of OpenCTI data this rule deletes once it ages past the retention period."
+
+        - key: "max_retention"
+          label: "Max Retention"
+          fieldType: "number"
+          required: true
+          validation:
+            min: 1
+          helpText: "How long matching data is kept before deletion, in the unit selected below."
+
+        - key: "retention_unit"
+          label: "Retention Unit"
+          fieldType: "select"
+          required: false
+          defaultValue: "days"
+          options:
+            - label: "Minutes"
+              value: "minutes"
+            - label: "Hours"
+              value: "hours"
+            - label: "Days"
+              value: "days"
+          helpText: "The time unit for Max Retention. Defaults to days."
+
+        - key: "active"
+          label: "Active"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether OpenCTI actively enforces this rule. Disable to keep the rule defined without deleting anything."
+
+    - name: "Filters"
+      icon: "filter"
+      description: "Optionally restrict which data this rule applies to"
+      fields:
+        - key: "filters"
+          label: "Filters"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 10000
+          helpText: "JSON-encoded OpenCTI FilterGroup string restricting what this rule deletes, e.g. by marking or entity type. Passed through verbatim — not deep-validated."

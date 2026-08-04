@@ -56,3 +56,12 @@ item:
           required: false
           defaultValue: false
           helpText: "Automatically grant access to newly created marking definitions."
+
+        - key: "confidence_level_max"
+          label: "Max Confidence Level"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+            max: 100
+          helpText: "Confidence-level ceiling this group's members can assign to knowledge they create (0-100). Leave blank for no ceiling. OpenCTI requires a group_confidence_level on every group; per-entity-type overrides are not managed here."

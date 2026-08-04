@@ -1,0 +1,39 @@
+# =============================================================================
+# Canvas Template — JumpCloud Password Manager Policies
+#
+# Password Manager organization policy is a per-tenant SINGLETON, so this item is
+# NOT repeatable (minItems/maxItems 1) and has no identity field.
+#
+# VERIFIED against JumpCloud's published API v2 OpenAPI spec
+# (github.com/TheJumpCloud/jumpcloud-docs-public, docs/api/2.0/index.yaml):
+#   GET /api/v2/passwordmanager/company/policies             -> { id, disableExport }
+#   PUT /api/v2/passwordmanager/company/policies/{id}?disableExport=<bool>
+#     (a query parameter, not a JSON body)
+# `disableExport` is the ENTIRE writable surface of this resource — confirmed
+# from the operation's parameter list, not just inferred. Requires the
+# organization to have Password Manager enabled; deploy surfaces a clear error
+# (via 404) otherwise.
+# =============================================================================
+
+id: "jumpcloud-password-manager-policies"
+name: "Password Manager Policies"
+toolType: "jumpcloud"
+entityType: "password-manager-policies"
+description: "Manage the JumpCloud Password Manager organization policy (export control) as code through the JumpCloud API v2 (/passwordmanager/company/policies). A tenant singleton."
+
+item:
+  label: "Password Manager Policy"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Vault Export"
+      icon: "lock"
+      description: "Organization-wide Password Manager vault policy"
+      fields:
+        - key: "disableExport"
+          label: "Disable Vault Export"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When enabled, users cannot export items from their Password Manager vault (CSV / password export is blocked org-wide). This is the entire writable policy surface JumpCloud currently exposes for Password Manager."

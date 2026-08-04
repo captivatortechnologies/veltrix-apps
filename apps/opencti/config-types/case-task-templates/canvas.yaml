@@ -1,0 +1,46 @@
+# =============================================================================
+# Canvas Template — OpenCTI Case Task Templates
+#
+# Declares ONE reusable OpenCTI case task template (the item). Users add as many
+# as they need. Field keys must match config-types/case-task-templates/validate.ts.
+# Applied via the OpenCTI GraphQL API (taskTemplateAdd / taskTemplateFieldPatch),
+# verified against the OpenCTI GraphQL backend schema (opencti-platform/opencti,
+# src/modules/task/task-template/task-template.graphql).
+#
+# This type is a companion to the sibling "case-templates" config type, which
+# references task templates BY NAME in its `task_template_names` field and
+# resolves them to ids at deploy time via this type's list query.
+# =============================================================================
+
+id: "opencti-case-task-templates"
+name: "Case Task Templates"
+toolType: "opencti"
+entityType: "case-task-templates"
+description: "Manage OpenCTI case task templates — reusable task name/description pairs attached to Case Templates — via the OpenCTI GraphQL API (443)"
+
+item:
+  label: "Task Template"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Task Template"
+      icon: "list-checks"
+      description: "The task template name and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The task template name and the stable identity for upsert/drift, e.g. Triage Initial Evidence."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 5000
+          helpText: "What this task involves — shown to analysts when a Case Template instantiates it."

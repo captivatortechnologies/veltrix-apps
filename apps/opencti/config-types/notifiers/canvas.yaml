@@ -1,0 +1,68 @@
+# =============================================================================
+# Canvas Template — OpenCTI Notifiers
+#
+# Declares ONE OpenCTI notifier (the item) — a named delivery channel (built-in
+# User Interface / Send Mail connector, or a custom registered one) that
+# Notification Triggers fire through. Users add as many as they need. Field
+# keys must match config-types/notifiers/validate.ts. Applied via the OpenCTI
+# GraphQL API (notifierAdd / notifierFieldPatch), verified against the OpenCTI
+# GraphQL backend schema (opencti-platform/opencti,
+# src/modules/notifier/notifier.graphql).
+#
+# This type is a companion to the sibling "notification-triggers" config type,
+# which references notifiers BY NAME in its `notifier_names` field and resolves
+# them to ids at deploy time via this type's list query.
+# =============================================================================
+
+id: "opencti-notifiers"
+name: "Notifiers"
+toolType: "opencti"
+entityType: "notifiers"
+description: "Manage OpenCTI notifiers — named delivery channels fired by Notification Triggers — via the OpenCTI GraphQL API (443)"
+
+item:
+  label: "Notifier"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Notifier"
+      icon: "bell"
+      description: "The notifier name and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The notifier name and the stable identity for upsert/drift, e.g. Send Mail to Analyst."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 5000
+          helpText: "What this notifier does and when it should be used."
+
+    - name: "Delivery"
+      icon: "send"
+      description: "The connector this notifier delivers through and its configuration"
+      fields:
+        - key: "notifier_connector_id"
+          label: "Notifier Connector ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Internal id of the notifier connector (the platform's built-in User Interface / Send Mail connectors, or a custom registered one). These built-in ids are seeded per OpenCTI instance and are NOT hardcoded here — find them via the `notificationNotifiers` GraphQL query or Settings → Notifications → Notifiers in the OpenCTI UI."
+
+        - key: "notifier_configuration"
+          label: "Notifier Configuration (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 20000
+          helpText: "JSON string sent verbatim to OpenCTI, e.g. a notification title/template. Must be valid JSON."

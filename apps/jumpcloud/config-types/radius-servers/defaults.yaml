@@ -1,0 +1,14 @@
+# Defaults for a new RADIUS Server item.
+authIdp: "JUMPCLOUD"
+mfa: "DISABLED"
+userLockoutAction: ""
+userPasswordExpirationAction: ""
+userPasswordEnabled: true
+userCertEnabled: false
+deviceCertEnabled: false
+caSource: "NONE"
+caCert: ""
+requireTlsAuth: false
+radsecEnabled: false
+requireRadsec: false
+tags: []

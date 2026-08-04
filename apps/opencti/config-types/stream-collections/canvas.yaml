@@ -1,0 +1,81 @@
+# =============================================================================
+# Canvas Template — OpenCTI Stream Collections (Data Sharing)
+#
+# Declares ONE OpenCTI live stream collection (the item). Users add as many as
+# they need. Field keys must match config-types/stream-collections/validate.ts.
+# Applied via the OpenCTI GraphQL API (streamCollectionAdd /
+# streamCollectionEdit.fieldPatch), verified against the OpenCTI GraphQL
+# backend schema (opencti-platform/opencti,
+# src/modules/dataSharing/streamCollection.graphql).
+#
+# OUT OF SCOPE: `stream_public_user_id` (the user a public stream is attributed
+# to) and `authorized_members` (per-member ACLs on the stream) — user-id/ACL
+# wiring left for a future pass.
+# =============================================================================
+
+id: "opencti-stream-collections"
+name: "Stream Collections"
+toolType: "opencti"
+entityType: "stream-collections"
+description: "Manage OpenCTI live stream collections — what events stream out and to whom — via the OpenCTI GraphQL API (443)"
+
+item:
+  label: "Stream Collection"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Stream Collection"
+      icon: "rss"
+      description: "The stream's identity and live/public state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The stream collection name and the stable identity for upsert/drift, e.g. All Indicators."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Human-readable description of what this stream carries."
+
+        - key: "stream_live"
+          label: "Live"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the stream is actively publishing events."
+
+        - key: "stream_public"
+          label: "Public"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether the stream is reachable without platform authentication."
+
+    - name: "Filters"
+      icon: "filter"
+      description: "What events stream into this collection"
+      fields:
+        - key: "filters"
+          label: "Filters"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 10000
+          helpText: "JSON-encoded OpenCTI FilterGroup string defining what streams into this collection. Passed through verbatim."
+
+        - key: "origin_filters"
+          label: "Origin Filters"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 10000
+          helpText: "JSON-encoded string restricting the origin of streamed events. Passed through verbatim."

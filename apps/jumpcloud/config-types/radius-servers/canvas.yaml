@@ -1,0 +1,168 @@
+# =============================================================================
+# Canvas Template — JumpCloud RADIUS Servers
+#
+# Declares ONE JumpCloud RADIUS server (the item). ONE item = ONE RADIUS server,
+# matched on its NAME. This config type manages the server DEFINITION only —
+# binding it to specific User/System Groups is done via
+# POST /api/v2/radiusservers/{id}/associations (the v2 RADIUS Servers API only
+# exposes association endpoints; there is no v2 create/update/delete for the
+# server object itself — that lives on the v1 API this config type uses).
+#
+# The Shared Secret is displayed as a password field for input hygiene. Unlike
+# other secret-bearing config types in this app, JumpCloud's own RADIUS Servers
+# API returns `sharedSecret` in its GET responses (verified from the response
+# schema) — so it is not a true write-only secret at the API level, and rollback
+# can restore the exact prior secret. Treat access to this canvas accordingly.
+#
+# VERIFIED against JumpCloud's published API v1 OpenAPI spec
+# (github.com/TheJumpCloud/jumpcloud-docs-public, docs/api/1.0/index.yaml):
+#   GET/POST       /api/radiusservers        ({ results, totalCount } wrapper)
+#   GET/PUT/DELETE /api/radiusservers/{id}
+# Field keys must match config-types/radius-servers/validate.ts.
+# =============================================================================
+
+id: "jumpcloud-radius-servers"
+name: "RADIUS Servers"
+toolType: "jumpcloud"
+entityType: "radius-servers"
+description: "Define JumpCloud RADIUS servers as code — network source, shared secret, MFA and certificate settings — through the JumpCloud API v1 (/radiusservers)."
+
+item:
+  label: "RADIUS Server"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Server"
+      icon: "wifi"
+      description: "Network source and authentication"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The RADIUS server's display name. Must be unique within the canvas — this is the stable identity used to find, update and drift-check the server on each deploy."
+
+        - key: "networkSourceIp"
+          label: "Network Source IP"
+          fieldType: "text"
+          required: true
+          helpText: "The IP address of the RADIUS client (e.g. your wireless controller / switch) that will send requests to JumpCloud."
+
+        - key: "sharedSecret"
+          label: "Shared Secret"
+          fieldType: "password"
+          required: true
+          helpText: "The RADIUS shared secret between JumpCloud and the network client above. JumpCloud's API returns this value on read, so rollback can restore it exactly — treat access to this canvas as sensitive regardless."
+
+        - key: "authIdp"
+          label: "Auth Identity Provider"
+          fieldType: "select"
+          required: false
+          defaultValue: "JUMPCLOUD"
+          options:
+            - { label: "JumpCloud", value: "JUMPCLOUD" }
+            - { label: "Azure AD", value: "AZURE" }
+          helpText: "Which identity provider authenticates RADIUS requests. Sent on CREATE only — the API's update model does not accept this field, so changing it after creation is not supported by this config type (recreate the server to change it)."
+
+        - key: "mfa"
+          label: "MFA"
+          fieldType: "select"
+          required: false
+          defaultValue: "DISABLED"
+          options:
+            - { label: "Disabled", value: "DISABLED" }
+            - { label: "Enabled (optional)", value: "ENABLED" }
+            - { label: "Required", value: "REQUIRED" }
+            - { label: "Always", value: "ALWAYS" }
+          helpText: "Whether RADIUS authentication also requires MFA."
+
+    - name: "Account Lifecycle"
+      icon: "shield"
+      description: "What happens to a user on lockout / password expiration"
+      fields:
+        - key: "userLockoutAction"
+          label: "User Lockout Action"
+          fieldType: "text"
+          required: false
+          helpText: "What happens to a user's RADIUS access when JumpCloud locks their account out."
+
+        - key: "userPasswordExpirationAction"
+          label: "User Password Expiration Action"
+          fieldType: "text"
+          required: false
+          helpText: "What happens to a user's RADIUS access when their JumpCloud password expires."
+
+    - name: "Certificates & TLS"
+      icon: "lock"
+      description: "Certificate-based auth and RadSec"
+      fields:
+        - key: "userPasswordEnabled"
+          label: "Allow Password Auth"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether users may authenticate with their JumpCloud password."
+
+        - key: "userCertEnabled"
+          label: "Allow User Certificate Auth"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether users may authenticate with a user certificate."
+
+        - key: "deviceCertEnabled"
+          label: "Allow Device Certificate Auth"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether devices may authenticate with a device certificate."
+
+        - key: "caSource"
+          label: "CA Source"
+          fieldType: "select"
+          required: false
+          defaultValue: "NONE"
+          options:
+            - { label: "None", value: "NONE" }
+            - { label: "Bring Your Own Certificate", value: "BYOC" }
+            - { label: "JumpCloud Managed", value: "JUMPCLOUD_MANAGED" }
+          helpText: "Where the CA used for certificate-based auth comes from."
+
+        - key: "caCert"
+          label: "CA Certificate (PEM)"
+          fieldType: "textarea"
+          required: false
+          helpText: "The CA certificate (PEM), required when CA Source is Bring Your Own Certificate."
+
+        - key: "requireTlsAuth"
+          label: "Require TLS Auth"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+
+        - key: "radsecEnabled"
+          label: "RadSec Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether RADIUS-over-TLS (RadSec) is enabled for this server."
+
+        - key: "requireRadsec"
+          label: "Require RadSec"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+
+    - name: "Tags"
+      icon: "tag"
+      description: "Optional JumpCloud tags"
+      fields:
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          required: false
+          helpText: "Optional JumpCloud tag names to associate with this RADIUS server. FLAGGED: the create body field is documented as `tagNames`, the update body field as `tags` — this config type sends the value under the name each operation documents."

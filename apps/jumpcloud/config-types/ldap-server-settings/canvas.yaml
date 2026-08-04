@@ -1,0 +1,66 @@
+# =============================================================================
+# Canvas Template — JumpCloud LDAP Server Settings
+#
+# Declares the settings for an EXISTING JumpCloud LDAP-as-a-Service server (the
+# item). ONE item = ONE LDAP server, matched on its CURRENT name. This config
+# type CANNOT create or delete an LDAP server — LDAP-as-a-Service instances are
+# provisioned interactively in the JumpCloud Admin Console (there is no POST
+# /ldapservers in the API) — it only updates settings on one that already exists.
+# Field keys must match config-types/ldap-server-settings/validate.ts.
+#
+# VERIFIED against JumpCloud's published API v2 OpenAPI spec
+# (github.com/TheJumpCloud/jumpcloud-docs-public, docs/api/2.0/index.yaml):
+#   GET   /api/v2/ldapservers            (list — no create endpoint exists)
+#   GET   /api/v2/ldapservers/{id}
+#   PATCH /api/v2/ldapservers/{id}        body: { name, user_lockout_action, user_password_expiration_action }
+# `name` may be changed via this PATCH (a rename), and it is this config type's
+# item identity for rename-safe matching, same convention as the other types.
+# Auth is the `x-api-key` header (plus optional `x-org-id` for multi-tenant admins).
+# =============================================================================
+
+id: "jumpcloud-ldap-server-settings"
+name: "LDAP Server Settings"
+toolType: "jumpcloud"
+entityType: "ldap-server-settings"
+description: "Manage settings on an existing JumpCloud LDAP-as-a-Service server (name, lockout action, password-expiration action) as code through the JumpCloud API v2 (/ldapservers/{id}). Cannot create or delete a server — none exists in the API."
+
+item:
+  label: "LDAP Server"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 20
+  groups:
+    - name: "Server"
+      icon: "server"
+      description: "The existing LDAP server this item manages"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The LDAP server's name. On the FIRST deploy this must exactly match an EXISTING server (provisioned in the JumpCloud Admin Console) — this config type cannot create one. On later deploys, changing this value renames the same server (matched by its stored id)."
+
+    - name: "Account Lifecycle"
+      icon: "shield"
+      description: "What happens to a bound LDAP account on lockout / expiration"
+      fields:
+        - key: "userLockoutAction"
+          label: "User Lockout Action"
+          fieldType: "select"
+          required: false
+          options:
+            - { label: "Remove from LDAP", value: "remove" }
+            - { label: "Disable in LDAP", value: "disable" }
+          helpText: "What happens to a user's LDAP binding when JumpCloud locks their account out."
+
+        - key: "userPasswordExpirationAction"
+          label: "User Password Expiration Action"
+          fieldType: "select"
+          required: false
+          options:
+            - { label: "Remove from LDAP", value: "remove" }
+            - { label: "Disable in LDAP", value: "disable" }
+          helpText: "What happens to a user's LDAP binding when their JumpCloud password expires."

@@ -1,0 +1,162 @@
+# =============================================================================
+# Canvas Template — OpenCTI Vocabularies
+#
+# Declares ONE OpenCTI open-vocabulary entry (the item). Users add as many as
+# they need. Field keys must match config-types/vocabularies/validate.ts.
+# Applied via the OpenCTI GraphQL API (vocabularyAdd / vocabularyFieldPatch).
+# =============================================================================
+
+id: "opencti-vocabularies"
+name: "Vocabularies"
+toolType: "opencti"
+entityType: "vocabularies"
+description: "Manage OpenCTI open-vocabulary entries — category, name, description, order and aliases — via the OpenCTI GraphQL API (443)"
+
+item:
+  label: "Vocabulary Entry"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Vocabulary"
+      icon: "list"
+      description: "The category this entry belongs to and its identity"
+      fields:
+        - key: "category"
+          label: "Category"
+          fieldType: "select"
+          required: true
+          options:
+            - label: "Account Type Ov"
+              value: "account_type_ov"
+            - label: "Attack Motivation Ov"
+              value: "attack_motivation_ov"
+            - label: "Attack Resource Level Ov"
+              value: "attack_resource_level_ov"
+            - label: "Case Severity Ov"
+              value: "case_severity_ov"
+            - label: "Case Priority Ov"
+              value: "case_priority_ov"
+            - label: "Channel Types Ov"
+              value: "channel_types_ov"
+            - label: "Collection Layers Ov"
+              value: "collection_layers_ov"
+            - label: "Event Type Ov"
+              value: "event_type_ov"
+            - label: "Grouping Context Ov"
+              value: "grouping_context_ov"
+            - label: "Implementation Language Ov"
+              value: "implementation_language_ov"
+            - label: "Incident Response Types Ov"
+              value: "incident_response_types_ov"
+            - label: "Incident Type Ov"
+              value: "incident_type_ov"
+            - label: "Incident Severity Ov"
+              value: "incident_severity_ov"
+            - label: "Indicator Type Ov"
+              value: "indicator_type_ov"
+            - label: "Infrastructure Type Ov"
+              value: "infrastructure_type_ov"
+            - label: "Integrity Level Ov"
+              value: "integrity_level_ov"
+            - label: "Malware Capabilities Ov"
+              value: "malware_capabilities_ov"
+            - label: "Malware Result Ov"
+              value: "malware_result_ov"
+            - label: "Malware Type Ov"
+              value: "malware_type_ov"
+            - label: "Platforms Ov"
+              value: "platforms_ov"
+            - label: "Opinion Ov"
+              value: "opinion_ov"
+            - label: "Organization Type Ov"
+              value: "organization_type_ov"
+            - label: "Pattern Type Ov"
+              value: "pattern_type_ov"
+            - label: "Permissions Ov"
+              value: "permissions_ov"
+            - label: "Processor Architecture Ov"
+              value: "processor_architecture_ov"
+            - label: "Reliability Ov"
+              value: "reliability_ov"
+            - label: "Report Types Ov"
+              value: "report_types_ov"
+            - label: "Request For Information Types Ov"
+              value: "request_for_information_types_ov"
+            - label: "Request For Takedown Types Ov"
+              value: "request_for_takedown_types_ov"
+            - label: "Security Platform Type Ov"
+              value: "security_platform_type_ov"
+            - label: "Service Status Ov"
+              value: "service_status_ov"
+            - label: "Service Type Ov"
+              value: "service_type_ov"
+            - label: "Start Type Ov"
+              value: "start_type_ov"
+            - label: "Key Type Ov"
+              value: "key_type_ov"
+            - label: "Threat Actor Group Type Ov"
+              value: "threat_actor_group_type_ov"
+            - label: "Threat Actor Group Role Ov"
+              value: "threat_actor_group_role_ov"
+            - label: "Threat Actor Group Sophistication Ov"
+              value: "threat_actor_group_sophistication_ov"
+            - label: "Threat Actor Individual Type Ov"
+              value: "threat_actor_individual_type_ov"
+            - label: "Threat Actor Individual Role Ov"
+              value: "threat_actor_individual_role_ov"
+            - label: "Threat Actor Individual Sophistication Ov"
+              value: "threat_actor_individual_sophistication_ov"
+            - label: "Tool Types Ov"
+              value: "tool_types_ov"
+            - label: "Note Types Ov"
+              value: "note_types_ov"
+            - label: "Gender Ov"
+              value: "gender_ov"
+            - label: "Marital Status Ov"
+              value: "marital_status_ov"
+            - label: "Hair Color Ov"
+              value: "hair_color_ov"
+            - label: "Eye Color Ov"
+              value: "eye_color_ov"
+            - label: "Persona Type Ov"
+              value: "persona_type_ov"
+            - label: "Coverage Ov"
+              value: "coverage_ov"
+          helpText: "The OpenCTI VocabularyCategory this entry belongs to. Together with Name this is the stable identity for upsert/drift — a name is only unique within its category."
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The vocabulary entry's value, e.g. high or state-sponsored. Only unique within its Category — the same name may exist in more than one category."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Human-readable description of what this entry means."
+
+    - name: "Presentation"
+      icon: "settings"
+      description: "How the entry is ordered and aliased in OpenCTI"
+      fields:
+        - key: "order"
+          label: "Order"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 0
+            max: 1000
+          helpText: "Sort/precedence order within the category. Optional."
+
+        - key: "aliases"
+          label: "Aliases"
+          fieldType: "tags"
+          required: false
+          helpText: "Alternate spellings/values that should resolve to this entry."

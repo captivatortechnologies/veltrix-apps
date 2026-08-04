@@ -1,0 +1,88 @@
+# =============================================================================
+# Canvas Template — OpenCTI Notification Triggers (Live knowledge triggers)
+#
+# Declares ONE OpenCTI live knowledge trigger (the item). Users add as many as
+# they need. Field keys must match config-types/notification-triggers/validate.ts.
+# Applied via the OpenCTI GraphQL API (triggerKnowledgeLiveAdd /
+# triggerKnowledgeFieldPatch), verified against the OpenCTI GraphQL backend
+# schema (opencti-platform/opencti, src/modules/notification/notification.graphql).
+#
+# Digest triggers and Activity (audit-log) triggers are separate, larger
+# surfaces intentionally excluded from this config type — see _shared.ts.
+# =============================================================================
+
+id: "opencti-notification-triggers"
+name: "Notification Triggers"
+toolType: "opencti"
+entityType: "notification-triggers"
+description: "Manage OpenCTI live knowledge-event notification triggers — event types, filters and notifiers — via the OpenCTI GraphQL API (443)"
+
+item:
+  label: "Notification Trigger"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Trigger"
+      icon: "bell"
+      description: "The trigger's identity and what it watches"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            minLength: 2
+            maxLength: 255
+          helpText: "The trigger name and the stable identity for upsert/drift, e.g. New Critical Indicators."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+
+        - key: "event_types"
+          label: "Event Types"
+          fieldType: "multiselect"
+          required: true
+          defaultValue: ["create"]
+          options:
+            - label: "Create"
+              value: "create"
+            - label: "Update"
+              value: "update"
+            - label: "Delete"
+              value: "delete"
+          helpText: "Which knowledge-event types fire this trigger."
+
+        - key: "instance_trigger"
+          label: "Instance Trigger"
+          fieldType: "checkbox"
+          required: true
+          defaultValue: false
+          helpText: "When on, fires only for updates to a specific tracked instance rather than any entity matching the filter."
+
+        - key: "filters"
+          label: "Filters (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: "JSON-encoded OpenCTI FilterGroup string restricting which knowledge objects fire this trigger, e.g. by entity type or marking. Passed through verbatim — not deep-validated."
+
+    - name: "Delivery"
+      icon: "send"
+      description: "Who and what is notified when this trigger fires"
+      fields:
+        - key: "recipients"
+          label: "Recipients"
+          fieldType: "tags"
+          required: false
+          helpText: "Platform member/user internal ids or emails to notify directly (in addition to any notifiers below). Not independently verified beyond a raw string on the OpenCTI side."
+
+        - key: "notifier_names"
+          label: "Notifier Names"
+          fieldType: "tags"
+          required: false
+          helpText: "Names of items from the sibling 'Notifiers' config type to fire, e.g. Email Analysts. Resolved to their live ids at deploy time; a name that doesn't match a deployed notifier is skipped with a warning rather than failing the whole deploy."

@@ -1,0 +1,87 @@
+# =============================================================================
+# Canvas Template — JumpCloud Software Apps (Catalog-Based)
+#
+# Declares ONE JumpCloud managed Software Application (the item), SCOPED TO
+# App-Catalog-referenced apps only. ONE item = ONE software app, matched on its
+# NAME (displayName).
+#
+# JumpCloud's full `software-app` object also supports CUSTOM/PRIVATE package
+# uploads (Windows EXE/MSI, macOS PKG) with sha256 checksums, a download URL and
+# Windows detection rules, obtained via a separate `uploadUrl` returned on
+# create. That binary-artifact workflow is NOT declarative JSON config and is
+# intentionally excluded here (see README "Coverage") — this config type only
+# manages apps sourced from JumpCloud's own App Catalog
+# (GET /api/v2/software/catalog/apps for available `appCatalogInstallableObjectId`
+# values), where install/update behavior is fully described by JSON settings.
+#
+# VERIFIED against JumpCloud's published API v2 OpenAPI spec
+# (github.com/TheJumpCloud/jumpcloud-docs-public, docs/api/2.0/index.yaml):
+#   GET/POST       /api/v2/softwareapps
+#   GET/PUT/DELETE /api/v2/softwareapps/{id}
+# Field keys must match config-types/software-apps/validate.ts.
+# =============================================================================
+
+id: "jumpcloud-software-apps"
+name: "Software Apps (Catalog)"
+toolType: "jumpcloud"
+entityType: "software-apps"
+description: "Manage JumpCloud Software Management apps sourced from the App Catalog (auto-update, delay, install/uninstall state) as code through the JumpCloud API v2 (/softwareapps). Custom/private package uploads are out of scope — see README."
+
+item:
+  label: "Software App"
+  identityField: "displayName"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "App"
+      icon: "package"
+      description: "Which catalog app this manages"
+      fields:
+        - key: "displayName"
+          label: "Display Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The managed app's display name in JumpCloud. Must be unique within the canvas — this is the stable identity used to find, update and drift-check the app on each deploy."
+
+        - key: "appCatalogInstallableObjectId"
+          label: "App Catalog Installable Id"
+          fieldType: "text"
+          required: true
+          helpText: "The ObjectId of the App Catalog item to install, from GET /api/v2/software/catalog/apps. Identifies the vendor package (e.g. a specific Chocolatey or Apple VPP app) this software app installs and keeps updated."
+
+        - key: "displayVersion"
+          label: "Display Version"
+          fieldType: "text"
+          required: false
+          helpText: "Optional display version label. Defaults to \"Version N\" when omitted."
+
+    - name: "Install Behavior"
+      icon: "refresh-cw"
+      description: "Desired state and update policy"
+      fields:
+        - key: "desiredState"
+          label: "Desired State"
+          fieldType: "select"
+          required: true
+          defaultValue: "Install"
+          options:
+            - { label: "Install", value: "Install" }
+            - { label: "Uninstall", value: "Uninstall" }
+          helpText: "Whether devices this app is assigned to should have it installed or uninstalled."
+
+        - key: "autoUpdate"
+          label: "Auto-Update"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether JumpCloud automatically updates this app when a new catalog version is available."
+
+        - key: "allowUpdateDelay"
+          label: "Allow Update Delay"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether end users may postpone an available update."

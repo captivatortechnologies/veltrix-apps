@@ -1,0 +1,101 @@
+# =============================================================================
+# Canvas Template — OpenCTI Feeds (CSV / rolling export)
+#
+# Declares ONE OpenCTI rolling CSV export feed (the item). Users add as many as
+# they need. Field keys must match config-types/feeds/validate.ts. Applied via
+# the OpenCTI GraphQL API (feedAdd / feedEdit), verified against the OpenCTI
+# GraphQL backend schema (opencti-platform/opencti,
+# src/modules/dataSharing/feed.graphql).
+#
+# NOTE: feedEdit replaces the WHOLE feed object — there is no per-field patch
+# for this type. See _shared.ts for how feed_public_user_id/authorized_members
+# (not modeled here) are preserved rather than silently cleared on update.
+# =============================================================================
+
+id: "opencti-feeds"
+name: "Feeds"
+toolType: "opencti"
+entityType: "feeds"
+description: "Manage OpenCTI rolling CSV/TAXII export feeds — format, schedule and attribute mappings — via the OpenCTI GraphQL API (443)"
+
+item:
+  label: "Feed"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Feed"
+      icon: "download"
+      description: "The feed's identity and export format"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            minLength: 2
+            maxLength: 255
+          helpText: "The feed name and the stable identity for upsert/drift, e.g. Daily Indicator Export."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+
+        - key: "separator"
+          label: "Separator"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 5
+          helpText: "The CSV column separator, e.g. ; or ,."
+
+        - key: "feed_date_attribute"
+          label: "Date Attribute"
+          fieldType: "text"
+          required: true
+          helpText: "The STIX attribute used to select the rolling export window, e.g. created_at."
+
+        - key: "rolling_time"
+          label: "Rolling Time (minutes)"
+          fieldType: "number"
+          required: true
+          validation:
+            min: 1
+          helpText: "How far back (in minutes) each export run looks for new/updated objects."
+
+        - key: "include_header"
+          label: "Include Header Row"
+          fieldType: "checkbox"
+          required: true
+          defaultValue: true
+
+        - key: "feed_types"
+          label: "Entity Types"
+          fieldType: "tags"
+          required: true
+          helpText: "STIX entity type names this feed exports, e.g. Indicator, Report."
+
+        - key: "feed_public"
+          label: "Public Feed"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Expose this feed on an unauthenticated public URL. feed_public_user_id (the attribution user for a public feed) is not managed here — preserved from the live feed if already set."
+
+    - name: "Filtering & Attributes"
+      icon: "filter"
+      description: "What objects this feed includes and which columns it exports"
+      fields:
+        - key: "filters"
+          label: "Filters (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: "JSON-encoded OpenCTI FilterGroup string restricting which objects this feed exports. Passed through verbatim — not deep-validated."
+
+        - key: "feed_attributes"
+          label: "Attribute Mappings (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: 'JSON array of { attribute, mappings: [{ type, attribute, relationship_type?, target_entity_type? }], multi_match_strategy?, multi_match_separator? } — one entry per exported CSV column. Passed through verbatim after a shallow shape check; OpenCTI validates the full shape at deploy time.'

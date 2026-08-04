@@ -1,0 +1,57 @@
+# =============================================================================
+# Canvas Template — OpenCTI Case Templates
+#
+# Declares ONE reusable OpenCTI case template (the item). Users add as many as
+# they need. Field keys must match config-types/case-templates/validate.ts.
+# Applied via the OpenCTI GraphQL API (caseTemplateAdd / caseTemplateFieldPatch),
+# verified against the OpenCTI GraphQL backend schema (opencti-platform/opencti,
+# src/modules/case/case-template/case-template.graphql).
+#
+# A case template's `tasks` are OpenCTI internal ids (StixRef), not names —
+# this canvas takes task template NAMES and resolves them to ids at deploy time
+# against the sibling "Case Task Templates" config type's live state.
+# =============================================================================
+
+id: "opencti-case-templates"
+name: "Case Templates"
+toolType: "opencti"
+entityType: "case-templates"
+description: "Manage OpenCTI case templates — name, description and attached task templates — via the OpenCTI GraphQL API (443)"
+
+item:
+  label: "Case Template"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Case Template"
+      icon: "briefcase"
+      description: "The case template's identity and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            minLength: 2
+            maxLength: 255
+          helpText: "The case template name and the stable identity for upsert/drift, e.g. Phishing Investigation."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 5000
+          helpText: "What this case template is for — shown to analysts when instantiating a new case."
+
+    - name: "Tasks"
+      icon: "list-checks"
+      description: "The task templates instantiated with this case template"
+      fields:
+        - key: "task_template_names"
+          label: "Task Template Names"
+          fieldType: "tags"
+          required: false
+          helpText: "Names of items from the sibling 'Case Task Templates' config type to attach, e.g. Triage Initial Evidence, Collect Artifacts. Resolved to their live ids at deploy time; a name that doesn't match a deployed task template is skipped with a warning rather than failing the whole deploy."

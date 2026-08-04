@@ -23,6 +23,7 @@ const good = {
   collection: '95ecc380-afe9-11e4-9b6c-751b66dd541e',
   version: 'v21',
   authentication_type: 'none',
+  user_id: '88ec0c6a-13ce-5e39-b486-354fe4a54a4b',
 }
 
 test('validate accepts a good feed', async () => {
@@ -31,12 +32,13 @@ test('validate accepts a good feed', async () => {
   assert.equal(res.errors.length, 0)
 })
 
-test('validate rejects a missing name / uri / collection', async () => {
-  const res = await validate(ctxOf([{ ...good, name: '', uri: '', collection: '' }]))
+test('validate rejects a missing name / uri / collection / user_id', async () => {
+  const res = await validate(ctxOf([{ ...good, name: '', uri: '', collection: '', user_id: '' }]))
   assert.equal(res.valid, false)
   assert.ok(res.errors.some((e) => e.code === 'EMPTY_NAME'))
   assert.ok(res.errors.some((e) => e.code === 'EMPTY_URI'))
   assert.ok(res.errors.some((e) => e.code === 'EMPTY_COLLECTION'))
+  assert.ok(res.errors.some((e) => e.code === 'EMPTY_USER_ID'))
 })
 
 test('validate rejects a non-http URI', async () => {
@@ -45,10 +47,16 @@ test('validate rejects a non-http URI', async () => {
   assert.ok(res.errors.some((e) => e.code === 'INVALID_URI'))
 })
 
-test('validate rejects an unknown version and auth type', async () => {
-  const ver = await validate(ctxOf([{ ...good, version: 'v99' }]))
-  assert.ok(ver.errors.some((e) => e.code === 'INVALID_VERSION'))
+test('validate accepts every real TaxiiVersion enum value (v1, v2, v21) and rejects an unknown one', async () => {
+  for (const version of ['v1', 'v2', 'v21']) {
+    const res = await validate(ctxOf([{ ...good, version }]))
+    assert.equal(res.valid, true, `expected version "${version}" to be valid`)
+  }
+  const ver = await validate(ctxOf([{ ...good, version: 'v20' }]))
+  assert.ok(ver.errors.some((e) => e.code === 'INVALID_VERSION'), '"v20" is not a real TaxiiVersion value and must be rejected')
+})
 
+test('validate rejects an unknown auth type', async () => {
   const auth = await validate(ctxOf([{ ...good, authentication_type: 'oauth' }]))
   assert.ok(auth.errors.some((e) => e.code === 'INVALID_AUTH_TYPE'))
 })
@@ -77,11 +85,12 @@ test('validate errors when there are no items', async () => {
   assert.ok(res.errors.some((e) => e.code === 'EMPTY'))
 })
 
-test('buildFeedInput carries required fields and omits blank optionals', () => {
+test('buildFeedInput carries required fields (including user_id) and omits blank optionals', () => {
   const input = buildFeedInput(good)
   assert.equal(input.name, 'MITRE ATT&CK')
   assert.equal(input.version, 'v21')
   assert.equal(input.authentication_type, 'none')
+  assert.equal(input.user_id, '88ec0c6a-13ce-5e39-b486-354fe4a54a4b')
   assert.equal(input.authentication_value, undefined)
   assert.equal(input.added_after_start, undefined)
 
@@ -90,11 +99,13 @@ test('buildFeedInput carries required fields and omits blank optionals', () => {
   assert.equal(withSecret.added_after_start, '2024-01-01')
 })
 
-test('buildFeedPatch never patches the identity and omits an unchanged secret', () => {
+test('buildFeedPatch never patches the identity, always patches user_id, and omits an unchanged secret', () => {
   const patch = buildFeedPatch(good)
   assert.ok(patch.every((p) => p.key !== 'name'))
   assert.ok(patch.some((p) => p.key === 'uri'))
   assert.ok(patch.every((p) => p.key !== 'authentication_value'))
+  const userId = patch.find((p) => p.key === 'user_id')
+  assert.deepEqual(userId?.value, ['88ec0c6a-13ce-5e39-b486-354fe4a54a4b'])
 
   const withSecret = buildFeedPatch({ ...good, authentication_value: 'tok' })
   const secret = withSecret.find((p) => p.key === 'authentication_value')

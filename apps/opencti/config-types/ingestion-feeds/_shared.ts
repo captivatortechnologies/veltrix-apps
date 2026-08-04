@@ -1,13 +1,22 @@
 // Shared helpers for the OpenCTI TAXII2 Ingestion Feeds config type
 // (deploy + rollback + drift).
 //
-// The GraphQL operations below follow OpenCTI conventions (ingestionTaxiis,
-// ingestionTaxiiAdd, ingestionTaxiiEdit, ingestionTaxiiDelete). The list field may
-// instead be `ingestionTaxiiConnections`; VERIFY every operation + field name (and
-// the IngestionTaxiiAddInput / EditInput shapes) against a live OpenCTI instance.
+// Verified against the OpenCTI GraphQL backend schema (opencti-platform/opencti,
+// src/modules/ingestion/ingestion-taxii.graphql). `ingestionTaxiiAdd` /
+// `ingestionTaxiiFieldPatch` / `ingestionTaxiiDelete` are flat top-level
+// mutations and were already correct. Two corrections from an earlier,
+// unverified "follow OpenCTI conventions" guess:
+//   1. `TaxiiVersion` is `v1 | v2 | v21` — `"v20"` DOES NOT EXIST. The valid
+//      pre-2.1 value is `"v2"`.
+//   2. `IngestionTaxiiAddInput` REQUIRES `user_id: String!` (the OpenCTI user
+//      the ingested data is attributed to) — omitting it (as the earlier
+//      version did) fails schema validation on every create.
+// Not yet covered (a good future-release candidate, out of scope here):
+// `scheduling_period`, `confidence_to_score`, `ssl_verify`, `automatic_user`
+// and `confidence_level` are additional optional fields on this same input.
 
-/** TAXII protocol versions OpenCTI ingests. */
-export const TAXII_VERSIONS = new Set(['v21', 'v20'])
+/** TAXII protocol versions OpenCTI ingests (`TaxiiVersion` enum). */
+export const TAXII_VERSIONS = new Set(['v1', 'v2', 'v21'])
 
 /** Authentication schemes an OpenCTI TAXII feed supports. */
 export const TAXII_AUTH_TYPES = new Set(['none', 'basic', 'bearer', 'certificate'])
@@ -18,12 +27,12 @@ export const TAXII_AUTH_TYPES_WITH_VALUE = new Set(['basic', 'bearer', 'certific
 /**
  * The node fields we read back on every feed (list + drift). `authentication_value`
  * is a secret and is intentionally NOT selected — OpenCTI does not return it, and it
- * must not be compared for drift. `version`/`authentication_type` are added for
- * drift beyond the task's list shape; VERIFY they are selectable.
+ * must not be compared for drift. `user_id` is read back so rollback can restore
+ * the prior attribution.
  */
-export const FEED_NODE_FIELDS = 'id name uri collection version authentication_type ingestion_running'
+export const FEED_NODE_FIELDS = 'id name uri collection version authentication_type ingestion_running user_id'
 
-// --- GraphQL documents (verify against a live OpenCTI instance) --------------
+// --- GraphQL documents (verified against the OpenCTI backend schema) --------
 
 /**
  * List every TAXII2 feed (paginated `edges { node }` connection). VERIFY: the list
@@ -59,10 +68,11 @@ export interface OpenctiFeed {
   version?: string | null
   authentication_type?: string | null
   ingestion_running?: boolean | null
+  user_id?: string | null
   [key: string]: unknown
 }
 
-/** The `input` for ingestionTaxiiAdd. */
+/** The `input` for ingestionTaxiiAdd. `user_id` is REQUIRED by the schema. */
 export interface FeedAddInput {
   name: string
   uri: string
@@ -71,12 +81,17 @@ export interface FeedAddInput {
   authentication_type: string
   authentication_value?: string
   added_after_start?: string
+  user_id: string
 }
 
-/** One EditInput entry for ingestionTaxiiEdit (`value` is a list of strings). */
+/**
+ * One EditInput entry for ingestionTaxiiFieldPatch. `value` is `[Any]` in the
+ * OpenCTI schema (an unconstrained passthrough scalar) — send native JSON
+ * types, never stringify booleans/numbers.
+ */
 export interface EditInput {
   key: string
-  value: string[]
+  value: unknown[]
 }
 
 /** Unwrap an OpenCTI `{ ingestionTaxiis: { edges: [{ node }] } }` connection into a flat array. */
@@ -100,7 +115,10 @@ export function normalizeText(value: unknown): string | undefined {
   return s === '' ? undefined : s
 }
 
-/** Build the ingestionTaxiiAdd input from canvas fields. */
+/**
+ * Build the ingestionTaxiiAdd input from canvas fields. `user_id` is REQUIRED
+ * by the schema — the OpenCTI user the ingested data is attributed to.
+ */
 export function buildFeedInput(fields: Record<string, unknown>): FeedAddInput {
   const input: FeedAddInput = {
     name: String(fields.name ?? '').trim(),
@@ -108,6 +126,7 @@ export function buildFeedInput(fields: Record<string, unknown>): FeedAddInput {
     collection: String(fields.collection ?? '').trim(),
     version: String(fields.version ?? '').trim(),
     authentication_type: String(fields.authentication_type ?? '').trim(),
+    user_id: String(fields.user_id ?? '').trim(),
   }
   const authValue = normalizeText(fields.authentication_value)
   if (authValue !== undefined) input.authentication_value = authValue
@@ -117,11 +136,11 @@ export function buildFeedInput(fields: Record<string, unknown>): FeedAddInput {
 }
 
 /**
- * Build the ingestionTaxiiEdit `input` (an array of EditInput) from canvas fields.
- * OpenCTI's generic field patch takes `value` as a list of strings. Only mutable
- * fields are patched — `name` is the identity and is not rewritten. The secret
- * `authentication_value` is only patched when the operator supplied a new one.
- * Verify the EditInput value-as-string-list shape against a live OpenCTI instance.
+ * Build the ingestionTaxiiFieldPatch `input` (an array of EditInput) from canvas
+ * fields. `value` is `[Any]` — sent as-is (all of this type's patched fields are
+ * already strings). Only mutable fields are patched — `name` is the identity and
+ * is not rewritten. The secret `authentication_value` is only patched when the
+ * operator supplied a new one.
  */
 export function buildFeedPatch(fields: Record<string, unknown>): EditInput[] {
   const patch: EditInput[] = [
@@ -129,6 +148,7 @@ export function buildFeedPatch(fields: Record<string, unknown>): EditInput[] {
     { key: 'collection', value: [String(fields.collection ?? '').trim()] },
     { key: 'version', value: [String(fields.version ?? '').trim()] },
     { key: 'authentication_type', value: [String(fields.authentication_type ?? '').trim()] },
+    { key: 'user_id', value: [String(fields.user_id ?? '').trim()] },
   ]
   const authValue = normalizeText(fields.authentication_value)
   if (authValue !== undefined) patch.push({ key: 'authentication_value', value: [authValue] })
@@ -146,6 +166,7 @@ export function buildRestorePatch(prior: OpenctiFeed): EditInput[] {
   if (prior.uri != null) patch.push({ key: 'uri', value: [String(prior.uri)] })
   if (prior.collection != null) patch.push({ key: 'collection', value: [String(prior.collection)] })
   if (prior.version != null) patch.push({ key: 'version', value: [String(prior.version)] })
+  if (prior.user_id != null) patch.push({ key: 'user_id', value: [String(prior.user_id)] })
   if (prior.authentication_type != null) patch.push({ key: 'authentication_type', value: [String(prior.authentication_type)] })
   return patch
 }

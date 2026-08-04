@@ -1,0 +1,56 @@
+# =============================================================================
+# Canvas Template — JumpCloud Policy Groups
+#
+# Declares ONE JumpCloud Policy Group (the item). ONE item = ONE Policy Group,
+# matched on its NAME. A Policy Group bundles Policies together so they can be
+# bound (in the JumpCloud Admin Console, or via a future association-management
+# config type) to a User Group / System Group in one step instead of one-by-one.
+#
+# `name` is the ENTIRE writable surface of the group object itself — the
+# JumpCloud v2 `PolicyGroupData` request model accepts only `name` (verified,
+# no `description` field). This canvas item also OWNS the group's full member
+# Policy list: every deploy converges live membership to exactly what is
+# declared (any live member Policy not listed here is removed).
+#
+# VERIFIED against JumpCloud's published API v2 OpenAPI spec
+# (github.com/TheJumpCloud/jumpcloud-docs-public, docs/api/2.0/index.yaml):
+#   GET/POST       /api/v2/policygroups             (PolicyGroupData: { name })
+#   GET/PUT/DELETE /api/v2/policygroups/{id}
+#   GET/POST       /api/v2/policygroups/{id}/members ({ op, type: "policy", id })
+# Auth is the `x-api-key` header (plus optional `x-org-id` for multi-tenant admins).
+# =============================================================================
+
+id: "jumpcloud-policy-groups"
+name: "Policy Groups"
+toolType: "jumpcloud"
+entityType: "policy-groups"
+description: "Define JumpCloud Policy Groups — a name plus the exact set of member Policies — as code through the JumpCloud API v2 (/policygroups)."
+
+item:
+  label: "Policy Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy Group"
+      icon: "folder"
+      description: "Group identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The Policy Group's display name — the ONLY writable field on the group object itself (JumpCloud's PolicyGroupData model has no description field). This is also the stable identity used to find, update and drift-check the group on each deploy."
+
+    - name: "Members"
+      icon: "list"
+      description: "Member Policies"
+      fields:
+        - key: "memberPolicies"
+          label: "Member Policies"
+          fieldType: "tags"
+          required: false
+          helpText: "The Policies (by exact name, from the \"Policies\" config type or the Admin Console) that should belong to this group. This canvas item OWNS the group's full membership — any live member Policy not listed here is removed on deploy. Leave empty to manage an empty group."

@@ -1,0 +1,54 @@
+# =============================================================================
+# Canvas Template — OpenCTI Kill Chain Phases
+#
+# Declares ONE OpenCTI kill-chain phase (the item). Users add as many as they
+# need. Field keys must match config-types/kill-chain-phases/validate.ts.
+# Applied via the OpenCTI GraphQL API (killChainPhaseAdd / killChainPhaseEdit.fieldPatch).
+# =============================================================================
+
+id: "opencti-kill-chain-phases"
+name: "Kill Chain Phases"
+toolType: "opencti"
+entityType: "kill-chain-phases"
+description: "Manage OpenCTI kill-chain phases — chain name, phase name and order — via the OpenCTI GraphQL API (443)"
+
+item:
+  label: "Kill Chain Phase"
+  identityField: "phase_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Phase"
+      icon: "link"
+      description: "The kill chain this phase belongs to and its identity"
+      fields:
+        - key: "kill_chain_name"
+          label: "Kill Chain Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The kill chain this phase belongs to, e.g. mitre-attack or lockheed-martin-cyber-kill-chain. Together with Phase Name this is the stable identity for upsert/drift — two kill chains may reuse the same phase name."
+
+        - key: "phase_name"
+          label: "Phase Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The phase name within the kill chain, e.g. initial-access or reconnaissance."
+
+    - name: "Presentation"
+      icon: "settings"
+      description: "How the phase is ordered in OpenCTI"
+      fields:
+        - key: "x_opencti_order"
+          label: "Order"
+          fieldType: "number"
+          required: true
+          defaultValue: 0
+          validation:
+            min: 0
+            max: 1000
+          helpText: "Sort/precedence order of this phase within its kill chain. Required by OpenCTI on create; defaults to 0."

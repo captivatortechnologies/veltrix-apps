@@ -17,6 +17,7 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
   const seen = new Set<string>()
   items.forEach((item, i) => {
     const name = String(item.fields.name ?? '').trim()
+    const confidenceRaw = item.fields.confidence_level_max
 
     if (!name) {
       errors.push({ field: `items[${i}].name`, message: 'Group name is required.', code: 'EMPTY_NAME' })
@@ -30,6 +31,17 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
         })
       } else {
         seen.add(key)
+      }
+    }
+
+    if (confidenceRaw !== undefined && confidenceRaw !== null && confidenceRaw !== '') {
+      const confidence = Number(confidenceRaw)
+      if (!Number.isFinite(confidence) || !Number.isInteger(confidence) || confidence < 0 || confidence > 100) {
+        errors.push({
+          field: `items[${i}].confidence_level_max`,
+          message: `Max confidence level "${String(confidenceRaw)}" must be an integer between 0 and 100.`,
+          code: 'INVALID_CONFIDENCE_LEVEL',
+        })
       }
     }
   })

@@ -1,13 +1,16 @@
 // Shared helpers for the OpenCTI Labels config type (deploy + rollback + drift).
 //
-// The GraphQL operations below follow OpenCTI conventions (labels, labelAdd,
-// labelFieldPatch, labelDelete). Verify every operation + field name against a
-// live OpenCTI instance.
+// Verified against the OpenCTI GraphQL backend schema (opencti-platform/opencti,
+// config/schema/opencti.graphql): `labelAdd` is a flat top-level mutation, but
+// update/delete are NOT `labelFieldPatch`/`labelDelete` (those operations do not
+// exist) — OpenCTI exposes them through the nested editor mutation
+// `labelEdit(id) { fieldPatch(input) / delete }`. Fixed here from an earlier,
+// unverified "follow OpenCTI conventions" guess.
 
 /** The node fields we read back on every label (list + mutation payloads). */
 export const LABEL_NODE_FIELDS = 'id value color'
 
-// --- GraphQL documents (verify against a live OpenCTI instance) --------------
+// --- GraphQL documents (verified against the OpenCTI backend schema) --------
 
 /** List every label (paginated `edges { node }` connection). */
 export const LIST_LABELS_QUERY = `query Labels {
@@ -21,14 +24,18 @@ export const ADD_LABEL_MUTATION = `mutation LabelAdd($input: LabelAddInput!) {
   labelAdd(input: $input) { ${LABEL_NODE_FIELDS} }
 }`
 
-/** Patch fields on an existing label. input: [EditInput!]! */
-export const PATCH_LABEL_MUTATION = `mutation LabelFieldPatch($id: ID!, $input: [EditInput!]!) {
-  labelFieldPatch(id: $id, input: $input) { ${LABEL_NODE_FIELDS} }
+/** Patch fields on an existing label via the nested editor mutation. input: [EditInput!]! */
+export const PATCH_LABEL_MUTATION = `mutation LabelEditFieldPatch($id: ID!, $input: [EditInput!]!) {
+  labelEdit(id: $id) {
+    fieldPatch(input: $input) { ${LABEL_NODE_FIELDS} }
+  }
 }`
 
-/** Delete one label by id — returns the deleted id. */
-export const DELETE_LABEL_MUTATION = `mutation LabelDelete($id: ID!) {
-  labelDelete(id: $id)
+/** Delete one label via the nested editor mutation — returns the deleted id. */
+export const DELETE_LABEL_MUTATION = `mutation LabelEditDelete($id: ID!) {
+  labelEdit(id: $id) {
+    delete
+  }
 }`
 
 /** One OpenCTI label node. */
@@ -45,10 +52,14 @@ export interface LabelAddInput {
   color?: string
 }
 
-/** One EditInput entry for labelFieldPatch (`value` is a list of strings). */
+/**
+ * One EditInput entry for labelEdit.fieldPatch. `value` is `[Any]` in the OpenCTI
+ * schema (an unconstrained passthrough scalar) — send native JSON types, never
+ * stringify booleans/numbers (confirmed against pycti, which forwards raw values).
+ */
 export interface EditInput {
   key: string
-  value: string[]
+  value: unknown[]
 }
 
 /** Unwrap an OpenCTI `{ labels: { edges: [{ node }] } }` connection into a flat array. */
