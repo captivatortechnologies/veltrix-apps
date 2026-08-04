@@ -17,6 +17,13 @@ import {
 
 const BASE = '/identity/conditionalAccess/policies'
 
+/** A Graph object id — the shape the live "groups" picker stores as a field's value. */
+const GUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
+
+export function isGuid(v: string): boolean {
+  return GUID.test(v)
+}
+
 export interface RollbackEntry {
   itemId?: string
   name: string
@@ -39,7 +46,16 @@ export async function buildGroupNameToId(client: GraphClient): Promise<Map<strin
   return map
 }
 
-/** Resolve group display names to ids; unresolved names are returned separately. */
+/**
+ * Resolve group references to ids; unresolved names are returned separately.
+ *
+ * The "Included/Excluded Groups" fields are now a live `remote-multiselect`
+ * picker (config-types/lib/entraOptions, source "groups") that stores the
+ * group's object id directly — so a value that already looks like a GUID is
+ * used as-is, with no lookup. A hand-typed display name (the pre-picker
+ * `textarea` convention, still valid for a canvas saved before this change)
+ * falls back to the live name->id map exactly as before.
+ */
 export function resolveGroups(
   names: string[],
   nameToId: Map<string, string>
@@ -47,6 +63,10 @@ export function resolveGroups(
   const ids: string[] = []
   const missing: string[] = []
   for (const n of names) {
+    if (isGuid(n)) {
+      ids.push(n)
+      continue
+    }
     const id = nameToId.get(n.toLowerCase())
     if (id) ids.push(id)
     else missing.push(n)

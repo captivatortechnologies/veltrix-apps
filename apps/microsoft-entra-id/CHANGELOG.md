@@ -8,6 +8,25 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.8.0 — 2026-08-04
+
+Live remote pickers for reference fields — config forms now pull related objects
+from the connected tenant instead of pasting display names / GUIDs.
+
+- **Shared live-options provider** (`config-types/lib/entraOptions.ts`) — 12
+  Graph-backed sources (groups, users, applications, servicePrincipals,
+  namedLocations, roleDefinitions, administrativeUnits, authStrengthPolicies,
+  termsOfUse, authContexts, accessPackageCatalogs, connectedOrganizations),
+  searchable server-side (`$search` where supported) and id→label on mount.
+- **Conditional Access Policies** — Included/Excluded Groups and Included Apps
+  are now searchable live pickers (Groups picker; Applications picker with the
+  All / Office365 / MicrosoftAdminPortals cloud-app sentinels).
+- **id-aware, backward compatible** — pickers store ids/appIds; a hand-typed
+  display name still resolves at deploy time.
+
+Phase 1 of a rollout wiring the same live pickers into every reference field
+across all Entra config types.
+
 ## 0.7.1 — 2026-08-02
 
 Grouped the 42 configuration types in the Configurations sidebar into ten

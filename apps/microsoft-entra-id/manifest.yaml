@@ -1,6 +1,6 @@
 id: microsoft-entra-id
 name: Microsoft Entra ID
-version: "0.7.1"
+version: "0.8.0"
 vendor: Veltrix
 description: >
   Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the
@@ -178,6 +178,7 @@ pipeline:
         healthCheck: config-types/conditional-access-policies/healthCheck
         driftDetect: config-types/conditional-access-policies/driftDetect
         getStatus: config-types/conditional-access-policies/getStatus
+        options: config-types/conditional-access-policies/options
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true

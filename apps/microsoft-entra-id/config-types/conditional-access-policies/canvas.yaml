@@ -74,20 +74,25 @@ item:
 
         - key: "includeGroups"
           label: "Included Groups"
-          fieldType: "textarea"
+          fieldType: "remote-multiselect"
+          optionsSource: "groups"
+          optionsMulti: true
           required: false
           helpText: >
-            Group display names to target, one per line (or comma-separated).
-            Resolved to group ids at deploy time. Ignored when "All users" is on.
+            Groups to target — pick from the live tenant. Stores the group id;
+            a hand-typed display name from an older canvas still resolves the
+            same way at deploy time. Ignored when "All users" is on.
 
         - key: "excludeGroups"
           label: "Excluded Groups (break-glass)"
-          fieldType: "textarea"
+          fieldType: "remote-multiselect"
+          optionsSource: "groups"
+          optionsMulti: true
           required: false
           helpText: >
-            Group display names to exclude, one per line. Always applied — use
-            this to exclude an emergency-access group so an enforced policy can't
-            lock every admin out.
+            Groups to exclude — pick from the live tenant. Always applied — use
+            this to exclude an emergency-access group so an enforced policy
+            can't lock every admin out.
 
     - name: "Cloud apps"
       icon: "grid"
@@ -101,12 +106,16 @@ item:
 
         - key: "includeApps"
           label: "Included Apps"
-          fieldType: "textarea"
+          fieldType: "remote-multiselect"
+          optionsSource: "applications"
+          optionsMulti: true
           required: false
           helpText: >
-            App (client) ids or well-known keywords (e.g. Office365,
-            MicrosoftAdminPortals), one per line. Passed to Graph as-is. Ignored
-            when "All cloud apps" is on.
+            Cloud apps to target — pick from the live tenant's app
+            registrations, or one of the well-known groupings (All cloud apps,
+            Office 365, Microsoft Admin Portals). Stores the app's client id
+            (appId) or the keyword; a hand-typed value from an older canvas is
+            still passed to Graph as-is. Ignored when "All cloud apps" is on.
 
     - name: "Grant controls"
       icon: "lock"
