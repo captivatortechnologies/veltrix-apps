@@ -1,0 +1,4 @@
+# Defaults for a new policy assignment item. A new assignment starts as a DNS
+# policy assignment; the operator fills in the subnet name and policy name.
+# FLAT { fieldKey: value } — an "item" template takes flat defaults.
+policyType: "dns"

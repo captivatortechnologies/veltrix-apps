@@ -1,0 +1,128 @@
+# =============================================================================
+# Canvas Template — GitHub Organization Member Privileges
+#
+# Declares the member-privilege settings for one organization (the item) —
+# default repository permission and what members may create, fork, delete or
+# sign off on. Field keys must match
+# config-types/org-member-privileges/_shared.ts. Applied over the GitHub REST
+# API: GET|PATCH /orgs/{org}.
+# =============================================================================
+
+id: "github-org-member-privileges"
+name: "Organization Member Privileges"
+toolType: "github-advanced-security"
+entityType: "org-member-privileges"
+description: "Author organization-wide member privileges — default repository permission, repository/Pages creation, forking and deletion rights — via the GitHub REST API"
+
+item:
+  label: "Organization"
+  identityField: "org"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Identity"
+      icon: "building"
+      description: "The organization these member privileges apply to"
+      fields:
+        - key: "org"
+          label: "Organization"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+            pattern: "^[A-Za-z0-9][A-Za-z0-9-]*$"
+          helpText: "The GitHub organization login, e.g. octo-org."
+
+    - name: "Default Permission"
+      icon: "lock"
+      description: "The base permission members get on organization repositories"
+      fields:
+        - key: "default_repository_permission"
+          label: "Default repository permission"
+          fieldType: "select"
+          defaultValue: "read"
+          options:
+            - { label: "Read", value: "read" }
+            - { label: "Write", value: "write" }
+            - { label: "Admin", value: "admin" }
+            - { label: "None", value: "none" }
+          helpText: "The permission level members get on organization repositories by default (per-repository roles can still grant more)."
+
+    - name: "Repository Creation"
+      icon: "check-circle"
+      description: "What members may create"
+      fields:
+        - key: "members_can_create_repositories"
+          label: "Members can create repositories"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Master switch — other repository-creation settings below only matter when this is on."
+
+        - key: "members_can_create_public_repositories"
+          label: "...public repositories"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "members_can_create_private_repositories"
+          label: "...private repositories"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "members_can_create_internal_repositories"
+          label: "...internal repositories"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "GitHub Enterprise Cloud / GHES only."
+
+        - key: "members_can_fork_private_repositories"
+          label: "Members can fork private repositories"
+          fieldType: "checkbox"
+          defaultValue: false
+
+    - name: "Pages"
+      icon: "settings"
+      description: "GitHub Pages site creation"
+      fields:
+        - key: "members_can_create_pages"
+          label: "Members can create Pages sites"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "members_can_create_public_pages"
+          label: "...public Pages sites"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "members_can_create_private_pages"
+          label: "...private Pages sites"
+          fieldType: "checkbox"
+          defaultValue: true
+
+    - name: "Deletion & Sign-off"
+      icon: "shield"
+      description: "Destructive rights and web commit sign-off"
+      fields:
+        - key: "members_can_delete_repositories"
+          label: "Members can delete repositories"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "members_can_delete_issues"
+          label: "Members can delete issues"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "web_commit_signoff_required"
+          label: "Require sign-off on web-based commits"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Require a Signed-off-by trailer on commits made through GitHub's web interface."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why these privileges are configured — recorded for audit."

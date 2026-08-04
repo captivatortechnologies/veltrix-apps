@@ -41,6 +41,14 @@ item:
             maxLength: 500
           helpText: "Comma-separated roles, e.g. reader, analyst, investigator, administrator. Applied via user_create; unknown roles are warned, not rejected."
 
+        - key: "customPermissions"
+          label: "Custom Permissions"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "Optional comma-separated fine-grained ACL permissions BEYOND the roles above, e.g. execve, filesystem_read — for access finer than a named role grants. Applied via user_grant(policy=...); unknown permissions are warned, not rejected. A permission removed from this list is cleared on the next deploy."
+
         - key: "password"
           label: "Password"
           fieldType: "password"

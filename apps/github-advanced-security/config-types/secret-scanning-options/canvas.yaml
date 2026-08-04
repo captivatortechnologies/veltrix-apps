@@ -1,0 +1,92 @@
+# =============================================================================
+# Canvas Template — GitHub Secret Scanning Options
+#
+# Declares the ADVANCED secret-scanning sub-settings for one repository (the
+# item) — validity checks, non-provider patterns, AI-assisted detection,
+# delegated alert dismissal and delegated push-protection bypass. Complements
+# (does not replace) Repository Security's base secret_scanning /
+# secret_scanning_push_protection toggles. Field keys must match
+# config-types/secret-scanning-options/_shared.ts. Applied over the GitHub
+# REST API: PATCH /repos/{owner}/{repo} (security_and_analysis).
+# =============================================================================
+
+id: "github-secret-scanning-options"
+name: "Secret Scanning Options"
+toolType: "github-advanced-security"
+entityType: "secret-scanning-options"
+description: "Author advanced secret-scanning options (validity checks, non-provider patterns, AI detection, delegated bypass) per repository via the GitHub REST API"
+
+item:
+  label: "Repository"
+  identityField: "repository"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Repository"
+      icon: "shield"
+      description: "The repository these secret-scanning options apply to"
+      fields:
+        - key: "repository"
+          label: "Repository (owner/repo)"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            pattern: "^[^/\\s]+/[^/\\s]+$"
+          helpText: "The repository full name, e.g. octo-org/octo-repo. Used as the stable identity for drift and rollback. Requires secret scanning already enabled (Repository Security)."
+
+    - name: "Detection"
+      icon: "lock"
+      description: "What secret scanning additionally looks for"
+      fields:
+        - key: "secret_scanning_validity_checks"
+          label: "Validity checks"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Ask supported providers whether a detected secret is still active."
+
+        - key: "secret_scanning_non_provider_patterns"
+          label: "Non-provider patterns"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Also scan for GitHub's non-provider (generic) secret patterns."
+
+        - key: "secret_scanning_ai_detection"
+          label: "AI-assisted detection"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Use AI to detect generic, unstructured secrets that pattern matching alone would miss."
+
+    - name: "Delegated Controls"
+      icon: "check-circle"
+      description: "Let a designated team review dismissals and push-protection bypass requests"
+      fields:
+        - key: "secret_scanning_delegated_alert_dismissal"
+          label: "Delegated alert dismissal"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Require a designated reviewer to approve dismissing a secret scanning alert."
+
+        - key: "secret_scanning_delegated_bypass"
+          label: "Delegated push-protection bypass"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Require a designated reviewer to approve bypassing push protection, instead of allowing any contributor to bypass it."
+
+        - key: "delegated_bypass_reviewers"
+          label: "Bypass reviewers (JSON array)"
+          fieldType: "textarea"
+          required: false
+          visibleWhen: { field: "secret_scanning_delegated_bypass", equals: true }
+          validation:
+            maxLength: 5000
+          helpText: 'A JSON array of reviewers, e.g. [{"reviewer_id":123,"reviewer_type":"TEAM"}]. Required for delegated bypass to have an approver.'
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why these options are configured — recorded for audit."

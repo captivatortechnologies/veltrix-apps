@@ -1,0 +1,120 @@
+# =============================================================================
+# Canvas Template — CyberArk Applications
+#
+# Declares ONE Application — the item. Users add as many as they need. An
+# Application is an AAM/CCP identity: a caller the Central Credential
+# Provider / Application Access Manager lets retrieve credentials, proven by
+# one or more authentication methods (path, hash, OS user, source machine
+# address — the CCP "allowed machines" surface — or a client-certificate
+# constraint) rather than a password of its own. AppID (case-sensitive,
+# caller-chosen) is the identity for reconciliation.
+#
+# ⚠ NO VERIFIED UPDATE ENDPOINT for an application's own fields — only
+# CREATE (when missing) and its authentication-methods child collection
+# (add/remove) are reconciled on every deploy. See README "Coverage".
+# Field keys must match config-types/cyberark-applications/validate.ts.
+# =============================================================================
+
+id: "cyberark-applications"
+name: "CyberArk Application Configuration"
+toolType: "cyberark"
+entityType: "cyberark-applications"
+description: "Define CyberArk AAM/CCP applications and their authentication methods (including allowed machines) as code through the classic PVWA Web Services. Reconciled by AppID; created when missing, authentication methods always reconciled."
+
+item:
+  label: "Application"
+  identityField: "app_id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Application"
+      icon: "app-window"
+      description: "Identity and access window"
+      fields:
+        - key: "app_id"
+          label: "Application ID"
+          fieldType: "text"
+          required: true
+          helpText: "The application's unique, case-sensitive identity for reconciliation (e.g. AAM-BillingService)."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional human-readable description of the application."
+
+        - key: "location"
+          label: "Location"
+          fieldType: "text"
+          defaultValue: "\\"
+          helpText: "Vault location for the application (e.g. \\ for the root)."
+
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, the application is blocked from retrieving any credential."
+
+        - key: "access_permitted_from_hour"
+          label: "Access Permitted From (Hour)"
+          fieldType: "number"
+          helpText: "Optional start of the daily access window, 0-23. Leave blank to allow access at any hour."
+          validation:
+            min: 0
+            max: 23
+
+        - key: "access_permitted_to_hour"
+          label: "Access Permitted To (Hour)"
+          fieldType: "number"
+          helpText: "Optional end of the daily access window, 0-23. Leave blank to allow access at any hour."
+          validation:
+            min: 0
+            max: 23
+
+        - key: "expiration_date"
+          label: "Expiration Date"
+          fieldType: "text"
+          helpText: >
+            Optional expiration date for the application, in the format CyberArk's
+            PVWA build expects (commonly MM/DD/YYYY) — verify against your PVWA
+            version. Leave blank for no expiration.
+
+    - name: "Business Owner"
+      icon: "user"
+      description: "Optional business-owner contact recorded on the application"
+      fields:
+        - key: "business_owner_first_name"
+          label: "First Name"
+          fieldType: "text"
+
+        - key: "business_owner_last_name"
+          label: "Last Name"
+          fieldType: "text"
+
+        - key: "business_owner_email"
+          label: "Email"
+          fieldType: "text"
+
+        - key: "business_owner_phone"
+          label: "Phone"
+          fieldType: "text"
+
+    - name: "Authentication Methods"
+      icon: "fingerprint"
+      description: "How CyberArk proves this caller's identity — including allowed machines"
+      fields:
+        - key: "authentication_methods"
+          label: "Authentication Methods (JSON array)"
+          fieldType: "textarea"
+          helpText: >
+            A JSON array of authentication methods. Each entry needs an "authType"
+            of path | hash | osUser | machineAddress | certificateserialnumber |
+            certificateattr. path/hash/osUser/machineAddress/certificateserialnumber
+            take an "authValue" (plus optional "isFolder"/"allowInternalScripts" for
+            path, or "comment"); certificateattr takes "issuer"/"subject"/
+            "subjectAlternativeName" string arrays (at least one required) and an
+            optional "comment". Example:
+            [{"authType":"machineAddress","authValue":"10.0.0.25"},
+            {"authType":"path","authValue":"C:\\Scripts\\billing.exe","isFolder":false}].
+            No secret material belongs here — these constraints identify the caller,
+            they never carry a password or key. Leave blank ([]) for none.

@@ -1,0 +1,93 @@
+# =============================================================================
+# Canvas Template — Cisco Umbrella Internal Network Subnets
+#
+# Declares ONE Umbrella "Internal Network" (/deployments/v2/internalnetworks) —
+# an RFC1918 (or non-RFC1918) subnet tied to exactly one Site, Network or
+# Tunnel, which scopes which DNS/Web policy applies to traffic from that
+# subnet. Users add as many as they need. Internal network subnets are
+# addressed by an opaque originId (no lookup-by-name), so the app matches a
+# declared subnet to a live one by NAME and stores the originId from the deploy
+# for rename-safety. Reconcile deletes subnets this app created but no longer
+# declares.
+#
+# NOTE: this is a DIFFERENT Umbrella resource from this app's "Networks"
+# config type (internal-networks, /deployments/v2/networks — egress IPs).
+#
+# Field keys must match what config-types/internal-network-subnets/validate.ts checks.
+# =============================================================================
+
+id: "cisco-umbrella-internal-network-subnets"
+name: "Internal Network Subnets Configuration"
+toolType: "cisco-umbrella"
+entityType: "internal-network-subnets"
+description: "Define Cisco Umbrella internal network subnets (RFC1918 ranges tied to a Site, Network or Tunnel) as code through the Umbrella Deployments API."
+
+item:
+  label: "Internal Network Subnet"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Subnet"
+      icon: "globe"
+      description: "The subnet's identity and address range"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 50
+          helpText: >
+            The internal network's name. Must be unique within this canvas —
+            the app matches live Umbrella internal networks on it (Umbrella
+            has no lookup-by-name, so the originId is stored after deploy for
+            rename-safety).
+
+        - key: "ipAddress"
+          label: "IP address"
+          fieldType: "text"
+          required: true
+          helpText: "The subnet's base IPv4 address (e.g. 10.10.0.0)."
+
+        - key: "prefixLength"
+          label: "Prefix length"
+          fieldType: "number"
+          required: true
+          defaultValue: 24
+          validation:
+            min: 9
+            max: 32
+          helpText: "CIDR prefix length (9–32, per Umbrella's documented range)."
+
+    - name: "Association"
+      icon: "link"
+      description: "What this subnet is tied to — exactly one of Site, Network or Tunnel"
+      fields:
+        - key: "associationType"
+          label: "Associate with"
+          fieldType: "select"
+          required: true
+          defaultValue: "site"
+          options:
+            - label: "Site"
+              value: "site"
+            - label: "Network"
+              value: "network"
+            - label: "Tunnel"
+              value: "tunnel"
+          helpText: >
+            DNS policies scope by Site; Web policies through proxy chaining
+            scope by Network; Web policies through an IPsec tunnel scope by
+            Tunnel. Provide exactly one.
+
+        - key: "associationName"
+          label: "Site / Network / Tunnel name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The name of the Site, Network or Tunnel (matching "Associate
+            with") that this subnet is tied to. Resolved to Umbrella's id at
+            deploy time — the named resource must already exist in Umbrella
+            (e.g. declared by this app's Sites or Network Tunnels config type).

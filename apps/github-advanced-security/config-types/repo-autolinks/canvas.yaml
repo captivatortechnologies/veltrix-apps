@@ -1,0 +1,70 @@
+# =============================================================================
+# Canvas Template — GitHub Repository Autolinks
+#
+# Declares ONE autolink reference (the item) for a repository — a key prefix
+# (e.g. "TICKET-") that GitHub expands into a link using a URL template
+# wherever it appears in an issue, pull request or commit message. Field keys
+# must match config-types/repo-autolinks/_shared.ts. Applied over the GitHub
+# REST API: GET|POST /repos/{owner}/{repo}/autolinks, DELETE .../autolinks/{id}
+# (there is no update endpoint — a change is applied as delete + create).
+# =============================================================================
+
+id: "github-repo-autolinks"
+name: "Repository Autolinks"
+toolType: "github-advanced-security"
+entityType: "repo-autolinks"
+description: "Author repository autolink references (key prefix to URL template) via the GitHub REST API"
+
+item:
+  label: "Autolink"
+  identityField: "key_prefix"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Repository"
+      icon: "shield"
+      description: "The repository this autolink applies to"
+      fields:
+        - key: "repository"
+          label: "Repository (owner/repo)"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            pattern: "^[^/\\s]+/[^/\\s]+$"
+          helpText: "The repository full name, e.g. octo-org/octo-repo."
+
+    - name: "Autolink"
+      icon: "link"
+      description: "The prefix to detect and the URL it expands to"
+      fields:
+        - key: "key_prefix"
+          label: "Key prefix"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 50
+          helpText: 'The prefix GitHub looks for, e.g. "TICKET-". Combined with the repository, this is the stable identity for drift and rollback.'
+
+        - key: "url_template"
+          label: "URL template"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 500
+          helpText: 'The target URL, containing exactly one "<num>" placeholder for the reference number, e.g. https://ticket.example.com/browse/TICKET-<num>.'
+
+        - key: "is_alphanumeric"
+          label: "Alphanumeric reference"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "On: matches A-Z, 0-9 and hyphens after the prefix. Off: matches digits only."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this autolink is defined — recorded for audit."

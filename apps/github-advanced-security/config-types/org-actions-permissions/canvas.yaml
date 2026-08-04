@@ -1,0 +1,131 @@
+# =============================================================================
+# Canvas Template — GitHub Organization Actions Permissions
+#
+# Declares the GitHub Actions policy for one organization (the item) — which
+# repositories may use Actions, which actions/reusable workflows are allowed,
+# default workflow (GITHUB_TOKEN) permissions, and SHA pinning. Field keys must
+# match config-types/org-actions-permissions/_shared.ts. Applied over the
+# GitHub REST API:
+#   PUT /orgs/{org}/actions/permissions
+#   PUT /orgs/{org}/actions/permissions/repositories       (when enabled_repositories = selected)
+#   PUT /orgs/{org}/actions/permissions/selected-actions   (when allowed_actions = selected)
+#   PUT /orgs/{org}/actions/permissions/workflow
+# Actions SECRETS are out of scope (secret material) — see README.
+# =============================================================================
+
+id: "github-org-actions-permissions"
+name: "Organization Actions Permissions"
+toolType: "github-advanced-security"
+entityType: "org-actions-permissions"
+description: "Author the organization-wide GitHub Actions policy — repository access, allowed actions, workflow permissions and SHA pinning — via the GitHub REST API"
+
+item:
+  label: "Organization"
+  identityField: "org"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Identity"
+      icon: "building"
+      description: "The organization this Actions policy applies to"
+      fields:
+        - key: "org"
+          label: "Organization"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+            pattern: "^[A-Za-z0-9][A-Za-z0-9-]*$"
+          helpText: "The GitHub organization login, e.g. octo-org."
+
+    - name: "Repository Access"
+      icon: "lock"
+      description: "Which repositories may run GitHub Actions"
+      fields:
+        - key: "enabled_repositories"
+          label: "Enabled repositories"
+          fieldType: "select"
+          defaultValue: "all"
+          options:
+            - { label: "All repositories", value: "all" }
+            - { label: "No repositories", value: "none" }
+            - { label: "Selected repositories", value: "selected" }
+          helpText: "Which repositories in this organization may run GitHub Actions workflows."
+
+        - key: "selected_repository_ids"
+          label: "Selected repository ids"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "enabled_repositories", equals: "selected" }
+          validation:
+            maxLength: 2000
+          helpText: "Comma- or space-separated numeric repository ids. Used only when Enabled repositories is Selected."
+
+    - name: "Allowed Actions"
+      icon: "check-circle"
+      description: "Which actions and reusable workflows may run"
+      fields:
+        - key: "allowed_actions"
+          label: "Allowed actions"
+          fieldType: "select"
+          defaultValue: "all"
+          options:
+            - { label: "All actions and reusable workflows", value: "all" }
+            - { label: "Local actions only (created in this org)", value: "local_only" }
+            - { label: "Selected actions and reusable workflows", value: "selected" }
+          helpText: "Which actions and reusable workflows organization repositories may run."
+
+        - key: "github_owned_allowed"
+          label: "Allow GitHub-authored actions"
+          fieldType: "checkbox"
+          defaultValue: true
+          visibleWhen: { field: "allowed_actions", equals: "selected" }
+          helpText: "Allow actions published by GitHub (e.g. actions/checkout)."
+
+        - key: "verified_allowed"
+          label: "Allow verified-partner actions"
+          fieldType: "checkbox"
+          defaultValue: false
+          visibleWhen: { field: "allowed_actions", equals: "selected" }
+          helpText: "Allow actions from GitHub Marketplace verified creators."
+
+        - key: "patterns_allowed"
+          label: "Allowed action patterns"
+          fieldType: "tags"
+          required: false
+          visibleWhen: { field: "allowed_actions", equals: "selected" }
+          helpText: 'Additional owner/repo glob patterns to allow, e.g. "docker/*", "my-org/*". No whitespace in a pattern.'
+
+        - key: "sha_pinning_required"
+          label: "Require actions to be pinned by SHA"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Require third-party actions to be referenced by full commit SHA rather than a tag or branch."
+
+    - name: "Workflow Permissions"
+      icon: "shield"
+      description: "The default GITHUB_TOKEN permissions granted to workflows"
+      fields:
+        - key: "default_workflow_permissions"
+          label: "Default workflow permissions"
+          fieldType: "select"
+          defaultValue: "read"
+          options:
+            - { label: "Read repository contents (recommended)", value: "read" }
+            - { label: "Read and write repository contents", value: "write" }
+          helpText: "The default permission scope GITHUB_TOKEN gets in a workflow run."
+
+        - key: "can_approve_pull_request_reviews"
+          label: "Allow Actions to approve pull requests"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Allow GitHub Actions to create and approve pull requests."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this policy is configured — recorded for audit."

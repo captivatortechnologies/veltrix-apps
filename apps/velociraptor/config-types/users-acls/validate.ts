@@ -1,5 +1,5 @@
 import type { PipelineContext, ValidationResult, ValidationError, ValidationWarning } from '@veltrixsecops/app-sdk'
-import { KNOWN_ROLES, parseRoles } from './_shared'
+import { KNOWN_ROLES, KNOWN_PERMISSIONS, parseRoles, parsePermissions } from './_shared'
 
 /** Minimum length for an authored basic-auth password (NIST SP 800-63B floor for
  *  user-chosen secrets). Velociraptor usernames are freeform (plain names, emails,
@@ -49,6 +49,18 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
           field: `items[${i}].roles`,
           message: `Role(s) not in the well-known set: ${unknown.join(', ')}. They are sent as-is — verify they exist on the target server.`,
           code: 'UNKNOWN_ROLE',
+        })
+      }
+    }
+
+    const customPermissions = parsePermissions(item.fields.customPermissions)
+    if (customPermissions.length > 0) {
+      const unknown = customPermissions.filter((p) => !KNOWN_PERMISSIONS.has(p.toLowerCase()))
+      if (unknown.length > 0) {
+        warnings.push({
+          field: `items[${i}].customPermissions`,
+          message: `Custom permission(s) not in the well-known ACL set: ${unknown.join(', ')}. They are sent as-is — verify they exist on the target server.`,
+          code: 'UNKNOWN_PERMISSION',
         })
       }
     }

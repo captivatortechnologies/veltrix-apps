@@ -1,0 +1,49 @@
+# =============================================================================
+# Canvas Template — Velociraptor Client Labels
+#
+# Declares ONE label (the item): the explicit, bounded list of client ids it
+# should be pinned to. Users add as many labels as they need. Field keys must
+# match config-types/client-labels/validate.ts. Applied over the gRPC API
+# (mutual TLS) via label(); membership is a set-reconcile (declared clients get
+# the label added, previously-added clients no longer declared get it removed).
+# =============================================================================
+
+id: "velociraptor-client-labels"
+name: "Client Labels"
+toolType: "velociraptor"
+entityType: "client-labels"
+description: "Pin a Velociraptor client label to an explicit list of client ids — reconciled via the gRPC API (label())"
+
+item:
+  label: "Client Label"
+  identityField: "label"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Label"
+      icon: "tag"
+      description: "The label and the clients it applies to"
+      fields:
+        - key: "label"
+          label: "Label"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The Velociraptor client label to manage, e.g. vip-servers or quarantine. Used as the stable identity for reconcile and drift."
+
+        - key: "clientIds"
+          label: "Client IDs"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 20000
+          helpText: "Newline- or comma-separated list of client ids to pin this label to, e.g. C.1a2b3c4d5e6f7890. Clients not listed here that currently carry the label (via this app) have it removed."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "When off, the label is removed from every client id it was applied to (the list stays authored so re-enabling restores it)."

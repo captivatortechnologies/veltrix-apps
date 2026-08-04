@@ -1,14 +1,18 @@
 id: cyberark
 name: CyberArk Privileged Access Manager
-version: "1.2.0"
+version: "1.3.0"
 vendor: Veltrix
 description: >
   Manage CyberArk Privileged Access Manager (PVWA) configuration as code through
   the Privileged Access Security Web Services REST API. Covers safes, safe members
-  (authorizations) and privileged accounts — with validation, drift detection and
-  rollback handled by the Security-as-Code pipeline. The component hostname is the
-  PVWA web server; auth is the PVWA logon flow (a manager username + password,
-  method CyberArk / LDAP / RADIUS) that returns a session token.
+  (authorizations), privileged accounts, account groups, target platforms and
+  their session-management (PSM) policy, automatic onboarding rules, AAM/CCP
+  applications (including allowed machines), LDAP directory mappings, Vault
+  users/groups and server-wide allowed referrers — with validation, drift
+  detection and rollback handled by the Security-as-Code pipeline. The component
+  hostname is the PVWA web server; auth is the PVWA logon flow (a manager
+  username + password, method CyberArk / LDAP / RADIUS) that returns a session
+  token.
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cyberark
@@ -39,16 +43,38 @@ permissions:
     - resource: cyberark-accounts
       actions: [read, write, delete]
       description: Manage CyberArk privileged accounts
+    - resource: cyberark-account-groups
+      actions: [read, write, delete]
+      description: Manage CyberArk account groups and their membership
     - resource: cyberark-platforms
       actions: [read, write, delete]
       description: Manage CyberArk target platforms (import / activate / deactivate)
+    - resource: cyberark-platform-session-policy
+      actions: [read, write, delete]
+      description: Manage a target platform's session-management (PSM) policy
     - resource: cyberark-onboarding-rules
       actions: [read, write, delete]
       description: Manage CyberArk automatic onboarding rules
+    - resource: cyberark-applications
+      actions: [read, write, delete]
+      description: Manage CyberArk AAM/CCP applications and their authentication methods
+    - resource: cyberark-directory-mappings
+      actions: [read, write, delete]
+      description: Manage CyberArk LDAP directory mappings
+    - resource: cyberark-vault-users
+      actions: [read, write, delete]
+      description: Manage CyberArk Vault users
+    - resource: cyberark-vault-groups
+      actions: [read, write, delete]
+      description: Manage CyberArk Vault user groups and their membership
+    - resource: cyberark-allowed-referrers
+      actions: [read, write, delete]
+      description: Manage PVWA's allowed HTTP referrer list
 
 pipeline:
   configurationTypes:
     - id: cyberark-safes
+      group: "Safes"
       name: CyberArk Safes
       description: Safes (/Safes) — the named account containers with retention and CPM policy
       canvasTemplate: config-types/cyberark-safes/canvas.yaml
@@ -66,6 +92,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: cyberark-safe-members
+      group: "Safes"
       name: CyberArk Safe Members
       description: Safe members (/Safes/{safe}/Members) — grant Users/Groups/Roles authorizations on a safe
       canvasTemplate: config-types/cyberark-safe-members/canvas.yaml
@@ -83,6 +110,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: cyberark-accounts
+      group: "Accounts"
       name: CyberArk Accounts
       description: Privileged accounts (/Accounts); the account secret is write-only and sent only on create
       canvasTemplate: config-types/cyberark-accounts/canvas.yaml
@@ -99,7 +127,44 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: false
 
+    - id: cyberark-account-groups
+      group: "Accounts"
+      name: CyberArk Account Groups
+      description: Account groups (/AccountGroups) for group-based credential rotation; reconciled by (safe, group name) — membership is fully managed, the group object itself has no REST delete
+      canvasTemplate: config-types/cyberark-account-groups/canvas.yaml
+      defaultConfig: config-types/cyberark-account-groups/defaults.yaml
+      handlers:
+        validate: config-types/cyberark-account-groups/validate
+        deploy: config-types/cyberark-account-groups/deploy
+        rollback: config-types/cyberark-account-groups/rollback
+        healthCheck: config-types/cyberark-account-groups/healthCheck
+        driftDetect: config-types/cyberark-account-groups/driftDetect
+        getStatus: config-types/cyberark-account-groups/getStatus
+      targets:
+        componentTypes: [cyberark-pvwa]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cyberark-onboarding-rules
+      group: "Accounts"
+      name: CyberArk Onboarding Rules
+      description: Automatic onboarding rules (/AutomaticOnboardingRules) — filter discovered accounts and onboard matches to a target Safe/platform; reconciled by rule name
+      canvasTemplate: config-types/cyberark-onboarding-rules/canvas.yaml
+      defaultConfig: config-types/cyberark-onboarding-rules/defaults.yaml
+      handlers:
+        validate: config-types/cyberark-onboarding-rules/validate
+        deploy: config-types/cyberark-onboarding-rules/deploy
+        rollback: config-types/cyberark-onboarding-rules/rollback
+        healthCheck: config-types/cyberark-onboarding-rules/healthCheck
+        driftDetect: config-types/cyberark-onboarding-rules/driftDetect
+        getStatus: config-types/cyberark-onboarding-rules/getStatus
+      targets:
+        componentTypes: [cyberark-pvwa]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: cyberark-platforms
+      group: "Platforms"
       name: CyberArk Platforms
       description: Target platforms (/Platforms/Targets) — reconciled by PlatformID; imported from a package when missing and activated/deactivated to the desired state
       canvasTemplate: config-types/cyberark-platforms/canvas.yaml
@@ -116,18 +181,109 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: false
 
-    - id: cyberark-onboarding-rules
-      name: CyberArk Onboarding Rules
-      description: Automatic onboarding rules (/AutomaticOnboardingRules) — filter discovered accounts and onboard matches to a target Safe/platform; reconciled by rule name
-      canvasTemplate: config-types/cyberark-onboarding-rules/canvas.yaml
-      defaultConfig: config-types/cyberark-onboarding-rules/defaults.yaml
+    - id: cyberark-platform-session-policy
+      group: "Platforms"
+      name: CyberArk Platform Session Policy
+      description: A target platform's session-management (PSM) policy (/Platforms/Targets/{id}/PrivilegedSessionManagement) — a read/replace singleton per platform; PSM server + connector enablement
+      canvasTemplate: config-types/cyberark-platform-session-policy/canvas.yaml
+      defaultConfig: config-types/cyberark-platform-session-policy/defaults.yaml
       handlers:
-        validate: config-types/cyberark-onboarding-rules/validate
-        deploy: config-types/cyberark-onboarding-rules/deploy
-        rollback: config-types/cyberark-onboarding-rules/rollback
-        healthCheck: config-types/cyberark-onboarding-rules/healthCheck
-        driftDetect: config-types/cyberark-onboarding-rules/driftDetect
-        getStatus: config-types/cyberark-onboarding-rules/getStatus
+        validate: config-types/cyberark-platform-session-policy/validate
+        deploy: config-types/cyberark-platform-session-policy/deploy
+        rollback: config-types/cyberark-platform-session-policy/rollback
+        healthCheck: config-types/cyberark-platform-session-policy/healthCheck
+        driftDetect: config-types/cyberark-platform-session-policy/driftDetect
+        getStatus: config-types/cyberark-platform-session-policy/getStatus
+      targets:
+        componentTypes: [cyberark-pvwa]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cyberark-applications
+      group: "Applications"
+      name: CyberArk Applications
+      description: AAM/CCP applications and their authentication methods, including allowed machines (classic /WebServices/PIMServices.svc/Applications) — reconciled by AppID; created when missing, authentication methods always reconciled
+      canvasTemplate: config-types/cyberark-applications/canvas.yaml
+      defaultConfig: config-types/cyberark-applications/defaults.yaml
+      handlers:
+        validate: config-types/cyberark-applications/validate
+        deploy: config-types/cyberark-applications/deploy
+        rollback: config-types/cyberark-applications/rollback
+        healthCheck: config-types/cyberark-applications/healthCheck
+        driftDetect: config-types/cyberark-applications/driftDetect
+        getStatus: config-types/cyberark-applications/getStatus
+      targets:
+        componentTypes: [cyberark-pvwa]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cyberark-directory-mappings
+      group: "Directory"
+      name: CyberArk Directory Mappings
+      description: LDAP directory mappings (/Configuration/LDAP/Directories/{id}/Mappings) onto an existing directory — reconciled by (directory, mapping name); the directory connection itself must already exist
+      canvasTemplate: config-types/cyberark-directory-mappings/canvas.yaml
+      defaultConfig: config-types/cyberark-directory-mappings/defaults.yaml
+      handlers:
+        validate: config-types/cyberark-directory-mappings/validate
+        deploy: config-types/cyberark-directory-mappings/deploy
+        rollback: config-types/cyberark-directory-mappings/rollback
+        healthCheck: config-types/cyberark-directory-mappings/healthCheck
+        driftDetect: config-types/cyberark-directory-mappings/driftDetect
+        getStatus: config-types/cyberark-directory-mappings/getStatus
+      targets:
+        componentTypes: [cyberark-pvwa]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cyberark-vault-users
+      group: "Users & Groups"
+      name: CyberArk Vault Users
+      description: Vault users (/Users) — reconciled by username; the initial password is write-only and sent only on create
+      canvasTemplate: config-types/cyberark-vault-users/canvas.yaml
+      defaultConfig: config-types/cyberark-vault-users/defaults.yaml
+      handlers:
+        validate: config-types/cyberark-vault-users/validate
+        deploy: config-types/cyberark-vault-users/deploy
+        rollback: config-types/cyberark-vault-users/rollback
+        healthCheck: config-types/cyberark-vault-users/healthCheck
+        driftDetect: config-types/cyberark-vault-users/driftDetect
+        getStatus: config-types/cyberark-vault-users/getStatus
+      targets:
+        componentTypes: [cyberark-pvwa]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cyberark-vault-groups
+      group: "Users & Groups"
+      name: CyberArk Vault Groups
+      description: Vault user groups and membership (/UserGroups) — reconciled by group name; fully create/update/delete reversible
+      canvasTemplate: config-types/cyberark-vault-groups/canvas.yaml
+      defaultConfig: config-types/cyberark-vault-groups/defaults.yaml
+      handlers:
+        validate: config-types/cyberark-vault-groups/validate
+        deploy: config-types/cyberark-vault-groups/deploy
+        rollback: config-types/cyberark-vault-groups/rollback
+        healthCheck: config-types/cyberark-vault-groups/healthCheck
+        driftDetect: config-types/cyberark-vault-groups/driftDetect
+        getStatus: config-types/cyberark-vault-groups/getStatus
+      targets:
+        componentTypes: [cyberark-pvwa]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cyberark-allowed-referrers
+      group: "Server"
+      name: CyberArk Allowed Referrers
+      description: PVWA's allowed HTTP referrer list (/Configuration/AccessRestriction/AllowedReferrers) — create-only; reconciled by referrer URL
+      canvasTemplate: config-types/cyberark-allowed-referrers/canvas.yaml
+      defaultConfig: config-types/cyberark-allowed-referrers/defaults.yaml
+      handlers:
+        validate: config-types/cyberark-allowed-referrers/validate
+        deploy: config-types/cyberark-allowed-referrers/deploy
+        rollback: config-types/cyberark-allowed-referrers/rollback
+        healthCheck: config-types/cyberark-allowed-referrers/healthCheck
+        driftDetect: config-types/cyberark-allowed-referrers/driftDetect
+        getStatus: config-types/cyberark-allowed-referrers/getStatus
       targets:
         componentTypes: [cyberark-pvwa]
         requiresCredential: true

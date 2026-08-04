@@ -1,0 +1,81 @@
+# =============================================================================
+# Canvas Template — GitHub Custom Repository Roles
+#
+# Declares ONE custom repository role (the item) for an organization —
+# GitHub Enterprise Cloud only. Identified by (org, name). Field keys must
+# match config-types/custom-repository-roles/_shared.ts. Applied over the
+# GitHub REST API:
+#   GET|POST /orgs/{org}/custom-repository-roles
+#   PATCH|DELETE /orgs/{org}/custom-repository-roles/{role_id}
+# =============================================================================
+
+id: "github-custom-repository-roles"
+name: "Custom Repository Roles"
+toolType: "github-advanced-security"
+entityType: "custom-repository-roles"
+description: "Author custom repository roles (name, base role, extra permissions) for a GitHub Enterprise Cloud organization via the GitHub REST API"
+
+item:
+  label: "Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Identity"
+      icon: "building"
+      description: "The organization and role name — together the stable identity"
+      fields:
+        - key: "org"
+          label: "Organization"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+            pattern: "^[A-Za-z0-9][A-Za-z0-9-]*$"
+          helpText: "The GitHub organization login, e.g. octo-org. Requires GitHub Enterprise Cloud."
+
+        - key: "name"
+          label: "Role name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: "The custom role's name. Used as the stable identity for drift and rollback (matched within the organization)."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "A short description of what this role is for."
+
+    - name: "Permissions"
+      icon: "lock"
+      description: "The base role this extends, plus any additional fine-grained permissions"
+      fields:
+        - key: "base_role"
+          label: "Base role"
+          fieldType: "select"
+          defaultValue: "read"
+          options:
+            - { label: "Read", value: "read" }
+            - { label: "Triage", value: "triage" }
+            - { label: "Write", value: "write" }
+            - { label: "Maintain", value: "maintain" }
+          helpText: "The built-in role this custom role starts from."
+
+        - key: "permissions"
+          label: "Additional permissions"
+          fieldType: "tags"
+          required: false
+          helpText: "Fine-grained permission names to add on top of the base role, e.g. add_assignee, manage_deploy_keys. See GitHub's current fine-grained permissions catalog for valid names — this app does not hardcode the list, since GitHub adds to it over time."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this role is defined — recorded for audit."

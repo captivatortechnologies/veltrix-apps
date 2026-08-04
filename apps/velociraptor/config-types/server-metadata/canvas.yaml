@@ -1,0 +1,42 @@
+# =============================================================================
+# Canvas Template — Velociraptor Server Metadata
+#
+# SINGLETON — declares free-form key/value tags stamped on the Velociraptor
+# server itself (e.g. environment, owning team, compliance tier), distinct from
+# Server Monitoring's event-artifact table. Field keys must match
+# config-types/server-metadata/validate.ts. Applied over the gRPC API (mutual
+# TLS) via server_set_metadata() — only the declared keys are touched; any other
+# key already on the server's metadata store is left untouched.
+# =============================================================================
+
+id: "velociraptor-server-metadata"
+name: "Server Metadata"
+toolType: "velociraptor"
+entityType: "server-metadata"
+description: "Manage free-form server-level metadata tags (e.g. environment, owner, compliance tier) via the gRPC API (server_set_metadata)"
+
+item:
+  label: "Server Metadata"
+  identityField: "scope"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Server Metadata"
+      icon: "tag"
+      description: "Key/value tags stamped on this Velociraptor server"
+      fields:
+        - key: "scope"
+          label: "Scope"
+          fieldType: "text"
+          required: true
+          defaultValue: "server"
+          validation:
+            maxLength: 32
+          helpText: "Fixed scope for the singleton server metadata (leave as \"server\")."
+
+        - key: "metadata"
+          label: "Metadata"
+          fieldType: "keyvalue"
+          required: false
+          helpText: "Free-form key/value tags for this server, e.g. environment=production, owner=secops-team. Only these keys are touched — other metadata already on the server is left as-is."

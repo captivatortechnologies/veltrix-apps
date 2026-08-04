@@ -2,6 +2,66 @@
 
 All notable changes to the Velociraptor app are documented here.
 
+## 0.4.0 — 2026-08-04
+
+Config-as-code write-surface exhaustion pass: four new configuration types plus
+a custom-ACL extension to Users & ACLs, all driven over the same gRPC/mTLS VQL
+seam. Researched against the Velociraptor VQL source
+(`vql/server/{labels,inventory,secrets,notebooks,hunts,timelines,favorites,clients,orgs}`)
+and `acls/acls.go` / `acls/roles.go` — see README Coverage for what was
+evaluated and honestly dropped (hunts, notebooks, timelines and favorites are
+runtime DFIR/investigation actions, not durable desired state).
+
+- **Secrets** config type (new) — named secret definitions (e.g. SMTP
+  credentials, cloud API keys) artifacts can reference without exposing the raw
+  value, plus who can read them. Content is write-only (`secret_add()`, sent on
+  every deploy, never read back — the server never returns it); grants
+  (users/orgs/visible-to-all-orgs) are reconciled to an exact desired state via
+  `secret_modify()`'s additive/subtractive add/remove-list arguments, diffed
+  against `secrets()` metadata. Rollback deletes a secret this deploy created,
+  or reverses the grant delta for one that already existed; content is never
+  restored (same limitation as an authored password field).
+- **Client Labels** config type (new) — pin a Velociraptor client label to an
+  explicit, bounded list of client ids (a static security-group-style
+  assignment, not a fleet-wide dynamic rule). Reconciled via `label(client_id=,
+  labels=[...], op='set'|'remove')`, read back via `clients(search='label:...')`.
+  Deploy/rollback use a symmetric added/removed delta (mirrors this monorepo's
+  JumpCloud group-memberships pattern) so rollback never needs to re-read live
+  state.
+- **Server Metadata** config type (new) — free-form server-level key/value tags
+  (environment, owner, compliance tier, ...) via `server_metadata()` /
+  `server_set_metadata()`. Upsert-only: only the declared keys are touched, so
+  other metadata the server (or another process) already carries is preserved.
+- **Third-Party Tools** config type (new) — pin the third-party binaries
+  Velociraptor artifacts download to endpoints (version, URL, SHA-256 hash,
+  serve-locally) via `inventory_add()` — a supply-chain integrity control. A
+  hash mismatch is critical drift; a missing hash is a validation warning.
+  Velociraptor's inventory API has no delete/remove plugin, so rollback can
+  restore a tool's prior definition but cannot un-add one this deploy created —
+  flagged honestly rather than silently reported as reverted.
+- **Users & ACLs — fine-grained custom permissions** — a new optional "Custom
+  Permissions" field grants ACL permissions BEYOND the 7 named roles (e.g.
+  `execve`, `filesystem_read`) via `user_grant(policy={...})`, applied and
+  reversed as an explicit true/false delta against `gui_users()`'s prior policy
+  (best-effort, same "may not be surfaced" caveat as role read-back). Unknown
+  permission names are warned, not rejected, matching the existing role
+  validation posture.
+- **`vqlJson()`** (`lib/velociraptorApi.ts`) — a shared `parse_json(data=<json>)`
+  VQL-argument builder, reused by all four new config types and the Users & ACLs
+  policy extension (existing per-type `set*VQL()` builders keep their own inline
+  form, unchanged).
+- **`lib/clientId.ts`** (new) — Velociraptor's `C.<hex>` client-id format check,
+  mirroring the existing `lib/artifactName.ts` pattern; used by Client Labels.
+
+> New VQL surfaces in this release — `label()`, `server_metadata()` /
+> `server_set_metadata()`, `secret_add()` / `secret_modify()` / `secrets()`,
+> `inventory_add()` / `inventory()`, and `user_grant()`'s `policy` argument —
+> are real Velociraptor server functions per the public source, but their exact
+> argument/column shapes (especially JSON casing of ACL permission names, and
+> whether `secret_add()` / `inventory_add()` upsert or error on a duplicate) are
+> flagged `VERIFY` in code and should be reconciled against a live Velociraptor
+> server before production use.
+
 ## 0.3.1 — 2026-08-01
 
 Hardened config validation: custom artifacts are now parsed as real YAML and

@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-cyberark",
   "private": true,
-  "version": "1.2.0",
-  "description": "Veltrix app: manage CyberArk PAM (PVWA) safes, safe members, accounts, platforms and onboarding rules as configuration code",
+  "version": "1.3.0",
+  "description": "Veltrix app: manage CyberArk PAM (PVWA) safes, safe/account groups, accounts, platforms + session policy, onboarding rules, applications, directory mappings, Vault users/groups and allowed referrers as configuration code",
   "scripts": { "typecheck": "tsc --noEmit" },
   "devDependencies": {
     "@types/jest": "^29.5.14",

@@ -93,6 +93,7 @@ export interface CyberArkCollection<T = unknown> {
  */
 export class CyberArkClient {
   private readonly baseUrl: string
+  private readonly legacyBaseUrl: string
   private readonly credentials: CyberArkCredentials
   private readonly authMethod: AuthMethod
   private readonly timeoutMs: number
@@ -100,11 +101,19 @@ export class CyberArkClient {
 
   constructor(opts: {
     baseUrl: string
+    /**
+     * Base for the classic `/PasswordVault/WebServices/PIMServices.svc`
+     * Web Services — used only by the Applications config type, whose
+     * endpoints predate the Gen2 REST API (`/PasswordVault/API`) and were
+     * never migrated to it. The same session token is accepted on both bases.
+     */
+    legacyBaseUrl: string
     credentials: CyberArkCredentials
     authMethod: AuthMethod
     timeoutMs: number
   }) {
     this.baseUrl = opts.baseUrl
+    this.legacyBaseUrl = opts.legacyBaseUrl
     this.credentials = opts.credentials
     this.authMethod = opts.authMethod
     this.timeoutMs = opts.timeoutMs
@@ -116,7 +125,17 @@ export class CyberArkClient {
     path: string,
     opts: { query?: Record<string, string | number | boolean | undefined>; body?: unknown; auth: boolean },
   ): Promise<CyberArkResponse> {
-    const url = new URL(`${this.baseUrl}${path}`)
+    return this.fetchAtBase(this.baseUrl, method, path, opts)
+  }
+
+  /** Same as {@link fetchRaw}, against an explicit base URL rather than `this.baseUrl`. */
+  private async fetchAtBase(
+    base: string,
+    method: CyberArkMethod,
+    path: string,
+    opts: { query?: Record<string, string | number | boolean | undefined>; body?: unknown; auth: boolean },
+  ): Promise<CyberArkResponse> {
+    const url = new URL(`${base}${path}`)
     for (const [key, value] of Object.entries(opts.query ?? {})) {
       if (value !== undefined) url.searchParams.set(key, String(value))
     }
@@ -181,6 +200,24 @@ export class CyberArkClient {
       return { status: 401, ok: false, body: JSON.stringify({ ErrorMessage: session.error }) }
     }
     return this.fetchRaw(method, path, { query: opts.query, body: opts.body, auth: true })
+  }
+
+  /**
+   * Authenticated request against the LEGACY classic Web Services base
+   * (`/PasswordVault/WebServices/PIMServices.svc`) instead of the Gen2 base
+   * (`/PasswordVault/API`). Used only by the Applications config type. Logs on
+   * first if needed (shared session); never throws on HTTP status.
+   */
+  async requestLegacy(
+    method: CyberArkMethod,
+    path: string,
+    opts: { query?: Record<string, string | number | boolean | undefined>; body?: unknown } = {},
+  ): Promise<CyberArkResponse> {
+    const session = await this.ensureSession()
+    if (!session.ok) {
+      return { status: 401, ok: false, body: JSON.stringify({ ErrorMessage: session.error }) }
+    }
+    return this.fetchAtBase(this.legacyBaseUrl, method, path, { query: opts.query, body: opts.body, auth: true })
   }
 
   /**
@@ -251,10 +288,12 @@ export function buildCyberArkClient(
   const resolved = readCyberArkSettings(settings)
   const pvwaUrl = `https://${host}/PasswordVault`
   const baseUrl = `${pvwaUrl}/API`
+  const legacyBaseUrl = `${pvwaUrl}/WebServices/PIMServices.svc`
 
   return {
     client: new CyberArkClient({
       baseUrl,
+      legacyBaseUrl,
       credentials: creds,
       authMethod: resolved.authMethod,
       timeoutMs: resolved.timeoutMs,
@@ -346,15 +385,42 @@ export function encodeSafeUrlId(safeUrlIdOrName: string): string {
  * rather than the Gen2 `value` collection envelope — e.g. Platforms responses use
  * `{ "Platforms": [...], "Total": n }` and onboarding rules use
  * `{ "AutomaticOnboardingRules": [...], "Total": n }`. Returns the first matching
- * array, or [] on a missing key / malformed body (never throws). These endpoints
- * are not offset/limit paginated, so a single request returns the full set.
+ * array, or [] on a missing key / malformed body (never throws). A bare top-level
+ * array (some classic Web Services endpoints, e.g. Applications, respond this way
+ * on certain PVWA builds) is also accepted directly, ahead of the named-key check.
+ * These endpoints are not offset/limit paginated, so a single request returns the
+ * full set.
  */
 export function parseCollectionArray<T = unknown>(body: string, keys: string[]): T[] {
-  const parsed = parseJson<Record<string, unknown>>(body)
+  const parsed = parseJson<unknown>(body)
+  if (Array.isArray(parsed)) return parsed as T[]
   if (!parsed || typeof parsed !== 'object') return []
+  const record = parsed as Record<string, unknown>
   for (const key of keys) {
-    const value = parsed[key]
+    const value = record[key]
     if (Array.isArray(value)) return value as T[]
+  }
+  return []
+}
+
+/**
+ * Parse a string-list field: a `tags`/multiselect canvas value (already an
+ * array) or a comma-separated string typed into a plain text fallback. Blank
+ * entries are dropped and every value is trimmed. Shared by every config type
+ * that models a free-text list (domain groups, vault authorizations,
+ * authentication methods, …) — CyberArk's exact enum for several of these is
+ * not independently confirmed, so they are modeled as free text rather than a
+ * hard-coded (and possibly incomplete) `select`/`multiselect` enum.
+ */
+export function readStringList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((v): v is string => typeof v === 'string' && v.trim().length > 0).map((v) => v.trim())
+  }
+  if (typeof value === 'string' && value.trim()) {
+    return value
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean)
   }
   return []
 }

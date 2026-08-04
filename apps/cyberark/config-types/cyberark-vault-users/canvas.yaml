@@ -1,0 +1,119 @@
+# =============================================================================
+# Canvas Template — CyberArk Vault Users
+#
+# Declares ONE Vault user — the item. Users add as many as they need. CyberArk
+# assigns a numeric id, so identity for reconciliation is the natural key
+# (username).
+#
+# ⚠ SECRET-BEARING: the `initial_password` field is WRITE-ONLY (fieldType:
+# password). It is sent to CyberArk ONLY when the user is first created (the
+# API never returns it on read), and is NEVER read back, diffed, or stored in
+# rollback state / artifacts / logs. To rotate an existing user's password,
+# use CyberArk's own Reset Password workflow — this app does not manage
+# secret rotation. Field keys must match
+# config-types/cyberark-vault-users/validate.ts.
+# =============================================================================
+
+id: "cyberark-vault-users"
+name: "CyberArk Vault User Configuration"
+toolType: "cyberark"
+entityType: "cyberark-vault-users"
+description: "Define CyberArk Vault users as code through the PVWA REST API (/Users). Reconciled by username; the initial password is write-only and sent only on create."
+
+item:
+  label: "Vault User"
+  identityField: "username"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "user"
+      description: "Username, type and Vault location"
+      fields:
+        - key: "username"
+          label: "Username"
+          fieldType: "text"
+          required: true
+          helpText: "The Vault user's login name — its logical identity for reconciliation."
+
+        - key: "user_type"
+          label: "User Type"
+          fieldType: "text"
+          defaultValue: "EPVUser"
+          helpText: "The Vault user type (e.g. EPVUser, EPVUserLite, BasicUser). Verify the exact set your PVWA license supports."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+
+        - key: "location"
+          label: "Location"
+          fieldType: "text"
+          defaultValue: "\\"
+
+    - name: "Initial Password"
+      icon: "lock"
+      description: "The write-only initial password"
+      fields:
+        - key: "initial_password"
+          label: "Initial Password"
+          fieldType: "password"
+          helpText: >
+            ⚠ WRITE-ONLY. Sent to CyberArk ONLY when the user is first created and
+            never read back, diffed, or stored in rollback data, artifacts or logs.
+            Leave blank for a directory-authenticated user (LDAP/RADIUS/SAML) that
+            needs no Vault password. To rotate an existing user's password, use
+            CyberArk's own Reset Password workflow.
+
+    - name: "Authentication & Access"
+      icon: "key"
+      description: "Authentication methods, Vault authorizations and account state"
+      fields:
+        - key: "authentication_method"
+          label: "Authentication Method"
+          fieldType: "tags"
+          helpText: "Authentication method keywords (e.g. AuthTypePass, AuthTypeLDAP, AuthTypeRADIUS, AuthTypeSAML)."
+
+        - key: "vault_authorization"
+          label: "Vault Authorizations"
+          fieldType: "tags"
+          helpText: "Vault-level admin authorization keywords granted to this user (e.g. AddSafes, AuditUsers, ActivateUsers)."
+
+        - key: "unauthorized_interfaces"
+          label: "Blocked Interfaces"
+          fieldType: "tags"
+          helpText: "Interfaces this user is BLOCKED from using (e.g. PSM, PSMP, PVWA, CPM)."
+
+        - key: "enable_user"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "change_pass_on_next_logon"
+          label: "Change Password On Next Logon"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "password_never_expires"
+          label: "Password Never Expires"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "expiry_date"
+          label: "Account Expiry"
+          fieldType: "number"
+          helpText: "Optional account expiration (Unix epoch seconds). Leave blank for no expiration."
+
+    - name: "Contact Details"
+      icon: "address-book"
+      description: "Optional contact information"
+      fields:
+        - key: "contact_details"
+          label: "Contact Details (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional businessAddress/internet/phones/personalDetails as ONE JSON
+            object, merged directly into the request (e.g.
+            {"personalDetails":{"firstName":"Jane","lastName":"Doe"},
+            "internet":{"businessEmail":"jane@example.com"}}). Leave blank for none.

@@ -3,6 +3,82 @@
 All notable changes to the CyberArk Privileged Access Manager app are documented
 here. This project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.3.0 — 2026-08-04
+
+### Added — exhausting the PVWA config-as-code write surface
+
+Seven new configuration types, researched against the PVWA REST API (Gen2
+`/PasswordVault/API` and, for Applications, the classic
+`/PasswordVault/WebServices/PIMServices.svc`). See the README **Coverage**
+section for the full managed-vs-excluded breakdown and every secret-handling
+rule.
+
+- **Applications** (`cyberark-applications`) — AAM/CCP application identities
+  and their authentication methods (path / hash / OS user / **machine
+  address — the CCP "allowed machines" surface** / certificate serial number /
+  certificate attributes), over the classic Web Services. Reconciled by AppID;
+  created when missing (⚠ **no verified update endpoint** for an application's
+  own fields — see Coverage), authentication methods always fully reconciled
+  (add/remove) by their semantic signature.
+- **Account Groups** (`cyberark-account-groups`) — `/AccountGroups` for
+  group-based credential rotation. Reconciled by (safe, group name); members
+  are declared as (account name, safe) pairs and resolved to CyberArk's
+  internal AccountID at deploy time. ⚠ **CyberArk exposes no REST
+  delete-group endpoint** — rollback of a created group can only clear its
+  membership, not remove the group object (documented, reported explicitly).
+- **Platform Session Policy** (`cyberark-platform-session-policy`) —
+  `/Platforms/Targets/{id}/PrivilegedSessionManagement`, a read/replace
+  singleton per platform (PSM server + connector enablement). **This corrects
+  the 1.2.0 note below** — the session-management slice of "Master Policy" IS
+  writable; the other privileged-access-workflow settings (dual control,
+  exclusive access, OTP, reason-for-access) remain unconfirmed writable.
+- **Directory Mappings** (`cyberark-directory-mappings`) — LDAP/AD group →
+  Vault group + authorization mappings on an **existing** directory.
+  Reconciled by (directory name, mapping name); the directory CONNECTION
+  itself (which needs a BindPassword) is out of scope by design — see
+  Coverage.
+- **Vault Users** (`cyberark-vault-users`) — `/Users`, reconciled by username.
+  The `initialPassword` is write-only and sent only on create, mirroring the
+  Accounts secret rule exactly; password reset is intentionally not exposed
+  (this app never manages credential rotation).
+- **Vault Groups** (`cyberark-vault-groups`) — `/UserGroups` + membership,
+  reconciled by group name. Unlike Account Groups, `UserGroups` exposes a real
+  delete endpoint, so this type is fully create/update/delete reversible.
+- **Allowed Referrers** (`cyberark-allowed-referrers`) — PVWA's server-wide
+  HTTP-referrer allow-list. ⚠ **Create-only over REST** in the sources
+  verified for this app (GET + POST only) — an existing entry's
+  `regularExpression` flag cannot be changed and is reported as informational
+  drift; rollback deletion is attempted best-effort and never fails the whole
+  rollback if it can't be confirmed.
+
+### Changed
+
+- `lib/cyberark.ts`: `CyberArkClient` now supports a second, LEGACY request
+  base (`requestLegacy()`, `/PasswordVault/WebServices/PIMServices.svc`) for
+  the Applications config type, reusing the same session token.
+  `parseCollectionArray()` now also accepts a bare top-level JSON array (some
+  classic endpoints respond this way). Added a shared `readStringList()`
+  helper for the several new free-text list fields (domain groups, vault
+  authorizations, authentication methods, …) whose exact CyberArk enum isn't
+  independently confirmed — modeled as `tags` rather than a possibly-incomplete
+  `select`/`multiselect`.
+- Every configuration type (new and existing) now declares a manifest `group`
+  for sidebar organization: **Safes**, **Accounts**, **Platforms**,
+  **Applications**, **Directory**, **Users & Groups**, **Server**.
+
+### Notes
+
+- **DROPPED, with reasons** (see README "Coverage" for the full list):
+  PTA administration/security config (separate PTA authentication/session,
+  not the PVWA logon flow this client models; its Global Catalog connectivity
+  setup needs an LDAP bind password; its admin/security endpoints are opaque
+  property-key PATCH operations, not a stable typed resource); LDAP directory
+  CREATE/UPDATE (needs a BindPassword); Vault user password reset; Group /
+  Rotational / Dependent / Stored platform variants and Connection Component
+  import (narrow, advanced features deferred to a future pass); Mappings
+  Reorder (would require the full ordered id list of every mapping in a
+  directory, risking mappings outside this app's scope).
+
 ## 1.2.0 — 2026-07-26
 
 ### Added

@@ -179,6 +179,17 @@ export function asBool(value: unknown, fallback = false): boolean {
 }
 
 /**
+ * Render a value as a `parse_json(data=<json>)` VQL expression — the standard way
+ * this app hands a dict/array literal to a VQL function argument that expects a
+ * structured value (set_client_monitoring, set_server_monitoring,
+ * server_set_metadata, secret_add, user_grant's policy, ...). Centralised here so
+ * every config type builds these the same way.
+ */
+export function vqlJson(value: unknown): string {
+  return `parse_json(data=${vqlQuote(JSON.stringify(value))})`
+}
+
+/**
  * Upsert a custom artifact from its YAML definition.
  * VERIFY: `artifact_set(definition=<yaml>)` adds/updates a custom artifact keyed
  * by the `name:` inside the YAML, returning the stored definition.

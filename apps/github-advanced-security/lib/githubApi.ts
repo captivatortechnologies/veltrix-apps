@@ -23,6 +23,13 @@
 //   - Dependabot security updates (automated security fixes):
 //     https://docs.github.com/en/rest/repos/repos#enable-automated-security-fixes
 //   - API versions: https://docs.github.com/en/rest/about-the-rest-api/api-versions
+//   - Repository autolinks: https://docs.github.com/en/rest/repos/autolinks
+//   - Branch protection (classic): https://docs.github.com/en/rest/branches/branch-protection
+//   - Actions permissions (org): https://docs.github.com/en/rest/actions/permissions
+//   - Organization roles: https://docs.github.com/en/rest/orgs/organization-roles
+//   - Custom repository roles: https://docs.github.com/en/rest/orgs/custom-roles
+//   - Organization webhooks: https://docs.github.com/en/rest/orgs/webhooks
+//   - Update an organization: https://docs.github.com/en/rest/orgs/orgs#update-an-organization
 // =============================================================================
 
 import type { CredentialRef } from '@veltrixsecops/app-sdk'
@@ -255,6 +262,197 @@ export class GithubClient {
   setVulnerabilityAlerts(owner: string, repo: string, enabled: boolean): Promise<GithubResponse> {
     const path = `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/vulnerability-alerts`
     return this.request(enabled ? 'PUT' : 'DELETE', path)
+  }
+
+  // --- Repository autolinks ---------------------------------------------------
+  // https://docs.github.com/en/rest/repos/autolinks (no update endpoint — a
+  // changed autolink is a delete + create).
+
+  /** GET all autolinks for a repository. */
+  listAutolinks(owner: string, repo: string): Promise<GithubResponse> {
+    return this.request('GET', `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/autolinks?per_page=100`)
+  }
+
+  /** POST a new autolink (`key_prefix` + `url_template` required). */
+  createAutolink(owner: string, repo: string, body: Record<string, unknown>): Promise<GithubResponse> {
+    return this.request('POST', `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/autolinks`, body)
+  }
+
+  /** DELETE an autolink by id. */
+  deleteAutolink(owner: string, repo: string, id: number | string): Promise<GithubResponse> {
+    return this.request('DELETE', `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/autolinks/${encodeURIComponent(String(id))}`)
+  }
+
+  // --- Branch protection (classic) --------------------------------------------
+  // https://docs.github.com/en/rest/branches/branch-protection
+
+  /** GET the classic branch protection for a branch (404 = unprotected). */
+  getBranchProtection(owner: string, repo: string, branch: string): Promise<GithubResponse> {
+    return this.request(
+      'GET',
+      `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/branches/${encodeURIComponent(branch)}/protection`,
+    )
+  }
+
+  /** PUT (full replace) the classic branch protection for a branch. */
+  updateBranchProtection(owner: string, repo: string, branch: string, body: Record<string, unknown>): Promise<GithubResponse> {
+    return this.request(
+      'PUT',
+      `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/branches/${encodeURIComponent(branch)}/protection`,
+      body,
+    )
+  }
+
+  /** DELETE the classic branch protection for a branch (unprotect it). */
+  deleteBranchProtection(owner: string, repo: string, branch: string): Promise<GithubResponse> {
+    return this.request(
+      'DELETE',
+      `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/branches/${encodeURIComponent(branch)}/protection`,
+    )
+  }
+
+  // --- Organization Actions permissions ---------------------------------------
+  // https://docs.github.com/en/rest/actions/permissions
+
+  /** GET GitHub Actions permissions for an org (`enabled_repositories`, `allowed_actions`). */
+  getOrgActionsPermissions(org: string): Promise<GithubResponse> {
+    return this.request('GET', `/orgs/${encodeURIComponent(org)}/actions/permissions`)
+  }
+
+  /** PUT GitHub Actions permissions for an org. */
+  setOrgActionsPermissions(org: string, body: Record<string, unknown>): Promise<GithubResponse> {
+    return this.request('PUT', `/orgs/${encodeURIComponent(org)}/actions/permissions`, body)
+  }
+
+  /** GET the repositories selected for Actions when `enabled_repositories: selected`. */
+  getOrgActionsSelectedRepositories(org: string): Promise<GithubResponse> {
+    return this.request('GET', `/orgs/${encodeURIComponent(org)}/actions/permissions/repositories?per_page=100`)
+  }
+
+  /** PUT the repositories selected for Actions (`selected_repository_ids`). */
+  setOrgActionsSelectedRepositories(org: string, body: Record<string, unknown>): Promise<GithubResponse> {
+    return this.request('PUT', `/orgs/${encodeURIComponent(org)}/actions/permissions/repositories`, body)
+  }
+
+  /** GET the allowed actions / reusable workflows patterns when `allowed_actions: selected`. */
+  getOrgActionsAllowedActions(org: string): Promise<GithubResponse> {
+    return this.request('GET', `/orgs/${encodeURIComponent(org)}/actions/permissions/selected-actions`)
+  }
+
+  /** PUT the allowed actions / reusable workflows patterns. */
+  setOrgActionsAllowedActions(org: string, body: Record<string, unknown>): Promise<GithubResponse> {
+    return this.request('PUT', `/orgs/${encodeURIComponent(org)}/actions/permissions/selected-actions`, body)
+  }
+
+  /** GET the org's default GitHub Actions workflow permissions (GITHUB_TOKEN). */
+  getOrgActionsWorkflowPermissions(org: string): Promise<GithubResponse> {
+    return this.request('GET', `/orgs/${encodeURIComponent(org)}/actions/permissions/workflow`)
+  }
+
+  /** PUT the org's default GitHub Actions workflow permissions. */
+  setOrgActionsWorkflowPermissions(org: string, body: Record<string, unknown>): Promise<GithubResponse> {
+    return this.request('PUT', `/orgs/${encodeURIComponent(org)}/actions/permissions/workflow`, body)
+  }
+
+  // --- Organization member privileges -----------------------------------------
+  // https://docs.github.com/en/rest/orgs/orgs#update-an-organization
+
+  /** GET the organization object (default_repository_permission, members_can_*, ...). */
+  getOrg(org: string): Promise<GithubResponse> {
+    return this.request('GET', `/orgs/${encodeURIComponent(org)}`)
+  }
+
+  /** PATCH the organization object (partial update). */
+  updateOrg(org: string, body: Record<string, unknown>): Promise<GithubResponse> {
+    return this.request('PATCH', `/orgs/${encodeURIComponent(org)}`, body)
+  }
+
+  // --- Custom repository roles -------------------------------------------------
+  // https://docs.github.com/en/rest/orgs/custom-roles (GHEC only)
+
+  /** GET all custom repository roles for an org. */
+  listCustomRepositoryRoles(org: string): Promise<GithubResponse> {
+    return this.request('GET', `/orgs/${encodeURIComponent(org)}/custom-repository-roles`)
+  }
+
+  /** GET one custom repository role by id. */
+  getCustomRepositoryRole(org: string, id: number | string): Promise<GithubResponse> {
+    return this.request('GET', `/orgs/${encodeURIComponent(org)}/custom-repository-roles/${encodeURIComponent(String(id))}`)
+  }
+
+  /** POST a new custom repository role (`name` + `base_role` + `permissions` required). */
+  createCustomRepositoryRole(org: string, body: Record<string, unknown>): Promise<GithubResponse> {
+    return this.request('POST', `/orgs/${encodeURIComponent(org)}/custom-repository-roles`, body)
+  }
+
+  /** PATCH a custom repository role by id (partial update). */
+  updateCustomRepositoryRole(org: string, id: number | string, body: Record<string, unknown>): Promise<GithubResponse> {
+    return this.request('PATCH', `/orgs/${encodeURIComponent(org)}/custom-repository-roles/${encodeURIComponent(String(id))}`, body)
+  }
+
+  /** DELETE a custom repository role by id. */
+  deleteCustomRepositoryRole(org: string, id: number | string): Promise<GithubResponse> {
+    return this.request('DELETE', `/orgs/${encodeURIComponent(org)}/custom-repository-roles/${encodeURIComponent(String(id))}`)
+  }
+
+  // --- Organization webhooks ---------------------------------------------------
+  // https://docs.github.com/en/rest/orgs/webhooks
+
+  /** GET all webhooks for an org. */
+  listOrgWebhooks(org: string): Promise<GithubResponse> {
+    return this.request('GET', `/orgs/${encodeURIComponent(org)}/hooks?per_page=100`)
+  }
+
+  /** GET one org webhook by id. */
+  getOrgWebhook(org: string, id: number | string): Promise<GithubResponse> {
+    return this.request('GET', `/orgs/${encodeURIComponent(org)}/hooks/${encodeURIComponent(String(id))}`)
+  }
+
+  /** POST a new org webhook (`name: "web"` + `config.url` required). */
+  createOrgWebhook(org: string, body: Record<string, unknown>): Promise<GithubResponse> {
+    return this.request('POST', `/orgs/${encodeURIComponent(org)}/hooks`, body)
+  }
+
+  /** PATCH an org webhook by id (partial update). */
+  updateOrgWebhook(org: string, id: number | string, body: Record<string, unknown>): Promise<GithubResponse> {
+    return this.request('PATCH', `/orgs/${encodeURIComponent(org)}/hooks/${encodeURIComponent(String(id))}`, body)
+  }
+
+  /** DELETE an org webhook by id. */
+  deleteOrgWebhook(org: string, id: number | string): Promise<GithubResponse> {
+    return this.request('DELETE', `/orgs/${encodeURIComponent(org)}/hooks/${encodeURIComponent(String(id))}`)
+  }
+
+  // --- Organization roles (team assignment) -----------------------------------
+  // https://docs.github.com/en/rest/orgs/organization-roles
+  // The modern replacement for the deprecated Security Managers API (closing
+  // down 2026-01-01) — assigns ANY organization role, built-in (incl.
+  // `security_manager`) or custom, to a team.
+
+  /** GET all organization roles (built-in + custom), to resolve a role name to its id. */
+  listOrgRoles(org: string): Promise<GithubResponse> {
+    return this.request('GET', `/orgs/${encodeURIComponent(org)}/organization-roles`)
+  }
+
+  /** GET the teams assigned a given organization role. */
+  listTeamsForOrgRole(org: string, roleId: number | string): Promise<GithubResponse> {
+    return this.request('GET', `/orgs/${encodeURIComponent(org)}/organization-roles/${encodeURIComponent(String(roleId))}/teams?per_page=100`)
+  }
+
+  /** PUT — assign an organization role to a team. */
+  assignOrgRoleToTeam(org: string, teamSlug: string, roleId: number | string): Promise<GithubResponse> {
+    return this.request(
+      'PUT',
+      `/orgs/${encodeURIComponent(org)}/organization-roles/teams/${encodeURIComponent(teamSlug)}/${encodeURIComponent(String(roleId))}`,
+    )
+  }
+
+  /** DELETE — remove an organization role from a team. */
+  removeOrgRoleFromTeam(org: string, teamSlug: string, roleId: number | string): Promise<GithubResponse> {
+    return this.request(
+      'DELETE',
+      `/orgs/${encodeURIComponent(org)}/organization-roles/teams/${encodeURIComponent(teamSlug)}/${encodeURIComponent(String(roleId))}`,
+    )
   }
 }
 

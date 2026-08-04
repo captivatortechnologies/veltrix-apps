@@ -1,0 +1,14 @@
+# Defaults for a new configuration item — GitHub's own out-of-the-box org
+# defaults for a newly created organization.
+default_repository_permission: "read"
+members_can_create_repositories: true
+members_can_create_public_repositories: true
+members_can_create_private_repositories: true
+members_can_create_internal_repositories: true
+members_can_fork_private_repositories: false
+members_can_create_pages: true
+members_can_create_public_pages: true
+members_can_create_private_pages: true
+members_can_delete_repositories: false
+members_can_delete_issues: false
+web_commit_signoff_required: false

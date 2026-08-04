@@ -1,0 +1,65 @@
+# =============================================================================
+# Canvas Template — CyberArk Account Groups
+#
+# Declares ONE account group — the item. Users add as many as they need. An
+# account group clusters accounts (typically for group-based credential
+# rotation) under one GroupPlatformID within a Safe. CyberArk assigns a
+# numeric GroupID, so identity for reconciliation is the natural key
+# (Safe, GroupName).
+#
+# ⚠ NO REST DELETE-GROUP ENDPOINT exists — only membership can be removed
+# over the API, never the group object itself. See README "Coverage".
+# Field keys must match config-types/cyberark-account-groups/validate.ts.
+# =============================================================================
+
+id: "cyberark-account-groups"
+name: "CyberArk Account Group Configuration"
+toolType: "cyberark"
+entityType: "cyberark-account-groups"
+description: "Define CyberArk account groups and their membership as code through the PVWA REST API (/AccountGroups). Reconciled by (safe, group name); membership is fully reconciled, the group object itself has no REST delete."
+
+item:
+  label: "Account Group"
+  identityField: "group_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Group"
+      icon: "layers"
+      description: "Identity and rotation platform"
+      fields:
+        - key: "group_name"
+          label: "Group Name"
+          fieldType: "text"
+          required: true
+          helpText: "The group's name — unique within its safe. Part of the logical identity."
+
+        - key: "safe_name"
+          label: "Safe Name"
+          fieldType: "text"
+          required: true
+          helpText: "The safe that owns this group and every member account. The safe must already exist."
+
+        - key: "group_platform_id"
+          label: "Group Platform ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The platform governing this group's rotation behavior (e.g. GroupPlatform).
+            ⚠ Cannot be changed after the group is created — there is no verified
+            update endpoint for it.
+
+    - name: "Members"
+      icon: "users"
+      description: "Accounts belonging to this group"
+      fields:
+        - key: "members"
+          label: "Members (JSON array)"
+          fieldType: "textarea"
+          helpText: >
+            A JSON array of member accounts, each { "account_name": "...",
+            "safe_name": "..." }. Every referenced account must already exist —
+            it is resolved to CyberArk's internal AccountID at deploy time.
+            Example: [{"account_name":"svc-app01","safe_name":"AppAccounts"}].
+            Leave blank ([]) for an empty group.

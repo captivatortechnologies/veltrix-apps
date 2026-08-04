@@ -1,0 +1,66 @@
+# =============================================================================
+# Canvas Template — CyberArk Platform Session Management Policy
+#
+# Declares ONE platform's session-management (PSM) policy — the item. Users
+# add as many as they need, one per platform. GET/PUT
+# .../Platforms/Targets/{platformId}/PrivilegedSessionManagement/ is a
+# SINGLETON per platform — every valid platform has exactly one; there is no
+# create or delete, only read-then-replace. identityField is platform_id.
+#
+# This is the "Master Policy" surface the 1.2.0 CHANGELOG called read-only —
+# corrected: the SESSION-MANAGEMENT slice IS writable via this endpoint. The
+# other privileged-access-workflow settings (dual control, exclusive access,
+# OTP, reason-for-access) remain unconfirmed writable — see README "Coverage".
+# Field keys must match config-types/cyberark-platform-session-policy/validate.ts.
+# =============================================================================
+
+id: "cyberark-platform-session-policy"
+name: "CyberArk Platform Session Policy Configuration"
+toolType: "cyberark"
+entityType: "cyberark-platform-session-policy"
+description: "Define a CyberArk target platform's session-management (PSM) policy as code (/Platforms/Targets/{id}/PrivilegedSessionManagement). One item per platform — a read/replace singleton, never created or deleted."
+
+item:
+  label: "Platform Session Policy"
+  identityField: "platform_id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Platform"
+      icon: "layers"
+      description: "The target platform this policy governs"
+      fields:
+        - key: "platform_id"
+          label: "Platform ID"
+          fieldType: "text"
+          required: true
+          helpText: "The existing target platform's PlatformID (e.g. WinServerLocal). The platform must already exist."
+
+    - name: "PSM Server"
+      icon: "server"
+      description: "Which PSM server brokers sessions for this platform"
+      fields:
+        - key: "psm_server_id"
+          label: "PSM Server ID"
+          fieldType: "text"
+          required: true
+          helpText: "The PSM server's id (e.g. PSMServer_abc123) — required on every replace."
+
+        - key: "psm_server_name"
+          label: "PSM Server Name"
+          fieldType: "text"
+          helpText: "Optional friendly name for the PSM server."
+
+    - name: "Connectors"
+      icon: "plug"
+      description: "Which PSM connectors are enabled for this platform"
+      fields:
+        - key: "psm_connectors"
+          label: "PSM Connectors"
+          fieldType: "keyvalue"
+          helpText: >
+            Connector ID → "true"/"false" (e.g. SSH → true, PSM-RDP → true,
+            PSM-AWSConsoleWithSTS → false). Leave empty to leave the platform's
+            existing connector configuration untouched — an empty map is never
+            sent as an explicit reset.

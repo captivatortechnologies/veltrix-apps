@@ -1,14 +1,18 @@
 id: github-advanced-security
 name: GitHub Advanced Security
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage GitHub Advanced Security posture as code. Author per-repository security
   configurations, organization-level code security configurations, branch/tag/push
   protection rulesets and Dependabot alerts / security updates — GitHub Advanced
   Security, secret scanning, secret scanning push protection, CodeQL default setup
-  and more — and drive them through the Security-as-Code pipeline (validate, deploy,
-  health check, drift detection and rollback) over the GitHub REST API.
+  and more. Also covers the full CodeQL default-setup surface, advanced secret
+  scanning options, classic branch protection, repository autolinks, custom
+  repository roles, organization Actions permissions, member privileges,
+  webhooks and organization role assignments — and drives all of it through the
+  Security-as-Code pipeline (validate, deploy, health check, drift detection and
+  rollback) over the GitHub REST API.
 category: COMPLIANCE
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/github-advanced-security
@@ -40,6 +44,33 @@ permissions:
     - resource: dependabot
       actions: [read, write]
       description: Manage Dependabot alerts and security updates per repository
+    - resource: code-scanning
+      actions: [read, write]
+      description: Manage the full CodeQL code-scanning default-setup configuration per repository
+    - resource: secret-scanning
+      actions: [read, write]
+      description: Manage advanced secret-scanning options (validity checks, delegated bypass) per repository
+    - resource: branch-protection
+      actions: [read, write]
+      description: Manage classic (non-ruleset) branch protection per repository branch
+    - resource: autolinks
+      actions: [read, write]
+      description: Manage repository autolink references
+    - resource: custom-roles
+      actions: [read, write]
+      description: Manage custom repository roles for an organization
+    - resource: actions-policy
+      actions: [read, write]
+      description: Manage organization-wide GitHub Actions permissions and workflow defaults
+    - resource: org-policy
+      actions: [read, write]
+      description: Manage organization member privileges (repository/Pages creation, deletion rights)
+    - resource: webhooks
+      actions: [read, write]
+      description: Manage organization webhooks
+    - resource: org-roles
+      actions: [read, write]
+      description: Assign organization roles (built-in or custom) to teams
 
 pipeline:
   configurationTypes:
@@ -123,6 +154,196 @@ pipeline:
         healthCheck: config-types/dependabot-config/healthCheck
         driftDetect: config-types/dependabot-config/driftDetect
         getStatus: config-types/dependabot-config/getStatus
+      targets:
+        componentTypes: [github-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: code-scanning-default-setup
+      group: "Code Scanning"
+      name: Code Scanning Default Setup
+      description: >
+        The full CodeQL default-setup configuration per repository — state,
+        query suite, languages, threat model and runner selection — applied
+        over the GitHub REST API.
+      canvasTemplate: config-types/code-scanning-default-setup/canvas.yaml
+      defaultConfig: config-types/code-scanning-default-setup/defaults.yaml
+      handlers:
+        validate: config-types/code-scanning-default-setup/validate
+        deploy: config-types/code-scanning-default-setup/deploy
+        rollback: config-types/code-scanning-default-setup/rollback
+        healthCheck: config-types/code-scanning-default-setup/healthCheck
+        driftDetect: config-types/code-scanning-default-setup/driftDetect
+        getStatus: config-types/code-scanning-default-setup/getStatus
+      targets:
+        componentTypes: [github-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: secret-scanning-options
+      group: "Secret Scanning"
+      name: Secret Scanning Options
+      description: >
+        Advanced per-repository secret-scanning options — validity checks,
+        non-provider patterns, AI-assisted detection, delegated alert
+        dismissal and delegated push-protection bypass — complementing
+        Repository Security's base toggles, applied over the GitHub REST API.
+      canvasTemplate: config-types/secret-scanning-options/canvas.yaml
+      defaultConfig: config-types/secret-scanning-options/defaults.yaml
+      handlers:
+        validate: config-types/secret-scanning-options/validate
+        deploy: config-types/secret-scanning-options/deploy
+        rollback: config-types/secret-scanning-options/rollback
+        healthCheck: config-types/secret-scanning-options/healthCheck
+        driftDetect: config-types/secret-scanning-options/driftDetect
+        getStatus: config-types/secret-scanning-options/getStatus
+      targets:
+        componentTypes: [github-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: branch-protection-classic
+      group: "Repository Protection"
+      name: Branch Protection (Classic)
+      description: >
+        Classic (non-ruleset) branch protection for a repository branch —
+        status checks, pull request reviews, push restrictions and other
+        legacy protection settings — applied over the GitHub REST API.
+      canvasTemplate: config-types/branch-protection-classic/canvas.yaml
+      defaultConfig: config-types/branch-protection-classic/defaults.yaml
+      handlers:
+        validate: config-types/branch-protection-classic/validate
+        deploy: config-types/branch-protection-classic/deploy
+        rollback: config-types/branch-protection-classic/rollback
+        healthCheck: config-types/branch-protection-classic/healthCheck
+        driftDetect: config-types/branch-protection-classic/driftDetect
+        getStatus: config-types/branch-protection-classic/getStatus
+      targets:
+        componentTypes: [github-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: repo-autolinks
+      group: "Repository Metadata"
+      name: Repository Autolinks
+      description: >
+        Autolink references for a repository — a key prefix expanded into a
+        URL wherever it appears in an issue, pull request or commit message —
+        applied over the GitHub REST API.
+      canvasTemplate: config-types/repo-autolinks/canvas.yaml
+      defaultConfig: config-types/repo-autolinks/defaults.yaml
+      handlers:
+        validate: config-types/repo-autolinks/validate
+        deploy: config-types/repo-autolinks/deploy
+        rollback: config-types/repo-autolinks/rollback
+        healthCheck: config-types/repo-autolinks/healthCheck
+        driftDetect: config-types/repo-autolinks/driftDetect
+        getStatus: config-types/repo-autolinks/getStatus
+      targets:
+        componentTypes: [github-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: custom-repository-roles
+      group: "Access & Roles"
+      name: Custom Repository Roles
+      description: >
+        Custom repository roles for a GitHub Enterprise Cloud organization —
+        name, base role and additional fine-grained permissions — applied
+        over the GitHub REST API.
+      canvasTemplate: config-types/custom-repository-roles/canvas.yaml
+      defaultConfig: config-types/custom-repository-roles/defaults.yaml
+      handlers:
+        validate: config-types/custom-repository-roles/validate
+        deploy: config-types/custom-repository-roles/deploy
+        rollback: config-types/custom-repository-roles/rollback
+        healthCheck: config-types/custom-repository-roles/healthCheck
+        driftDetect: config-types/custom-repository-roles/driftDetect
+        getStatus: config-types/custom-repository-roles/getStatus
+      targets:
+        componentTypes: [github-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: org-actions-permissions
+      group: "Organization Policy"
+      name: Organization Actions Permissions
+      description: >
+        Organization-wide GitHub Actions policy — repository access, allowed
+        actions/reusable workflows, default workflow permissions and SHA
+        pinning — applied over the GitHub REST API. Actions secrets are out of
+        scope (secret material).
+      canvasTemplate: config-types/org-actions-permissions/canvas.yaml
+      defaultConfig: config-types/org-actions-permissions/defaults.yaml
+      handlers:
+        validate: config-types/org-actions-permissions/validate
+        deploy: config-types/org-actions-permissions/deploy
+        rollback: config-types/org-actions-permissions/rollback
+        healthCheck: config-types/org-actions-permissions/healthCheck
+        driftDetect: config-types/org-actions-permissions/driftDetect
+        getStatus: config-types/org-actions-permissions/getStatus
+      targets:
+        componentTypes: [github-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: org-member-privileges
+      group: "Organization Policy"
+      name: Organization Member Privileges
+      description: >
+        Organization-wide member privileges — default repository permission,
+        repository/Pages creation, forking, deletion rights and web commit
+        sign-off — applied over the GitHub REST API.
+      canvasTemplate: config-types/org-member-privileges/canvas.yaml
+      defaultConfig: config-types/org-member-privileges/defaults.yaml
+      handlers:
+        validate: config-types/org-member-privileges/validate
+        deploy: config-types/org-member-privileges/deploy
+        rollback: config-types/org-member-privileges/rollback
+        healthCheck: config-types/org-member-privileges/healthCheck
+        driftDetect: config-types/org-member-privileges/driftDetect
+        getStatus: config-types/org-member-privileges/getStatus
+      targets:
+        componentTypes: [github-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: org-webhooks
+      group: "Integrations"
+      name: Organization Webhooks
+      description: >
+        Organization webhooks — payload URL, content type, secret, events and
+        active state — applied over the GitHub REST API.
+      canvasTemplate: config-types/org-webhooks/canvas.yaml
+      defaultConfig: config-types/org-webhooks/defaults.yaml
+      handlers:
+        validate: config-types/org-webhooks/validate
+        deploy: config-types/org-webhooks/deploy
+        rollback: config-types/org-webhooks/rollback
+        healthCheck: config-types/org-webhooks/healthCheck
+        driftDetect: config-types/org-webhooks/driftDetect
+        getStatus: config-types/org-webhooks/getStatus
+      targets:
+        componentTypes: [github-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: org-role-assignments
+      group: "Access & Roles"
+      name: Organization Role Assignments
+      description: >
+        Assign organization roles — built-in (e.g. security_manager) or
+        custom — to teams, applied over the GitHub REST API. The modern
+        replacement for the deprecated Security Managers API.
+      canvasTemplate: config-types/org-role-assignments/canvas.yaml
+      defaultConfig: config-types/org-role-assignments/defaults.yaml
+      handlers:
+        validate: config-types/org-role-assignments/validate
+        deploy: config-types/org-role-assignments/deploy
+        rollback: config-types/org-role-assignments/rollback
+        healthCheck: config-types/org-role-assignments/healthCheck
+        driftDetect: config-types/org-role-assignments/driftDetect
+        getStatus: config-types/org-role-assignments/getStatus
       targets:
         componentTypes: [github-org]
         requiresCredential: true

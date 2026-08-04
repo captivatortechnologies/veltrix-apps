@@ -1,0 +1,8 @@
+# Defaults for a new configuration item. All advanced options start disabled;
+# the operator opts in per repository.
+secret_scanning_validity_checks: false
+secret_scanning_non_provider_patterns: false
+secret_scanning_ai_detection: false
+secret_scanning_delegated_alert_dismissal: false
+secret_scanning_delegated_bypass: false
+delegated_bypass_reviewers: ""

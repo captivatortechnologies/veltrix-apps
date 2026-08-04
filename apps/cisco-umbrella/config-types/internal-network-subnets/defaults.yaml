@@ -1,0 +1,6 @@
+# Defaults for a new internal network subnet item. A new subnet starts as a
+# /24 tied to a Site (the most common case for DNS policies); the operator
+# fills in the name, IP address and the Site/Network/Tunnel name. FLAT
+# { fieldKey: value } — an "item" template takes flat defaults.
+prefixLength: 24
+associationType: "site"

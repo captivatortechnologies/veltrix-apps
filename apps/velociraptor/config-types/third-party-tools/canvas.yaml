@@ -1,0 +1,74 @@
+# =============================================================================
+# Canvas Template — Velociraptor Third-Party Tools
+#
+# Declares ONE third-party tool (the item): the pinned version/URL/hash
+# Velociraptor artifacts download to endpoints. Users add as many tools as they
+# need. Field keys must match config-types/third-party-tools/validate.ts.
+# Applied over the gRPC API (mutual TLS) via inventory_add() — a supply-chain
+# integrity control (hash-pin the binaries collection artifacts fetch).
+# =============================================================================
+
+id: "velociraptor-third-party-tools"
+name: "Third-Party Tools"
+toolType: "velociraptor"
+entityType: "third-party-tools"
+description: "Pin the third-party tool binaries Velociraptor artifacts download to endpoints (version, URL, hash) via the gRPC API (inventory_add)"
+
+item:
+  label: "Tool"
+  identityField: "tool"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Tool"
+      icon: "package"
+      description: "The tool's identity, source and integrity pin"
+      fields:
+        - key: "tool"
+          label: "Tool Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "The tool name Velociraptor artifacts reference, e.g. Osquery or WinPmem. Used as the stable identity for upsert."
+
+        - key: "version"
+          label: "Version"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 64
+          helpText: "The pinned version label, e.g. 5.12.1. Recommended for reproducibility — leave blank only if the tool is version-agnostic."
+
+        - key: "url"
+          label: "Download URL"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 2048
+          helpText: "Where the server fetches the tool binary from, e.g. https://github.com/osquery/osquery/releases/download/5.12.1/osquery.msi."
+
+        - key: "hash"
+          label: "SHA-256 Hash"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 128
+            pattern: "^[0-9a-fA-F]*$"
+          helpText: "The expected SHA-256 hash (64 hex characters) of the downloaded binary. Strongly recommended — without it, a compromised or swapped download goes undetected."
+
+        - key: "filename"
+          label: "Endpoint Filename"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "The filename the tool is saved as on the endpoint. Leave blank to use the server's default."
+
+        - key: "serveLocally"
+          label: "Serve Locally"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "When on (recommended), the server caches the tool and serves it to endpoints itself instead of endpoints fetching the URL directly — more reliable and keeps the pinned hash authoritative."

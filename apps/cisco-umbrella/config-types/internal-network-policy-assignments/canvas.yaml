@@ -1,0 +1,66 @@
+# =============================================================================
+# Canvas Template — Cisco Umbrella Internal Network Policy Assignments
+#
+# Umbrella's DNS/Web POLICIES are read-only through the public API — there is
+# no create/update/delete for the policy object or its ruleset. The one
+# confirmed write capability is MEMBERSHIP: assigning/unassigning an identity
+# to/from an existing policy via
+# `PUT`/`DELETE /deployments/v2/policies/{policyId}/identities/{originId}`.
+#
+# This declares ONE such assignment: an Internal Network Subnet identity (this
+# app's internal-network-subnets config type, matched by NAME) tied to an
+# existing DNS or Web policy (matched by NAME within its type). Both names are
+# resolved to Umbrella's opaque ids at deploy time — create the policy in the
+# Umbrella dashboard and the subnet via this app's Internal Network Subnets
+# config type first.
+#
+# Field keys must match what config-types/internal-network-policy-assignments/validate.ts checks.
+# =============================================================================
+
+id: "cisco-umbrella-internal-network-policy-assignments"
+name: "Internal Network Policy Assignments Configuration"
+toolType: "cisco-umbrella"
+entityType: "internal-network-policy-assignments"
+description: "Assign Cisco Umbrella Internal Network Subnet identities to DNS/Web policies as code through the Umbrella Deployments API."
+
+item:
+  label: "Policy Assignment"
+  identityField: "identityName"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Assignment"
+      icon: "link"
+      description: "Which identity is assigned to which policy"
+      fields:
+        - key: "identityName"
+          label: "Internal network subnet name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The Name of an Internal Network Subnet (this app's Internal
+            Network Subnets config type). Resolved to Umbrella's originId at
+            deploy time — the subnet must already exist in Umbrella.
+
+        - key: "policyType"
+          label: "Policy type"
+          fieldType: "select"
+          required: true
+          defaultValue: "dns"
+          options:
+            - label: "DNS"
+              value: "dns"
+            - label: "Web"
+              value: "web"
+          helpText: "Whether the target policy is a DNS policy or a Web policy."
+
+        - key: "policyName"
+          label: "Policy name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The Name of an existing DNS or Web policy in the Umbrella
+            dashboard (Policies are read-only through the API — create the
+            policy itself in the dashboard first). Resolved to its policyId at
+            deploy time.

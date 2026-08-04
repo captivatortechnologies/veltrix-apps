@@ -1,0 +1,4 @@
+# Defaults for a new tunnel item. A new tunnel starts as device type "other"
+# with no site association; the operator fills in the name and PSK secret.
+# FLAT { fieldKey: value } — an "item" template takes flat defaults.
+deviceType: "other"

@@ -1,0 +1,64 @@
+# =============================================================================
+# Canvas Template — GitHub Organization Role Assignments
+#
+# Declares that ONE team (the item) holds ONE organization role — built-in
+# (e.g. security_manager) or custom. The modern, non-deprecated replacement
+# for assigning the Security Manager role to a team. Field keys must match
+# config-types/org-role-assignments/_shared.ts. Applied over the GitHub REST
+# API:
+#   GET  /orgs/{org}/organization-roles                         (resolve role_name -> role_id)
+#   PUT|DELETE /orgs/{org}/organization-roles/teams/{team_slug}/{role_id}
+# =============================================================================
+
+id: "github-org-role-assignments"
+name: "Organization Role Assignments"
+toolType: "github-advanced-security"
+entityType: "org-role-assignments"
+description: "Assign organization roles (built-in, e.g. security_manager, or custom) to teams via the GitHub REST API"
+
+item:
+  label: "Assignment"
+  identityField: "team"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Assignment"
+      icon: "shield"
+      description: "Which team gets which organization role"
+      fields:
+        - key: "org"
+          label: "Organization"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+            pattern: "^[A-Za-z0-9][A-Za-z0-9-]*$"
+          helpText: "The GitHub organization login, e.g. octo-org."
+
+        - key: "team"
+          label: "Team slug"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: "The team's slug (URL-friendly name), e.g. security-team."
+
+        - key: "role_name"
+          label: "Organization role"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: >
+            The role's name, exactly as it appears in the organization's role
+            list — a built-in role (e.g. security_manager) or a custom
+            organization role. Resolved by name at deploy time (case-insensitive).
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this team holds this role — recorded for audit."

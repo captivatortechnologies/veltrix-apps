@@ -1,0 +1,40 @@
+# =============================================================================
+# Canvas Template — CyberArk Allowed Referrers
+#
+# Declares ONE allowed HTTP Referer entry — the item. Users add as many as
+# they need. A server-wide PVWA security setting (anti-clickjacking /
+# embedding control), reconciled by the referrer URL itself.
+#
+# ⚠ CREATE-ONLY: this app can only ADD a missing entry. There is no verified
+# update/delete endpoint for an individual entry — see README "Coverage".
+# Field keys must match config-types/cyberark-allowed-referrers/validate.ts.
+# =============================================================================
+
+id: "cyberark-allowed-referrers"
+name: "CyberArk Allowed Referrer Configuration"
+toolType: "cyberark"
+entityType: "cyberark-allowed-referrers"
+description: "Define PVWA allowed HTTP referrers as code (/Configuration/AccessRestriction/AllowedReferrers). Create-only — reconciled by referrer URL; there is no verified update/delete endpoint for an entry."
+
+item:
+  label: "Allowed Referrer"
+  identityField: "referrer_url"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Referrer"
+      icon: "globe"
+      description: "The allowed HTTP Referer value"
+      fields:
+        - key: "referrer_url"
+          label: "Referrer URL"
+          fieldType: "text"
+          required: true
+          helpText: "The HTTP Referer value PVWA should accept (e.g. https://portal.example.com/), or a regex pattern when \"Regular Expression\" is enabled."
+
+        - key: "regular_expression"
+          label: "Regular Expression"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, Referrer URL is treated as a regular expression pattern rather than a literal URL."

@@ -5,8 +5,11 @@ import {
   readUsers,
   findUser,
   parseRoles,
+  parsePermissions,
+  buildPolicyDelta,
   userCreateVQL,
   userGrantVQL,
+  userGrantPolicyVQL,
   userDeleteVQL,
   GUI_USERS_VQL,
 } from '../_shared'
@@ -73,6 +76,23 @@ test('validate does not require a password (SSO users leave it blank)', async ()
   assert.equal(res.errors.some((e) => e.code === 'WEAK_PASSWORD'), false)
 })
 
+test('validate warns on an unknown custom permission', async () => {
+  const res = await validate(ctxOf([{ ...good, customPermissions: 'execve, made_up_permission' }]))
+  assert.equal(res.valid, true)
+  assert.ok(res.warnings.some((w) => w.code === 'UNKNOWN_PERMISSION'))
+})
+
+test('validate does not warn when custom permissions are all well-known', async () => {
+  const res = await validate(ctxOf([{ ...good, customPermissions: 'execve, filesystem_read' }]))
+  assert.equal(res.warnings.some((w) => w.code === 'UNKNOWN_PERMISSION'), false)
+})
+
+test('validate is silent on custom permissions when the field is blank (optional)', async () => {
+  const res = await validate(ctxOf([{ ...good, customPermissions: '' }]))
+  assert.equal(res.valid, true)
+  assert.equal(res.warnings.some((w) => w.code === 'UNKNOWN_PERMISSION'), false)
+})
+
 // --- helpers ------------------------------------------------------------------
 
 test('parseRoles splits CSV roles', () => {
@@ -86,8 +106,18 @@ test('readUsers reads name + roles tolerant of casing and array/CSV', () => {
     { name: '' },
   ])
   assert.equal(users.length, 2)
-  assert.deepEqual(users[0], { name: 'a@x.com', roles: ['reader', 'analyst'] })
-  assert.deepEqual(users[1], { name: 'b@x.com', roles: ['administrator'] })
+  assert.deepEqual(users[0], { name: 'a@x.com', roles: ['reader', 'analyst'], permissions: null })
+  assert.deepEqual(users[1], { name: 'b@x.com', roles: ['administrator'], permissions: null })
+})
+
+test('readUsers reads permissions from a policy dict, keeping only the true keys', () => {
+  const users = readUsers([{ name: 'a@x.com', roles: [], policy: { execve: true, filesystem_read: true, network: false } }])
+  assert.deepEqual(users[0].permissions, ['execve', 'filesystem_read'])
+})
+
+test('readUsers treats an absent policy dict as null (unknown), not empty', () => {
+  const users = readUsers([{ name: 'a@x.com', roles: [] }])
+  assert.equal(users[0].permissions, null)
 })
 
 test('findUser matches by case-insensitive name', () => {
@@ -122,4 +152,31 @@ test('userCreateVQL escapes single quotes in inputs', () => {
 
 test('GUI_USERS_VQL selects from gui_users()', () => {
   assert.match(GUI_USERS_VQL, /FROM gui_users\(\)/)
+})
+
+test('userGrantPolicyVQL wraps the policy dict in parse_json + user_grant', () => {
+  const vql = userGrantPolicyVQL('a@x.com', { execve: true, network: false })
+  assert.match(vql, /user_grant\(user='a@x\.com', policy=parse_json\(data='/)
+})
+
+test('parsePermissions splits CSV permissions the same way parseRoles does', () => {
+  assert.deepEqual(parsePermissions('execve, filesystem_read,network'), ['execve', 'filesystem_read', 'network'])
+})
+
+// --- buildPolicyDelta -----------------------------------------------------------
+
+test('buildPolicyDelta grants every desired permission', () => {
+  assert.deepEqual(buildPolicyDelta(['execve', 'network'], null), { execve: true, network: true })
+})
+
+test('buildPolicyDelta explicitly clears a prior permission no longer desired', () => {
+  assert.deepEqual(buildPolicyDelta(['execve'], ['execve', 'network']), { execve: true, network: false })
+})
+
+test('buildPolicyDelta is empty when nothing is desired and nothing prior is known', () => {
+  assert.deepEqual(buildPolicyDelta([], null), {})
+})
+
+test('buildPolicyDelta clears everything prior when nothing is desired anymore', () => {
+  assert.deepEqual(buildPolicyDelta([], ['execve', 'network']), { execve: false, network: false })
 })

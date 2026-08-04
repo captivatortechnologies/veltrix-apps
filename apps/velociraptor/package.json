@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-velociraptor",
   "private": true,
-  "version": "0.3.1",
-  "description": "Veltrix app: manage Velociraptor (open-source endpoint DFIR / hunting platform) as code — custom VQL artifacts, client + server monitoring, and GUI users / roles over the Velociraptor gRPC API (mutual TLS) — with BYOL infrastructure provisioning",
+  "version": "0.4.0",
+  "description": "Veltrix app: manage Velociraptor (open-source endpoint DFIR / hunting platform) as code — custom VQL artifacts, client + server monitoring, client labels, server metadata, GUI users / roles / custom ACLs, secrets and third-party tool pins over the Velociraptor gRPC API (mutual TLS) — with BYOL infrastructure provisioning",
   "scripts": {
     "typecheck": "tsc --noEmit"
   },

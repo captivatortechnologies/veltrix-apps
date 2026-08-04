@@ -1,0 +1,54 @@
+# =============================================================================
+# Canvas Template — CyberArk Vault User Groups
+#
+# Declares ONE Vault group — the item. Users add as many as they need.
+# CyberArk assigns a numeric id, so identity for reconciliation is the
+# natural key (group name). Fully reversible on rollback — UserGroups (unlike
+# AccountGroups) exposes a real delete endpoint.
+# Field keys must match config-types/cyberark-vault-groups/validate.ts.
+# =============================================================================
+
+id: "cyberark-vault-groups"
+name: "CyberArk Vault Group Configuration"
+toolType: "cyberark"
+entityType: "cyberark-vault-groups"
+description: "Define CyberArk Vault user groups and their membership as code through the PVWA REST API (/UserGroups). Reconciled by group name; fully create/update/delete reversible."
+
+item:
+  label: "Vault Group"
+  identityField: "group_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Group"
+      icon: "users"
+      description: "Identity"
+      fields:
+        - key: "group_name"
+          label: "Group Name"
+          fieldType: "text"
+          required: true
+          helpText: "The group's name in the Vault — its logical identity for reconciliation."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+
+        - key: "location"
+          label: "Location"
+          fieldType: "text"
+          defaultValue: "\\"
+
+    - name: "Members"
+      icon: "user-plus"
+      description: "Vault or domain identities in this group"
+      fields:
+        - key: "members"
+          label: "Members (JSON array)"
+          fieldType: "textarea"
+          helpText: >
+            A JSON array of members, each { "member_id": "...", "member_type":
+            "vault"|"domain", "domain_name": "..." (required when member_type
+            is "domain") }. Example: [{"member_id":"svc-app01","member_type":
+            "vault"}]. Leave blank ([]) for an empty group.

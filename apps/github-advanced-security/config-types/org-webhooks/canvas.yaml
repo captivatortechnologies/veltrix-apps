@@ -1,0 +1,98 @@
+# =============================================================================
+# Canvas Template — GitHub Organization Webhooks
+#
+# Declares ONE organization webhook (the item) — a payload URL, content type,
+# optional secret, event list and active flag. Identified by (org, url), since
+# GitHub webhooks have no user-chosen name. Field keys must match
+# config-types/org-webhooks/_shared.ts. Applied over the GitHub REST API:
+#   GET|POST /orgs/{org}/hooks
+#   PATCH|DELETE /orgs/{org}/hooks/{hook_id}
+# =============================================================================
+
+id: "github-org-webhooks"
+name: "Organization Webhooks"
+toolType: "github-advanced-security"
+entityType: "org-webhooks"
+description: "Author organization webhooks (payload URL, events, secret) via the GitHub REST API"
+
+item:
+  label: "Webhook"
+  identityField: "url"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "building"
+      description: "The organization and payload URL — together the stable identity"
+      fields:
+        - key: "org"
+          label: "Organization"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+            pattern: "^[A-Za-z0-9][A-Za-z0-9-]*$"
+          helpText: "The GitHub organization login, e.g. octo-org."
+
+        - key: "url"
+          label: "Payload URL"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 500
+          helpText: "The HTTP(S) endpoint GitHub sends event payloads to. Used as the stable identity for drift and rollback (matched within the organization)."
+
+    - name: "Delivery"
+      icon: "link"
+      description: "How the payload is sent"
+      fields:
+        - key: "content_type"
+          label: "Content type"
+          fieldType: "select"
+          defaultValue: "json"
+          options:
+            - { label: "application/json", value: "json" }
+            - { label: "application/x-www-form-urlencoded", value: "form" }
+
+        - key: "secret"
+          label: "Secret"
+          fieldType: "password"
+          required: false
+          helpText: >
+            Optional HMAC signing secret. Write-only: GitHub never echoes a
+            configured secret back, so drift/rollback cannot verify or restore
+            it — see README Coverage notes. Leave blank on an existing webhook
+            to keep its current secret unchanged.
+
+        - key: "insecure_ssl"
+          label: "SSL verification"
+          fieldType: "select"
+          defaultValue: "0"
+          options:
+            - { label: "Verify SSL certificates (recommended)", value: "0" }
+            - { label: "Do not verify (insecure)", value: "1" }
+
+    - name: "Events"
+      icon: "check-circle"
+      description: "Which events trigger a delivery, and whether it is active"
+      fields:
+        - key: "events"
+          label: "Events"
+          fieldType: "tags"
+          required: false
+          helpText: 'GitHub event names, e.g. "push", "pull_request", "repository". Leave empty for just "push".'
+
+        - key: "active"
+          label: "Active"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether GitHub delivers events to this webhook."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this webhook is defined — recorded for audit."

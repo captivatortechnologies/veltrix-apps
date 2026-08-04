@@ -1,0 +1,196 @@
+# =============================================================================
+# Canvas Template — GitHub Branch Protection (Classic)
+#
+# Declares the CLASSIC (non-ruleset) branch protection for one branch (the
+# item) of a repository, identified by (repository, branch). A separate, still
+# fully supported feature from Repository Rulesets. Field keys must match
+# config-types/branch-protection-classic/_shared.ts. Applied over the GitHub
+# REST API: GET|PUT|DELETE /repos/{owner}/{repo}/branches/{branch}/protection
+# (PUT is always a full replace of the protection object).
+# =============================================================================
+
+id: "github-branch-protection-classic"
+name: "Branch Protection (Classic)"
+toolType: "github-advanced-security"
+entityType: "branch-protection-classic"
+description: "Author classic (non-ruleset) branch protection for a repository branch via the GitHub REST API"
+
+item:
+  label: "Branch"
+  identityField: "branch"
+  repeatable: true
+  minItems: 1
+  maxItems: 300
+  groups:
+    - name: "Scope"
+      icon: "target"
+      description: "The repository and branch this protection applies to"
+      fields:
+        - key: "repository"
+          label: "Repository (owner/repo)"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            pattern: "^[^/\\s]+/[^/\\s]+$"
+          helpText: "The repository full name, e.g. octo-org/octo-repo."
+
+        - key: "branch"
+          label: "Branch"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The branch name to protect, e.g. main. Combined with the repository, this is the stable identity."
+
+    - name: "Status Checks"
+      icon: "check-circle"
+      description: "Required status checks before merging"
+      fields:
+        - key: "require_status_checks"
+          label: "Require status checks to pass"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Turn this off to send no status-check requirement at all (null)."
+
+        - key: "strict"
+          label: "Require branches to be up to date before merging"
+          fieldType: "checkbox"
+          defaultValue: false
+          visibleWhen: { field: "require_status_checks", equals: true }
+
+        - key: "contexts"
+          label: "Required check contexts"
+          fieldType: "tags"
+          required: false
+          visibleWhen: { field: "require_status_checks", equals: true }
+          helpText: "The status check context names that must pass, e.g. ci/build, ci/test."
+
+    - name: "Pull Request Reviews"
+      icon: "lock"
+      description: "Required reviews before merging"
+      fields:
+        - key: "require_pull_request_reviews"
+          label: "Require a pull request before merging"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Turn this off to send no review requirement at all (null)."
+
+        - key: "required_approving_review_count"
+          label: "Required approving reviews"
+          fieldType: "number"
+          defaultValue: 1
+          visibleWhen: { field: "require_pull_request_reviews", equals: true }
+          validation:
+            min: 0
+            max: 6
+          helpText: "0–6 approvals required."
+
+        - key: "dismiss_stale_reviews"
+          label: "Dismiss stale approvals on new commits"
+          fieldType: "checkbox"
+          defaultValue: false
+          visibleWhen: { field: "require_pull_request_reviews", equals: true }
+
+        - key: "require_code_owner_reviews"
+          label: "Require review from a code owner"
+          fieldType: "checkbox"
+          defaultValue: false
+          visibleWhen: { field: "require_pull_request_reviews", equals: true }
+
+        - key: "require_last_push_approval"
+          label: "Require approval of the most recent push"
+          fieldType: "checkbox"
+          defaultValue: false
+          visibleWhen: { field: "require_pull_request_reviews", equals: true }
+
+        - key: "dismissal_restrictions"
+          label: "Dismissal restrictions (JSON object)"
+          fieldType: "textarea"
+          required: false
+          visibleWhen: { field: "require_pull_request_reviews", equals: true }
+          validation:
+            maxLength: 5000
+          helpText: 'Who may dismiss reviews, e.g. {"users":[],"teams":["security"],"apps":[]}. Leave empty for GitHub defaults.'
+
+        - key: "bypass_pull_request_allowances"
+          label: "Bypass allowances (JSON object)"
+          fieldType: "textarea"
+          required: false
+          visibleWhen: { field: "require_pull_request_reviews", equals: true }
+          validation:
+            maxLength: 5000
+          helpText: 'Who may bypass required reviews, e.g. {"users":[],"teams":[],"apps":["release-bot"]}.'
+
+    - name: "Push Restrictions"
+      icon: "shield"
+      description: "Who may push directly to this branch"
+      fields:
+        - key: "restrict_pushes"
+          label: "Restrict who can push"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Turn this off to allow anyone with push access (null)."
+
+        - key: "restrictions"
+          label: "Allowed pushers (JSON object)"
+          fieldType: "textarea"
+          required: false
+          visibleWhen: { field: "restrict_pushes", equals: true }
+          validation:
+            maxLength: 5000
+          helpText: 'e.g. {"users":["octocat"],"teams":["release-managers"],"apps":[]}. Any key left out defaults to an empty list.'
+
+    - name: "Additional Rules"
+      icon: "settings"
+      description: "Other classic branch protection settings"
+      fields:
+        - key: "enforce_admins"
+          label: "Include administrators"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Apply this protection to repository administrators too."
+
+        - key: "required_linear_history"
+          label: "Require linear history"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "allow_force_pushes"
+          label: "Allow force pushes"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "allow_deletions"
+          label: "Allow deletions"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_creations"
+          label: "Block branch creation"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Prevent this branch from being newly created by anyone matching the restriction rules."
+
+        - key: "required_conversation_resolution"
+          label: "Require conversation resolution before merging"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "lock_branch"
+          label: "Lock branch (read-only)"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "allow_fork_syncing"
+          label: "Allow fork syncing"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this protection is defined — recorded for audit."

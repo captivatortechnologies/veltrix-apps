@@ -36,6 +36,22 @@ import type { UmbrellaClient } from './umbrellaApi'
 export const DEPLOYMENTS_NETWORKS_PATH = '/deployments/v2/networks'
 export const DEPLOYMENTS_INTERNAL_DOMAINS_PATH = '/deployments/v2/internaldomains'
 export const DEPLOYMENTS_SITES_PATH = '/deployments/v2/sites'
+/** The Umbrella "Internal Networks" resource (RFC1918 subnets tied to a Site,
+ * Network or Tunnel) — distinct from DEPLOYMENTS_NETWORKS_PATH above (the
+ * Networks / egress-IP resource this app confusingly registered as config
+ * type id "internal-networks"). See config-types/internal-network-subnets. */
+export const DEPLOYMENTS_INTERNAL_NETWORK_SUBNETS_PATH = '/deployments/v2/internalnetworks'
+export const DEPLOYMENTS_TUNNELS_PATH = '/deployments/v2/tunnels'
+export const DEPLOYMENTS_POLICIES_PATH = '/deployments/v2/policies'
+
+/** `/deployments/v2/policies/{policyId}/identities/{originId}` — assign
+ * (PUT) or unassign (DELETE) an identity (a Network, Internal Network, Roaming
+ * Computer, ...) to/from a DNS or Web policy. Confirmed via Cisco's own Refit
+ * client interface and Microsoft's official "CiscoUmbrella-AssignPolicyToIdentity"
+ * Sentinel playbook (which calls this exact path against api.umbrella.com). */
+export function policyIdentityPath(policyId: string | number, originId: string | number): string {
+  return `${DEPLOYMENTS_POLICIES_PATH}/${encodeURIComponent(String(policyId))}/identities/${encodeURIComponent(String(originId))}`
+}
 
 /** A live Deployments resource is a bare JSON object of unknown fields. */
 export type LiveResource = Record<string, unknown>

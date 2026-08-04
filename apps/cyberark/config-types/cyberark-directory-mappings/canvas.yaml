@@ -1,0 +1,128 @@
+# =============================================================================
+# Canvas Template — CyberArk LDAP Directory Mappings
+#
+# Declares ONE directory mapping — the item. Users add as many as they need. A
+# mapping grants members of an LDAP/AD group Vault group membership +
+# authorizations, for an EXISTING LDAP directory (referenced by name — this
+# app never creates/updates the directory connection itself, see below).
+# CyberArk assigns a numeric MappingID, so identity for reconciliation is the
+# natural key (directory_name, mapping_name).
+#
+# ⚠ OUT OF SCOPE: the LDAP directory connection itself (BindUsername +
+# BindPassword) — provision it once in the PVWA UI or directly against the
+# Directories API; this type only manages mappings hung off it, none of which
+# carry any secret. Reordering (`Mappings/Reorder`) is also out of scope — it
+# would require the full ordered id list of every mapping in the directory.
+# Field keys must match config-types/cyberark-directory-mappings/validate.ts.
+# =============================================================================
+
+id: "cyberark-directory-mappings"
+name: "CyberArk Directory Mapping Configuration"
+toolType: "cyberark"
+entityType: "cyberark-directory-mappings"
+description: "Define CyberArk LDAP directory mappings as code through the PVWA REST API (/Configuration/LDAP/Directories/{id}/Mappings). Reconciled by (directory, mapping name); the directory connection itself must already exist."
+
+item:
+  label: "Directory Mapping"
+  identityField: "mapping_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Mapping"
+      icon: "network"
+      description: "Which existing directory and which LDAP/AD group"
+      fields:
+        - key: "directory_name"
+          label: "LDAP Directory Name"
+          fieldType: "text"
+          required: true
+          helpText: "The name of an EXISTING LDAP directory configured in PVWA (Configuration > LDAP Integration)."
+
+        - key: "mapping_name"
+          label: "Mapping Name"
+          fieldType: "text"
+          required: true
+          helpText: "A unique mapping name within the directory — its logical identity for reconciliation."
+
+        - key: "domain_groups"
+          label: "Domain Groups"
+          fieldType: "tags"
+          helpText: "One or more LDAP/AD group names (or DNs) this mapping matches. At least one is required."
+
+        - key: "ldap_branch"
+          label: "LDAP Branch"
+          fieldType: "text"
+          helpText: "Optional search branch/DN to scope the match within the directory. Leave blank to search the whole directory."
+
+    - name: "Vault Authorization"
+      icon: "shield"
+      description: "What matching users are granted in the Vault"
+      fields:
+        - key: "vault_groups"
+          label: "Vault Groups"
+          fieldType: "tags"
+          helpText: "Vault group names matching users are added to."
+
+        - key: "mapping_authorizations"
+          label: "Vault Authorizations"
+          fieldType: "tags"
+          helpText: >
+            Vault-level authorization keywords granted to matching users (e.g.
+            AddSafes, ManageDirectoryMapping, AddUpdateUsers, AuditUsers,
+            ActivateUsers, BackupAllSafes). CyberArk validates the exact set of
+            recognised keywords at deploy time.
+
+        - key: "location"
+          label: "Location"
+          fieldType: "text"
+          defaultValue: "\\"
+          helpText: "Vault location assigned to matching users."
+
+        - key: "authentication_method"
+          label: "Authentication Method"
+          fieldType: "tags"
+          helpText: "Authentication method keywords for matching users (e.g. AuthTypePass, AuthTypeLDAP, AuthTypeRADIUS, AuthTypeSAML)."
+
+        - key: "user_type"
+          label: "User Type"
+          fieldType: "text"
+          helpText: "The Vault user type assigned to matching users (e.g. EPVUser)."
+
+    - name: "Account Policy"
+      icon: "settings"
+      description: "Access window and account lifecycle for matching users"
+      fields:
+        - key: "disable_user"
+          label: "Disable User"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, matching users are created/kept disabled."
+
+        - key: "user_activity_log_period"
+          label: "User Activity Log Period (days)"
+          fieldType: "number"
+          helpText: "Optional retention period, in days, for matching users' activity log."
+          validation:
+            min: 1
+
+        - key: "user_expiration"
+          label: "User Expiration"
+          fieldType: "number"
+          helpText: "Optional account expiration (Unix epoch seconds). Leave blank for no expiration."
+
+        - key: "logon_from_hour"
+          label: "Logon Permitted From (Hour)"
+          fieldType: "number"
+          helpText: "Optional start of the daily logon window, 0-23."
+          validation:
+            min: 0
+            max: 23
+
+        - key: "logon_to_hour"
+          label: "Logon Permitted To (Hour)"
+          fieldType: "number"
+          helpText: "Optional end of the daily logon window, 0-23."
+          validation:
+            min: 0
+            max: 23

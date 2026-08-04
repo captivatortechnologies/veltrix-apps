@@ -1,15 +1,17 @@
 id: cisco-umbrella
 name: Cisco Umbrella
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Cisco Umbrella (Secure Internet Gateway / DNS-layer security)
-  configuration as code through the Umbrella API — Destination Lists (allow /
-  block lists of domains, URLs and IPs), Networks, Internal Domains and Sites —
-  with validation, drift detection and rollback handled by the Veltrix
+  configuration as code through the Umbrella API — Destination Lists, Policy
+  Identity Assignments (Policies API), and Networks, Internal Domains, Sites,
+  Internal Network Subnets and Network Tunnels (Deployments API) — with
+  validation, drift detection and rollback handled by the Veltrix
   Security-as-Code pipeline. Authenticates with the Umbrella API OAuth2
   client-credentials flow (API key + secret) against the fixed base URL
-  https://api.umbrella.com.
+  https://api.umbrella.com. Configuration types are grouped by Umbrella API
+  family (Deployments / Policies) in the sidebar.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cisco-umbrella
@@ -41,10 +43,20 @@ permissions:
     - resource: sites
       actions: [read, write, delete]
       description: Manage Cisco Umbrella sites (location groupings for Virtual Appliances) via the Umbrella Deployments API
+    - resource: internal-network-subnets
+      actions: [read, write, delete]
+      description: Manage Cisco Umbrella internal network subnets (RFC1918 ranges tied to a Site, Network or Tunnel) via the Umbrella Deployments API
+    - resource: network-tunnels
+      actions: [read, write, delete]
+      description: Manage Cisco Umbrella IPsec network tunnels via the Umbrella Deployments API
+    - resource: internal-network-policy-assignments
+      actions: [read, write, delete]
+      description: Assign Cisco Umbrella internal network subnet identities to DNS/Web policies via the Umbrella Deployments API
 
 pipeline:
   configurationTypes:
     - id: destination-lists
+      group: "Policies"
       name: Destination Lists
       description: >
         Umbrella destination lists — an allow or block list of domains, URLs and
@@ -68,6 +80,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: internal-networks
+      group: "Deployments"
       name: Networks
       description: >
         Umbrella registered networks — egress/public IP ranges Umbrella applies
@@ -92,6 +105,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: internal-domains
+      group: "Deployments"
       name: Internal Domains
       description: >
         Umbrella internal domains — domains whose DNS queries bypass the Umbrella
@@ -115,6 +129,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: sites
+      group: "Deployments"
       name: Sites
       description: >
         Umbrella sites — physical location groupings for deployed Umbrella Virtual
@@ -131,6 +146,83 @@ pipeline:
         healthCheck: config-types/sites/healthCheck
         driftDetect: config-types/sites/driftDetect
         getStatus: config-types/sites/getStatus
+      targets:
+        componentTypes: [cisco-umbrella]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: internal-network-subnets
+      group: "Deployments"
+      name: Internal Network Subnets
+      description: >
+        Umbrella internal network subnets — RFC1918 (or non-RFC1918) ranges
+        tied to exactly one Site, Network or Tunnel, managed over the Umbrella
+        Deployments API (/deployments/v2/internalnetworks). Subnets are
+        matched by name and their originId is stored for rename-safety; each
+        is upserted to exactly what is declared, with its Site/Network/Tunnel
+        association resolved by name at deploy time; reconcile only deletes
+        subnets this app created. NOTE: distinct from this app's "Networks"
+        config type (internal-networks, /deployments/v2/networks — egress IPs).
+      canvasTemplate: config-types/internal-network-subnets/canvas.yaml
+      defaultConfig: config-types/internal-network-subnets/defaults.yaml
+      handlers:
+        validate: config-types/internal-network-subnets/validate
+        deploy: config-types/internal-network-subnets/deploy
+        rollback: config-types/internal-network-subnets/rollback
+        healthCheck: config-types/internal-network-subnets/healthCheck
+        driftDetect: config-types/internal-network-subnets/driftDetect
+        getStatus: config-types/internal-network-subnets/getStatus
+      targets:
+        componentTypes: [cisco-umbrella]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: network-tunnels
+      group: "Deployments"
+      name: Network Tunnels
+      description: >
+        Umbrella IPsec network tunnels, managed over the Umbrella Deployments
+        API (/deployments/v2/tunnels: create, list, delete — no update
+        endpoint was found in any reference). Tunnels are matched by name and
+        their id is stored for rename-safety; an existing tunnel is left
+        untouched (device-type/secret changes require removing and
+        re-declaring the item); reconcile only deletes tunnels this app
+        created. The PSK secret is write-only — Umbrella never returns it.
+      canvasTemplate: config-types/network-tunnels/canvas.yaml
+      defaultConfig: config-types/network-tunnels/defaults.yaml
+      handlers:
+        validate: config-types/network-tunnels/validate
+        deploy: config-types/network-tunnels/deploy
+        rollback: config-types/network-tunnels/rollback
+        healthCheck: config-types/network-tunnels/healthCheck
+        driftDetect: config-types/network-tunnels/driftDetect
+        getStatus: config-types/network-tunnels/getStatus
+      targets:
+        componentTypes: [cisco-umbrella]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: internal-network-policy-assignments
+      group: "Policies"
+      name: Internal Network Policy Assignments
+      description: >
+        Assigns/unassigns an Internal Network Subnet identity to/from an
+        existing Umbrella DNS or Web policy via
+        PUT/DELETE /deployments/v2/policies/{policyId}/identities/{originId}
+        (Umbrella's DNS/Web policies themselves are read-only through the
+        public API — only this membership is writable). Both the subnet and
+        the policy are matched by name and resolved to Umbrella's ids at
+        deploy time; reconcile only unassigns memberships this app created —
+        an assignment that predates this app's deploy is left in place.
+      canvasTemplate: config-types/internal-network-policy-assignments/canvas.yaml
+      defaultConfig: config-types/internal-network-policy-assignments/defaults.yaml
+      handlers:
+        validate: config-types/internal-network-policy-assignments/validate
+        deploy: config-types/internal-network-policy-assignments/deploy
+        rollback: config-types/internal-network-policy-assignments/rollback
+        healthCheck: config-types/internal-network-policy-assignments/healthCheck
+        driftDetect: config-types/internal-network-policy-assignments/driftDetect
+        getStatus: config-types/internal-network-policy-assignments/getStatus
       targets:
         componentTypes: [cisco-umbrella]
         requiresCredential: true

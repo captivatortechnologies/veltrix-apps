@@ -1,0 +1,117 @@
+# =============================================================================
+# Canvas Template — GitHub Code Scanning Default Setup
+#
+# Declares the FULL CodeQL default-setup configuration for one repository (the
+# item) — state, query suite, languages, threat model and runner selection.
+# Field keys must match config-types/code-scanning-default-setup/_shared.ts.
+# Applied over the GitHub REST API:
+#   GET|PATCH /repos/{owner}/{repo}/code-scanning/default-setup
+# =============================================================================
+
+id: "github-code-scanning-default-setup"
+name: "Code Scanning Default Setup"
+toolType: "github-advanced-security"
+entityType: "code-scanning-default-setup"
+description: "Author the full CodeQL default-setup configuration (languages, query suite, threat model, runner) for a repository via the GitHub REST API"
+
+item:
+  label: "Repository"
+  identityField: "repository"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Repository"
+      icon: "shield"
+      description: "The repository this default-setup configuration applies to"
+      fields:
+        - key: "repository"
+          label: "Repository (owner/repo)"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            pattern: "^[^/\\s]+/[^/\\s]+$"
+          helpText: "The repository full name, e.g. octo-org/octo-repo. Used as the stable identity for drift and rollback."
+
+    - name: "Setup"
+      icon: "lock"
+      description: "Whether default setup is on, and how it analyzes the repository"
+      fields:
+        - key: "state"
+          label: "State"
+          fieldType: "select"
+          defaultValue: "not-configured"
+          options:
+            - { label: "Configured (on)", value: "configured" }
+            - { label: "Not configured (off)", value: "not-configured" }
+          helpText: "Turn CodeQL default setup on or off for this repository."
+
+        - key: "query_suite"
+          label: "Query suite"
+          fieldType: "select"
+          defaultValue: "default"
+          visibleWhen: { field: "state", equals: "configured" }
+          options:
+            - { label: "Default", value: "default" }
+            - { label: "Extended", value: "extended" }
+          helpText: "Extended runs a broader, slower query set for deeper coverage."
+
+        - key: "threat_model"
+          label: "Threat model"
+          fieldType: "select"
+          defaultValue: "remote"
+          visibleWhen: { field: "state", equals: "configured" }
+          options:
+            - { label: "Remote sources only", value: "remote" }
+            - { label: "Remote and local sources", value: "remote_and_local" }
+          helpText: "Which attacker-controlled data sources CodeQL treats as a threat."
+
+        - key: "languages"
+          label: "Languages"
+          fieldType: "multiselect"
+          required: false
+          visibleWhen: { field: "state", equals: "configured" }
+          options:
+            - { label: "GitHub Actions", value: "actions" }
+            - { label: "C / C++", value: "c-cpp" }
+            - { label: "C#", value: "csharp" }
+            - { label: "Go", value: "go" }
+            - { label: "Java / Kotlin", value: "java-kotlin" }
+            - { label: "JavaScript / TypeScript", value: "javascript-typescript" }
+            - { label: "Python", value: "python" }
+            - { label: "Ruby", value: "ruby" }
+            - { label: "Swift", value: "swift" }
+          helpText: "Languages to analyze. Leave empty to let GitHub auto-detect every supported language in the repository."
+
+    - name: "Runner"
+      icon: "settings"
+      description: "Which runner executes the default-setup analysis"
+      fields:
+        - key: "runner_type"
+          label: "Runner type"
+          fieldType: "select"
+          defaultValue: ""
+          visibleWhen: { field: "state", equals: "configured" }
+          options:
+            - { label: "GitHub-hosted (default)", value: "" }
+            - { label: "Standard GitHub-hosted runner", value: "standard" }
+            - { label: "Self-hosted (labeled)", value: "labeled" }
+          helpText: "Leave as default unless this repository must run analysis on a specific runner."
+
+        - key: "runner_label"
+          label: "Runner label"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "runner_type", equals: "labeled" }
+          validation:
+            maxLength: 100
+          helpText: "The self-hosted runner label to schedule the analysis job on. Required when runner type is Self-hosted (labeled)."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this configuration is defined — recorded for audit."

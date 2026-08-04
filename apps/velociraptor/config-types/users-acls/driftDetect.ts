@@ -5,6 +5,7 @@ import {
   readUsers,
   findUser,
   parseRoles,
+  parsePermissions,
   GUI_USERS_VQL,
   type LiveUser,
 } from './_shared'
@@ -62,6 +63,18 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           field: `${name}.roles`,
           expected: desired.join(', ') || '(none)',
           actual: match.roles.join(', ') || '(none)',
+          severity: 'warning',
+        })
+      }
+
+      // Only assert custom-permission drift when the server surfaced a policy
+      // dict (best-effort — see readUsers()).
+      const desiredPermissions = parsePermissions(item.fields.customPermissions)
+      if (match.permissions !== null && !sameSet(desiredPermissions, match.permissions)) {
+        diffs.push({
+          field: `${name}.customPermissions`,
+          expected: desiredPermissions.join(', ') || '(none)',
+          actual: match.permissions.join(', ') || '(none)',
           severity: 'warning',
         })
       }

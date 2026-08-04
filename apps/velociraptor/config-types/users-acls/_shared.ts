@@ -12,6 +12,8 @@
 //                            restore on rollback (flagged there).
 //   - userCreateVQL()        create/update: user_create(user=, roles=[...], password=)
 //   - userGrantVQL()         grant roles:   user_grant(user=, roles=[...])
+//   - userGrantPolicyVQL()   grant/clear custom ACL permissions BEYOND named
+//                            roles: user_grant(user=, policy={perm: true|false})
 //   - userDeleteVQL()        delete:        user_delete(user=)
 // user_create / user_grant / user_delete / gui_users are real Velociraptor server
 // functions; reconcile the exact arguments + gui_users columns against a live
@@ -23,6 +25,7 @@ import {
   resolveApiClientConfig,
   vqlQuote,
   vqlStringArray,
+  vqlJson,
   splitList,
   type VelociraptorClient,
   type VqlRow,
@@ -39,6 +42,47 @@ export const KNOWN_ROLES = new Set([
   'api',
   'org_admin',
 ])
+
+/**
+ * Well-known Velociraptor fine-grained ACL permissions (acls/acls.go's
+ * ACL_PERMISSION constants) — the grant surface BEYOND named roles, applied via
+ * user_grant(policy={...}) for access finer than the 7 roles above allow (e.g.
+ * granting EXECVE without full administrator). Unknown permissions are warned
+ * (not rejected), matching KNOWN_ROLES' posture.
+ *
+ * VERIFY: the exact wire/JSON casing user_grant's `policy` dict (and
+ * gui_users()'s echo of it) expects — acls.go names these in UPPER_SNAKE
+ * (`COLLECT_CLIENT`); this assumes the proto-JSON form is lower_snake
+ * (`collect_client`), consistent with this app's other snake_case VQL args
+ * (`client_id`, `org_id`). Unverified against a live server.
+ */
+export const KNOWN_PERMISSIONS = new Set([
+  'any_query',
+  'publish',
+  'read_results',
+  'label_client',
+  'collect_client',
+  'collect_basic',
+  'start_hunt',
+  'collect_server',
+  'artifact_writer',
+  'server_artifact_writer',
+  'execve',
+  'notebook_editor',
+  'server_admin',
+  'org_admin',
+  'impersonation',
+  'filesystem_read',
+  'filesystem_write',
+  'network',
+  'machine_state',
+  'prepare_results',
+  'delete_results',
+  'datastore_access',
+])
+
+/** Parse the CSV/newline custom-permissions field — same shape as parseRoles(). */
+export const parsePermissions = parseRoles
 
 // --- VQL (single swap point — VERIFY every function name + column below) --------
 
@@ -75,12 +119,42 @@ export function userDeleteVQL(name: string): string {
   return `SELECT user_delete(user=${vqlQuote(name)}) AS deleted FROM scope()`
 }
 
+/**
+ * Grant/clear fine-grained ACL permissions beyond named roles (used both to
+ * apply authored custom permissions on deploy and to restore/clear them on
+ * rollback). VERIFY: `user_grant(user=<name>, policy=<dict>)` — a `true` value
+ * grants a permission; whether `false` explicitly CLEARS it (vs. being ignored)
+ * is UNCERTAIN — flagged at every call site that relies on it.
+ */
+export function userGrantPolicyVQL(name: string, policy: Record<string, boolean>): string {
+  return `SELECT user_grant(user=${vqlQuote(name)}, policy=${vqlJson(policy)}) AS granted FROM scope()`
+}
+
+/**
+ * Build the policy dict to send: `true` for every desired permission, and an
+ * explicit `false` for every permission in `prior` that is no longer desired
+ * (an attempt to CLEAR it — see userGrantPolicyVQL's VERIFY note). Returns an
+ * empty object when there is nothing to change.
+ */
+export function buildPolicyDelta(desired: string[], prior: string[] | null): Record<string, boolean> {
+  const policy: Record<string, boolean> = {}
+  for (const permission of desired) policy[permission] = true
+  for (const permission of prior ?? []) {
+    if (!desired.includes(permission)) policy[permission] = false
+  }
+  return policy
+}
+
 // --- reading ------------------------------------------------------------------
 
 /** A live GUI user as read from gui_users(). VERIFY columns. */
 export interface LiveUser {
   name: string
   roles: string[]
+  /** Fine-grained custom permissions, when the server surfaces them (best-
+   *  effort) — null when the policy dict was absent/unreadable, distinct from
+   *  an empty grant. */
+  permissions: string[] | null
 }
 
 function rolesFromValue(value: unknown): string[] {
@@ -89,11 +163,21 @@ function rolesFromValue(value: unknown): string[] {
   return []
 }
 
-/** Map gui_users() rows into LiveUser, tolerant of the name/roles column casing. */
+/** The permission names granted `true` in a gui_users() row's policy dict, or
+ *  null when the dict is absent/not an object (distinct from "granted none"). */
+function permissionsFromValue(value: unknown): string[] | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  return Object.entries(value as Record<string, unknown>)
+    .filter(([, granted]) => granted === true)
+    .map(([permission]) => permission)
+}
+
+/** Map gui_users() rows into LiveUser, tolerant of the name/roles/policy column casing. */
 export function readUsers(rows: VqlRow[]): LiveUser[] {
   return rows.map((row) => ({
     name: String(row['name'] ?? row['Name'] ?? '').trim(),
     roles: rolesFromValue(row['roles'] ?? row['Roles']),
+    permissions: permissionsFromValue(row['policy'] ?? row['Policy']),
   })).filter((u) => u.name)
 }
 
