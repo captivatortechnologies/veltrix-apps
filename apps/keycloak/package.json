@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-keycloak",
   "private": true,
-  "version": "0.3.0",
-  "description": "Veltrix app: manage Keycloak (open-source Identity and Access Management) as code — OIDC/SAML clients, realm roles, groups and identity providers over the Keycloak Admin REST API, plus BYOL infrastructure provisioning for the Keycloak stack",
+  "version": "0.4.0",
+  "description": "Veltrix app: manage Keycloak (open-source Identity and Access Management) as code — clients, client scopes, protocol mappers, realm/client/default roles, groups, authentication flows, required actions, realm settings, client policies/profiles, LDAP/Kerberos user federation, identity providers + mappers, and authorization (resource-server) over the Keycloak Admin REST API, plus BYOL infrastructure provisioning for the Keycloak stack",
   "scripts": {
     "typecheck": "tsc --noEmit"
   },

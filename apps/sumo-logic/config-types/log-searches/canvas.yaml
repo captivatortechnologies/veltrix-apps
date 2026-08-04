@@ -1,0 +1,130 @@
+# =============================================================================
+# Canvas Template — Sumo Logic Log Searches
+#
+# Declares ONE saved (optionally scheduled) log search (the item) in the
+# Content Library. `timeRange` and `schedule` (cron/interval + a notification
+# that is itself a discriminated union of Email/Webhook/ServiceNow/
+# SaveToView/SaveToLookup/Alert task types) are deeply nested, so — following
+# the Monitors and Dashboards config types in this app — they are authored as
+# JSON. Field keys must match config-types/log-searches/validate.ts. Applied
+# via the Sumo Logic Management API (/api/v1/logSearches).
+#   API: https://help.sumologic.com/docs/api/log-searches/
+# =============================================================================
+
+id: "sumo-logic-log-searches"
+name: "Log Searches"
+toolType: "sumo-logic"
+entityType: "log-searches"
+description: "Manage Sumo Logic saved and scheduled log searches — query, schedule and notification actions — via the Management API"
+
+item:
+  label: "Log Search"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Log Search"
+      icon: "search"
+      description: "Identity and placement"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+            pattern: "^[A-Za-z0-9 +%\\-@.,_()]+$"
+          helpText: "Log search name shown in Sumo Logic. The stable identity for upsert and drift — unique within its folder, not globally."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Human-readable description of what this search finds."
+
+        - key: "parentId"
+          label: "Folder ID"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 64
+          helpText: "The Content Library folder id to save this search in (see the Content Folders config type). Leave blank to use your Personal folder (resolved automatically via GET /v2/content/folders/personal)."
+
+    - name: "Query"
+      icon: "code"
+      description: "What the search runs and over what time range"
+      fields:
+        - key: "queryString"
+          label: "Query"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 15000
+          helpText: 'The search query to run, e.g. error {{sourceCategory}}| count by _sourceCategory.'
+
+        - key: "timeRange"
+          label: "Time Range (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 8192
+          helpText: 'The query time range, e.g. {"type":"BeginBoundedTimeRange","from":{"type":"RelativeTimeRangeBoundary","relativeTime":"-15m"}}.'
+
+        - key: "parsingMode"
+          label: "Parsing Mode"
+          fieldType: "select"
+          required: false
+          defaultValue: "Manual"
+          options:
+            - { label: "Manual — no fields parsed automatically", value: "Manual" }
+            - { label: "AutoParse — fields inferred from the query", value: "AutoParse" }
+          helpText: "How Sumo Logic scans JSON log messages for this search."
+
+        - key: "intervalTimeType"
+          label: "Interval Time Type"
+          fieldType: "select"
+          required: false
+          defaultValue: "messageTime"
+          options:
+            - { label: "Message time", value: "messageTime" }
+            - { label: "Receipt time", value: "receiptTime" }
+            - { label: "Searchable time", value: "searchableTime" }
+          helpText: "Which timestamp the search's time range is evaluated against."
+
+        - key: "runByReceiptTime"
+          label: "Run By Receipt Time"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Legacy flag — prefer Interval Time Type above. When on, runs by the time Sumo Logic received the message rather than the message's own timestamp."
+
+        - key: "queryParameters"
+          label: "Search Template Parameters (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 16384
+          helpText: 'Optional JSON array of { "name", "dataType", "value" } objects for search templates. Leave blank for a search with no template parameters.'
+
+        - key: "properties"
+          label: "Display Properties"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 65536
+          helpText: "Advanced: aggregate results / view configuration / legend and visualization overrides, as a JSON string. Leave blank for the defaults."
+
+    - name: "Schedule (JSON)"
+      icon: "clock"
+      description: "When the search runs on its own, and what happens when it does"
+      fields:
+        - key: "schedule"
+          label: "Schedule (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 65536
+          helpText: 'A JSON object with scheduleType (RealTime/15Minutes/1Hour/.../Custom), cronExpression (required when Custom), parseableTimeRange, timeZone and a notification (or notifications) task — e.g. {"scheduleType":"1Hour","parseableTimeRange":{"type":"BeginBoundedTimeRange","from":{"type":"RelativeTimeRangeBoundary","relativeTime":"-1h"}},"timeZone":"UTC","notification":{"taskType":"EmailSearchNotification","toList":["soc@example.com"],"subjectTemplate":"Alert","includeQuery":true,"includeResultSet":true,"includeHistogram":false,"includeCsvAttachment":false}}. Leave blank for an unscheduled, on-demand search.'

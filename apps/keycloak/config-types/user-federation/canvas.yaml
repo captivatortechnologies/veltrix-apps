@@ -1,0 +1,352 @@
+# =============================================================================
+# Canvas Template — Keycloak User Federation
+#
+# Declares ONE LDAP or standalone Kerberos user-storage provider (the item).
+# Users add as many as they need. Field keys must match
+# config-types/user-federation/validate.ts and _shared.ts. Applied via the
+# Keycloak Admin REST API as a Component
+# (/admin/realms/{realm}/components, providerType
+# org.keycloak.storage.UserStorageProvider; providerId "ldap" or "kerberos" is
+# the type discriminator). The component `name` is the stable identity used
+# for upsert and drift.
+#
+# SECRETS ARE WRITE-ONLY. Bind Credential (LDAP) and Key Tab (Kerberos) are
+# never read back — Keycloak masks a confidential config value on GET as the
+# literal string "**********", so this config type cannot diff or restore
+# them. They are sent ONLY when the field holds a non-blank value; leaving
+# either blank on an update leaves the live value untouched.
+# =============================================================================
+
+id: "keycloak-user-federation"
+name: "User Federation"
+toolType: "keycloak"
+entityType: "user-federation"
+description: "Manage Keycloak LDAP and standalone Kerberos user-storage providers — connection, attribute mapping, sync and Kerberos integration settings — via the Keycloak Admin REST API"
+
+item:
+  label: "User federation provider"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Provider"
+      icon: "key"
+      description: "Provider type and identity"
+      fields:
+        - key: "providerType"
+          label: "Provider type"
+          fieldType: "select"
+          required: true
+          defaultValue: "ldap"
+          options:
+            - label: "LDAP"
+              value: "ldap"
+            - label: "Kerberos (standalone)"
+              value: "kerberos"
+          helpText: "LDAP manages a directory-backed user store (with optional Kerberos SSO). Kerberos (standalone) provides Kerberos/SPNEGO authentication only, with no directory of its own."
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[^\\s]+$"
+            maxLength: 255
+          helpText: "Unique provider name (e.g. corp-ldap). Used as the stable identity for upsert and drift."
+
+    - name: "General"
+      icon: "settings"
+      description: "Enabled state, priority and edit mode"
+      fields:
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether this provider is enabled"
+
+        - key: "priority"
+          label: "Priority"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+          helpText: "Priority when looking up users, across multiple federation providers. Lower values are consulted first."
+
+        - key: "editMode"
+          label: "Edit mode"
+          fieldType: "select"
+          required: false
+          defaultValue: "READ_ONLY"
+          options:
+            - label: "Read only"
+              value: "READ_ONLY"
+            - label: "Writable"
+              value: "WRITABLE"
+            - label: "Unsynced"
+              value: "UNSYNCED"
+          helpText: "Whether Keycloak may write user data back to this provider. For a standalone Kerberos provider, typically Read only."
+
+        - key: "importEnabled"
+          label: "Import users"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          helpText: "Import LDAP users into the local Keycloak database on first login."
+
+    - name: "LDAP Connection"
+      icon: "server"
+      description: "Directory connection and bind credentials"
+      fields:
+        - key: "connectionUrl"
+          label: "Connection URL"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          helpText: "Required for LDAP, e.g. ldap://ldap.example.com:389 or ldaps://ldap.example.com:636."
+
+        - key: "usersDn"
+          label: "Users DN"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          helpText: "Required for LDAP. The full DN of the subtree containing users, e.g. ou=Users,dc=example,dc=com."
+
+        - key: "authType"
+          label: "Bind type"
+          fieldType: "select"
+          required: false
+          defaultValue: "simple"
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          options:
+            - label: "Simple (bind DN + credential)"
+              value: "simple"
+            - label: "None (anonymous)"
+              value: "none"
+          helpText: "How Keycloak authenticates to the directory before searching it."
+
+        - key: "bindDn"
+          label: "Bind DN"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          helpText: "The DN Keycloak binds as, e.g. cn=admin,dc=example,dc=com. Must be set together with Bind Credential (both or neither) — leave both blank for an anonymous bind."
+
+        - key: "bindCredential"
+          label: "Bind Credential"
+          fieldType: "password"
+          required: false
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          helpText: "The Bind DN's password. Write-only — leave blank on an update to leave the live credential untouched. Required together with Bind DN."
+
+        - key: "startTls"
+          label: "Enable StartTLS"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          helpText: "Upgrade a plain ldap:// connection to TLS before binding."
+
+        - key: "connectionPooling"
+          label: "Connection pooling"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          helpText: "Reuse pooled LDAP connections rather than opening a new one per request."
+
+        - key: "pagination"
+          label: "Pagination"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          helpText: "Use LDAP result paging for large directories. Disable only for a directory that does not support the paging control."
+
+        - key: "searchScope"
+          label: "Search scope"
+          fieldType: "select"
+          required: false
+          defaultValue: "2"
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          options:
+            - label: "Subtree"
+              value: "2"
+            - label: "One level"
+              value: "1"
+          helpText: "How deep under Users DN Keycloak searches for users. Stored as the numeric javax.naming.directory.SearchControls value (1 = one level, 2 = subtree), verified against Keycloak's LDAPConfig source."
+
+        - key: "customUserSearchFilter"
+          label: "Custom user search filter"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          helpText: "An additional LDAP filter applied to every user search, e.g. (memberOf=cn=keycloak-users,ou=Groups,dc=example,dc=com). Must start with '(' and end with ')'."
+
+        - key: "connectionTimeout"
+          label: "Connection timeout (ms)"
+          fieldType: "number"
+          required: false
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          helpText: "LDAP connection timeout in milliseconds (Keycloak's own default is 5000). Backed by the standard com.sun.jndi.ldap.connect.timeout JNDI property."
+
+        - key: "readTimeout"
+          label: "Read timeout (ms)"
+          fieldType: "number"
+          required: false
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          helpText: "LDAP read timeout in milliseconds. Backed by the standard com.sun.jndi.ldap.read.timeout JNDI property."
+
+    - name: "LDAP Attribute Mapping"
+      icon: "list"
+      description: "Vendor and how LDAP attributes map to a Keycloak user"
+      fields:
+        - key: "vendor"
+          label: "Vendor"
+          fieldType: "select"
+          required: false
+          defaultValue: "other"
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          options:
+            - label: "Other / generic LDAP"
+              value: "other"
+            - label: "Novell eDirectory"
+              value: "edirectory"
+            - label: "Active Directory"
+              value: "ad"
+            - label: "Red Hat Directory Server"
+              value: "rhds"
+            - label: "Tivoli"
+              value: "tivoli"
+          helpText: "The directory vendor, used by Keycloak to pick vendor-specific defaults. Values verified against Keycloak's LDAPConstants source (lower-case on the wire)."
+
+        - key: "syncRegistrations"
+          label: "Sync registrations"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          helpText: "Create a user registered through Keycloak in this LDAP directory as well."
+
+        - key: "usernameLdapAttribute"
+          label: "Username LDAP attribute"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          helpText: "Required for LDAP. The LDAP attribute used as the Keycloak username, e.g. cn or uid (or sAMAccountName for Active Directory)."
+
+        - key: "rdnLdapAttribute"
+          label: "RDN LDAP attribute"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          helpText: "Required for LDAP. The attribute used as the RDN (leaf) of a user's DN, e.g. cn or uid."
+
+        - key: "uuidLdapAttribute"
+          label: "UUID LDAP attribute"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          helpText: "Required for LDAP. The attribute holding a user's immutable unique id, e.g. entryUUID or objectGUID (Active Directory)."
+
+        - key: "userObjectClasses"
+          label: "User object classes"
+          fieldType: "tags"
+          required: false
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          helpText: "Required for LDAP. The LDAP object classes a user entry must have, e.g. inetOrgPerson, organizationalPerson. Stored by Keycloak as one comma-and-space-joined string."
+
+    - name: "LDAP Sync"
+      icon: "clock"
+      description: "Background sync and password-write behavior"
+      fields:
+        - key: "batchSizeForSync"
+          label: "Batch size for sync"
+          fieldType: "number"
+          required: false
+          defaultValue: 1000
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          helpText: "Number of LDAP users processed per batch during a full/incremental sync."
+
+        - key: "fullSyncPeriod"
+          label: "Full sync period (seconds)"
+          fieldType: "number"
+          required: false
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          helpText: "How often Keycloak runs a full sync of all users, in seconds. Leave blank to disable periodic full sync."
+
+        - key: "changedSyncPeriod"
+          label: "Changed users sync period (seconds)"
+          fieldType: "number"
+          required: false
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          helpText: "How often Keycloak syncs only users changed since the last sync, in seconds. Leave blank to disable."
+
+        - key: "validatePasswordPolicy"
+          label: "Validate password policy"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          helpText: "Apply the realm's password policy when this provider writes a password to LDAP (Edit mode = Writable)."
+
+        - key: "trustEmail"
+          label: "Trust email"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          helpText: "Treat an email address imported from this provider as already verified."
+
+        - key: "usePasswordModifyExtendedOp"
+          label: "Use password-modify extended operation"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          helpText: "Use the LDAP password-modify extended operation (RFC 3062) instead of a plain attribute write when changing a password."
+
+    - name: "Kerberos Integration"
+      icon: "shield"
+      description: "Kerberos/SPNEGO settings — an opt-in add-on for LDAP, or the whole point for a standalone Kerberos provider"
+      fields:
+        - key: "allowKerberosAuthentication"
+          label: "Allow Kerberos authentication"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          visibleWhen: { field: "providerType", equals: "ldap" }
+          helpText: "Opt an LDAP provider into Kerberos/SPNEGO authentication alongside its directory lookups. Not shown for a standalone Kerberos provider, where Kerberos is inherently the whole point."
+
+        - key: "kerberosRealm"
+          label: "Kerberos realm"
+          fieldType: "text"
+          required: false
+          helpText: "Required when Provider type = Kerberos, or when Allow Kerberos authentication is on for LDAP. e.g. EXAMPLE.COM."
+
+        - key: "serverPrincipal"
+          label: "Server principal"
+          fieldType: "text"
+          required: false
+          helpText: "Required under the same condition as Kerberos realm. e.g. HTTP/host.foo.com@FOO.LOCAL."
+
+        - key: "keyTab"
+          label: "Key tab"
+          fieldType: "password"
+          required: false
+          helpText: "The keytab file path (or content) for the server principal, treated as sensitive. Required under the same condition as Kerberos realm. Write-only — leave blank on an update to leave the live value untouched."
+
+        - key: "useKerberosForPasswordAuthentication"
+          label: "Use Kerberos for password authentication"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Authenticate a username/password login against the Kerberos server instead of (or in addition to) LDAP."
+
+        - key: "debug"
+          label: "Kerberos debug logging"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Enable verbose Kerberos debug logging."

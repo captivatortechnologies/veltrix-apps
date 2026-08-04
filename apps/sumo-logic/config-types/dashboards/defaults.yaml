@@ -1,0 +1,9 @@
+# Defaults for a new dashboard item — the operator fills in the title and time
+# range. A new dashboard has no panels, never auto-refreshes, uses the Light
+# theme and saves to the caller's Personal folder unless overridden.
+refreshInterval: 0
+theme: "Light"
+isPublic: false
+panels: "[]"
+layout: '{"layoutType":"Grid","layoutStructures":[]}'
+variables: "[]"

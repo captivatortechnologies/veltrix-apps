@@ -1,0 +1,7 @@
+# Defaults for a new monitor item — the operator fills in the name, queries and
+# triggers. A new monitor targets Logs, is enabled, has no notifications and
+# uses the root Monitors Library folder unless overridden.
+monitorType: "Logs"
+isDisabled: false
+groupNotifications: false
+notifications: "[]"

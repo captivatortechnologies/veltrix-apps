@@ -2,6 +2,75 @@
 
 All notable changes to the Keycloak app are documented here.
 
+## 0.4.0 — 2026-08-04
+
+Exhausts the declarative surface of the Keycloak Admin REST API — twelve new
+config types alongside the existing four (`clients`, `realm-roles`, `groups`,
+`identity-providers`), each with the full validate / deploy / rollback /
+health-check / drift-detect / status pipeline. Researched against the official
+Keycloak Admin REST API docs, the `keycloak/terraform-provider-keycloak`
+resource docs, and — for every field/endpoint flagged as verified — Keycloak's
+own server source on GitHub. See the [README](README.md)'s **Coverage**
+section for the full managed/excluded/follow-up accounting and citations.
+
+- **Client Scopes** — name, protocol, consent/token/discovery attributes (`display.on.consent.screen`,
+  `consent.screen.text`, `include.in.token.scope`, `include.in.openid.provider.metadata`,
+  `gui.order` — verified against `ClientScopeModel.java`), plus realm
+  default/optional assignment reconciled via `/default-{default,optional}-client-scopes/{id}`.
+- **Protocol Mappers** — OIDC/SAML claim/attribute mappers attached to an
+  existing client or client scope, identity resolved to the parent's internal
+  UUID at deploy time.
+- **Client Roles** — roles scoped to a client, mirroring Realm Roles with a
+  `clientId`-resolved identity.
+- **Default Roles** — a realm-wide singleton reconciling the realm's default
+  composite role's children (realm + client roles) via
+  `/roles-by-id/{id}/composites`; warns when an empty declared set would strip
+  Keycloak's own `offline_access`/`uma_authorization` defaults.
+- **Authentication Flows** — custom flow containers only (alias, description,
+  provider type); refuses to touch a live `builtIn: true` flow; the
+  execution/step graph inside a flow is a deliberate boundary, not authored
+  here (matching the sibling `authentik` app's own Flow/FlowStageBinding
+  split).
+- **Required Actions** — enable/default/reorder the realm's required actions
+  by alias, registering a known-but-unregistered provider via
+  `/register-required-action` on first deploy.
+- **Realm Settings** — a realm-wide singleton covering Tokens (lifespans,
+  plain integer seconds — verified against `RealmRepresentation.java`), Login
+  flags (with the `duplicateEmailsAllowed`/`loginWithEmailAllowed`
+  mutual-exclusion check) and the raw password-policy DSL string.
+  `rollbackData` persists only the narrow field subset this type authors —
+  never the full realm representation, which embeds `smtpServer.password`.
+- **Client Profiles** / **Client Policies** — the FAPI-style client-policies
+  framework's named executor sets and condition sets, each a realm-wide
+  whole-list singleton (one GET + one PUT covering every canvas item
+  together, mirroring `cisco-meraki`'s ordered firewall-rule lists).
+  Keycloak's built-in `globalProfiles`/`globalPolicies` are verified (against
+  `ClientProfilesRepresentation.java`/`ClientPoliciesRepresentation.java`/`ClientPoliciesUtil.java`)
+  to be safely — and necessarily — excluded from every PUT.
+- **User Federation** — LDAP and standalone Kerberos user-storage providers as
+  Keycloak Components. `bindCredential`/`keyTab` are write-only and are
+  stripped from every captured prior state before a rollback or merge can
+  replay it, so a masked `"**********"` placeholder can never overwrite a live
+  secret. LDAP attribute keys, the vendor enum and the numeric `searchScope`
+  encoding are verified against `LDAPConstants.java`/`LDAPConfig.java`.
+- **Identity Provider Mappers** — attribute/role/group mappers on an existing
+  identity provider instance, identity `(alias, name)`.
+- **Authorization** — a client's fine-grained authorization services
+  (resources, scopes, permissions, role-based policies) behind a `kind`
+  selector, gated on the client already having authorization services
+  enabled. Only `role`-type policies are built; `js`/`time`/`user`/`client`/
+  `group`/`aggregate`/`regex` policies are a documented follow-up.
+- **Shared helpers** — `lib/clients.ts` (client `clientId` → internal UUID
+  resolution, reused by Client Roles, Protocol Mappers, Authorization) and
+  `lib/fields.ts` additions (`readJsonObject`/`readJsonArray`/`parseJsonField`
+  for the JSON-textarea escape-hatch fields used by Default Roles,
+  Client Profiles/Policies and Authorization's role-policy roles list).
+
+> See the README's **Coverage** section for the complete managed/excluded/
+> not-yet-built accounting, including the specific fields and endpoints still
+> flagged for live-Keycloak verification (e.g. the exact composites-endpoint
+> ref shape, permission/policy update-by-id semantics).
+
 ## 0.3.0 — 2026-08-01
 
 BYOL infrastructure hosting — provision and manage a dedicated Keycloak cluster

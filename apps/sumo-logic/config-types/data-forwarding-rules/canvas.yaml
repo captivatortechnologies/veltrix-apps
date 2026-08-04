@@ -1,0 +1,90 @@
+# =============================================================================
+# Canvas Template — Sumo Logic Data Forwarding Rules
+#
+# Declares ONE data forwarding rule (the item), binding an existing Partition or
+# Scheduled View (by its own `id`) to an existing Data Forwarding Destination
+# (see that config type). Unlike other config types in this app, the identity
+# here (`indexId`) is caller-supplied, not name-based. Field keys must match
+# config-types/data-forwarding-rules/validate.ts. Applied via the Sumo Logic
+# Management API (/api/v1/logsDataForwarding/rules).
+#   API: https://help.sumologic.com/docs/api/data-forwarding/
+# =============================================================================
+
+id: "sumo-logic-data-forwarding-rules"
+name: "Data Forwarding Rules"
+toolType: "sumo-logic"
+entityType: "data-forwarding-rules"
+description: "Bind Sumo Logic Partitions or Scheduled Views to S3 Data Forwarding Destinations via the Management API"
+
+item:
+  label: "Data Forwarding Rule"
+  identityField: "indexId"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Binding"
+      icon: "link"
+      description: "Which index forwards to which destination"
+      fields:
+        - key: "indexId"
+          label: "Partition / Scheduled View ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 64
+          helpText: "The id of an existing Partition or Scheduled View (not its name) — find it via the Partitions / Scheduled Views config types or the Sumo Logic UI. The stable identity for upsert and drift; a rule can only exist for one index."
+
+        - key: "destinationId"
+          label: "Destination ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 64
+          helpText: "The id of an existing Data Forwarding Destination (see that config type) this index's data should be forwarded to."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether this forwarding rule is active."
+
+    - name: "Payload"
+      icon: "file"
+      description: "How forwarded files are named and shaped"
+      fields:
+        - key: "fileFormat"
+          label: "File Format Pattern"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 512
+          helpText: "Path prefix and file naming pattern in the destination bucket, e.g. {index}_{day}_{hour}_{minute}_{second}. Leave blank for the Sumo Logic default."
+
+        - key: "payloadSchema"
+          label: "Payload Schema"
+          fieldType: "select"
+          required: false
+          options:
+            - label: "Built-in fields only"
+              value: "builtInFields"
+            - label: "All fields"
+              value: "allFields"
+            - label: "Raw message"
+              value: "raw"
+          helpText: "Default is allFields for a Scheduled View and builtInFields for a Partition. Raw should be paired with the Raw text format below."
+
+        - key: "format"
+          label: "File Format"
+          fieldType: "select"
+          required: false
+          defaultValue: "csv"
+          options:
+            - label: "CSV"
+              value: "csv"
+            - label: "JSON"
+              value: "json"
+            - label: "Raw text"
+              value: "text"
+          helpText: "Format of the forwarded payload. Raw text should be paired with the Raw payload schema above; the two are meant to be used together."

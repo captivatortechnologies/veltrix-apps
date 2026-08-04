@@ -1,0 +1,101 @@
+# =============================================================================
+# Canvas Template — Sumo Logic Ingest Budgets
+#
+# Declares ONE ingest budget (the item). Users add as many as they need. Field
+# keys must match config-types/ingest-budgets/validate.ts. Applied via the Sumo
+# Logic Management API v2 (/api/v2/ingestBudgets).
+#   API: https://help.sumologic.com/docs/api/ingest-budget-v2/
+# =============================================================================
+
+id: "sumo-logic-ingest-budgets"
+name: "Ingest Budgets"
+toolType: "sumo-logic"
+entityType: "ingest-budgets"
+description: "Manage Sumo Logic ingest budgets — daily volume caps per field scope, with a configurable action once capacity is reached — via the Management API v2"
+
+item:
+  label: "Ingest Budget"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Budget"
+      icon: "gauge"
+      description: "Identity and what messages it applies to"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "Display name of the ingest budget shown in Sumo Logic. The stable identity for upsert and drift."
+
+        - key: "scope"
+          label: "Scope"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 1024
+          helpText: "Field-based scope this budget applies to, e.g. _sourceCategory=*prod*nginx*. The field must be enabled in the Fields schema (see the Custom Fields config type). Wildcards are supported."
+
+        - key: "capacityBytes"
+          label: "Capacity (bytes/day)"
+          fieldType: "number"
+          required: true
+          validation:
+            min: 1
+          helpText: "Ingest capacity in bytes per day before the configured action fires. It takes a few minutes for Collectors to stop once capacity is reached — set a soft limit below your hard limit."
+
+    - name: "Action & Reset"
+      icon: "alert-triangle"
+      description: "What happens when capacity is reached, and when the budget resets"
+      fields:
+        - key: "action"
+          label: "Action at Capacity"
+          fieldType: "select"
+          required: true
+          defaultValue: "keepCollecting"
+          options:
+            - label: "Keep collecting (audit only)"
+              value: "keepCollecting"
+            - label: "Stop collecting"
+              value: "stopCollecting"
+          helpText: "Action to take when the budget's capacity is reached. All actions are audited regardless of this setting."
+
+        - key: "resetTime"
+          label: "Reset Time (HH:MM)"
+          fieldType: "text"
+          required: false
+          defaultValue: "00:00"
+          validation:
+            pattern: "^([01]\\d|2[0-3]):[0-5]\\d$"
+            maxLength: 5
+          helpText: "Time of day the budget's usage resets, in HH:MM 24-hour format."
+
+        - key: "timezone"
+          label: "Time Zone"
+          fieldType: "text"
+          required: false
+          defaultValue: "Etc/UTC"
+          validation:
+            maxLength: 64
+          helpText: "IANA time zone for the reset time, e.g. America/Los_Angeles."
+
+        - key: "auditThreshold"
+          label: "Audit Threshold (%)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+            max: 99
+          helpText: "Percentage of capacity usage at which an entry is logged to the Audit Index. Leave blank to only audit at 100%/action time."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1024
+          helpText: "Human-readable description of what this budget is protecting."

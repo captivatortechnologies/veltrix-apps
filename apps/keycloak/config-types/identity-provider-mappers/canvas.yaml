@@ -1,0 +1,64 @@
+# =============================================================================
+# Canvas Template — Keycloak Identity Provider Mappers
+#
+# Declares ONE mapper attached to an EXISTING identity provider instance (the
+# item). Users add as many as they need. Field keys must match
+# config-types/identity-provider-mappers/validate.ts. Applied via the Keycloak
+# Admin REST API (/admin/realms/{realm}/identity-provider/instances/{alias}/mappers).
+# The identity provider referenced by `alias` must already exist — see the
+# Identity Providers config type; this type does not create IdPs. The stable
+# identity is the composite (alias, name).
+# =============================================================================
+
+id: "keycloak-identity-provider-mappers"
+name: "Identity Provider Mappers"
+toolType: "keycloak"
+entityType: "identity-provider-mappers"
+description: "Manage attribute/role/group mappers on an existing Keycloak identity provider instance — mapper name, type and config — via the Keycloak Admin REST API"
+
+item:
+  label: "Identity provider mapper"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Target"
+      icon: "link"
+      description: "The existing identity provider this mapper attaches to"
+      fields:
+        - key: "alias"
+          label: "Identity provider alias"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[^\\s]+$"
+            maxLength: 255
+          helpText: "The alias of an EXISTING identity provider instance. Must already exist — see the Identity Providers config type; this type does not create identity providers."
+
+    - name: "Mapper"
+      icon: "settings"
+      description: "Mapper name, type and configuration"
+      fields:
+        - key: "name"
+          label: "Mapper name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[^\\s]+$"
+            maxLength: 255
+          helpText: "The mapper's display name. Unique per identity provider; used as part of this config type's identity."
+
+        - key: "identityProviderMapper"
+          label: "Mapper type"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The Keycloak identity-provider mapper type id (identityProviderMapper), authored as free text. Examples: oidc-user-attribute-idp-mapper, hardcoded-attribute-idp-mapper, oidc-hardcoded-role-idp-mapper, oidc-role-idp-mapper, oidc-username-idp-mapper, saml-user-attribute-idp-mapper, saml-role-idp-mapper, oidc-advanced-group-idp-mapper. Modeled on the keycloak_custom_identity_provider_mapper / keycloak_attribute_importer_identity_provider_mapper / keycloak_hardcoded_role_identity_provider_mapper Terraform resources (registry.terraform.io/providers/keycloak/keycloak/latest/docs/resources/)."
+
+        - key: "config"
+          label: "Mapper config"
+          fieldType: "keyvalue"
+          required: false
+          helpText: "Mapper-specific config as key/value pairs (e.g. the source attribute name/value, a template, syncMode, or the role/group to grant). Authoritative: keys removed here are removed from the mapper on the next deploy. Keys containing 'secret' are write-only and not compared for drift."

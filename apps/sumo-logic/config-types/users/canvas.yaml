@@ -1,0 +1,69 @@
+# =============================================================================
+# Canvas Template — Sumo Logic Users
+#
+# Declares ONE user (the item). Users add as many as they need. Field keys must
+# match config-types/users/validate.ts. Applied via the Sumo Logic Management
+# API (/api/v1/users). Membership in roles is by role id (see the Roles config
+# type for the roles you manage as code) — Sumo Logic system/built-in roles
+# have fixed ids visible in the UI.
+#   API: https://help.sumologic.com/docs/api/user-management/
+# =============================================================================
+
+id: "sumo-logic-users"
+name: "Users"
+toolType: "sumo-logic"
+entityType: "users"
+description: "Manage Sumo Logic user accounts — name, role assignment and active state — via the Management API"
+
+item:
+  label: "User"
+  identityField: "email"
+  repeatable: true
+  minItems: 1
+  maxItems: 2000
+  groups:
+    - name: "User"
+      icon: "user"
+      description: "Identity and name"
+      fields:
+        - key: "email"
+          label: "Email"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+            maxLength: 255
+          helpText: "The user's email address. The stable identity for upsert and drift — immutable after creation (renaming a user's email is a separate confirmation flow in Sumo Logic, not covered by this config type)."
+
+        - key: "firstName"
+          label: "First Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "The user's first name."
+
+        - key: "lastName"
+          label: "Last Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 128
+          helpText: "The user's last name."
+
+    - name: "Access"
+      icon: "shield"
+      description: "Role membership and account state"
+      fields:
+        - key: "roleIds"
+          label: "Role IDs"
+          fieldType: "tags"
+          required: false
+          helpText: "The Sumo Logic role id(s) this user is assigned. Find a role's id via the Roles config type's live state or the Sumo Logic UI — this field takes ids, not role names."
+
+        - key: "isActive"
+          label: "Active"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the user account can sign in. A newly created user starts Active — turning this off here issues a follow-up deactivation request right after creation. Changing this for another user requires the manageUsersAndRoles capability."

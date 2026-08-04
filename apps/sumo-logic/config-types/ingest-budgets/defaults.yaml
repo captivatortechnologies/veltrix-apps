@@ -1,0 +1,6 @@
+# Defaults for a new ingest budget item — the operator fills in name, scope and
+# capacity. A new budget keeps collecting (audit-only) at capacity, resets daily
+# at midnight UTC, unless overridden.
+action: "keepCollecting"
+resetTime: "00:00"
+timezone: "Etc/UTC"

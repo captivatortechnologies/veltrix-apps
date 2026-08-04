@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — Keycloak Client Profiles
+#
+# A Client Profile is a building block of Keycloak's FAPI-style "client policies"
+# framework: a named, ordered set of executors. Unlike this app's other config types,
+# `client-policies/profiles` is a realm-wide WHOLE-LIST singleton — every declared
+# item here is combined into ONE PUT covering the complete custom-profile list, not
+# one API call per item (see config-types/client-profiles/_shared.ts). Keycloak's own
+# built-in "global" profiles (e.g. the FAPI baseline/advanced profiles) are a separate,
+# server-managed field and are never touched by this config type. Field keys must
+# match config-types/client-profiles/validate.ts. Applied via the Keycloak Admin REST
+# API (GET/PUT /admin/realms/{realm}/client-policies/profiles).
+# =============================================================================
+
+id: "keycloak-client-profiles"
+name: "Client Profiles"
+toolType: "keycloak"
+entityType: "client-profiles"
+description: "Manage Keycloak custom client policy profiles — named, ordered sets of executors — via the Keycloak Admin REST API. Built-in global profiles are preserved and never overwritten."
+
+item:
+  label: "Client Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "shield"
+      description: "Profile identity"
+      fields:
+        - key: "name"
+          label: "Profile name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[^\\s]+$"
+            maxLength: 255
+          helpText: "The client profile's name — its identity in the realm's custom profile list. Must be unique across this config's items (this config type writes the complete list in one request, so duplicates are rejected) and must not contain whitespace."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Human-readable description shown in the Keycloak admin console."
+
+    - name: "Executors"
+      icon: "settings"
+      description: "The ordered set of executors this profile enforces"
+      fields:
+        - key: "executors"
+          label: "Executors (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 50000
+          helpText: 'The ordered executor list as a JSON array, e.g. [{"executor":"secure-session"},{"executor":"intent-client-bind-checker","configuration":{"auto-configure":"true"}}]. Order matters — executors run in the order listed. Verified built-in executor provider ids (github.com/keycloak/keycloak, services/.../clientpolicy/executor): secure-session, secure-par-content, secure-response-type, secure-redirect-uris-enforcer, secure-request-object, secure-client-authenticator, pkce-enforcer, holder-of-key-enforcer, intent-client-bind-checker, secret-rotation. See also the Terraform keycloak_realm_client_policy_profile resource docs (registry.terraform.io/providers/keycloak/keycloak/latest/docs/resources/realm_client_policy_profile) for the executor block shape. Leave blank for a profile with no executors — Keycloak itself rejects any executor id it does not recognize when this is deployed.'

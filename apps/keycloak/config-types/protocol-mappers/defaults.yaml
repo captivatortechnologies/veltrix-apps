@@ -1,0 +1,4 @@
+# Defaults for a new protocol mapper item. The operator fills in the target and
+# mapper name; the rest seed a plain enabled OIDC mapper on a client.
+targetType: "client"
+protocol: "openid-connect"

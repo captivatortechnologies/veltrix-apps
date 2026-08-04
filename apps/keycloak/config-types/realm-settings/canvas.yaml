@@ -1,0 +1,187 @@
+# =============================================================================
+# Canvas Template — Keycloak Realm Settings
+#
+# A REALM-WIDE SINGLETON: exactly one item, no identity field. Authors a narrow
+# subset of the full RealmRepresentation (GET/PUT /admin/realms/{realm}) — token
+# lifespans, login-page flags and the password policy. Field keys map 1:1 onto
+# RealmRepresentation by camelCase property name. All Tokens fields are plain
+# integers in SECONDS on the wire — NOT duration strings. Field keys must match
+# config-types/realm-settings/validate.ts.
+# =============================================================================
+
+id: "keycloak-realm-settings"
+name: "Realm Settings"
+toolType: "keycloak"
+entityType: "realm-settings"
+description: "Manage realm-wide token lifespans, login-page flags and the password policy — a singleton applied over the Keycloak Admin REST API (PUT /admin/realms/{realm})"
+
+item:
+  label: "Realm Settings"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Tokens"
+      icon: "clock"
+      description: "Token and session lifespans, in seconds"
+      fields:
+        - key: "accessTokenLifespan"
+          label: "Access token lifespan (seconds)"
+          fieldType: "number"
+          required: false
+          helpText: "How long an access token is valid, in seconds. Leave blank to leave the realm's current value unmanaged."
+
+        - key: "accessTokenLifespanForImplicitFlow"
+          label: "Access token lifespan for implicit flow (seconds)"
+          fieldType: "number"
+          required: false
+          helpText: "How long an access token issued via the OAuth2 implicit flow is valid, in seconds."
+
+        - key: "ssoSessionIdleTimeout"
+          label: "SSO session idle timeout (seconds)"
+          fieldType: "number"
+          required: false
+          helpText: "How long an SSO session can be idle before it expires, in seconds."
+
+        - key: "ssoSessionMaxLifespan"
+          label: "SSO session max lifespan (seconds)"
+          fieldType: "number"
+          required: false
+          helpText: "The maximum lifetime of an SSO session regardless of activity, in seconds."
+
+        - key: "ssoSessionIdleTimeoutRememberMe"
+          label: "SSO session idle timeout — remember me (seconds)"
+          fieldType: "number"
+          required: false
+          helpText: "SSO session idle timeout when the user selected \"remember me\" at login, in seconds."
+
+        - key: "ssoSessionMaxLifespanRememberMe"
+          label: "SSO session max lifespan — remember me (seconds)"
+          fieldType: "number"
+          required: false
+          helpText: "SSO session max lifespan when the user selected \"remember me\" at login, in seconds."
+
+        - key: "offlineSessionIdleTimeout"
+          label: "Offline session idle timeout (seconds)"
+          fieldType: "number"
+          required: false
+          helpText: "How long an offline session can be idle before it expires, in seconds."
+
+        - key: "offlineSessionMaxLifespanEnabled"
+          label: "Cap offline session max lifespan"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When on, offline sessions are also capped by Offline session max lifespan below regardless of activity. Off (Keycloak's default): offline sessions only expire from idle timeout."
+
+        - key: "offlineSessionMaxLifespan"
+          label: "Offline session max lifespan (seconds)"
+          fieldType: "number"
+          required: false
+          helpText: "The maximum lifetime of an offline session, in seconds. Only enforced when \"Cap offline session max lifespan\" above is on."
+
+        - key: "accessCodeLifespan"
+          label: "Authorization code lifespan (seconds)"
+          fieldType: "number"
+          required: false
+          helpText: "How long an OAuth2 authorization code is valid before it must be exchanged, in seconds."
+
+        - key: "accessCodeLifespanLogin"
+          label: "Login timeout (seconds)"
+          fieldType: "number"
+          required: false
+          helpText: "The maximum time a user has to complete an authentication flow (e.g. a login form), in seconds."
+
+        - key: "accessCodeLifespanUserAction"
+          label: "User action timeout (seconds)"
+          fieldType: "number"
+          required: false
+          helpText: "The maximum time a user has to complete a required action (e.g. update password, OTP setup), in seconds."
+
+    - name: "Login"
+      icon: "users"
+      description: "Login-page and account behavior flags"
+      fields:
+        - key: "registrationAllowed"
+          label: "User registration"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether the login page offers a self-registration link."
+
+        - key: "registrationEmailAsUsername"
+          label: "Email as username"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When on, the username field is hidden at registration and the email address is used as the username."
+
+        - key: "editUsernameAllowed"
+          label: "Edit username"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether users may change their own username after registration."
+
+        - key: "resetPasswordAllowed"
+          label: "Forgot password"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether the login page offers a \"forgot password\" self-service reset link."
+
+        - key: "rememberMe"
+          label: "Remember me"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether the login page offers a \"remember me\" checkbox for longer-lived sessions."
+
+        - key: "verifyEmail"
+          label: "Verify email"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether new users must verify their email address before it is trusted."
+
+        - key: "loginWithEmailAllowed"
+          label: "Login with email"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether a user may log in with their email address in addition to their username. Must be off whenever \"Allow duplicate emails\" below is on."
+
+        - key: "duplicateEmailsAllowed"
+          label: "Allow duplicate emails"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether more than one user account may share the same email address. Must be off whenever \"Login with email\" above is on — Keycloak cannot resolve which account to log in to by email when both are true."
+
+        - key: "bruteForceProtected"
+          label: "Brute-force detection"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether Keycloak temporarily locks an account after repeated failed login attempts."
+
+    - name: "Password Policy"
+      icon: "shield"
+      description: "The realm's password-policy DSL string"
+      fields:
+        - key: "passwordPolicy"
+          label: "Password policy"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 4000
+          helpText: >
+            The raw Keycloak password-policy DSL, e.g.
+            "length(8) and upperCase(1) and specialChars(1) and notUsername".
+            Policy provider ids are combined with " and ": length, upperCase,
+            lowerCase, digits, specialChars, notUsername, notEmail,
+            forceExpiredPasswordChange, hashAlgorithm, hashIterations,
+            passwordHistory, regexPattern. Leave blank to leave the realm's
+            current password policy unmanaged. See
+            www.keycloak.org/docs/latest/server_admin/#_password-policies for
+            the full provider reference.

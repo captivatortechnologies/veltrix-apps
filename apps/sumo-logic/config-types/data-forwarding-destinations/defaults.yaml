@@ -1,0 +1,6 @@
+# Defaults for a new destination item — the operator fills in the name and S3
+# bucket. A new destination uses IAM-role authentication, no encryption flag,
+# and is enabled, unless overridden.
+authenticationMode: "RoleBased"
+encrypted: false
+enabled: true

@@ -1,0 +1,6 @@
+# Defaults for a new log search item — the operator fills in the name, query
+# and time range. A new search is unscheduled (on-demand), parses manually, and
+# saves to the caller's Personal folder unless overridden.
+parsingMode: "Manual"
+intervalTimeType: "messageTime"
+runByReceiptTime: false

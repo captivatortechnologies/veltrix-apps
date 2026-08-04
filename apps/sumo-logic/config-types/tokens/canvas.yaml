@@ -1,0 +1,55 @@
+# =============================================================================
+# Canvas Template — Sumo Logic Tokens
+#
+# Declares ONE Collector Registration Token (the item) — a shared secret
+# Collectors can present to auto-register with the organization without an
+# individual user credential. This manages the token's NAME, DESCRIPTION and
+# Active/Inactive STATUS only; the generated secret value itself is never
+# exposed by the Management API after creation. Field keys must match
+# config-types/tokens/validate.ts. Applied via the Sumo Logic Management API
+# (/api/v1/tokens).
+#   API: https://help.sumologic.com/docs/api/tokens-library-token-management/
+# =============================================================================
+
+id: "sumo-logic-tokens"
+name: "Tokens"
+toolType: "sumo-logic"
+entityType: "tokens"
+description: "Manage Sumo Logic Collector Registration Tokens — name, description and Active/Inactive status — via the Management API"
+
+item:
+  label: "Token"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Token"
+      icon: "key"
+      description: "Identity and lifecycle state"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Token name shown in Sumo Logic. The stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 4096
+          helpText: "Human-readable description of which Collectors this token registers, e.g. \"AWS auto-scaling group installers\"."
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          required: true
+          defaultValue: "Active"
+          options:
+            - { label: "Active", value: "Active" }
+            - { label: "Inactive (revoked)", value: "Inactive" }
+          helpText: "Active tokens can register new Collectors. Set to Inactive to revoke a token without deleting its record — Collectors already registered keep running; only NEW registrations using this token are blocked."

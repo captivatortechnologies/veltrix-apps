@@ -1,0 +1,7 @@
+# Defaults for a new scheduled view item — the operator fills in the index name,
+# query and start time. Retention defaults to the account default (-1), parsing
+# mode to Manual, and the time zone to UTC unless overridden.
+retentionPeriod: -1
+parsingMode: "Manual"
+timeZone: "UTC"
+reduceRetentionPeriodImmediately: false

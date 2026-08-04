@@ -1,0 +1,110 @@
+# =============================================================================
+# Canvas Template — Sumo Logic Scheduled Views
+#
+# Declares ONE scheduled view (the item). Users add as many as they need. Field
+# keys must match config-types/scheduled-views/validate.ts. Applied via the
+# Sumo Logic Management API (/api/v1/scheduledViews). `query`, `indexName` and
+# `startTime` are ONLY accepted on create — Sumo Logic rejects them on update —
+# so editing them here after the view exists has no effect on the live view
+# (surfaced as drift rather than applied).
+#   API: https://www.sumologic.com/help/docs/api/scheduled-views/
+# =============================================================================
+
+id: "sumo-logic-scheduled-views"
+name: "Scheduled Views"
+toolType: "sumo-logic"
+entityType: "scheduled-views"
+description: "Manage Sumo Logic scheduled views — continuous pre-computed indexes built from a query — via the Management API"
+
+item:
+  label: "Scheduled View"
+  identityField: "indexName"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "View"
+      icon: "database"
+      description: "Identity and query — set once at creation"
+      fields:
+        - key: "indexName"
+          label: "Index Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Name of the index the scheduled view materializes into. The stable identity for upsert and drift. Immutable — Sumo Logic rejects renaming an existing view."
+
+        - key: "query"
+          label: "Query"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 16384
+          helpText: "The query defining the data included in the view, e.g. _sourceCategory=*/Apache. Only used when the view is first created — Sumo Logic does not accept changes to an existing view's query. Changing it here after creation surfaces as drift, not an applied change."
+
+        - key: "startTime"
+          label: "Start Time (RFC3339)"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]\\d{2}:\\d{2})$"
+            maxLength: 40
+          helpText: "UTC start timestamp in RFC3339 format, e.g. 2026-01-01T00:00:00Z. Only used at creation — immutable afterwards."
+
+        - key: "parsingMode"
+          label: "Parsing Mode"
+          fieldType: "select"
+          required: false
+          defaultValue: "Manual"
+          options:
+            - value: "Manual"
+              label: "Manual — no fields parsed automatically"
+            - value: "AutoParse"
+              label: "AutoParse — fields inferred from the query"
+          helpText: "How Sumo Logic scans JSON log messages for this view. Set at creation only; not accepted on update."
+
+    - name: "Retention & Forwarding"
+      icon: "clock"
+      description: "Mutable settings — applied on every deploy"
+      fields:
+        - key: "retentionPeriod"
+          label: "Retention Period (days)"
+          fieldType: "number"
+          required: false
+          defaultValue: -1
+          validation:
+            min: -1
+          helpText: "Number of days to retain data in the view. Use -1 for your account default. Only relevant if multi-retention is enabled on your account."
+
+        - key: "reduceRetentionPeriodImmediately"
+          label: "Purge shortened retention immediately"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When lowering retention below the view's current value: true deletes the now-out-of-window data immediately; false (default) lets it age out over the next seven days."
+
+        - key: "timeZone"
+          label: "Time Zone"
+          fieldType: "text"
+          required: false
+          defaultValue: "UTC"
+          validation:
+            maxLength: 64
+          helpText: "IANA time zone for ingesting data into the view, e.g. America/Los_Angeles."
+
+        - key: "dataForwardingId"
+          label: "Data Forwarding Destination ID"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 64
+          helpText: "Optional id of a Data Forwarding destination (see the Data Forwarding Destinations config type) this view's output should also be forwarded to."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 65535
+          helpText: "Human-readable description of what this scheduled view is for."

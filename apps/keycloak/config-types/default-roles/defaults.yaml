@@ -1,0 +1,8 @@
+# Defaults for the (singleton) Default Roles item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Leaving both realmRoles and clientRoles unset means
+# an early deploy would clear the default role's composites (including
+# Keycloak's own offline_access / uma_authorization) — validate.ts warns about
+# this (EMPTY_DEFAULT_ROLES) so operators declare them explicitly before
+# deploying.

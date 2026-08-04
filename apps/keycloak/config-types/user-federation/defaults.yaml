@@ -1,0 +1,22 @@
+# Defaults for a new Keycloak user federation item. The operator fills in the
+# name and connection (LDAP) or realm/principal (Kerberos) details; a new
+# provider defaults to an enabled, read-only LDAP provider at normal priority.
+providerType: "ldap"
+enabled: true
+priority: 0
+editMode: "READ_ONLY"
+importEnabled: true
+syncRegistrations: false
+vendor: "other"
+authType: "simple"
+searchScope: "2"
+pagination: true
+startTls: false
+connectionPooling: false
+batchSizeForSync: 1000
+validatePasswordPolicy: false
+trustEmail: false
+usePasswordModifyExtendedOp: false
+allowKerberosAuthentication: false
+useKerberosForPasswordAuthentication: false
+debug: false

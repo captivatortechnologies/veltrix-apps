@@ -111,3 +111,57 @@ export function stringSetsEqual(a: string[], b: string[]): boolean {
   const setB = new Set(b)
   return a.every((v) => setB.has(v))
 }
+
+/**
+ * Read a JSON-object textarea field (the escape hatch for a schema too deeply
+ * nested for typed canvas fields — e.g. authorization policy role lists, client
+ * profile executors). Returns `fallback` on a blank value or invalid JSON; callers
+ * that need to distinguish "blank" from "invalid" should parse with `readJsonRaw`
+ * in validate.ts instead.
+ */
+export function readJsonObject<T extends Record<string, unknown> = Record<string, unknown>>(
+  value: unknown,
+  fallback: T,
+): T {
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value as T
+  if (typeof value !== 'string' || !value.trim()) return fallback
+  try {
+    const parsed = JSON.parse(value)
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as T) : fallback
+  } catch {
+    return fallback
+  }
+}
+
+/**
+ * Read a JSON-array textarea field (the escape hatch for an ordered/structured
+ * list too deeply nested for typed canvas fields — e.g. client-policy conditions,
+ * client-profile executors, authorization role-policy role refs). Returns `[]` on
+ * a blank value or invalid/non-array JSON.
+ */
+export function readJsonArray<T = unknown>(value: unknown): T[] {
+  if (Array.isArray(value)) return value as T[]
+  if (typeof value !== 'string' || !value.trim()) return []
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? (parsed as T[]) : []
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Parse a JSON textarea field's raw string for validation, distinguishing "blank"
+ * (ok — treated as empty) from "present but invalid" (a validation error). Returns
+ * `{ ok: true, value }` (value is `undefined` when blank) or `{ ok: false }`.
+ */
+export function parseJsonField(value: unknown): { ok: true; value: unknown } | { ok: false } {
+  if (value === undefined || value === null) return { ok: true, value: undefined }
+  if (typeof value === 'object') return { ok: true, value }
+  if (typeof value !== 'string' || !value.trim()) return { ok: true, value: undefined }
+  try {
+    return { ok: true, value: JSON.parse(value) }
+  } catch {
+    return { ok: false }
+  }
+}

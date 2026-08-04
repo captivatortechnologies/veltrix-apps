@@ -1,0 +1,8 @@
+# Defaults for a new Keycloak client scope item. The operator fills in the name;
+# these seed a standard OIDC scope that is shown on consent, included in the token
+# scope claim and discovery metadata, and not assigned to the realm.
+protocol: "openid-connect"
+displayOnConsentScreen: true
+includeInTokenScope: true
+includeInOpenidProviderMetadata: true
+realmDefault: "none"

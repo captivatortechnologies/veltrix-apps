@@ -1,0 +1,142 @@
+# =============================================================================
+# Canvas Template — Sumo Logic Monitors
+#
+# Declares ONE monitor (the item) in the Monitors Library — a SEPARATE folder
+# tree from the Content Library used by Dashboards/Log Searches/Folders.
+# Monitor names are unique per parent folder, not globally. `queries`,
+# `triggers` and `notifications` are deeply nested and discriminated (11
+# detection methods, a dozen+ notification connection types), so — following
+# the Cisco Meraki Group Policies / Sumo Logic Dashboards precedent in this
+# app — they are authored as JSON. Field keys must match
+# config-types/monitors/validate.ts. Applied via the Sumo Logic Management API
+# (/api/v1/monitors).
+#   API: https://help.sumologic.com/docs/api/monitors/
+# =============================================================================
+
+id: "sumo-logic-monitors"
+name: "Monitors"
+toolType: "sumo-logic"
+entityType: "monitors"
+description: "Manage Sumo Logic Monitors — alert definitions with query, trigger conditions and notification actions — via the Management API"
+
+item:
+  label: "Monitor"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Monitor"
+      icon: "activity"
+      description: "Identity, placement and type"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Monitor name shown in Sumo Logic. The stable identity for upsert and drift — unique within its parent folder, not globally."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 4096
+          helpText: "Human-readable description of what this monitor watches for."
+
+        - key: "parentId"
+          label: "Parent Folder ID"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 64
+          helpText: "The Monitors Library folder id to place this monitor in. Leave blank to use the root Monitors folder (resolved automatically via GET /v1/monitors/root). Monitor folder management itself is not covered by this app (see README Coverage) — create sub-folders in the Sumo Logic UI if you want to organize monitors, then paste their id here."
+
+        - key: "monitorType"
+          label: "Monitor Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "Logs"
+          options:
+            - { label: "Logs", value: "Logs" }
+            - { label: "Metrics", value: "Metrics" }
+            - { label: "SLO (closed beta)", value: "Slo" }
+          helpText: "The kind of query this monitor evaluates."
+
+        - key: "isDisabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When on, the monitor is present but does not run or send notifications."
+
+    - name: "Queries & Triggers"
+      icon: "code"
+      description: "What the monitor evaluates, and when it fires — authored as JSON"
+      fields:
+        - key: "queries"
+          label: "Queries (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 65536
+          helpText: 'A JSON array of { "rowId": "A", "query": "..." } objects — the search(es) this monitor runs. Most monitors declare exactly one query with rowId "A".'
+
+        - key: "triggers"
+          label: "Trigger Conditions (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 65536
+          helpText: 'A JSON array of TriggerCondition objects defining when to fire, e.g. [{"detectionMethod":"LogsStaticCondition","triggerType":"Critical","timeRange":"15m","threshold":50,"thresholdType":"GreaterThanOrEqual"}]. See the Monitors API docs for the full set of detectionMethod/triggerType values.'
+
+    - name: "Notifications"
+      icon: "bell"
+      description: "Where alerts are sent, and grouping behavior — authored as JSON"
+      fields:
+        - key: "notifications"
+          label: "Notifications (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 65536
+          helpText: 'A JSON array of { "notification": {...}, "runForTriggerTypes": [...] } objects. The nested notification references a Connection by id (see the Connections config type) for Slack/webhook/etc., or is inline for Email. Leave blank ([]) for a silent monitor.'
+
+        - key: "notificationGroupFields"
+          label: "Notification Group Fields"
+          fieldType: "tags"
+          required: false
+          helpText: "Fields used to group alert notifications when Group Notifications is on, e.g. service, env. High-cardinality fields (_blockid, _raw, _messagetime, _receipttime, _messageid) are not allowed."
+
+        - key: "groupNotifications"
+          label: "Group Notifications"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether to group notifications for individual items meeting the trigger condition, using Notification Group Fields above."
+
+        - key: "evaluationDelay"
+          label: "Evaluation Delay"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 16
+          helpText: "Delay evaluation relative to now, e.g. 5m — useful for late-arriving data. Defaults to 0m."
+
+        - key: "alertName"
+          label: "Alert Name Template"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 512
+          helpText: "Custom name for alerts this monitor triggers. Leave blank to use the monitor's name."
+
+        - key: "timeZone"
+          label: "Time Zone"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 64
+          helpText: "IANA time zone for monitor notification timestamps, e.g. America/Los_Angeles."

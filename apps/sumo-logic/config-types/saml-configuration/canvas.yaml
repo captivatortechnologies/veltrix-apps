@@ -1,0 +1,200 @@
+# =============================================================================
+# Canvas Template — Sumo Logic SAML Configuration
+#
+# Declares ONE SAML identity provider configuration (the item). Multiple named
+# configurations can coexist. Field keys must match
+# config-types/saml-configuration/validate.ts. Applied via the Sumo Logic
+# Management API (/api/v1/saml/identityProviders).
+#
+# ⚠ HIGH BLAST RADIUS — this controls how users sign in to the ENTIRE
+# organization. A wrong issuer, certificate or SSO URL can lock out every
+# SSO-only user. Test in a non-production organization first where possible.
+#   API: https://www.sumologic.com/help/docs/api/saml-configuration-management/
+# =============================================================================
+
+id: "sumo-logic-saml-configuration"
+name: "SAML Configuration"
+toolType: "sumo-logic"
+entityType: "saml-configuration"
+description: "Manage Sumo Logic SAML SSO identity provider configurations via the Management API — high blast radius, changes affect organization-wide sign-in"
+
+item:
+  label: "SAML Configuration"
+  identityField: "configurationName"
+  repeatable: true
+  minItems: 1
+  maxItems: 20
+  groups:
+    - name: "Identity Provider"
+      icon: "shield"
+      description: "Which IdP this configuration trusts"
+      fields:
+        - key: "configurationName"
+          label: "Configuration Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Internal name for this SSO policy, e.g. Okta or Azure AD. The stable identity for upsert and drift."
+
+        - key: "issuer"
+          label: "Issuer"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 1024
+          helpText: "The unique URL assigned to your organization by the identity provider."
+
+        - key: "x509cert1"
+          label: "Signing Certificate (PEM)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 16384
+          helpText: "The IdP's X.509 certificate used to verify SAML assertion signatures, in PEM format (-----BEGIN CERTIFICATE-----...)."
+
+        - key: "x509cert2"
+          label: "Backup Certificate 1 (PEM)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 16384
+          helpText: "Optional backup certificate used once the primary expires."
+
+        - key: "x509cert3"
+          label: "Backup Certificate 2 (PEM)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 16384
+          helpText: "Optional second backup certificate, used once both the primary and first backup expire."
+
+    - name: "SSO Behavior"
+      icon: "log-in"
+      description: "How the sign-in redirect works"
+      fields:
+        - key: "spInitiatedLoginEnabled"
+          label: "SP-Initiated Login"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When on, Sumo Logic redirects users to the identity provider with a SAML AuthnRequest when they try to sign in from Sumo Logic's own login page."
+
+        - key: "authnRequestUrl"
+          label: "Authn Request URL"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 2048
+          visibleWhen:
+            field: "spInitiatedLoginEnabled"
+            equals: true
+          helpText: "The URL the identity provider assigned for Sumo Logic to submit SAML authentication requests to. Required when SP-Initiated Login is on."
+
+        - key: "isRedirectBinding"
+          label: "Use HTTP-Redirect Binding"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Use the SAML HTTP-Redirect binding instead of HTTP-POST for the AuthnRequest."
+
+        - key: "signAuthnRequest"
+          label: "Sign Authn Request"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether Sumo Logic signs the outgoing SAML AuthnRequest."
+
+        - key: "disableRequestedAuthnContext"
+          label: "Disable Requested Authn Context"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Omit the RequestedAuthnContext element from the AuthnRequest — some IdPs require this."
+
+    - name: "Attributes & Provisioning"
+      icon: "users"
+      description: "How user identity and roles are read from the assertion"
+      fields:
+        - key: "emailAttribute"
+          label: "Email Attribute"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "The SAML assertion attribute (or subject) that carries the new user's email address, e.g. attribute/subject."
+
+        - key: "rolesAttribute"
+          label: "Roles Attribute"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "The SAML assertion attribute carrying the Sumo Logic role name(s) to assign at sign-in."
+
+        - key: "onDemandProvisioningEnabled"
+          label: "On-Demand User Provisioning"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When on, Sumo Logic auto-creates a user account on first SSO sign-in rather than requiring the user to be pre-created."
+
+        - key: "onDemandFirstNameAttribute"
+          label: "First Name Attribute"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          visibleWhen:
+            field: "onDemandProvisioningEnabled"
+            equals: true
+          helpText: "The SAML assertion attribute carrying the new user's first name. Required when On-Demand User Provisioning is on."
+
+        - key: "onDemandLastNameAttribute"
+          label: "Last Name Attribute"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          visibleWhen:
+            field: "onDemandProvisioningEnabled"
+            equals: true
+          helpText: "The SAML assertion attribute carrying the new user's last name. Required when On-Demand User Provisioning is on."
+
+        - key: "onDemandProvisioningRoles"
+          label: "Default Roles for Provisioned Users"
+          fieldType: "tags"
+          required: false
+          visibleWhen:
+            field: "onDemandProvisioningEnabled"
+            equals: true
+          helpText: "Role name(s) assigned to a user auto-provisioned on first sign-in."
+
+    - name: "Logout & Debug"
+      icon: "settings"
+      description: "Sign-out redirect and troubleshooting"
+      fields:
+        - key: "logoutEnabled"
+          label: "Redirect on Logout"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When on, users are redirected to Logout URL after signing out of Sumo Logic."
+
+        - key: "logoutUrl"
+          label: "Logout URL"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 2048
+          visibleWhen:
+            field: "logoutEnabled"
+            equals: true
+          helpText: "The URL users are redirected to after signing out. Required when Redirect on Logout is on."
+
+        - key: "debugMode"
+          label: "Debug Mode"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Logs additional SAML assertion detail for troubleshooting sign-in failures. Disable once resolved."

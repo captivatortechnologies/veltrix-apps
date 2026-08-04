@@ -1,0 +1,114 @@
+# =============================================================================
+# Canvas Template — Sumo Logic Data Forwarding Destinations
+#
+# Declares ONE Amazon S3 data forwarding destination (the item). Pair with a
+# Data Forwarding Rule (see that config type) to actually route a Partition or
+# Scheduled View's data to this destination. Field keys must match
+# config-types/data-forwarding-destinations/validate.ts. Applied via the Sumo
+# Logic Management API (/api/v1/logsDataForwarding/destinations).
+#   API: https://help.sumologic.com/docs/api/data-forwarding/
+# =============================================================================
+
+id: "sumo-logic-data-forwarding-destinations"
+name: "Data Forwarding Destinations"
+toolType: "sumo-logic"
+entityType: "data-forwarding-destinations"
+description: "Manage Sumo Logic S3 data forwarding destinations — the archival buckets Partitions and Scheduled Views can forward data to — via the Management API"
+
+item:
+  label: "Destination"
+  identityField: "destinationName"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Destination"
+      icon: "cloud"
+      description: "Identity and the S3 bucket — bucket name is set once at creation"
+      fields:
+        - key: "destinationName"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Display name of the destination shown in Sumo Logic. The stable identity for upsert and drift."
+
+        - key: "bucketName"
+          label: "S3 Bucket Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+            maxLength: 63
+          helpText: "The name of the Amazon S3 bucket. Only used at creation — Sumo Logic's update endpoint does not accept bucketName, so changing it here after creation has no effect on the live destination (surfaced as drift, not applied)."
+
+        - key: "region"
+          label: "AWS Region"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 32
+          helpText: "The AWS region the S3 bucket is located in, e.g. us-east-1."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1024
+          helpText: "Human-readable description of what this destination is for."
+
+    - name: "Authentication"
+      icon: "key"
+      description: "How Sumo Logic authenticates to the bucket"
+      fields:
+        - key: "authenticationMode"
+          label: "Authentication Mode"
+          fieldType: "select"
+          required: true
+          defaultValue: "RoleBased"
+          options:
+            - label: "IAM Role (recommended)"
+              value: "RoleBased"
+            - label: "AWS Access Key"
+              value: "AccessKey"
+          helpText: "RoleBased (an IAM role Sumo Logic's AWS account can assume) is recommended over long-lived AccessKey credentials."
+
+        - key: "roleArn"
+          label: "IAM Role ARN"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 512
+          helpText: "The AWS IAM Role ARN Sumo Logic assumes to access the bucket. Required when Authentication Mode is IAM Role."
+
+        - key: "accessKeyId"
+          label: "AWS Access Key ID"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 128
+          helpText: "The AWS Access Key ID to access the bucket. Required when Authentication Mode is AWS Access Key. FLAG: Sumo Logic does not echo this back on read — rollback cannot restore a changed value; re-enter it if needed."
+
+        - key: "secretAccessKey"
+          label: "AWS Secret Access Key"
+          fieldType: "password"
+          required: false
+          validation:
+            maxLength: 256
+          helpText: "The AWS Secret Access Key to access the bucket. Required when Authentication Mode is AWS Access Key. Write-only — Sumo Logic never returns it, so rollback cannot restore a changed value; re-enter it if needed."
+
+        - key: "encrypted"
+          label: "Enable S3 server-side encryption"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether Sumo Logic requests S3 server-side encryption for objects it writes to the bucket."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether this destination is active. A disabled destination stops accepting forwarded data but is not deleted."

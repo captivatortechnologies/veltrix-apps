@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — Keycloak Default Roles
+#
+# A REALM-WIDE SINGLETON: exactly one item, no identity field. Reconciles the
+# composite children (realm roles AND client roles) of the realm's default
+# composite role (RealmRepresentation.defaultRole — Keycloak 13+) to the
+# declared set below. Every new user created in the realm is granted whatever
+# is listed here. Applied via the Keycloak Admin REST API
+# (/admin/realms/{realm}/roles-by-id/{id}/composites). Field keys must match
+# config-types/default-roles/validate.ts.
+# =============================================================================
+
+id: "keycloak-default-roles"
+name: "Default Roles"
+toolType: "keycloak"
+entityType: "default-roles"
+description: "Reconcile the realm and client roles automatically granted to every new user, via the realm's default composite role — applied over the Keycloak Admin REST API"
+
+item:
+  label: "Default Roles"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Access"
+      icon: "key"
+      description: "Realm and client roles granted to every new user by default"
+      fields:
+        - key: "realmRoles"
+          label: "Realm roles"
+          fieldType: "tags"
+          required: false
+          helpText: >
+            Realm role names granted to every new user by default (each must
+            already exist — see the Realm Roles config type). The list is
+            authoritative: any realm role currently on the default role but not
+            listed here is removed on deploy. Deploying with both this and
+            Client roles empty REMOVES every current composite from the
+            realm's default role, including Keycloak's own auto-created ones
+            (offline_access, uma_authorization) — declare them explicitly if
+            you want to keep them.
+
+        - key: "clientRoles"
+          label: "Client roles"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: >
+            Client roles granted to every new user by default, authored as a
+            JSON object mapping each clientId to an array of role names, e.g.
+            {"account": ["view-profile","manage-account"], "my-client":
+            ["some-role"]}. Each referenced client and role must already
+            exist. The map is authoritative: any client role currently on the
+            default role but not listed here is removed on deploy. Deploying
+            with both this and Realm roles empty REMOVES every current
+            composite from the realm's default role, including Keycloak's own
+            auto-created ones (offline_access, uma_authorization) — declare
+            them explicitly if you want to keep them.

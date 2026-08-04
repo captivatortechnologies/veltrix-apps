@@ -15,10 +15,12 @@
 // e.g. `api.us2.sumologic.com`, `api.eu.sumologic.com`, `api.au.sumologic.com`).
 // The connection's endpoint carries the deployment host.
 //
-// Docs (verified 2026-08-01):
+// Docs (verified 2026-08-01, expanded 2026-08-04):
 //   - Auth: https://help.sumologic.com/docs/api/about-apis/getting-started/
 //   - Access keys: https://help.sumologic.com/docs/manage/security/access-keys/
 //   - FER API: https://www.sumologic.com/help/docs/api/field-extraction-rules/
+//   - Full OpenAPI spec (source of truth for every config type in this app):
+//     https://api.sumologic.com/docs/sumologic-api.yaml
 // =============================================================================
 
 import type { ComponentRef, ConnectivityRef, CredentialRef } from '@veltrixsecops/app-sdk'
@@ -41,10 +43,20 @@ export function normalizeBaseUrl(raw: string): string {
   return `${s}${API_BASE_SUFFIX}`
 }
 
-/** Management API base URL (`…/api/v1`) for a connection. Prefers an explicit HTTPS URL. */
-export function buildBaseUrl(component: ComponentRef | null, connectivity: ConnectivityRef | null): string {
+/**
+ * Management API base URL for a connection. Prefers an explicit HTTPS URL.
+ * Defaults to the `/api/v1` base; pass `apiVersion: 'v2'` for the config types
+ * that live under `/api/v2` (Ingest Budgets, Content folders, Dashboards, …).
+ */
+export function buildBaseUrl(
+  component: ComponentRef | null,
+  connectivity: ConnectivityRef | null,
+  apiVersion: 'v1' | 'v2' = 'v1',
+): string {
   const raw = connectivity?.httpsUrl || component?.hostname || ''
-  return normalizeBaseUrl(raw)
+  const v1 = normalizeBaseUrl(raw)
+  if (!v1 || apiVersion === 'v1') return v1
+  return v1.replace(/\/api\/v1$/, '/api/v2')
 }
 
 /**
@@ -121,36 +133,100 @@ export async function sendJson<T>(
   return (res.body ? JSON.parse(res.body) : {}) as T
 }
 
-/** The `{ data: [...], next }` envelope Sumo Logic returns from paged list endpoints. */
-export interface PagedEnvelope<T> {
+/** The `{ data: [...], next }` envelope most Sumo Logic paged list endpoints return. */
+export type PagedEnvelope<T> = Record<string, unknown> & {
   data?: T[]
   next?: string | null
 }
 
 /**
- * Read every page of a paged Management API list endpoint (partitions, roles, …)
- * and return the flattened records. Pages via the `next` continuation token
- * (`?limit=<n>&token=<next>`), guarded by a page cap so a malformed token can
- * never loop forever.
- *   Pagination shape verified against the SumoLogic terraform provider
- *   (List* helpers follow `resp.next` with `?token=`).
+ * Read every page of a paged Management API list endpoint and return the
+ * flattened records. Pages via a continuation token (`?limit=<n>&token=<cursor>`),
+ * guarded by a page cap so a malformed token can never loop forever. Sumo
+ * Logic is NOT consistent about the envelope's field names across endpoints —
+ * most use `{ data, next }` (the defaults below), but Data Forwarding uses
+ * `{ data, nextToken }`, Dashboards uses `{ dashboards, next }`, and Log
+ * Searches uses `{ logSearches, token }`. Pass `dataField`/`nextTokenField` to
+ * match whichever shape the endpoint being read actually uses.
+ *   Pagination shapes verified against the SumoLogic terraform provider and
+ *   the official OpenAPI spec (api.sumologic.com/docs/sumologic-api.yaml).
  */
 export async function listPaged<T>(
   base: string,
   resource: string,
   headers: Record<string, string>,
-  opts: { pageSize?: number; maxPages?: number; timeoutMs?: number } = {},
+  opts: { pageSize?: number; maxPages?: number; timeoutMs?: number; dataField?: string; nextTokenField?: string } = {},
 ): Promise<T[]> {
   const pageSize = opts.pageSize ?? 1000
   const maxPages = opts.maxPages ?? 100
+  const dataField = opts.dataField ?? 'data'
+  const tokenField = opts.nextTokenField ?? 'next'
   const out: T[] = []
   let url = `${base}/${resource}?limit=${pageSize}`
   for (let page = 0; page < maxPages; page++) {
     const env = await getJson<PagedEnvelope<T>>(url, headers, opts.timeoutMs)
-    if (Array.isArray(env?.data)) out.push(...env.data)
-    const next = env?.next
+    const pageData = env?.[dataField]
+    if (Array.isArray(pageData)) out.push(...(pageData as T[]))
+    const next = env?.[tokenField] as string | null | undefined
     if (!next) break
+    // The request query parameter is always `token=`, regardless of which field name the response uses for it.
     url = `${base}/${resource}?limit=${pageSize}&token=${encodeURIComponent(next)}`
   }
   return out
+}
+
+/** Status envelope returned by Sumo Logic's asynchronous Content Management jobs. */
+export interface AsyncJobStatus {
+  status: 'InProgress' | 'Success' | 'Failed' | string
+  statusMessage?: string
+  error?: { message?: string; code?: string }
+}
+
+/**
+ * Poll a Sumo Logic asynchronous job status URL (Content Management folder
+ * delete/copy/export jobs return a `{ id }` job handle, not an immediate
+ * result) until it leaves `InProgress`, or a timeout elapses. Used by the
+ * Content folders config type, whose delete is job-based rather than
+ * synchronous.
+ *   API: https://help.sumologic.com/docs/api/content-management/
+ */
+export async function pollAsyncJob(
+  statusUrl: string,
+  headers: Record<string, string>,
+  opts: { timeoutMs?: number; intervalMs?: number } = {},
+): Promise<AsyncJobStatus> {
+  const timeoutMs = opts.timeoutMs ?? 30_000
+  const intervalMs = opts.intervalMs ?? 1_000
+  const deadline = Date.now() + timeoutMs
+  let last: AsyncJobStatus = { status: 'InProgress' }
+  for (;;) {
+    last = await getJson<AsyncJobStatus>(statusUrl, headers)
+    if (last.status !== 'InProgress') return last
+    if (Date.now() >= deadline) {
+      return { status: 'Failed', statusMessage: `Timed out after ${timeoutMs / 1000}s waiting for the job to finish.` }
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs))
+  }
+}
+
+/**
+ * Deep, key-order-independent JSON serialization. Used by the config types
+ * that author nested structures (queries/triggers/notifications on Monitors,
+ * panels/layout on Dashboards) as JSON blobs, to compare live vs. declared
+ * state for drift detection without false positives from object key ordering.
+ */
+export function canonicalJson(value: unknown): string {
+  return JSON.stringify(canonicalize(value))
+}
+
+function canonicalize(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalize)
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {}
+    for (const key of Object.keys(value as Record<string, unknown>).sort()) {
+      out[key] = canonicalize((value as Record<string, unknown>)[key])
+    }
+    return out
+  }
+  return value
 }

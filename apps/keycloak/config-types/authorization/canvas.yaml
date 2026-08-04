@@ -1,0 +1,232 @@
+# =============================================================================
+# Canvas Template — Keycloak Authorization (Resource Server)
+#
+# Declares ONE authorization object (the item) on an EXISTING client's
+# authorization services ("resource server") — a Resource, a Scope, a
+# Permission, or a role-based Policy, selected by "Kind". Users add as many as
+# they need, mixing kinds freely. Field keys must match
+# config-types/authorization/validate.ts and _shared.ts. The TARGET CLIENT
+# must already have authorization services enabled (Admin Console: Clients >
+# your client > Capability config > Authorization Enabled, which requires the
+# client to be confidential with service accounts enabled) — deploy checks
+# this and fails fast with an actionable message; it does not enable it for
+# you. The stable identity is the COMPOSITE (Client ID, Kind, Name).
+#
+# All endpoints are relative to
+#   /admin/realms/{realm}/clients/{clientUuid}/authz/resource-server
+# and were verified directly against the Keycloak server source
+# (ResourceServerService.java, ResourceSetService.java, PolicyService.java,
+# PermissionService.java) for the CREATE sub-paths and the resource list's
+# `name`/`exactName` query params — see _shared.ts's header comment for the
+# full verified-vs-assumed breakdown, in particular around Permission and
+# role Policy update/delete-by-id.
+#
+# NOT YET BUILT (legitimate follow-up — only role-based policies are
+# supported): the js, time, user, client, group, aggregate, regex and uma
+# policy types. Same "documented subset, not silent gap" framing this app's
+# sibling authentik app uses for its own out-of-scope provider subtypes.
+# =============================================================================
+
+id: "keycloak-authorization"
+name: "Authorization"
+toolType: "keycloak"
+entityType: "authorization"
+description: "Manage a client's fine-grained authorization services — resources, scopes, permissions and role-based policies — via the Keycloak Admin REST API. The target client must already have authorization services enabled."
+
+item:
+  label: "Authorization object"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Identity"
+      icon: "key"
+      description: "The target client, the kind of object, and its name"
+      fields:
+        - key: "clientId"
+          label: "Client ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The EXISTING client's Client ID (not its internal UUID). The client must already have authorization services enabled — see the Clients config type to create/enable it first."
+
+        - key: "kind"
+          label: "Kind"
+          fieldType: "select"
+          required: true
+          defaultValue: "resource"
+          options:
+            - { label: "Resource", value: "resource" }
+            - { label: "Scope", value: "scope" }
+            - { label: "Permission", value: "permission" }
+            - { label: "Role Policy", value: "role-policy" }
+          helpText: "Each kind is a distinct Keycloak object with its own endpoint under this client's authz resource-server — see this file's header comment."
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The object's name — part of this config type's composite identity (Client ID, Kind, Name). Unlike this app's other identity fields, spaces are allowed (Keycloak's own defaults are named things like \"Default Resource\")."
+
+        - key: "displayName"
+          label: "Display name"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "kind", in: ["resource", "scope"] }
+          validation:
+            maxLength: 255
+          helpText: "Human-readable name shown in the Keycloak admin console. Used by Kind = Resource and Kind = Scope."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "kind", in: ["permission", "role-policy"] }
+          validation:
+            maxLength: 500
+          helpText: "Human-readable description. Used by Kind = Permission and Kind = Role Policy."
+
+    - name: "Resource (Kind = Resource)"
+      icon: "settings"
+      description: "Fields for a resource — a protected object the client exposes"
+      fields:
+        - key: "uris"
+          label: "URIs"
+          fieldType: "tags"
+          required: false
+          visibleWhen: { field: "kind", equals: "resource" }
+          helpText: "URI patterns this resource matches, e.g. /api/documents/*. Authoritative — a removed URI is removed on the next deploy."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "kind", equals: "resource" }
+          validation:
+            maxLength: 255
+          helpText: "An optional free-text type marker for the resource, e.g. urn:myapp:resources:default — lets a Permission target every resource of this type via its own Resource Type field instead of naming resources individually."
+
+        - key: "ownerManagedAccess"
+          label: "Owner-managed access"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          visibleWhen: { field: "kind", equals: "resource" }
+          helpText: "Enable User-Managed Access so the resource's owner (not just an admin) can manage its permissions."
+
+        - key: "attributes"
+          label: "Attributes"
+          fieldType: "keyvalue"
+          required: false
+          visibleWhen: { field: "kind", equals: "resource" }
+          helpText: "Free-form key/value attributes on the resource. Keycloak stores each value as a list internally; this config type manages single-valued attributes only. Authoritative — a removed key is removed on the next deploy."
+
+    - name: "Scope (Kind = Scope)"
+      icon: "list"
+      description: "Fields for a scope — an action that can be performed on a resource (e.g. view, edit)"
+      fields:
+        - key: "iconUri"
+          label: "Icon URI"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "kind", equals: "scope" }
+          validation:
+            maxLength: 500
+          helpText: "Optional icon URI shown for this scope in the Keycloak admin console."
+
+    - name: "Scope references"
+      icon: "link"
+      description: "Scope names, shared by Resource (the scopes it exposes) and Permission (the scopes it applies to)"
+      fields:
+        - key: "scopes"
+          label: "Scopes"
+          fieldType: "tags"
+          required: false
+          visibleWhen: { field: "kind", in: ["resource", "permission"] }
+          helpText: "Scope NAMEs (each must already exist — see Kind = Scope). For Kind = Resource: the scopes this resource exposes. For Kind = Permission: the scopes this permission applies to (required for a scope-based permission; optional to further restrict a resource-based one). Authoritative."
+
+    - name: "Permission (Kind = Permission)"
+      icon: "shield"
+      description: "Fields for a permission — grants access based on policies. Decision Strategy is also used by Kind = Role Policy."
+      fields:
+        - key: "permissionType"
+          label: "Permission type"
+          fieldType: "select"
+          required: false
+          defaultValue: "resource"
+          visibleWhen: { field: "kind", equals: "permission" }
+          options:
+            - { label: "Resource-based", value: "resource" }
+            - { label: "Scope-based", value: "scope" }
+          helpText: "Resource-based permissions target named resources (or a resource Type); scope-based permissions target scopes directly. Selects the create endpoint: {base}/permission/resource or {base}/permission/scope."
+
+        - key: "decisionStrategy"
+          label: "Decision strategy"
+          fieldType: "select"
+          required: false
+          defaultValue: "UNANIMOUS"
+          visibleWhen: { field: "kind", in: ["permission", "role-policy"] }
+          options:
+            - { label: "Unanimous", value: "UNANIMOUS" }
+            - { label: "Affirmative", value: "AFFIRMATIVE" }
+            - { label: "Consensus", value: "CONSENSUS" }
+          helpText: "How multiple policies combine to decide this permission (or, for Role Policy, how its own composite parts combine)."
+
+        - key: "policies"
+          label: "Policies"
+          fieldType: "tags"
+          required: false
+          visibleWhen: { field: "kind", equals: "permission" }
+          helpText: "Policy NAMEs this permission is decided by (each must already exist — role-based policies are managed by Kind = Role Policy; other policy types are authored directly in Keycloak — see this app's README Coverage section). Authoritative."
+
+        - key: "resources"
+          label: "Resources"
+          fieldType: "tags"
+          required: false
+          visibleWhen: { field: "kind", equals: "permission" }
+          helpText: "Resource NAMEs this permission applies to (each must already exist — see Kind = Resource). Only meaningful when Permission type = Resource-based; an alternative to Resource Type below. Ignored for a scope-based permission."
+
+        - key: "resourceType"
+          label: "Resource type"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "kind", equals: "permission" }
+          validation:
+            maxLength: 255
+          helpText: "Match every resource carrying this Type marker (see Kind = Resource's own Type field) instead of naming resources individually. Only meaningful when Permission type = Resource-based; an alternative to Resources above."
+
+    - name: "Role Policy (Kind = Role Policy)"
+      icon: "shield"
+      description: "Fields for a role-based policy — grants based on realm or client role membership"
+      fields:
+        - key: "logic"
+          label: "Logic"
+          fieldType: "select"
+          required: false
+          defaultValue: "POSITIVE"
+          visibleWhen: { field: "kind", equals: "role-policy" }
+          options:
+            - { label: "Positive", value: "POSITIVE" }
+            - { label: "Negative", value: "NEGATIVE" }
+          helpText: "Positive grants when the roles match; Negative inverts the result."
+
+        - key: "roles"
+          label: "Roles (JSON)"
+          fieldType: "textarea"
+          required: false
+          visibleWhen: { field: "kind", equals: "role-policy" }
+          validation:
+            maxLength: 20000
+          helpText: >-
+            The roles this policy checks, as a JSON array, e.g.
+            [{"name":"admin","required":true},{"name":"my-client/some-role","required":false}].
+            A bare name (e.g. "admin") resolves as a REALM role. A
+            "clientId/roleName" name (e.g. "my-client/some-role" — same flat
+            format as the official keycloak_default_roles Terraform resource's
+            default_roles list) resolves as a CLIENT role on that client. Each
+            referenced role (and, for a client role, the client itself) must
+            already exist. Authoritative.

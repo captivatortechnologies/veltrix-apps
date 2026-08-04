@@ -1,10 +1,13 @@
 id: keycloak
 name: Keycloak
-version: "0.3.0"
+version: "0.4.0"
 vendor: Veltrix
 description: >
   Manage Keycloak (open-source Identity and Access Management) as code. Author
-  OIDC/SAML clients, realm roles, groups and identity providers and drive them
+  clients, client scopes, protocol mappers, realm roles, client roles, default
+  roles, groups, authentication flows, required actions, realm settings, client
+  policies/profiles, user federation (LDAP/Kerberos), identity providers (plus
+  their mappers) and authorization (resource-server) objects, and drive them
   through the Security-as-Code pipeline — validate, deploy, health check, drift
   detection and rollback — over the Keycloak Admin REST API (HTTPS, self-signed
   tolerated). Authenticates as an admin service-account client (OAuth2
@@ -42,6 +45,42 @@ permissions:
     - resource: identity-providers
       actions: [read, write, delete]
       description: Manage Keycloak identity provider instances (OIDC / SAML / social)
+    - resource: identity-provider-mappers
+      actions: [read, write, delete]
+      description: Manage attribute/role/group mappers on an existing identity provider instance
+    - resource: client-scopes
+      actions: [read, write, delete]
+      description: Manage Keycloak client scopes and their realm default/optional assignment
+    - resource: protocol-mappers
+      actions: [read, write, delete]
+      description: Manage OIDC/SAML protocol mappers attached to a client or client scope
+    - resource: client-roles
+      actions: [read, write, delete]
+      description: Manage roles scoped to a specific Keycloak client
+    - resource: default-roles
+      actions: [read, write]
+      description: Manage the realm's default composite role (realm + client roles granted to new users)
+    - resource: authentication-flows
+      actions: [read, write, delete]
+      description: Manage authentication flow containers (alias, description, provider type)
+    - resource: required-actions
+      actions: [read, write]
+      description: Enable, configure and reorder the realm's required actions
+    - resource: realm-settings
+      actions: [read, write]
+      description: Manage realm-wide token, login and password-policy settings
+    - resource: client-profiles
+      actions: [read, write]
+      description: Manage custom client policy profiles (named executor sets)
+    - resource: client-policies
+      actions: [read, write]
+      description: Manage client policies (condition sets that apply client profiles)
+    - resource: user-federation
+      actions: [read, write, delete]
+      description: Manage LDAP/Kerberos user federation providers (bind credentials write-only)
+    - resource: authorization
+      actions: [read, write, delete]
+      description: Manage a client's authorization services (resources, scopes, permissions, role policies)
     - resource: byol
       actions: [read, write, delete]
       description: Manage BYOL Keycloak stack infrastructure
@@ -122,6 +161,222 @@ pipeline:
         healthCheck: config-types/identity-providers/healthCheck
         driftDetect: config-types/identity-providers/driftDetect
         getStatus: config-types/identity-providers/getStatus
+      targets:
+        componentTypes: [keycloak-realm, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: identity-provider-mappers
+      group: "Federation"
+      name: Identity Provider Mappers
+      description: Attribute/role/group mappers on an existing Keycloak identity provider instance — applied over the Keycloak Admin REST API (/admin/realms/{realm}/identity-provider/instances/{alias}/mappers). The referenced identity provider must already exist.
+      canvasTemplate: config-types/identity-provider-mappers/canvas.yaml
+      defaultConfig: config-types/identity-provider-mappers/defaults.yaml
+      handlers:
+        validate: config-types/identity-provider-mappers/validate
+        deploy: config-types/identity-provider-mappers/deploy
+        rollback: config-types/identity-provider-mappers/rollback
+        healthCheck: config-types/identity-provider-mappers/healthCheck
+        driftDetect: config-types/identity-provider-mappers/driftDetect
+        getStatus: config-types/identity-provider-mappers/getStatus
+      targets:
+        componentTypes: [keycloak-realm, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: client-scopes
+      group: "Access"
+      name: Client Scopes
+      description: Keycloak client scopes — name, protocol, consent-screen text, token/discovery inclusion, GUI order — plus realm default/optional assignment, applied over the Keycloak Admin REST API (/admin/realms/{realm}/client-scopes)
+      canvasTemplate: config-types/client-scopes/canvas.yaml
+      defaultConfig: config-types/client-scopes/defaults.yaml
+      handlers:
+        validate: config-types/client-scopes/validate
+        deploy: config-types/client-scopes/deploy
+        rollback: config-types/client-scopes/rollback
+        healthCheck: config-types/client-scopes/healthCheck
+        driftDetect: config-types/client-scopes/driftDetect
+        getStatus: config-types/client-scopes/getStatus
+      targets:
+        componentTypes: [keycloak-realm, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: protocol-mappers
+      group: "Access"
+      name: Protocol Mappers
+      description: OIDC/SAML protocol mappers attached to an existing client OR client scope — applied over the Keycloak Admin REST API (/admin/realms/{realm}/clients/{id}/protocol-mappers/models or /client-scopes/{id}/protocol-mappers/models). The target client/client scope must already exist.
+      canvasTemplate: config-types/protocol-mappers/canvas.yaml
+      defaultConfig: config-types/protocol-mappers/defaults.yaml
+      handlers:
+        validate: config-types/protocol-mappers/validate
+        deploy: config-types/protocol-mappers/deploy
+        rollback: config-types/protocol-mappers/rollback
+        healthCheck: config-types/protocol-mappers/healthCheck
+        driftDetect: config-types/protocol-mappers/driftDetect
+        getStatus: config-types/protocol-mappers/getStatus
+      targets:
+        componentTypes: [keycloak-realm, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: client-roles
+      group: "Access"
+      name: Client Roles
+      description: Roles scoped to a specific Keycloak client — name, description, composite flag — applied over the Keycloak Admin REST API (/admin/realms/{realm}/clients/{id}/roles). The client must already exist (see the Clients config type).
+      canvasTemplate: config-types/client-roles/canvas.yaml
+      defaultConfig: config-types/client-roles/defaults.yaml
+      handlers:
+        validate: config-types/client-roles/validate
+        deploy: config-types/client-roles/deploy
+        rollback: config-types/client-roles/rollback
+        healthCheck: config-types/client-roles/healthCheck
+        driftDetect: config-types/client-roles/driftDetect
+        getStatus: config-types/client-roles/getStatus
+      targets:
+        componentTypes: [keycloak-realm, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: default-roles
+      group: "Access"
+      name: Default Roles
+      description: The realm and client roles granted to every new user, reconciled against the realm's composite default role — applied over the Keycloak Admin REST API (/admin/realms/{realm}/roles-by-id/{id}/composites). A realm-wide singleton — referenced realm/client roles must already exist.
+      canvasTemplate: config-types/default-roles/canvas.yaml
+      defaultConfig: config-types/default-roles/defaults.yaml
+      handlers:
+        validate: config-types/default-roles/validate
+        deploy: config-types/default-roles/deploy
+        rollback: config-types/default-roles/rollback
+        healthCheck: config-types/default-roles/healthCheck
+        driftDetect: config-types/default-roles/driftDetect
+        getStatus: config-types/default-roles/getStatus
+      targets:
+        componentTypes: [keycloak-realm, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: authentication-flows
+      group: "Authentication"
+      name: Authentication Flows
+      description: Custom authentication flow containers — alias, description, provider type (basic-flow / client-flow) — applied over the Keycloak Admin REST API (/admin/realms/{realm}/authentication/flows). The step/execution graph inside a flow is not authored here.
+      canvasTemplate: config-types/authentication-flows/canvas.yaml
+      defaultConfig: config-types/authentication-flows/defaults.yaml
+      handlers:
+        validate: config-types/authentication-flows/validate
+        deploy: config-types/authentication-flows/deploy
+        rollback: config-types/authentication-flows/rollback
+        healthCheck: config-types/authentication-flows/healthCheck
+        driftDetect: config-types/authentication-flows/driftDetect
+        getStatus: config-types/authentication-flows/getStatus
+      targets:
+        componentTypes: [keycloak-realm, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: required-actions
+      group: "Authentication"
+      name: Required Actions
+      description: Enable, default and reorder the realm's required actions (e.g. UPDATE_PASSWORD, CONFIGURE_TOTP, VERIFY_EMAIL) — applied over the Keycloak Admin REST API (/admin/realms/{realm}/authentication/required-actions). Registers a known-but-unregistered provider alias on first deploy.
+      canvasTemplate: config-types/required-actions/canvas.yaml
+      defaultConfig: config-types/required-actions/defaults.yaml
+      handlers:
+        validate: config-types/required-actions/validate
+        deploy: config-types/required-actions/deploy
+        rollback: config-types/required-actions/rollback
+        healthCheck: config-types/required-actions/healthCheck
+        driftDetect: config-types/required-actions/driftDetect
+        getStatus: config-types/required-actions/getStatus
+      targets:
+        componentTypes: [keycloak-realm, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: realm-settings
+      group: "Realm"
+      name: Realm Settings
+      description: Realm-wide token lifespans, login-page flags and the password policy — a singleton applied over the Keycloak Admin REST API (PUT /admin/realms/{realm})
+      canvasTemplate: config-types/realm-settings/canvas.yaml
+      defaultConfig: config-types/realm-settings/defaults.yaml
+      handlers:
+        validate: config-types/realm-settings/validate
+        deploy: config-types/realm-settings/deploy
+        rollback: config-types/realm-settings/rollback
+        healthCheck: config-types/realm-settings/healthCheck
+        driftDetect: config-types/realm-settings/driftDetect
+        getStatus: config-types/realm-settings/getStatus
+      targets:
+        componentTypes: [keycloak-realm, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: client-profiles
+      group: "Realm"
+      name: Client Profiles
+      description: Custom client policy profiles (named, ordered sets of executors) — a realm-wide whole-list singleton applied over the Keycloak Admin REST API (GET/PUT /admin/realms/{realm}/client-policies/profiles). Built-in global profiles are preserved and never overwritten.
+      canvasTemplate: config-types/client-profiles/canvas.yaml
+      defaultConfig: config-types/client-profiles/defaults.yaml
+      handlers:
+        validate: config-types/client-profiles/validate
+        deploy: config-types/client-profiles/deploy
+        rollback: config-types/client-profiles/rollback
+        healthCheck: config-types/client-profiles/healthCheck
+        driftDetect: config-types/client-profiles/driftDetect
+        getStatus: config-types/client-profiles/getStatus
+      targets:
+        componentTypes: [keycloak-realm, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: client-policies
+      group: "Realm"
+      name: Client Policies
+      description: Client policies — named condition sets that apply one or more Client Profiles to matching clients — a realm-wide whole-list singleton applied over the Keycloak Admin REST API (GET/PUT /admin/realms/{realm}/client-policies/policies). Referenced profiles must already exist.
+      canvasTemplate: config-types/client-policies/canvas.yaml
+      defaultConfig: config-types/client-policies/defaults.yaml
+      handlers:
+        validate: config-types/client-policies/validate
+        deploy: config-types/client-policies/deploy
+        rollback: config-types/client-policies/rollback
+        healthCheck: config-types/client-policies/healthCheck
+        driftDetect: config-types/client-policies/driftDetect
+        getStatus: config-types/client-policies/getStatus
+      targets:
+        componentTypes: [keycloak-realm, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: user-federation
+      group: "Federation"
+      name: User Federation
+      description: LDAP and Kerberos user federation providers — connection, sync and (for LDAP) Kerberos integration settings — applied over the Keycloak Admin REST API (/admin/realms/{realm}/components, providerType org.keycloak.storage.UserStorageProvider). Bind credentials and keytab paths are write-only.
+      canvasTemplate: config-types/user-federation/canvas.yaml
+      defaultConfig: config-types/user-federation/defaults.yaml
+      handlers:
+        validate: config-types/user-federation/validate
+        deploy: config-types/user-federation/deploy
+        rollback: config-types/user-federation/rollback
+        healthCheck: config-types/user-federation/healthCheck
+        driftDetect: config-types/user-federation/driftDetect
+        getStatus: config-types/user-federation/getStatus
+      targets:
+        componentTypes: [keycloak-realm, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: authorization
+      group: "Authorization"
+      name: Authorization (Resource Server)
+      description: A client's fine-grained authorization services — resources, scopes, permissions and role-based policies — applied over the Keycloak Admin REST API (/admin/realms/{realm}/clients/{id}/authz/resource-server/**). The client must already have authorization services enabled.
+      canvasTemplate: config-types/authorization/canvas.yaml
+      defaultConfig: config-types/authorization/defaults.yaml
+      handlers:
+        validate: config-types/authorization/validate
+        deploy: config-types/authorization/deploy
+        rollback: config-types/authorization/rollback
+        healthCheck: config-types/authorization/healthCheck
+        driftDetect: config-types/authorization/driftDetect
+        getStatus: config-types/authorization/getStatus
       targets:
         componentTypes: [keycloak-realm, standalone]
         requiresCredential: true

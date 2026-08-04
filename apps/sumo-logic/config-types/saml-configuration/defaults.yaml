@@ -1,0 +1,10 @@
+# Defaults for a new SAML configuration item — the operator fills in the
+# configuration name, issuer and signing certificate. Every optional boolean
+# starts off unless overridden.
+spInitiatedLoginEnabled: false
+isRedirectBinding: false
+signAuthnRequest: false
+disableRequestedAuthnContext: false
+onDemandProvisioningEnabled: false
+logoutEnabled: false
+debugMode: false

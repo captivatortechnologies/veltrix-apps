@@ -1,0 +1,87 @@
+# =============================================================================
+# Canvas Template — Keycloak Protocol Mappers
+#
+# Declares ONE protocol mapper attached to an EXISTING client OR client scope
+# (the item). Users add as many as they need. Field keys must match
+# config-types/protocol-mappers/validate.ts. Applied via the Keycloak Admin REST
+# API (/admin/realms/{realm}/clients/{id}/protocol-mappers/models or
+# /client-scopes/{id}/protocol-mappers/models). The target client/client scope
+# must already exist — see the Clients / Client Scopes config types. The stable
+# identity is the composite (targetType, targetRef, name).
+# =============================================================================
+
+id: "keycloak-protocol-mappers"
+name: "Protocol Mappers"
+toolType: "keycloak"
+entityType: "protocol-mappers"
+description: "Manage OIDC/SAML protocol mappers attached to an existing client or client scope — mapper name, type and config — via the Keycloak Admin REST API"
+
+item:
+  label: "Protocol mapper"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Target"
+      icon: "link"
+      description: "The existing client or client scope this mapper attaches to"
+      fields:
+        - key: "targetType"
+          label: "Target type"
+          fieldType: "select"
+          required: true
+          defaultValue: "client"
+          options:
+            - label: "Client"
+              value: "client"
+            - label: "Client scope"
+              value: "client-scope"
+          helpText: "Whether this mapper attaches to an existing client or an existing client scope."
+
+        - key: "targetRef"
+          label: "Target"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The target's identifier: the client's Client ID when target type is Client, or the client scope's name when target type is Client scope. Either must already exist — created via this app's Clients / Client Scopes config types, or directly in Keycloak."
+
+    - name: "Mapper"
+      icon: "settings"
+      description: "Mapper name, protocol and configuration"
+      fields:
+        - key: "name"
+          label: "Mapper name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[^\\s]+$"
+            maxLength: 255
+          helpText: "The mapper's display name. Unique per target; used as part of this config type's identity."
+
+        - key: "protocol"
+          label: "Protocol"
+          fieldType: "select"
+          required: true
+          defaultValue: "openid-connect"
+          options:
+            - label: "OpenID Connect"
+              value: "openid-connect"
+            - label: "SAML"
+              value: "saml"
+          helpText: "The client protocol this mapper is written for."
+
+        - key: "protocolMapper"
+          label: "Mapper type"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The Keycloak mapper type id (protocolMapper), authored as free text — Keycloak ships dozens of built-ins and third-party providers add more. Common OIDC examples: oidc-usermodel-attribute-mapper, oidc-usermodel-property-mapper, oidc-hardcoded-claim-mapper, oidc-group-membership-mapper, oidc-full-name-mapper, oidc-audience-mapper. Common SAML examples: saml-user-attribute-mapper, saml-role-list-mapper. Same free-text shape as the keycloak_generic_protocol_mapper Terraform resource (registry.terraform.io/providers/keycloak/keycloak/latest/docs/resources/generic_protocol_mapper)."
+
+        - key: "config"
+          label: "Mapper config"
+          fieldType: "keyvalue"
+          required: false
+          helpText: "Mapper-specific config as key/value pairs, e.g. user.attribute, claim.name, jsonType.label, id.token.claim, access.token.claim, userinfo.token.claim. Authoritative: keys removed here are removed from the mapper on the next deploy."

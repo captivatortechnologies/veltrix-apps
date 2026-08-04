@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template — Keycloak Client Roles
+#
+# Declares ONE role scoped to a specific Keycloak client (the item). Users add as
+# many as they need. Field keys must match config-types/client-roles/validate.ts.
+# Applied via the Keycloak Admin REST API
+# (/admin/realms/{realm}/clients/{clientUuid}/roles). Role names are unique only
+# WITHIN a client (not the realm), so the (clientId, name) pair is this config
+# type's true identity for dedup, even though the canvas identityField is just
+# "name". The target client is resolved from its human clientId to its internal
+# UUID at deploy time and must already exist (see the Clients config type).
+# =============================================================================
+
+id: "keycloak-client-roles"
+name: "Client Roles"
+toolType: "keycloak"
+entityType: "client-roles"
+description: "Manage roles scoped to a specific Keycloak client — name, description and the composite flag — via the Keycloak Admin REST API"
+
+item:
+  label: "Client role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "key"
+      description: "The target client and role identity"
+      fields:
+        - key: "clientId"
+          label: "Client ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The target client's clientId (e.g. web-app; see the Clients config type). Resolved to the client's internal UUID at deploy time — the client must already exist."
+
+        - key: "name"
+          label: "Role name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[^\\s]+$"
+            maxLength: 255
+          helpText: "The client role name (e.g. viewer). Unique within the client (not the realm); used as the {role-name} path segment."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Human-readable description shown in the Keycloak admin console"
+
+        - key: "composite"
+          label: "Composite role"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Mark this role as a composite (it aggregates other roles). Note: the composite child roles themselves are managed separately in Keycloak and are not authored here."

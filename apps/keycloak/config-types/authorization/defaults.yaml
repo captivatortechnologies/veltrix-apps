@@ -1,0 +1,8 @@
+# Defaults for a new authorization item. The operator picks a Client ID, a
+# Kind, and fills in that kind's fields; these seed a plain resource-based
+# permission decided unanimously, granted positively.
+kind: "resource"
+ownerManagedAccess: false
+permissionType: "resource"
+decisionStrategy: "UNANIMOUS"
+logic: "POSITIVE"

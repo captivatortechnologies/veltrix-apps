@@ -1,0 +1,51 @@
+# =============================================================================
+# Canvas Template — Sumo Logic Content Folders
+#
+# Declares ONE Content Library folder (the item) that organizes Dashboards, Log
+# Searches and Lookup Tables. A SEPARATE tree from the Monitors Library used by
+# the Monitors config type. Field keys must match
+# config-types/folders/validate.ts. Applied via the Sumo Logic Management API
+# (/api/v2/content/folders).
+#   API: https://help.sumologic.com/docs/api/content-management/
+# =============================================================================
+
+id: "sumo-logic-folders"
+name: "Content Folders"
+toolType: "sumo-logic"
+entityType: "folders"
+description: "Manage Sumo Logic Content Library folders — the tree that organizes Dashboards, Log Searches and Lookup Tables — via the Management API"
+
+item:
+  label: "Folder"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Folder"
+      icon: "folder"
+      description: "Identity and placement"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "Folder name shown in Sumo Logic. The stable identity for upsert and drift — unique within its parent folder, not globally."
+
+        - key: "parentId"
+          label: "Parent Folder ID"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 64
+          helpText: "The id of an existing parent folder to create this folder inside — your Personal folder (find it via GET /v2/content/folders/personal or the Sumo Logic UI's folder Properties) or another folder you already manage. There is no default root; a parent must always be declared."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Human-readable description of what this folder contains."

@@ -1,13 +1,15 @@
 id: sumo-logic
 name: Sumo Logic
-version: "0.2.0"
+version: "0.3.0"
 vendor: Veltrix
 description: >
   Manage Sumo Logic (cloud SIEM & log analytics) as code. Author Field Extraction
-  Rules, index Partitions, custom Fields and RBAC Roles and drive them through the
-  Security-as-Code pipeline — validate, deploy, health check, drift detection and
-  rollback — over the Sumo Logic Management API (HTTPS), authenticated with an
-  Access ID / Access Key.
+  Rules, Partitions, Fields, Roles, Monitors, Connections, Scheduled Views,
+  Ingest Budgets, Data Forwarding, Content Folders, Dashboards, Log Searches,
+  SAML Configuration, Users and Tokens, and drive them through the
+  Security-as-Code pipeline — validate, deploy, health check, drift detection
+  and rollback — over the Sumo Logic Management API (HTTPS), authenticated with
+  an Access ID / Access Key.
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/sumo-logic
@@ -39,6 +41,42 @@ permissions:
     - resource: roles
       actions: [read, write, delete]
       description: Manage Sumo Logic RBAC Roles (create / edit capabilities & search filter / delete)
+    - resource: monitors
+      actions: [read, write, delete]
+      description: Manage Sumo Logic Monitors (create / edit queries, triggers & notifications / delete)
+    - resource: connections
+      actions: [read, write, delete]
+      description: Manage Sumo Logic notification Connections used by Monitors (webhook, ServiceNow) (create / edit / delete)
+    - resource: scheduled-views
+      actions: [read, write, delete]
+      description: Manage Sumo Logic Scheduled Views (create / edit retention & forwarding / disable)
+    - resource: ingest-budgets
+      actions: [read, write, delete]
+      description: Manage Sumo Logic Ingest Budgets (create / edit capacity & action / delete)
+    - resource: data-forwarding-destinations
+      actions: [read, write, delete]
+      description: Manage Sumo Logic S3 Data Forwarding Destinations (create / edit / delete)
+    - resource: data-forwarding-rules
+      actions: [read, write, delete]
+      description: Manage Sumo Logic Data Forwarding Rules binding Partitions/Scheduled Views to destinations (create / edit / delete)
+    - resource: folders
+      actions: [read, write, delete]
+      description: Manage Sumo Logic Content Library folders (create / edit / delete)
+    - resource: dashboards
+      actions: [read, write, delete]
+      description: Manage Sumo Logic Dashboards (create / edit panels, layout & variables / delete)
+    - resource: log-searches
+      actions: [read, write, delete]
+      description: Manage Sumo Logic saved and scheduled Log Searches (create / edit / delete)
+    - resource: saml-configuration
+      actions: [read, write, delete]
+      description: Manage Sumo Logic SAML SSO identity provider configurations (create / edit / delete) — organization-wide sign-in impact
+    - resource: users
+      actions: [read, write, delete]
+      description: Manage Sumo Logic user accounts (create / edit name, roles & active state / delete)
+    - resource: tokens
+      actions: [read, write, delete]
+      description: Manage Sumo Logic Collector Registration Tokens (create / edit description & status / delete)
 
 pipeline:
   configurationTypes:
@@ -107,6 +145,94 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: false
 
+    - id: scheduled-views
+      group: "Data Management"
+      name: Scheduled Views
+      description: >
+        Sumo Logic Scheduled Views — continuous pre-computed indexes built from
+        a query — applied over the Management API (/api/v1/scheduledViews).
+        Query, index name and start time are only accepted at creation; only
+        retention, data forwarding and time zone can be changed afterward.
+        Scheduled Views are disabled rather than deleted.
+      canvasTemplate: config-types/scheduled-views/canvas.yaml
+      defaultConfig: config-types/scheduled-views/defaults.yaml
+      handlers:
+        validate: config-types/scheduled-views/validate
+        deploy: config-types/scheduled-views/deploy
+        rollback: config-types/scheduled-views/rollback
+        healthCheck: config-types/scheduled-views/healthCheck
+        driftDetect: config-types/scheduled-views/driftDetect
+        getStatus: config-types/scheduled-views/getStatus
+      targets:
+        componentTypes: [sumo-logic-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ingest-budgets
+      group: "Data Management"
+      name: Ingest Budgets
+      description: >
+        Sumo Logic Ingest Budgets — daily volume caps applied to messages
+        matching a field-based scope, with a configurable action once capacity
+        is reached — applied over the Management API v2 (/api/v2/ingestBudgets).
+      canvasTemplate: config-types/ingest-budgets/canvas.yaml
+      defaultConfig: config-types/ingest-budgets/defaults.yaml
+      handlers:
+        validate: config-types/ingest-budgets/validate
+        deploy: config-types/ingest-budgets/deploy
+        rollback: config-types/ingest-budgets/rollback
+        healthCheck: config-types/ingest-budgets/healthCheck
+        driftDetect: config-types/ingest-budgets/driftDetect
+        getStatus: config-types/ingest-budgets/getStatus
+      targets:
+        componentTypes: [sumo-logic-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: data-forwarding-destinations
+      group: "Data Management"
+      name: Data Forwarding Destinations
+      description: >
+        Sumo Logic S3 Data Forwarding Destinations — the archival buckets
+        Partitions and Scheduled Views can forward data to, authenticated via
+        an IAM role or AWS access key — applied over the Management API
+        (/api/v1/logsDataForwarding/destinations). The bucket name is only
+        accepted at creation.
+      canvasTemplate: config-types/data-forwarding-destinations/canvas.yaml
+      defaultConfig: config-types/data-forwarding-destinations/defaults.yaml
+      handlers:
+        validate: config-types/data-forwarding-destinations/validate
+        deploy: config-types/data-forwarding-destinations/deploy
+        rollback: config-types/data-forwarding-destinations/rollback
+        healthCheck: config-types/data-forwarding-destinations/healthCheck
+        driftDetect: config-types/data-forwarding-destinations/driftDetect
+        getStatus: config-types/data-forwarding-destinations/getStatus
+      targets:
+        componentTypes: [sumo-logic-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: data-forwarding-rules
+      group: "Data Management"
+      name: Data Forwarding Rules
+      description: >
+        Sumo Logic Data Forwarding Rules — binding an existing Partition or
+        Scheduled View (by its own id) to a Data Forwarding Destination —
+        applied over the Management API (/api/v1/logsDataForwarding/rules).
+      canvasTemplate: config-types/data-forwarding-rules/canvas.yaml
+      defaultConfig: config-types/data-forwarding-rules/defaults.yaml
+      handlers:
+        validate: config-types/data-forwarding-rules/validate
+        deploy: config-types/data-forwarding-rules/deploy
+        rollback: config-types/data-forwarding-rules/rollback
+        healthCheck: config-types/data-forwarding-rules/healthCheck
+        driftDetect: config-types/data-forwarding-rules/driftDetect
+        getStatus: config-types/data-forwarding-rules/getStatus
+      targets:
+        componentTypes: [sumo-logic-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: roles
       group: "Access Control"
       name: Roles
@@ -123,6 +249,181 @@ pipeline:
         healthCheck: config-types/roles/healthCheck
         driftDetect: config-types/roles/driftDetect
         getStatus: config-types/roles/getStatus
+      targets:
+        componentTypes: [sumo-logic-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: users
+      group: "Access Control"
+      name: Users
+      description: >
+        Sumo Logic user accounts — first/last name, role assignment and active
+        state — applied over the Management API (/api/v1/users). Email is the
+        stable identity and is immutable after creation.
+      canvasTemplate: config-types/users/canvas.yaml
+      defaultConfig: config-types/users/defaults.yaml
+      handlers:
+        validate: config-types/users/validate
+        deploy: config-types/users/deploy
+        rollback: config-types/users/rollback
+        healthCheck: config-types/users/healthCheck
+        driftDetect: config-types/users/driftDetect
+        getStatus: config-types/users/getStatus
+      targets:
+        componentTypes: [sumo-logic-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: saml-configuration
+      group: "Access Control"
+      name: SAML Configuration
+      description: >
+        Sumo Logic SAML SSO identity provider configurations — issuer,
+        certificate, SP-initiated login and role/attribute mapping — applied
+        over the Management API (/api/v1/saml/identityProviders). High blast
+        radius: changes affect organization-wide sign-in.
+      canvasTemplate: config-types/saml-configuration/canvas.yaml
+      defaultConfig: config-types/saml-configuration/defaults.yaml
+      handlers:
+        validate: config-types/saml-configuration/validate
+        deploy: config-types/saml-configuration/deploy
+        rollback: config-types/saml-configuration/rollback
+        healthCheck: config-types/saml-configuration/healthCheck
+        driftDetect: config-types/saml-configuration/driftDetect
+        getStatus: config-types/saml-configuration/getStatus
+      targets:
+        componentTypes: [sumo-logic-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: tokens
+      group: "Access Control"
+      name: Tokens
+      description: >
+        Sumo Logic Collector Registration Tokens — name, description and
+        Active/Inactive status — applied over the Management API
+        (/api/v1/tokens). The generated secret value is never read or written
+        by this config type.
+      canvasTemplate: config-types/tokens/canvas.yaml
+      defaultConfig: config-types/tokens/defaults.yaml
+      handlers:
+        validate: config-types/tokens/validate
+        deploy: config-types/tokens/deploy
+        rollback: config-types/tokens/rollback
+        healthCheck: config-types/tokens/healthCheck
+        driftDetect: config-types/tokens/driftDetect
+        getStatus: config-types/tokens/getStatus
+      targets:
+        componentTypes: [sumo-logic-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: monitors
+      group: "Alerting & Notifications"
+      name: Monitors
+      description: >
+        Sumo Logic Monitors — alert definitions with query, trigger conditions
+        and notification actions — applied over the Management API
+        (/api/v1/monitors). Monitor names are unique per parent folder in the
+        separate Monitors Library folder tree.
+      canvasTemplate: config-types/monitors/canvas.yaml
+      defaultConfig: config-types/monitors/defaults.yaml
+      handlers:
+        validate: config-types/monitors/validate
+        deploy: config-types/monitors/deploy
+        rollback: config-types/monitors/rollback
+        healthCheck: config-types/monitors/healthCheck
+        driftDetect: config-types/monitors/driftDetect
+        getStatus: config-types/monitors/getStatus
+      targets:
+        componentTypes: [sumo-logic-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: connections
+      group: "Alerting & Notifications"
+      name: Connections
+      description: >
+        Sumo Logic notification Connections used by Monitors — Webhook (also
+        implementing Slack/PagerDuty/Datadog/Jira/Opsgenie/Microsoft Teams/New
+        Relic/AWS Lambda/Azure/HipChat/Cloud SOAR) and ServiceNow — applied over
+        the Management API (/api/v1/connections). These are the only two
+        connection kinds the API accepts full CRUD for.
+      canvasTemplate: config-types/connections/canvas.yaml
+      defaultConfig: config-types/connections/defaults.yaml
+      handlers:
+        validate: config-types/connections/validate
+        deploy: config-types/connections/deploy
+        rollback: config-types/connections/rollback
+        healthCheck: config-types/connections/healthCheck
+        driftDetect: config-types/connections/driftDetect
+        getStatus: config-types/connections/getStatus
+      targets:
+        componentTypes: [sumo-logic-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: folders
+      group: "Content Library"
+      name: Content Folders
+      description: >
+        Sumo Logic Content Library folders — the tree organizing Dashboards,
+        Log Searches and Lookup Tables — applied over the Management API v2
+        (/api/v2/content/folders). Deletion is asynchronous (job-based).
+      canvasTemplate: config-types/folders/canvas.yaml
+      defaultConfig: config-types/folders/defaults.yaml
+      handlers:
+        validate: config-types/folders/validate
+        deploy: config-types/folders/deploy
+        rollback: config-types/folders/rollback
+        healthCheck: config-types/folders/healthCheck
+        driftDetect: config-types/folders/driftDetect
+        getStatus: config-types/folders/getStatus
+      targets:
+        componentTypes: [sumo-logic-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: dashboards
+      group: "Content Library"
+      name: Dashboards
+      description: >
+        Sumo Logic Dashboards — panels, layout, time range and variables —
+        applied over the Management API v2 (/api/v2/dashboards). Dashboard
+        titles are unique per folder, defaulting to the caller's Personal
+        folder.
+      canvasTemplate: config-types/dashboards/canvas.yaml
+      defaultConfig: config-types/dashboards/defaults.yaml
+      handlers:
+        validate: config-types/dashboards/validate
+        deploy: config-types/dashboards/deploy
+        rollback: config-types/dashboards/rollback
+        healthCheck: config-types/dashboards/healthCheck
+        driftDetect: config-types/dashboards/driftDetect
+        getStatus: config-types/dashboards/getStatus
+      targets:
+        componentTypes: [sumo-logic-org, standalone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: log-searches
+      group: "Content Library"
+      name: Log Searches
+      description: >
+        Sumo Logic saved and scheduled Log Searches — query, schedule
+        (cron/interval) and notification actions — applied over the
+        Management API (/api/v1/logSearches). Names are unique per folder,
+        defaulting to the caller's Personal folder.
+      canvasTemplate: config-types/log-searches/canvas.yaml
+      defaultConfig: config-types/log-searches/defaults.yaml
+      handlers:
+        validate: config-types/log-searches/validate
+        deploy: config-types/log-searches/deploy
+        rollback: config-types/log-searches/rollback
+        healthCheck: config-types/log-searches/healthCheck
+        driftDetect: config-types/log-searches/driftDetect
+        getStatus: config-types/log-searches/getStatus
       targets:
         componentTypes: [sumo-logic-org, standalone]
         requiresCredential: true
@@ -155,6 +456,8 @@ client:
       nav: sidebar
     # Connections — Settings nav group. Pairs the Sumo Logic org (component) with
     # the Access ID / Access Key (credential), with a per-row connectivity test.
+    # NOTE: distinct from the "connections" CONFIGURATION TYPE above (Sumo Logic
+    # notification Connections) — this is the platform-level tenant credential page.
     - path: /connections
       component: ConnectionsPage
       label: Connections

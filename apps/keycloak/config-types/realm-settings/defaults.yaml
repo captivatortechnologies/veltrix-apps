@@ -1,0 +1,8 @@
+# Defaults for the (singleton) Realm Settings item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. The Login checkboxes each carry their own
+# defaultValue in canvas.yaml (matching Keycloak's own documented realm
+# defaults), so they are always "declared" even on a brand-new item. Tokens and
+# Password Policy fields are genuinely optional: left blank, this config type
+# does not manage them and the realm's current value is left untouched.

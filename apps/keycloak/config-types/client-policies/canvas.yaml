@@ -1,0 +1,79 @@
+# =============================================================================
+# Canvas Template — Keycloak Client Policies
+#
+# A Client Policy is a named condition set that applies one or more Client Profiles
+# (see the sibling Client Profiles config type) to matching clients — the other half
+# of Keycloak's FAPI-style "client policies" framework. Like client-profiles,
+# `client-policies/policies` is a realm-wide WHOLE-LIST singleton — every declared
+# item here is combined into ONE PUT covering the complete custom-policy list, not one
+# API call per item (see config-types/client-policies/_shared.ts). Keycloak's own
+# built-in "global" policies are a separate, server-managed field and are never
+# touched by this config type. Field keys must match
+# config-types/client-policies/validate.ts. Applied via the Keycloak Admin REST API
+# (GET/PUT /admin/realms/{realm}/client-policies/policies). Referenced profiles
+# (custom or Keycloak's own global profiles) must already exist — this is verified by
+# Keycloak itself at deploy time, not by static validation here.
+# =============================================================================
+
+id: "keycloak-client-policies"
+name: "Client Policies"
+toolType: "keycloak"
+entityType: "client-policies"
+description: "Manage Keycloak client policies — named condition sets that apply one or more Client Profiles to matching clients — via the Keycloak Admin REST API. Referenced profiles must already exist."
+
+item:
+  label: "Client Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "shield"
+      description: "Policy identity and state"
+      fields:
+        - key: "name"
+          label: "Policy name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[^\\s]+$"
+            maxLength: 255
+          helpText: "The client policy's name — its identity in the realm's custom policy list. Must be unique across this config's items (this config type writes the complete list in one request, so duplicates are rejected) and must not contain whitespace."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Human-readable description shown in the Keycloak admin console."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether this policy is active. Keycloak treats an absent/null value as disabled, so this config type always sends an explicit true/false."
+
+    - name: "Conditions"
+      icon: "filter"
+      description: "The set of conditions a client must match for this policy to apply"
+      fields:
+        - key: "conditions"
+          label: "Conditions (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 50000
+          helpText: 'The condition set as a JSON array, e.g. [{"condition":"client-updater-context","configuration":{"update-client-source":["ADMIN_REST_API"]}},{"condition":"client-access-type","configuration":{"type":["confidential"]}}]. ALL conditions must vote yes for the policy to apply. Verified built-in condition provider ids (github.com/keycloak/keycloak, services/.../clientpolicy/condition): client-updater-context, client-updater-source-groups, client-updater-source-roles, client-updater-source-host, client-access-type, client-roles, client-scopes, client-type, client-attributes, any-client. See also the Terraform keycloak_realm_client_policy_profile_policy resource docs (registry.terraform.io/providers/keycloak/keycloak/latest/docs/resources/realm_client_policy_profile_policy) for the condition block shape. Leave blank for a policy with no conditions — it will never match any client.'
+
+    - name: "Profiles"
+      icon: "link"
+      description: "The Client Profiles this policy applies to matching clients"
+      fields:
+        - key: "profiles"
+          label: "Profiles"
+          fieldType: "tags"
+          required: false
+          helpText: "The names of the Client Profiles (custom, from the Client Profiles config type, or Keycloak's own built-in global profiles, e.g. fapi-1-baseline / fapi-1-advanced) this policy applies to a matching client. Not verified here — an unknown profile name is rejected by Keycloak at deploy time. Leave empty and the policy will match clients but enforce nothing."

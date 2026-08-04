@@ -1,0 +1,159 @@
+# =============================================================================
+# Canvas Template — Sumo Logic Connections
+#
+# Declares ONE notification connection (the item) — a destination Monitors (and
+# scheduled search notifications) can send to. The Management API only accepts
+# full CRUD for two connection kinds: Webhook (a generic mechanism that also
+# implements Slack/PagerDuty/Datadog/Jira/Opsgenie/MicrosoftTeams/NewRelic/
+# AWSLambda/Azure/HipChat/SumoCloudSOAR by setting webhookType) and ServiceNow
+# (its own username/password kind). Field keys must match
+# config-types/connections/validate.ts. Applied via the Sumo Logic Management
+# API (/api/v1/connections).
+#   API: https://www.sumologic.com/help/docs/api/connection-management/
+# =============================================================================
+
+id: "sumo-logic-connections"
+name: "Connections"
+toolType: "sumo-logic"
+entityType: "connections"
+description: "Manage Sumo Logic notification connections — webhook (incl. Slack/PagerDuty/Datadog/Jira/Opsgenie/Teams/etc.) and ServiceNow — via the Management API"
+
+item:
+  label: "Connection"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Connection"
+      icon: "plug"
+      description: "Identity and kind"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 127
+          helpText: "Connection name shown in Sumo Logic (referenced by Monitors and scheduled search notifications by this name via its id). The stable identity for upsert and drift."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 1024
+          helpText: "Human-readable description of what this connection is for."
+
+        - key: "type"
+          label: "Kind"
+          fieldType: "select"
+          required: true
+          defaultValue: "WebhookDefinition"
+          options:
+            - label: "Webhook (Slack, PagerDuty, Datadog, Jira, Opsgenie, Teams, ...)"
+              value: "WebhookDefinition"
+            - label: "ServiceNow"
+              value: "ServiceNowDefinition"
+          helpText: "Only these two connection kinds accept full create/update/delete via the Management API. Fields below change based on this selection."
+
+    - name: "Endpoint"
+      icon: "link"
+      description: "Where notifications are sent"
+      fields:
+        - key: "url"
+          label: "URL"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 2048
+          helpText: "The destination URL — a Slack/PagerDuty/Datadog/etc. webhook URL for Webhook connections, or the ServiceNow instance URL for ServiceNow."
+
+        - key: "webhookType"
+          label: "Webhook Type"
+          fieldType: "select"
+          required: false
+          defaultValue: "Webhook"
+          options:
+            - { label: "Generic Webhook", value: "Webhook" }
+            - { label: "Slack", value: "Slack" }
+            - { label: "PagerDuty", value: "PagerDuty" }
+            - { label: "Datadog", value: "Datadog" }
+            - { label: "Jira", value: "Jira" }
+            - { label: "Opsgenie", value: "Opsgenie" }
+            - { label: "Microsoft Teams", value: "MicrosoftTeams" }
+            - { label: "New Relic", value: "NewRelic" }
+            - { label: "AWS Lambda", value: "AWSLambda" }
+            - { label: "Azure", value: "Azure" }
+            - { label: "HipChat", value: "HipChat" }
+            - { label: "Sumo Logic Cloud SOAR", value: "SumoCloudSOAR" }
+          visibleWhen:
+            field: "type"
+            equals: "WebhookDefinition"
+          helpText: "Which third-party integration this webhook implements — determines how Sumo Logic renders the default payload template's variables."
+
+        - key: "username"
+          label: "Username"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          visibleWhen:
+            field: "type"
+            equals: "ServiceNowDefinition"
+          helpText: "The ServiceNow account username."
+
+        - key: "password"
+          label: "Password"
+          fieldType: "password"
+          required: false
+          validation:
+            maxLength: 255
+          visibleWhen:
+            field: "type"
+            equals: "ServiceNowDefinition"
+          helpText: "The ServiceNow account password. Write-only — Sumo Logic never returns it, so rollback cannot restore a changed value; re-enter it if needed."
+
+    - name: "Webhook Payload"
+      icon: "code"
+      description: "Payload template and headers — Webhook connections only"
+      fields:
+        - key: "defaultPayload"
+          label: "Default Payload"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 8192
+          visibleWhen:
+            field: "type"
+            equals: "WebhookDefinition"
+          helpText: "The payload template Sumo Logic sends on trigger, using {{Variable}} placeholders (e.g. {{AlertName}}, {{TriggerType}}, {{ResultsJson}}). Required for Webhook connections."
+
+        - key: "resolutionPayload"
+          label: "Resolution Payload"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 4096
+          visibleWhen:
+            field: "type"
+            equals: "WebhookDefinition"
+          helpText: "Optional payload template sent when a triggered condition resolves."
+
+        - key: "headers"
+          label: "Authorization Headers"
+          fieldType: "keyvalue"
+          required: false
+          visibleWhen:
+            field: "type"
+            equals: "WebhookDefinition"
+          helpText: "Access-authorization headers sent with every request, e.g. Authorization → Bearer <token>. Write-only — Sumo Logic masks these on read, so rollback cannot restore a changed value; re-enter it if needed."
+
+        - key: "customHeaders"
+          label: "Custom Headers"
+          fieldType: "keyvalue"
+          required: false
+          visibleWhen:
+            field: "type"
+            equals: "WebhookDefinition"
+          helpText: "Additional non-authorization HTTP headers sent with every request. Limited to 5 entries by the Management API."

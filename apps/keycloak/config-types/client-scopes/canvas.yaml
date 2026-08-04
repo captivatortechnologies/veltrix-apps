@@ -1,0 +1,109 @@
+# =============================================================================
+# Canvas Template — Keycloak Client Scopes
+#
+# Declares ONE client scope (the item). Users add as many as they need. Field
+# keys must match config-types/client-scopes/validate.ts. Applied via the
+# Keycloak Admin REST API (/admin/realms/{realm}/client-scopes). The scope name
+# is the stable identity used for upsert and drift. Realm default/optional
+# assignment (realmDefault) is reconciled separately via the
+# default-default-client-scopes / default-optional-client-scopes endpoints.
+# =============================================================================
+
+id: "keycloak-client-scopes"
+name: "Client Scopes"
+toolType: "keycloak"
+entityType: "client-scopes"
+description: "Manage Keycloak client scopes — name, protocol, consent-screen text, token/discovery inclusion, GUI order — plus realm default/optional assignment, via the Keycloak Admin REST API"
+
+item:
+  label: "Client scope"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "key"
+      description: "Scope identity and protocol"
+      fields:
+        - key: "name"
+          label: "Scope name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[^\\s]+$"
+            maxLength: 255
+          helpText: "The client scope name (e.g. profile-read). Unique in the realm; used as the stable identity for upsert and drift. Must not contain whitespace — OAuth2's \"scope\" request parameter is space-delimited, so a scope name with whitespace could never be requested."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Human-readable description shown in the Keycloak admin console"
+
+        - key: "protocol"
+          label: "Protocol"
+          fieldType: "select"
+          required: true
+          defaultValue: "openid-connect"
+          options:
+            - label: "OpenID Connect"
+              value: "openid-connect"
+            - label: "SAML"
+              value: "saml"
+          helpText: "Client protocol"
+
+    - name: "Consent & Metadata"
+      icon: "settings"
+      description: "Consent-screen presentation, token/discovery inclusion and realm default assignment"
+      fields:
+        - key: "consentScreenText"
+          label: "Consent screen text"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Text shown to the user on the consent screen when \"Display on consent screen\" is on"
+
+        - key: "displayOnConsentScreen"
+          label: "Display on consent screen"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether this scope is shown to the user on the consent screen"
+
+        - key: "includeInTokenScope"
+          label: "Include in token scope"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether this scope name is included in the \"scope\" claim of issued access tokens"
+
+        - key: "includeInOpenidProviderMetadata"
+          label: "Include in OpenID provider metadata"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether this scope is advertised in the realm's OpenID Provider (discovery) metadata"
+
+        - key: "guiOrder"
+          label: "GUI order"
+          fieldType: "number"
+          required: false
+          helpText: "Optional display order for this scope in the Keycloak admin console and consent screen (lower first). Leave blank to use Keycloak's default ordering."
+
+        - key: "realmDefault"
+          label: "Realm assignment"
+          fieldType: "select"
+          required: false
+          defaultValue: "none"
+          options:
+            - label: "None (not assigned to new clients)"
+              value: "none"
+            - label: "Default (auto-assigned to every new client)"
+              value: "default"
+            - label: "Optional (available for clients to opt into)"
+              value: "optional"
+          helpText: "Whether this scope is a realm default or optional client scope. Default scopes are automatically assigned to every newly created client; optional scopes are available but not auto-assigned. At most one of default/optional applies."

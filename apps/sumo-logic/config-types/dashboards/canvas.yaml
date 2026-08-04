@@ -1,0 +1,134 @@
+# =============================================================================
+# Canvas Template — Sumo Logic Dashboards
+#
+# Declares ONE dashboard (the item) in the Content Library. `panels`, `layout`,
+# `timeRange` and `variables` are deeply nested and heavily discriminated (six+
+# panel types, several time-range shapes, three variable source kinds), so —
+# following the Monitors config type in this app and the Cisco Meraki Group
+# Policies precedent — they are authored as JSON. Field keys must match
+# config-types/dashboards/validate.ts. Applied via the Sumo Logic Management
+# API (/api/v2/dashboards).
+#   API: https://help.sumologic.com/docs/api/dashboards-v2/
+# =============================================================================
+
+id: "sumo-logic-dashboards"
+name: "Dashboards"
+toolType: "sumo-logic"
+entityType: "dashboards"
+description: "Manage Sumo Logic dashboards — panels, layout, time range and variables — via the Management API"
+
+item:
+  label: "Dashboard"
+  identityField: "title"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Dashboard"
+      icon: "layout-dashboard"
+      description: "Identity and placement"
+      fields:
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Dashboard title shown in Sumo Logic. The stable identity for upsert and drift — unique within its folder, not globally."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          helpText: "Human-readable description of what this dashboard shows."
+
+        - key: "folderId"
+          label: "Folder ID"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 64
+          helpText: "The Content Library folder id to save this dashboard in (see the Content Folders config type). Leave blank to use your Personal folder (resolved automatically via GET /v2/content/folders/personal)."
+
+        - key: "domain"
+          label: "Domain"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 32
+          helpText: "Optional domain this dashboard concerns, e.g. aws, k8s, app."
+
+    - name: "Display"
+      icon: "monitor"
+      description: "Refresh, theme and sharing"
+      fields:
+        - key: "refreshInterval"
+          label: "Auto-Refresh Interval (seconds)"
+          fieldType: "select"
+          required: false
+          defaultValue: 0
+          options:
+            - { label: "Never", value: 0 }
+            - { label: "30 seconds", value: 30 }
+            - { label: "1 minute", value: 60 }
+            - { label: "2 minutes", value: 120 }
+            - { label: "5 minutes", value: 300 }
+            - { label: "15 minutes", value: 900 }
+            - { label: "30 minutes", value: 1800 }
+            - { label: "1 hour", value: 3600 }
+            - { label: "2 hours", value: 7200 }
+            - { label: "1 day", value: 86400 }
+          helpText: "How often the dashboard automatically refreshes. Only these values are accepted by the Management API."
+
+        - key: "theme"
+          label: "Theme"
+          fieldType: "select"
+          required: false
+          defaultValue: "Light"
+          options:
+            - { label: "Light", value: "Light" }
+            - { label: "Dark", value: "Dark" }
+          helpText: "Dashboard color theme."
+
+        - key: "isPublic"
+          label: "Public Dashboard"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "FLAG — when on, anyone with the dashboard's public link can view it without a Sumo Logic account, bypassing RBAC. Leave off for internal-only dashboards."
+
+    - name: "Content (JSON)"
+      icon: "code"
+      description: "Time range, panels, layout and variables — authored as JSON"
+      fields:
+        - key: "timeRange"
+          label: "Time Range (JSON)"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 8192
+          helpText: 'The dashboard-wide default time range, e.g. {"type":"BeginBoundedTimeRange","from":{"type":"RelativeTimeRangeBoundary","relativeTime":"-1h"}}.'
+
+        - key: "panels"
+          label: "Panels (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 200000
+          helpText: 'A JSON array of panel objects (SumoSearchPanel, TextPanel, ServiceMapPanel, TracesListPanel, ...). Leave blank ([]) for an empty dashboard. See the Dashboards API docs for the full panel schema.'
+
+        - key: "layout"
+          label: "Layout (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 65536
+          helpText: 'The grid layout positioning the panels above, e.g. {"layoutType":"Grid","layoutStructures":[{"key":"<panelKey>","structure":"..."}]}. Leave blank for an empty grid.'
+
+        - key: "variables"
+          label: "Variables (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 65536
+          helpText: "A JSON array of dashboard template Variable objects. Leave blank ([]) for no variables."
