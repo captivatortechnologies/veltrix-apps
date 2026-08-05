@@ -7,8 +7,13 @@ import {
   MISSING_CREDENTIAL_MESSAGE,
 } from '../../lib/graph'
 import type { RollbackEntry } from './deploy'
+import type { PolicyTargetKind } from '../lib/policyAppliesTo'
 
 const BASE = '/policies/appManagementPolicies'
+const TARGET_BASE: Record<PolicyTargetKind, string> = {
+  application: '/applications',
+  servicePrincipal: '/servicePrincipals',
+}
 
 export default async function rollback(ctx: RollbackContext): Promise<RollbackResult> {
   const settings = readGraphSettings(ctx.settings)
@@ -21,6 +26,7 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
   const failures: string[] = []
   let restored = 0
   let deleted = 0
+  let unassigned = 0
 
   for (const e of entries) {
     if (!e.id) continue
@@ -29,14 +35,28 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
       if (!resp.ok && resp.status !== 404) failures.push(`restore ${e.name}: ${graphErrorMessage(resp)}`)
       else restored++
     } else if (!e.existed) {
+      // We created this policy — remove it (its appliesTo assignments go with it).
       const resp = await client.delete(`${BASE}/${e.id}`)
       if (!resp.ok && resp.status !== 404) failures.push(`delete ${e.name}: ${graphErrorMessage(resp)}`)
       else deleted++
+      continue
+    }
+
+    // The policy itself survives rollback — revert only the assignments THIS
+    // deploy made (existed:false).
+    for (const a of e.appliesTo ?? []) {
+      if (a.existed) continue
+      const resp = await client.delete(`${TARGET_BASE[a.kind]}/${a.id}/appManagementPolicies/${e.id}/$ref`)
+      if (!resp.ok && resp.status !== 404) failures.push(`unassign ${e.name} from ${a.id}: ${graphErrorMessage(resp)}`)
+      else unassigned++
     }
   }
 
   if (failures.length) {
     return { success: false, message: `Rollback had errors: ${failures.join('; ')}` }
   }
-  return { success: true, message: `Rolled back app management policies: ${deleted} deleted, ${restored} restored` }
+  return {
+    success: true,
+    message: `Rolled back app management policies: ${deleted} deleted, ${restored} restored, ${unassigned} assignment(s) removed`,
+  }
 }

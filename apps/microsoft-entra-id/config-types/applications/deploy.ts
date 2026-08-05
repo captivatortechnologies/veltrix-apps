@@ -16,6 +16,8 @@ import {
   type ApplicationSpec,
   type LiveApplication,
 } from './validate'
+import { buildOwnerPrincipalNameMaps, resolveOwnerPrincipals } from '../lib/principals'
+import { reconcileRefCollection, type RefMemberEntry } from '../lib/refReconcile'
 
 const BASE = '/applications'
 /** Trim the live projection to just the managed fields (never secrets). */
@@ -35,6 +37,8 @@ export interface RollbackEntry {
   /** Prior managed fields, captured before an update so rollback can restore them.
    *  Never includes secrets. */
   prior?: Record<string, unknown>
+  /** Tracked owners, with provenance — see RefMemberEntry. */
+  owners?: RefMemberEntry[]
 }
 
 /** OData alternate-key literals escape a single quote by doubling it. */
@@ -120,6 +124,11 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const priorByItemId = new Map(prior.filter((e) => e.itemId).map((e) => [e.itemId as string, e]))
   const priorByUnique = new Map(prior.filter((e) => e.uniqueName).map((e) => [e.uniqueName.toLowerCase(), e]))
 
+  // Owner references resolve against users/service principals — a
+  // picker-selected value passes straight through; a hand-typed display
+  // name/UPN (pre-picker convention) falls back to these live maps.
+  const ownerMaps = await buildOwnerPrincipalNameMaps(client)
+
   const entries: RollbackEntry[] = []
   const failures: string[] = []
   // Every uniqueName this deploy DECLARES (regardless of per-item success), so the
@@ -147,6 +156,8 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       null
 
     const body = buildBody(spec)
+    let appId: string | undefined
+    let entry: RollbackEntry
 
     if (liveMatch?.id) {
       // Update. Use the declarative upsert primitive when this app carries our
@@ -161,7 +172,8 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         failures.push(`${spec.name}: ${graphErrorMessage(resp)}`)
         continue
       }
-      entries.push({
+      appId = liveMatch.id
+      entry = {
         itemId: spec.itemId,
         name: spec.name,
         uniqueName: liveMatch.uniqueName || uniqueName,
@@ -172,7 +184,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         existed: priorEntry?.existed === false ? false : true,
         id: liveMatch.id,
         prior: snapshotLive(liveMatch),
-      })
+      }
     } else {
       // Create-or-update by the uniqueName alternate key (Prefer: create-if-missing).
       const resp = await client.request('PATCH', `${BASE}(uniqueName='${odataKey(uniqueName)}')`, body, {
@@ -183,14 +195,38 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         continue
       }
       const created = parseJson<LiveApplication>(resp.body)
-      entries.push({
+      appId = created?.id
+      entry = {
         itemId: spec.itemId,
         name: spec.name,
         uniqueName,
         existed: false,
         id: created?.id,
-      })
+      }
     }
+
+    if (appId) {
+      const ownerResolution = resolveOwnerPrincipals(spec.owners, ownerMaps)
+      if (ownerResolution.missing.length) {
+        failures.push(
+          `${spec.name}: unknown owner(s) ${ownerResolution.missing.join(', ')} — create/verify them first or fix the name`
+        )
+        // Leave ownership exactly as last tracked — don't touch Graph until every owner resolves.
+        entry.owners = priorEntry?.owners ?? []
+      } else {
+        const { members, failures: ownerFailures } = await reconcileRefCollection(
+          client,
+          `${BASE}/${appId}`,
+          'owners',
+          ownerResolution.ids,
+          priorEntry?.owners ?? []
+        )
+        entry.owners = members
+        for (const f of ownerFailures) failures.push(`${spec.name}: ${f}`)
+      }
+    }
+
+    entries.push(entry)
   }
 
   // Reconcile: delete apps THIS config created previously but no longer declares.

@@ -13,6 +13,8 @@ export interface HomeRealmSpec {
   /** The raw definition JSON text (a single JSON object as a string). */
   definition: string
   isOrganizationDefault: boolean
+  /** Service-principal object ids, names or ids to assign this policy to — resolved at deploy time. */
+  appliesTo: string[]
 }
 
 /** A home realm discovery policy as returned by Graph. */
@@ -29,6 +31,15 @@ function asString(v: unknown): string {
 
 function asBool(v: unknown): boolean {
   return v === true || v === 'true'
+}
+
+/** Coerce a multiselect (array) or a delimited string into trimmed tokens. */
+function asStringArray(v: unknown): string[] {
+  if (Array.isArray(v)) return v.map((x) => String(x).trim()).filter((t) => t.length > 0)
+  return asString(v)
+    .split(/[\n,]/)
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0)
 }
 
 /** Parse a JSON string into a plain object, or null when it isn't a JSON object. */
@@ -73,6 +84,7 @@ export function extractHomeRealmSpecs(canvas: CanvasSnapshot): HomeRealmSpec[] {
       name: asString(f.name) || item.name,
       definition: asString(f.definition),
       isOrganizationDefault: asBool(f.isOrganizationDefault),
+      appliesTo: asStringArray(f.appliesTo),
     }
   })
 }

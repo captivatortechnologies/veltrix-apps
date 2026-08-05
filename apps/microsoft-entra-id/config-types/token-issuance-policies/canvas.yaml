@@ -46,3 +46,25 @@ item:
           helpText: >
             A JSON object with a "TokenIssuancePolicy" root key, e.g.
             {"TokenIssuancePolicy":{"Version":1,"SigningAlgorithm":"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256","TokenResponseSigningPolicy":"TokenOnly","SamlTokenVersion":"1.1"}}.
+
+    - name: "Applies To"
+      icon: "target"
+      description: "Applications this policy is assigned to"
+      fields:
+        - key: "appliesTo"
+          label: "Applies To (applications)"
+          fieldType: "remote-multiselect"
+          optionsSource: "applicationObjects"
+          optionsMulti: true
+          required: false
+          helpText: >
+            Applications to assign this SAML token issuance policy to — pick
+            from the live tenant's app registrations. Stores each
+            application's object id; a hand-typed display name or id from an
+            older canvas also resolves at deploy time. Token issuance policies
+            apply to APPLICATIONS, not service principals — verified directly
+            against Microsoft Graph (POST /applications/{id}/tokenIssuancePolicies/$ref
+            exists and works; the service-principal equivalent does not).
+            This app only ever un-assigns an application it itself assigned —
+            a pre-existing assignment left off this list is never removed.
+            Leave empty to manage no assignment through this canvas.

@@ -8,6 +8,23 @@
 # created. Built-in "microsoft-*" policies are reserved and never managed.
 #
 # Field keys must match config-types/permission-grant-policies/validate.ts.
+#
+# NOT WIRED TO A LIVE PICKER (Phase-2 batch-3 assessment, documented per the
+# batch brief rather than forced): includes/excludes are JSON ARRAYS of
+# permissionGrantConditionSet objects
+# (https://learn.microsoft.com/graph/api/resources/permissiongrantconditionset).
+# Their directory-object-shaped sub-fields — resourceApplication and
+# clientApplicationIds — are documented as either the literal "any"/"all"
+# sentinel or a LIST of appIds embedded inside each array element, e.g.
+# {"resourceApplication":"00000003-0000-0000-c000-000000000000","clientApplicationIds":["all"]}.
+# This app's canvas fields are flat (textarea holding the whole JSON array),
+# not per-array-element pickers — the same "nested array, no discrete canvas
+# field to attach optionsSource to" reasoning applications/canvas.yaml already
+# documents for its own appRoles/requiredResourceAccess JSON fields. Wiring
+# would require a structured per-condition-set sub-form the canvas schema
+# doesn't support here, so these stay hand-authored JSON; a resourceApplication
+# value can still be looked up by appId in the Entra admin center or via the
+# "applications" entraOptions source's live listing when authoring.
 # =============================================================================
 
 id: "microsoft-entra-id-permission-grant-policies"

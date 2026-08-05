@@ -1,6 +1,6 @@
 id: microsoft-entra-id
 name: Microsoft Entra ID
-version: "0.8.3"
+version: "0.8.4"
 vendor: Veltrix
 description: >
   Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the
@@ -270,6 +270,7 @@ pipeline:
         healthCheck: config-types/token-lifetime-policies/healthCheck
         driftDetect: config-types/token-lifetime-policies/driftDetect
         getStatus: config-types/token-lifetime-policies/getStatus
+        options: config-types/token-lifetime-policies/options
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true
@@ -288,6 +289,7 @@ pipeline:
         healthCheck: config-types/claims-mapping-policies/healthCheck
         driftDetect: config-types/claims-mapping-policies/driftDetect
         getStatus: config-types/claims-mapping-policies/getStatus
+        options: config-types/claims-mapping-policies/options
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true
@@ -378,6 +380,7 @@ pipeline:
         healthCheck: config-types/token-issuance-policies/healthCheck
         driftDetect: config-types/token-issuance-policies/driftDetect
         getStatus: config-types/token-issuance-policies/getStatus
+        options: config-types/token-issuance-policies/options
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true
@@ -396,6 +399,7 @@ pipeline:
         healthCheck: config-types/home-realm-discovery-policies/healthCheck
         driftDetect: config-types/home-realm-discovery-policies/driftDetect
         getStatus: config-types/home-realm-discovery-policies/getStatus
+        options: config-types/home-realm-discovery-policies/options
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true
@@ -450,6 +454,7 @@ pipeline:
         healthCheck: config-types/app-management-policies/healthCheck
         driftDetect: config-types/app-management-policies/driftDetect
         getStatus: config-types/app-management-policies/getStatus
+        options: config-types/app-management-policies/options
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true
@@ -648,6 +653,7 @@ pipeline:
         healthCheck: config-types/oauth2-permission-grants/healthCheck
         driftDetect: config-types/oauth2-permission-grants/driftDetect
         getStatus: config-types/oauth2-permission-grants/getStatus
+        options: config-types/oauth2-permission-grants/options
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true
@@ -868,6 +874,7 @@ pipeline:
         healthCheck: config-types/applications/healthCheck
         driftDetect: config-types/applications/driftDetect
         getStatus: config-types/applications/getStatus
+        options: config-types/applications/options
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true
@@ -885,6 +892,7 @@ pipeline:
         healthCheck: config-types/service-principals/healthCheck
         driftDetect: config-types/service-principals/driftDetect
         getStatus: config-types/service-principals/getStatus
+        options: config-types/service-principals/options
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true

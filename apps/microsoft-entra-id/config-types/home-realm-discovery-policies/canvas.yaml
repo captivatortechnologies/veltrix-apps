@@ -56,3 +56,23 @@ item:
           helpText: >
             When set, this policy applies as the organization-wide default. Only
             one home realm discovery policy can be the organization default.
+
+    - name: "Applies To"
+      icon: "target"
+      description: "Service principals this policy is assigned to"
+      fields:
+        - key: "appliesTo"
+          label: "Applies To (service principals)"
+          fieldType: "remote-multiselect"
+          optionsSource: "servicePrincipals"
+          optionsMulti: true
+          required: false
+          helpText: >
+            Service principals to assign this home realm discovery policy to —
+            pick from the live tenant. Stores each service principal's object
+            id; a hand-typed display name or id from an older canvas also
+            resolves at deploy time. This app only ever un-assigns a service
+            principal it itself assigned — a pre-existing assignment left off
+            this list is never removed. Leave empty to manage no assignment
+            through this canvas (use Organization Default above for a
+            tenant-wide default instead).

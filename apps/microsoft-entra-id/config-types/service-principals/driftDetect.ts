@@ -5,8 +5,15 @@ import {
   extractServicePrincipalSpecs,
   findByAppIdPath,
   normalizeList,
+  SP_BASE,
   type LiveServicePrincipal,
 } from './validate'
+import { buildOwnerPrincipalNameMaps, resolveOwnerPrincipals } from '../lib/principals'
+import { listRefIds } from '../lib/refReconcile'
+
+function sortedJson(v: string[]): string {
+  return JSON.stringify([...v].sort())
+}
 
 type Diffs = DriftResult['diffs']
 
@@ -18,6 +25,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const client = buildGraphClient(cred, settings)
 
   const specs = extractServicePrincipalSpecs(ctx.deployedConfig).filter((s) => s.appId)
+  const ownerMaps = await buildOwnerPrincipalNameMaps(client)
   const diffs: Diffs = []
 
   for (const spec of specs) {
@@ -90,6 +98,29 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         field: `${spec.appId}.tags`,
         expected: spec.tags.join(', '),
         actual: (live.tags ?? []).join(', ') || '(none)',
+        severity: 'warning',
+      })
+    }
+
+    if (!live.id) continue
+    const ownerResolution = resolveOwnerPrincipals(spec.owners, ownerMaps)
+    if (ownerResolution.missing.length) {
+      diffs.push({
+        field: `${spec.appId}.owners`,
+        expected: 'resolvable',
+        actual: `unknown owner(s): ${ownerResolution.missing.join(', ')}`,
+        severity: 'critical',
+      })
+      continue
+    }
+    const liveOwners = await listRefIds(client, `${SP_BASE}/${live.id}`, 'owners')
+    if (!liveOwners.ok) continue
+    const missingLive = ownerResolution.ids.filter((id) => !liveOwners.ids.has(id))
+    if (missingLive.length) {
+      diffs.push({
+        field: `${spec.appId}.owners`,
+        expected: sortedJson(ownerResolution.ids),
+        actual: sortedJson([...liveOwners.ids]),
         severity: 'warning',
       })
     }

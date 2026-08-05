@@ -21,6 +21,7 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
   const failures: string[] = []
   let restored = 0
   let deleted = 0
+  let unassigned = 0
 
   for (const e of entries) {
     if (!e.id) continue
@@ -29,14 +30,29 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
       if (!resp.ok && resp.status !== 404) failures.push(`restore ${e.name}: ${graphErrorMessage(resp)}`)
       else restored++
     } else if (!e.existed) {
+      // We created this policy — remove it (its appliesTo assignments go with it).
       const resp = await client.delete(`${BASE}/${e.id}`)
       if (!resp.ok && resp.status !== 404) failures.push(`delete ${e.name}: ${graphErrorMessage(resp)}`)
       else deleted++
+      continue
+    }
+
+    // The policy itself survives rollback — revert only the assignments THIS
+    // deploy made (existed:false). tokenIssuancePolicy assigns to
+    // APPLICATIONS only (see deploy.ts header).
+    for (const a of e.appliesTo ?? []) {
+      if (a.existed) continue
+      const resp = await client.delete(`/applications/${a.id}/tokenIssuancePolicies/${e.id}/$ref`)
+      if (!resp.ok && resp.status !== 404) failures.push(`unassign ${e.name} from ${a.id}: ${graphErrorMessage(resp)}`)
+      else unassigned++
     }
   }
 
   if (failures.length) {
     return { success: false, message: `Rollback had errors: ${failures.join('; ')}` }
   }
-  return { success: true, message: `Rolled back token issuance policies: ${deleted} deleted, ${restored} restored` }
+  return {
+    success: true,
+    message: `Rolled back token issuance policies: ${deleted} deleted, ${restored} restored, ${unassigned} assignment(s) removed`,
+  }
 }

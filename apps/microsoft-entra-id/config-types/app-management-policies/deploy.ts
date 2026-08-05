@@ -13,9 +13,21 @@ import {
   type AppManagementSpec,
   type LiveAppManagementPolicy,
 } from './validate'
+import {
+  buildPolicyTargetMaps,
+  reconcilePolicyAppliesTo,
+  resolvePolicyTargets,
+  type PolicyAppliesToEntry,
+} from '../lib/policyAppliesTo'
 
 const BASE = '/policies/appManagementPolicies'
 const SELECT = '?$select=id,displayName,description,isEnabled,restrictions'
+/** The Graph relationship/nav-property name — identical on both the
+ *  application/servicePrincipal target side and the /policies collection
+ *  path (see lib/policyAppliesTo.ts header). */
+const POLICY_TYPE_NAME = 'appManagementPolicies'
+/** appManagementPolicy is assignable to EITHER an application or a service principal. */
+const ALLOWED_KINDS = ['application', 'servicePrincipal'] as const
 
 export interface RollbackEntry {
   itemId?: string
@@ -23,6 +35,8 @@ export interface RollbackEntry {
   existed: boolean
   id?: string
   prior?: Record<string, unknown>
+  /** Tracked appliesTo assignments, with provenance. */
+  appliesTo?: PolicyAppliesToEntry[]
 }
 
 /** Body for POST / PATCH. Restrictions default to an empty object (no restrictions). */
@@ -77,6 +91,11 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const priorByItemId = new Map(prior.filter((e) => e.itemId).map((e) => [e.itemId as string, e]))
   const priorByName = new Map(prior.map((e) => [e.name.toLowerCase(), e]))
 
+  // appliesTo targets resolve against applications/service principals — a
+  // picker-selected value passes straight through; a hand-typed display
+  // name/id falls back to these live maps, built once for the whole deploy.
+  const targetMaps = await buildPolicyTargetMaps(client)
+
   const entries: RollbackEntry[] = []
   const failures: string[] = []
 
@@ -85,13 +104,17 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     const liveMatch =
       (priorEntry?.id ? liveById.get(priorEntry.id) : undefined) ?? liveByName.get(spec.name.toLowerCase()) ?? null
 
+    let policyId: string | undefined
+    let entry: RollbackEntry
+
     if (liveMatch?.id) {
       const resp = await client.patch(`${BASE}/${liveMatch.id}`, buildBody(spec))
       if (!resp.ok) {
         failures.push(`${spec.name}: ${graphErrorMessage(resp)}`)
         continue
       }
-      entries.push({ itemId: spec.itemId, name: spec.name, existed: true, id: liveMatch.id, prior: snapshotLive(liveMatch) })
+      policyId = liveMatch.id
+      entry = { itemId: spec.itemId, name: spec.name, existed: true, id: liveMatch.id, prior: snapshotLive(liveMatch) }
     } else {
       const resp = await client.post(BASE, buildBody(spec))
       if (!resp.ok) {
@@ -99,8 +122,31 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         continue
       }
       const created = parseJson<LiveAppManagementPolicy>(resp.body)
-      entries.push({ itemId: spec.itemId, name: spec.name, existed: false, id: created?.id })
+      policyId = created?.id
+      entry = { itemId: spec.itemId, name: spec.name, existed: false, id: created?.id }
     }
+
+    if (policyId) {
+      const targetResolution = resolvePolicyTargets(spec.appliesTo, targetMaps, ALLOWED_KINDS)
+      if (targetResolution.missing.length) {
+        failures.push(
+          `${spec.name}: unknown appliesTo target(s) ${targetResolution.missing.join(', ')} — create/verify them first or fix the name`
+        )
+        entry.appliesTo = priorEntry?.appliesTo ?? []
+      } else {
+        const { entries: assigned, failures: assignFailures } = await reconcilePolicyAppliesTo(
+          client,
+          POLICY_TYPE_NAME,
+          policyId,
+          targetResolution.targets,
+          priorEntry?.appliesTo ?? []
+        )
+        entry.appliesTo = assigned
+        for (const f of assignFailures) failures.push(`${spec.name}: ${f}`)
+      }
+    }
+
+    entries.push(entry)
   }
 
   // Reconcile: delete policies THIS app created previously but no longer declares.

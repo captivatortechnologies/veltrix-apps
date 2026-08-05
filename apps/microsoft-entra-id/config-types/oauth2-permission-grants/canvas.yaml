@@ -26,16 +26,26 @@ item:
       description: "Client, resource, consent scope"
       fields:
         - key: "clientId"
-          label: "Client (service principal) ID"
-          fieldType: "text"
+          label: "Client (service principal)"
+          fieldType: "remote-select"
+          optionsSource: "servicePrincipals"
           required: true
-          helpText: "The object id of the client service principal receiving the delegated permissions."
+          helpText: >
+            The client service principal receiving the delegated permissions —
+            pick from the live tenant. Stores the service principal's object
+            id (oAuth2PermissionGrant.clientId); a hand-typed display name or
+            id from an older canvas also resolves at deploy time.
 
         - key: "resourceId"
-          label: "Resource (API service principal) ID"
-          fieldType: "text"
+          label: "Resource (API service principal)"
+          fieldType: "remote-select"
+          optionsSource: "servicePrincipals"
           required: true
-          helpText: "The object id of the API service principal that exposes the scopes."
+          helpText: >
+            The API service principal that exposes the scopes — pick from the
+            live tenant. Stores the service principal's object id
+            (oAuth2PermissionGrant.resourceId); a hand-typed display name or
+            id also resolves at deploy time.
 
         - key: "consentType"
           label: "Consent Type"
@@ -50,13 +60,18 @@ item:
           helpText: "AllPrincipals grants for the whole tenant; Principal grants for one user."
 
         - key: "principalId"
-          label: "Principal (user) ID"
-          fieldType: "text"
+          label: "Principal (user)"
+          fieldType: "remote-select"
+          optionsSource: "users"
           required: false
           visibleWhen:
             field: "consentType"
             equals: "Principal"
-          helpText: "Required only when consent type is Principal — the object id of the user."
+          helpText: >
+            Required only when consent type is Principal — the user being
+            impersonated. Pick from the live tenant; stores the user's object
+            id (oAuth2PermissionGrant.principalId). A hand-typed display
+            name/UPN or id also resolves at deploy time.
 
         - key: "scope"
           label: "Scope"

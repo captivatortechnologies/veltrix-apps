@@ -61,3 +61,28 @@ item:
             A JSON appManagementConfiguration object, e.g.
             {"passwordCredentials":[{"restrictionType":"passwordLifetime","maxLifetime":"P90D","restrictForAppsCreatedAfterDateTime":"2019-10-19T10:37:00Z"}],"keyCredentials":[]}.
             Leave blank for no restrictions.
+
+    - name: "Applies To"
+      icon: "target"
+      description: "Applications and service principals this policy is assigned to"
+      fields:
+        - key: "appliesTo"
+          label: "Applies To (apps & service principals)"
+          fieldType: "remote-multiselect"
+          optionsSource: "applicationOrServicePrincipal"
+          optionsMulti: true
+          required: false
+          helpText: >
+            Applications and/or service principals to assign this policy to —
+            pick from the live tenant (each option labelled by kind). Stores
+            each target's object id; a hand-typed display name or id from an
+            older canvas also resolves at deploy time. A target can have only
+            ONE app management policy assigned at a time — assigning here when
+            a different policy is already assigned to that target fails at
+            deploy with a Graph error naming the conflict; remove the existing
+            assignment (in this canvas or the Entra admin center) first. This
+            app only ever un-assigns a target it itself assigned — a
+            pre-existing assignment left off this list is never removed.
+            Leave empty to manage no assignment through this canvas (the
+            policy still exists and can be assigned manually or by another
+            canvas item).

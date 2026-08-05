@@ -42,6 +42,8 @@ export interface ApplicationSpec {
   /** '' (not managed), None, SecurityGroup or All. */
   groupMembershipClaims: string
   tags: string[]
+  /** Owner object ids, UPNs or display names (users or service principals) — resolved at deploy time. */
+  owners: string[]
 }
 
 /** An application as returned by Graph GET /applications. */
@@ -198,6 +200,7 @@ export function extractApplicationSpecs(canvas: CanvasSnapshot): ApplicationSpec
       requiredResourceAccess: asString(f.requiredResourceAccess),
       groupMembershipClaims: asString(f.groupMembershipClaims),
       tags: splitTokens(f.tags),
+      owners: splitTokens(f.owners),
     }
   })
 }

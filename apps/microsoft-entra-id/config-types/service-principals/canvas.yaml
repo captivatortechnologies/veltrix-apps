@@ -102,3 +102,23 @@ item:
             Custom strings used to categorize the service principal. One per line
             (or comma-separated). Live tags are the union of these and the
             backing application's tags.
+
+    - name: "Ownership"
+      icon: "users"
+      description: "Users and service principals allowed to manage this service principal"
+      fields:
+        - key: "owners"
+          label: "Owners"
+          fieldType: "remote-multiselect"
+          optionsSource: "ownerPrincipals"
+          optionsMulti: true
+          required: false
+          helpText: >
+            Users and/or service principals allowed to manage this service
+            principal — pick from the live tenant (each option labelled by
+            kind; groups cannot be owners). Stores each owner's object id; a
+            hand-typed display name/UPN from an older canvas also resolves at
+            deploy time. This app only ever removes an owner it itself added —
+            a pre-existing owner left off this list is never removed
+            (Microsoft recommends at least two owners). Leave empty to manage
+            no ownership through this canvas.

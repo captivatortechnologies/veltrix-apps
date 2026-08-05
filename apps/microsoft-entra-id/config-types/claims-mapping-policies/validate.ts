@@ -12,6 +12,8 @@ export interface ClaimsMappingSpec {
   name: string
   /** The raw definition JSON text (a single JSON object as a string). */
   definition: string
+  /** Service-principal object ids, names or ids to assign this policy to — resolved at deploy time. */
+  appliesTo: string[]
 }
 
 /** A claims mapping policy as returned by Graph. */
@@ -23,6 +25,15 @@ export interface LiveClaimsMappingPolicy {
 
 function asString(v: unknown): string {
   return typeof v === 'string' ? v.trim() : ''
+}
+
+/** Coerce a multiselect (array) or a delimited string into trimmed tokens. */
+function asStringArray(v: unknown): string[] {
+  if (Array.isArray(v)) return v.map((x) => String(x).trim()).filter((t) => t.length > 0)
+  return asString(v)
+    .split(/[\n,]/)
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0)
 }
 
 /** Parse a JSON string into a plain object, or null when it isn't a JSON object. */
@@ -66,6 +77,7 @@ export function extractClaimsMappingSpecs(canvas: CanvasSnapshot): ClaimsMapping
       itemId: item.id,
       name: asString(f.name) || item.name,
       definition: asString(f.definition),
+      appliesTo: asStringArray(f.appliesTo),
     }
   })
 }

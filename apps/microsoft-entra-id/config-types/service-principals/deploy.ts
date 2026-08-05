@@ -15,6 +15,8 @@ import {
   type LiveServicePrincipal,
   type ServicePrincipalSpec,
 } from './validate'
+import { buildOwnerPrincipalNameMaps, resolveOwnerPrincipals } from '../lib/principals'
+import { reconcileRefCollection, type RefMemberEntry } from '../lib/refReconcile'
 
 export interface RollbackEntry {
   itemId?: string
@@ -25,6 +27,8 @@ export interface RollbackEntry {
   id?: string
   /** Prior managed fields, captured before an update so rollback can restore them. */
   prior?: Record<string, unknown>
+  /** Tracked owners, with provenance — see RefMemberEntry. */
+  owners?: RefMemberEntry[]
 }
 
 /** The mutable managed fields — the body of a PATCH (and of the post-create PATCH). */
@@ -71,10 +75,17 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const prior = await loadPriorEntries(ctx)
   const priorByAppId = new Map(prior.map((e) => [e.appId.toLowerCase(), e]))
 
+  // Owner references resolve against users/service principals — a
+  // picker-selected value passes straight through; a hand-typed display
+  // name/UPN falls back to these live maps, built once for the whole deploy.
+  const ownerMaps = await buildOwnerPrincipalNameMaps(client)
+
   const entries: RollbackEntry[] = []
   const failures: string[] = []
 
   for (const spec of specs) {
+    const priorEntry = priorByAppId.get(spec.appId.toLowerCase())
+
     // An SP already exists for any installed enterprise app — find it by appId.
     const found = await client.getAll<LiveServicePrincipal>(findByAppIdPath(spec.appId))
     if (!found.ok) {
@@ -82,6 +93,8 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
       continue
     }
     const live = found.items[0] ?? null
+    let spId: string | undefined
+    let entry: RollbackEntry
 
     if (live?.id) {
       const resp = await client.patch(`${SP_BASE}/${live.id}`, buildManagedBody(spec))
@@ -89,16 +102,17 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         failures.push(`${spec.appId}: ${graphErrorMessage(resp)}`)
         continue
       }
+      spId = live.id
       // Sticky provenance: keep existed:false if a prior deploy created this SP,
       // so a later removal still deletes it (existed is otherwise re-derived and
       // would flip to true after one deploy, orphaning the SP).
-      entries.push({
+      entry = {
         itemId: spec.itemId,
         appId: spec.appId,
-        existed: priorByAppId.get(spec.appId.toLowerCase())?.existed === false ? false : true,
+        existed: priorEntry?.existed === false ? false : true,
         id: live.id,
         prior: snapshotLive(live),
-      })
+      }
     } else {
       // Rare: no SP for this app yet. Create with { appId }, then apply settings.
       const createResp = await client.post(SP_BASE, { appId: spec.appId })
@@ -107,14 +121,37 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         continue
       }
       const created = parseJson<LiveServicePrincipal>(createResp.body)
+      spId = created?.id
       if (created?.id) {
         const patchResp = await client.patch(`${SP_BASE}/${created.id}`, buildManagedBody(spec))
         if (!patchResp.ok) {
           failures.push(`${spec.appId}: created but failed to apply settings: ${graphErrorMessage(patchResp)}`)
         }
       }
-      entries.push({ itemId: spec.itemId, appId: spec.appId, existed: false, id: created?.id })
+      entry = { itemId: spec.itemId, appId: spec.appId, existed: false, id: created?.id }
     }
+
+    if (spId) {
+      const ownerResolution = resolveOwnerPrincipals(spec.owners, ownerMaps)
+      if (ownerResolution.missing.length) {
+        failures.push(
+          `${spec.appId}: unknown owner(s) ${ownerResolution.missing.join(', ')} — create/verify them first or fix the name`
+        )
+        entry.owners = priorEntry?.owners ?? []
+      } else {
+        const { members, failures: ownerFailures } = await reconcileRefCollection(
+          client,
+          `${SP_BASE}/${spId}`,
+          'owners',
+          ownerResolution.ids,
+          priorEntry?.owners ?? []
+        )
+        entry.owners = members
+        for (const f of ownerFailures) failures.push(`${spec.appId}: ${f}`)
+      }
+    }
+
+    entries.push(entry)
   }
 
   // Reconcile: delete SPs THIS app created previously but no longer declares.

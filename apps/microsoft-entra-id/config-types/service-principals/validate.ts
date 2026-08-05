@@ -29,6 +29,8 @@ export interface ServicePrincipalSpec {
   homepage: string
   notificationEmailAddresses: string[]
   tags: string[]
+  /** Owner object ids, UPNs or display names (users or service principals) — resolved at deploy time. */
+  owners: string[]
 }
 
 /** A servicePrincipal as returned by Graph GET /servicePrincipals. */
@@ -97,6 +99,7 @@ export function extractServicePrincipalSpecs(canvas: CanvasSnapshot): ServicePri
       homepage: asString(f.homepage),
       notificationEmailAddresses: splitTokens(f.notificationEmailAddresses),
       tags: splitTokens(f.tags),
+      owners: splitTokens(f.owners),
     }
   })
 }

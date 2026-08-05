@@ -12,6 +12,8 @@ export interface AppManagementSpec {
   isEnabled: boolean
   /** Raw JSON text for the restrictions (appManagementConfiguration) object. */
   restrictions: string
+  /** Application/service-principal object ids, names or ids to assign this policy to — resolved at deploy time. */
+  appliesTo: string[]
 }
 
 /** An application management policy as returned by Graph. */
@@ -29,6 +31,15 @@ function asString(v: unknown): string {
 
 function asBool(v: unknown): boolean {
   return v === true || v === 'true'
+}
+
+/** Coerce a multiselect (array) or a delimited string into trimmed tokens. */
+function asStringArray(v: unknown): string[] {
+  if (Array.isArray(v)) return v.map((x) => String(x).trim()).filter((t) => t.length > 0)
+  return asString(v)
+    .split(/[\n,]/)
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0)
 }
 
 /** Parse a JSON string into a plain object, or null when it isn't a JSON object. */
@@ -71,6 +82,7 @@ export function extractAppManagementSpecs(canvas: CanvasSnapshot): AppManagement
       description: asString(f.description),
       isEnabled: asBool(f.isEnabled),
       restrictions: asString(f.restrictions),
+      appliesTo: asStringArray(f.appliesTo),
     }
   })
 }

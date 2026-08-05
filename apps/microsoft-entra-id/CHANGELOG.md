@@ -8,6 +8,38 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.8.4 — 2026-08-04
+
+Live pickers Phase 2 (batch 3) — Applications, Service Principals, Tokens & Grants.
+
+- **oauth2-permission-grants** — `clientId` and `resourceId` → live `servicePrincipals`
+  pickers (object id); `principalId` → `users` picker, shown only when
+  `consentType = Principal`. These fields were previously raw text with no
+  name-resolution; deploy/drift now resolve a hand-typed display name or a picked id
+  interchangeably.
+- **applications** / **service-principals** — new `owners` picker (users +
+  service principals — verified not groups) reconciled via the `owners/$ref`
+  relationship, provenance-tracked: only owners this app added are removed, owners set
+  by the portal or another tool are never touched.
+- **Five policy types now manage their assignment (`appliesTo`), not just their
+  definition** — a policy is inert until it is attached to an app or service principal,
+  so config-as-code should own that link. Each new `appliesTo` field is a live picker,
+  scoped to the kinds Graph actually accepts (independently re-verified per type):
+  - **app-management-policies** — applications *or* service principals.
+  - **token-issuance-policies** — applications only. (Graph's own resource page claims
+    service-principals-only; that text is wrong — copy-pasted from claimsMappingPolicy.
+    The dedicated `application-post-tokenIssuancePolicies` operation is the real one.)
+  - **claims-mapping-policies**, **token-lifetime-policies**,
+    **home-realm-discovery-policies** — service principals only.
+  - Assignment is provenance-tracked the same way as owners; an empty field is a true
+    no-op. Graph's one-policy-per-target cardinality is enforced server-side and
+    surfaces as a deploy-time error (it can't be validated offline).
+- **permission-grant-policies** — left unwired: its `includes`/`excludes` are arrays of
+  condition-set objects whose app references live inside array elements, not as discrete
+  canvas fields (same limitation `applications` documents for `requiredResourceAccess`).
+- New shared libs `policyAppliesTo` (kind-aware assign/reconcile) and `refReconcile`
+  (generic `$ref` collection reconcile). id-aware and backward compatible throughout.
+
 ## 0.8.3 — 2026-08-04
 
 Live pickers Phase 2 (batch 2) — Entitlement Management & Identity Governance.

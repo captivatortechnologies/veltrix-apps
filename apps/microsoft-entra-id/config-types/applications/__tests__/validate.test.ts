@@ -142,6 +142,7 @@ describe('slugifyUniqueName / effectiveUniqueName', () => {
         requiredResourceAccess: '',
         groupMembershipClaims: '',
         tags: [],
+        owners: [],
       }),
     ).toBe('Payments-API')
     expect(
@@ -156,6 +157,7 @@ describe('slugifyUniqueName / effectiveUniqueName', () => {
         requiredResourceAccess: '',
         groupMembershipClaims: '',
         tags: [],
+        owners: [],
       }),
     ).toBe('explicit-key')
   })

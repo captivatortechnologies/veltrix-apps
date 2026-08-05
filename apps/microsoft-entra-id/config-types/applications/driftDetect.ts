@@ -10,10 +10,16 @@ import {
   parseJsonArray,
   type LiveApplication,
 } from './validate'
+import { buildOwnerPrincipalNameMaps, resolveOwnerPrincipals } from '../lib/principals'
+import { listRefIds } from '../lib/refReconcile'
 
 const BASE = '/applications'
 const SELECT =
   '?$select=id,displayName,uniqueName,signInAudience,identifierUris,web,spa,appRoles,requiredResourceAccess,groupMembershipClaims,tags'
+
+function sortedJson(v: string[]): string {
+  return JSON.stringify([...v].sort())
+}
 
 type Diffs = DriftResult['diffs']
 
@@ -30,6 +36,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const liveByUnique = new Map(
     listed.items.filter((a) => a.uniqueName).map((a) => [a.uniqueName!.toLowerCase(), a]),
   )
+  const ownerMaps = await buildOwnerPrincipalNameMaps(client)
 
   const diffs: Diffs = []
   for (const spec of specs) {
@@ -113,6 +120,32 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
       if (want !== got) {
         diffs.push({ field: `${spec.name}.tags`, expected: want, actual: got, severity: 'warning' })
       }
+    }
+
+    if (!live.id) continue
+    const ownerResolution = resolveOwnerPrincipals(spec.owners, ownerMaps)
+    if (ownerResolution.missing.length) {
+      diffs.push({
+        field: `${spec.name}.owners`,
+        expected: 'resolvable',
+        actual: `unknown owner(s): ${ownerResolution.missing.join(', ')}`,
+        severity: 'critical',
+      })
+      continue
+    }
+    const liveOwners = await listRefIds(client, `${BASE}/${live.id}`, 'owners')
+    if (!liveOwners.ok) continue
+    // A declared owner missing from the live set is what matters here — an
+    // EXTRA live owner (pre-existing, or added out-of-band) is expected and
+    // not itself drift, matching the deploy-time "never touch what we didn't add" rule.
+    const missingLive = ownerResolution.ids.filter((id) => !liveOwners.ids.has(id))
+    if (missingLive.length) {
+      diffs.push({
+        field: `${spec.name}.owners`,
+        expected: sortedJson(ownerResolution.ids),
+        actual: sortedJson([...liveOwners.ids]),
+        severity: 'warning',
+      })
     }
   }
 

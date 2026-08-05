@@ -49,3 +49,24 @@ item:
             A JSON object with a "ClaimsMappingPolicy" root key, e.g.
             {"ClaimsMappingPolicy":{"Version":1,"IncludeBasicClaimSet":"true","ClaimsSchema":[...]}}.
             Defines which claims are emitted and how they are sourced.
+
+    - name: "Applies To"
+      icon: "target"
+      description: "Service principals this policy is assigned to"
+      fields:
+        - key: "appliesTo"
+          label: "Applies To (service principals)"
+          fieldType: "remote-multiselect"
+          optionsSource: "servicePrincipals"
+          optionsMulti: true
+          required: false
+          helpText: >
+            Service principals (enterprise apps) to assign this claims
+            mapping policy to — pick from the live tenant. Stores each
+            service principal's object id; a hand-typed display name or id
+            from an older canvas also resolves at deploy time. Claims mapping
+            policies apply only to service principals, never applications
+            directly. This app only ever un-assigns a service principal it
+            itself assigned — a pre-existing assignment left off this list is
+            never removed. Leave empty to manage no assignment through this
+            canvas.
