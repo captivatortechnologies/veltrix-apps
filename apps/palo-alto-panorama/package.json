@@ -1,9 +1,11 @@
 {
   "name": "veltrix-app-palo-alto-panorama",
   "private": true,
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Veltrix app: manage Palo Alto Networks Panorama / PAN-OS configuration as code (address & service objects, groups, tags, schedules, custom URL categories, external dynamic lists, security/NAT/decryption/PBF/authentication rules, security profiles & profile groups, log forwarding profiles) via the PAN-OS REST API",
-  "scripts": { "typecheck": "tsc --noEmit" },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
   "devDependencies": {
     "@types/jest": "^29.5.14",
     "@types/node": "^20.0.0",

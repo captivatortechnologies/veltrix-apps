@@ -1,6 +1,6 @@
 id: palo-alto-panorama
 name: Palo Alto Panorama
-version: "1.3.0"
+version: "1.3.1"
 vendor: Veltrix
 description: >
   Manage Palo Alto Networks Panorama / PAN-OS configuration as code through the
@@ -109,6 +109,7 @@ pipeline:
   configurationTypes:
     - id: panorama-tags
       name: Panorama Tags
+      group: "Objects"
       description: Tags (/Objects/Tags) with color and comments — deploy first; referenced by other objects
       canvasTemplate: config-types/panorama-tags/canvas.yaml
       defaultConfig: config-types/panorama-tags/defaults.yaml
@@ -126,6 +127,7 @@ pipeline:
 
     - id: panorama-address-objects
       name: Panorama Address Objects
+      group: "Objects"
       description: Address objects (/Objects/Addresses) — ip-netmask, ip-range or fqdn
       canvasTemplate: config-types/panorama-address-objects/canvas.yaml
       defaultConfig: config-types/panorama-address-objects/defaults.yaml
@@ -143,6 +145,7 @@ pipeline:
 
     - id: panorama-service-objects
       name: Panorama Service Objects
+      group: "Objects"
       description: Service objects (/Objects/Services) — tcp/udp ports
       canvasTemplate: config-types/panorama-service-objects/canvas.yaml
       defaultConfig: config-types/panorama-service-objects/defaults.yaml
@@ -160,6 +163,7 @@ pipeline:
 
     - id: panorama-address-groups
       name: Panorama Address Groups
+      group: "Objects"
       description: Static / dynamic address groups (/Objects/AddressGroups)
       canvasTemplate: config-types/panorama-address-groups/canvas.yaml
       defaultConfig: config-types/panorama-address-groups/defaults.yaml
@@ -177,6 +181,7 @@ pipeline:
 
     - id: panorama-service-groups
       name: Panorama Service Groups
+      group: "Objects"
       description: Service groups (/Objects/ServiceGroups) and their member services
       canvasTemplate: config-types/panorama-service-groups/canvas.yaml
       defaultConfig: config-types/panorama-service-groups/defaults.yaml
@@ -194,6 +199,7 @@ pipeline:
 
     - id: panorama-security-rules
       name: Panorama Security Rules
+      group: "Policies"
       description: Security pre-rules (/Policies/SecurityPreRules) — zones, source/dest, app, service, action, profiles
       canvasTemplate: config-types/panorama-security-rules/canvas.yaml
       defaultConfig: config-types/panorama-security-rules/defaults.yaml
@@ -211,6 +217,7 @@ pipeline:
 
     - id: panorama-nat-rules
       name: Panorama NAT Rules
+      group: "Policies"
       description: NAT pre-rules (/Policies/NATPreRules) — original packet match plus source/destination translation (IPv4)
       canvasTemplate: config-types/panorama-nat-rules/canvas.yaml
       defaultConfig: config-types/panorama-nat-rules/defaults.yaml
@@ -228,6 +235,7 @@ pipeline:
 
     - id: panorama-application-groups
       name: Panorama Application Groups
+      group: "Objects"
       description: Application groups (/Objects/ApplicationGroups) and their member App-IDs
       canvasTemplate: config-types/panorama-application-groups/canvas.yaml
       defaultConfig: config-types/panorama-application-groups/defaults.yaml
@@ -245,6 +253,7 @@ pipeline:
 
     - id: panorama-security-profile-groups
       name: Panorama Security Profile Groups
+      group: "Security Profiles"
       description: Security profile groups (/Objects/SecurityProfileGroups) — bundle antivirus, anti-spyware, vulnerability, URL, file, WildFire and data profiles
       canvasTemplate: config-types/panorama-security-profile-groups/canvas.yaml
       defaultConfig: config-types/panorama-security-profile-groups/defaults.yaml
@@ -262,6 +271,7 @@ pipeline:
 
     - id: panorama-antivirus-profiles
       name: Panorama Antivirus Profiles
+      group: "Security Profiles"
       description: Antivirus profiles (/Objects/AntivirusSecurityProfiles) — virus & WildFire signature actions across protocol decoders
       canvasTemplate: config-types/panorama-antivirus-profiles/canvas.yaml
       defaultConfig: config-types/panorama-antivirus-profiles/defaults.yaml
@@ -279,6 +289,7 @@ pipeline:
 
     - id: panorama-anti-spyware-profiles
       name: Panorama Anti-Spyware Profiles
+      group: "Security Profiles"
       description: Anti-spyware profiles (/Objects/AntiSpywareSecurityProfiles) — single-rule severity/action/packet-capture policy
       canvasTemplate: config-types/panorama-anti-spyware-profiles/canvas.yaml
       defaultConfig: config-types/panorama-anti-spyware-profiles/defaults.yaml
@@ -296,6 +307,7 @@ pipeline:
 
     - id: panorama-url-filtering-profiles
       name: Panorama URL Filtering Profiles
+      group: "Security Profiles"
       description: URL filtering profiles (/Objects/URLFilteringSecurityProfiles) — categories bucketed by action
       canvasTemplate: config-types/panorama-url-filtering-profiles/canvas.yaml
       defaultConfig: config-types/panorama-url-filtering-profiles/defaults.yaml
@@ -313,6 +325,7 @@ pipeline:
 
     - id: panorama-wildfire-analysis-profiles
       name: Panorama WildFire Analysis Profiles
+      group: "Security Profiles"
       description: WildFire analysis profiles (/Objects/WildFireAnalysisSecurityProfiles) — single-rule forwarding to public/private cloud
       canvasTemplate: config-types/panorama-wildfire-analysis-profiles/canvas.yaml
       defaultConfig: config-types/panorama-wildfire-analysis-profiles/defaults.yaml

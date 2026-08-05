@@ -8,6 +8,17 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.6.1 — 2026-08-05
+
+Grouped all configuration types in the Configurations sidebar. Organization-only —
+no change to any deploy/rollback/drift behavior.
+
+- **Config sidebar groups** — Enterprise EDR (threat feeds / reports / watchlists /
+  watchlist reports), Endpoint Prevention (policies / prevention rules / reputation
+  overrides), Device Control (USB approvals / blocks), Data & Assets (data forwarders /
+  asset groups), and Access & Identity (access grants). Previously only Access Grants
+  was grouped; the other eleven types rendered as a flat list.
+
 ## 0.6.0 — 2026-08-05
 
 ### Added

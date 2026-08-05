@@ -3,6 +3,18 @@
 All notable changes to the Palo Alto Panorama app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.3.1 — 2026-08-05
+
+Grouped all configuration types in the Configurations sidebar. Organization-only —
+no change to any deploy/rollback/drift behavior.
+
+- **Config sidebar groups** — the thirteen pre-existing types now join the same
+  Objects / Policies / Security Profiles / Logging groups introduced for the 1.3.0
+  additions, instead of rendering as a flat list above them: address/service objects
+  and groups, tags, application groups → Objects; security and NAT rules → Policies;
+  security-profile groups and AV / anti-spyware / URL-filtering / WildFire profiles →
+  Security Profiles.
+
 ## 1.3.0 — 2026-08-05
 
 ### Added
