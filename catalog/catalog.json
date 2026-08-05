@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-08-05T14:45:21.105Z",
+  "generatedAt": "2026-08-05T14:46:26.270Z",
   "apps": [
     {
       "appId": "akamai",
@@ -582,9 +582,9 @@
     {
       "appId": "hashicorp-vault",
       "name": "HashiCorp Vault",
-      "version": "1.3.0",
+      "version": "1.4.0",
       "vendor": "Veltrix",
-      "description": "Manage HashiCorp Vault configuration as code through the Vault HTTP API. Covers ACL policies (HCL), auth methods, secret engine mounts, and audit devices, with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
+      "description": "Manage HashiCorp Vault configuration as code through the Vault HTTP API. Covers ACL/Sentinel policies, auth methods, secret engine mounts (plus PKI role and Transit key configuration), audit devices, namespaces, identity (entities/groups/aliases) and quotas, with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
       "icon": "🔐",
       "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTAgMzIiIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iVmF1bHQiPgogIDx0ZXh0IHg9IjAiIHk9IjIzIiBmb250LWZhbWlseT0iQXJpYWwsIEhlbHZldGljYSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzEyMTIxMiI+VmF1bHQ8L3RleHQ+CiAgPHJlY3QgeD0iNzAiIHk9IjYiIHdpZHRoPSIxNCIgaGVpZ2h0PSIxOCIgcng9IjIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGQ0YyNSIgc3Ryb2tlLXdpZHRoPSIyIi8+Cjwvc3ZnPgo=",
@@ -592,12 +592,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/hashicorp-vault",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/hashicorp-vault-v1.3.0/hashicorp-vault.zip",
-      "sha256": "2d5bf16d223d95d620054bab0fe5a472179a2f54607f6b9a6b06f37a6a1ea74c",
-      "sizeBytes": 300361,
-      "publishedAt": "2026-07-29T19:37:52.229Z",
-      "releaseNotes": "## 1.3.0 — 2026-07-20\n\n### Changed\n- Grouped the **Configurations** sidebar into 5 collapsible sections — Policies,\n  Authentication, Secrets, Operations, and Identity — so all 11 configuration\n  types stay navigable. Sections collapse by default, remember whether you left\n  them open, and always expand the one you're currently working in.",
-      "releasedAt": "2026-07-20T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/hashicorp-vault-v1.4.0/hashicorp-vault.zip",
+      "sha256": "2f0025f69dfc94947e37a1d8e6b0fbcf7ba54c807997d5214559689a11709d19",
+      "sizeBytes": 448464,
+      "publishedAt": "2026-08-05T14:46:26.221Z",
+      "releaseNotes": "## 1.4.0 — 2026-08-05\n\n### Added\nSix new configuration types, closing the remaining genuinely declarative gaps in\nthe Vault HTTP API (research-first exhaustion pass — see README's Coverage\nsection for the full managed-vs-excluded breakdown and the config-vs-secret-data\nline this app draws):\n\n- **PKI Roles** — certificate issuance policy for a PKI secrets engine mount\n  (`{mount}/roles/{name}`). Issued certificates and private keys are secret data\n  and are never modeled, read or written here.\n- **Transit Keys** — a Transit key's existence and configuration (`{mount}/keys/\n  {name}` + `.../config`): type, derivation, exportability, deletion policy,\n  key-version bounds and rotation cadence. The key material itself is generated\n  by Vault, is never returned by any Vault API, and this app never reads,\n  writes, or exports it.\n- **Identity Aliases** — bind an external login (auth mount accessor + name) to\n  an identity entity or group via `/identity/entity-alias` and `/identity/\n  group-alias`, reconciled the same way login-MFA methods are (label match, no\n  addressable name).\n- **Sentinel Policies** — RGP (identity-based) and EGP (path-based) governance\n  policies via `/sys/policies/rgp` and `/sys/policies/egp` (Vault Enterprise).\n- **Namespaces** — namespace existence and custom metadata via `/sys/namespaces`\n  (Vault Enterprise). Deleting one destroys everything provisioned inside it.\n- **Lease Count Quotas** — concurrent-lease caps via `/sys/quotas/lease-count`\n  (Vault Enterprise), alongside the existing request-rate Rate Limit Quotas.\n\n### Changed\n- `lib/vault.ts`: the shared client now supports `PATCH` (a real RFC 7396 JSON\n  merge patch, used only by `/sys/namespaces`) with its own content type,\n  distinct from the existing POST/PUT write path.\n- Updated `MISSING_CREDENTIAL_MESSAGE` to list the additional `sys/` paths (and\n  the PKI/Transit mount-relative paths) the six new configuration types need\n  sudo/write access to.",
+      "releasedAt": "2026-08-05T00:00:00.000Z"
     },
     {
       "appId": "ibm-qradar",
@@ -1035,9 +1035,9 @@
     {
       "appId": "rapid7",
       "name": "Rapid7 InsightVM",
-      "version": "1.2.0",
+      "version": "1.3.0",
       "vendor": "Veltrix",
-      "description": "Manage Rapid7 configuration as code. On the on-prem Security Console API (v3): scan sites, asset groups, tags, scan templates, scan engine pools, shared and site credentials, scan schedules and vulnerability exceptions (console host:3780, HTTP Basic auth). On the InsightIDR cloud (Insight Platform Detection Rules API v1, region-scoped, X-Api-Key auth): detection rule exceptions and detection rule settings (action/priority). Validation, drift detection and rollback are handled by the Security-as-Code pipeline.",
+      "description": "Manage Rapid7 configuration as code. On the on-prem Security Console API (v3): scan sites, asset groups, tags, scan templates, scan engine pools, shared and site credentials, scan schedules, vulnerability exceptions, policy (compliance) overrides, report configurations, Sonar discovery queries and console users (console host:3780, HTTP Basic auth). On the InsightIDR cloud (Insight Platform Detection Rules API v1, region-scoped, X-Api-Key auth): detection rule exceptions and detection rule settings (action/priority). Validation, drift detection and rollback are handled by the Security-as-Code pipeline.",
       "category": "COMPLIANCE",
       "icon": "🎯",
       "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlJhcGlkNyBJbnNpZ2h0Vk0iPgogIDxyZWN0IHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgcng9IjEwIiBmaWxsPSIjRTgzNjhGIi8+CiAgPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KICA8Y2lyY2xlIGN4PSIyNCIgY3k9IjI0IiByPSI2IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMi41Ii8+CiAgPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMiIgZmlsbD0iI2ZmZiIvPgo8L3N2Zz4K",
@@ -1045,12 +1045,12 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/rapid7",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/rapid7-v1.2.0/rapid7.zip",
-      "sha256": "14cd3d7b2a86f134c2f0a4c98a05301aaa75314614246e9642aa0c1e59f813d5",
-      "sizeBytes": 261016,
-      "publishedAt": "2026-07-29T19:37:52.250Z",
-      "releaseNotes": "## 1.2.0 — 2026-07-26\n\n### Added\n- **InsightIDR (Insight Platform cloud) coverage** — the app now spans Rapid7's\n  cloud SIEM alongside the on-prem console, via the region-scoped Insight\n  Platform Detection Rules API v1 (`https://<region>.api.insight.rapid7.com`,\n  `X-Api-Key` auth). Two new configuration types, targeting a new\n  `insightidr-org` component type:\n  - **InsightIDR Detection Rule Exceptions** — declare rule exceptions\n    (`/idr/v1/rules/{rrn}/rule-exceptions`) as code. Each exception is attached\n    to a parent detection rule referenced by name and tunes its action/priority\n    for matching users, assets or IPs, using either SIMPLE key-value conditions\n    or a LEQL query. Reconciled by (rule name, exception name); created when\n    missing, rolled back by deletion.\n  - **InsightIDR Detection Rule Settings** — set a detection rule's action\n    (off / tracks notable events / creates investigations / creates alerts /\n    assess activity) and optional investigation priority\n    (`/idr/v1/rules/update`). Reconciled by rule name; only changed fields are\n    written, and rollback restores the prior values.\n- **InsightIDR Region** app setting and an extended connection test that probes\n  `GET /validate` with the API key when the connection targets an Insight\n  Platform host (the InsightVM console test is unchanged).",
-      "releasedAt": "2026-07-26T00:00:00.000Z"
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/rapid7-v1.3.0/rapid7.zip",
+      "sha256": "809f0c7271fc0bb1a6e0eb79ad9c01a9f85978e5332f01df3a9f289776564e85",
+      "sizeBytes": 344622,
+      "publishedAt": "2026-08-05T14:46:26.244Z",
+      "releaseNotes": "## 1.3.0 — 2026-08-05\n\n### Added\n- **Four new InsightVM configuration types**, closing genuine gaps found in a\n  research-first exhaustiveness pass against the console API v3 surface\n  (verified against Rapid7's official OpenAPI-generated Python client, since\n  the console's own ReDoc reference renders its spec client-side):\n  - **Policy Overrides** (`/policy_overrides`) — override a Policy Manager\n    (compliance benchmark) rule's result for one asset, one asset until its\n    next scan, or every asset. Reconciled by (rule id, scope type, asset id);\n    create/skip only (the console offers no in-place update) and deleted on\n    rollback.\n  - **Report Configurations** (`/reports`) — define a report's template,\n    format, and scope (sites / asset groups / tags, declared by name and\n    resolved to ids at deploy time), plus any other report field (frequency,\n    email, storage, baseline, …) as an escape-hatch JSON object. Manages the\n    report's configuration only — it never triggers generation\n    (`/reports/{id}/generate`) or reads output history.\n  - **Sonar Queries** (`/sonar_queries`) — define a saved Project Sonar\n    internet-scan search (criteria filters) used to discover assets. Manages\n    the saved query only — running it and reading its discovered-asset\n    results are one-shot/read actions, not configuration.\n  - **Console Users** (`/users`) — define local console users: login, name,\n    email, enabled state, role assignment (with all-sites / all-asset-groups /\n    superuser flags), and explicit site/asset-group access (declared by name).\n    The password is write-only and required by the console on every write, so\n    it is always re-sent on deploy and never read back, diffed or stored — an\n    updated user's password rotates on every redeploy, and an in-place update\n    cannot be safely rolled back (see the rollback.ts header for why).\n- New **Findings**, **Reporting**, **Assets** and **Administration** sidebar\n  groupings for the four types above (Policy Overrides joins the existing\n  Findings group; Sonar Queries joins Assets).\n- README **Coverage** section: a full breakdown of every managed configuration\n  type by source endpoint, plus an honest list of considered-and-dropped\n  candidates on both the InsightVM and InsightIDR sides (policy/report-template\n  read-only APIs, discovery connections, blackout windows, custom threat\n  intelligence, log search, alert triage, investigations) with the evidence\n  for each decision.",
+      "releasedAt": "2026-08-05T00:00:00.000Z"
     },
     {
       "appId": "recorded-future",
