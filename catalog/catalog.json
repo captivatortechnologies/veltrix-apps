@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-08-04T23:14:05.395Z",
+  "generatedAt": "2026-08-04T23:44:12.705Z",
   "apps": [
     {
       "appId": "akamai",
@@ -731,7 +731,7 @@
     {
       "appId": "microsoft-entra-id",
       "name": "Microsoft Entra ID",
-      "version": "0.8.2",
+      "version": "0.8.3",
       "vendor": "Veltrix",
       "description": "Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the Microsoft Graph API. Covers Conditional Access, named locations, security groups, administrative units, custom roles and authentication strengths/contexts; the tenant authorization, security-defaults, authentication-methods, authentication-flows, admin-consent-request, permission-grant, cross-tenant access, app-management, token-issuance / lifetime / claims-mapping, home-realm-discovery, activity-timeout and feature-rollout policies; group directory settings, custom security attributes, external identity providers, delegated permission grants, user-flow attributes and self-service sign-up flows; and identity governance (entitlement catalogs, access packages, assignment policies, connected organizations, access reviews, lifecycle workflows and PIM role activation policies); plus company branding — with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
       "category": "IAM",
@@ -740,11 +740,11 @@
       "license": "Apache-2.0",
       "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/microsoft-entra-id",
       "available": true,
-      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-entra-id-v0.8.2/microsoft-entra-id.zip",
-      "sha256": "fe510f9f3df63835fd968b43697f8e477c71b3b5e534a36dc8cc9db0be457f14",
-      "sizeBytes": 824576,
-      "publishedAt": "2026-08-04T23:14:05.360Z",
-      "releaseNotes": "## 0.8.2 — 2026-08-04\n\nLive pickers Phase 2 (batch 1) — Roles / PIM / Directory. Reference fields on\nthese config types now search/select from the live tenant like Conditional Access:\n\n- **directory-role-assignments** — role → live directory-role picker; principal →\n  merged users/groups/service-principals picker; scope → tenant / administrative-unit\n  / application picker.\n- **pim-role-eligibility** — same role / principal / scope live pickers.\n- **pim-role-management-policies** — role → live directory-role picker.\n- **administrative-units** — members → merged users/groups/**devices** picker, with\n  provenance-tracked membership (only removes members this app added; `/$ref` delete\n  semantics handled so a member object is never deleted from the directory).\n- New shared option sources: `devices`, `applicationObjects` (object-id, distinct\n  from the appId-keyed `applications`); reusable `nameMaps`/`principals`/`directoryScope`\n  resolver libs. All id-aware + backward compatible (hand-typed names still resolve).",
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/microsoft-entra-id-v0.8.3/microsoft-entra-id.zip",
+      "sha256": "49eaeb8e30e99e91f272f5e2efb725b90762188a8d54dbe8ae6b113b584c9640",
+      "sizeBytes": 852209,
+      "publishedAt": "2026-08-04T23:44:12.670Z",
+      "releaseNotes": "## 0.8.3 — 2026-08-04\n\nLive pickers Phase 2 (batch 2) — Entitlement Management & Identity Governance.\n\n- **entitlement-access-packages** — catalog → live `accessPackageCatalogs` picker.\n- **entitlement-assignment-policies** — target access package → new `accessPackages`\n  picker; the requestor/approval JSON textareas decomposed into typed fields +\n  on-behalf-requestor and approver pickers (users/groups/service-principals); and\n  `specificAllowedTargets` wired (was previously unwired — any `specificDirectory*`\n  target scope silently targeted nobody) with its full `allowedTargetScope` enum.\n- **access-review-definitions** — review scope (group / directory-role / access-package\n  / application) and reviewers/fallback-reviewers now live pickers, each matching the\n  Graph `accessReviewScheduleDefinition` worked examples.\n- **lifecycle-workflows** — task names resolved against the live task-definition catalog\n  (fails loudly on unknown, instead of a raw Graph 400).\n- entitlement-access-package-catalogs / entitlement-connected-organizations left unwired\n  (no directory-object reference field — documented). New source `accessPackages`;\n  new shared `subjectSet` lib. id-aware + backward compatible.",
       "releasedAt": "2026-08-04T00:00:00.000Z"
     },
     {
