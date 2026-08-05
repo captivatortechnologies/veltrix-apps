@@ -8,6 +8,29 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.6.0 — 2026-08-05
+
+### Added
+- **Firewall IPv6 Address Groups** configuration type — manage FortiManager
+  IPv6 address groups (a named set of member `address6` / `addrgrp6` objects)
+  as code, the IPv6 analog of the Firewall Address Groups type. Members
+  reference existing firewall IPv6 address objects (compose with the Firewall
+  IPv6 Addresses configuration type). Name-keyed and upserted with `set`;
+  reconcile only deletes groups this app created; deploys/rollbacks run inside
+  the ADOM workspace transaction (reusing `firewall-addresses`
+  `finishWorkspace`) when enabled. `obj/firewall/addrgrp6`.
+
+### Documentation
+- Added a **Coverage** section to README.md auditing every managed
+  configuration type against the FortiManager JSON-RPC API, plus a sourced,
+  one-line-reasoned list of intentionally-excluded surfaces (firewall policy
+  packages / policies, central SNAT, VPN tunnel templates, device /
+  provisioning / SD-WAN templates, ADOM management, FortiManager's own admin
+  accounts, dynamic objects and metadata variables) — none of which fit this
+  app's ADOM shared-object-database, name-keyed, upsert-with-`set` model.
+  Refreshed the stale "What it manages" table (previously listing only
+  Firewall Addresses despite 31 already-shipped types).
+
 ## 0.5.0 — 2026-07-26
 
 ### Added

@@ -1,0 +1,82 @@
+# =============================================================================
+# Canvas Template — IBM QRadar Ariel Lookup
+#
+# Declares ONE Ariel field lookup — the item. Users add as many as they need.
+# An Ariel lookup is a named key=value map (plus a default value) used by AQL
+# expressions to translate raw field values into readable labels. Its natural
+# identity is its NAME (the /ariel/lookups API is name-keyed). Deploy creates
+# the lookup if absent and reconciles its default value and map to exactly the
+# declared entries. The TYPE is immutable after creation. Reconcile deletes
+# lookups this app created but no longer declares.
+#
+# Field keys must match config-types/ariel-lookups/validate.ts.
+# =============================================================================
+
+id: "ibm-qradar-ariel-lookups"
+name: "Ariel Lookup Configuration"
+toolType: "ibm-qradar"
+entityType: "ariel-lookups"
+group: "Ariel / AQL"
+description: "Define IBM QRadar Ariel field lookups (named key=value maps used by AQL expressions) as code through the QRadar ariel API."
+
+item:
+  label: "Ariel Lookup"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Ariel Lookup"
+      icon: "list"
+      description: "Name, field type, default value and map entries"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The lookup name — its identity in QRadar. Unique within this canvas; deploy matches the live lookup on it."
+
+        - key: "type"
+          label: "Field Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "String"
+          options:
+            - { label: "String", value: "String" }
+            - { label: "Boolean", value: "Boolean" }
+            - { label: "Byte", value: "Byte" }
+            - { label: "Short", value: "Short" }
+            - { label: "Integer", value: "Integer" }
+            - { label: "Long", value: "Long" }
+            - { label: "UnsignedByte", value: "UnsignedByte" }
+            - { label: "UnsignedShort", value: "UnsignedShort" }
+            - { label: "UnsignedInt", value: "UnsignedInt" }
+            - { label: "UnsignedLong", value: "UnsignedLong" }
+            - { label: "UnsignedIntHex", value: "UnsignedIntHex" }
+            - { label: "BigInteger", value: "BigInteger" }
+            - { label: "Double", value: "Double" }
+            - { label: "Float", value: "Float" }
+            - { label: "Port", value: "Port" }
+            - { label: "Host", value: "Host" }
+            - { label: "HostV4V6", value: "HostV4V6" }
+            - { label: "HostV6", value: "HostV6" }
+            - { label: "MACAddress", value: "MACAddress" }
+            - { label: "ByteArray", value: "ByteArray" }
+            - { label: "Binary", value: "Binary" }
+            - { label: "STRUCT", value: "STRUCT" }
+            - { label: "NULL", value: "NULL" }
+          helpText: "The Ariel field type of the lookup's VALUES. Immutable after the lookup is created."
+
+        - key: "defaultValue"
+          label: "Default Value"
+          fieldType: "text"
+          required: false
+          helpText: "The value returned when a key has no matching entry."
+
+        - key: "entries"
+          label: "Entries (key=value, one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            One key=value pair per line, e.g. 1=Critical. Deploy reconciles the
+            live lookup's map to exactly these entries.

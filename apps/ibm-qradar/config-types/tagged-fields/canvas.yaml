@@ -1,0 +1,105 @@
+# =============================================================================
+# Canvas Template — IBM QRadar Tagged Field
+#
+# Declares ONE Ariel tagged field — the item. Users add as many as they need.
+# A tagged field maps an IPFIX/NetFlow information element (private enterprise
+# number + element id) to a named, typed field usable in AQL. Its natural
+# identity is its NAME. The category is declared by NAME and resolved to
+# category_id at deploy time. Name, type, private enterprise number, element id
+# and is_array are IMMUTABLE after creation (the update API only allows
+# changing category_id and description) — a drifted immutable field fails
+# deploy with guidance to delete and recreate. Reconcile deletes tagged fields
+# this app created but no longer declares.
+#
+# Field keys must match config-types/tagged-fields/validate.ts.
+# =============================================================================
+
+id: "ibm-qradar-tagged-fields"
+name: "Tagged Field Configuration"
+toolType: "ibm-qradar"
+entityType: "tagged-fields"
+group: "Ariel / AQL"
+description: "Define IBM QRadar Ariel tagged fields (named IPFIX/NetFlow information elements usable in AQL) as code through the QRadar ariel API."
+
+item:
+  label: "Tagged Field"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "tag"
+      description: "Name, type and IPFIX identifiers (immutable after creation)"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The tagged field name — its identity in QRadar. Unique within this canvas. Immutable after creation (delete and recreate to rename)."
+
+        - key: "type"
+          label: "Field Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "String"
+          options:
+            - { label: "String", value: "String" }
+            - { label: "Boolean", value: "Boolean" }
+            - { label: "Byte", value: "Byte" }
+            - { label: "Short", value: "Short" }
+            - { label: "Integer", value: "Integer" }
+            - { label: "Long", value: "Long" }
+            - { label: "UnsignedByte", value: "UnsignedByte" }
+            - { label: "UnsignedShort", value: "UnsignedShort" }
+            - { label: "UnsignedInt", value: "UnsignedInt" }
+            - { label: "UnsignedLong", value: "UnsignedLong" }
+            - { label: "UnsignedIntHex", value: "UnsignedIntHex" }
+            - { label: "BigInteger", value: "BigInteger" }
+            - { label: "Double", value: "Double" }
+            - { label: "Float", value: "Float" }
+            - { label: "Port", value: "Port" }
+            - { label: "Host", value: "Host" }
+            - { label: "HostV4V6", value: "HostV4V6" }
+            - { label: "HostV6", value: "HostV6" }
+            - { label: "MACAddress", value: "MACAddress" }
+            - { label: "ByteArray", value: "ByteArray" }
+            - { label: "Binary", value: "Binary" }
+            - { label: "STRUCT", value: "STRUCT" }
+            - { label: "NULL", value: "NULL" }
+          helpText: "The field's data type. Immutable after creation."
+
+        - key: "privateEnterpriseNumber"
+          label: "Private Enterprise Number"
+          fieldType: "number"
+          required: true
+          helpText: "The IANA Private Enterprise Number for this information element (0 or greater). Immutable after creation."
+
+        - key: "elementId"
+          label: "Element ID"
+          fieldType: "number"
+          required: true
+          helpText: "The IPFIX information element id this field represents. Immutable after creation."
+
+        - key: "isArray"
+          label: "Is Array"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether this tagged field is a list. Immutable after creation."
+
+    - name: "Classification"
+      icon: "folder"
+      description: "Category and description (mutable)"
+      fields:
+        - key: "categoryName"
+          label: "Category"
+          fieldType: "text"
+          required: true
+          helpText: "The exact name of a Tagged Field Category (declared via the Tagged Field Categories type). Resolved to category_id at deploy time."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          helpText: "A human-readable description of this tagged field."

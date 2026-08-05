@@ -1,0 +1,43 @@
+# =============================================================================
+# Canvas Template — SentinelOne Notification Recipients
+#
+# Declares ONE notification recipient — the item. Users add as many as they
+# need. Recipients are a scope-filtered collection (/settings/recipients);
+# SentinelOne assigns a server id, so identity for reconciliation is the
+# recipient's email at the configured scope. Only the account/site/global
+# scopes are supported (there is no "group" recipients endpoint). Field keys
+# must match config-types/s1-notification-recipients/validate.ts.
+# =============================================================================
+
+id: "sentinelone-s1-notification-recipients"
+name: "SentinelOne Notification Recipient Configuration"
+toolType: "sentinelone"
+entityType: "s1-notification-recipients"
+description: "Define who receives SentinelOne alert notifications as code through the Management API (/settings/recipients). Reconciled by email at the configured scope; account/site/global only."
+
+item:
+  label: "Recipient"
+  identityField: "email"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Recipient"
+      icon: "bell"
+      description: "Who gets notified and how"
+      fields:
+        - key: "email"
+          label: "Email"
+          fieldType: "text"
+          required: true
+          helpText: "The recipient's email address — its logical identity at the configured scope."
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          helpText: "Optional display name shown in the console."
+
+        - key: "sms"
+          label: "SMS Number"
+          fieldType: "text"
+          helpText: "Optional phone number for SMS notifications, in international format (e.g. +14155550100)."

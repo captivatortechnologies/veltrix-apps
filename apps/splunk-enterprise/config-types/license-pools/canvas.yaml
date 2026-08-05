@@ -1,0 +1,96 @@
+# =============================================================================
+# Canvas Template — Splunk Enterprise License Pools
+#
+# Declares ONE license pool — the item. Users add as many pools as their
+# license stack needs (e.g. one pool per environment/business unit).
+# Groups are PRESENTATIONAL ONLY: every field below belongs to the same flat
+# item record, which is what config-types/license-pools/deploy.ts reads as
+# `section.fields` for a single pool.
+#
+# A license pool logically partitions a licensing stack's daily indexing
+# quota and assigns which indexer peers may draw from it. Pools live ONLY in
+# splunkd's internal license-manager state (there is no portable .conf file
+# for them — unlike indexes/roles/apps, which this app deliberately authors
+# as .conf files inside a Splunk App; see README "Configuration ships as an
+# app"). REST is the only way to manage a pool, so it gets its own config
+# type instead of an App Contents file.
+#
+# Field keys must match what config-types/license-pools/validate.ts checks
+# and what config-types/license-pools/deploy.ts maps to the Splunk REST
+# parameters (/services/licenser/pools).
+#
+# Source: Splunk REST API Reference — License endpoints
+# https://help.splunk.com/en/splunk-enterprise/leverage-rest-apis/rest-api-reference/10.4/license-endpoints/license-endpoint-descriptions
+# =============================================================================
+
+id: "splunk-enterprise-license-pools"
+name: "License Pool Configuration"
+toolType: "splunk-enterprise"
+entityType: "license-pools"
+description: "Define Splunk license pools as code — the daily indexing quota carved out of a licensing stack and which indexer peers may draw from it"
+
+item:
+  label: "License Pool"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "General"
+      icon: "package"
+      description: "Pool identity and stack"
+      fields:
+        - key: "name"
+          label: "Pool Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9][A-Za-z0-9_.-]*$"
+            maxLength: 80
+            message: "Letters, digits, underscores, dots, and hyphens only; must start with a letter or digit."
+          helpText: "Unique pool identifier on the license manager (maps to the pool's REST name)."
+
+        - key: "stackId"
+          label: "Licensing Stack"
+          fieldType: "select"
+          required: true
+          defaultValue: "Enterprise"
+          options:
+            - { value: "Enterprise", label: "Enterprise" }
+            - { value: "download-trial", label: "Download Trial" }
+            - { value: "Forwarder", label: "Forwarder" }
+            - { value: "Free", label: "Free" }
+            - { value: "Lite", label: "Lite" }
+            - { value: "Lite_Free", label: "Lite Free" }
+          helpText: "The license stack this pool carves quota from (maps to stack_id). Fixed at creation — changing it recreates the pool."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "What this pool is for (e.g. \"Production indexers\")."
+
+    - name: "Quota & Peers"
+      icon: "server"
+      description: "Volume allocation and indexer assignment"
+      fields:
+        - key: "quota"
+          label: "Daily Quota"
+          fieldType: "text"
+          required: true
+          defaultValue: "MAX"
+          validation:
+            pattern: "^(?:[Mm][Aa][Xx]|\\d+(?:\\.\\d+)?\\s*(?:[Mm][Bb]|[Gg][Bb]|[Tt][Bb]|[Bb])?)$"
+            message: "MAX, or a number with an optional B/MB/GB/TB suffix (e.g. 500GB)."
+          helpText: "Byte quota this pool may index per day. \"MAX\" gives the pool the stack's entire entitlement (only one pool per stack may be MAX)."
+
+        - key: "peers"
+          label: "Indexer Peers"
+          fieldType: "text"
+          defaultValue: "*"
+          helpText: "Comma-separated indexer peer ids that may draw from this pool, or \"*\" for all peers. Splunk has no live directory of peer ids to pick from, so this is authored as text — find a peer's id on its licenser/localpeer page."
+
+        - key: "appendPeers"
+          label: "Append peers instead of replacing"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When updating an existing pool, add the peers above to its current list instead of replacing it. Leave off for a fully declarative pool (the peers above become the complete list). Ignored the first time the pool is created."

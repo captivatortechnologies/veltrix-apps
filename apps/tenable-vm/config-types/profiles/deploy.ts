@@ -9,6 +9,8 @@ import { extractProfileSpecs, parseSettingsObject, type LiveProfile, type Profil
 
 export interface ProfileRollbackEntry {
   name: string
+  /** "agent" | "scanners" — needed to rebuild the sensor-scoped path on rollback. */
+  sensorType: string
   existed: boolean
   /** id (or uuid) the API returns — the rollback key, never the name. */
   id?: number | string
@@ -17,18 +19,23 @@ export interface ProfileRollbackEntry {
 }
 
 /**
- * Deploy scan/sensor profiles to a Tenable VM tenant via the Profiles API.
+ * Deploy scan/agent profiles to a Tenable VM tenant via the Profiles API
+ * (developer.tenable.com/reference/profiles-create — GET/POST
+ * /sensors/profiles/{sensor_type}, GET/PUT/DELETE
+ * /sensors/profiles/{sensor_type}/{profile_uuid}; sensor_type is "agent" or
+ * "scanners").
  *
  * For each declared profile:
- *   - GET  /profiles             — list + find by name (capture prior state)
- *   - PUT  /profiles/{id}        — update existing (keyed on the returned id)
- *   - POST /profiles             — create missing (capture the created id/uuid)
+ *   - GET  /sensors/profiles/{sensorType}               — list + find by name
+ *   - PUT  /sensors/profiles/{sensorType}/{uuid}         — update (keyed on the returned uuid)
+ *   - POST /sensors/profiles/{sensorType}                — create (capture the created uuid)
  *
- * The request body is `{ ...settingsJson, name }` — the freeform settings are
- * merged first and the canvas name is forced to win, since name is the
- * profile's logical identity. Names are matched exactly in the live list;
- * create-vs-update is decided by that match and rollback is keyed on the
- * id/uuid the API returns — never on the name.
+ * The request body is `{ name, description?, config? }` — settingsJson maps
+ * straight into `config` (the API's freeform tuning object), never spread onto
+ * the top level. Names are matched exactly within the declared sensor type
+ * (an "agent" profile and a "scanners" profile may share a name — they are
+ * different objects); create-vs-update is decided by that match and rollback
+ * is keyed on the uuid the API returns — never on the name.
  */
 export default async function deploy(ctx: DeployContext): Promise<DeployResult> {
   const built = buildTenableClient(ctx.component.hostname, ctx.credential, ctx.settings)
@@ -37,7 +44,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   }
   const { client, baseUrl } = built
 
-  const specs = extractProfileSpecs(ctx.canvas).filter((s) => s.name)
+  const specs = extractProfileSpecs(ctx.canvas).filter((s) => s.name && s.sensorType)
   const rollbackState: ProfileRollbackEntry[] = []
   const deployed: string[] = []
 
@@ -50,28 +57,29 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         throw new Error(`Profile "${spec.name}": advanced settings are not a valid JSON object`)
       }
 
-      const existing = await findProfile(client, spec.name)
+      const existing = await findProfile(client, spec.sensorType, spec.name)
       const existingId = existing ? profileIdentifier(existing) : undefined
 
       if (existing && existingId !== undefined) {
         // Capture the FULL prior body so rollback can restore freeform tuning
         // fields we do not otherwise know the shape of.
-        const prior = await getProfileById(client, existingId)
+        const prior = await getProfileById(client, spec.sensorType, existingId)
         rollbackState.push({
           name: spec.name,
+          sensorType: spec.sensorType,
           existed: true,
           id: existingId,
           prior: prior ?? undefined,
         })
 
-        const res = await client.request('PUT', `/profiles/${existingId}`, {
+        const res = await client.request('PUT', `/sensors/profiles/${spec.sensorType}/${existingId}`, {
           body: buildProfileBody(spec, settings ?? undefined),
         })
         if (!res.ok) {
           throw new Error(`Failed to update profile "${spec.name}": ${tenableErrorMessage(res)}`)
         }
       } else {
-        const res = await client.request('POST', '/profiles', {
+        const res = await client.request('POST', `/sensors/profiles/${spec.sensorType}`, {
           body: buildProfileBody(spec, settings ?? undefined),
         })
         if (!res.ok) {
@@ -79,7 +87,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         }
         const created = parseJson<LiveProfile>(res.body)
         const createdId = created ? profileIdentifier(created) : undefined
-        rollbackState.push({ name: spec.name, existed: false, id: createdId })
+        rollbackState.push({ name: spec.name, sensorType: spec.sensorType, existed: false, id: createdId })
         if (createdId === undefined) {
           throw new Error(`Profile "${spec.name}" was created but the API returned no id/uuid`)
         }
@@ -115,46 +123,62 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
 
 // --- Helpers ---
 
-/** The stable identity Tenable returns for a profile — prefer id, fall back to uuid. */
+/**
+ * The stable identity Tenable returns for a profile. GET (list/detail) returns
+ * `profile_uuid`; POST (create) returns a bare `uuid` — check both.
+ */
 export function profileIdentifier(live: LiveProfile): number | string | undefined {
-  if (live.id !== undefined && live.id !== null && live.id !== '') return live.id
+  if (typeof live.profile_uuid === 'string' && live.profile_uuid) return live.profile_uuid
   if (typeof live.uuid === 'string' && live.uuid) return live.uuid
   return undefined
 }
 
-/** Look up a profile by exact name in the tenant list; null when absent. */
-export async function findProfile(client: TenableClient, name: string): Promise<LiveProfile | null> {
-  const res = await client.request('GET', '/profiles')
+/**
+ * Look up a profile by exact name within a sensor type's list; null when absent.
+ * GET /sensors/profiles/{sensor_type} returns `{ profiles: [...] }`, scoped to
+ * that one sensor type only — an "agent" profile never collides with a
+ * same-named "scanners" profile because they live under different lists.
+ */
+export async function findProfile(
+  client: TenableClient,
+  sensorType: string,
+  name: string,
+): Promise<LiveProfile | null> {
+  const res = await client.request('GET', `/sensors/profiles/${sensorType}`)
   if (!res.ok) {
-    throw new Error(`Failed to list profiles while resolving "${name}": ${tenableErrorMessage(res)}`)
+    throw new Error(`Failed to list ${sensorType} profiles while resolving "${name}": ${tenableErrorMessage(res)}`)
   }
   const profiles = parseJson<{ profiles?: LiveProfile[] }>(res.body)?.profiles ?? []
-  // Match the first exact name. Rollback is keyed on the returned id/uuid, so an
-  // ambiguous name still reverts precisely.
+  // Match the first exact name. Rollback is keyed on the returned profile_uuid,
+  // so an ambiguous name still reverts precisely.
   return profiles.find((p) => p.name === name) ?? null
 }
 
-/** Fetch a single profile's full body by id/uuid; null on 404. */
+/** Fetch a single profile's full body by uuid; null on 404. */
 export async function getProfileById(
   client: TenableClient,
-  id: number | string,
+  sensorType: string,
+  uuid: number | string,
 ): Promise<LiveProfile | null> {
-  const res = await client.request('GET', `/profiles/${id}`)
+  const res = await client.request('GET', `/sensors/profiles/${sensorType}/${uuid}`)
   if (res.status === 404) return null
   if (!res.ok) {
-    throw new Error(`Failed to fetch profile ${id}: ${tenableErrorMessage(res)}`)
+    throw new Error(`Failed to fetch ${sensorType} profile ${uuid}: ${tenableErrorMessage(res)}`)
   }
   return parseJson<LiveProfile>(res.body)
 }
 
 /**
- * Build the create/update request body: merge the freeform settingsJson first,
- * then force the canvas name to win. name is the profile's logical identity, so
- * a stray "name" key inside settingsJson must not override it.
+ * Build the create/update request body: `{ name, description?, config? }`.
+ * settingsJson maps straight into `config` — the API's freeform tuning object
+ * (never spread onto the top level, which is NOT the real request shape).
  */
 export function buildProfileBody(
   spec: ProfileSpec,
   settings: Record<string, unknown> | undefined,
 ): Record<string, unknown> {
-  return { ...(settings ?? {}), name: spec.name }
+  const body: Record<string, unknown> = { name: spec.name }
+  if (spec.description !== undefined) body.description = spec.description
+  if (settings !== undefined) body.config = settings
+  return body
 }

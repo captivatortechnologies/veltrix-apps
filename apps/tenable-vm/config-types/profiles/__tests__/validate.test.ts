@@ -29,7 +29,7 @@ function makeCtx(sections: Array<{ name: string; fields: Record<string, unknown>
   }
 }
 
-const VALID_SETTINGS = '{"max_scan_time_hours": 4}'
+const VALID_SETTINGS = '{"version": "10.7.1"}'
 
 describe('Tenable Profiles Validate Handler', () => {
   it('returns invalid for empty sections', async () => {
@@ -38,41 +38,66 @@ describe('Tenable Profiles Validate Handler', () => {
     expect(result.errors[0].code).toBe('empty_canvas')
   })
 
-  it('validates a valid name-only profile', async () => {
-    const result = await validate(makeCtx([{ name: 'Profile', fields: { name: 'Fast Scan' } }]))
+  it('validates a valid name-only agent profile', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'Profile', fields: { name: 'Fast Scan', sensor_type: 'agent' } }]),
+    )
     expect(result.valid).toBe(true)
     expect(result.errors).toHaveLength(0)
   })
 
-  it('validates a valid profile with a JSON settings object', async () => {
+  it('validates a valid scanner profile with a JSON settings object', async () => {
     const result = await validate(
-      makeCtx([{ name: 'Profile', fields: { name: 'Fast Scan', settingsJson: VALID_SETTINGS } }]),
+      makeCtx([
+        {
+          name: 'Profile',
+          fields: { name: 'Fast Scan', sensor_type: 'scanners', settingsJson: VALID_SETTINGS },
+        },
+      ]),
     )
     expect(result.valid).toBe(true)
     expect(result.errors).toHaveLength(0)
   })
 
   it('rejects a missing name', async () => {
-    const result = await validate(makeCtx([{ name: 'sec1', fields: { settingsJson: VALID_SETTINGS } }]))
+    const result = await validate(
+      makeCtx([{ name: 'sec1', fields: { sensor_type: 'agent', settingsJson: VALID_SETTINGS } }]),
+    )
     expect(result.valid).toBe(false)
     expect(result.errors.some((e) => e.code === 'required' && e.field.includes('name'))).toBe(true)
   })
 
   it('rejects a blank name (whitespace only)', async () => {
-    const result = await validate(makeCtx([{ name: 'sec1', fields: { name: '   ' } }]))
+    const result = await validate(makeCtx([{ name: 'sec1', fields: { name: '   ', sensor_type: 'agent' } }]))
     expect(result.valid).toBe(false)
     expect(result.errors.some((e) => e.code === 'required')).toBe(true)
   })
 
   it('rejects a name longer than 255 characters', async () => {
-    const result = await validate(makeCtx([{ name: 'sec1', fields: { name: 'x'.repeat(256) } }]))
+    const result = await validate(
+      makeCtx([{ name: 'sec1', fields: { name: 'x'.repeat(256), sensor_type: 'agent' } }]),
+    )
     expect(result.valid).toBe(false)
     expect(result.errors.some((e) => e.code === 'max_length')).toBe(true)
   })
 
+  it('rejects a missing sensor_type', async () => {
+    const result = await validate(makeCtx([{ name: 'sec1', fields: { name: 'Fast Scan' } }]))
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.code === 'required' && e.field.includes('sensor_type'))).toBe(true)
+  })
+
+  it('rejects an invalid sensor_type', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'sec1', fields: { name: 'Fast Scan', sensor_type: 'agents' } }]),
+    )
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.code === 'invalid_sensor_type')).toBe(true)
+  })
+
   it('rejects invalid JSON settings', async () => {
     const result = await validate(
-      makeCtx([{ name: 'sec1', fields: { name: 'Fast Scan', settingsJson: '{not json' } }]),
+      makeCtx([{ name: 'sec1', fields: { name: 'Fast Scan', sensor_type: 'agent', settingsJson: '{not json' } }]),
     )
     expect(result.valid).toBe(false)
     expect(result.errors.some((e) => e.code === 'invalid_settings')).toBe(true)
@@ -80,7 +105,7 @@ describe('Tenable Profiles Validate Handler', () => {
 
   it('rejects settings that are a JSON array, not an object', async () => {
     const result = await validate(
-      makeCtx([{ name: 'sec1', fields: { name: 'Fast Scan', settingsJson: '[1,2,3]' } }]),
+      makeCtx([{ name: 'sec1', fields: { name: 'Fast Scan', sensor_type: 'agent', settingsJson: '[1,2,3]' } }]),
     )
     expect(result.valid).toBe(false)
     expect(result.errors.some((e) => e.code === 'invalid_settings')).toBe(true)
@@ -88,28 +113,38 @@ describe('Tenable Profiles Validate Handler', () => {
 
   it('rejects settings that are a JSON primitive, not an object', async () => {
     const result = await validate(
-      makeCtx([{ name: 'sec1', fields: { name: 'Fast Scan', settingsJson: '42' } }]),
+      makeCtx([{ name: 'sec1', fields: { name: 'Fast Scan', sensor_type: 'agent', settingsJson: '42' } }]),
     )
     expect(result.valid).toBe(false)
     expect(result.errors.some((e) => e.code === 'invalid_settings')).toBe(true)
   })
 
-  it('rejects a duplicate profile name', async () => {
+  it('rejects a duplicate (name, sensor_type) pair', async () => {
     const result = await validate(
       makeCtx([
-        { name: 'sec1', fields: { name: 'Fast Scan' } },
-        { name: 'sec2', fields: { name: 'Fast Scan' } },
+        { name: 'sec1', fields: { name: 'Fast Scan', sensor_type: 'agent' } },
+        { name: 'sec2', fields: { name: 'Fast Scan', sensor_type: 'agent' } },
       ]),
     )
     expect(result.valid).toBe(false)
     expect(result.errors.some((e) => e.code === 'duplicate_profile')).toBe(true)
   })
 
+  it('allows the same name once under "agent" and once under "scanners"', async () => {
+    const result = await validate(
+      makeCtx([
+        { name: 'sec1', fields: { name: 'Fast Scan', sensor_type: 'agent' } },
+        { name: 'sec2', fields: { name: 'Fast Scan', sensor_type: 'scanners' } },
+      ]),
+    )
+    expect(result.valid).toBe(true)
+  })
+
   it('allows names that differ only in case (matched exactly)', async () => {
     const result = await validate(
       makeCtx([
-        { name: 'sec1', fields: { name: 'Fast Scan' } },
-        { name: 'sec2', fields: { name: 'fast scan' } },
+        { name: 'sec1', fields: { name: 'Fast Scan', sensor_type: 'agent' } },
+        { name: 'sec2', fields: { name: 'fast scan', sensor_type: 'agent' } },
       ]),
     )
     expect(result.valid).toBe(true)
@@ -131,6 +166,8 @@ describe('extractProfileSpecs', () => {
           name: 'sec1',
           fields: {
             name: '  Fast Scan  ',
+            sensor_type: 'agent',
+            description: '   ',
             settingsJson: '   ',
           },
         },
@@ -138,6 +175,8 @@ describe('extractProfileSpecs', () => {
       snapshot: {},
     })
     expect(specs[0].name).toBe('Fast Scan')
+    expect(specs[0].sensorType).toBe('agent')
+    expect(specs[0].description).toBeUndefined()
     expect(specs[0].settingsJson).toBeUndefined()
   })
 })

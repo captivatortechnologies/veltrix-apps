@@ -37,14 +37,14 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
   })
   checks.push(reachable)
 
-  // Check 2..n: each declared profile still exists (re-found by its name)
+  // Check 2..n: each declared profile still exists (re-found by sensor type + name)
   if (reachable.passed) {
-    const specs = extractProfileSpecs(ctx.canvas).filter((s) => s.name)
+    const specs = extractProfileSpecs(ctx.canvas).filter((s) => s.name && s.sensorType)
     for (const spec of specs) {
       checks.push(
         await timedCheck(`profile:${spec.name}`, async () => {
-          const live = await findProfile(client, spec.name)
-          if (!live) throw new Error(`Profile "${spec.name}" does not exist in the tenant`)
+          const live = await findProfile(client, spec.sensorType, spec.name)
+          if (!live) throw new Error(`Profile "${spec.name}" (${spec.sensorType}) does not exist in the tenant`)
           return `Profile "${spec.name}" is present`
         }),
       )

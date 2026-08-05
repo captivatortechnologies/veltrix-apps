@@ -1,0 +1,36 @@
+# =============================================================================
+# Canvas Template — Qualys Custom Networks
+#
+# Declares ONE custom network — the item. Networks (the "Network Support"
+# feature) let a subscription segment scanning/asset data by network — asset
+# groups, option profiles and auth records can then be scoped to a specific
+# network via their own network_id field. Qualys assigns a numeric id, so
+# identity for reconciliation is the natural key (name). There is NO delete API
+# for networks — see rollback.ts. Field keys must match
+# config-types/qualys-networks/validate.ts.
+# =============================================================================
+
+id: "qualys-networks"
+name: "Qualys Custom Networks"
+toolType: "qualys"
+entityType: "qualys-networks"
+description: "Define Qualys custom networks as code through the classic v2 API (/api/2.0/fo/network/). Reconciled by name. Only available with the Network Support feature enabled; there is no delete API."
+
+item:
+  label: "Network"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Network"
+      icon: "share-2"
+      description: "Name"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            A friendly name for the network (its logical identity for reconciliation). Must be
+            unique. Requires the Network Support feature to be enabled for this subscription.

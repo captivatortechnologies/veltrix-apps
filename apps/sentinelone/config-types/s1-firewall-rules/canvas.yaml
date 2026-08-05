@@ -1,0 +1,102 @@
+# =============================================================================
+# Canvas Template — SentinelOne Firewall Control
+#
+# Declares ONE Firewall Control rule — the item. Users add as many as they need.
+# Rules are a scope-filtered collection (/firewall-control, requires the Control
+# SKU); SentinelOne assigns a server id, so identity for reconciliation is the
+# rule `name` at the configured scope. Field keys must match
+# config-types/s1-firewall-rules/validate.ts.
+#
+# Firewall Control evaluates rules in order and falls back to "allow" for
+# unmatched traffic, so a deliberate clean-up rule (no application/protocol/
+# service set) should be declared last if you want a default-deny posture.
+# =============================================================================
+
+id: "sentinelone-s1-firewall-rules"
+name: "SentinelOne Firewall Control Configuration"
+toolType: "sentinelone"
+entityType: "s1-firewall-rules"
+description: "Define SentinelOne Firewall Control rules as code through the Management API (/firewall-control, Control SKU). Reconciled by rule name at the configured scope."
+
+item:
+  label: "Firewall Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Rule"
+      icon: "shield"
+      description: "Name and match behaviour"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The rule name — its logical identity at the configured scope."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description shown in the console."
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "Allow"
+          options:
+            - { label: "Allow", value: "Allow" }
+            - { label: "Block", value: "Blocked" }
+          helpText: "Whether matching traffic is allowed or blocked."
+
+        - key: "direction"
+          label: "Direction"
+          fieldType: "select"
+          required: true
+          defaultValue: "any"
+          options:
+            - { label: "Any", value: "any" }
+            - { label: "Inbound", value: "inbound" }
+            - { label: "Outbound", value: "outbound" }
+          helpText: "The traffic direction this rule matches."
+
+        - key: "os_type"
+          label: "OS"
+          fieldType: "select"
+          required: true
+          defaultValue: "windows"
+          options:
+            - { label: "Windows", value: "windows" }
+            - { label: "Windows (legacy)", value: "windows_legacy" }
+            - { label: "Linux", value: "linux" }
+            - { label: "macOS", value: "macos" }
+          helpText: "The OS the rule applies to."
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          defaultValue: "Enabled"
+          options:
+            - { label: "Enabled", value: "Enabled" }
+            - { label: "Disabled", value: "Disabled" }
+          helpText: "Whether the rule is active."
+
+    - name: "Match"
+      icon: "filter"
+      description: "What traffic this rule matches — leave all blank for a catch-all clean-up rule"
+      fields:
+        - key: "application"
+          label: "Application"
+          fieldType: "text"
+          helpText: "Optional application path/name to match, e.g. C:\\Program Files\\App\\app.exe."
+
+        - key: "protocol"
+          label: "Protocol"
+          fieldType: "text"
+          helpText: "Optional protocol to match, e.g. TCP, UDP or ICMP."
+
+        - key: "service"
+          label: "Service"
+          fieldType: "text"
+          helpText: "Optional remote service shorthand (host/IP and/or port) to match, e.g. 10.0.0.0/8:443."

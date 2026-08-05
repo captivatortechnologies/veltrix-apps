@@ -18,7 +18,7 @@ export interface PolicyRollbackEntry {
   /** Numeric policy_id returned by the API — the rollback key. */
   id?: number
   /**
-   * Prior policy state captured before an update, replayed (PUT ...\/configure)
+   * Prior policy state captured before an update, replayed (PUT /policies/{id})
    * on rollback: the editor template uuid and the `settings` object.
    */
   prior?: { uuid?: string; settings?: Record<string, unknown> }
@@ -28,10 +28,10 @@ export interface PolicyRollbackEntry {
  * Deploy scan policies to a Tenable VM tenant via the Policies API.
  *
  * For each declared policy:
- *   - GET  /policies                 — list + find by name
- *   - GET  /policies/{id}            — capture prior uuid/settings before an update
- *   - PUT  /policies/{id}/configure  — update existing (keyed on the numeric id)
- *   - POST /policies                 — create missing (capture the created policy_id)
+ *   - GET  /policies         — list + find by name
+ *   - GET  /policies/{id}    — capture prior uuid/settings before an update
+ *   - PUT  /policies/{id}    — update existing (keyed on the numeric id)
+ *   - POST /policies         — create missing (capture the created policy_id)
  *
  * A policy is built from an editor POLICY TEMPLATE: the body carries the template
  * uuid at the TOP LEVEL and everything else under `settings`. Names are not
@@ -72,7 +72,7 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
           prior: { uuid: detail?.uuid ?? detail?.template_uuid, settings: detail?.settings },
         })
 
-        const res = await client.request('PUT', `/policies/${existing.id}/configure`, {
+        const res = await client.request('PUT', `/policies/${existing.id}`, {
           body: buildPolicyBody(spec, advanced ?? undefined),
         })
         if (!res.ok) {

@@ -1,0 +1,51 @@
+# =============================================================================
+# Canvas Template — IBM QRadar Flow VLAN
+#
+# Declares ONE flow VLAN domain field — the item. Users add as many as they
+# need. A flow VLAN disambiguates overlapping customer VLAN spaces (e.g. across
+# MSSP tenants) in flow data. The QRadar API has NO name field for this object —
+# its true identity is the (enterprise VLAN id, customer VLAN id) PAIR. The
+# "Label" field below is a canvas-only convenience name; it is never sent to
+# QRadar. The API supports CREATE + READ + DELETE only (no update), so changing
+# either VLAN id is a delete-and-recreate under the hood, handled automatically
+# by reconcile matching on the pair rather than the canvas item id.
+#
+# Field keys must match config-types/flow-vlans/validate.ts.
+# =============================================================================
+
+id: "ibm-qradar-flow-vlans"
+name: "Flow VLAN Configuration"
+toolType: "ibm-qradar"
+entityType: "flow-vlans"
+group: "Ariel / AQL"
+description: "Define IBM QRadar flow VLAN domain fields (enterprise/customer VLAN id pairs used to disambiguate overlapping VLAN spaces in flow data) as code through the QRadar ariel API."
+
+item:
+  label: "Flow VLAN"
+  identityField: "label"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Flow VLAN"
+      icon: "network"
+      description: "Label (canvas-only) and the VLAN id pair"
+      fields:
+        - key: "label"
+          label: "Label"
+          fieldType: "text"
+          required: true
+          helpText: "A canvas-only display name for this item. Not sent to QRadar — the real identity is the (enterprise, customer) VLAN id pair below."
+
+        - key: "enterpriseVlanId"
+          label: "Enterprise VLAN ID"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+          helpText: "0 to 4095. Use 0 if the enterprise VLAN field does not exist for this pair."
+
+        - key: "customerVlanId"
+          label: "Customer VLAN ID"
+          fieldType: "number"
+          required: true
+          helpText: "1 to 4095."

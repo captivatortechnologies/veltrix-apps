@@ -3,6 +3,90 @@
 All notable changes to the Qualys app are documented here. This project adheres
 to [Semantic Versioning](https://semver.org/).
 
+## 1.3.0 — 2026-08-05
+
+### Added
+- **Four new configuration types**, closing a config-as-code exhaustiveness
+  audit against the Qualys API (VM/PC) User Guide. Each ships the full handler
+  set (validate, deploy, rollback, healthCheck, driftDetect, getStatus) with
+  idempotent upsert by natural key and deploy-captured `rollbackData`.
+  - **Authentication records** (`qualys-auth-records`) — records used for
+    authenticated (trusted) scanning, via the classic v2 API
+    `POST /api/2.0/fo/auth/<type>/` (`action=create|update|delete`, read via
+    `action=list`). Reconciled by (technology, title) — each of the 22
+    supported technologies (Unix/Cisco/Checkpoint, Windows, Oracle, Oracle
+    Listener, Oracle WebLogic, SNMP, VMware, MS SQL, MySQL, PostgreSQL, IBM
+    DB2, Docker, HTTP, Network Device SSH, MongoDB, Tomcat, Apache, IIS, IBM
+    WebSphere, Sybase, Palo Alto Firewall, MS Exchange) is a separate
+    endpoint/namespace. Title, target IPs and comments are first-class;
+    **every credential field (username, password, vault/Kerberos settings,
+    …) is a single write-only JSON field — sent on every deploy, never read
+    back, diffed or logged**, matching this app's `password` field-type
+    convention. ~30 niche/rarely-used record types (DataStax, MarkLogic,
+    Neo4j, Cassandra, InformixDB, Kubernetes, vCenter mapping, …) are left to
+    a future pass.
+  - **Custom networks** (`qualys-networks`) — the "Network Support" feature's
+    networks, via the classic v2 API `POST /api/2.0/fo/network/`
+    (`action=create|update`, list via `action=list`). Reconciled by name.
+    Closes the gap referenced by this app's existing `network_id` fields
+    (asset groups, option profiles, auth records). **There is no delete
+    network API** — only Create/Update/List/Assign-Scanner-Appliance are
+    documented — so a created network can only be renamed on rollback, never
+    removed; this is reported, not silently swallowed.
+  - **VM report templates** (`qualys-report-templates`) — Scan, Patch and Map
+    report templates, via the classic v2 API
+    `POST|PUT /api/2.0/fo/report/template/<scan|patch|map>/`. **The one
+    config type in this app whose write body is a literal XML DOCUMENT**
+    (`Content-Type: text/xml`), not form parameters — and Update uses HTTP
+    PUT, a first for this app's shared client (`QualysClient.sendXmlBody`).
+    This app manages only the TITLE section (title, owner); every other
+    section (TARGET, DISPLAY, FILTER, SERVICESPORTS, USERACCESS, …) is a
+    free-form XML fragment passed through verbatim — the exact shape Export
+    returns is exactly what Create/Update expect, so it round-trips safely
+    without this app needing to interpret it. Reconciled by (type, title) via
+    the separate `/msp/report_template_list.php` metadata list, because
+    Export never returns a template's own id. **Quirk:** success is reported
+    by a human-readable message IN `<CODE>` (e.g. "…Created Successfully
+    [89876]") — the OPPOSITE of every other classic-API call in this app,
+    where a populated `<CODE>` means failure; handled locally
+    (`reportTemplateWriteError`), not added to the shared `qualysWriteError`.
+    **PCI Scan Template was evaluated and dropped**: its value in the shared
+    metadata list's `<TEMPLATE_TYPE>` field is not documented distinctly from
+    Scan/Compliance in the available API guide, so it cannot be safely
+    reconciled by title without risking a cross-type collision.
+  - **Users** (`qualys-users`) — user accounts, via the classic API
+    `/msp/user.php` (`action=add|edit|deactivate`) and `/msp/user_list.php`
+    (list) — a different API family from `/api/2.0/fo/...` with its own
+    `USER_OUTPUT`/`<RETURN status="...">` envelope. Reconciled by **email**,
+    not `login` — Qualys generates the login itself on `action=add` (it
+    cannot be chosen), so it is a live-resolved artifact rather than desired
+    state. **There is no delete-user API** — only Activate/Deactivate — so a
+    created user's rollback best-effort deactivates it (and a freshly
+    invited user stays "Pending Activation", which Qualys refuses to
+    deactivate, until they first log in); an updated user's rollback restores
+    only first/last name and job title (the fields this app can read back).
+- **Raw-XML transport** added to the shared Qualys client (`lib/qualys.ts`):
+  `QualysClient.sendXmlBody(method, path, queryParams, xmlBody)` sends a
+  literal XML document as the request body (`Content-Type: text/xml`) with
+  the action verb in the query string, and supports HTTP PUT — used only by
+  VM report templates. The classic form/XML and QPS/JSON paths are unchanged.
+
+### Notes
+- **Cloud Agent Configuration Profiles were evaluated and dropped.** Its API
+  (`<qualys_base_url>/caui/v1/config-profiles`) requires **Bearer-token
+  OAuth**, not HTTP Basic — incompatible with this app's credential model
+  (the same reasoning that already excluded Policy Compliance policies'
+  delete endpoint in 1.2.0).
+- **Host assets were evaluated and dropped.** The Asset Management QPS API
+  can create host assets, but they are scan-populated inventory records that
+  Qualys' own scanning/Cloud Agent continuously overwrite — treating them as
+  desired state would generate perpetual false-positive drift. The API
+  exists for CMDB import/bootstrap, not steady-state configuration.
+- **Business units and distribution groups were evaluated and dropped.**
+  Neither has a documented create/update/delete endpoint anywhere in the
+  Qualys API (VM/PC) User Guide; the Add/Edit User API explicitly states
+  "business units may be created using the Qualys user interface only."
+
 ## 1.2.0 — 2026-07-26
 
 ### Added

@@ -3,6 +3,50 @@
 All notable changes to the SentinelOne app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.2.0 — 2026-08-05
+
+### Added
+- **Four new configuration types, deepening config-as-code coverage from 6 to
+  10 types** (config-type count doubling justified a MINOR bump):
+  - **`s1-firewall-rules`** — Firewall Control network rules via
+    `/firewall-control` (Control SKU). Reconciled by rule name at the
+    configured scope; the same list/create/update/delete request shape this
+    app already uses for `/exclusions`.
+  - **`s1-device-control`** — USB / Bluetooth peripheral rules via
+    `/device-control`. Reconciled by rule name; validate warns when a
+    USB-only field (vendor/product/serial id) is set on a Bluetooth rule or
+    vice versa.
+  - **`s1-notification-recipients`** — alert email/SMS recipients via
+    `/settings/recipients`. Reconciled by email; restricted to the
+    account/site/global scopes (there is no group-scoped recipients
+    endpoint).
+  - **`s1-rbac-roles`** — custom RBAC roles via `/rbac/roles`. Permissions are
+    declared as dot-path key → value overrides and merged with a
+    read-merge-write against the scope's new-role template (`GET
+    /rbac/role`) or an existing role's live detail (`GET /rbac/role/{id}`) —
+    the same pattern the existing `s1-agent-policy` config type already uses,
+    since SentinelOne's permission taxonomy is tenant/SKU-specific and not
+    hardcoded here.
+  - All four ship with validate/deploy/rollback/healthCheck/driftDetect/
+    getStatus handlers, drift attribution (reusing `lib/s1ActivityLog.ts`),
+    and unit tests, and are wired into `manifest.yaml` with `group:` sidebar
+    labels (Firewall Control / Device Control / Notifications / Access
+    Control) alongside newly-added labels for the 6 existing types
+    (Exclusions & Restrictions / Detection Rules / Agent Policy /
+    Organization).
+
+### Notes
+- No changes to the shared `lib/s1.ts` client or `lib/s1ActivityLog.ts` — all
+  four new types reuse the existing scope/pagination/error-handling client and
+  drift-attribution helpers as-is.
+- Researched and deliberately excluded this pass (see the README's new
+  **Coverage** section for full reasoning): Sites (`/sites` — commercial
+  license-pool semantics could not be verified from an authoritative source),
+  SMTP/SSO/Active Directory settings (secret material), Syslog forwarding
+  settings and Scheduled reports (endpoints exist but no verifiable
+  write-body schema was found), Ranger/attack-surface-management, Marketplace
+  app installs, and User accounts.
+
 ## 1.1.0 — 2026-07-22
 
 ### Added

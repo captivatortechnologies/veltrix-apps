@@ -6,7 +6,7 @@ import { extractRecastRuleSpecs } from './validate'
 /**
  * Health check for recast rule configuration:
  *   1. Tenable API reachability + credential validity (GET /server/status)
- *   2. Every declared rule still resolves (re-found by its tuple)
+ *   2. Every declared rule still resolves (re-found by rule_name)
  * Score is the percentage of passed checks (0–100).
  */
 export default async function healthCheck(ctx: HealthCheckContext): Promise<HealthCheckResult> {
@@ -37,20 +37,18 @@ export default async function healthCheck(ctx: HealthCheckContext): Promise<Heal
   })
   checks.push(reachable)
 
-  // Check 2..n: each declared rule still resolves (re-found by its tuple)
+  // Check 2..n: each declared rule still resolves (re-found by rule_name)
   if (reachable.passed) {
     const specs = extractRecastRuleSpecs(ctx.canvas).filter(
-      (s) => s.name && s.resourceType && s.action && s.pluginId,
+      (s) => s.name && s.resourceType && s.action && s.filterJson,
     )
     for (const spec of specs) {
       const label = spec.name
       checks.push(
         await timedCheck(`rule:${label}`, async () => {
-          const live = await findRecastRule(client, spec)
+          const live = await findRecastRule(client, spec.name)
           if (!live) {
-            throw new Error(
-              `Rule "${label}" (${spec.resourceType}/plugin ${spec.pluginId}/${spec.action}) does not exist in the tenant`,
-            )
+            throw new Error(`Rule "${label}" (${spec.resourceType}/${spec.action}) does not exist in the tenant`)
           }
           return `Rule "${label}" is present`
         }),

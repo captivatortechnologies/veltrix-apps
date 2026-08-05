@@ -1,6 +1,6 @@
 import validate, {
-  buildRecastFilter,
   extractRecastRuleSpecs,
+  isValidRecastFilterShape,
   parseFilterObject,
 } from '../validate'
 import type { PipelineContext, PlatformDataApi } from '@veltrixsecops/app-sdk'
@@ -33,14 +33,17 @@ function makeCtx(sections: Array<{ name: string; fields: Record<string, unknown>
   }
 }
 
-/** A minimal valid RECAST rule's fields. */
+const PLUGIN_FILTER = '{"and":[{"property":"definition.id","operator":"eq","value":"19506"}]}'
+const OTHER_PLUGIN_FILTER = '{"and":[{"property":"definition.id","operator":"eq","value":"10881"}]}'
+
+/** A minimal valid RECAST rule's fields (Host/Web App family). */
 function recastFields(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     name: 'Downgrade OpenSSL',
     resource_type: 'HOST',
     action: 'RECAST',
-    severity: 'low',
-    plugin_id: '19506',
+    severity: 'LOW',
+    filter_json: PLUGIN_FILTER,
     ...overrides,
   }
 }
@@ -51,12 +54,22 @@ function acceptFields(overrides: Record<string, unknown> = {}): Record<string, u
     name: 'Accept SSH warning',
     resource_type: 'HOST',
     action: 'ACCEPT',
-    plugin_id: '10881',
+    filter_json: OTHER_PLUGIN_FILTER,
     ...overrides,
   }
 }
 
-const VALID_FILTER_JSON = '{"severity":["high","critical"]}'
+/** A minimal valid CHANGE_RESULT rule's fields (Host Audit family). */
+function changeResultFields(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    name: 'Override CIS check',
+    resource_type: 'HOST_AUDIT',
+    action: 'CHANGE_RESULT',
+    compliance_result: 'PASSED',
+    filter_json: '{"and":[{"property":"audit_file","operator":"eq","value":"CIS_Level_1.audit"}]}',
+    ...overrides,
+  }
+}
 
 describe('Tenable Recast Rules Validate Handler', () => {
   it('returns invalid for empty sections', async () => {
@@ -77,14 +90,22 @@ describe('Tenable Recast Rules Validate Handler', () => {
     expect(result.errors).toHaveLength(0)
   })
 
-  it('validates a rule with host_targets, filter_json and expires_at', async () => {
+  it('validates a valid CHANGE_RESULT (Host Audit) rule', async () => {
+    const result = await validate(makeCtx([{ name: 'Rule', fields: changeResultFields() }]))
+    expect(result.valid).toBe(true)
+    expect(result.errors).toHaveLength(0)
+  })
+
+  it('validates a rule with comment, false_positive, disabled and expires_at', async () => {
     const result = await validate(
       makeCtx([
         {
           name: 'Rule',
           fields: recastFields({
-            host_targets: '10.0.0.0/8',
-            filter_json: VALID_FILTER_JSON,
+            comment: 'Vendor confirmed mitigated',
+            false_positive: true,
+            disabled: true,
+            disabled_reason: 'Pending re-scan',
             expires_at: '2026-12-31T23:59:59Z',
           }),
         },
@@ -128,10 +149,24 @@ describe('Tenable Recast Rules Validate Handler', () => {
     expect(result.errors.some((e) => e.code === 'invalid_action')).toBe(true)
   })
 
-  it('rejects a RECAST rule missing severity', async () => {
+  it('rejects RECAST/ACCEPT paired with HOST_AUDIT', async () => {
     const result = await validate(
-      makeCtx([{ name: 'sec1', fields: recastFields({ severity: '' }) }]),
+      makeCtx([{ name: 'sec1', fields: recastFields({ resource_type: 'HOST_AUDIT' }) }]),
     )
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.code === 'incompatible_action')).toBe(true)
+  })
+
+  it('rejects CHANGE_RESULT/ACCEPT_RESULT paired with HOST', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'sec1', fields: changeResultFields({ resource_type: 'HOST' }) }]),
+    )
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.code === 'incompatible_action')).toBe(true)
+  })
+
+  it('rejects a RECAST rule missing severity', async () => {
+    const result = await validate(makeCtx([{ name: 'sec1', fields: recastFields({ severity: '' }) }]))
     expect(result.valid).toBe(false)
     expect(result.errors.some((e) => e.code === 'required' && e.field.includes('severity'))).toBe(true)
   })
@@ -145,27 +180,41 @@ describe('Tenable Recast Rules Validate Handler', () => {
   })
 
   it('rejects an ACCEPT rule that carries a severity', async () => {
-    const result = await validate(
-      makeCtx([{ name: 'sec1', fields: acceptFields({ severity: 'low' }) }]),
-    )
+    const result = await validate(makeCtx([{ name: 'sec1', fields: acceptFields({ severity: 'LOW' }) }]))
     expect(result.valid).toBe(false)
     expect(result.errors.some((e) => e.code === 'severity_not_allowed')).toBe(true)
   })
 
-  it('rejects a missing plugin_id', async () => {
+  it('rejects a CHANGE_RESULT rule missing compliance_result', async () => {
     const result = await validate(
-      makeCtx([{ name: 'sec1', fields: recastFields({ plugin_id: '' }) }]),
+      makeCtx([{ name: 'sec1', fields: changeResultFields({ compliance_result: '' }) }]),
     )
     expect(result.valid).toBe(false)
-    expect(result.errors.some((e) => e.code === 'required' && e.field.includes('plugin_id'))).toBe(true)
+    expect(result.errors.some((e) => e.code === 'required' && e.field.includes('compliance_result'))).toBe(
+      true,
+    )
   })
 
-  it('rejects a non-numeric plugin_id', async () => {
+  it('rejects an invalid compliance_result value', async () => {
     const result = await validate(
-      makeCtx([{ name: 'sec1', fields: recastFields({ plugin_id: 'CVE-2021-0001' }) }]),
+      makeCtx([{ name: 'sec1', fields: changeResultFields({ compliance_result: 'MAYBE' }) }]),
     )
     expect(result.valid).toBe(false)
-    expect(result.errors.some((e) => e.code === 'invalid_plugin_id')).toBe(true)
+    expect(result.errors.some((e) => e.code === 'invalid_compliance_result')).toBe(true)
+  })
+
+  it('rejects a RECAST rule that carries a compliance_result', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'sec1', fields: recastFields({ compliance_result: 'PASSED' }) }]),
+    )
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.code === 'compliance_result_not_allowed')).toBe(true)
+  })
+
+  it('rejects a missing filter', async () => {
+    const result = await validate(makeCtx([{ name: 'sec1', fields: recastFields({ filter_json: '' }) }]))
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.code === 'required' && e.field.includes('filter_json'))).toBe(true)
   })
 
   it('rejects a malformed filter_json', async () => {
@@ -184,6 +233,45 @@ describe('Tenable Recast Rules Validate Handler', () => {
     expect(result.errors.some((e) => e.code === 'invalid_filter_json')).toBe(true)
   })
 
+  it('rejects a filter_json missing both "and" and "or"', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'sec1', fields: recastFields({ filter_json: '{"plugin_id":"19506"}' }) }]),
+    )
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.code === 'invalid_filter_json')).toBe(true)
+  })
+
+  it('rejects a filter_json with both "and" and "or"', async () => {
+    const result = await validate(
+      makeCtx([
+        {
+          name: 'sec1',
+          fields: recastFields({
+            filter_json:
+              '{"and":[{"property":"definition.id","operator":"eq","value":"1"}],"or":[{"property":"definition.id","operator":"eq","value":"2"}]}',
+          }),
+        },
+      ]),
+    )
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.code === 'invalid_filter_json')).toBe(true)
+  })
+
+  it('accepts an "or" filter shape', async () => {
+    const result = await validate(
+      makeCtx([
+        {
+          name: 'sec1',
+          fields: recastFields({
+            filter_json:
+              '{"or":[{"property":"definition.id","operator":"eq","value":"1"},{"property":"definition.id","operator":"eq","value":"2"}]}',
+          }),
+        },
+      ]),
+    )
+    expect(result.valid).toBe(true)
+  })
+
   it('rejects an invalid expires_at', async () => {
     const result = await validate(
       makeCtx([{ name: 'sec1', fields: recastFields({ expires_at: '2026-12-31' }) }]),
@@ -195,39 +283,17 @@ describe('Tenable Recast Rules Validate Handler', () => {
   it('rejects a duplicate rule name', async () => {
     const result = await validate(
       makeCtx([
-        { name: 'sec1', fields: recastFields({ name: 'Dup', plugin_id: '19506' }) },
-        { name: 'sec2', fields: recastFields({ name: 'Dup', plugin_id: '10881' }) },
+        { name: 'sec1', fields: recastFields({ name: 'Dup' }) },
+        { name: 'sec2', fields: acceptFields({ name: 'Dup' }) },
       ]),
     )
     expect(result.valid).toBe(false)
     expect(result.errors.some((e) => e.code === 'duplicate_name')).toBe(true)
   })
-
-  it('rejects a duplicate (resource_type, plugin_id, action) tuple', async () => {
-    const result = await validate(
-      makeCtx([
-        { name: 'sec1', fields: recastFields({ name: 'A' }) },
-        { name: 'sec2', fields: recastFields({ name: 'B' }) },
-      ]),
-    )
-    expect(result.valid).toBe(false)
-    expect(result.errors.some((e) => e.code === 'duplicate_rule')).toBe(true)
-  })
-
-  it('allows the same plugin_id under a different action', async () => {
-    const result = await validate(
-      makeCtx([
-        { name: 'sec1', fields: recastFields({ name: 'A', plugin_id: '19506' }) },
-        { name: 'sec2', fields: acceptFields({ name: 'B', plugin_id: '19506' }) },
-      ]),
-    )
-    expect(result.valid).toBe(true)
-    expect(result.errors).toHaveLength(0)
-  })
 })
 
 describe('extractRecastRuleSpecs', () => {
-  it('trims fields, upper-cases the enums, lower-cases severity and drops empty optionals', () => {
+  it('trims fields, upper-cases the enums, and drops empty optionals', () => {
     const specs = extractRecastRuleSpecs({
       id: 's',
       canvasId: 'c',
@@ -241,74 +307,60 @@ describe('extractRecastRuleSpecs', () => {
           name: 'sec1',
           fields: {
             name: '  My Rule  ',
+            description: '   ',
             resource_type: '  host  ',
             action: '  recast  ',
-            severity: '  LOW  ',
-            plugin_id: '  19506  ',
-            host_targets: '  ',
-            filter_json: '',
+            severity: '  low  ',
+            compliance_result: '',
+            comment: '  ',
+            filter_json: `  ${PLUGIN_FILTER}  `,
             expires_at: '  ',
+            disabled: false,
           },
         },
       ],
       snapshot: {},
     })
     expect(specs[0].name).toBe('My Rule')
+    expect(specs[0].description).toBeUndefined()
     expect(specs[0].resourceType).toBe('HOST')
     expect(specs[0].action).toBe('RECAST')
-    expect(specs[0].severity).toBe('low')
-    expect(specs[0].pluginId).toBe('19506')
-    expect(specs[0].hostTargets).toBeUndefined()
-    expect(specs[0].filterJson).toBeUndefined()
+    expect(specs[0].severity).toBe('LOW')
+    expect(specs[0].complianceResult).toBeUndefined()
+    expect(specs[0].comment).toBeUndefined()
+    expect(specs[0].filterJson).toBe(PLUGIN_FILTER)
     expect(specs[0].expiresAt).toBeUndefined()
-  })
-
-  it('coerces a numeric plugin_id to a string', () => {
-    const specs = extractRecastRuleSpecs({
-      id: 's',
-      canvasId: 'c',
-      version: 1,
-      name: 'n',
-      toolType: 'tenable-vm',
-      entityType: 'recast-rules',
-      items: [],
-      sections: [{ name: 'sec1', fields: { name: 'R', plugin_id: 19506 } }],
-      snapshot: {},
-    })
-    expect(specs[0].pluginId).toBe('19506')
+    expect(specs[0].disabled).toBe(false)
   })
 })
 
-describe('buildRecastFilter', () => {
-  it('builds a filter with just plugin_id', () => {
+describe('isValidRecastFilterShape', () => {
+  it('accepts a valid "and" shape', () => {
+    expect(isValidRecastFilterShape({ and: [{ property: 'definition.id', operator: 'eq', value: '1' }] })).toBe(
+      true,
+    )
+  })
+  it('accepts a valid "or" shape', () => {
+    expect(isValidRecastFilterShape({ or: [{ property: 'definition.id', operator: 'eq', value: '1' }] })).toBe(
+      true,
+    )
+  })
+  it('rejects neither "and" nor "or"', () => {
+    expect(isValidRecastFilterShape({ plugin_id: '1' })).toBe(false)
+  })
+  it('rejects both "and" and "or"', () => {
     expect(
-      buildRecastFilter({ sectionName: 's', name: 'R', resourceType: 'HOST', action: 'RECAST', pluginId: '19506' }),
-    ).toEqual({ plugin_id: '19506' })
+      isValidRecastFilterShape({
+        and: [{ property: 'a', operator: 'eq', value: '1' }],
+        or: [{ property: 'b', operator: 'eq', value: '2' }],
+      }),
+    ).toBe(false)
   })
-
-  it('adds host_targets and merges a filter_json object', () => {
-    const filter = buildRecastFilter({
-      sectionName: 's',
-      name: 'R',
-      resourceType: 'HOST',
-      action: 'RECAST',
-      pluginId: '19506',
-      hostTargets: '10.0.0.0/8',
-      filterJson: '{"severity":["high"]}',
-    })
-    expect(filter).toEqual({ plugin_id: '19506', host_targets: '10.0.0.0/8', severity: ['high'] })
+  it('rejects an empty condition array', () => {
+    expect(isValidRecastFilterShape({ and: [] })).toBe(false)
   })
-
-  it('ignores an invalid filter_json (validate rejects it separately)', () => {
-    const filter = buildRecastFilter({
-      sectionName: 's',
-      name: 'R',
-      resourceType: 'HOST',
-      action: 'RECAST',
-      pluginId: '19506',
-      filterJson: '{bad',
-    })
-    expect(filter).toEqual({ plugin_id: '19506' })
+  it('rejects a condition missing "property"', () => {
+    expect(isValidRecastFilterShape({ and: [{ operator: 'eq', value: '1' }] })).toBe(false)
   })
 })
 

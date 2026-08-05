@@ -1,0 +1,41 @@
+# =============================================================================
+# Canvas Template — Splunk SOAR Container Labels
+#
+# Declares ONE container label (the item) that should exist in SOAR — the
+# categorization value assigned to containers/artifacts (used for role
+# scoping via the `container_labels` permission and for per-source ingestion,
+# e.g. "events", "endpoint", "phishing"). Field keys must match
+# config-types/container-labels/_shared.ts. Applied via the Splunk SOAR REST
+# API: POST /rest/system_settings/events (add_label/remove_label) + GET
+# /rest/system_settings/labels (443).
+#
+# NOTE: SOAR only supports ADD and REMOVE for a label — there is no rename.
+# This type ensures every declared label EXISTS; it never removes a label
+# dropped from the canvas (existing containers may still reference it, and
+# this app does not own the full label namespace — see README Coverage).
+# =============================================================================
+
+id: "splunk-soar-container-labels"
+name: "Container Labels"
+toolType: "splunk-soar"
+entityType: "container-labels"
+description: "Ensure Splunk SOAR container labels exist via the SOAR REST API (/rest/system_settings/events)"
+
+item:
+  label: "Label"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Label"
+      icon: "tag"
+      description: "Label name"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Container label name, e.g. events, endpoint, phishing. Used as the stable identity for upsert and drift."

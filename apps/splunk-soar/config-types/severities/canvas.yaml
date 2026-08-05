@@ -1,0 +1,58 @@
+# =============================================================================
+# Canvas Template — Splunk SOAR Severities
+#
+# Declares ONE severity name (the item). Users add as many as they need.
+# Field keys must match config-types/severities/_shared.ts. Applied via the
+# Splunk SOAR REST API: GET/POST/DELETE /rest/severity (443).
+# =============================================================================
+
+id: "splunk-soar-severities"
+name: "Severities"
+toolType: "splunk-soar"
+entityType: "severities"
+description: "Manage Splunk SOAR container/artifact severities via the SOAR REST API (/rest/severity)"
+
+item:
+  label: "Severity"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Severity"
+      icon: "alert-triangle"
+      description: "Name and color shown on containers and artifacts"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 20
+            pattern: "^[A-Za-z0-9_-]+$"
+            message: "Letters, numbers, dash and underscore only, up to 20 characters."
+          helpText: "Severity name shown throughout SOAR. Used as the stable identity for upsert and drift."
+
+        - key: "color"
+          label: "Color"
+          fieldType: "select"
+          required: true
+          defaultValue: "red"
+          options:
+            - { label: "Red", value: "red" }
+            - { label: "Orange", value: "orange" }
+            - { label: "Yellow", value: "yellow" }
+            - { label: "Green", value: "green" }
+            - { label: "Light Blue", value: "light_blue" }
+            - { label: "Blue", value: "blue" }
+            - { label: "Purple", value: "purple" }
+            - { label: "Light Grey", value: "light_grey" }
+            - { label: "Dark Grey", value: "dark_grey" }
+            - { label: "Pink", value: "pink" }
+          helpText: "Color swatch shown next to this severity."
+
+        - key: "is_default"
+          label: "Default Severity"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Pre-selected severity for a newly-created container. Only one severity should be marked default."

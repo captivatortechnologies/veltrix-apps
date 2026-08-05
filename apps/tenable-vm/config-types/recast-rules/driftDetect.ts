@@ -1,14 +1,15 @@
 import type { DriftContext, DriftDiff, DriftResult } from '@veltrixsecops/app-sdk'
 import { buildTenableClient } from '../../lib/tenable'
 import { attachDriftActor, veltrixActorLogins } from '../lib/tenableAudit'
-import { findRecastRule } from './deploy'
-import { buildRecastFilter, extractRecastRuleSpecs } from './validate'
+import { buildRuleValue, findRecastRule } from './deploy'
+import { extractRecastRuleSpecs, parseFilterObject } from './validate'
 
 /**
  * Detect drift between the deployed recast rule configuration and the live
- * tenant state. Re-finds each declared rule by its (resource_type, pluginId,
- * action) tuple and diffs the managed fields: the merged filter, the recast
- * target severity (RECAST rules only), and the expiry.
+ * tenant state. Re-finds each declared rule by its rule_name (POST
+ * /v1/recast/rules/search) and diffs the managed fields: description,
+ * rule_value (action/severity/compliance_result/comment/false_positive), the
+ * filter, the expiry, and disabled_details.
  */
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const diffs: DriftDiff[] = []
@@ -21,7 +22,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   const { client } = built
 
   const specs = extractRecastRuleSpecs(ctx.deployedConfig).filter(
-    (s) => s.name && s.resourceType && s.action && s.pluginId,
+    (s) => s.name && s.resourceType && s.action && s.filterJson,
   )
 
   const excludeActorLogins = veltrixActorLogins(ctx.credential)
@@ -30,7 +31,7 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     const before = diffs.length
     const label = spec.name
     try {
-      const live = await findRecastRule(client, spec)
+      const live = await findRecastRule(client, spec.name)
 
       if (!live) {
         diffs.push({ field: label, expected: 'exists', actual: 'missing', severity: 'critical' })
@@ -38,10 +39,46 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         continue
       }
 
-      // The filter decides which findings the rule matches — normalize both
-      // sides so key order / whitespace do not read as drift.
-      const expectedFilter = normalize(buildRecastFilter(spec))
-      const actualFilter = normalize(live.filter)
+      // description — only compared when the canvas manages one.
+      if (spec.description !== undefined) {
+        const liveDescription = live.description ?? ''
+        if (spec.description !== liveDescription) {
+          diffs.push({
+            field: `${label}.description`,
+            expected: spec.description || 'not set',
+            actual: liveDescription || 'not set',
+            severity: 'info',
+          })
+        }
+      }
+
+      // resource_type — this rule's finding-type target.
+      if (spec.resourceType !== (live.resource_type ?? '')) {
+        diffs.push({
+          field: `${label}.resource_type`,
+          expected: spec.resourceType,
+          actual: live.resource_type || 'not set',
+          severity: 'critical',
+        })
+      }
+
+      // rule_value — action + the action-specific field (severity or
+      // compliance_result) + comment/false_positive, normalized as a whole.
+      const expectedRuleValue = normalize(buildRuleValue(spec))
+      const actualRuleValue = normalize(live.rule_value ?? {})
+      if (expectedRuleValue !== actualRuleValue) {
+        diffs.push({
+          field: `${label}.rule_value`,
+          expected: expectedRuleValue || 'not set',
+          actual: actualRuleValue || 'not set',
+          severity: 'warning',
+        })
+      }
+
+      // filter — which findings the rule matches — normalize both sides so key
+      // order / whitespace do not read as drift.
+      const expectedFilter = normalize(parseFilterObject(spec.filterJson) ?? {})
+      const actualFilter = normalize(live.filter ?? {})
       if (expectedFilter !== actualFilter) {
         diffs.push({
           field: `${label}.filter`,
@@ -49,19 +86,6 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           actual: actualFilter || 'not set',
           severity: 'critical',
         })
-      }
-
-      // severity is only meaningful for a RECAST rule (it is the target severity).
-      if (spec.action === 'RECAST') {
-        const liveSeverity = (live.rule_value?.severity ?? '').toLowerCase()
-        if ((spec.severity ?? '') !== liveSeverity) {
-          diffs.push({
-            field: `${label}.severity`,
-            expected: spec.severity ?? 'not set',
-            actual: liveSeverity || 'not set',
-            severity: 'warning',
-          })
-        }
       }
 
       const liveExpires = typeof live.expires_at === 'string' ? live.expires_at : ''
@@ -72,6 +96,19 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
           actual: liveExpires || 'not set',
           severity: 'info',
         })
+      }
+
+      // disabled_details — only compared when the canvas manages it.
+      if (spec.disabled !== undefined) {
+        const liveDisabled = live.disabled_details?.disabled ?? false
+        if (spec.disabled !== liveDisabled) {
+          diffs.push({
+            field: `${label}.disabled`,
+            expected: String(spec.disabled),
+            actual: String(liveDisabled),
+            severity: 'warning',
+          })
+        }
       }
 
       // Attribute every diff this rule produced to the last change (once).
@@ -93,11 +130,11 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   return { hasDrift: diffs.length > 0, diffs }
 }
 
-/** Canonicalize a filter object to a stable comparison string. */
-function normalize(filter: unknown): string {
-  if (filter === null || filter === undefined) return ''
-  if (typeof filter === 'object') return stableStringify(filter)
-  return String(filter)
+/** Canonicalize a value to a stable comparison string. */
+function normalize(value: unknown): string {
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'object') return stableStringify(value)
+  return String(value)
 }
 
 /** Deterministic JSON stringify with recursively sorted object keys. */

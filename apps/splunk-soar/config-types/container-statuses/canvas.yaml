@@ -1,0 +1,52 @@
+# =============================================================================
+# Canvas Template — Splunk SOAR Container Statuses
+#
+# Declares ONE custom container status label (the item) — the "New" / "Open" /
+# "Closed" built-ins are supplied by SOAR itself and not managed here. Field
+# keys must match config-types/container-statuses/_shared.ts. Applied via the
+# Splunk SOAR REST API: GET/POST/DELETE /rest/container_status (443).
+# =============================================================================
+
+id: "splunk-soar-container-statuses"
+name: "Container Statuses"
+toolType: "splunk-soar"
+entityType: "container-statuses"
+description: "Manage custom Splunk SOAR container status labels via the SOAR REST API (/rest/container_status)"
+
+item:
+  label: "Status"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 30
+  groups:
+    - name: "Status"
+      icon: "flag"
+      description: "Name, category and default flag"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 20
+            pattern: "^[A-Za-z0-9_-]+$"
+            message: "Letters, numbers, dash and underscore only, up to 20 characters."
+          helpText: "Status label name shown throughout SOAR. Used as the stable identity for upsert and drift."
+
+        - key: "status_type"
+          label: "Category"
+          fieldType: "select"
+          required: true
+          defaultValue: "open"
+          options:
+            - { label: "New", value: "new" }
+            - { label: "Open", value: "open" }
+            - { label: "Resolved", value: "resolved" }
+          helpText: "Which of the three fixed status categories this label belongs to — SOAR requires at least one active label per category."
+
+        - key: "is_default"
+          label: "Default For Category"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Pre-selected status when a new container enters this category."

@@ -1,0 +1,44 @@
+# =============================================================================
+# Canvas Template — Splunk SOAR Custom Lists
+#
+# Declares ONE custom list (the item) — a named table of rows playbooks can
+# read (allow-lists, block-lists, lookup tables). Field keys must match
+# config-types/custom-lists/_shared.ts. Applied via the Splunk SOAR REST API:
+# GET/POST/POST-<id>/DELETE-<id> /rest/decided_list (443). Every deploy REPLACES
+# the list's full content (not row-by-row append/update).
+# =============================================================================
+
+id: "splunk-soar-custom-lists"
+name: "Custom Lists"
+toolType: "splunk-soar"
+entityType: "custom-lists"
+description: "Manage Splunk SOAR custom lists via the SOAR REST API (/rest/decided_list)"
+
+item:
+  label: "Custom List"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "List"
+      icon: "list"
+      description: "Name and content"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "List name playbooks reference. Used as the stable identity for upsert and drift."
+
+        - key: "content"
+          label: "Content"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            One row per line; comma-separated cells for a multi-column list
+            (wrap a cell in double quotes if it contains a comma). Replaces the
+            list's ENTIRE content on every deploy. At least one row is
+            required — SOAR does not allow a list with zero rows.

@@ -1,0 +1,64 @@
+# =============================================================================
+# Canvas Template — Qualys VM Report Templates
+#
+# Declares ONE report template — the item. UNLIKE every other Qualys config
+# type in this app, Create/Update send the template as a literal XML DOCUMENT
+# body (not form parameters) — the exact same shape Export returns. This app
+# only manages the TITLE section (title, owner); `settings_xml` is every other
+# section (TARGET, DISPLAY, FILTER, SERVICESPORTS, USERACCESS, …) passed
+# through verbatim, normally produced by exporting an existing template through
+# the Qualys UI/API and pasting it in. Field keys must match
+# config-types/qualys-report-templates/validate.ts.
+# =============================================================================
+
+id: "qualys-report-templates"
+name: "Qualys VM Report Templates"
+toolType: "qualys"
+entityType: "qualys-report-templates"
+description: "Define Qualys VM report templates (Scan, Patch, Map) as code through the classic v2 API (/api/2.0/fo/report/template/<type>/). Reconciled by (type, title). PCI Scan Template is not supported — see README Coverage."
+
+item:
+  label: "Report Template"
+  identityField: "title"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Report Template"
+      icon: "file-text"
+      description: "Type, title and settings"
+      fields:
+        - key: "template_type"
+          label: "Template Type"
+          fieldType: "select"
+          required: true
+          options:
+            - { label: "Scan Report Template", value: "scan" }
+            - { label: "Patch Report Template", value: "patch" }
+            - { label: "Map Report Template", value: "map" }
+          helpText: "Each type is a separate Qualys endpoint — titles are only unique within a type."
+
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 64
+          helpText: "The template title (its logical identity for reconciliation, together with Template Type). Max 64 characters."
+
+        - key: "owner"
+          label: "Owner (login)"
+          fieldType: "text"
+          helpText: "Optional Qualys login of the template's owner. Leave blank to use the deploying account."
+
+        - key: "settings_xml"
+          label: "Settings (XML)"
+          fieldType: "textarea"
+          helpText: >
+            Optional XML fragment with every setting besides title/owner, as `<SECTION><INFO
+            key="param">value</INFO>…</SECTION>` blocks (TARGET, DISPLAY, FILTER, SERVICESPORTS,
+            USERACCESS — the exact sections the Report Template Export API returns). The easiest
+            way to author this is to export an existing template
+            (`GET .../api/2.0/fo/report/template/<type>/?action=export&template_id=<id>`) and paste
+            everything between `</TITLE>` and the closing template tag. Leave blank to accept
+            Qualys' defaults for every setting.

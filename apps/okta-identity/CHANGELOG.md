@@ -3,6 +3,44 @@
 All notable changes to the Okta app are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## 1.12.0 — 2026-08-05
+
+### Added
+- **Custom Domains config type.** Verification pass over the app's 33 existing
+  config types against the Okta Management API found one genuine, high-value
+  gap: **Custom Domains** (`/api/v1/domains`) — the org's custom login-URL
+  domain (e.g. `login.acme.com`, what the browser shows during sign-in),
+  distinct from the already-covered Email Domains type (the mail-*sending*
+  domain, a different API). New `custom-domains` config type, grouped under
+  Branding & Notifications alongside Brands / Email Domains / SMS Templates:
+  - **Domain** is immutable (no rename endpoint — delete and recreate to
+    change it), matching this app's established "no upsert" model (list +
+    match by domain, then create or update).
+  - **Certificate source** is `OKTA_MANAGED` (Okta obtains/renews the cert
+    automatically after verification) or `MANUAL` (a PEM certificate + chain +
+    private key you supply). Switching to `MANUAL` has no revert path back to
+    `OKTA_MANAGED` — that is a hard error surfacing delete-and-recreate
+    guidance. `privateKey` is a WRITE-ONLY secret (Okta never returns it, so
+    it is re-sent on every deploy and never drift-checked); `certificate` /
+    `certificateChain` are public PEM material.
+  - **Brand IS rebindable** at any time via Okta's dedicated replace-brand
+    endpoint — unlike Email Domains, a custom domain's brand binding is not
+    immutable, so redeploying with a different Brand rebinds it in place.
+  - New domains are created UNVERIFIED — the operator adds the DNS records
+    Okta returns and verifies out of band; this app never auto-verifies
+    (`POST /domains/{id}/verify`), matching Email Domains' established
+    principle.
+  - Reuses the existing `brands` live-picker source (`config-types/lib/oktaOptions.ts`)
+    for the Brand field — no changes needed to the shared options provider.
+- **README Coverage section.** Documents every managed config type (grouped,
+  matching the sidebar) and every surface this app deliberately does NOT
+  manage as declarative config (Org Settings, Brand Email Template
+  Customizations, System Log, API Tokens, Devices, YubiKey hardware tokens,
+  Realms, Identity Governance, org privacy/support actions, per-user
+  factor/session actions) with a one-line sourced reason for each exclusion —
+  verified against the official `okta/okta-management-openapi-spec` GitHub
+  repository.
+
 ## 1.11.0 — 2026-07-25
 
 ### Added

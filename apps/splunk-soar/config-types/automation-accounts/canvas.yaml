@@ -1,0 +1,91 @@
+# =============================================================================
+# Canvas Template — Splunk SOAR Automation Accounts
+#
+# Declares ONE automation (service) account (the item) — scoped to
+# `type: "automation"` only. Human accounts (normal/LDAP/OpenID/SAML2) require
+# a password field this app never touches and are intentionally out of scope
+# (see README Coverage). Field keys must match
+# config-types/automation-accounts/_shared.ts. Applied via the Splunk SOAR REST
+# API: GET/POST/DELETE /rest/ph_user (443).
+# =============================================================================
+
+id: "splunk-soar-automation-accounts"
+name: "Automation Accounts"
+toolType: "splunk-soar"
+entityType: "automation-accounts"
+description: "Manage Splunk SOAR automation (service) accounts via the SOAR REST API (/rest/ph_user) — never manages passwords"
+
+item:
+  label: "Automation Account"
+  identityField: "username"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "user"
+      description: "Account identity and assigned roles"
+      fields:
+        - key: "username"
+          label: "Username"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Login name for this automation account. Used as the stable identity for upsert and drift."
+
+        - key: "roles"
+          label: "Roles"
+          fieldType: "tags"
+          required: false
+          helpText: "Role names or ids granted to this account, e.g. Automation."
+
+        - key: "email"
+          label: "Email"
+          fieldType: "text"
+          required: false
+          helpText: "Optional — used for notifications; defaults to the username if left blank and the username looks like an email."
+
+    - name: "Access Scope"
+      icon: "shield"
+      description: "Where and how this account may be used"
+      fields:
+        - key: "allowed_ips"
+          label: "Allowed IPs / CIDRs"
+          fieldType: "tags"
+          required: false
+          helpText: "CIDR masks this account's API token may be used from, e.g. 10.10.0.0/16. Leave blank to allow any source."
+
+        - key: "default_label"
+          label: "Default Container Label"
+          fieldType: "text"
+          required: false
+          helpText: "Container label applied by default to data this account ingests."
+
+        - key: "default_tenant_id"
+          label: "Default Tenant ID"
+          fieldType: "number"
+          required: false
+          helpText: "Numeric tenant id this account operates under by default (multi-tenant instances only)."
+
+    - name: "Details"
+      icon: "info"
+      description: "Optional profile metadata"
+      fields:
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: false
+          helpText: "Job title shown on the account's profile."
+
+        - key: "location"
+          label: "Location"
+          fieldType: "text"
+          required: false
+          helpText: "Office or location shown on the account's profile."
+
+        - key: "time_zone"
+          label: "Time Zone"
+          fieldType: "text"
+          required: false
+          helpText: "TZ database name, e.g. America/Chicago. Leave blank for the instance default."

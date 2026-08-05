@@ -1,14 +1,15 @@
 id: sentinelone
 name: SentinelOne
-version: "1.1.0"
+version: "1.2.0"
 vendor: Veltrix
 description: >
   Manage SentinelOne endpoint security configuration as code through the
   SentinelOne Management API (v2.1). Covers exclusions, blocklist and allowlist
-  hashes, STAR custom detection rules, the per-scope agent policy, and agent
-  groups — with validation, drift detection and rollback handled by the
-  Security-as-Code pipeline. Objects are scoped across the Account/Site/Group
-  hierarchy via the Scope + Scope ID settings.
+  hashes, STAR custom detection rules, the per-scope agent policy, agent
+  groups, Firewall Control and Device Control rules, notification recipients,
+  and RBAC custom roles — with validation, drift detection and rollback
+  handled by the Security-as-Code pipeline. Objects are scoped across the
+  Account/Site/Group hierarchy via the Scope + Scope ID settings.
 category: EDR
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/sentinelone
@@ -48,10 +49,23 @@ permissions:
     - resource: s1-groups
       actions: [read, write, delete]
       description: Manage SentinelOne groups
+    - resource: s1-firewall-rules
+      actions: [read, write, delete]
+      description: Manage SentinelOne Firewall Control rules
+    - resource: s1-device-control
+      actions: [read, write, delete]
+      description: Manage SentinelOne Device Control (USB/Bluetooth) rules
+    - resource: s1-notification-recipients
+      actions: [read, write, delete]
+      description: Manage SentinelOne notification recipients
+    - resource: s1-rbac-roles
+      actions: [read, write, delete]
+      description: Manage SentinelOne RBAC custom roles
 
 pipeline:
   configurationTypes:
     - id: s1-exclusions
+      group: "Exclusions & Restrictions"
       name: SentinelOne Exclusions
       description: Exclusions (path / file_type / white_hash / certificate / browser) via /exclusions; natural-key upsert, scope-filtered
       canvasTemplate: config-types/s1-exclusions/canvas.yaml
@@ -69,6 +83,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: s1-blocklist-hashes
+      group: "Exclusions & Restrictions"
       name: SentinelOne Blocklist Hashes
       description: Blocklist file hashes (black_hash) via /restrictions; keyed by hash + scope, add/remove
       canvasTemplate: config-types/s1-blocklist-hashes/canvas.yaml
@@ -86,6 +101,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: s1-hash-allowlist
+      group: "Exclusions & Restrictions"
       name: SentinelOne Hash Allowlist
       description: Allowlisted file hashes (white_hash) via /restrictions; keyed by hash + scope, add/remove
       canvasTemplate: config-types/s1-hash-allowlist/canvas.yaml
@@ -103,6 +119,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: s1-star-rules
+      group: "Detection Rules"
       name: SentinelOne STAR Rules
       description: STAR custom detection rules (S1QL 2.0) via /cloud-detection/rules; created as Draft then enabled
       canvasTemplate: config-types/s1-star-rules/canvas.yaml
@@ -120,6 +137,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: s1-agent-policy
+      group: "Agent Policy"
       name: SentinelOne Agent Policy
       description: The per-scope agent policy (account/site/group) via /{scope}/{id}/policy; read-merge-PUT with revert-to-inherit
       canvasTemplate: config-types/s1-agent-policy/canvas.yaml
@@ -137,6 +155,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: s1-groups
+      group: "Organization"
       name: SentinelOne Groups
       description: Static / dynamic agent groups via /groups; name-keyed within a site
       canvasTemplate: config-types/s1-groups/canvas.yaml
@@ -148,6 +167,78 @@ pipeline:
         healthCheck: config-types/s1-groups/healthCheck
         driftDetect: config-types/s1-groups/driftDetect
         getStatus: config-types/s1-groups/getStatus
+      targets:
+        componentTypes: [sentinelone-console]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: s1-firewall-rules
+      group: "Firewall Control"
+      name: SentinelOne Firewall Control
+      description: Firewall Control rules (Control SKU) via /firewall-control; natural-key (name) upsert, scope-filtered
+      canvasTemplate: config-types/s1-firewall-rules/canvas.yaml
+      defaultConfig: config-types/s1-firewall-rules/defaults.yaml
+      handlers:
+        validate: config-types/s1-firewall-rules/validate
+        deploy: config-types/s1-firewall-rules/deploy
+        rollback: config-types/s1-firewall-rules/rollback
+        healthCheck: config-types/s1-firewall-rules/healthCheck
+        driftDetect: config-types/s1-firewall-rules/driftDetect
+        getStatus: config-types/s1-firewall-rules/getStatus
+      targets:
+        componentTypes: [sentinelone-console]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: s1-device-control
+      group: "Device Control"
+      name: SentinelOne Device Control
+      description: USB / Bluetooth Device Control rules via /device-control; natural-key (rule name) upsert, scope-filtered
+      canvasTemplate: config-types/s1-device-control/canvas.yaml
+      defaultConfig: config-types/s1-device-control/defaults.yaml
+      handlers:
+        validate: config-types/s1-device-control/validate
+        deploy: config-types/s1-device-control/deploy
+        rollback: config-types/s1-device-control/rollback
+        healthCheck: config-types/s1-device-control/healthCheck
+        driftDetect: config-types/s1-device-control/driftDetect
+        getStatus: config-types/s1-device-control/getStatus
+      targets:
+        componentTypes: [sentinelone-console]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: s1-notification-recipients
+      group: "Notifications"
+      name: SentinelOne Notification Recipients
+      description: Alert notification email/SMS recipients via /settings/recipients; natural-key (email) upsert, account/site/global scope only
+      canvasTemplate: config-types/s1-notification-recipients/canvas.yaml
+      defaultConfig: config-types/s1-notification-recipients/defaults.yaml
+      handlers:
+        validate: config-types/s1-notification-recipients/validate
+        deploy: config-types/s1-notification-recipients/deploy
+        rollback: config-types/s1-notification-recipients/rollback
+        healthCheck: config-types/s1-notification-recipients/healthCheck
+        driftDetect: config-types/s1-notification-recipients/driftDetect
+        getStatus: config-types/s1-notification-recipients/getStatus
+      targets:
+        componentTypes: [sentinelone-console]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: s1-rbac-roles
+      group: "Access Control"
+      name: SentinelOne RBAC Roles
+      description: Custom RBAC roles via /rbac/roles; natural-key (name) upsert, permissions merged read-modify-write against the live template/role
+      canvasTemplate: config-types/s1-rbac-roles/canvas.yaml
+      defaultConfig: config-types/s1-rbac-roles/defaults.yaml
+      handlers:
+        validate: config-types/s1-rbac-roles/validate
+        deploy: config-types/s1-rbac-roles/deploy
+        rollback: config-types/s1-rbac-roles/rollback
+        healthCheck: config-types/s1-rbac-roles/healthCheck
+        driftDetect: config-types/s1-rbac-roles/driftDetect
+        getStatus: config-types/s1-rbac-roles/getStatus
       targets:
         componentTypes: [sentinelone-console]
         requiresCredential: true

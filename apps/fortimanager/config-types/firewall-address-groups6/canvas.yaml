@@ -1,0 +1,53 @@
+# =============================================================================
+# Canvas Template — FortiManager Firewall IPv6 Address Groups
+#
+# Declares ONE IPv6 address group — the item. Users add as many as they need.
+# A group's identity is its NAME (the FortiManager mkey); deploy lists the ADOM
+# addrgrp6 table, matches on the name, and uses `set` (create-or-replace) to
+# upsert each declared group. Members reference existing firewall IPv6 address
+# object names (compose with the Firewall IPv6 Addresses configuration type —
+# addrgrp6 members must be address6 / addrgrp6 objects, not IPv4 addresses).
+# Reconcile deletes groups this app created but no longer declares.
+#
+# Field keys must match config-types/firewall-address-groups6/validate.ts.
+# =============================================================================
+
+id: "fortimanager-firewall-address-groups6"
+name: "Firewall IPv6 Address Group Configuration"
+toolType: "fortimanager"
+entityType: "firewall-address-groups6"
+description: "Define FortiManager firewall IPv6 address groups (a named set of member address6 objects) as code through the FortiManager JSON-RPC API."
+
+item:
+  label: "Firewall IPv6 Address Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Address Group"
+      icon: "folder"
+      description: "Group name and member IPv6 addresses"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 79
+          helpText: "The IPv6 address group name — its identity (mkey) in FortiManager. Unique within this canvas."
+
+        - key: "members"
+          label: "Member IPv6 Addresses (one per line)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            The member address6 object names, one per line. Each must be an
+            existing firewall IPv6 address (see the Firewall IPv6 Addresses
+            configuration type). At least one is required.
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "text"
+          required: false
+          helpText: "Optional description stored on the address group."

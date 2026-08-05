@@ -1,11 +1,11 @@
 id: fortimanager
 name: FortiManager
-version: "0.5.0"
+version: "0.6.0"
 vendor: Veltrix
 description: >
   Manage Fortinet FortiManager configuration as code through the FortiManager
   JSON-RPC API — firewall address objects (IPv4 and IPv6), wildcard FQDNs, custom
-  services, address / service / schedule groups, IP pools (v4 and v6), virtual IPs
+  services, address / IPv6 address / service / schedule groups, IP pools (v4 and v6), virtual IPs
   and VIP groups, multicast and explicit-proxy addresses, traffic shapers and
   shaping profiles, custom Internet Services, security profiles (application
   control, IPS, antivirus, web / DNS filtering, SSL/SSH inspection) and user
@@ -55,6 +55,9 @@ permissions:
     - resource: firewall-addresses6
       actions: [read, write, delete]
       description: Manage FortiManager firewall IPv6 address objects (ipprefix / iprange / fqdn) in the ADOM object database
+    - resource: firewall-address-groups6
+      actions: [read, write, delete]
+      description: Manage FortiManager firewall IPv6 address groups (named sets of member address6 objects) in the ADOM object database
     - resource: firewall-wildcard-fqdns
       actions: [read, write, delete]
       description: Manage FortiManager wildcard-FQDN address objects (e.g. *.example.com) in the ADOM object database
@@ -207,6 +210,23 @@ pipeline:
         healthCheck: config-types/firewall-addresses6/healthCheck
         driftDetect: config-types/firewall-addresses6/driftDetect
         getStatus: config-types/firewall-addresses6/getStatus
+      targets:
+        componentTypes: [fortimanager]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: firewall-address-groups6
+      name: Firewall IPv6 Address Groups
+      description: IPv6 address groups — a named set of member address6 objects (name-keyed, upserted per ADOM)
+      canvasTemplate: config-types/firewall-address-groups6/canvas.yaml
+      defaultConfig: config-types/firewall-address-groups6/defaults.yaml
+      handlers:
+        validate: config-types/firewall-address-groups6/validate
+        deploy: config-types/firewall-address-groups6/deploy
+        rollback: config-types/firewall-address-groups6/rollback
+        healthCheck: config-types/firewall-address-groups6/healthCheck
+        driftDetect: config-types/firewall-address-groups6/driftDetect
+        getStatus: config-types/firewall-address-groups6/getStatus
       targets:
         componentTypes: [fortimanager]
         requiresCredential: true

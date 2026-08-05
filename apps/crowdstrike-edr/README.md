@@ -1,16 +1,25 @@
 # CrowdStrike Falcon (Veltrix App)
 
 Manage CrowdStrike Falcon configuration as code through the **Falcon APIs**.
-This app treats your host groups, prevention policies, and custom IOCs as
-versioned configuration flowing through the Veltrix pipeline: validate →
-deploy → health check → drift detect → rollback.
+This app treats Falcon's full configuration surface — endpoint policies,
+exclusions, FileVantage, Cloud Security, Next-Gen SIEM, firewall, RTR assets,
+IT Automation, Recon, Identity Protection, Platform Administration and MSSP /
+Flight Control — as versioned configuration flowing through the Veltrix
+pipeline: validate → deploy → health check → drift detect → rollback. See
+**Coverage** below for the complete, audited list of all 44 configuration
+types and the surfaces intentionally left unmanaged.
 
 Falcon is administered through its public per-region API — no tunnels or
 connectivity providers are required. Authentication is OAuth2
 client-credentials (bearer tokens with a ~30-minute lifespan, renewed
 automatically by the app's shared client).
 
-## Configuration types
+## Configuration types (foundational three)
+
+The three types this app shipped with — documented in full below with their
+field-level canvas model. The remaining 41 types (added across five later
+build phases) are listed with their endpoints in **Coverage**; their
+per-field canvas schemas live in each type's `canvas.yaml`.
 
 | Type | What it manages | Falcon endpoints |
 |------|-----------------|------------------|
@@ -151,22 +160,137 @@ automate from a partial view. Order policies in the Falcon console.
   indicator to remove an expiration). Host group and policy descriptions
   ARE fully converged — blanking one on the canvas clears it live.
 - Detection/alert ingestion is out of scope for configuration management;
-  see Future work.
+  see Coverage's "Intentionally excluded surfaces" below.
 
-## Future work
+## Coverage (v1.13.2)
 
-Natural next configuration types, all API-manageable with the same client:
+Re-verified against the current CrowdStrike Falcon API surface —
+[developer.crowdstrike.com](https://developer.crowdstrike.com/api-reference/operations-by-collection/)'s
+operations-by-collection index, the [FalconPy SDK](https://github.com/CrowdStrike/falconpy)
+endpoint definitions, and the [official Terraform provider](https://github.com/CrowdStrike/terraform-provider-crowdstrike)
+(fetched 2026-08-05) — to confirm this app's declarative write coverage,
+built across five phases (v1.7.0 → v1.13.1), is complete. This pass added
+**no new configuration type**: every genuinely declarative, round-trippable
+write surface Falcon exposes is already managed. One candidate surface
+(Falcon Fusion SOAR Workflows) was investigated and is documented below as
+intentionally excluded, with the specific API limitation that rules it out.
 
-- **Sensor update policies** (`/policy/entities/sensor-update/v2`) — sensor
-  version pinning and uninstall protection
-- **Exclusions** — ML exclusions (`/policy/entities/ml-exclusions/v1`),
-  sensor-visibility and IOA exclusions
-- **Response policies** (`/policy/entities/response/v1`)
-- **Alert polling / Case Management integration** — the Alerts API
-  (`/alerts/queries/alerts/v2`, filter `product:'epp'`) replaced the Detects
-  API (decommissioned Sept 2025); Case Management (`/cases/`, `/casemgmt/`)
-  replaced the Incidents API (decommissioned March 2026). Any future
-  detection-ingest feature must build on these, not the legacy surfaces.
+### Managed declarative configuration (44 types, 14 sidebar groups)
+
+| Sidebar group | Configuration type | Falcon API collection |
+| --- | --- | --- |
+| Host & Assets | Host Group | `/devices/{combined,entities}/host-groups/v1` |
+| Endpoint Policies | Prevention Policy | `/policy/{combined,entities}/prevention/v1`, `/policy/entities/prevention-actions/v1` |
+| Endpoint Policies | Sensor Update Policy | `/policy/{combined/sensor-update/v1,entities/sensor-update/v2}`, `/policy/entities/sensor-update-actions/v2` |
+| Endpoint Policies | Response (RTR) Policy | `/policy/{combined,entities}/response/v1`, `/policy/entities/response-actions/v1` |
+| Endpoint Policies | USB Device Control Policy | `/policy/{combined/device-control/v1,entities/device-control/v2}`, `/policy/entities/device-control-actions/v1` |
+| Endpoint Policies | Content Update Policy | `/policy/{combined,entities}/content-update/v1`, `/policy/entities/content-update-actions/v1` |
+| Endpoint Policies | Custom IOA Rule Group | `/ioarules/{combined,entities,queries}/rule-groups/v1`, `/ioarules/entities/rules/v1` |
+| Indicators | Custom IOC | `/iocs/{queries,entities}/indicators/v1` |
+| Exclusions | ML Exclusion | `/policy/{entities,queries}/ml-exclusions/v1` |
+| Exclusions | IOA Exclusion | `/policy/{entities,queries}/ioa-exclusions/v1` |
+| Exclusions | Sensor Visibility Exclusion | `/policy/{entities,queries}/sv-exclusions/v1` |
+| File Integrity Monitoring | FileVantage Policy | `/filevantage/{entities,queries}/policies/v1`, `policies-host-groups`/`policies-rule-groups` |
+| File Integrity Monitoring | FileVantage Rule Group | `/filevantage/{entities,queries}/rule-groups/v1`, `rule-groups-rules` |
+| File Integrity Monitoring | FileVantage Scheduled Exclusion | `/filevantage/{entities,queries}/policy-scheduled-exclusions/v1` |
+| Cloud Security | Custom Configuration (IOM) Rule | `/cloud-policies/{entities,queries}/rules/v1` |
+| Cloud Security | Suppression Rule | `/cloud-policies/{entities,queries}/suppression-rules/v1` |
+| Cloud Security | Rule Override | `/cloud-policies/{entities,queries}/rule-overrides/v1` |
+| Cloud Security | Compliance Framework | `/cloud-policies/{entities,queries}/compliance/frameworks/v1` |
+| Cloud Security | Compliance Control | `/cloud-policies/{entities,queries}/compliance/controls/v1`, `control-rule-assignments` |
+| Cloud Security | Cloud Group | `/cloud-security/{entities,queries}/cloud-groups/v1` |
+| Cloud Security | Account Registration (AWS/Azure/GCP) | `/cloud-connect-cspm-{aws,azure,gcp}/entities/account/v1` |
+| Cloud Security | Image Assessment Policy | `/container-security/entities/image-assessment-policies/v1` |
+| Cloud Security | Registry Connection | `/container-security/{entities,queries}/registries/v1` |
+| Cloud Security | Kubernetes Admission (KAC) Policy | `/admission-control-policies/{entities,queries}/policies/v1` |
+| Next-Gen SIEM | Correlation Rule | `/correlation-rules/{entities,queries}/rules/v1`, `rule-versions/publish/v1` |
+| Next-Gen SIEM | Parser | `/ngsiem-content/{entities,queries}/parsers/v1` |
+| Next-Gen SIEM | Saved Query | `/ngsiem-content/{entities,queries}/savedqueries/v1` (+ `savedqueries-template`, see note) |
+| Next-Gen SIEM | Dashboard | `/ngsiem-content/{entities,queries}/dashboards/v1` (+ `dashboards-template`, see note) |
+| Next-Gen SIEM | Lookup File | `/ngsiem-content/{entities/bulk-lookupfiles,entities/lookupfiles,queries/lookupfiles}/v1` |
+| Next-Gen SIEM | Data Connection | `/ngsiem/{combined,entities}/connections/v1`, `connections/status/v1` |
+| Firewall | Firewall Rule Group | `/fwmgr/{entities,queries}/rule-groups/v1` |
+| Firewall | Firewall Policy | `/fwmgr/entities/policies/{v1,v2}` |
+| Response & RTR | RTR Custom Script | `/real-time-response/{entities,queries}/scripts/v1` (multipart create/update) |
+| Response & RTR | RTR Put-File | `/real-time-response/{entities,queries}/put-files/v1` (multipart create) |
+| IT Automation | IT Automation Policy | `/it-automation/{entities,queries}/policies/v1`, `policies-host-groups` |
+| IT Automation | IT Automation Task | `/it-automation/{entities,queries}/tasks/v1` |
+| IT Automation | IT Automation Scheduled Task | `/it-automation/{entities,queries}/scheduled-tasks/v1` |
+| Counter Adversary Ops | Recon Monitoring Rule | `/recon/{entities,queries}/rules/v1`, `/recon/{entities,queries}/actions/v1` |
+| Platform Administration | Installation Token | `/installation-tokens/{entities,queries}/tokens/v1` |
+| Platform Administration | User | `/user-management/entities/users/v1`, `/user-management/combined/user-roles/v2`, `user-role-actions/v1` |
+| Identity Protection | IDP Policy Rule | `/identity-protection/{entities,queries}/policy-rules/v1` |
+| MSSP / Flight Control | CID Group | `/mssp/{entities/cid-groups/v1,entities/cid-groups/v2,queries/cid-groups/v1}`, `cid-group-members` |
+| MSSP / Flight Control | User Group | `/mssp/{entities/user-groups/v1,entities/user-groups/v2,queries/user-groups/v1}`, `user-group-members` |
+| MSSP / Flight Control | Role Mapping | `/mssp/{entities,queries}/mssp-roles/v1` |
+
+**Note — NG-SIEM Saved Queries / Dashboards:** create/update ride a
+multipart `application/x-yaml` `yaml_template` upload (a `savedqueries-template`
+/ `dashboards-template` form field), not a JSON body. `FalconClient.requestMultipart`
+supports the transport since v1.12.1, but the exact template schema and the
+`search_domain` value are still unconfirmed against a live tenant (flagged
+in-code) — read, drift, health check, and rollback are unaffected.
+
+### Intentionally excluded surfaces
+
+- **Falcon Fusion SOAR Workflows** (`/workflows/entities/definitions/{import,v1}`,
+  `export/v1`) — investigated as the one plausible remaining gap: CrowdStrike
+  does expose `search_definitions`/`export_definition`/`import_definition`/
+  `update_definition`. But `WorkflowDefinitionsImport` (the create path) is a
+  multipart `application/x-yaml` upload of Fusion's internal
+  trigger/condition/action DSL — a definition must be produced by the visual
+  workflow builder or `export_definition`'d from an existing workflow first;
+  CrowdStrike documents no schema for hand-authoring one from scratch. This is
+  the same class of blocker already flagged unresolved for this app's own
+  `ngsiem-saved-queries`/`ngsiem-dashboards` `yaml_template` uploads (see note
+  above) — deferred for the same reason, pending a live-tenant-confirmed schema.
+  ([Workflows collection](https://developer.crowdstrike.com/api-reference/collections/workflows/),
+  [FalconPy `import_definition`](https://github.com/CrowdStrike/falconpy/blob/main/src/falconpy/workflows.py))
+- **Real Time Response session commands ("one-shot" actions).** RTR session
+  init + `active-responder-command` / `admin-command` execution (run, get,
+  put, cp, mv, rm, netstat, ps, kill — single-host or batch) act on a live
+  host session; they are imperative commands, not a durable resource to
+  converge. (Distinct from the reusable RTR *assets* this app does manage —
+  Custom Scripts and Put-Files.)
+  ([Real Time Response](https://developer.crowdstrike.com/api-reference/collections/real-time-response/),
+  [Real Time Response Admin](https://developer.crowdstrike.com/api-reference/collections/real-time-response-admin/))
+- **Host/device actions** (contain, lift containment, hide/unhide, tag) target
+  specific live device IDs via a fleet-scale action endpoint, not a named
+  resource this app's canvas model owns — the same boundary this catalog's
+  `cisco-meraki` app draws around device-scale operations.
+- **Detections / Incidents / Alerts / Case Management.** The legacy Detects
+  API was decommissioned Sept 2025 (replaced by the Alerts API,
+  `/alerts/queries/alerts/v2`) and the legacy Incidents API was decommissioned
+  March 2026 (replaced by Case Management, `/cases/`, `/casemgmt/`). Both
+  successors are triage/workflow state (assign, resolve, comment) — not
+  durable declarative posture — so neither is a configuration-management
+  target for this app.
+- **Falcon Discover** (asset, application, and SaaS-application inventory) and
+  **Falcon Spotlight** (vulnerability management) are query-only surfaces —
+  CrowdStrike documents no create/update operation for either; they exist to
+  be read, not converged.
+- **Zero Trust Assessment** (`/zero-trust-assessment/entities/assessments/v1`)
+  is a read-only per-host scoring surface with no configuration to write.
+- **Sensor Download** (`/sensors/entities/download-installer/*`) downloads a
+  signed installer binary by SHA-256/CCID — an artifact fetch, not
+  configuration.
+- **API Clients & Keys (OAuth2 client self-management).** Creating or rotating
+  the very API client this app authenticates with is Falcon-console-only
+  (**Support and resources → API Clients and Keys**, Falcon Administrator
+  role) — CrowdStrike documents no public API operation for one OAuth2 client
+  to provision another, a deliberate bootstrap-security boundary.
+- **Policy precedence** (prevention, sensor update, response, device control)
+  is not managed for any policy family: the precedence-set endpoint requires
+  submitting the full ordered list of every non-default policy on the
+  platform, which is unsafe to converge from a partial canvas view — order
+  policies in the Falcon console (see Limitations above for prevention
+  policies specifically).
+- **Secret material is never round-tripped.** Where a managed type carries a
+  secret (NG-SIEM Data Connection ingest credentials, FileVantage/RTR script
+  contents once written, installation-token values), the value is accepted on
+  write but never read back, diffed for drift, or restored on rollback —
+  consistent with how every credential-bearing type in this app already
+  documents itself.
 
 ## Research sources
 
@@ -178,6 +302,10 @@ Natural next configuration types, all API-manageable with the same client:
 - [FalconPy SDK](https://github.com/CrowdStrike/falconpy) (endpoint definitions and samples)
 - [Official CrowdStrike Terraform provider](https://github.com/CrowdStrike/terraform-provider-crowdstrike) (prevention policy settings model, lifecycle ordering)
 - [falcon-mcp](https://github.com/CrowdStrike/falcon-mcp) (FQL filter guides per collection)
+- [Operations by Collection index](https://developer.crowdstrike.com/api-reference/operations-by-collection/) (2026-08-05 full-surface coverage audit)
+- [Workflows API collection](https://developer.crowdstrike.com/api-reference/collections/workflows/) and [FalconPy `workflows.py`](https://github.com/CrowdStrike/falconpy/blob/main/src/falconpy/workflows.py) (Fusion SOAR — investigated, excluded, see Coverage)
+- [Real Time Response](https://developer.crowdstrike.com/api-reference/collections/real-time-response/) / [Real Time Response Admin](https://developer.crowdstrike.com/api-reference/collections/real-time-response-admin/) collections
+- [Sensor Download](https://developer.crowdstrike.com/api-reference/collections/sensor-download/) and Zero Trust Assessment collections (read-only, excluded)
 
 ## License
 

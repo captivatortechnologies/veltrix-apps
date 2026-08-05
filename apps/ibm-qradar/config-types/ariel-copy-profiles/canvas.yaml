@@ -1,0 +1,107 @@
+# =============================================================================
+# Canvas Template — IBM QRadar Disaster Recovery Ariel Copy Profile
+#
+# Declares ONE Ariel Copy Profile — the item. Users add as many as they need.
+# An Ariel Copy Profile configures continuous replication of Ariel (event/flow)
+# data from one managed host to a disaster-recovery destination. QRadar allows
+# at most ONE profile per host — host_id is the API's real identity, so the
+# "Name" field below is a canvas-only label; deploy matches live profiles on
+# hostId. Excluded retention buckets are declared by NAME and resolved to their
+# ids at deploy time (event and flow retention buckets are managed by QRadar
+# itself — this app only reads their names/ids to reference them here).
+#
+# Field keys must match config-types/ariel-copy-profiles/validate.ts.
+# =============================================================================
+
+id: "ibm-qradar-ariel-copy-profiles"
+name: "Disaster Recovery Ariel Copy Profile Configuration"
+toolType: "ibm-qradar"
+entityType: "ariel-copy-profiles"
+group: "Disaster Recovery"
+description: "Define IBM QRadar disaster-recovery Ariel Copy Profiles (continuous event/flow replication from a managed host to a DR destination) as code through the QRadar disaster_recovery API."
+
+item:
+  label: "Ariel Copy Profile"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Source & Destination"
+      icon: "server"
+      description: "The managed host and where its Ariel data is sent"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "A canvas-only display name for this profile. Not sent to QRadar — the real identity is the Host ID (QRadar allows one profile per host)."
+
+        - key: "hostId"
+          label: "Host ID"
+          fieldType: "number"
+          required: true
+          helpText: "The managed host's numeric id (see /config/deployment/hosts in the QRadar console). One Ariel Copy Profile per host."
+
+        - key: "destinationHostIp"
+          label: "Destination Host IP"
+          fieldType: "text"
+          required: true
+          helpText: "The IP address of the disaster-recovery host that receives the Ariel data."
+
+        - key: "destinationPort"
+          label: "Destination Port"
+          fieldType: "number"
+          required: false
+          helpText: "The port on the destination host. Optional."
+
+    - name: "Schedule & Limits"
+      icon: "clock"
+      description: "When the copy runs and how fast"
+      fields:
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether Ariel Copy is active on this host. QRadar defaults this to false."
+
+        - key: "frequency"
+          label: "Frequency (ms)"
+          fieldType: "number"
+          required: false
+          helpText: "How often, in milliseconds, Ariel Copy runs."
+
+        - key: "bandwidthLimit"
+          label: "Bandwidth Limit (bytes/sec)"
+          fieldType: "number"
+          required: false
+          helpText: "Caps the copy's bandwidth usage in bytes per second."
+
+        - key: "startDate"
+          label: "Start Date (epoch ms)"
+          fieldType: "number"
+          required: false
+          helpText: "The date to start copying Ariel data from, as epoch milliseconds."
+
+        - key: "endDate"
+          label: "End Date (epoch ms)"
+          fieldType: "number"
+          required: false
+          helpText: "The date to copy Ariel data up until, as epoch milliseconds. Must not be before Start Date."
+
+    - name: "Exclusions"
+      icon: "filter"
+      description: "Retention buckets to exclude from the copy (by name)"
+      fields:
+        - key: "excludeEventRetentionBucketNames"
+          label: "Exclude Event Retention Buckets"
+          fieldType: "textarea"
+          required: false
+          helpText: "One event retention bucket name per line. Events in these buckets are not copied. Resolved to ids at deploy time."
+
+        - key: "excludeFlowRetentionBucketNames"
+          label: "Exclude Flow Retention Buckets"
+          fieldType: "textarea"
+          required: false
+          helpText: "One flow retention bucket name per line. Flows in these buckets are not copied. Resolved to ids at deploy time."

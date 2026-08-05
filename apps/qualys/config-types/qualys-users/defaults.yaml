@@ -1,0 +1,6 @@
+# Defaults for a new user item.
+#
+# Intentionally near-empty: a new item starts blank apart from the two fields
+# whose default matches the canvas (business_unit, country, send_email) — see
+# config-types/qualys-users/canvas.yaml. Any values here are a flat map keyed
+# by the canvas field keys.

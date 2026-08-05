@@ -1,0 +1,104 @@
+# =============================================================================
+# Canvas Template — SentinelOne Device Control
+#
+# Declares ONE Device Control rule — the item. Users add as many as they need.
+# Rules are a scope-filtered collection (/device-control, USB and Bluetooth
+# peripheral control); SentinelOne assigns a server id, so identity for
+# reconciliation is the rule name at the configured scope. Field keys must
+# match config-types/s1-device-control/validate.ts.
+# =============================================================================
+
+id: "sentinelone-s1-device-control"
+name: "SentinelOne Device Control Configuration"
+toolType: "sentinelone"
+entityType: "s1-device-control"
+description: "Define SentinelOne Device Control (USB / Bluetooth) rules as code through the Management API (/device-control). Reconciled by rule name at the configured scope."
+
+item:
+  label: "Device Rule"
+  identityField: "rule_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Rule"
+      icon: "usb"
+      description: "Name and enforcement behaviour"
+      fields:
+        - key: "rule_name"
+          label: "Rule Name"
+          fieldType: "text"
+          required: true
+          helpText: "The rule name — its logical identity at the configured scope."
+
+        - key: "interface"
+          label: "Interface"
+          fieldType: "select"
+          required: true
+          defaultValue: "USB"
+          options:
+            - { label: "USB", value: "USB" }
+            - { label: "Bluetooth", value: "Bluetooth" }
+          helpText: "The peripheral interface this rule matches."
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "Block"
+          options:
+            - { label: "Allow", value: "Allow" }
+            - { label: "Block", value: "Block" }
+          helpText: "Whether matching devices are allowed or blocked."
+
+        - key: "access_permission"
+          label: "Access Permission"
+          fieldType: "select"
+          defaultValue: "Not-Applicable"
+          options:
+            - { label: "Not applicable", value: "Not-Applicable" }
+            - { label: "Read-only", value: "Read-Only" }
+            - { label: "Read-write", value: "Read-Write" }
+          helpText: "For an Allow rule, the level of access granted (e.g. read-only mass storage)."
+
+        - key: "status"
+          label: "Status"
+          fieldType: "select"
+          defaultValue: "Enabled"
+          options:
+            - { label: "Enabled", value: "Enabled" }
+            - { label: "Disabled", value: "Disabled" }
+          helpText: "Whether the rule is active."
+
+    - name: "Device Match (USB)"
+      icon: "hard-drive"
+      description: "USB-only identifiers — leave blank to match on interface alone"
+      fields:
+        - key: "device_class"
+          label: "Device Class"
+          fieldType: "text"
+          helpText: "Optional USB device class hex code, e.g. 08h for mass storage."
+
+        - key: "vendor_id"
+          label: "Vendor ID"
+          fieldType: "text"
+          helpText: "Optional USB vendor id (VID) to match."
+
+        - key: "product_id"
+          label: "Product ID"
+          fieldType: "text"
+          helpText: "Optional USB product id (PID) to match."
+
+        - key: "serial_id"
+          label: "Serial ID"
+          fieldType: "text"
+          helpText: "Optional device serial number to match a specific unit."
+
+    - name: "Device Match (Bluetooth)"
+      icon: "bluetooth"
+      description: "Bluetooth-only identifier — leave blank to match on interface alone"
+      fields:
+        - key: "bluetooth_address"
+          label: "Bluetooth Address"
+          fieldType: "text"
+          helpText: "Optional Bluetooth MAC address to match a specific device."

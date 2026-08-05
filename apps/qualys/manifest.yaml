@@ -1,15 +1,18 @@
 id: qualys
 name: Qualys
-version: "1.2.0"
+version: "1.3.0"
 vendor: Veltrix
 description: >
   Manage Qualys VMDR configuration as code. Covers asset groups, static and
-  dynamic search lists (QID sets), scheduled VM scans, VM option profiles and
-  asset tags / tag rules — with validation, drift detection and rollback handled
-  by the Security-as-Code pipeline. Uses the classic v2 API (HTTP Basic + the
-  required X-Requested-With header) and, for asset tags, the Asset Management &
-  Tagging QPS REST API (JSON). The component hostname is your Qualys platform API
-  server (Help > About).
+  dynamic search lists (QID sets), scheduled VM scans, VM option profiles,
+  asset tags / tag rules, authentication records for trusted scanning, custom
+  networks, user accounts and VM report templates — with validation, drift
+  detection and rollback handled by the Security-as-Code pipeline. Uses the
+  classic v2 API (HTTP Basic + the required X-Requested-With header), the
+  Asset Management & Tagging QPS REST API (JSON, for asset tags), the
+  `/msp/user*.php` user-administration API, and the Report Template API's
+  literal-XML-document write endpoints. The component hostname is your Qualys
+  platform API server (Help > About).
 category: COMPLIANCE
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/qualys
@@ -49,12 +52,25 @@ permissions:
     - resource: qualys-asset-tags
       actions: [read, write, delete]
       description: Manage Qualys asset tags and tag rules
+    - resource: qualys-auth-records
+      actions: [read, write, delete]
+      description: Manage Qualys authentication records for trusted scanning
+    - resource: qualys-networks
+      actions: [read, write, delete]
+      description: Manage Qualys custom networks
+    - resource: qualys-users
+      actions: [read, write, delete]
+      description: Manage Qualys user accounts
+    - resource: qualys-report-templates
+      actions: [read, write, delete]
+      description: Manage Qualys VM report templates
 
 pipeline:
   configurationTypes:
     - id: qualys-asset-groups
       name: Qualys Asset Groups
       description: Asset groups (/api/2.0/fo/asset/group/) — title, IP set, business impact and metadata
+      group: "Asset Management"
       canvasTemplate: config-types/qualys-asset-groups/canvas.yaml
       defaultConfig: config-types/qualys-asset-groups/defaults.yaml
       handlers:
@@ -69,9 +85,46 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: false
 
+    - id: qualys-asset-tags
+      name: Qualys Asset Tags
+      description: Asset tags & tag rules (Asset Management & Tagging QPS API /qps/rest/2.0/…/am/tag) — static or dynamic tags
+      group: "Asset Management"
+      canvasTemplate: config-types/qualys-asset-tags/canvas.yaml
+      defaultConfig: config-types/qualys-asset-tags/defaults.yaml
+      handlers:
+        validate: config-types/qualys-asset-tags/validate
+        deploy: config-types/qualys-asset-tags/deploy
+        rollback: config-types/qualys-asset-tags/rollback
+        healthCheck: config-types/qualys-asset-tags/healthCheck
+        driftDetect: config-types/qualys-asset-tags/driftDetect
+        getStatus: config-types/qualys-asset-tags/getStatus
+      targets:
+        componentTypes: [qualys-platform]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: qualys-networks
+      name: Qualys Custom Networks
+      description: Custom networks (/api/2.0/fo/network/) — segments asset groups, option profiles and auth records by network. No delete API.
+      group: "Asset Management"
+      canvasTemplate: config-types/qualys-networks/canvas.yaml
+      defaultConfig: config-types/qualys-networks/defaults.yaml
+      handlers:
+        validate: config-types/qualys-networks/validate
+        deploy: config-types/qualys-networks/deploy
+        rollback: config-types/qualys-networks/rollback
+        healthCheck: config-types/qualys-networks/healthCheck
+        driftDetect: config-types/qualys-networks/driftDetect
+        getStatus: config-types/qualys-networks/getStatus
+      targets:
+        componentTypes: [qualys-platform]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: qualys-search-lists
       name: Qualys Search Lists
       description: Static search lists (/api/2.0/fo/qid/search_list/static/) — named, fixed sets of QIDs
+      group: "Search Lists"
       canvasTemplate: config-types/qualys-search-lists/canvas.yaml
       defaultConfig: config-types/qualys-search-lists/defaults.yaml
       handlers:
@@ -86,26 +139,10 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: false
 
-    - id: qualys-scan-schedules
-      name: Qualys Scan Schedules
-      description: Scheduled VM scans (/api/2.0/fo/schedule/scan/) — option profile, target and recurrence
-      canvasTemplate: config-types/qualys-scan-schedules/canvas.yaml
-      defaultConfig: config-types/qualys-scan-schedules/defaults.yaml
-      handlers:
-        validate: config-types/qualys-scan-schedules/validate
-        deploy: config-types/qualys-scan-schedules/deploy
-        rollback: config-types/qualys-scan-schedules/rollback
-        healthCheck: config-types/qualys-scan-schedules/healthCheck
-        driftDetect: config-types/qualys-scan-schedules/driftDetect
-        getStatus: config-types/qualys-scan-schedules/getStatus
-      targets:
-        componentTypes: [qualys-platform]
-        requiresCredential: true
-        requiresConnectivity: false
-
     - id: qualys-dynamic-search-lists
       name: Qualys Dynamic Search Lists
       description: Dynamic search lists (/api/2.0/fo/qid/search_list/dynamic/) — QIDs selected by criteria
+      group: "Search Lists"
       canvasTemplate: config-types/qualys-dynamic-search-lists/canvas.yaml
       defaultConfig: config-types/qualys-dynamic-search-lists/defaults.yaml
       handlers:
@@ -123,6 +160,7 @@ pipeline:
     - id: qualys-option-profiles
       name: Qualys VM Option Profiles
       description: VM option profiles (/api/2.0/fo/subscription/option_profile/vm/) — scan ports, performance and detection scope
+      group: "Vulnerability Scanning"
       canvasTemplate: config-types/qualys-option-profiles/canvas.yaml
       defaultConfig: config-types/qualys-option-profiles/defaults.yaml
       handlers:
@@ -137,18 +175,73 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: false
 
-    - id: qualys-asset-tags
-      name: Qualys Asset Tags
-      description: Asset tags & tag rules (Asset Management & Tagging QPS API /qps/rest/2.0/…/am/tag) — static or dynamic tags
-      canvasTemplate: config-types/qualys-asset-tags/canvas.yaml
-      defaultConfig: config-types/qualys-asset-tags/defaults.yaml
+    - id: qualys-scan-schedules
+      name: Qualys Scan Schedules
+      description: Scheduled VM scans (/api/2.0/fo/schedule/scan/) — option profile, target and recurrence
+      group: "Vulnerability Scanning"
+      canvasTemplate: config-types/qualys-scan-schedules/canvas.yaml
+      defaultConfig: config-types/qualys-scan-schedules/defaults.yaml
       handlers:
-        validate: config-types/qualys-asset-tags/validate
-        deploy: config-types/qualys-asset-tags/deploy
-        rollback: config-types/qualys-asset-tags/rollback
-        healthCheck: config-types/qualys-asset-tags/healthCheck
-        driftDetect: config-types/qualys-asset-tags/driftDetect
-        getStatus: config-types/qualys-asset-tags/getStatus
+        validate: config-types/qualys-scan-schedules/validate
+        deploy: config-types/qualys-scan-schedules/deploy
+        rollback: config-types/qualys-scan-schedules/rollback
+        healthCheck: config-types/qualys-scan-schedules/healthCheck
+        driftDetect: config-types/qualys-scan-schedules/driftDetect
+        getStatus: config-types/qualys-scan-schedules/getStatus
+      targets:
+        componentTypes: [qualys-platform]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: qualys-auth-records
+      name: Qualys Authentication Records
+      description: Authentication records for trusted scanning (/api/2.0/fo/auth/<type>/) — 22 technologies. Credentials are write-only.
+      group: "Vulnerability Scanning"
+      canvasTemplate: config-types/qualys-auth-records/canvas.yaml
+      defaultConfig: config-types/qualys-auth-records/defaults.yaml
+      handlers:
+        validate: config-types/qualys-auth-records/validate
+        deploy: config-types/qualys-auth-records/deploy
+        rollback: config-types/qualys-auth-records/rollback
+        healthCheck: config-types/qualys-auth-records/healthCheck
+        driftDetect: config-types/qualys-auth-records/driftDetect
+        getStatus: config-types/qualys-auth-records/getStatus
+      targets:
+        componentTypes: [qualys-platform]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: qualys-report-templates
+      name: Qualys VM Report Templates
+      description: VM report templates — Scan, Patch, Map (/api/2.0/fo/report/template/<type>/) — title/owner managed, settings passed through as XML
+      group: "Reporting"
+      canvasTemplate: config-types/qualys-report-templates/canvas.yaml
+      defaultConfig: config-types/qualys-report-templates/defaults.yaml
+      handlers:
+        validate: config-types/qualys-report-templates/validate
+        deploy: config-types/qualys-report-templates/deploy
+        rollback: config-types/qualys-report-templates/rollback
+        healthCheck: config-types/qualys-report-templates/healthCheck
+        driftDetect: config-types/qualys-report-templates/driftDetect
+        getStatus: config-types/qualys-report-templates/getStatus
+      targets:
+        componentTypes: [qualys-platform]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: qualys-users
+      name: Qualys Users
+      description: User accounts (/msp/user.php, /msp/user_list.php) — reconciled by email. No delete API (deactivate only).
+      group: "Administration"
+      canvasTemplate: config-types/qualys-users/canvas.yaml
+      defaultConfig: config-types/qualys-users/defaults.yaml
+      handlers:
+        validate: config-types/qualys-users/validate
+        deploy: config-types/qualys-users/deploy
+        rollback: config-types/qualys-users/rollback
+        healthCheck: config-types/qualys-users/healthCheck
+        driftDetect: config-types/qualys-users/driftDetect
+        getStatus: config-types/qualys-users/getStatus
       targets:
         componentTypes: [qualys-platform]
         requiresCredential: true

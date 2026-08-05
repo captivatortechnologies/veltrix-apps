@@ -1,12 +1,13 @@
 id: splunk-enterprise
 name: Splunk Enterprise
-version: "1.20.0"
+version: "1.21.0"
 vendor: Veltrix
 description: >
   Manage Splunk Enterprise configurations as code.
   Author Splunk apps and add-ons (including their .conf files),
-  HTTP Event Collector tokens, BYOL infrastructure, and version
-  tracking for current Splunk release lines (9.4.x–10.4.x).
+  HTTP Event Collector tokens, license pools, API access tokens,
+  BYOL infrastructure, and version tracking for current Splunk
+  release lines (9.4.x–10.4.x).
   Configuration ships the way Splunk ships it — inside an app —
   so indexes and roles are authored as indexes.conf / authorize.conf
   in the App Contents of a Splunk App.
@@ -54,6 +55,12 @@ permissions:
     - resource: licenses
       actions: [read, write, delete]
       description: Record and track Splunk Enterprise license files (quota, expiration, features) and read live licenser status
+    - resource: license-pools
+      actions: [read, write, delete]
+      description: Manage Splunk license pools — daily indexing quota allocation and which indexer peers may draw from it
+    - resource: auth-tokens
+      actions: [read, write, delete]
+      description: Manage Splunk authentication (API access) tokens — who they authenticate as, their audience, type, and validity window
 
 database:
   migrations: migrations
@@ -62,6 +69,7 @@ database:
 pipeline:
   configurationTypes:
     - id: hec-tokens
+      group: "Data Ingestion"
       name: HEC Tokens
       description: HTTP Event Collector token definitions (routing, allowed indexes, acknowledgment)
       canvasTemplate: config-types/hec-tokens/canvas.yaml
@@ -88,6 +96,7 @@ pipeline:
     # separate "config files" type writing loose stanzas into someone else's
     # local/ over the REST configs API.
     - id: apps
+      group: "Apps & Content"
       name: Splunk Apps
       description: Splunk apps and add-ons — install source, version, visibility, state, upgrade policy, and the .conf files/scripts the app ships
       canvasTemplate: config-types/apps/canvas.yaml
@@ -104,6 +113,50 @@ pipeline:
         # Splunk role that carries configuration — heavy forwarders (inputs/props)
         # and the cluster manager (indexes.conf) included.
         componentTypes: [search-head, indexer, deployment-server, heavy-forwarder, cluster-manager]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    # License pools are REST-only runtime state on the license manager — there
+    # is no portable .conf file for one (unlike indexes/roles/apps above), so
+    # this is a genuine second REST-managed type alongside hec-tokens.
+    - id: license-pools
+      group: "Licensing"
+      name: License Pools
+      description: License pool definitions — daily indexing quota carved from a licensing stack and which indexer peers may draw from it
+      canvasTemplate: config-types/license-pools/canvas.yaml
+      defaultConfig: config-types/license-pools/defaults.yaml
+      handlers:
+        validate: config-types/license-pools/validate
+        deploy: config-types/license-pools/deploy
+        rollback: config-types/license-pools/rollback
+        healthCheck: config-types/license-pools/healthCheck
+        driftDetect: config-types/license-pools/driftDetect
+        getStatus: config-types/license-pools/getStatus
+      targets:
+        componentTypes: [license-server]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    # API access tokens (Token Authentication) are REST-only, secret-generating
+    # runtime objects — the same reason hec-tokens is REST-managed rather than
+    # authored as a .conf file inside an app.
+    - id: auth-tokens
+      group: "Access & Security"
+      name: API Access Tokens
+      description: Splunk authentication (API access) token definitions — who they authenticate as, their audience, type, and validity window
+      canvasTemplate: config-types/auth-tokens/canvas.yaml
+      defaultConfig: config-types/auth-tokens/defaults.yaml
+      handlers:
+        validate: config-types/auth-tokens/validate
+        deploy: config-types/auth-tokens/deploy
+        rollback: config-types/auth-tokens/rollback
+        healthCheck: config-types/auth-tokens/healthCheck
+        driftDetect: config-types/auth-tokens/driftDetect
+        getStatus: config-types/auth-tokens/getStatus
+      targets:
+        # Any full Splunk instance can serve Token Authentication — same
+        # targeting as hec-tokens (any REST-API-capable role).
+        componentTypes: [search-head, indexer, heavy-forwarder]
         requiresCredential: true
         requiresConnectivity: true
 

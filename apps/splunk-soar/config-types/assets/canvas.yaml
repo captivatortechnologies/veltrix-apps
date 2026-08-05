@@ -1,0 +1,142 @@
+# =============================================================================
+# Canvas Template — Splunk SOAR Assets
+#
+# Declares ONE asset (the item) — a configured instance of an installed SOAR
+# app (e.g. a VirusTotal or firewall integration). Field keys must match
+# config-types/assets/_shared.ts. Applied via the Splunk SOAR REST API:
+# GET/POST/POST-<id>/DELETE-<id> /rest/asset (443).
+#
+# ⚠ "Additional Configuration" is WRITE-ONLY. An asset's configuration schema is
+# defined by whichever SOAR app it belongs to and commonly mixes ordinary
+# settings with per-app credential fields (API keys, passwords) — this app
+# cannot tell them apart generically. Those values are sent on every deploy but
+# NEVER read back, diffed, or restored on rollback (see README Coverage and
+# lib/soarCommon's write-only handling philosophy, mirroring Cribl's Secrets
+# config type).
+# =============================================================================
+
+id: "splunk-soar-assets"
+name: "Assets"
+toolType: "splunk-soar"
+entityType: "assets"
+description: "Manage Splunk SOAR assets via the SOAR REST API (/rest/asset) — additional per-app configuration is write-only"
+
+item:
+  label: "Asset"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "server"
+      description: "Which installed SOAR app this asset configures"
+      fields:
+        - key: "name"
+          label: "Asset Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "Unique name for this asset in SOAR. Used as the stable identity for upsert and drift."
+
+        - key: "product_vendor"
+          label: "Product Vendor"
+          fieldType: "text"
+          required: true
+          helpText: "Must match the product_vendor an installed SOAR app declares, e.g. Generic, VirusTotal, Palo Alto Networks."
+
+        - key: "product_name"
+          label: "Product Name"
+          fieldType: "text"
+          required: true
+          helpText: "Must match the product_name an installed SOAR app declares, e.g. Product, VirusTotal Private/Public API."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "text"
+          required: false
+          helpText: "Asset categorization shown in SOAR, e.g. information service, endpoint, reputation."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+
+    - name: "Ownership & Approval"
+      icon: "users"
+      description: "Who owns this asset and how many approvals an action needs"
+      fields:
+        - key: "primary_owners"
+          label: "Primary Owners (user IDs)"
+          fieldType: "tags"
+          required: false
+          helpText: "Numeric SOAR user IDs who own this asset."
+        - key: "primary_voting"
+          label: "Primary Voting"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+          helpText: "Approvals required from primary owners before an action runs against this asset. 0 = all owners."
+        - key: "secondary_users"
+          label: "Secondary / Backup Owners (user IDs)"
+          fieldType: "tags"
+          required: false
+        - key: "secondary_voting"
+          label: "Secondary Voting"
+          fieldType: "number"
+          required: false
+          defaultValue: 0
+
+    - name: "Tags & Tenants"
+      icon: "tag"
+      description: "Filtering tags and tenant scoping"
+      fields:
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          required: false
+        - key: "tenants"
+          label: "Tenant IDs"
+          fieldType: "tags"
+          required: false
+          helpText: "Numeric tenant IDs this asset is scoped to (multi-tenant instances only)."
+
+    - name: "Polling"
+      icon: "refresh-cw"
+      description: "Scheduled ingestion settings (configuration.ingest)"
+      fields:
+        - key: "poll_enabled"
+          label: "Enable Polling"
+          fieldType: "checkbox"
+          defaultValue: false
+        - key: "poll_interval_mins"
+          label: "Poll Interval (minutes)"
+          fieldType: "number"
+          required: false
+          visibleWhen:
+            field: "poll_enabled"
+            equals: true
+        - key: "poll_container_label"
+          label: "Container Label"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "poll_enabled"
+            equals: true
+          helpText: "Label applied to containers created by scheduled polling."
+
+    - name: "Additional Configuration"
+      icon: "lock"
+      description: "⚠ WRITE-ONLY — see the warning at the top of this file"
+      fields:
+        - key: "configuration"
+          label: "Additional Configuration"
+          fieldType: "keyvalue"
+          required: false
+          helpText: >
+            ⚠ WRITE-ONLY. Any other configuration key/value pairs this asset's
+            underlying SOAR app defines (may include credential fields). Sent
+            on every deploy; never read back, diffed, or restored on rollback.

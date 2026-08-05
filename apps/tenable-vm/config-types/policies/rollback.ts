@@ -6,7 +6,7 @@ import type { PolicyRollbackEntry } from './deploy'
  * Roll back scan policies using the state captured during deploy:
  *   - policies this deploy created are deleted (DELETE /policies/{id})
  *   - policies this deploy updated are PUT back to their captured prior state
- *     (PUT /policies/{id}/configure with the prior uuid + settings)
+ *     (PUT /policies/{id} with the prior uuid + settings)
  *
  * A policy that is referenced by a scan cannot be deleted — Tenable answers the
  * DELETE with 405 Method Not Allowed. We surface that as a clear, actionable
@@ -50,7 +50,7 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
         // and the prior settings object.
         const restore: Record<string, unknown> = { settings: entry.prior.settings }
         if (entry.prior.uuid) restore.uuid = entry.prior.uuid
-        const res = await client.request('PUT', `/policies/${entry.id}/configure`, { body: restore })
+        const res = await client.request('PUT', `/policies/${entry.id}`, { body: restore })
         if (!res.ok) {
           throw new Error(`Failed to restore policy "${entry.name}": ${tenableErrorMessage(res)}`)
         }

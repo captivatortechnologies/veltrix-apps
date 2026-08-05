@@ -1,0 +1,101 @@
+# =============================================================================
+# Canvas Template — Splunk Enterprise API Access Tokens (Token Authentication)
+#
+# Declares ONE token — the item. Users add as many tokens as they need.
+# Groups are PRESENTATIONAL ONLY: every field below belongs to the same flat
+# item record, which is what config-types/auth-tokens/deploy.ts reads as
+# `section.fields` for a single token.
+#
+# Splunk's Token Authentication feature lets a user access REST endpoints or
+# the CLI with a bearer token instead of a session/credentials. Tokens are
+# REST-only runtime objects — Splunk generates the token VALUE on creation
+# and there is no portable .conf file for an individual token (unlike
+# indexes/roles/apps, which this app authors as .conf files inside a Splunk
+# App; see README "Configuration ships as an app"). This mirrors hec-tokens.
+#
+# IMPORTANT — Splunk tokens are immutable after creation: audience, type,
+# expiration ("expires_on") and "not_before" can never be changed on an
+# existing token; only its enabled/disabled status can. Changing any of
+# those on this canvas item causes the deploy to DELETE the old token and
+# CREATE a new one (a fresh token value) rather than silently no-op.
+#
+# Field keys must match what config-types/auth-tokens/validate.ts checks and
+# what config-types/auth-tokens/deploy.ts maps to the Splunk REST parameters
+# (/services/authorization/tokens).
+#
+# Source: Splunk docs — Create authentication tokens / Manage or delete
+# authentication tokens
+# https://help.splunk.com/en/splunk-enterprise/administer/manage-users-and-security/10.4/authenticate-into-the-splunk-platform-with-tokens/create-authentication-tokens
+# https://help.splunk.com/en/splunk-enterprise/administer/manage-users-and-security/10.4/authenticate-into-the-splunk-platform-with-tokens/manage-or-delete-authentication-tokens
+# =============================================================================
+
+id: "splunk-enterprise-auth-tokens"
+name: "API Access Token Configuration"
+toolType: "splunk-enterprise"
+entityType: "auth-tokens"
+description: "Define Splunk authentication (API access) tokens as code — who they authenticate as, their audience/purpose, type, and validity window"
+
+item:
+  label: "API Access Token"
+  identityField: "username"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "General"
+      icon: "key"
+      description: "Token identity"
+      fields:
+        - key: "username"
+          label: "Splunk Username"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9][A-Za-z0-9._@-]*$"
+            maxLength: 80
+            message: "Letters, digits, dots, underscores, hyphens, and @ only; must start with a letter or digit."
+          helpText: "The Splunk user this token authenticates as. That user must already exist on the target instance."
+
+        - key: "audience"
+          label: "Audience"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: "What this token is for, e.g. \"Veltrix automation\" (maps to 'audience'). Splunk does not let a token carry its own name, so username + audience together identify one token on this canvas."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Disabled tokens are rejected for authentication without being deleted."
+
+    - name: "Validity"
+      icon: "clock"
+      description: "Type and validity window — IMMUTABLE once the token is created"
+      fields:
+        - key: "tokenType"
+          label: "Token Type"
+          fieldType: "select"
+          defaultValue: "static"
+          options:
+            - { value: "static", label: "Static (long-lived, standard bearer token)" }
+            - { value: "ephemeral", label: "Ephemeral (single-session, short-lived)" }
+            - { value: "interactive", label: "Interactive (created via Splunk Web login)" }
+          helpText: "Maps to 'type'. Immutable — changing it recreates the token with a new value."
+
+        - key: "expiresOn"
+          label: "Expires On"
+          fieldType: "text"
+          validation:
+            pattern: "^(?:[+-]?\\d+[smhdwMy]|\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:[+-]\\d{2}:\\d{2}|Z)?)$"
+            message: "A relative offset (e.g. +30d) or an absolute timestamp (YYYY-MM-DDTHH:MM:SS, optionally with a UTC offset or Z)."
+          helpText: "Maps to 'expires_on'. Leave blank to use the instance's configured default token expiration. Immutable — changing it recreates the token with a new value."
+
+        - key: "notBefore"
+          label: "Not Valid Before"
+          fieldType: "text"
+          validation:
+            pattern: "^(?:[+-]?\\d+[smhdwMy]|\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:[+-]\\d{2}:\\d{2}|Z)?)$"
+            message: "A relative offset (e.g. +1d) or an absolute timestamp (YYYY-MM-DDTHH:MM:SS, optionally with a UTC offset or Z)."
+          helpText: "Maps to 'not_before'. Leave blank for the token to be valid immediately. Immutable — changing it recreates the token with a new value."

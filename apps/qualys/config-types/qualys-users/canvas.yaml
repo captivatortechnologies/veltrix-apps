@@ -1,0 +1,134 @@
+# =============================================================================
+# Canvas Template — Qualys Users
+#
+# Declares ONE Qualys user account — the item. Applied over `/msp/user.php`
+# (add/edit) and `/msp/user_list.php` (list) — a DIFFERENT classic-API family
+# from `/api/2.0/fo/...` (same Basic auth + X-Requested-With header, its own
+# response envelope). Qualys assigns the account's `login` itself — it cannot
+# be chosen — so identity for reconciliation is EMAIL, not login. There is no
+# delete-user API; a user removed from the canvas is left as-is (see
+# rollback.ts for what a "created" user's rollback can and cannot do). Field
+# keys must match config-types/qualys-users/validate.ts.
+# =============================================================================
+
+id: "qualys-users"
+name: "Qualys Users"
+toolType: "qualys"
+entityType: "qualys-users"
+description: "Define Qualys user accounts as code through the classic API (/msp/user.php, /msp/user_list.php). Reconciled by email. No delete API — see Limitations."
+
+item:
+  label: "User"
+  identityField: "email"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "user"
+      description: "Name and contact"
+      fields:
+        - key: "email"
+          label: "Email"
+          fieldType: "text"
+          required: true
+          helpText: "The user's email address (its logical identity for reconciliation — Qualys generates the login itself)."
+
+        - key: "first_name"
+          label: "First Name"
+          fieldType: "text"
+          required: true
+
+        - key: "last_name"
+          label: "Last Name"
+          fieldType: "text"
+          required: true
+
+        - key: "job_title"
+          label: "Job Title"
+          fieldType: "text"
+          required: true
+          helpText: "The user's job title (the Qualys API's `title` parameter)."
+
+        - key: "phone"
+          label: "Phone"
+          fieldType: "text"
+
+    - name: "Permissions"
+      icon: "shield"
+      description: "Role, business unit and asset scope"
+      fields:
+        - key: "user_role"
+          label: "User Role"
+          fieldType: "select"
+          required: true
+          options:
+            - { label: "Manager", value: "manager" }
+            - { label: "Unit Manager", value: "unit_manager" }
+            - { label: "Scanner", value: "scanner" }
+            - { label: "Reader", value: "reader" }
+            - { label: "Contact", value: "contact" }
+            - { label: "Administrator", value: "administrator" }
+          helpText: "Only used on create — Qualys does not allow changing a user's role via this API."
+
+        - key: "business_unit"
+          label: "Business Unit"
+          fieldType: "text"
+          defaultValue: "Unassigned"
+          helpText: >
+            "Unassigned" or the title of an existing custom business unit (business units are
+            created in the Qualys UI only). Only used on create.
+
+        - key: "asset_groups"
+          label: "Asset Groups"
+          fieldType: "textarea"
+          helpText: >
+            Comma-separated asset group titles, only valid when User Role is Scanner, Reader or
+            Contact (Qualys rejects this for Manager/Unit Manager).
+
+        - key: "send_email"
+          label: "Email login credentials to the user"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: >
+            When on (default), Qualys emails the new user a secure link to set up their login.
+            Only used on create.
+
+    - name: "Address"
+      icon: "map-pin"
+      description: "Required by Qualys for a new account"
+      fields:
+        - key: "address1"
+          label: "Address Line 1"
+          fieldType: "text"
+          required: true
+
+        - key: "address2"
+          label: "Address Line 2"
+          fieldType: "text"
+
+        - key: "city"
+          label: "City"
+          fieldType: "text"
+          required: true
+
+        - key: "country"
+          label: "Country"
+          fieldType: "text"
+          required: true
+          defaultValue: "United States of America"
+          helpText: "Exact Qualys country name, e.g. \"United States of America\"."
+
+        - key: "state"
+          label: "State"
+          fieldType: "text"
+          helpText: "Required by Qualys when Country is United States of America, Australia, Canada or India."
+
+        - key: "zip_code"
+          label: "Zip / Postal Code"
+          fieldType: "text"
+
+        - key: "external_id"
+          label: "External ID"
+          fieldType: "text"
+          helpText: "Optional free-text id for cross-referencing this user to an external system (e.g. an HR/IdP record)."

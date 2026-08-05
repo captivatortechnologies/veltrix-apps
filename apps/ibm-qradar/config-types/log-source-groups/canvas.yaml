@@ -1,0 +1,51 @@
+# =============================================================================
+# Canvas Template — IBM QRadar Log Source Group
+#
+# Declares ONE log source group — the item. Users add as many as they need. A
+# log source group is a folder in the log-source-management group hierarchy,
+# used to organize log sources. Its natural identity is its NAME. The parent
+# group is declared by NAME and resolved to parent_id at deploy time (leave
+# blank for a root-level group).
+#
+# The API supports CREATE + READ only (no update, no delete), so this type is
+# APPEND-ONLY: deploy creates any declared group that is missing, but groups
+# this app creates can never be renamed, re-parented or removed via the API.
+#
+# Field keys must match config-types/log-source-groups/validate.ts.
+# =============================================================================
+
+id: "ibm-qradar-log-source-groups"
+name: "Log Source Group Configuration"
+toolType: "ibm-qradar"
+entityType: "log-source-groups"
+group: "Log Sources"
+description: "Define IBM QRadar log source groups (named folders in the log-source-management group hierarchy) as code through the QRadar log-source-management API. Append-only: groups cannot be renamed, re-parented or removed via the API."
+
+item:
+  label: "Log Source Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Log Source Group"
+      icon: "folder"
+      description: "Name, description and parent"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The group name — its identity in QRadar. Unique within this canvas; max 255 characters. Append-only (cannot be renamed via the API)."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          helpText: "A human-readable description of this group. Max 255 characters."
+
+        - key: "parentName"
+          label: "Parent Group"
+          fieldType: "text"
+          required: false
+          helpText: "The exact name of the parent group (declared elsewhere in this canvas, or already live in QRadar). Leave blank for a root-level group. Resolved to parent_id at deploy time."

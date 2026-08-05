@@ -1,12 +1,14 @@
 id: splunk-soar
 name: Splunk SOAR
-version: "1.1.2"
+version: "1.2.0"
 vendor: Veltrix
 description: >
   Connect Veltrix to Splunk SOAR (Security Orchestration, Automation and
-  Response). Manages the SOAR instance connection — API endpoint (component),
-  credential, TLS verification, request timeout, retries, and optional proxy —
-  so the platform can reach your SOAR deployment.
+  Response) and manage it as code over its REST API: the instance connection
+  profile, severities, container statuses, container labels, CEF custom
+  fields, roles and permissions, assets, automation/service accounts, and
+  custom lists. Playbooks and other automation code are intentionally out of
+  scope — see README Coverage.
 category: SOAR
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-soar
@@ -34,6 +36,30 @@ permissions:
     - resource: connection
       actions: [read, write]
       description: Manage the Splunk SOAR instance connection profile
+    - resource: severities
+      actions: [read, write, delete]
+      description: Manage Splunk SOAR container/artifact severities
+    - resource: container-statuses
+      actions: [read, write, delete]
+      description: Manage custom Splunk SOAR container status labels
+    - resource: container-labels
+      actions: [read, write]
+      description: Ensure Splunk SOAR container labels exist (add-only — no rename)
+    - resource: custom-fields
+      actions: [read, write, delete]
+      description: Manage custom Splunk SOAR CEF field definitions
+    - resource: roles
+      actions: [read, write, delete]
+      description: Manage Splunk SOAR roles and their permission flags
+    - resource: assets
+      actions: [read, write, delete]
+      description: Manage Splunk SOAR assets (non-secret fields; per-app configuration is write-only)
+    - resource: automation-accounts
+      actions: [read, write, delete]
+      description: Manage Splunk SOAR automation (service) accounts — never manages passwords
+    - resource: custom-lists
+      actions: [read, write, delete]
+      description: Manage Splunk SOAR custom lists
 
 pipeline:
   configurationTypes:
@@ -49,6 +75,150 @@ pipeline:
         healthCheck: config-types/connection/healthCheck
         driftDetect: config-types/connection/driftDetect
         getStatus: config-types/connection/getStatus
+      targets:
+        componentTypes: [soar-instance]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: severities
+      group: "Event Taxonomy"
+      name: Severities
+      description: Container/artifact severities (name, color, default flag) — applied over the SOAR REST API (/rest/severity)
+      canvasTemplate: config-types/severities/canvas.yaml
+      defaultConfig: config-types/severities/defaults.yaml
+      handlers:
+        validate: config-types/severities/validate
+        deploy: config-types/severities/deploy
+        rollback: config-types/severities/rollback
+        healthCheck: config-types/severities/healthCheck
+        driftDetect: config-types/severities/driftDetect
+        getStatus: config-types/severities/getStatus
+      targets:
+        componentTypes: [soar-instance]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: container-statuses
+      group: "Event Taxonomy"
+      name: Container Statuses
+      description: Custom container status labels (name, category, default flag) — applied over the SOAR REST API (/rest/container_status)
+      canvasTemplate: config-types/container-statuses/canvas.yaml
+      defaultConfig: config-types/container-statuses/defaults.yaml
+      handlers:
+        validate: config-types/container-statuses/validate
+        deploy: config-types/container-statuses/deploy
+        rollback: config-types/container-statuses/rollback
+        healthCheck: config-types/container-statuses/healthCheck
+        driftDetect: config-types/container-statuses/driftDetect
+        getStatus: config-types/container-statuses/getStatus
+      targets:
+        componentTypes: [soar-instance]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: container-labels
+      group: "Event Taxonomy"
+      name: Container Labels
+      description: Ensure container labels exist (add-only, no rename) — applied over the SOAR REST API (/rest/system_settings)
+      canvasTemplate: config-types/container-labels/canvas.yaml
+      defaultConfig: config-types/container-labels/defaults.yaml
+      handlers:
+        validate: config-types/container-labels/validate
+        deploy: config-types/container-labels/deploy
+        rollback: config-types/container-labels/rollback
+        healthCheck: config-types/container-labels/healthCheck
+        driftDetect: config-types/container-labels/driftDetect
+        getStatus: config-types/container-labels/getStatus
+      targets:
+        componentTypes: [soar-instance]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: custom-fields
+      group: "Data Model"
+      name: Custom Fields
+      description: Custom CEF field definitions (name, data types) — applied over the SOAR REST API (/rest/cef)
+      canvasTemplate: config-types/custom-fields/canvas.yaml
+      defaultConfig: config-types/custom-fields/defaults.yaml
+      handlers:
+        validate: config-types/custom-fields/validate
+        deploy: config-types/custom-fields/deploy
+        rollback: config-types/custom-fields/rollback
+        healthCheck: config-types/custom-fields/healthCheck
+        driftDetect: config-types/custom-fields/driftDetect
+        getStatus: config-types/custom-fields/getStatus
+      targets:
+        componentTypes: [soar-instance]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: custom-lists
+      group: "Data Model"
+      name: Custom Lists
+      description: Named lookup/allow/block lists (full content replace) — applied over the SOAR REST API (/rest/decided_list)
+      canvasTemplate: config-types/custom-lists/canvas.yaml
+      defaultConfig: config-types/custom-lists/defaults.yaml
+      handlers:
+        validate: config-types/custom-lists/validate
+        deploy: config-types/custom-lists/deploy
+        rollback: config-types/custom-lists/rollback
+        healthCheck: config-types/custom-lists/healthCheck
+        driftDetect: config-types/custom-lists/driftDetect
+        getStatus: config-types/custom-lists/getStatus
+      targets:
+        componentTypes: [soar-instance]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: roles
+      group: "Access Control"
+      name: Roles
+      description: Roles and their permission flags across 9 categories — applied over the SOAR REST API (/rest/role)
+      canvasTemplate: config-types/roles/canvas.yaml
+      defaultConfig: config-types/roles/defaults.yaml
+      handlers:
+        validate: config-types/roles/validate
+        deploy: config-types/roles/deploy
+        rollback: config-types/roles/rollback
+        healthCheck: config-types/roles/healthCheck
+        driftDetect: config-types/roles/driftDetect
+        getStatus: config-types/roles/getStatus
+      targets:
+        componentTypes: [soar-instance]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: automation-accounts
+      group: "Access Control"
+      name: Automation Accounts
+      description: Automation (service) accounts — never manages passwords — applied over the SOAR REST API (/rest/ph_user)
+      canvasTemplate: config-types/automation-accounts/canvas.yaml
+      defaultConfig: config-types/automation-accounts/defaults.yaml
+      handlers:
+        validate: config-types/automation-accounts/validate
+        deploy: config-types/automation-accounts/deploy
+        rollback: config-types/automation-accounts/rollback
+        healthCheck: config-types/automation-accounts/healthCheck
+        driftDetect: config-types/automation-accounts/driftDetect
+        getStatus: config-types/automation-accounts/getStatus
+      targets:
+        componentTypes: [soar-instance]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: assets
+      group: "Integrations"
+      name: Assets
+      description: Asset instances of installed SOAR apps (non-secret fields; per-app configuration is write-only) — applied over the SOAR REST API (/rest/asset)
+      canvasTemplate: config-types/assets/canvas.yaml
+      defaultConfig: config-types/assets/defaults.yaml
+      handlers:
+        validate: config-types/assets/validate
+        deploy: config-types/assets/deploy
+        rollback: config-types/assets/rollback
+        healthCheck: config-types/assets/healthCheck
+        driftDetect: config-types/assets/driftDetect
+        getStatus: config-types/assets/getStatus
       targets:
         componentTypes: [soar-instance]
         requiresCredential: true

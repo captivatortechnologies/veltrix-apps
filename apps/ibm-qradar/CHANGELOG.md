@@ -8,6 +8,63 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.6.0 — 2026-08-05
+
+### Added
+Research-first exhaustiveness pass against the QRadar REST API (versions 20.0
+and 27.0 endpoint docs). Of the candidate surfaces reviewed — custom
+rules/building blocks, log source groups, saved searches (AQL), offense rules,
+retention buckets, user roles/security profiles, forwarding
+destinations/routing rules — only **log source groups** plus four genuinely
+untapped **Ariel/AQL** surfaces and one **disaster-recovery** surface had a
+real, round-trippable write API. Everything else is documented as excluded in
+the README Coverage section, with the specific endpoint behavior cited.
+
+- **Log Source Groups** — named folders in the log-source-management group
+  hierarchy (`/config/event_sources/log_source_management/log_source_groups`).
+  The parent group is declared by name and resolved to `parent_id` at deploy
+  time (a worklist creates parents before children regardless of declaration
+  order). The API supports create + read only — no update, no delete — so this
+  type is append-only, matching the existing offense-closing-reasons pattern.
+- **Ariel Lookups** (`/ariel/lookups`) — named key=value maps (plus a default
+  value) used by AQL expressions to translate raw field values into readable
+  labels. Name-keyed, full create/update/delete; the field type is immutable
+  after creation, matching the reference-data element-type convention already
+  used by Reference Sets/Maps.
+- **Tagged Field Categories** (`/ariel/taggedfieldcategories`) — named UI
+  groupings for Ariel tagged fields. Full create/update/delete, rename-safe by
+  id (same shape as Domains/Custom Log Source Types).
+- **Tagged Fields** (`/ariel/taggedfields`) — named IPFIX/NetFlow information
+  elements (private enterprise number + element id) usable in AQL, classified
+  into a category declared by name. Name, type, private enterprise number,
+  element id and is-array are immutable once created (the update API only
+  allows category + description); a drifted immutable field fails deploy with
+  guidance to delete and recreate instead of attempting an unsupported change.
+- **Flow VLANs** (`/ariel/flow_vlans`) — enterprise/customer VLAN id pairs used
+  to disambiguate overlapping VLAN spaces in flow data (e.g. across MSSP
+  tenants). The API has no name field and no update endpoint, so the
+  (enterprise, customer) pair itself is the identity; a canvas-only "Label"
+  field is never sent to QRadar. Changing either id is a natural delete of the
+  old pair plus create of the new one via reconcile.
+- **Disaster Recovery Ariel Copy Profiles**
+  (`/disaster_recovery/ariel_copy_profiles`) — continuous event/flow
+  replication from a managed host to a DR destination. QRadar allows one
+  profile per host, so `host_id` (declared directly, matching the Bandwidth
+  Manager convention) is the real identity rather than the canvas item. Excluded
+  event/flow retention buckets are declared by name and resolved to ids via two
+  new read-only lookups. Full create/update/delete.
+- `lib/lookups.ts`: added `listLogSourceGroups`, `listTaggedFieldCategories`,
+  `listEventRetentionBuckets` and `listFlowRetentionBuckets` (all read-only
+  GETs, following the existing name→id lookup convention).
+- Added a `group:` to every configuration type (existing and new) so the
+  Configuration Canvas selector organizes the app's 24 types into named
+  sections (Reference Data / Log Sources / Event & Flow Properties / Network &
+  Topology / Access & Tenancy / Offenses / System / Ariel / AQL / Disaster
+  Recovery) instead of one flat list.
+- README: added a **Coverage** section listing every managed configuration
+  type by group and every intentionally excluded QRadar surface with its
+  specific endpoint citation and reason.
+
 ## 0.5.0 — 2026-07-26
 
 ### Added

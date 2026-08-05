@@ -1,0 +1,127 @@
+# =============================================================================
+# Canvas Template — Splunk SOAR Roles
+#
+# Declares ONE SOAR role (the item). Field keys must match
+# config-types/roles/validate.ts AND config-types/roles/_shared.ts
+# PERMISSION_NAMES/PERMISSION_FLAGS. Applied via the Splunk SOAR REST API:
+# GET/POST/POST-<id>/DELETE-<id> /rest/role (443).
+#
+# Every permission category exposes the same four flags (view/edit/delete/
+# execute) — the API's own permission object accepts all four regardless of
+# category; not every flag affects every category (e.g. execute on System
+# Settings). Per-object allow-lists (restricting Container Labels/Repository/
+# Tenant permissions to specific ids) are not modeled — see README Coverage.
+# =============================================================================
+
+id: "splunk-soar-roles"
+name: "Roles"
+toolType: "splunk-soar"
+entityType: "roles"
+description: "Manage Splunk SOAR roles and their permission flags via the SOAR REST API (/rest/role)"
+
+item:
+  label: "Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "shield"
+      description: "Role identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: "Role name shown in SOAR. Used as the stable identity for upsert and drift."
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 500
+          helpText: "What this role is for — SOAR requires a description on every role."
+
+    - name: "Apps"
+      icon: "grid"
+      description: "View, install/edit and delete SOAR apps"
+      fields:
+        - { key: "perm_apps_view", label: "View", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_apps_edit", label: "Edit", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_apps_delete", label: "Delete", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_apps_execute", label: "Execute", fieldType: "checkbox", defaultValue: false }
+
+    - name: "Assets"
+      icon: "server"
+      description: "View, edit and delete assets"
+      fields:
+        - { key: "perm_assets_view", label: "View", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_assets_edit", label: "Edit", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_assets_delete", label: "Delete", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_assets_execute", label: "Execute", fieldType: "checkbox", defaultValue: false }
+
+    - name: "Containers & Artifacts"
+      icon: "box"
+      description: "View, edit and delete containers/artifacts"
+      fields:
+        - { key: "perm_containers_view", label: "View", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_containers_edit", label: "Edit", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_containers_delete", label: "Delete", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_containers_execute", label: "Execute", fieldType: "checkbox", defaultValue: false }
+
+    - name: "Container Labels"
+      icon: "tag"
+      description: "Restrict this role to whitelisted container labels (blanket flags — see the note above about per-label allow-lists)"
+      fields:
+        - { key: "perm_container_labels_view", label: "View", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_container_labels_edit", label: "Edit", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_container_labels_delete", label: "Delete", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_container_labels_execute", label: "Execute", fieldType: "checkbox", defaultValue: false }
+
+    - name: "Source Control Repository"
+      icon: "git-branch"
+      description: "Restrict this role to whitelisted playbook repositories (blanket flags)"
+      fields:
+        - { key: "perm_repository_view", label: "View", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_repository_edit", label: "Edit", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_repository_delete", label: "Delete", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_repository_execute", label: "Execute", fieldType: "checkbox", defaultValue: false }
+
+    - name: "Tenants"
+      icon: "layers"
+      description: "Restrict this role to whitelisted tenants (blanket flags, multi-tenant instances only)"
+      fields:
+        - { key: "perm_tenant_view", label: "View", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_tenant_edit", label: "Edit", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_tenant_delete", label: "Delete", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_tenant_execute", label: "Execute", fieldType: "checkbox", defaultValue: false }
+
+    - name: "Playbooks"
+      icon: "play"
+      description: "View, edit, delete and execute playbooks"
+      fields:
+        - { key: "perm_playbooks_view", label: "View", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_playbooks_edit", label: "Edit", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_playbooks_delete", label: "Delete", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_playbooks_execute", label: "Execute", fieldType: "checkbox", defaultValue: false }
+
+    - name: "System Settings"
+      icon: "settings"
+      description: "View and edit system-wide settings"
+      fields:
+        - { key: "perm_system_settings_view", label: "View", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_system_settings_edit", label: "Edit", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_system_settings_delete", label: "Delete", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_system_settings_execute", label: "Execute", fieldType: "checkbox", defaultValue: false }
+
+    - name: "Users & Roles"
+      icon: "users"
+      description: "View, edit and delete users and roles"
+      fields:
+        - { key: "perm_users_roles_view", label: "View", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_users_roles_edit", label: "Edit", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_users_roles_delete", label: "Delete", fieldType: "checkbox", defaultValue: false }
+        - { key: "perm_users_roles_execute", label: "Execute", fieldType: "checkbox", defaultValue: false }

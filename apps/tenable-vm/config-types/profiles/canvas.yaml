@@ -1,15 +1,23 @@
 # =============================================================================
-# Canvas Template — Tenable VM Scan/Sensor Profiles
+# Canvas Template — Tenable VM Agent/Scanner Profiles
 #
 # Declares ONE profile — the item. Users add as many profiles as they need.
-# A profile is a sensor/agent performance profile; its identity in Tenable is
-# its name (deploy keys create-vs-update on the name in the live list and keys
-# rollback on the returned id/uuid).
+# A profile is an agent or scanner performance/tuning profile, and Tenable
+# splits it across TWO parallel endpoints keyed by sensor_type:
+#   GET/POST   /sensors/profiles/{sensor_type}
+#   GET/PUT/DELETE /sensors/profiles/{sensor_type}/{profile_uuid}
+# (sensor_type: "agent" | "scanners" — see developer.tenable.com/reference/
+# profiles-create). There is no sensor-type-less /profiles endpoint, so
+# sensor_type is a REQUIRED field here, not an implementation detail.
 #
-# The Profiles API accepts a rich, sparsely-documented set of tuning fields that
-# varies by tenant, so this template is deliberately CONSERVATIVE: a required
-# name plus an optional freeform settingsJson (a JSON object) that is merged
-# into the create/update body. No tuning field names are invented here.
+# A profile's identity in Tenable is (sensor_type, name) — deploy keys
+# create-vs-update on that pair in the sensor type's own list and keys rollback
+# on the returned profile_uuid.
+#
+# The Profiles API's `config` object accepts a rich, version-specific set of
+# tuning fields, so this template is deliberately CONSERVATIVE there: an
+# optional freeform settingsJson (a JSON object) maps straight into `config`.
+# No tuning field names are invented.
 #
 # Field keys must match what config-types/profiles/validate.ts checks.
 # =============================================================================
@@ -18,7 +26,7 @@ id: "tenable-vm-profiles"
 name: "Scan Profile Configuration"
 toolType: "tenable-vm"
 entityType: "profiles"
-description: "Define Tenable scan/sensor performance profiles as code via the Tenable VM Profiles API — a required name plus an optional freeform JSON settings object"
+description: "Define Tenable agent/scanner performance profiles as code via the Tenable VM Profiles API — sensor type, name, optional description and an optional freeform JSON tuning object"
 
 item:
   label: "Profile"
@@ -31,21 +39,41 @@ item:
       icon: "sliders"
       description: "Profile identity and optional tuning settings"
       fields:
+        - key: "sensor_type"
+          label: "Sensor Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "agent"
+          options:
+            - label: "Agent Profile"
+              value: "agent"
+            - label: "Scanner Profile"
+              value: "scanners"
+          helpText: >
+            Which Profiles endpoint this profile lives under. An agent profile
+            and a scanner profile may share the same name — they are different
+            objects on different endpoints.
+
         - key: "name"
           label: "Profile Name"
           fieldType: "text"
           required: true
           validation:
             maxLength: 255
-          helpText: "Name of the profile in Tenable. Used as the profile's logical identity — must be unique within this canvas."
+          helpText: "Name of the profile in Tenable. Used as the profile's logical identity within its sensor type — must be unique per sensor type within this canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional. A short description of the profile's purpose or targets — shown in the Tenable console."
 
         - key: "settingsJson"
           label: "Advanced Settings (JSON)"
           fieldType: "textarea"
           helpText: >
-            Optional. A JSON OBJECT of profile tuning fields merged into the
-            create/update body, e.g. {"max_scan_time_hours": 4}. Leave blank for
-            a name-only profile. The exact tuning field names are tenant- and
-            version-specific in Tenable's Profiles API, so none are prescribed
-            here — supply only the keys your tenant documents. A "name" key here
-            is ignored; the Profile Name field above always wins.
+            Optional. A JSON OBJECT of profile tuning fields sent as the API's
+            `config` object, e.g. {"version": "10.7.1", "immediate_plugin_update": true}
+            for an agent profile. Leave blank for a name-only profile. The exact
+            tuning field names differ between agent and scanner profiles and are
+            version-specific, so none are prescribed here — supply only the keys
+            your tenant documents.

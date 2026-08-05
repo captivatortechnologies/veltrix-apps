@@ -1,0 +1,40 @@
+# =============================================================================
+# Canvas Template — Splunk SOAR CEF Custom Fields
+#
+# Declares ONE custom CEF (Common Event Format) field name (the item) — a
+# vocabulary entry artifacts can populate, with data types SOAR uses to
+# auto-link matching values across containers (e.g. the same IP appearing in
+# two artifacts). Field keys must match config-types/custom-fields/_shared.ts.
+# Applied via the Splunk SOAR REST API: GET/POST/DELETE /rest/cef (443).
+# =============================================================================
+
+id: "splunk-soar-custom-fields"
+name: "Custom Fields"
+toolType: "splunk-soar"
+entityType: "custom-fields"
+description: "Manage custom Splunk SOAR CEF field definitions via the SOAR REST API (/rest/cef)"
+
+item:
+  label: "Custom Field"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "CEF Field"
+      icon: "tag"
+      description: "Field name and its data types"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The CEF field key artifacts populate, e.g. sourceHostName. Used as the stable identity for upsert and drift."
+
+        - key: "data_type"
+          label: "Data Types"
+          fieldType: "tags"
+          required: true
+          helpText: "One or more data types SOAR uses to auto-link this field's values across artifacts, e.g. ip, domain, hash sha256, email, url, port, host name, user name, file name, mac address."

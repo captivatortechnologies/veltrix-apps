@@ -130,6 +130,46 @@ export class QualysClient {
     return this.sendJson('POST', `${this.baseUrl}${path}`, body)
   }
 
+  /**
+   * POST or PUT a raw XML document body to a classic-API path, with the action
+   * verb carried in the QUERY STRING rather than the body (the VM Report
+   * Template APIs — `/api/2.0/fo/report/template/<type>/` — take the template
+   * definition as a literal XML document rather than form-encoded parameters;
+   * Update additionally requires the HTTP PUT method). `queryParams` becomes the
+   * URL query string (e.g. `action=create&report_format=xml`); `xmlBody` is sent
+   * verbatim as `Content-Type: text/xml`.
+   */
+  async sendXmlBody(
+    method: 'POST' | 'PUT',
+    path: string,
+    queryParams: QualysParams,
+    xmlBody: string,
+  ): Promise<QualysResponse> {
+    const qs = new URLSearchParams()
+    for (const [key, value] of Object.entries(queryParams)) {
+      if (value === undefined || value === null) continue
+      qs.set(key, String(value))
+    }
+    const query = qs.toString()
+    const url = `${this.baseUrl}${path}${query ? `?${query}` : ''}`
+    const headers: Record<string, string> = {
+      Authorization: this.authHeader,
+      'X-Requested-With': X_REQUESTED_WITH,
+      Accept: 'application/xml',
+      'Content-Type': 'text/xml',
+    }
+
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs)
+    try {
+      const res = await fetch(url, { method, headers, body: xmlBody, signal: controller.signal })
+      const text = await res.text()
+      return { status: res.status, ok: res.status >= 200 && res.status < 300, body: text }
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
   private async send(method: 'GET' | 'POST', url: string, params: QualysParams | undefined): Promise<QualysResponse> {
     const headers: Record<string, string> = {
       Authorization: this.authHeader,

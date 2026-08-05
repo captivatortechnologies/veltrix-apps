@@ -1,0 +1,10 @@
+# Defaults for a new custom-domain item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank (aside from the canvas field's own defaultValue,
+# e.g. certificateSourceType). Any values here would be a FLAT map keyed by the
+# canvas field keys (domain, brandId, certificateSourceType, certificate,
+# certificateChain, privateKey), since a domain's presentational groups share
+# one flat item record, e.g.:
+#   domain: login.acme.com
+#   certificateSourceType: OKTA_MANAGED

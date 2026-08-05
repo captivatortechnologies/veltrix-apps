@@ -106,6 +106,63 @@ archive, a path that will not fit a tar header, a `[default]` stanza in a standa
 conf, a duplicate key, an absolute path, or a custom conf missing its
 `[triggers] reload.<name>` entry all fail before a deploy is attempted.
 
+### `license-pools` — License Pools (`/services/licenser/pools`)
+
+Targets: `license-server` components.
+
+A license pool is **REST-only runtime state** on the license manager — unlike
+indexes, roles and everything else `apps` authors as `.conf`, a pool has no
+portable configuration file at all (Splunk's internal license store is not a
+user-editable `.conf`), so it earns its own config type instead of an App
+Contents file.
+
+| Canvas field | Splunk REST parameter | Notes |
+|---|---|---|
+| `name` | pool name (path segment + `name` on create) | Letters, digits, `_`, `.`, `-` |
+| `stackId` | `stack_id` | One of Splunk's fixed stacks (`Enterprise`, `download-trial`, `Forwarder`, `Free`, `Lite`, `Lite_Free`). **Immutable** — changing it deletes and recreates the pool |
+| `quota` | `quota` | `"MAX"` or a number with an optional `B`/`MB`/`GB`/`TB` suffix |
+| `peers` | `peers` | Comma-separated indexer peer ids, or `"*"` for all peers — authored as text; Splunk exposes no live directory of peer ids for a picker |
+| `appendPeers` | `append_peers` (edit only) | Off (default) fully replaces the peer list every deploy — declarative source of truth; on appends to the existing list |
+| `description` | `description` | — |
+
+Deploy recreates (delete + create) a pool whose declared stack differs from
+its live one, since Splunk has no "move pool to another stack" operation; this
+can fail for a stack's fixed default pool (not every pool supports deletion),
+surfaced as a clear error rather than silently leaving the pool on the wrong
+stack. Health checks verify existence, correct stack, and a usable (non-zero)
+quota; drift detection compares the precise declared vs. live quota (in
+bytes, with a small rounding tolerance), stack, peers and description.
+
+### `auth-tokens` — API Access Tokens (`/services/authorization/tokens`)
+
+Targets: `search-head`, `indexer`, `heavy-forwarder` components (same
+targeting as `hec-tokens` — any REST-API-capable role).
+
+An API access token (Splunk's **Token Authentication** feature) is REST-only
+and secret-generating — the same reason `hec-tokens` is REST-managed rather
+than authored as a `.conf` file inside an app.
+
+| Canvas field | Splunk REST parameter | Notes |
+|---|---|---|
+| `username` | `name` (on create) | The Splunk user this token authenticates as; must already exist on the target |
+| `audience` | `audience` | What the token is for. Splunk gives a token no name of its own, so `(username, audience)` together are this canvas's identity for one token |
+| `tokenType` | `type` | `static` (default), `ephemeral`, or `interactive`. **Immutable** |
+| `expiresOn` | `expires_on` | Relative (`+30d`) or absolute timestamp. **Immutable**. Blank uses the instance's configured default |
+| `notBefore` | `not_before` | Relative or absolute timestamp. **Immutable** |
+| `enabled` | `status` (`enabled`/`disabled`, set *after* creation) | The only field Splunk lets an existing token change |
+
+Splunk tokens are **immutable** after creation: `audience`, `type`,
+`expires_on` and `not_before` can never be edited, only `status` can. When a
+deploy finds a live token whose immutable fields drifted from the canvas, it
+**deletes the old token and creates a fresh one** (a new value) rather than
+silently leaving the mismatch in place. Deploy also idempotently enables
+Token Authentication itself (`POST /services/admin/token-auth/tokens_auth`,
+`disabled=false`) before creating tokens — the feature is off by default,
+mirroring how `hec-tokens` enables the global HTTP input first. The
+Splunk-generated token value is shown **once**, at creation, and surfaced as a
+masked, reveal-once deploy resource exactly like `hec-tokens`' generated
+secret; a token that already existed unchanged has no value to show again.
+
 ## App-managed entities (pages)
 
 Beyond the pipeline configuration types above, the app manages a few plain
@@ -160,8 +217,9 @@ only download-URL versions can be added.
 - **Credential** (`requiresCredential: true`): a Splunk account or token with
   the capabilities to manage what you deploy — `indexes_edit` for indexes,
   `edit_roles` (or `edit_roles_grantable`) for roles, `edit_token_http` for
-  HEC tokens. An API token (used as `Authorization: Bearer`) is preferred over
-  username/password (HTTP Basic).
+  HEC tokens, `edit_licenses` for license pools, and `edit_tokens_own` /
+  `edit_tokens_all` for API access tokens. An API token (used as
+  `Authorization: Bearer`) is preferred over username/password (HTTP Basic).
 - **Connectivity** (`requiresConnectivity: true`): any platform connectivity
   provider (Tailscale, SSH, WireGuard, Cloudflare Tunnel, ...) that can reach
   the component's management port (default `8089`, configurable via the
@@ -186,6 +244,108 @@ their standard locations.
 | 9.4 | 2024-12-16 | 9.4.12 (2026-05-29) | 2026-12-16 |
 | 9.3 | 2024-07-24 | 9.3.13 (2026-05-29) | 2026-07-24 (EOS — seeded inactive) |
 
+## Coverage (v1.21.0)
+
+Coverage was audited against Splunk's official **REST API Reference Manual**
+(`help.splunk.com` / `docs.splunk.com` `rest-api-reference` / `restapireference`),
+which distinguishes two kinds of declarative write surface: objects with a
+portable **`.conf` file** representation (indexes, roles, saved searches,
+macros, ...) and objects that live ONLY as REST-managed runtime state on the
+instance (HEC tokens, license pools, API access tokens). This app's founding
+architectural decision (v1.12.0, see "Configuration ships as an app" above) is
+that the FIRST kind is authored as `.conf` files inside a Splunk App (the
+`apps` config type) rather than written loose over the generic REST
+`configs/conf-<file>` endpoint — that endpoint always lands the object in an
+app's `local/` (the user's override layer, which shadows `default/` and
+survives every upgrade), exactly the defect that got the old `config-files`
+type retired. The SECOND kind — genuinely REST-only objects — earns its own
+first-class config type; `hec-tokens` was the first, and this pass adds two
+more after auditing every remaining Splunk REST surface this app did not yet
+manage: `license-pools` and `auth-tokens`.
+
+### Managed declarative configuration
+
+| Configuration type | Splunk REST API surface |
+| --- | --- |
+| Splunk Apps (`apps`) | `/services/apps/local`, `/services/apps/appinstall`, `.../acl`, `.../enable`\|`disable` — the app itself, PLUS every `.conf` file authored inline and shipped inside it (see below) |
+| HEC Tokens (`hec-tokens`) | `/servicesNS/admin/splunk_httpinput/data/inputs/http` — token routing + indexer acknowledgment; secret token value generated by Splunk |
+| License Pools (`license-pools`) | `/services/licenser/pools` — daily indexing quota carved from a licensing stack, plus which indexer peers may draw from it |
+| API Access Tokens (`auth-tokens`) | `/services/authorization/tokens` + `/services/admin/token-auth/tokens_auth` — Splunk's Token Authentication feature; secret token value generated by Splunk |
+
+### `.conf` files authored inline in `apps` — not separate REST config types
+
+Every one of these has a REST write path too (a first-class endpoint, or the
+generic `configs/conf-<file>`), but this app deliberately authors them as
+`.conf` files inside a Splunk App instead — see "Configuration ships as an
+app" above for why. They are **not excluded for lack of an API** — they are
+excluded as *separate config types* because writing any of them over REST
+lands the object in an app's `local/`, while authoring the identical `.conf`
+content in `apps`' App Contents ships it in `default/`, the layer every other
+config in this catalog already uses:
+
+| `.conf` file | What it configures | Splunk REST surface it would otherwise use |
+| --- | --- | --- |
+| `indexes.conf` | Indexes (retention, sizing, storage paths) | `data/indexes` |
+| `authorize.conf` | Roles and capabilities | `authorization/roles` |
+| `savedsearches.conf` | Reports, scheduled searches, alerts | `saved/searches` |
+| `props.conf` / `transforms.conf` | Field extractions, line-breaking, sourcetype rules, lookup definitions | `configs/conf-props`, `configs/conf-transforms`, `data/transforms/lookups` |
+| `inputs.conf` | Data inputs (monitor, TCP/UDP, scripted) | `data/inputs/monitor`, `data/inputs/tcp/*`, `data/inputs/udp`, `data/inputs/script` |
+| `outputs.conf` | Forwarding / output groups | `data/outputs/tcp/server` |
+| `macros.conf` | Search macros | `configs/conf-macros` |
+| `eventtypes.conf` | Event type definitions | `saved/eventtypes` |
+| `tags.conf` | Field tags | `configs/conf-tags` |
+| `authentication.conf` | Auth method / LDAP strategy | `authentication/*` |
+| `workload_pools.conf` (+ `workload_policy.conf`, `workload_rules.conf`) | Workload management resource pools | `configs/conf-workload_pools` (+ siblings) |
+| `collections.conf` | KV Store collection schemas | `storage/collections/config` |
+| ~50 more standard `.conf` files (`server.conf`, `web.conf`, `limits.conf`, `distsearch.conf`, `serverclass.conf`, ...) | Everything else Splunk ships configuration for | `configs/conf-<file>` (generic) |
+
+The full standard-`.conf` catalog (with a per-file description, and rich
+templates for the dozen most-used ones) is in the `apps` canvas's App
+Contents file picker.
+
+### Intentionally excluded
+
+- **License installation** (`POST /services/licenser/licenses`) — the app
+  already has a dedicated **License** page (`/license`) that records a
+  license's parsed XML (quota, expiration, features, `raw_xml`) and reads live
+  licenser status (`GET /services/licenser/licenses`). Actually pushing that
+  recorded license onto a target instance via REST was considered but not
+  modeled as a Configuration Canvas type: the Canvas has no supported way for
+  a config item to reference an existing app-owned record (every field is
+  authored directly ON the canvas item, e.g. `apps`' App Contents), so
+  duplicating the license XML into a second canvas-authored field would fork
+  the source of truth away from the License page's table with no
+  reconciliation between the two. A future pass could add this as a write
+  action on the License page itself instead of a new config type.
+- **Search peer management** (`/services/search/distributed/peers`) —
+  Splunk's own admin manual ("Add search peers to the search head") documents
+  adding a peer only via Splunk Web, the CLI (`splunk add search-server`), or
+  hand-editing `distsearch.conf`; it does not cite REST as a supported
+  alternative for this specific operation. It is also largely moot for this
+  app's target topology: indexer-cluster / search-head-cluster deployments
+  (what BYOL provisions) register peers automatically through the Cluster
+  Manager / Search Head Cluster protocol, not manual peer registration (which
+  matters mainly for classic, non-clustered distributed search).
+- **"Activate license group"** (`POST /services/licenser/groups`) — a
+  one-shot action that switches which license group is active, not a
+  multi-item declarative resource; excluded alongside every other one-shot
+  operational action in this app (bundle push, deploy-server reload, ...).
+  License Pools (this pass's new config type) manages the actual pool
+  objects, which ARE declarative.
+- **Data model acceleration / summary-indexing rebuilds, KV Store collection
+  DATA** (`/services/data/models/*/acceleration`, `storage/collections/data`)
+  — one-shot actions or raw data, not declarative configuration.
+- **Fired alerts, saved-search dispatch history, audit/introspection
+  endpoints** — read-only; nothing to deploy.
+- **Any `.conf` stanza scoped to `$SPLUNK_HOME/etc/system/local`** rather than
+  an app — out of scope by design; see "Configuration ships as an app" above
+  (no app equivalent exists for the system namespace).
+- **HEC token secret values, API access token secret values, license XML,
+  Splunk credentials** — secret/entitlement material never stored on a canvas
+  or in an app package; surfaced once (reveal-once, masked) at creation via
+  deploy `resources`, exactly as this app already did for `hec-tokens` and now
+  does for `auth-tokens` too.
+
 ## Sources
 
 - Splunk Enterprise release notes: [10.0 What's New](https://help.splunk.com/en/splunk-enterprise/release-notes-and-updates/release-notes/10.0/whats-new/welcome-to-splunk-enterprise-10.0), [10.2 What's New](https://help.splunk.com/en/splunk-enterprise/release-notes-and-updates/release-notes/10.2/whats-new/welcome-to-splunk-enterprise-10.2), [10.4 / release index](https://help.splunk.com/en/splunk-enterprise/release-notes-and-updates/release-notes), [9.4 What's New](https://help.splunk.com/en/splunk-enterprise/release-notes-and-updates/release-notes/9.4/whats-new/welcome-to-splunk-enterprise-9.4)
@@ -193,3 +353,7 @@ their standard locations.
 - Index REST API: [data/indexes endpoint reference (10.4)](https://help.splunk.com/en/splunk-enterprise/leverage-rest-apis/rest-api-reference/10.4/introspection-endpoints/introspection-endpoint-descriptions), [Create custom indexes (naming rules)](https://help.splunk.com/en/splunk-enterprise/administer/manage-indexers-and-indexer-clusters/10.2/manage-indexes/create-custom-indexes), [indexes.conf reference](https://docs.splunk.com/Documentation/Splunk/latest/Admin/Indexesconf)
 - Role management: [authorize.conf reference (10.4)](https://help.splunk.com/en/splunk-enterprise/administer/admin-manual/10.4/configuration-file-reference/10.4.0-configuration-file-reference/authorize.conf), [Define roles with capabilities (10.2)](https://help.splunk.com/en/splunk-enterprise/administer/manage-users-and-security/10.2/manage-splunk-platform-users-and-roles/define-roles-on-the-splunk-platform-with-capabilities), [Create and manage roles with authorize.conf](https://help.splunk.com/en/splunk-enterprise/administer/manage-users-and-security/10.2/perform-advanced-user-and-role-management-in-splunk-enterprise/create-and-manage-roles-in-splunk-enterprise-using-the-authorize.conf-configuration-file)
 - HEC token management: [Use cURL to manage HEC tokens (9.4)](https://help.splunk.com/en/splunk-enterprise/get-started/get-data-in/9.4/get-data-with-http-event-collector/use-curl-to-manage-http-event-collector-tokens-events-and-services), [HEC REST API endpoints](https://help.splunk.com/en/splunk-enterprise/get-started/get-data-in/9.4/get-data-with-http-event-collector/http-event-collector-rest-api-endpoints)
+- REST API Reference Manual (used to audit Coverage): [Endpoints reference list (10.4)](https://help.splunk.com/en/splunk-enterprise/leverage-rest-apis/rest-api-reference/10.4/introduction/endpoints-reference-list), [Access endpoint descriptions (10.4)](https://help.splunk.com/en/splunk-enterprise/leverage-rest-apis/rest-api-reference/10.4/access-endpoints/access-endpoint-descriptions)
+- License pool management: [License endpoint descriptions (10.0)](https://help.splunk.com/en/splunk-enterprise/leverage-rest-apis/rest-api-reference/10.0/license-endpoints/license-endpoint-descriptions), [Manage licenses from the CLI](https://help.splunk.com/en/splunk-enterprise/administer/admin-manual/10.4/manage-splunk-licenses/manage-licenses-from-the-cli)
+- API access token management: [Create authentication tokens](https://help.splunk.com/en/splunk-enterprise/administer/manage-users-and-security/10.4/authenticate-into-the-splunk-platform-with-tokens/create-authentication-tokens), [Manage or delete authentication tokens](https://help.splunk.com/en/splunk-enterprise/administer/manage-users-and-security/10.4/authenticate-into-the-splunk-platform-with-tokens/manage-or-delete-authentication-tokens), [Enable or disable token authentication](https://help.splunk.com/en/splunk-enterprise/administer/manage-users-and-security/10.4/authenticate-into-the-splunk-platform-with-tokens/enable-or-disable-token-authentication)
+- Search peer management (audited, not modeled): [Add search peers to the search head](https://help.splunk.com/en/splunk-enterprise/administer/distributed-search/9.4/deploy-distributed-search/add-search-peers-to-the-search-head)

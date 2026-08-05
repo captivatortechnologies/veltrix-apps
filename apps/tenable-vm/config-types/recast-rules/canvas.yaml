@@ -1,26 +1,35 @@
 # =============================================================================
 # Canvas Template — Tenable VM Recast / Accept Rules
 #
-# Declares ONE recast-or-accept rule — the item. Users add as many as they need.
-# A RECAST rule changes a matching finding's severity to a target severity; an
-# ACCEPT rule hides (accepts the risk of) the matching finding.
+# Declares ONE recast/accept rule — the item. Users add as many as they need.
+# A RECAST rule changes a matching finding's severity; an ACCEPT rule hides
+# (accepts the risk of) it — both apply to Vulnerabilities/Web Applications
+# (resource_type HOST/WEBAPP). A CHANGE_RESULT rule reassigns a Host Audit's
+# pass/fail result; an ACCEPT_RESULT rule hides it — both apply ONLY to Host
+# Audits (resource_type HOST_AUDIT). The two action families are mutually
+# exclusive per resource_type; config-types/recast-rules/validate.ts enforces it.
 #
-# The Recast API assigns no name, so the item's identityField is `name` — a
-# label the user picks, used only for the canvas UI, dedupe and reporting.
-# config-types/recast-rules/deploy.ts matches LIVE rules by the
-# (resource_type, plugin_id, action) tuple instead; config-types/recast-rules/validate.ts
-# enforces uniqueness of BOTH the name and that tuple across the canvas.
+# `name` is sent to Tenable as `rule_value.rule_name` — it is BOTH the canvas
+# identity and the live identity deploy matches existing rules on (same
+# pattern as every other named config type in this app).
+#
+# The `filter` field is the API's real, required targeting object — a JSON
+# `{"and":[{"property","operator","value"}, ...]}` (or "or") structure, NOT a
+# flat plugin-id/host-targets shortcut (Tenable's schema has no such
+# shortcut). Property names differ per resource_type and are discoverable via
+# GET /v1/recast/rules/filters — see developer.tenable.com/reference/
+# recast-rules-filters-list.
 #
 # Field keys must match what config-types/recast-rules/validate.ts checks
-# (name, resource_type, action, severity, expires_at, plugin_id, host_targets,
-# filter_json).
+# (name, description, resource_type, action, severity, compliance_result,
+# comment, false_positive, filter_json, expires_at, disabled, disabled_reason).
 # =============================================================================
 
 id: "tenable-vm-recast-rules"
 name: "Recast / Accept Rule Configuration"
 toolType: "tenable-vm"
 entityType: "recast-rules"
-description: "Define Tenable recast rules (change a finding's severity) and accept rules (hide a finding) as code via the Tenable VM Recast Rules API"
+description: "Define Tenable recast rules (change a finding's severity), accept rules (hide a finding) and Host Audit result-override rules as code via the Tenable VM Recast Rules API"
 
 item:
   label: "Rule"
@@ -38,8 +47,13 @@ item:
           fieldType: "text"
           required: true
           validation:
-            maxLength: 255
-          helpText: "A label for this rule within Veltrix. Tenable assigns no rule name, so this is used only here — it must be unique within this canvas."
+            maxLength: 1024
+          helpText: "Sent to Tenable as the rule's rule_name. Also this config's match key — must be unique within this canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description of the rule — shown in the Tenable console."
 
         - key: "resource_type"
           label: "Resource Type"
@@ -53,7 +67,7 @@ item:
               value: "HOST_AUDIT"
             - label: "Web application"
               value: "WEBAPP"
-          helpText: "The kind of finding the rule applies to."
+          helpText: "The kind of finding the rule applies to. Host Audit rules require a different action set below (Change Result / Accept Result)."
 
         - key: "action"
           label: "Action"
@@ -61,27 +75,54 @@ item:
           required: true
           defaultValue: "RECAST"
           options:
-            - label: "Recast — change the finding's severity"
+            - label: "Recast — change the finding's severity (Host/Web App only)"
               value: "RECAST"
-            - label: "Accept — hide (accept the risk of) the finding"
+            - label: "Accept — hide the finding (Host/Web App only)"
               value: "ACCEPT"
-          helpText: "Recast changes a matching finding's severity to the Severity below; Accept hides the finding."
+            - label: "Change Result — reassign the audit's pass/fail (Host Audit only)"
+              value: "CHANGE_RESULT"
+            - label: "Accept Result — hide the audit finding (Host Audit only)"
+              value: "ACCEPT_RESULT"
+          helpText: "Recast/Accept apply to Host and Web Application resource types; Change Result/Accept Result apply ONLY to Host Audit."
 
         - key: "severity"
           label: "Recast Severity"
           fieldType: "select"
           options:
-            - label: "Info"
-              value: "info"
+            - label: "None"
+              value: "NONE"
             - label: "Low"
-              value: "low"
+              value: "LOW"
             - label: "Medium"
-              value: "medium"
+              value: "MEDIUM"
             - label: "High"
-              value: "high"
+              value: "HIGH"
             - label: "Critical"
-              value: "critical"
-          helpText: "The target severity to recast the finding to. REQUIRED when the action is Recast; leave unset for Accept (it is not allowed there)."
+              value: "CRITICAL"
+          helpText: "The target severity to recast the finding to. REQUIRED when the action is Recast; not allowed for any other action."
+
+        - key: "compliance_result"
+          label: "Compliance Result"
+          fieldType: "select"
+          options:
+            - label: "Passed"
+              value: "PASSED"
+            - label: "Failed"
+              value: "FAILED"
+            - label: "Warning"
+              value: "WARNING"
+          helpText: "The reassigned Host Audit result. REQUIRED when the action is Change Result; not allowed for any other action."
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          helpText: "Optional notes or rationale for the rule."
+
+        - key: "false_positive"
+          label: "Flag as False Positive"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Optional. Indicates the targeted finding was flagged as producing inaccurate results, for Tenable's review."
 
         - key: "expires_at"
           label: "Expires At"
@@ -89,30 +130,31 @@ item:
           validation:
             pattern: "^$|^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,3})?(Z|[+-]\\d{2}:\\d{2})$"
             message: "Must be an ISO-8601 instant, e.g. 2026-12-31T23:59:59Z"
-          helpText: "Optional. ISO-8601 instant after which the rule stops applying, e.g. 2026-12-31T23:59:59Z. Leave blank for a rule that never expires."
+          helpText: "Optional. ISO-8601 instant after which the rule stops applying. Leave blank for a rule that never expires."
+
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Optional. Pause the rule (stop applying it) without deleting its definition."
+
+        - key: "disabled_reason"
+          label: "Disabled Reason"
+          fieldType: "text"
+          helpText: "Optional explanation shown alongside a disabled rule. Only meaningful when Disabled is on."
 
     - name: "Scope"
       icon: "filter"
       description: "Which findings the rule matches"
       fields:
-        - key: "plugin_id"
-          label: "Plugin ID"
-          fieldType: "text"
-          required: true
-          validation:
-            pattern: "^[0-9]+$"
-            message: "Plugin ID must be a positive integer, e.g. 19506"
-          helpText: "The Tenable plugin the rule targets (filter.plugin_id), e.g. 19506."
-
-        - key: "host_targets"
-          label: "Host Targets"
-          fieldType: "text"
-          helpText: "Optional. Assets to scope the rule to (filter.host_targets): IPs, ranges, CIDRs and/or FQDNs. Leave blank to apply to all matching assets."
-
         - key: "filter_json"
-          label: "Additional Filter (JSON)"
+          label: "Filter (JSON)"
           fieldType: "textarea"
+          required: true
           helpText: >
-            Optional. Extra filter keys as a JSON object, merged on top of
-            plugin_id / host_targets for advanced targeting, e.g.
-            {"severity":["high","critical"]}. Leave blank for none.
+            REQUIRED. The exact API targeting object: {"and":[{"property":
+            "definition.id","operator":"eq","value":"19506"}]} to target one
+            plugin/definition id, or {"or":[...]} to match any of several
+            conditions. Valid property names differ by resource type and are
+            listed at GET /v1/recast/rules/filters (see
+            developer.tenable.com/reference/recast-rules-filters-list).

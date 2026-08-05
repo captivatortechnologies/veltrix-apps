@@ -1,0 +1,36 @@
+# =============================================================================
+# Canvas Template — IBM QRadar Tagged Field Category
+#
+# Declares ONE tagged-field category — the item. Users add as many as they
+# need. A category is the logical group a tagged field belongs to in the UI
+# (see the Tagged Fields configuration type). Its natural identity is its NAME;
+# deploy matches by the stored QRadar id first (rename-safe) and falls back to
+# name. Deploy creates missing categories, renames them when they drift, and
+# reconcile-deletes categories this app created but no longer declares.
+#
+# Field keys must match config-types/tagged-field-categories/validate.ts.
+# =============================================================================
+
+id: "ibm-qradar-tagged-field-categories"
+name: "Tagged Field Category Configuration"
+toolType: "ibm-qradar"
+entityType: "tagged-field-categories"
+group: "Ariel / AQL"
+description: "Define IBM QRadar tagged-field categories (named UI groupings for Ariel tagged fields) as code through the QRadar ariel API."
+
+item:
+  label: "Tagged Field Category"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Category"
+      icon: "tag"
+      description: "Category name"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The category name — its identity in QRadar. Unique within this canvas; 1 to 255 characters."

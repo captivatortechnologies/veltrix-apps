@@ -4,12 +4,13 @@ import type { ProfileRollbackEntry } from './deploy'
 
 /**
  * Roll back profiles using the state captured during deploy:
- *   - profiles that were created are deleted (DELETE /profiles/{id})
+ *   - profiles that were created are deleted (DELETE /sensors/profiles/{sensorType}/{uuid})
  *   - profiles that were updated are restored (PUT) to their captured prior body
  *
- * Rollback is keyed on the stable id/uuid the API returned at deploy time, never
- * on the name. The captured prior body is replayed verbatim except the id/uuid,
- * which are path-bound (and typically read-only) rather than settable.
+ * Rollback is keyed on the stable uuid the API returned at deploy time, never
+ * on the name. The captured prior body is replayed verbatim except the
+ * identity/read-only keys (profile_uuid, uuid, created, updated), which are
+ * path-bound or server-assigned rather than settable.
  */
 export default async function rollback(ctx: RollbackContext): Promise<RollbackResult> {
   const built = buildTenableClient(ctx.component.hostname, ctx.credential, ctx.settings)
@@ -31,19 +32,24 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
         // Deploy created this profile — remove it. 404 means it is already gone
         // (or was never created), which is the desired end state.
         if (entry.id !== undefined) {
-          const res = await client.request('DELETE', `/profiles/${entry.id}`)
+          const res = await client.request('DELETE', `/sensors/profiles/${entry.sensorType}/${entry.id}`)
           if (res.status !== 404 && !res.ok) {
             throw new Error(`Failed to delete profile "${entry.name}": ${tenableErrorMessage(res)}`)
           }
         }
       } else if (entry.id !== undefined && entry.prior) {
         // Deploy updated this profile — restore the captured prior body. Strip
-        // the identity keys, which are addressed by the path, not the body.
+        // the identity/read-only keys, which are addressed by the path or set by
+        // the server, not settable in the request body.
         const restore: Record<string, unknown> = { ...entry.prior }
-        delete restore.id
+        delete restore.profile_uuid
         delete restore.uuid
+        delete restore.created
+        delete restore.updated
 
-        const res = await client.request('PUT', `/profiles/${entry.id}`, { body: restore })
+        const res = await client.request('PUT', `/sensors/profiles/${entry.sensorType}/${entry.id}`, {
+          body: restore,
+        })
         if (!res.ok) {
           throw new Error(`Failed to restore profile "${entry.name}": ${tenableErrorMessage(res)}`)
         }

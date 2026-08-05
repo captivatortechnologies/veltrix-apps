@@ -1,0 +1,6 @@
+# Defaults for a new flow-vlan item.
+#
+# A FLAT map keyed by the canvas field keys. enterpriseVlanId defaults to 0
+# (non-existent); the label and customerVlanId are left for the operator to
+# declare.
+enterpriseVlanId: 0

@@ -1,0 +1,6 @@
+# Defaults for a new Device Control rule item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a flat map keyed by the
+# canvas field keys (rule_name, interface, action, access_permission, status,
+# device_class, vendor_id, product_id, serial_id, bluetooth_address).

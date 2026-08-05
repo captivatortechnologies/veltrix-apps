@@ -6,9 +6,10 @@ import { extractProfileSpecs, parseSettingsObject } from './validate'
 
 /**
  * Detect drift between the deployed profile configuration and the live tenant
- * state. Re-finds each declared profile by name and, when advanced settings
- * were declared, diffs only the managed keys — the fields the canvas actually
- * set. Server-added defaults on the live profile are ignored, since only the
+ * state. Re-finds each declared profile by (sensor type, name), diffs
+ * `description` when the canvas manages one, and — when advanced settings were
+ * declared — diffs only the managed `config` keys the canvas actually set.
+ * Server-added defaults on the live profile are ignored, since only the
  * declared settingsJson keys are under this config's management.
  */
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
@@ -21,13 +22,13 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
   }
   const { client } = built
 
-  const specs = extractProfileSpecs(ctx.deployedConfig).filter((s) => s.name)
+  const specs = extractProfileSpecs(ctx.deployedConfig).filter((s) => s.name && s.sensorType)
   const excludeActorLogins = veltrixActorLogins(ctx.credential)
 
   for (const spec of specs) {
     const before = diffs.length
     try {
-      const live = await findProfile(client, spec.name)
+      const live = await findProfile(client, spec.sensorType, spec.name)
 
       if (!live) {
         diffs.push({ field: spec.name, expected: 'exists', actual: 'missing', severity: 'critical' })
@@ -35,20 +36,34 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
         continue
       }
 
-      // Only diff the managed keys the canvas declared. Fetch the full profile
-      // body (the list only returns id/uuid/name) to read the tuning fields.
+      // description — only compared when the canvas manages one.
+      if (spec.description !== undefined) {
+        const liveDescription = typeof live.description === 'string' ? live.description : ''
+        if (spec.description !== liveDescription) {
+          diffs.push({
+            field: `${spec.name}.description`,
+            expected: spec.description || 'not set',
+            actual: liveDescription || 'not set',
+            severity: 'info',
+          })
+        }
+      }
+
+      // Only diff the managed `config` keys the canvas declared. Fetch the full
+      // profile detail (the list also returns config, but re-fetch by uuid for a
+      // consistent, single-record read).
       if (spec.settingsJson) {
         const expected = parseSettingsObject(spec.settingsJson) ?? {}
         const id = profileIdentifier(live)
-        const full = id !== undefined ? await getProfileById(client, id) : live
+        const full = id !== undefined ? await getProfileById(client, spec.sensorType, id) : live
+        const liveConfig = full?.config ?? {}
 
         for (const key of Object.keys(expected)) {
-          if (key === 'name') continue // identity — matched on, never drifts
           const expectedValue = normalizeValue(expected[key])
-          const actualValue = normalizeValue(full ? full[key] : undefined)
+          const actualValue = normalizeValue(liveConfig[key])
           if (expectedValue !== actualValue) {
             diffs.push({
-              field: `${spec.name}.${key}`,
+              field: `${spec.name}.config.${key}`,
               expected: expectedValue || 'not set',
               actual: actualValue || 'not set',
               severity: 'warning',

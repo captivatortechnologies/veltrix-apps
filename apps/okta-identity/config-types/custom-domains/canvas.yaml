@@ -1,0 +1,127 @@
+# =============================================================================
+# Canvas Template — Okta Custom Domains
+#
+# Declares ONE custom domain — the item. Users add as many as they need. A
+# domain's identity in Okta is its NAME (the `domain`); deploy lists domains,
+# matches on the domain, and PUTs (rebind brand) / POSTs (create) — there is
+# NO upsert and NO rename (delete-and-recreate to change the domain string).
+#
+# This is Okta's CUSTOM LOGIN URL DOMAIN API (e.g. login.acme.com — what the
+# browser address bar shows during sign-in), distinct from the Email Domains
+# config type (the domain mail is SENT FROM). Certificate source is either
+# OKTA_MANAGED (Okta obtains/renews the cert automatically after verification)
+# or MANUAL (you supply a PEM certificate/chain/key, renewed by re-deploying).
+# Switching MANUAL back to OKTA_MANAGED has no API — delete and recreate.
+#
+# A newly created domain is UNVERIFIED: Okta returns DNS records the operator
+# must add to their DNS, then verify out of band (this app never auto-verifies,
+# same principle as the Email Domains config type).
+#
+# Field keys must match what config-types/custom-domains/validate.ts checks.
+# =============================================================================
+
+id: "okta-identity-custom-domains"
+name: "Custom Domain Configuration"
+toolType: "okta-identity"
+entityType: "custom-domains"
+description: "Define Okta custom login-URL domains as code through the Okta Custom Domains API — the domain shown in the browser during sign-in (distinct from Email Domains, which is the mail-sending domain). Certificate source is OKTA_MANAGED (auto-renewed by Okta) or MANUAL (PEM certificate/chain/key you supply and rotate); the domain name itself is immutable — delete and recreate to change it. A brand can be bound/rebound at any time. New domains are created UNVERIFIED — the operator adds the returned DNS records and verifies out of band; this app never auto-verifies."
+
+item:
+  label: "Custom Domain"
+  identityField: "domain"
+  repeatable: true
+  minItems: 1
+  maxItems: 20
+  groups:
+    - name: "Domain"
+      icon: "globe"
+      description: "The custom login-URL domain, its brand, and certificate source"
+      fields:
+        - key: "domain"
+          label: "Custom Domain"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The custom login-URL domain, e.g. login.acme.com. This is the
+            logical identity deploy matches on and is IMMUTABLE — delete this
+            domain and recreate it to change the domain string. Must be
+            unique within this canvas. Cannot use the reserved
+            drapp.{yourOrgSubdomain}.okta.com domain.
+
+        - key: "brandId"
+          label: "Brand"
+          fieldType: "remote-select"
+          optionsSource: "brands"
+          required: false
+          helpText: >
+            The Okta brand this domain serves. Updatable at any time (bind or
+            rebind a different brand via Okta's "replace domain brand"
+            endpoint) — leave blank to leave an existing binding untouched;
+            this app never unbinds a brand (Okta has no API to clear it).
+
+        - key: "certificateSourceType"
+          label: "Certificate Source"
+          fieldType: "select"
+          required: true
+          defaultValue: "OKTA_MANAGED"
+          options:
+            - label: "Okta-managed (Okta obtains and renews the certificate)"
+              value: "OKTA_MANAGED"
+            - label: "Manual (you supply and rotate a PEM certificate)"
+              value: "MANUAL"
+          helpText: >
+            OKTA_MANAGED: Okta obtains and renews the TLS certificate once the
+            domain is verified — no certificate fields below are needed.
+            MANUAL: supply the certificate/chain/key below; each deploy
+            re-upserts them, so rotating a certificate is just redeploying
+            with new values. Once a MANUAL certificate has been set, Okta has
+            no API to revert to OKTA_MANAGED — delete and recreate the domain.
+
+    - name: "Certificate"
+      icon: "lock"
+      description: "PEM certificate material for a MANUAL certificate source (ignored for OKTA_MANAGED)"
+      fields:
+        - key: "certificate"
+          label: "Certificate (PEM)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 50000
+          visibleWhen:
+            field: "certificateSourceType"
+            equals: "MANUAL"
+          helpText: >
+            The host certificate in PEM format, 2048/3072/4096-bit. Public —
+            Okta only ever returns metadata (expiration/fingerprint/subject),
+            never the raw content, so this is re-sent on every deploy.
+
+        - key: "certificateChain"
+          label: "Certificate Chain (PEM)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 50000
+          visibleWhen:
+            field: "certificateSourceType"
+            equals: "MANUAL"
+          helpText: >
+            The intermediate certificate chain in PEM format. Okta never
+            returns it, so this is re-sent on every deploy alongside the
+            certificate.
+
+        - key: "privateKey"
+          label: "Private Key (PEM)"
+          fieldType: "password"
+          required: false
+          validation:
+            maxLength: 50000
+          visibleWhen:
+            field: "certificateSourceType"
+            equals: "MANUAL"
+          helpText: >
+            WRITE-ONLY secret — the certificate's private key. Okta never
+            returns it, so it cannot be diffed or captured for rollback;
+            required alongside Certificate + Certificate Chain to set or
+            rotate a MANUAL certificate.

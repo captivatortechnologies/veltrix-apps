@@ -46,6 +46,33 @@ export interface ProtocolTypeRef {
   parameters?: ProtocolParameterDef[]
 }
 
+/** A log source group as returned by GET .../log_source_management/log_source_groups. */
+export interface LogSourceGroupRef {
+  id?: number
+  name?: string
+  description?: string
+  parent_id?: number
+  owner?: string
+  modification_date?: number
+  assignable?: boolean
+  child_group_ids?: number[]
+}
+
+/** A tagged-field category as returned by GET /ariel/taggedfieldcategories. */
+export interface TaggedFieldCategoryRef {
+  id?: number
+  name?: string
+  uuid?: string
+  creation_date?: number
+  modified_date?: number
+}
+
+/** A retention bucket as returned by GET /config/event_retention_buckets or /config/flow_retention_buckets. */
+export interface RetentionBucketRef {
+  id?: number
+  name?: string
+}
+
 async function listJson<T>(client: QRadarClient, path: string): Promise<T[]> {
   const res = await client.request('GET', path, { range: 'items=0-9999' })
   if (!res.ok) return []
@@ -71,6 +98,26 @@ export function listUserRoles(client: QRadarClient): Promise<UserRoleRef[]> {
 
 export function listLowLevelCategories(client: QRadarClient): Promise<LowLevelCategoryRef[]> {
   return listJson<LowLevelCategoryRef>(client, '/data_classification/low_level_categories')
+}
+
+export function listLogSourceGroups(client: QRadarClient): Promise<LogSourceGroupRef[]> {
+  return listJson<LogSourceGroupRef>(client, '/config/event_sources/log_source_management/log_source_groups')
+}
+
+export function listTaggedFieldCategories(client: QRadarClient): Promise<TaggedFieldCategoryRef[]> {
+  return listJson<TaggedFieldCategoryRef>(client, '/ariel/taggedfieldcategories')
+}
+
+/** Event retention buckets are read-only here (no create endpoint); used only to
+ * resolve a bucket NAME to its id for the disaster-recovery Ariel Copy Profile
+ * exclude-list fields. */
+export function listEventRetentionBuckets(client: QRadarClient): Promise<RetentionBucketRef[]> {
+  return listJson<RetentionBucketRef>(client, '/config/event_retention_buckets')
+}
+
+/** Flow retention buckets — see listEventRetentionBuckets. */
+export function listFlowRetentionBuckets(client: QRadarClient): Promise<RetentionBucketRef[]> {
+  return listJson<RetentionBucketRef>(client, '/config/flow_retention_buckets')
 }
 
 /** Build a case-insensitive name -> id index from a list of named references. */

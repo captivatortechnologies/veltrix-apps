@@ -1,15 +1,16 @@
 id: ibm-qradar
 name: IBM QRadar
-version: "0.5.0"
+version: "0.6.0"
 vendor: Veltrix
 description: >
   Manage IBM QRadar configuration as code through the QRadar REST API — Reference
-  Sets, Reference Maps, Map of Sets, Reference Tables, Domains, Log Sources,
-  Custom Log Source Types, Event & Flow Custom Properties (regex + calculated),
-  Remote Networks, Remote Services, Network Hierarchy, Tenants, Resource
-  Restrictions, Offense Closing Reasons, Bandwidth Manager and QID Records — with
-  validation, drift detection and rollback handled by the Security-as-Code
-  pipeline.
+  Sets, Reference Maps, Map of Sets, Reference Tables, Domains, Log Sources, Log
+  Source Groups, Custom Log Source Types, Event & Flow Custom Properties (regex +
+  calculated), Remote Networks, Remote Services, Network Hierarchy, Tenants,
+  Resource Restrictions, Offense Closing Reasons, Bandwidth Manager, QID Records,
+  Ariel Lookups, Tagged Field Categories, Tagged Fields, Flow VLANs and
+  Disaster-Recovery Ariel Copy Profiles — with validation, drift detection and
+  rollback handled by the Security-as-Code pipeline.
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/ibm-qradar
@@ -84,10 +85,29 @@ permissions:
     - resource: qid-records
       actions: [read, write]
       description: Manage IBM QRadar QID records and DSM event mappings (append/update-only normalized event definitions) via the data-classification API
+    - resource: log-source-groups
+      actions: [read, write]
+      description: Manage IBM QRadar log source groups (named folders in the log-source-management group hierarchy) via the log-source-management API. Append-only — the API has no update or delete.
+    - resource: ariel-lookups
+      actions: [read, write, delete]
+      description: Manage IBM QRadar Ariel field lookups (named key=value maps used by AQL expressions) via the ariel API
+    - resource: tagged-field-categories
+      actions: [read, write, delete]
+      description: Manage IBM QRadar tagged-field categories (named UI groupings for Ariel tagged fields) via the ariel API
+    - resource: tagged-fields
+      actions: [read, write, delete]
+      description: Manage IBM QRadar Ariel tagged fields (named IPFIX/NetFlow information elements usable in AQL) via the ariel API
+    - resource: flow-vlans
+      actions: [read, write, delete]
+      description: Manage IBM QRadar flow VLAN domain fields (enterprise/customer VLAN id pairs) via the ariel API
+    - resource: ariel-copy-profiles
+      actions: [read, write, delete]
+      description: Manage IBM QRadar disaster-recovery Ariel Copy Profiles (event/flow replication from a managed host to a DR destination) via the disaster_recovery API
 
 pipeline:
   configurationTypes:
     - id: log-sources
+      group: "Log Sources"
       name: Log Sources
       description: Log sources — named event feeds identified by a log source type and protocol (both by name, resolved to ids) plus protocol parameters (matched by name, rename-safe by id; created/updated and reconcile-deleted)
       canvasTemplate: config-types/log-sources/canvas.yaml
@@ -105,6 +125,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: remote-networks
+      group: "Network & Topology"
       name: Remote Networks
       description: Remote networks — named CIDR ranges classifying external traffic (staged; applied with an INCREMENTAL deploy; matched by name, rename-safe by id; created/updated and reconcile-deleted)
       canvasTemplate: config-types/remote-networks/canvas.yaml
@@ -122,6 +143,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: remote-services
+      group: "Network & Topology"
       name: Remote Services
       description: Remote services — named CIDR ranges classifying known-service traffic (staged; applied with an INCREMENTAL deploy; matched by name, rename-safe by id; created/updated and reconcile-deleted)
       canvasTemplate: config-types/remote-services/canvas.yaml
@@ -139,6 +161,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: tenants
+      group: "Access & Tenancy"
       name: Tenants
       description: Tenants — named multi-tenancy boundaries with optional event/flow rate limits (matched by name, rename-safe by id; created/updated and reconcile-deleted)
       canvasTemplate: config-types/tenants/canvas.yaml
@@ -156,6 +179,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: calculated-event-properties
+      group: "Event & Flow Properties"
       name: Calculated Event Properties
       description: Calculated custom event properties — a value computed from two operands and an arithmetic operator (matched by name, rename-safe by id; created/updated and reconcile-deleted)
       canvasTemplate: config-types/calculated-event-properties/canvas.yaml
@@ -173,6 +197,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: custom-event-properties
+      group: "Event & Flow Properties"
       name: Custom Event Properties
       description: Custom event properties — a regex property (by unique name) plus per-log-source-type extraction expressions (nested-child reconcile; created/updated and reconcile-deleted)
       canvasTemplate: config-types/custom-event-properties/canvas.yaml
@@ -190,6 +215,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: flow-custom-properties
+      group: "Event & Flow Properties"
       name: Flow Custom Properties
       description: Flow custom properties — a regex property (by unique name) plus per-log-source-type extraction expressions scoped to flow records (nested-child reconcile; created/updated and reconcile-deleted)
       canvasTemplate: config-types/flow-custom-properties/canvas.yaml
@@ -207,6 +233,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: network-hierarchy
+      group: "Network & Topology"
       name: Network Hierarchy
       description: Network hierarchy — grouped named CIDR objects applied as a whole-list staged replace that preserves operator objects, then an INCREMENTAL deploy (identity is group+name; reconcile-deletes only objects this app created)
       canvasTemplate: config-types/network-hierarchy/canvas.yaml
@@ -224,6 +251,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: resource-restrictions
+      group: "Access & Tenancy"
       name: Resource Restrictions
       description: Resource restrictions — data-window / execution-time / record-limit caps for a tenant or role (target declared by name, resolved to id; created, updated via PUT, and reconcile-deleted)
       canvasTemplate: config-types/resource-restrictions/canvas.yaml
@@ -241,6 +269,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: log-source-types
+      group: "Log Sources"
       name: Custom Log Source Types
       description: Custom log source types (DSMs) — named custom types with an optional default protocol (by name, resolved to id); only custom types are managed, built-ins are protected (matched by name, rename-safe by id; created/updated and reconcile-deleted)
       canvasTemplate: config-types/log-source-types/canvas.yaml
@@ -258,6 +287,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: offense-closing-reasons
+      group: "Offenses"
       name: Offense Closing Reasons
       description: Offense closing reasons — short analyst-selectable close texts (identity is the text). Append-only, the API has no update or delete, so reasons are created if missing but never removed or renamed
       canvasTemplate: config-types/offense-closing-reasons/canvas.yaml
@@ -275,6 +305,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: bandwidth-manager
+      group: "System"
       name: Bandwidth Manager
       description: Bandwidth manager configurations — store-and-forward traffic-shaping caps (KB limit) per managed host (matched by name, rename-safe by id; created/updated and reconcile-deleted). Filters are out of scope.
       canvasTemplate: config-types/bandwidth-manager/canvas.yaml
@@ -292,6 +323,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: qid-records
+      group: "Log Sources"
       name: QID Records
       description: QID records — normalized event definitions (log source type + name + low level category + severity) with nested DSM event mappings (log source type/category by name, resolved to ids). Append/update-only — the API has no delete, so records/mappings are created and updated but never removed.
       canvasTemplate: config-types/qid-records/canvas.yaml
@@ -309,6 +341,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: reference-tables
+      group: "Reference Data"
       name: Reference Tables
       description: Reference tables — named collections of outer key -> column -> value cells with typed columns (name-keyed; cells reconciled to the declared set)
       canvasTemplate: config-types/reference-tables/canvas.yaml
@@ -326,6 +359,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: domains
+      group: "Access & Tenancy"
       name: Domains
       description: Domains — named segmentation boundaries with a description (matched by name, rename-safe by id; created/updated and reconcile-deleted)
       canvasTemplate: config-types/domains/canvas.yaml
@@ -343,6 +377,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: reference-map-of-sets
+      group: "Reference Data"
       name: Map of Sets
       description: Map of sets — named collections where each key holds a set of values (name-keyed; key/value pairs reconciled to the declared set)
       canvasTemplate: config-types/reference-map-of-sets/canvas.yaml
@@ -360,6 +395,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: reference-maps
+      group: "Reference Data"
       name: Reference Maps
       description: Reference maps — named, typed key=value collections (name-keyed; entries reconciled to the declared set)
       canvasTemplate: config-types/reference-maps/canvas.yaml
@@ -377,6 +413,7 @@ pipeline:
         requiresConnectivity: false
 
     - id: reference-sets
+      group: "Reference Data"
       name: Reference Sets
       description: Reference sets — named, typed value collections (name-keyed; values reconciled to the declared list)
       canvasTemplate: config-types/reference-sets/canvas.yaml
@@ -388,6 +425,114 @@ pipeline:
         healthCheck: config-types/reference-sets/healthCheck
         driftDetect: config-types/reference-sets/driftDetect
         getStatus: config-types/reference-sets/getStatus
+      targets:
+        componentTypes: [ibm-qradar]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: log-source-groups
+      group: "Log Sources"
+      name: Log Source Groups
+      description: Log source groups — named folders in the log-source-management group hierarchy (parent declared by name, resolved to id). Append-only, the API has no update or delete, so groups are created if missing but never renamed, re-parented or removed
+      canvasTemplate: config-types/log-source-groups/canvas.yaml
+      defaultConfig: config-types/log-source-groups/defaults.yaml
+      handlers:
+        validate: config-types/log-source-groups/validate
+        deploy: config-types/log-source-groups/deploy
+        rollback: config-types/log-source-groups/rollback
+        healthCheck: config-types/log-source-groups/healthCheck
+        driftDetect: config-types/log-source-groups/driftDetect
+        getStatus: config-types/log-source-groups/getStatus
+      targets:
+        componentTypes: [ibm-qradar]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ariel-lookups
+      group: "Ariel / AQL"
+      name: Ariel Lookups
+      description: Ariel field lookups — named key=value maps (plus a default value) used by AQL expressions to translate raw field values into readable labels (name-keyed; entries reconciled to the declared set; the field type is immutable)
+      canvasTemplate: config-types/ariel-lookups/canvas.yaml
+      defaultConfig: config-types/ariel-lookups/defaults.yaml
+      handlers:
+        validate: config-types/ariel-lookups/validate
+        deploy: config-types/ariel-lookups/deploy
+        rollback: config-types/ariel-lookups/rollback
+        healthCheck: config-types/ariel-lookups/healthCheck
+        driftDetect: config-types/ariel-lookups/driftDetect
+        getStatus: config-types/ariel-lookups/getStatus
+      targets:
+        componentTypes: [ibm-qradar]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: tagged-field-categories
+      group: "Ariel / AQL"
+      name: Tagged Field Categories
+      description: Tagged-field categories — named UI groupings for Ariel tagged fields (matched by name, rename-safe by id; created/updated and reconcile-deleted)
+      canvasTemplate: config-types/tagged-field-categories/canvas.yaml
+      defaultConfig: config-types/tagged-field-categories/defaults.yaml
+      handlers:
+        validate: config-types/tagged-field-categories/validate
+        deploy: config-types/tagged-field-categories/deploy
+        rollback: config-types/tagged-field-categories/rollback
+        healthCheck: config-types/tagged-field-categories/healthCheck
+        driftDetect: config-types/tagged-field-categories/driftDetect
+        getStatus: config-types/tagged-field-categories/getStatus
+      targets:
+        componentTypes: [ibm-qradar]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: tagged-fields
+      group: "Ariel / AQL"
+      name: Tagged Fields
+      description: Ariel tagged fields — named IPFIX/NetFlow information elements (private enterprise number + element id) usable in AQL, classified into a category (declared by name, resolved to id). Name, type, private enterprise number, element id and is-array are immutable after creation — only category and description update in place; reconcile-deletes fields this app created but no longer declares
+      canvasTemplate: config-types/tagged-fields/canvas.yaml
+      defaultConfig: config-types/tagged-fields/defaults.yaml
+      handlers:
+        validate: config-types/tagged-fields/validate
+        deploy: config-types/tagged-fields/deploy
+        rollback: config-types/tagged-fields/rollback
+        healthCheck: config-types/tagged-fields/healthCheck
+        driftDetect: config-types/tagged-fields/driftDetect
+        getStatus: config-types/tagged-fields/getStatus
+      targets:
+        componentTypes: [ibm-qradar]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: flow-vlans
+      group: "Ariel / AQL"
+      name: Flow VLANs
+      description: Flow VLAN domain fields — enterprise/customer VLAN id pairs used to disambiguate overlapping VLAN spaces in flow data. The API has no name field and no update, so the (enterprise, customer) pair itself is the identity; created/reconcile-deleted, never updated in place
+      canvasTemplate: config-types/flow-vlans/canvas.yaml
+      defaultConfig: config-types/flow-vlans/defaults.yaml
+      handlers:
+        validate: config-types/flow-vlans/validate
+        deploy: config-types/flow-vlans/deploy
+        rollback: config-types/flow-vlans/rollback
+        healthCheck: config-types/flow-vlans/healthCheck
+        driftDetect: config-types/flow-vlans/driftDetect
+        getStatus: config-types/flow-vlans/getStatus
+      targets:
+        componentTypes: [ibm-qradar]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ariel-copy-profiles
+      group: "Disaster Recovery"
+      name: Disaster Recovery Ariel Copy Profiles
+      description: Disaster-recovery Ariel Copy Profiles — continuous event/flow replication from a managed host to a DR destination (excluded retention buckets declared by name, resolved to ids). QRadar allows one profile per host, so host id — not the canvas item — is the real identity; created/updated and reconcile-deleted
+      canvasTemplate: config-types/ariel-copy-profiles/canvas.yaml
+      defaultConfig: config-types/ariel-copy-profiles/defaults.yaml
+      handlers:
+        validate: config-types/ariel-copy-profiles/validate
+        deploy: config-types/ariel-copy-profiles/deploy
+        rollback: config-types/ariel-copy-profiles/rollback
+        healthCheck: config-types/ariel-copy-profiles/healthCheck
+        driftDetect: config-types/ariel-copy-profiles/driftDetect
+        getStatus: config-types/ariel-copy-profiles/getStatus
       targets:
         componentTypes: [ibm-qradar]
         requiresCredential: true

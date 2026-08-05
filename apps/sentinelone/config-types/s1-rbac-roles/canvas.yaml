@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — SentinelOne RBAC Roles
+#
+# Declares ONE custom RBAC role — the item. Users add as many as they need.
+# Roles are a scope-filtered collection (/rbac/roles); SentinelOne assigns a
+# server id, so identity for reconciliation is the role NAME at the configured
+# scope. Permissions are declared as dot-path key -> "true"/"false" (or a
+# number/string) overrides, merged against the scope's new-role template (on
+# create) or the role's current permissions (on update) — the same
+# read-merge-write approach s1-agent-policy already uses for the agent policy,
+# since SentinelOne's permission taxonomy is tenant/SKU-specific and not
+# hardcoded here. Discover the keys your tenant supports from the role's
+# detail/template in the SentinelOne console or API. Field keys must match
+# config-types/s1-rbac-roles/validate.ts.
+# =============================================================================
+
+id: "sentinelone-s1-rbac-roles"
+name: "SentinelOne RBAC Role Configuration"
+toolType: "sentinelone"
+entityType: "s1-rbac-roles"
+description: "Define SentinelOne custom RBAC roles as code through the Management API (/rbac/roles). Reconciled by role name at the configured scope; permissions are dot-path overrides merged against the live template/role."
+
+item:
+  label: "RBAC Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Role"
+      icon: "key"
+      description: "Role identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The role name — its logical identity at the configured scope."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional description shown in the console."
+
+    - name: "Permissions"
+      icon: "sliders"
+      description: "Permission overrides merged against the live template/role"
+      fields:
+        - key: "permissions"
+          label: "Permissions"
+          fieldType: "keyvalue"
+          required: false
+          helpText: >
+            Dot-path permission keys this role sets, as key -> "true"/"false"
+            (or a number/string), e.g. policyEditing.edit -> true. Discover the
+            keys your tenant supports from GET /rbac/role (a new role's
+            template) or GET /rbac/role/{id} (an existing role's detail). Only
+            the keys listed here are touched; every other permission is left at
+            whatever the live template/role already has.

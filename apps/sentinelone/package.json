@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-sentinelone",
   "private": true,
-  "version": "1.1.0",
-  "description": "Veltrix app: manage SentinelOne (policies, exclusions, blocklists, STAR rules) configuration as code",
+  "version": "1.2.0",
+  "description": "Veltrix app: manage SentinelOne (policies, exclusions, blocklists, STAR rules, firewall/device control, RBAC roles) configuration as code",
   "scripts": { "typecheck": "tsc --noEmit" },
   "devDependencies": {
     "@types/jest": "^29.5.14",

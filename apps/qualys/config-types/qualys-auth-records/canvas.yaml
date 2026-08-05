@@ -1,0 +1,90 @@
+# =============================================================================
+# Canvas Template — Qualys Authentication Records
+#
+# Declares ONE authentication record — the item. An authentication record lets
+# Qualys log into a target host/service (Unix, Windows, a database, an
+# appliance, …) to run a TRUSTED (authenticated) scan. Each technology is a
+# separate Qualys endpoint/namespace, so identity for reconciliation is the
+# (record type, title) pair. Credentials are WRITE-ONLY — Qualys never returns
+# them, so this field is never diffed, stored in plaintext, or logged. Field
+# keys must match config-types/qualys-auth-records/validate.ts.
+# =============================================================================
+
+id: "qualys-auth-records"
+name: "Qualys Authentication Records"
+toolType: "qualys"
+entityType: "qualys-auth-records"
+description: "Define Qualys authentication records for trusted scanning as code through the classic v2 API (/api/2.0/fo/auth/<type>/). Reconciled by (record type, title). Credentials are write-only."
+
+item:
+  label: "Authentication Record"
+  identityField: "title"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Authentication Record"
+      icon: "key"
+      description: "Technology, title and target hosts"
+      fields:
+        - key: "record_type"
+          label: "Technology"
+          fieldType: "select"
+          required: true
+          options:
+            - { label: "Unix / Cisco / Checkpoint Firewall", value: "unix" }
+            - { label: "Windows", value: "windows" }
+            - { label: "Oracle", value: "oracle" }
+            - { label: "Oracle Listener", value: "oracle_listener" }
+            - { label: "Oracle WebLogic Server", value: "oracle_weblogic" }
+            - { label: "SNMP", value: "snmp" }
+            - { label: "VMware", value: "vmware" }
+            - { label: "MS SQL Server", value: "ms_sql" }
+            - { label: "MySQL", value: "mysql" }
+            - { label: "PostgreSQL", value: "postgresql" }
+            - { label: "IBM DB2", value: "ibm_db2" }
+            - { label: "Docker", value: "docker" }
+            - { label: "HTTP", value: "http" }
+            - { label: "Network Device (SSH)", value: "network_ssh" }
+            - { label: "MongoDB", value: "mongodb" }
+            - { label: "Apache Tomcat", value: "tomcat" }
+            - { label: "Apache HTTP Server", value: "apache" }
+            - { label: "Microsoft IIS", value: "ms_iis" }
+            - { label: "IBM WebSphere", value: "ibm_websphere" }
+            - { label: "Sybase", value: "sybase" }
+            - { label: "Palo Alto Firewall", value: "palo_alto_firewall" }
+            - { label: "Microsoft Exchange Server", value: "ms_exchange" }
+          helpText: "The scanned technology. Each technology is a separate Qualys endpoint — titles are only unique within a technology."
+
+        - key: "title"
+          label: "Title"
+          fieldType: "text"
+          required: true
+          helpText: "The record title (its logical identity for reconciliation, together with Technology). Must be unique within this technology."
+
+        - key: "ips"
+          label: "Target IPs / Ranges"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            Comma- or whitespace-separated IPs, ranges (10.0.0.1-10.0.0.254) and CIDR blocks the
+            server will log into using this record's credentials. Overwrites the record's IP set
+            on each deploy.
+
+        - key: "comments"
+          label: "Comments"
+          fieldType: "text"
+          helpText: "Optional free-text comments."
+
+        - key: "credentials_json"
+          label: "Credentials (JSON)"
+          fieldType: "password"
+          required: true
+          helpText: >
+            Flat JSON object of the technology's login parameters — sent to Qualys on every
+            deploy and NEVER read back (write-only). At minimum a username, plus a password
+            (or login_type: "vault" with the matching vault_* parameters). Examples —
+            Unix: {"username":"svc-qualys","password":"...","root_username":"svc-root","root_password":"...",
+            "root_tool":"sudo"}; Windows: {"username":"DOMAIN\\svc-qualys","password":"..."};
+            SNMP: {"community_string":"..."}. See the Qualys API (VM/PC) User Guide's per-technology
+            authentication record page for the full parameter set.

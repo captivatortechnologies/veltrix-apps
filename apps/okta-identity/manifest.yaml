@@ -1,6 +1,6 @@
 id: okta-identity
 name: Okta
-version: "1.11.0"
+version: "1.12.0"
 vendor: Veltrix
 description: >
   Manage Okta configuration as code through the Okta Management API. Covers
@@ -11,9 +11,9 @@ description: >
   device assurance policies, user types, custom admin roles with resource sets
   and their role bindings, custom profile-schema attributes and profile mappings,
   self-service feature toggles, CAPTCHA, user linked-object definitions, org
-  rate-limit settings, brands and their themes, custom email domains and SMS
-  templates — with validation, drift detection and rollback handled by the
-  Security-as-Code pipeline.
+  rate-limit settings, brands and their themes, custom login-URL domains and
+  their certificates, custom email domains and SMS templates — with validation,
+  drift detection and rollback handled by the Security-as-Code pipeline.
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/okta-identity
@@ -128,6 +128,9 @@ permissions:
     - resource: brands
       actions: [read, write, delete]
       description: Manage Okta brands and their theme (colors + touchpoint variants; the default brand is protected from deletion)
+    - resource: custom-domains
+      actions: [read, write, delete]
+      description: Manage Okta custom login-URL domains and their certificates (domain name is immutable; brand is rebindable; the certificate source cannot revert MANUAL to OKTA_MANAGED)
     - resource: email-domains
       actions: [read, write, delete]
       description: Manage Okta custom email domains (sender display name / username; DNS verification is external)
@@ -687,6 +690,25 @@ pipeline:
         driftDetect: config-types/brands/driftDetect
         getStatus: config-types/brands/getStatus
         options: config-types/brands/options
+      targets:
+        componentTypes: [okta-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: custom-domains
+      group: "Branding & Notifications"
+      name: Custom Domains
+      description: Custom login-URL domains and certificates (domain immutable; brand rebindable any time; MANUAL certificate source cannot revert to OKTA_MANAGED)
+      canvasTemplate: config-types/custom-domains/canvas.yaml
+      defaultConfig: config-types/custom-domains/defaults.yaml
+      handlers:
+        validate: config-types/custom-domains/validate
+        deploy: config-types/custom-domains/deploy
+        rollback: config-types/custom-domains/rollback
+        healthCheck: config-types/custom-domains/healthCheck
+        driftDetect: config-types/custom-domains/driftDetect
+        getStatus: config-types/custom-domains/getStatus
+        options: config-types/custom-domains/options
       targets:
         componentTypes: [okta-org]
         requiresCredential: true

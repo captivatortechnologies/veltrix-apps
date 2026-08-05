@@ -3,6 +3,32 @@
 All notable changes to the CrowdStrike Falcon app are documented here. This
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.13.2 — 2026-08-05
+
+### Documentation (research-first coverage audit, no new config type)
+- **README Coverage section** — re-verified this app's 44 configuration types
+  against the current Falcon API surface (`developer.crowdstrike.com`'s
+  operations-by-collection index, the FalconPy SDK, and the official
+  Terraform provider). Confirmed the app's declarative write coverage —
+  built across five phases (v1.7.0–v1.13.1) — is complete: every genuinely
+  declarative, round-trippable Falcon write surface is already managed.
+  Added the full grouped Managed/Excluded breakdown, replacing the stale
+  "Future work" section (which listed Sensor Update Policies, Exclusions and
+  Response Policies as future — all three shipped in v1.8.0).
+- **Investigated and excluded: Falcon Fusion SOAR Workflows.** The Workflows
+  API does expose a definition CRUD (`search_definitions`/`export_definition`/
+  `import_definition`/`update_definition`), but the create path is a
+  multipart `application/x-yaml` upload of Fusion's internal
+  trigger/condition/action DSL with no publicly documented hand-authoring
+  schema — the same class of blocker already flagged unresolved for this
+  app's own `ngsiem-saved-queries`/`ngsiem-dashboards` `yaml_template`
+  uploads (v1.12.1). Deferred for the same reason; documented in Coverage
+  with sources.
+- Refreshed the README intro to describe the full 14-sidebar-group scope
+  (previously described only the original 3 types from v1.0) and pointed the
+  "Detection/alert ingestion" limitation at the new Coverage section instead
+  of the removed Future Work section.
+
 ## 1.13.1 — 2026-07-28
 
 ### Fixed (remaining low-severity review findings)
