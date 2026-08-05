@@ -1,0 +1,283 @@
+id: cato-networks
+name: Cato Networks
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Cato Networks (SASE/SSE) configuration as code through the Cato
+  Management Application (CMA) GraphQL API. Covers Internet Firewall rules and
+  sections, WAN Firewall rules and sections, Application Control (CASB) rules,
+  TLS Inspection rules, Anti-Malware file-hash exceptions, Custom Applications
+  and Global IP Range network objects - with validation, drift detection and
+  rollback handled by the Security-as-Code pipeline. Internet/WAN Firewall,
+  Application Control and TLS Inspection changes are staged into a private
+  draft revision and published as a batch on deploy, mirroring Cato's own
+  change-management workflow.
+category: NETWORK
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cato-networks
+icon: "🧭"
+
+platform:
+  minVersion: "1.0.0"
+
+# Cato Networks brand: deep navy primary, cyan accent.
+branding:
+  primaryColor: "#0A2342"
+  accentColor: "#00B7C3"
+  logo: ./assets/logo.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: internet-firewall-sections
+      actions: [read, write, delete]
+      description: Manage Cato Internet Firewall policy sections (rule groups and their order)
+    - resource: internet-firewall-rules
+      actions: [read, write, delete]
+      description: Manage Cato Internet Firewall rules (matching criteria, action and position within a section)
+    - resource: wan-firewall-sections
+      actions: [read, write, delete]
+      description: Manage Cato WAN Firewall policy sections (rule groups and their order)
+    - resource: wan-firewall-rules
+      actions: [read, write, delete]
+      description: Manage Cato WAN Firewall rules (matching criteria, action, direction and position within a section)
+    - resource: application-control-rules
+      actions: [read, write, delete]
+      description: Manage Cato Application Control (CASB) rules - application, data and file rule kinds
+    - resource: tls-inspection-rules
+      actions: [read, write, delete]
+      description: Manage Cato TLS Inspection rules (which traffic gets decrypted and untrusted-certificate handling)
+    - resource: anti-malware-file-hash-rules
+      actions: [read, write, delete]
+      description: Manage Cato Anti-Malware file-hash exception rules (block/bypass a specific file by SHA-256)
+    - resource: custom-applications
+      actions: [read, write, delete]
+      description: Manage Cato Custom Application objects (destination + port/protocol criteria referenced by name from policy rules)
+    - resource: network-ranges
+      actions: [read, write, delete]
+      description: Manage Cato Global IP Range network objects (account-wide reusable IP ranges referenced by name from policy rules)
+
+pipeline:
+  configurationTypes:
+    - id: internet-firewall-sections
+      group: "Internet Firewall"
+      name: Sections
+      description: Internet Firewall policy sections (rule groups) and their order - applied over the CMA GraphQL API, staged and published as a batch
+      canvasTemplate: config-types/internet-firewall-sections/canvas.yaml
+      defaultConfig: config-types/internet-firewall-sections/defaults.yaml
+      handlers:
+        validate: config-types/internet-firewall-sections/validate
+        deploy: config-types/internet-firewall-sections/deploy
+        rollback: config-types/internet-firewall-sections/rollback
+        healthCheck: config-types/internet-firewall-sections/healthCheck
+        driftDetect: config-types/internet-firewall-sections/driftDetect
+        getStatus: config-types/internet-firewall-sections/getStatus
+      targets:
+        componentTypes: [cato-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: internet-firewall-rules
+      group: "Internet Firewall"
+      name: Rules
+      description: Internet Firewall rules - matching criteria, action and position within a section - applied over the CMA GraphQL API, staged and published as a batch
+      canvasTemplate: config-types/internet-firewall-rules/canvas.yaml
+      defaultConfig: config-types/internet-firewall-rules/defaults.yaml
+      handlers:
+        validate: config-types/internet-firewall-rules/validate
+        deploy: config-types/internet-firewall-rules/deploy
+        rollback: config-types/internet-firewall-rules/rollback
+        healthCheck: config-types/internet-firewall-rules/healthCheck
+        driftDetect: config-types/internet-firewall-rules/driftDetect
+        getStatus: config-types/internet-firewall-rules/getStatus
+      targets:
+        componentTypes: [cato-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: wan-firewall-sections
+      group: "WAN Firewall"
+      name: Sections
+      description: WAN Firewall policy sections (rule groups) and their order - applied over the CMA GraphQL API, staged and published as a batch
+      canvasTemplate: config-types/wan-firewall-sections/canvas.yaml
+      defaultConfig: config-types/wan-firewall-sections/defaults.yaml
+      handlers:
+        validate: config-types/wan-firewall-sections/validate
+        deploy: config-types/wan-firewall-sections/deploy
+        rollback: config-types/wan-firewall-sections/rollback
+        healthCheck: config-types/wan-firewall-sections/healthCheck
+        driftDetect: config-types/wan-firewall-sections/driftDetect
+        getStatus: config-types/wan-firewall-sections/getStatus
+      targets:
+        componentTypes: [cato-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: wan-firewall-rules
+      group: "WAN Firewall"
+      name: Rules
+      description: WAN Firewall rules - matching criteria, action, direction and position within a section - applied over the CMA GraphQL API, staged and published as a batch
+      canvasTemplate: config-types/wan-firewall-rules/canvas.yaml
+      defaultConfig: config-types/wan-firewall-rules/defaults.yaml
+      handlers:
+        validate: config-types/wan-firewall-rules/validate
+        deploy: config-types/wan-firewall-rules/deploy
+        rollback: config-types/wan-firewall-rules/rollback
+        healthCheck: config-types/wan-firewall-rules/healthCheck
+        driftDetect: config-types/wan-firewall-rules/driftDetect
+        getStatus: config-types/wan-firewall-rules/getStatus
+      targets:
+        componentTypes: [cato-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: application-control-rules
+      group: "Security Policies"
+      name: Application Control Rules
+      description: Application Control (CASB) rules - application/data/file kinds - applied over the CMA GraphQL API, staged and published as a batch
+      canvasTemplate: config-types/application-control-rules/canvas.yaml
+      defaultConfig: config-types/application-control-rules/defaults.yaml
+      handlers:
+        validate: config-types/application-control-rules/validate
+        deploy: config-types/application-control-rules/deploy
+        rollback: config-types/application-control-rules/rollback
+        healthCheck: config-types/application-control-rules/healthCheck
+        driftDetect: config-types/application-control-rules/driftDetect
+        getStatus: config-types/application-control-rules/getStatus
+      targets:
+        componentTypes: [cato-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: tls-inspection-rules
+      group: "Security Policies"
+      name: TLS Inspection Rules
+      description: TLS Inspection rules - which traffic is decrypted and untrusted-certificate handling - applied over the CMA GraphQL API, staged and published as a batch
+      canvasTemplate: config-types/tls-inspection-rules/canvas.yaml
+      defaultConfig: config-types/tls-inspection-rules/defaults.yaml
+      handlers:
+        validate: config-types/tls-inspection-rules/validate
+        deploy: config-types/tls-inspection-rules/deploy
+        rollback: config-types/tls-inspection-rules/rollback
+        healthCheck: config-types/tls-inspection-rules/healthCheck
+        driftDetect: config-types/tls-inspection-rules/driftDetect
+        getStatus: config-types/tls-inspection-rules/getStatus
+      targets:
+        componentTypes: [cato-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: anti-malware-file-hash-rules
+      group: "Security Policies"
+      name: Anti-Malware File Hash Rules
+      description: Anti-Malware file-hash exception rules (block/bypass a specific file by SHA-256) - applied over the CMA GraphQL API, staged and published as a batch
+      canvasTemplate: config-types/anti-malware-file-hash-rules/canvas.yaml
+      defaultConfig: config-types/anti-malware-file-hash-rules/defaults.yaml
+      handlers:
+        validate: config-types/anti-malware-file-hash-rules/validate
+        deploy: config-types/anti-malware-file-hash-rules/deploy
+        rollback: config-types/anti-malware-file-hash-rules/rollback
+        healthCheck: config-types/anti-malware-file-hash-rules/healthCheck
+        driftDetect: config-types/anti-malware-file-hash-rules/driftDetect
+        getStatus: config-types/anti-malware-file-hash-rules/getStatus
+      targets:
+        componentTypes: [cato-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: custom-applications
+      group: "Network Objects"
+      name: Custom Applications
+      description: Custom Application objects (destination + port/protocol criteria referenced by name from policy rules) - applied over the CMA GraphQL API, applies immediately (not staged)
+      canvasTemplate: config-types/custom-applications/canvas.yaml
+      defaultConfig: config-types/custom-applications/defaults.yaml
+      handlers:
+        validate: config-types/custom-applications/validate
+        deploy: config-types/custom-applications/deploy
+        rollback: config-types/custom-applications/rollback
+        healthCheck: config-types/custom-applications/healthCheck
+        driftDetect: config-types/custom-applications/driftDetect
+        getStatus: config-types/custom-applications/getStatus
+      targets:
+        componentTypes: [cato-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: network-ranges
+      group: "Network Objects"
+      name: Network Ranges
+      description: Global IP Range network objects (account-wide reusable IP ranges referenced by name from policy rules) - applied over the CMA GraphQL API, applies immediately (not staged)
+      canvasTemplate: config-types/network-ranges/canvas.yaml
+      defaultConfig: config-types/network-ranges/defaults.yaml
+      handlers:
+        validate: config-types/network-ranges/validate
+        deploy: config-types/network-ranges/deploy
+        rollback: config-types/network-ranges/rollback
+        healthCheck: config-types/network-ranges/healthCheck
+        driftDetect: config-types/network-ranges/driftDetect
+        getStatus: config-types/network-ranges/getStatus
+      targets:
+        componentTypes: [cato-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/cato-networks
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: runs a minimal accountSnapshot read
+# against the CMA GraphQL API to prove the API key and account id are correct
+# together.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: api_base_url
+    type: string
+    label: CMA API URL
+    description: >
+      The Cato Management Application GraphQL endpoint. Leave blank for the
+      standard endpoint (https://api.catonetworks.com/api/v1/graphql2).
+    default: ""
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Cato CMA GraphQL API calls.
+    default: 30
+    required: false

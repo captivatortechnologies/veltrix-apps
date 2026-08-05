@@ -1,0 +1,7 @@
+# Defaults for a new WAN Firewall rule item. See internet-firewall-rules for
+# the equivalent shape (this type adds `direction`).
+enabled: true
+action: "BLOCK"
+direction: "TO"
+connectionOrigin: "ANY"
+position: "FIRST_IN_SECTION"

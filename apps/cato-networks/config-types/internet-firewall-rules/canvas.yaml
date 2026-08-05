@@ -1,0 +1,138 @@
+# =============================================================================
+# Canvas Template - Cato Internet Firewall Rules
+#
+# Declares ONE Internet Firewall rule - the item. Rules match outbound
+# internet-bound traffic (source/destination/application/service/...) and take
+# an action; Cato assigns a numeric id and evaluates rules by their position
+# within a section. Identity is the NAME (no upsert): deploy lists rules,
+# matches by name, and updateRule or addRule accordingly.
+#
+# The section this rule belongs to must already exist - create it first with
+# the Internet Firewall Sections configuration type.
+#
+# The many match-criteria fields (source, destination, service, exceptions,
+# tracking, schedule, country, device, deviceAttributes, deviceOS,
+# activePeriod) live in a single JSON escape-hatch field, `rule_json`, using
+# Cato's own GraphQL input shapes verbatim - including its generic
+# `{"by":"NAME","input":"<name>"}` / `{"by":"ID","input":"<id>"}` reference
+# objects for sites/hosts/groups/users/categories/custom apps/etc. First-class
+# fields (name/description/enabled/action/connectionOrigin) always win over a
+# same-named JSON key.
+#
+# API: policy(accountId).internetFirewall - addRule / updateRule / moveRule
+# (InternetFirewallAddRuleInput / InternetFirewallUpdateRuleInput /
+# PolicyMoveRuleInput). Changes are staged and published as a batch - see
+# README.md.
+#
+# Field keys must match what validate.ts checks.
+# =============================================================================
+
+id: "cato-networks-internet-firewall-rules"
+name: "Internet Firewall Rule Configuration"
+toolType: "cato-networks"
+entityType: "internet-firewall-rules"
+description: "Define Cato Internet Firewall rules as code through the CMA GraphQL API. Changes are staged and published as a batch."
+
+item:
+  label: "Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 0
+  maxItems: 500
+  groups:
+    - name: "Rule"
+      icon: "shield"
+      description: "Name, section, state and action"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The rule name (its logical identity). Cato assigns the numeric id."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "section"
+          label: "Section"
+          fieldType: "text"
+          required: true
+          helpText: "Name of an existing Internet Firewall section (create it first with the Sections configuration type)."
+
+        - key: "action"
+          label: "Action"
+          fieldType: "select"
+          defaultValue: "BLOCK"
+          options:
+            - label: "Allow"
+              value: "ALLOW"
+            - label: "Block"
+              value: "BLOCK"
+            - label: "Redirect to captive portal"
+              value: "CAPTIVE_PORTAL"
+            - label: "Prompt the user"
+              value: "PROMPT"
+
+        - key: "connectionOrigin"
+          label: "Connection Origin"
+          fieldType: "select"
+          defaultValue: "ANY"
+          options:
+            - label: "Any"
+              value: "ANY"
+            - label: "Site"
+              value: "SITE"
+            - label: "Remote user"
+              value: "REMOTE"
+
+    - name: "Position"
+      icon: "list"
+      description: "Where this rule sits within its section"
+      fields:
+        - key: "position"
+          label: "Position"
+          fieldType: "select"
+          defaultValue: "FIRST_IN_SECTION"
+          options:
+            - label: "First in section"
+              value: "FIRST_IN_SECTION"
+            - label: "Last in section"
+              value: "LAST_IN_SECTION"
+            - label: "Before another rule"
+              value: "BEFORE_RULE"
+            - label: "After another rule"
+              value: "AFTER_RULE"
+          helpText: "Asserted on every deploy."
+
+        - key: "positionRuleName"
+          label: "Relative To Rule"
+          fieldType: "text"
+          helpText: 'Required when Position is "Before another rule" or "After another rule" - the name of the existing sibling rule.'
+
+    - name: "Matching Criteria (JSON)"
+      icon: "settings"
+      description: "Advanced rule body as a JSON object"
+      fields:
+        - key: "rule_json"
+          label: "Rule Criteria (JSON)"
+          fieldType: "textarea"
+          helpText: >-
+            Optional JSON object holding source/destination/service/exceptions/
+            tracking/schedule/country/device/deviceAttributes/deviceOS/
+            activePeriod, using Cato's own GraphQL input field names verbatim,
+            e.g. {"source":{"site":[{"by":"NAME","input":"HQ"}]},
+            "destination":{"country":[{"by":"NAME","input":"United States"}]},
+            "service":{"standard":[{"by":"NAME","input":"HTTPS"}]}}. Leave a
+            criterion's array empty (or omit it) to mean "any". Its keys are
+            merged into the request body; name/description/enabled/action/
+            connectionOrigin always come from the fields above and win over any
+            same-named JSON key. Leave blank for a rule with no extra criteria
+            (matches any traffic).

@@ -1,0 +1,11 @@
+# Defaults for a new Internet Firewall rule item.
+#
+# Intentionally minimal: the platform starts a new item blank except for the
+# field-level `defaultValue`s already declared in canvas.yaml (enabled, action,
+# connectionOrigin, position). Any values here would be a FLAT map keyed by the
+# canvas field keys (name, description, enabled, section, action,
+# connectionOrigin, position, positionRuleName, rule_json).
+enabled: true
+action: "BLOCK"
+connectionOrigin: "ANY"
+position: "FIRST_IN_SECTION"

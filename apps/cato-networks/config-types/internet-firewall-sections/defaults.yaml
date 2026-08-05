@@ -1,0 +1,7 @@
+# Defaults for a new Internet Firewall section item.
+#
+# Intentionally minimal: the platform starts a new item blank except for the
+# field-level `defaultValue`s already declared in canvas.yaml (position).
+# Any values here would be a FLAT map keyed by the canvas field keys (name,
+# position, positionSectionName).
+position: "LAST_IN_POLICY"

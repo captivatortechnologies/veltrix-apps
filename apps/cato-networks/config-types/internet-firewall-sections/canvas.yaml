@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template - Cato Internet Firewall Sections
+#
+# Declares ONE Internet Firewall policy section - the item. Sections group and
+# order Internet Firewall rules. Identity is the NAME (Cato assigns the section
+# a numeric id); deploy lists sections, matches by name, and updateSection
+# (rename in place) or addSection (create) accordingly - there is no upsert.
+#
+# API: policy(accountId).internetFirewall - addSection / updateSection /
+# moveSection (PolicyAddSectionInput / PolicyUpdateSectionInput /
+# PolicyMoveSectionInput - shared, generic input types across every Cato policy
+# area). Changes are staged and published as a batch - see README.md.
+#
+# Field keys must match what validate.ts checks.
+# =============================================================================
+
+id: "cato-networks-internet-firewall-sections"
+name: "Internet Firewall Section Configuration"
+toolType: "cato-networks"
+entityType: "internet-firewall-sections"
+description: "Define Cato Internet Firewall policy sections (rule groups) as code through the CMA GraphQL API. Changes are staged and published as a batch."
+
+item:
+  label: "Section"
+  identityField: "name"
+  repeatable: true
+  minItems: 0
+  maxItems: 50
+  groups:
+    - name: "Section"
+      icon: "folder"
+      description: "Name and position within the Internet Firewall policy"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The section name (its logical identity). Cato assigns the numeric id."
+
+        - key: "position"
+          label: "Position"
+          fieldType: "select"
+          defaultValue: "LAST_IN_POLICY"
+          options:
+            - label: "Last in policy"
+              value: "LAST_IN_POLICY"
+            - label: "Before another section"
+              value: "BEFORE_SECTION"
+            - label: "After another section"
+              value: "AFTER_SECTION"
+          helpText: "Where this section sits among the policy's other sections. Asserted on every deploy."
+
+        - key: "positionSectionName"
+          label: "Relative To Section"
+          fieldType: "text"
+          helpText: >-
+            Required when Position is "Before another section" or "After another
+            section" - the name of the existing sibling section to position
+            relative to.

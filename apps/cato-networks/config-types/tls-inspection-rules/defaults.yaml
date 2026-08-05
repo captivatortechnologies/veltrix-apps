@@ -1,0 +1,6 @@
+# Defaults for a new TLS Inspection rule item.
+enabled: true
+action: "INSPECT"
+untrustedCertificateAction: "ALLOW"
+connectionOrigin: "ANY"
+position: "FIRST_IN_SECTION"

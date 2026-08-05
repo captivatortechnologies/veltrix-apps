@@ -1,0 +1,68 @@
+# =============================================================================
+# Canvas Template - Cato Custom Applications
+#
+# Declares ONE Custom Application - the item. A Custom Application is a
+# reusable object (destination + port/protocol criteria) referenced by name
+# from Internet/WAN Firewall, Application Control and TLS Inspection rules
+# (e.g. destination.customApp: [{"by":"NAME","input":"<name>"}]). Identity is
+# the NAME; Cato assigns the numeric id. UNLIKE the policy rule/section types,
+# Custom Applications apply IMMEDIATELY - there is no staged revision/publish
+# step for this object (confirmed: CustomAppDataMutations exposes no
+# publish/discard mutation in the CMA schema).
+#
+# API: customAppData(accountId) - addCustomApplication / updateCustomApplication
+# / deleteCustomApplication (AddCustomApplicationInput /
+# UpdateCustomApplicationInput / DeleteCustomApplicationInput - the delete ref
+# accepts the application BY NAME directly).
+#
+# Field keys must match what validate.ts checks.
+# =============================================================================
+
+id: "cato-networks-custom-applications"
+name: "Custom Application Configuration"
+toolType: "cato-networks"
+entityType: "custom-applications"
+description: "Define Cato Custom Applications (destination + port/protocol objects, referenced by name from firewall/CASB/TLS-inspection rules) as code through the CMA GraphQL API. Applies immediately - not part of the staged policy revision workflow."
+
+item:
+  label: "Custom Application"
+  identityField: "name"
+  repeatable: true
+  minItems: 0
+  maxItems: 500
+  groups:
+    - name: "Custom Application"
+      icon: "tag"
+      description: "Name, description and application categories"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The custom application's name (its logical identity). Cato assigns the numeric id."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+
+        - key: "category"
+          label: "Application Categories"
+          fieldType: "tags"
+          helpText: "Existing Cato application category names this custom application belongs to (optional)."
+
+    - name: "Criteria (JSON)"
+      icon: "settings"
+      description: "Destination + port/protocol matching criteria"
+      fields:
+        - key: "criteria_json"
+          label: "Criteria (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >-
+            A JSON array of criteria objects (CustomApplicationCriteriaInput),
+            each with destination (fqdn/domain/destinationIp), port, portRange
+            and protocol, e.g. [{"destination":{"fqdn":["app.example.com"]},
+            "port":[443],"protocol":"TCP"}]. protocol defaults to "ANY" when
+            omitted from an entry.

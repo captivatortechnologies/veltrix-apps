@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template - Cato Network Ranges (Global IP Range objects)
+#
+# Declares ONE Global IP Range - the item. A Global IP Range is a reusable,
+# account-wide network object (a from-to IP range) referenced by name from
+# Internet/WAN Firewall, Application Control and TLS Inspection rules (e.g.
+# source.globalIpRange: [{"by":"NAME","input":"<name>"}]) as well as from Site
+# LAN network ranges. Identity is the NAME; Cato assigns the numeric id.
+# UNLIKE the policy rule/section types, Global IP Ranges apply IMMEDIATELY -
+# there is no staged revision/publish step for this object (confirmed:
+# ObjectMutations exposes no publish/discard mutation in the CMA schema).
+#
+# NOTE: this is Cato's account-level reusable network-object range, distinct
+# from a SITE's own LAN network range (Site LAN ranges are scoped to a
+# specific site + socket LAN interface and are out of scope for this release
+# - see README.md Coverage).
+#
+# API: object(accountId) - createGlobalIpRangeBulk / updateGlobalIpRangeBulk /
+# deleteGlobalIpRangeBulk (CreateGlobalIpRangeInput / UpdateGlobalIpRangeInput
+# / GlobalIpRangeRefInput).
+#
+# Field keys must match what validate.ts checks.
+# =============================================================================
+
+id: "cato-networks-network-ranges"
+name: "Network Range Configuration"
+toolType: "cato-networks"
+entityType: "network-ranges"
+description: "Define Cato Global IP Range network objects as code through the CMA GraphQL API. Applies immediately - not part of the staged policy revision workflow."
+
+item:
+  label: "Network Range"
+  identityField: "name"
+  repeatable: true
+  minItems: 0
+  maxItems: 1000
+  groups:
+    - name: "Network Range"
+      icon: "network"
+      description: "Name, description and the IP range"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The network range's name (its logical identity). Cato assigns the numeric id."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+
+        - key: "ipRange"
+          label: "IP Range"
+          fieldType: "text"
+          required: true
+          placeholder: "10.0.0.1-10.0.0.10"
+          validation:
+            pattern: "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}-\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"
+          helpText: "A from-to IPv4 range, e.g. 10.0.0.1-10.0.0.10."

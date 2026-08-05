@@ -1,0 +1,16 @@
+{
+  "name": "veltrix-app-cato-networks",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Veltrix app: manage Cato Networks (SASE/SSE) configuration as code - Internet/WAN Firewall rules + sections, Application Control, TLS Inspection, Anti-Malware file-hash exceptions, Custom Applications, and Global IP Range network objects - via the Cato Management Application (CMA) GraphQL API",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.0.0",
+    "@veltrixsecops/app-sdk": "^3.7.0",
+    "fastify": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}
