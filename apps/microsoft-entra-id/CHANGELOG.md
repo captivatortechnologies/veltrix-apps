@@ -8,6 +8,41 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.8.5 — 2026-08-04
+
+Live pickers Phase 2 (batch 4, FINAL) — Groups, External Identities & tenant
+policy. This completes the live-picker rollout: every directory/policy-object
+reference this app's canvas can represent now resolves against the live tenant.
+
+- **groups** — `owners` picker (users + service principals — groups can't own a
+  group) and `members` picker (users / security groups / devices / service
+  principals), each reconciled via the shared provenance-tracked `$ref` collection
+  reconcile: only owners/members this app added are ever removed.
+- **group-settings** — `templateId` → live `groupSettingTemplates` picker (the
+  `values` block stays JSON — it's template-shaped, not a directory reference).
+- **feature-rollout-policies** — `appliesTo` → `groups` picker (Graph accepts groups
+  only; dynamic/nested unsupported), reconciled against the policy. Validation now
+  warns on no-target, redundant org-wide-plus-groups, and the >10-group advisory cap
+  (the true cap is cross-policy and can't be checked offline).
+- **b2x-user-flows** — `identityProviders` picker (`GET /identity/identityProviders`,
+  opaque string ids like `Facebook-OAUTH`, posted to the `identityProviders`
+  collection — not `directoryObjects`) and `attributes` picker
+  (`GET /identity/userFlowAttributes`, each selection materialised as a full
+  `identityUserFlowAttributeAssignment` with documented sensible defaults).
+- **authorization-policy** — `permissionGrantPoliciesAssigned` → new
+  `permissionGrantPolicies` picker. The picker takes precedence over a same-named key
+  in the raw JSON; an **empty picker means "not managing this field"** (only the JSON
+  can explicitly set `[]`, which disables user consent). An unresolvable policy
+  reference aborts the whole singleton PATCH with a clear message rather than silently
+  dropping the key.
+- **cross-tenant-access (partners/default)**, **external-identity-providers**,
+  **user-flow-attributes** — no pickers on their own fields (partner tenant ids aren't
+  enumerable; the referenceable targets live in nested JSON arrays the flat canvas
+  can't picker-ize) — documented in each `canvas.yaml`.
+- New sources `groupSettingTemplates`, `identityProviders`, `userFlowAttributes`,
+  `permissionGrantPolicies`. New shared id-or-name resolver for opaque (non-GUID) id
+  spaces; `refReconcile` gained an `odataIdCollection` option (backward compatible).
+
 ## 0.8.4 — 2026-08-04
 
 Live pickers Phase 2 (batch 3) — Applications, Service Principals, Tokens & Grants.

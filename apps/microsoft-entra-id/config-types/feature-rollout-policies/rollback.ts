@@ -21,6 +21,7 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
   const failures: string[] = []
   let restored = 0
   let deleted = 0
+  let appliesToRevoked = 0
 
   for (const e of entries) {
     if (!e.id) continue
@@ -29,14 +30,29 @@ export default async function rollback(ctx: RollbackContext): Promise<RollbackRe
       if (!resp.ok && resp.status !== 404) failures.push(`restore ${e.name}: ${graphErrorMessage(resp)}`)
       else restored++
     } else if (!e.existed) {
+      // We created this one — remove it (its appliesTo assignments go with it).
       const resp = await client.delete(`${BASE}/${e.id}`)
       if (!resp.ok && resp.status !== 404) failures.push(`delete ${e.name}: ${graphErrorMessage(resp)}`)
       else deleted++
+      continue
+    }
+
+    // The policy survives rollback — revert only the appliesTo assignments
+    // THIS deploy added (existed:false). "/$ref" is required — see
+    // reconcileRefCollection.
+    for (const g of e.appliesTo ?? []) {
+      if (g.existed) continue
+      const resp = await client.delete(`${BASE}/${e.id}/appliesTo/${g.id}/$ref`)
+      if (!resp.ok && resp.status !== 404) failures.push(`revoke appliesTo group ${g.id} from ${e.name}: ${graphErrorMessage(resp)}`)
+      else appliesToRevoked++
     }
   }
 
   if (failures.length) {
     return { success: false, message: `Rollback had errors: ${failures.join('; ')}` }
   }
-  return { success: true, message: `Rolled back feature rollout policies: ${deleted} deleted, ${restored} restored` }
+  return {
+    success: true,
+    message: `Rolled back feature rollout policies: ${deleted} deleted, ${restored} restored, ${appliesToRevoked} appliesTo group(s) revoked`,
+  }
 }

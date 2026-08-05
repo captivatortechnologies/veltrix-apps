@@ -6,6 +6,29 @@
 # Flows are CREATE/DELETE only — there is no update, so an existing flow is left
 # as-is. Reconcile only deletes flows this app created.
 #
+# identityProviders and attributes ARE independently manageable sub-relationships
+# on any flow (new or pre-existing) even though the flow's own scalar fields
+# have no update operation — see deploy.ts. Both are provenance-tracked: this
+# app only ever removes an assignment it itself added.
+# - identityProviders: which social/built-in identity providers a guest can use
+#   to sign up (https://learn.microsoft.com/graph/api/resources/b2xidentityuserflow).
+#   Sourced from the SAME collection external-identity-providers writes into.
+# - attributes: which built-in/custom profile attributes to collect at sign-up.
+#   Each selection becomes an identityUserFlowAttributeAssignment sub-resource
+#   (https://learn.microsoft.com/graph/api/resources/identityuserflowattributeassignment),
+#   which requires more than just a $ref — isOptional/requiresVerification/
+#   userInputType are real, required per-assignment properties. Since this
+#   app's canvas fields are flat (no nested per-array-element pickers, the
+#   same limitation lifecycle-workflows' `tasks` field documents), a selected
+#   attribute is assigned with SENSIBLE, DOCUMENTED DEFAULTS rather than full
+#   per-attribute customization: isOptional=false, requiresVerification=false,
+#   userInputType="dateTimeDropdown" for a dateTime attribute else "textBox"
+#   (Graph documents six userInputType values with no stated dataType mapping,
+#   so textBox is used as the universal safe default). Attributes needing
+#   different assignment behavior (radio/dropdown/checkbox options, optional
+#   fields, verification) are still manageable directly in the Entra admin
+#   center or via Graph outside this canvas.
+#
 # Field keys must match config-types/b2x-user-flows/validate.ts.
 # =============================================================================
 
@@ -44,3 +67,47 @@ item:
           validation:
             min: 1
           helpText: "The user flow type version (typically 1). The flow type is always signUpOrSignIn."
+
+    - name: "Identity Providers"
+      icon: "log-in"
+      description: "Which identity providers guests can use to sign up through this flow"
+      fields:
+        - key: "identityProviders"
+          label: "Identity Providers"
+          fieldType: "remote-multiselect"
+          optionsSource: "identityProviders"
+          optionsMulti: true
+          required: false
+          helpText: >
+            Social/built-in identity providers guests can sign up with — pick
+            from the live tenant (includes providers this app's
+            external-identity-providers type creates, e.g. Google/Facebook/
+            GitHub, plus tenant built-ins like Azure AD Sign up). Stores each
+            provider's id (e.g. "Facebook-OAUTH", NOT a GUID); a hand-typed id
+            or display name from an older canvas also resolves at deploy time.
+            This app only ever removes a provider it itself added — a
+            pre-existing provider left off this list is never removed. Leave
+            empty to manage no identity providers through this canvas.
+
+    - name: "Attributes"
+      icon: "list"
+      description: "Which profile attributes to collect during sign-up"
+      fields:
+        - key: "attributes"
+          label: "Attributes To Collect"
+          fieldType: "remote-multiselect"
+          optionsSource: "userFlowAttributes"
+          optionsMulti: true
+          required: false
+          helpText: >
+            Built-in or custom user flow attributes to collect at sign-up —
+            pick from the live tenant (includes attributes this app's
+            user-flow-attributes type creates). Stores each attribute's id; a
+            hand-typed id or display name from an older canvas also resolves
+            at deploy time. Each selection is assigned with sensible defaults
+            (optional=false, no verification, a textBox input — dateTimeDropdown
+            for a dateTime attribute); use the Entra admin center directly for
+            radio/dropdown/checkbox attributes or other custom assignment
+            behavior. This app only ever removes an attribute it itself added
+            — a pre-existing assignment left off this list is never removed.
+            Leave empty to manage no attribute collection through this canvas.

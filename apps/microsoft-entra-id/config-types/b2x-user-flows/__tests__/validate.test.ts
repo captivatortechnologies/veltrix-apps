@@ -1,5 +1,5 @@
-import validate, { resultingId } from '../validate'
-import type { PipelineContext } from '@veltrixsecops/app-sdk'
+import validate, { resultingId, extractB2xUserFlowSpecs } from '../validate'
+import type { CanvasSnapshot, PipelineContext } from '@veltrixsecops/app-sdk'
 
 function ctxWith(items: Array<{ id?: string; fields: Record<string, unknown> }>): PipelineContext {
   return { canvas: { items } } as unknown as PipelineContext
@@ -31,5 +31,23 @@ describe('b2x-user-flows validate', () => {
 
   it('prefixes the resulting id', () => {
     expect(resultingId('PartnerSignUp')).toBe('B2X_1_PartnerSignUp')
+  })
+})
+
+describe('extractB2xUserFlowSpecs identityProviders/attributes', () => {
+  it('accepts an array value (remote-multiselect) as-is', () => {
+    const canvas = {
+      items: [{ id: 'i1', fields: { id: 'PartnerSignUp', identityProviders: ['Facebook-OAUTH'], attributes: ['city'] } }],
+    } as unknown as CanvasSnapshot
+    const [spec] = extractB2xUserFlowSpecs(canvas)
+    expect(spec.identityProviders).toEqual(['Facebook-OAUTH'])
+    expect(spec.attributes).toEqual(['city'])
+  })
+
+  it('defaults to an empty array when unset', () => {
+    const canvas = { items: [{ id: 'i1', fields: { id: 'PartnerSignUp' } }] } as unknown as CanvasSnapshot
+    const [spec] = extractB2xUserFlowSpecs(canvas)
+    expect(spec.identityProviders).toEqual([])
+    expect(spec.attributes).toEqual([])
   })
 })

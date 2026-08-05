@@ -21,6 +21,40 @@
 //   accessPackageCatalogs  GET /identityGovernance/entitlementManagement/catalogs         ($search: no)
 //   connectedOrganizations GET /identityGovernance/entitlementManagement/connectedOrganizations ($search: no)
 //   accessPackages         GET /identityGovernance/entitlementManagement/accessPackages    ($search: no)
+//   groupSettingTemplates  GET /groupSettingTemplates                                      ($search: no)
+//   identityProviders      GET /identity/identityProviders                                 ($search: no)
+//   userFlowAttributes     GET /identity/userFlowAttributes                                ($search: no)
+//   permissionGrantPolicies GET /policies/permissionGrantPolicies                          ($search: no)
+//
+// Phase-2 batch-4 additions (groups / feature-rollout / user-flow cross-refs):
+//   - groupSettingTemplates backs group-settings' templateId picker — the
+//     template catalog is small, system-defined and cannot be created, updated
+//     or deleted (https://learn.microsoft.com/graph/api/resources/groupsettingtemplate),
+//     so it is listed and label-filtered like the other small policy catalogs.
+//   - identityProviders backs b2x-user-flows' identityProviders picker. Ids in
+//     this collection are OPAQUE STRINGS, not GUIDs (e.g. "Facebook-OAUTH",
+//     "Google-OAUTH") — confirmed on both the list response example
+//     (https://learn.microsoft.com/graph/api/identitycontainer-list-identityproviders)
+//     and the b2xIdentityUserFlow "Add identityProvider" example, which literally
+//     posts `{"@odata.id":".../identityProviders/Facebook-OAUTH"}`
+//     (https://learn.microsoft.com/graph/api/b2xidentityuserflow-post-identityproviders).
+//     Consumers resolve a selected/hand-typed value against a live id-set +
+//     displayName map rather than the GUID-shaped `isGuid` passthrough the other
+//     sources use (see b2x-user-flows/validate.ts's `resolveByIdOrName`).
+//   - userFlowAttributes backs b2x-user-flows' attributes picker — the SAME
+//     collection user-flow-attributes/deploy.ts writes custom attributes into,
+//     confirmed as the "List" operation of identityUserFlowAttribute
+//     (https://learn.microsoft.com/graph/api/resources/identityuserflowattribute,
+//     https://learn.microsoft.com/graph/api/identityuserflowattribute-list).
+//     Ids here are also opaque strings (built-in ids like "city", "displayName";
+//     custom ids like "extension_<appId>_<name>"), resolved the same
+//     id-set-or-name way as identityProviders.
+//   - permissionGrantPolicies backs authorization-policy's
+//     permissionGrantPoliciesAssigned picker
+//     (https://learn.microsoft.com/graph/api/resources/permissiongrantpolicy) —
+//     ids are client-supplied kebab strings (built-ins are prefixed
+//     "microsoft-", e.g. "microsoft-user-default-legacy"), so this also uses
+//     the id-set-or-name resolution instead of `isGuid`.
 //
 // $search support is NOT uniform across Graph and was verified (not assumed)
 // against "Advanced query capabilities on Microsoft Entra ID objects"
@@ -260,6 +294,37 @@ const SIMPLE_SOURCES: Record<string, SimpleSource> = {
   // depending on undocumented $search support.
   accessPackages: {
     path: '/identityGovernance/entitlementManagement/accessPackages',
+    select: 'id,displayName,description',
+    searchable: false,
+    toOption: (p) => opt(p.id, p.displayName, p.description ?? p.id),
+  },
+  // Phase-2 batch-4 (groups / group-settings / feature-rollout / user-flow
+  // cross-refs) — see the module header for citations.
+  groupSettingTemplates: {
+    path: '/groupSettingTemplates',
+    select: 'id,displayName,description',
+    searchable: false,
+    toOption: (t) => opt(t.id, t.displayName, t.description ?? t.id),
+  },
+  identityProviders: {
+    path: '/identity/identityProviders',
+    select: 'id,displayName,identityProviderType',
+    searchable: false,
+    toOption: (p) => opt(p.id, p.displayName, p.identityProviderType ? String(p.identityProviderType) : (p.id as string | undefined)),
+  },
+  userFlowAttributes: {
+    path: '/identity/userFlowAttributes',
+    select: 'id,displayName,dataType,userFlowAttributeType',
+    searchable: false,
+    toOption: (a) =>
+      opt(
+        a.id,
+        a.displayName,
+        [a.userFlowAttributeType, a.dataType].filter((v) => typeof v === 'string' && v).join(' · ') || (a.id as string | undefined)
+      ),
+  },
+  permissionGrantPolicies: {
+    path: '/policies/permissionGrantPolicies',
     select: 'id,displayName,description',
     searchable: false,
     toOption: (p) => opt(p.id, p.displayName, p.description ?? p.id),

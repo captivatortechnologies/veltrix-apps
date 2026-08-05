@@ -8,8 +8,23 @@
 #
 # Only plain assigned SECURITY groups are managed. Mail-enabled, Microsoft 365
 # (Unified) and dynamic-membership groups are protected — deploy refuses to
-# modify any live name-match that is not a plain security group. Membership is
-# NOT managed by this configuration type.
+# modify any live name-match that is not a plain security group.
+#
+# Owners and members are managed as provenance-tracked $ref collections (see
+# ../lib/refReconcile.ts): this app only ever REMOVES a reference it itself
+# added — a pre-existing owner/member left off the list is never removed.
+# - owners: users or service principals only (group.owners is documented as
+#   "users or service principals" — groups CANNOT own a group,
+#   https://learn.microsoft.com/graph/api/resources/group). Reuses the same
+#   ownerPrincipals alias applications/service-principals already established.
+# - members: users, (security) groups, devices and service principals — the
+#   four kinds Graph's "Add members" table marks valid for a SECURITY group
+#   (https://learn.microsoft.com/graph/api/group-post-members). Organizational
+#   contacts are also a valid member kind per that table, but are deliberately
+#   NOT offered here — entraOptions has no `orgContacts` source (a distinct
+#   /contacts collection this app doesn't otherwise touch), and contacts are a
+#   rare member kind in practice; scoping the picker to the four kinds this
+#   app already has live sources for keeps it practical rather than complete.
 #
 # Field keys must match what config-types/groups/validate.ts checks.
 # =============================================================================
@@ -61,3 +76,41 @@ item:
             Mail alias for the group (letters, digits and . _ - only, no spaces).
             Required by Graph even for security groups; if left blank, one is
             derived from the name automatically.
+
+    - name: "Ownership"
+      icon: "user-check"
+      description: "Users or service principals allowed to manage this group"
+      fields:
+        - key: "owners"
+          label: "Owners"
+          fieldType: "remote-multiselect"
+          optionsSource: "ownerPrincipals"
+          optionsMulti: true
+          required: false
+          helpText: >
+            Users and/or service principals allowed to manage this group —
+            pick from the live tenant (each option labelled by kind; groups
+            cannot own a group). Stores each owner's object id; a hand-typed
+            display name/UPN from an older canvas also resolves at deploy
+            time. This app only ever removes an owner it itself added — a
+            pre-existing owner left off this list is never removed. Leave
+            empty to manage no ownership through this canvas.
+
+    - name: "Membership"
+      icon: "users"
+      description: "Users, groups, devices and service principals that belong to this group"
+      fields:
+        - key: "members"
+          label: "Members"
+          fieldType: "remote-multiselect"
+          optionsSource: "groupMembers"
+          optionsMulti: true
+          required: false
+          helpText: >
+            Users, (security) groups, devices and service principals to add
+            as members — pick from the live tenant (each option labelled by
+            kind). Stores each member's object id; a hand-typed display name,
+            UPN or object id from an older canvas also resolves at deploy
+            time. This app only ever removes a member it itself added — a
+            pre-existing member left off this list is never removed. Leave
+            empty to manage no membership through this canvas.

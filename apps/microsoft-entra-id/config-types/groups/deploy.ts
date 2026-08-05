@@ -6,6 +6,7 @@ import {
   readGraphSettings,
   resolveGraphCredential,
   MISSING_CREDENTIAL_MESSAGE,
+  type GraphClient,
 } from '../../lib/graph'
 import {
   effectiveNickname,
@@ -14,6 +15,9 @@ import {
   type GroupSpec,
   type LiveGroup,
 } from './validate'
+import { buildOwnerPrincipalNameMaps, resolveOwnerPrincipals } from '../lib/principals'
+import { buildDeviceNameToId, buildGroupNameToId, buildServicePrincipalNameToId, buildUserNameToId, resolveAcrossMapsMany } from '../lib/nameMaps'
+import { reconcileRefCollection, type RefMemberEntry } from '../lib/refReconcile'
 
 const BASE = '/groups'
 /** Trim the live group projection to just what we can list + reason about. */
@@ -27,6 +31,21 @@ export interface RollbackEntry {
   id?: string
   /** Prior managed fields, captured before an update so rollback can restore them. */
   prior?: Record<string, unknown>
+  /** Tracked owners, with provenance — see RefMemberEntry. */
+  owners?: RefMemberEntry[]
+  /** Tracked members, with provenance — see RefMemberEntry. */
+  members?: RefMemberEntry[]
+}
+
+/** Build the four member-kind name maps once per deploy/drift run. */
+async function buildMemberNameMaps(client: GraphClient) {
+  const [user, group, device, servicePrincipal] = await Promise.all([
+    buildUserNameToId(client),
+    buildGroupNameToId(client),
+    buildDeviceNameToId(client),
+    buildServicePrincipalNameToId(client),
+  ])
+  return [user, group, device, servicePrincipal]
 }
 
 /** Body for POST /groups — securityEnabled assigned group (never mail-enabled). */
@@ -91,6 +110,13 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const priorByItemId = new Map(prior.filter((e) => e.itemId).map((e) => [e.itemId as string, e]))
   const priorByName = new Map(prior.map((e) => [e.name.toLowerCase(), e]))
 
+  // Owner references resolve against users/service principals — a
+  // picker-selected value passes straight through; a hand-typed display
+  // name/UPN (pre-picker convention) falls back to these live maps.
+  const ownerMaps = await buildOwnerPrincipalNameMaps(client)
+  // Member references resolve against users/groups/devices/service principals.
+  const memberMaps = await buildMemberNameMaps(client)
+
   const entries: RollbackEntry[] = []
   const failures: string[] = []
 
@@ -98,6 +124,9 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     const priorEntry = (spec.itemId && priorByItemId.get(spec.itemId)) || priorByName.get(spec.name.toLowerCase())
     const liveMatch =
       (priorEntry?.id ? liveById.get(priorEntry.id) : undefined) ?? liveByName.get(spec.name.toLowerCase()) ?? null
+
+    let groupId: string | undefined
+    let entry: RollbackEntry
 
     if (liveMatch?.id) {
       // Never modify a group that isn't a plain assigned security group — it may
@@ -111,7 +140,8 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         failures.push(`${spec.name}: ${graphErrorMessage(resp)}`)
         continue
       }
-      entries.push({ itemId: spec.itemId, name: spec.name, existed: true, id: liveMatch.id, prior: snapshotLive(liveMatch) })
+      groupId = liveMatch.id
+      entry = { itemId: spec.itemId, name: spec.name, existed: true, id: liveMatch.id, prior: snapshotLive(liveMatch) }
     } else {
       const resp = await client.post(BASE, buildCreateBody(spec))
       if (!resp.ok) {
@@ -119,8 +149,51 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         continue
       }
       const created = parseJson<LiveGroup>(resp.body)
-      entries.push({ itemId: spec.itemId, name: spec.name, existed: false, id: created?.id })
+      groupId = created?.id
+      entry = { itemId: spec.itemId, name: spec.name, existed: false, id: created?.id }
     }
+
+    if (groupId) {
+      const ownerResolution = resolveOwnerPrincipals(spec.owners, ownerMaps)
+      if (ownerResolution.missing.length) {
+        failures.push(
+          `${spec.name}: unknown owner(s) ${ownerResolution.missing.join(', ')} — create/verify them first or fix the name`
+        )
+        // Leave ownership exactly as last tracked — don't touch Graph until every owner resolves.
+        entry.owners = priorEntry?.owners ?? []
+      } else {
+        const { members: ownerMembers, failures: ownerFailures } = await reconcileRefCollection(
+          client,
+          `${BASE}/${groupId}`,
+          'owners',
+          ownerResolution.ids,
+          priorEntry?.owners ?? []
+        )
+        entry.owners = ownerMembers
+        for (const f of ownerFailures) failures.push(`${spec.name}: ${f}`)
+      }
+
+      const memberResolution = resolveAcrossMapsMany(spec.members, memberMaps)
+      if (memberResolution.missing.length) {
+        failures.push(
+          `${spec.name}: unknown member(s) ${memberResolution.missing.join(', ')} — create/verify them first or fix the name`
+        )
+        // Leave membership exactly as last tracked — don't touch Graph until every member resolves.
+        entry.members = priorEntry?.members ?? []
+      } else {
+        const { members, failures: memberFailures } = await reconcileRefCollection(
+          client,
+          `${BASE}/${groupId}`,
+          'members',
+          memberResolution.ids,
+          priorEntry?.members ?? []
+        )
+        entry.members = members
+        for (const f of memberFailures) failures.push(`${spec.name}: ${f}`)
+      }
+    }
+
+    entries.push(entry)
   }
 
   // Reconcile: delete groups THIS app created previously but no longer declares.

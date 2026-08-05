@@ -1,6 +1,6 @@
 id: microsoft-entra-id
 name: Microsoft Entra ID
-version: "0.8.4"
+version: "0.8.5"
 vendor: Veltrix
 description: >
   Manage Microsoft Entra ID (formerly Azure AD) configuration as code through the
@@ -40,7 +40,7 @@ permissions:
       description: Manage Entra Conditional Access named locations (IP CIDR ranges and country/region locations)
     - resource: groups
       actions: [read, write, delete]
-      description: Manage Entra assigned security groups (name, description, mail nickname; mail/M365/dynamic groups protected)
+      description: Manage Entra assigned security groups (name, description, mail nickname, owners, members; mail/M365/dynamic groups protected)
     - resource: conditional-access-policies
       actions: [read, write, delete]
       description: Manage Entra Conditional Access policies (user/group + cloud-app targeting, grant controls; report-only by default)
@@ -64,7 +64,7 @@ permissions:
       description: Manage Entra Conditional Access authentication contexts (c1..c25) referenced by policies and the acrs claim
     - resource: authorization-policy
       actions: [read, write, delete]
-      description: Manage the Entra tenant authorization policy (default user/guest/consent controls; tenant-wide singleton)
+      description: Manage the Entra tenant authorization policy (default user/guest/consent controls, permission grant policy assignment; tenant-wide singleton)
     - resource: identity-security-defaults
       actions: [read, write, delete]
       description: Manage the Entra security defaults enforcement policy (isEnabled; tenant-wide singleton, mutually exclusive with Conditional Access)
@@ -94,7 +94,7 @@ permissions:
       description: Manage Entra app consent (permission grant) policies and their include / exclude condition sets (microsoft-* built-ins protected)
     - resource: feature-rollout-policies
       actions: [read, write, delete]
-      description: Manage Entra staged feature rollout policies (cloud MFA, seamless SSO, certificate-based auth; group targeting not managed)
+      description: Manage Entra staged feature rollout policies (cloud MFA, seamless SSO, certificate-based auth) and their appliesTo group targeting
     - resource: group-settings
       actions: [read, write, delete]
       description: Manage Entra tenant/group directory settings (guest owners, group naming, classifications) via groupSettingTemplate values
@@ -121,7 +121,7 @@ permissions:
       description: Manage Entra custom user flow attributes (self-service sign-up profile fields; custom only)
     - resource: b2x-user-flows
       actions: [read, write, delete]
-      description: Manage Entra self-service sign-up user flows (b2xIdentityUserFlow; create/delete only)
+      description: Manage Entra self-service sign-up user flows (b2xIdentityUserFlow; create/delete only) and their identity provider + attribute assignments
     - resource: entitlement-connected-organizations
       actions: [read, write, delete]
       description: Manage Entra entitlement management connected organizations (external partner directories/domains)
@@ -205,7 +205,7 @@ pipeline:
     - id: groups
       group: "Directory"
       name: Security Groups
-      description: Assigned security groups — name, description and mail nickname (mail / M365 / dynamic groups protected)
+      description: Assigned security groups — name, description, mail nickname, owners and members (mail / M365 / dynamic groups protected)
       canvasTemplate: config-types/groups/canvas.yaml
       defaultConfig: config-types/groups/defaults.yaml
       handlers:
@@ -215,6 +215,7 @@ pipeline:
         healthCheck: config-types/groups/healthCheck
         driftDetect: config-types/groups/driftDetect
         getStatus: config-types/groups/getStatus
+        options: config-types/groups/options
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true
@@ -334,7 +335,7 @@ pipeline:
     - id: authorization-policy
       group: "Tenant Settings"
       name: Tenant Authorization Policy
-      description: Tenant authorization policy — default user/guest/consent controls (tenant-wide singleton)
+      description: Tenant authorization policy — default user/guest/consent controls and permissionGrantPoliciesAssigned (tenant-wide singleton)
       canvasTemplate: config-types/authorization-policy/canvas.yaml
       defaultConfig: config-types/authorization-policy/defaults.yaml
       handlers:
@@ -344,6 +345,7 @@ pipeline:
         healthCheck: config-types/authorization-policy/healthCheck
         driftDetect: config-types/authorization-policy/driftDetect
         getStatus: config-types/authorization-policy/getStatus
+        options: config-types/authorization-policy/options
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true
@@ -517,7 +519,7 @@ pipeline:
     - id: feature-rollout-policies
       group: "Directory"
       name: Feature Rollout Policies
-      description: Staged feature rollout policies — cloud MFA, seamless SSO, certificate-based auth (group targeting not managed)
+      description: Staged feature rollout policies — cloud MFA, seamless SSO, certificate-based auth, and appliesTo group targeting (groups only)
       canvasTemplate: config-types/feature-rollout-policies/canvas.yaml
       defaultConfig: config-types/feature-rollout-policies/defaults.yaml
       handlers:
@@ -527,6 +529,7 @@ pipeline:
         healthCheck: config-types/feature-rollout-policies/healthCheck
         driftDetect: config-types/feature-rollout-policies/driftDetect
         getStatus: config-types/feature-rollout-policies/getStatus
+        options: config-types/feature-rollout-policies/options
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true
@@ -545,6 +548,7 @@ pipeline:
         healthCheck: config-types/group-settings/healthCheck
         driftDetect: config-types/group-settings/driftDetect
         getStatus: config-types/group-settings/getStatus
+        options: config-types/group-settings/options
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true
@@ -680,7 +684,7 @@ pipeline:
     - id: b2x-user-flows
       group: "External Identities"
       name: Self-Service Sign-Up Flows
-      description: Self-service sign-up user flows (b2xIdentityUserFlow; create/delete only)
+      description: Self-service sign-up user flows (b2xIdentityUserFlow; create/delete only), identityProviders and userAttributeAssignments
       canvasTemplate: config-types/b2x-user-flows/canvas.yaml
       defaultConfig: config-types/b2x-user-flows/defaults.yaml
       handlers:
@@ -690,6 +694,7 @@ pipeline:
         healthCheck: config-types/b2x-user-flows/healthCheck
         driftDetect: config-types/b2x-user-flows/driftDetect
         getStatus: config-types/b2x-user-flows/getStatus
+        options: config-types/b2x-user-flows/options
       targets:
         componentTypes: [entra-tenant]
         requiresCredential: true

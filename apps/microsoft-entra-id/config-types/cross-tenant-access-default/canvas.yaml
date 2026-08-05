@@ -10,6 +10,18 @@
 # is READ-ONLY on the default policy (Graph keeps it false) — those checkboxes are
 # advisory and only take effect on per-partner configurations.
 #
+# Phase-2 batch-4 picker assessment (researched, not wired): the b2b/
+# direct-connect blocks in `b2bCollaboration` CAN target specific users/groups/
+# applications by id (crossTenantAccessPolicyTarget.target — "the unique
+# identifier of the user, group, or application",
+# https://learn.microsoft.com/graph/api/resources/crosstenantaccesspolicytarget),
+# but that id lives 3 levels deep in a JSON array
+# (b2bCollaborationInbound/Outbound.usersAndGroups/applications.targets[]) —
+# this app's canvas fields are flat, not nested per-array-element pickers (the
+# same limitation lifecycle-workflows' `tasks` field documents), so it stays
+# authored as JSON rather than a picker. There is no other directory-object
+# reference on this singleton policy.
+#
 # Field keys must match config-types/cross-tenant-access-default/validate.ts.
 # =============================================================================
 

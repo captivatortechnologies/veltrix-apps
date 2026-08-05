@@ -23,6 +23,8 @@ export interface FeatureRolloutSpec {
   feature: string
   isEnabled: boolean
   isAppliedToOrganization: boolean
+  /** Group object ids or display names (appliesTo is GROUPS ONLY) — resolved at deploy time. */
+  appliesTo: string[]
 }
 
 /** A feature rollout policy as returned by Graph. */
@@ -42,6 +44,15 @@ function asBool(v: unknown): boolean {
   return v === true || v === 'true'
 }
 
+/** Coerce a multiselect (array) or a delimited string into trimmed tokens. */
+function asStringArray(v: unknown): string[] {
+  if (Array.isArray(v)) return v.map((x) => String(x).trim()).filter((t) => t.length > 0)
+  return asString(v)
+    .split(/[\n,]/)
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0)
+}
+
 export function extractFeatureRolloutSpecs(canvas: CanvasSnapshot): FeatureRolloutSpec[] {
   const items = canvas.items ?? canvas.sections ?? []
   return items.map((item) => {
@@ -52,6 +63,7 @@ export function extractFeatureRolloutSpecs(canvas: CanvasSnapshot): FeatureRollo
       feature: asString(f.feature),
       isEnabled: asBool(f.isEnabled),
       isAppliedToOrganization: asBool(f.isAppliedToOrganization),
+      appliesTo: asStringArray(f.appliesTo),
     }
   })
 }
@@ -96,11 +108,25 @@ export default function validate(ctx: PipelineContext): ValidationResult {
       })
     }
 
-    if (!spec.isAppliedToOrganization) {
+    if (!spec.isAppliedToOrganization && spec.appliesTo.length === 0) {
       warnings.push({
         field: `${prefix}.isAppliedToOrganization`,
-        message: 'This type does not manage appliesTo group targeting — without organization-wide application the policy targets no one',
+        message: 'Neither "Apply to entire organization" nor any appliesTo group is set — this policy targets no one',
         code: 'no_targets',
+      })
+    }
+    if (spec.isAppliedToOrganization && spec.appliesTo.length > 0) {
+      warnings.push({
+        field: `${prefix}.appliesTo`,
+        message: 'Both "Apply to entire organization" and appliesTo groups are set — the group list is redundant once applied org-wide',
+        code: 'redundant_targets',
+      })
+    }
+    if (spec.appliesTo.length > 10) {
+      warnings.push({
+        field: `${prefix}.appliesTo`,
+        message: 'Microsoft Entra limits each feature to 10 groups total across ALL rollout policies for that feature — this canvas alone declares more',
+        code: 'too_many_groups',
       })
     }
   })

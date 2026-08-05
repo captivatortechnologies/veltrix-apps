@@ -8,6 +8,8 @@ import {
   MISSING_CREDENTIAL_MESSAGE,
 } from '../../lib/graph'
 import { extractFeatureRolloutSpecs, type FeatureRolloutSpec, type LiveFeatureRolloutPolicy } from './validate'
+import { buildGroupNameToId, resolveRefs } from '../lib/nameMaps'
+import { reconcileRefCollection, type RefMemberEntry } from '../lib/refReconcile'
 
 const BASE = '/policies/featureRolloutPolicies'
 const SELECT = '?$select=id,displayName,feature,isEnabled,isAppliedToOrganization'
@@ -18,6 +20,8 @@ export interface RollbackEntry {
   existed: boolean
   id?: string
   prior?: Record<string, unknown>
+  /** Tracked appliesTo group assignments, with provenance — see RefMemberEntry. */
+  appliesTo?: RefMemberEntry[]
 }
 
 /** Create body includes the (immutable) feature; PATCH body omits it. */
@@ -79,6 +83,11 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
   const priorByItemId = new Map(prior.filter((e) => e.itemId).map((e) => [e.itemId as string, e]))
   const priorByName = new Map(prior.map((e) => [e.name.toLowerCase(), e]))
 
+  // appliesTo group references resolve against the live directory — a
+  // picker-selected value passes straight through; a hand-typed display name
+  // falls back to this live map.
+  const groupNameToId = await buildGroupNameToId(client)
+
   const entries: RollbackEntry[] = []
   const failures: string[] = []
 
@@ -87,13 +96,17 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
     const liveMatch =
       (priorEntry?.id ? liveById.get(priorEntry.id) : undefined) ?? liveByName.get(spec.name.toLowerCase()) ?? null
 
+    let policyId: string | undefined
+    let entry: RollbackEntry
+
     if (liveMatch?.id) {
       const resp = await client.patch(`${BASE}/${liveMatch.id}`, buildPatchBody(spec))
       if (!resp.ok) {
         failures.push(`${spec.name}: ${graphErrorMessage(resp)}`)
         continue
       }
-      entries.push({ itemId: spec.itemId, name: spec.name, existed: true, id: liveMatch.id, prior: snapshotLive(liveMatch) })
+      policyId = liveMatch.id
+      entry = { itemId: spec.itemId, name: spec.name, existed: true, id: liveMatch.id, prior: snapshotLive(liveMatch) }
     } else {
       const resp = await client.post(BASE, buildCreateBody(spec))
       if (!resp.ok) {
@@ -101,8 +114,32 @@ export default async function deploy(ctx: DeployContext): Promise<DeployResult> 
         continue
       }
       const created = parseJson<LiveFeatureRolloutPolicy>(resp.body)
-      entries.push({ itemId: spec.itemId, name: spec.name, existed: false, id: created?.id })
+      policyId = created?.id
+      entry = { itemId: spec.itemId, name: spec.name, existed: false, id: created?.id }
     }
+
+    if (policyId) {
+      const groupResolution = resolveRefs(spec.appliesTo, groupNameToId)
+      if (groupResolution.missing.length) {
+        failures.push(
+          `${spec.name}: unknown appliesTo group(s) ${groupResolution.missing.join(', ')} — create/verify them first or fix the name`
+        )
+        // Leave appliesTo exactly as last tracked — don't touch Graph until every group resolves.
+        entry.appliesTo = priorEntry?.appliesTo ?? []
+      } else {
+        const { members, failures: appliesToFailures } = await reconcileRefCollection(
+          client,
+          `${BASE}/${policyId}`,
+          'appliesTo',
+          groupResolution.ids,
+          priorEntry?.appliesTo ?? []
+        )
+        entry.appliesTo = members
+        for (const f of appliesToFailures) failures.push(`${spec.name}: ${f}`)
+      }
+    }
+
+    entries.push(entry)
   }
 
   // Reconcile: delete policies THIS app created previously but no longer declares.

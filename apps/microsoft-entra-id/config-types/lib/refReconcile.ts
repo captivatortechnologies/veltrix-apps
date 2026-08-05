@@ -25,6 +25,17 @@
 // per-batch mechanics separate instead of coupling unrelated config types'
 // deploy pipelines together. This file exists because it IS shared within
 // THIS batch (applications + service-principals owners), not across batches.
+//
+// Phase-2 batch-4 addition: `odataIdCollection` (default 'directoryObjects')
+// lets a caller point the $ref body at a DIFFERENT top-level Graph collection.
+// groups.owners/members and featureRolloutPolicy.appliesTo are genuine
+// directoryObject references, so they keep the default. b2xIdentityUserFlow's
+// identityProviders relationship is NOT a directoryObject $ref — Graph's own
+// worked example posts `{"@odata.id":".../identityProviders/Facebook-OAUTH"}`,
+// a distinct top-level collection
+// (https://learn.microsoft.com/graph/api/b2xidentityuserflow-post-identityproviders)
+// — so b2x-user-flows/deploy.ts passes `odataIdCollection: 'identityProviders'`
+// rather than forking a near-duplicate reconcile function for one field.
 // =============================================================================
 
 import { graphErrorMessage, type GraphClient } from '../../lib/graph'
@@ -64,7 +75,8 @@ export async function reconcileRefCollection(
   base: string,
   refName: string,
   desiredIds: string[],
-  priorMembers: RefMemberEntry[]
+  priorMembers: RefMemberEntry[],
+  odataIdCollection = 'directoryObjects'
 ): Promise<{ members: RefMemberEntry[]; failures: string[] }> {
   const live = await listRefIds(client, base, refName)
   if (!live.ok) {
@@ -82,7 +94,7 @@ export async function reconcileRefCollection(
       continue
     }
     const resp = await client.post(`${base}/${refName}/$ref`, {
-      '@odata.id': `https://graph.microsoft.com/v1.0/directoryObjects/${id}`,
+      '@odata.id': `https://graph.microsoft.com/v1.0/${odataIdCollection}/${id}`,
     })
     if (!resp.ok) {
       failures.push(`add ${refName.slice(0, -1)} ${id}: ${graphErrorMessage(resp)}`)

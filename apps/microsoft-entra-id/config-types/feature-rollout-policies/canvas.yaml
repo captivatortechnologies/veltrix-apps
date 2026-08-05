@@ -6,8 +6,14 @@
 # matches on the name (or a stored id, rename-safe), and PATCHes (update) or
 # POSTs (create) accordingly. Reconcile only deletes policies this app created.
 #
-# Scope: this type manages the policy scalars only. The appliesTo group targeting
-# is NOT managed here — set "Apply to entire organization" for org-wide rollout.
+# Scope: this type manages the policy scalars AND the appliesTo group targeting
+# (a flat directoryObject $ref collection — GROUPS ONLY: "The appliesTo field
+# only supports groups. Dynamic groups and nested groups are not supported."
+# https://learn.microsoft.com/graph/api/resources/featurerolloutpolicy). This
+# app only ever removes an appliesTo assignment it itself added — a
+# pre-existing assignment left off the list is never removed (see
+# ../lib/refReconcile.ts). "Apply to entire organization" is an alternative to
+# (not a prerequisite for) appliesTo group targeting.
 #
 # Field keys must match config-types/feature-rollout-policies/validate.ts.
 # =============================================================================
@@ -16,7 +22,7 @@ id: "microsoft-entra-id-feature-rollout-policies"
 name: "Feature Rollout Policy Configuration"
 toolType: "microsoft-entra-id"
 entityType: "feature-rollout-policies"
-description: "Define Entra staged feature rollout policies (e.g. cloud MFA, seamless SSO, certificate-based auth) as code through the Microsoft Graph API. Group targeting is not managed by this type."
+description: "Define Entra staged feature rollout policies (e.g. cloud MFA, seamless SSO, certificate-based auth) and their appliesTo group targeting as code through the Microsoft Graph API."
 
 item:
   label: "Feature Rollout Policy"
@@ -71,4 +77,25 @@ item:
           fieldType: "checkbox"
           required: false
           defaultValue: false
-          helpText: "When on, the feature applies org-wide. (Group targeting is not managed by this type.)"
+          helpText: "When on, the feature applies org-wide instead of to the groups below."
+
+    - name: "Group Targeting"
+      icon: "users"
+      description: "Groups this staged rollout applies to (ignored when applied to the entire organization)"
+      fields:
+        - key: "appliesTo"
+          label: "Applies To (Groups)"
+          fieldType: "remote-multiselect"
+          optionsSource: "groups"
+          optionsMulti: true
+          required: false
+          helpText: >
+            Groups to pilot this feature with — pick from the live tenant.
+            Feature rollout appliesTo supports GROUPS ONLY (not users, dynamic
+            groups or nested groups); Microsoft Entra also caps this at 10
+            groups per feature across all policies. Stores each group's
+            object id; a hand-typed display name or object id from an older
+            canvas also resolves at deploy time. This app only ever removes
+            an assignment it itself added — a pre-existing assignment left
+            off this list is never removed. Leave empty (and enable "Apply to
+            entire organization" instead) for org-wide rollout.

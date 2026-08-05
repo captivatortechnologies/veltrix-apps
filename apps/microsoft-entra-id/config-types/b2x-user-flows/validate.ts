@@ -12,6 +12,10 @@ export interface B2xUserFlowSpec {
   /** Caller-supplied base id (becomes B2X_1_<id>). */
   id: string
   userFlowTypeVersion: number
+  /** identityProvider ids or display names (e.g. "Facebook-OAUTH") — resolved at deploy time. */
+  identityProviders: string[]
+  /** identityUserFlowAttribute ids or display names — resolved at deploy time. */
+  attributes: string[]
 }
 
 /** A b2x user flow as returned by Graph (id is already prefixed). */
@@ -36,6 +40,15 @@ function asNumber(v: unknown, fallback: number): number {
   return fallback
 }
 
+/** Coerce a multiselect (array) or a delimited string into trimmed tokens. */
+function asStringArray(v: unknown): string[] {
+  if (Array.isArray(v)) return v.map((x) => String(x).trim()).filter((t) => t.length > 0)
+  return asString(v)
+    .split(/[\n,]/)
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0)
+}
+
 export function extractB2xUserFlowSpecs(canvas: CanvasSnapshot): B2xUserFlowSpec[] {
   const items = canvas.items ?? canvas.sections ?? []
   return items.map((item) => {
@@ -44,6 +57,8 @@ export function extractB2xUserFlowSpecs(canvas: CanvasSnapshot): B2xUserFlowSpec
       itemId: item.id,
       id: asString(f.id),
       userFlowTypeVersion: asNumber(f.userFlowTypeVersion, 1),
+      identityProviders: asStringArray(f.identityProviders),
+      attributes: asStringArray(f.attributes),
     }
   })
 }

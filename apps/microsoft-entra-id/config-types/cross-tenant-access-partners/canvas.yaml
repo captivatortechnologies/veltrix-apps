@@ -9,6 +9,24 @@
 # Null / omitted setting objects inherit the tenant's default cross-tenant
 # configuration.
 #
+# Phase-2 batch-4 picker assessment (researched, not wired):
+# - tenantId has NO live picker candidate. It is the external partner
+#   organization's directory id, known only out-of-band from the partner (this
+#   app's own tenant has no enumerable "prospective partners" directory to pick
+#   from) — and it is this type's OWN identityField, unlike a field that
+#   references another type's objects. GET /policies/crossTenantAccessPolicy/partners
+#   lists only partners THIS config type already manages, so it isn't a
+#   meaningfully different option space to pick a NEW partner's id from either.
+# - The b2b/direct-connect blocks inside `configuration` CAN target specific
+#   users/groups/applications by id via crossTenantAccessPolicyTarget.target
+#   ("the unique identifier of the user, group, or application", see
+#   https://learn.microsoft.com/graph/api/resources/crosstenantaccesspolicytarget),
+#   but that id lives 3 levels deep in a JSON array
+#   (b2bCollaborationInbound/Outbound.usersAndGroups/applications.targets[]) —
+#   this app's canvas fields are flat, not nested per-array-element pickers
+#   (the same limitation lifecycle-workflows' `tasks` field documents), so it
+#   stays authored as JSON rather than a picker.
+#
 # Field keys must match config-types/cross-tenant-access-partners/validate.ts.
 # =============================================================================
 

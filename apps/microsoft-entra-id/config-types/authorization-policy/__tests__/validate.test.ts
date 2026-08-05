@@ -58,6 +58,35 @@ describe('authorization-policy validate', () => {
     expect(specs[0].blockMsolPowerShell).toBe(true)
     expect(specs[0].allowedToUseSSPR).toBe(false)
   })
+
+  it('extracts permissionGrantPoliciesAssigned as an array', () => {
+    const specs = extractAuthorizationPolicySpecs({
+      items: [{ fields: { permissionGrantPoliciesAssigned: ['microsoft-user-default-legacy'] } }],
+    } as never)
+    expect(specs[0].permissionGrantPoliciesAssigned).toEqual(['microsoft-user-default-legacy'])
+  })
+
+  it('warns when both the permissionGrantPoliciesAssigned picker and the JSON key are set', () => {
+    const r = validate(
+      ctxWith([
+        {
+          fields: {
+            permissionGrantPoliciesAssigned: ['microsoft-user-default-legacy'],
+            defaultUserRolePermissions: '{"permissionGrantPoliciesAssigned":["managePermissionGrantsForSelf.microsoft-user-default-legacy"]}',
+          },
+        },
+      ]),
+    )
+    expect(r.valid).toBe(true)
+    expect(r.warnings.some((w) => w.code === 'picker_overrides_json')).toBe(true)
+  })
+
+  it('does not warn when only the JSON key is set (no picker selection)', () => {
+    const r = validate(
+      ctxWith([{ fields: { defaultUserRolePermissions: '{"permissionGrantPoliciesAssigned":[]}' } }]),
+    )
+    expect(r.warnings.some((w) => w.code === 'picker_overrides_json')).toBe(false)
+  })
 })
 
 describe('object helpers', () => {

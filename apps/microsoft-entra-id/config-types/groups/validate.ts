@@ -15,6 +15,10 @@ export interface GroupSpec {
   description: string
   /** Explicit mailNickname, or '' to derive one from the name. */
   mailNickname: string
+  /** Owner object ids, UPNs or display names (users or service principals) — resolved at deploy time. */
+  owners: string[]
+  /** Member object ids, UPNs or display names (users, groups, devices or service principals) — resolved at deploy time. */
+  members: string[]
 }
 
 /** A group as returned by Graph GET /groups. */
@@ -30,6 +34,15 @@ export interface LiveGroup {
 
 function asString(v: unknown): string {
   return typeof v === 'string' ? v.trim() : ''
+}
+
+/** Coerce a multiselect (array) or a delimited string into trimmed tokens. */
+function asStringArray(v: unknown): string[] {
+  if (Array.isArray(v)) return v.map((x) => String(x).trim()).filter((t) => t.length > 0)
+  return asString(v)
+    .split(/[\n,]/)
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0)
 }
 
 /** Derive a valid mailNickname from a display name (letters/digits/._- only). */
@@ -67,6 +80,8 @@ export function extractGroupSpecs(canvas: CanvasSnapshot): GroupSpec[] {
       name: asString(f.name) || item.name,
       description: asString(f.description),
       mailNickname: asString(f.mailNickname),
+      owners: asStringArray(f.owners),
+      members: asStringArray(f.members),
     }
   })
 }

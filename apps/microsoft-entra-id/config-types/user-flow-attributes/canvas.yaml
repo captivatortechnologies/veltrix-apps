@@ -7,6 +7,14 @@
 # and PATCHes (description) or POSTs (create) accordingly. Reconcile only deletes
 # custom attributes this app created. Built-in attributes are never touched.
 #
+# Phase-2 batch-4 note: this type's own fields (name/dataType/description) have
+# no directory-object references, so nothing here gets a picker. The built-in
+# AND custom attributes this type manages ARE referenced elsewhere:
+# b2x-user-flows' `attributes` field is a live picker sourced from
+# entraOptions' `userFlowAttributes` source (the same GET
+# /identity/userFlowAttributes collection this type reads/writes) — see
+# config-types/b2x-user-flows/canvas.yaml.
+#
 # Field keys must match config-types/user-flow-attributes/validate.ts.
 # =============================================================================
 

@@ -10,6 +10,13 @@
 # NOTE: the client secret is write-only — Graph never returns it, so it is always
 # (re)applied on deploy and is NOT compared by drift detection.
 #
+# Phase-2 batch-4 note: this type's own fields (name/type/clientId/secret) have
+# no directory-object references, so nothing here gets a picker. The providers
+# THIS type creates are, however, referenced elsewhere: b2x-user-flows'
+# `identityProviders` field is a live picker sourced from entraOptions'
+# `identityProviders` source (the same GET /identity/identityProviders
+# collection this type writes into) — see config-types/b2x-user-flows/canvas.yaml.
+#
 # Field keys must match config-types/external-identity-providers/validate.ts.
 # =============================================================================
 

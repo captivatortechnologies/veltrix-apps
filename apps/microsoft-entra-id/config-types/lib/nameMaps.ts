@@ -195,3 +195,65 @@ export function resolveAcrossMapsMany(
   }
   return { ids, missing }
 }
+
+// =============================================================================
+// Phase-2 batch-4 addition: id-or-name resolution for OPAQUE STRING id spaces —
+// identityProvider, identityUserFlowAttribute and permissionGrantPolicy ids are
+// NOT GUIDs (e.g. "Facebook-OAUTH", "city", "microsoft-user-default-legacy" —
+// see entraOptions.ts's header for citations), so the `isGuid`-gated passthrough
+// above can't tell a picker-selected id apart from a hand-typed one by shape
+// alone. Both live picker (identityProviders/userFlowAttributes/
+// permissionGrantPolicies, in entraOptions.ts) sources for this id shape store
+// the id itself as the option value, so resolution here instead checks live id
+// membership FIRST (case-insensitive) and only falls back to a displayName
+// match — never a shape regex. Shared across b2x-user-flows (identityProviders,
+// attributes) and authorization-policy (permissionGrantPoliciesAssigned) since
+// all three consume this exact mechanic, unlike the more bespoke per-batch
+// reconciles documented in refReconcile.ts / policyAppliesTo.ts's headers.
+// =============================================================================
+
+export interface IdNameMap {
+  /** lowercase id -> canonical (Graph-cased) id. */
+  idsLower: Map<string, string>
+  /** lowercase displayName -> canonical id. */
+  nameToId: Map<string, string>
+}
+
+/** Build a live id-set + displayName map for an opaque-string-id collection. */
+export async function buildIdNameMap(client: GraphClient, path: string): Promise<IdNameMap> {
+  const idsLower = new Map<string, string>()
+  const nameToId = new Map<string, string>()
+  const listed = await client.getAll<{ id?: string; displayName?: string }>(path)
+  if (listed.ok) {
+    for (const r of listed.items) {
+      if (!r.id) continue
+      idsLower.set(r.id.toLowerCase(), r.id)
+      if (r.displayName) nameToId.set(r.displayName.toLowerCase(), r.id)
+    }
+  }
+  return { idsLower, nameToId }
+}
+
+/** Exact live-id match (case-insensitive) wins; else a displayName match; else missing. */
+export function resolveByIdOrName(value: string, map: IdNameMap): { id: string; missing: boolean } {
+  const v = (value ?? '').trim()
+  if (!v) return { id: '', missing: false }
+  const lower = v.toLowerCase()
+  const idHit = map.idsLower.get(lower)
+  if (idHit) return { id: idHit, missing: false }
+  const nameHit = map.nameToId.get(lower)
+  if (nameHit) return { id: nameHit, missing: false }
+  return { id: '', missing: true }
+}
+
+/** Batch form of resolveByIdOrName, for a multiselect field. */
+export function resolveByIdOrNameMany(values: string[], map: IdNameMap): { ids: string[]; missing: string[] } {
+  const ids: string[] = []
+  const missing: string[] = []
+  for (const v of values) {
+    const r = resolveByIdOrName(v, map)
+    if (r.missing) missing.push(v)
+    else if (r.id) ids.push(r.id)
+  }
+  return { ids, missing }
+}

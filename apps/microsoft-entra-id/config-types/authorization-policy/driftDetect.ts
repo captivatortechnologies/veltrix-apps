@@ -6,6 +6,8 @@ import {
   parseObject,
   type LiveAuthorizationPolicy,
 } from './validate'
+import { buildIdNameMap, resolveByIdOrNameMany } from '../lib/nameMaps'
+import { formatPermissionGrantPolicyAssignment } from './deploy'
 
 const PATH = '/policies/authorizationPolicy'
 const SELECT =
@@ -13,6 +15,10 @@ const SELECT =
   'allowEmailVerifiedUsersToJoinOrganization,allowedToSignUpEmailBasedSubscriptions,guestUserRoleId,defaultUserRolePermissions'
 
 type Diffs = DriftResult['diffs']
+
+function sortedJson(v: string[]): string {
+  return JSON.stringify([...v].sort())
+}
 
 export default async function driftDetect(ctx: DriftContext): Promise<DriftResult> {
   const settings = readGraphSettings(ctx.settings)
@@ -65,11 +71,39 @@ export default async function driftDetect(ctx: DriftContext): Promise<DriftResul
     })
   }
   const wantPerms = spec.defaultUserRolePermissions ? parseObject(spec.defaultUserRolePermissions) : null
+  // Compare the JSON blob only on keys it doesn't share with the dedicated
+  // picker below, to avoid double-reporting the same drift two different ways.
   if (wantPerms) {
-    const want = canonicalObject(wantPerms)
-    const actual = canonicalObject(live.defaultUserRolePermissions ?? {})
+    const { permissionGrantPoliciesAssigned: _ignored, ...rest } = wantPerms
+    const liveRest = { ...(live.defaultUserRolePermissions ?? {}) } as Record<string, unknown>
+    delete liveRest.permissionGrantPoliciesAssigned
+    const want = canonicalObject(rest)
+    const actual = canonicalObject(liveRest)
     if (want !== actual) {
       diffs.push({ field: 'defaultUserRolePermissions', expected: want, actual, severity: 'warning' })
+    }
+  }
+
+  if (spec.permissionGrantPoliciesAssigned.length) {
+    const permissionGrantPolicyMap = await buildIdNameMap(client, '/policies/permissionGrantPolicies?$select=id,displayName')
+    const resolution = resolveByIdOrNameMany(spec.permissionGrantPoliciesAssigned, permissionGrantPolicyMap)
+    if (resolution.missing.length) {
+      diffs.push({
+        field: 'permissionGrantPoliciesAssigned',
+        expected: 'resolvable',
+        actual: `unknown policy(ies): ${resolution.missing.join(', ')}`,
+        severity: 'critical',
+      })
+    } else {
+      const want = sortedJson(resolution.ids.map(formatPermissionGrantPolicyAssignment))
+      const actual = sortedJson(
+        Array.isArray(live.defaultUserRolePermissions?.permissionGrantPoliciesAssigned)
+          ? (live.defaultUserRolePermissions!.permissionGrantPoliciesAssigned as string[])
+          : []
+      )
+      if (want !== actual) {
+        diffs.push({ field: 'permissionGrantPoliciesAssigned', expected: want, actual, severity: 'warning' })
+      }
     }
   }
 

@@ -5,6 +5,16 @@
 # with no create/delete — deploy reads it, PATCHes the managed fields and stores
 # the prior values for rollback. Declare it at most once per canvas.
 #
+# permissionGrantPoliciesAssigned is a genuine reference field: each entry is
+# `managePermissionGrantsForSelf.{permissionGrantPolicy id}` (see
+# https://learn.microsoft.com/graph/api/resources/defaultuserrolepermissions).
+# It has its OWN live picker (below) separate from the free-JSON
+# defaultUserRolePermissions field — when the picker field has any selection it
+# TAKES PRECEDENCE over a same-named key hand-authored inside the JSON blob
+# (see deploy.ts). Leaving the picker empty does NOT clear a live value (the
+# JSON field remains the way to explicitly set it to `[]`, since an empty list
+# is itself meaningful — it disables user consent to apps entirely).
+#
 # Field keys must match config-types/authorization-policy/validate.ts.
 # =============================================================================
 
@@ -97,6 +107,26 @@ item:
           defaultValue: false
           helpText: "Controls allowedToSignUpEmailBasedSubscriptions."
 
+        - key: "permissionGrantPoliciesAssigned"
+          label: "App Consent Policies (permission grant policies)"
+          fieldType: "remote-multiselect"
+          optionsSource: "permissionGrantPolicies"
+          optionsMulti: true
+          required: false
+          helpText: >
+            Which permission grant (app consent) policies govern user consent
+            to apps — pick from the live tenant (includes built-ins like
+            "microsoft-user-default-legacy" and this app's own
+            permission-grant-policies type's custom policies). Stores each
+            policy's id, formatted as Graph's required
+            "managePermissionGrantsForSelf.{id}" string. A hand-typed id or
+            display name from an older canvas also resolves at deploy time.
+            TAKES PRECEDENCE over a permissionGrantPoliciesAssigned key
+            hand-authored in the JSON field below when non-empty. Leave empty
+            to not manage this through the picker (the JSON field below can
+            still explicitly set it, including to an empty list to disable
+            user consent to apps entirely).
+
         - key: "defaultUserRolePermissions"
           label: "Default user role permissions (JSON)"
           fieldType: "textarea"
@@ -105,4 +135,5 @@ item:
             Optional JSON object for defaultUserRolePermissions, e.g.
             {"allowedToCreateApps":false,"allowedToCreateSecurityGroups":false,
             "allowedToReadOtherUsers":true,"permissionGrantPoliciesAssigned":[]}.
-            Leave blank to leave these untouched.
+            Leave blank to leave these untouched. Prefer the picker field above
+            for permissionGrantPoliciesAssigned — it takes precedence when set.

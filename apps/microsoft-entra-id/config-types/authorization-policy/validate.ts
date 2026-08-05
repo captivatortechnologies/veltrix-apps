@@ -30,6 +30,9 @@ export interface AuthorizationPolicySpec {
   guestUserRoleId: string
   /** Raw JSON text for defaultUserRolePermissions, or '' to leave it untouched. */
   defaultUserRolePermissions: string
+  /** permissionGrantPolicy ids or display names — resolved + formatted at deploy time.
+   *  Empty means "not managed through this picker" (see deploy.ts precedence rule). */
+  permissionGrantPoliciesAssigned: string[]
 }
 
 /** The tenant authorization policy singleton as returned by Graph. */
@@ -51,6 +54,15 @@ function asString(v: unknown): string {
 
 function asBool(v: unknown): boolean {
   return v === true || v === 'true'
+}
+
+/** Coerce a multiselect (array) or a delimited string into trimmed tokens. */
+function asStringArray(v: unknown): string[] {
+  if (Array.isArray(v)) return v.map((x) => String(x).trim()).filter((t) => t.length > 0)
+  return asString(v)
+    .split(/[\n,]/)
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0)
 }
 
 /** Parse a JSON string into a plain object, or null when it isn't a JSON object. */
@@ -98,6 +110,7 @@ export function extractAuthorizationPolicySpecs(canvas: CanvasSnapshot): Authori
       allowedToSignUpEmailBasedSubscriptions: asBool(f.allowedToSignUpEmailBasedSubscriptions),
       guestUserRoleId: asString(f.guestUserRoleId),
       defaultUserRolePermissions: asString(f.defaultUserRolePermissions),
+      permissionGrantPoliciesAssigned: asStringArray(f.permissionGrantPoliciesAssigned),
     }
   })
 }
@@ -134,12 +147,22 @@ export default function validate(ctx: PipelineContext): ValidationResult {
       })
     }
 
-    if (spec.defaultUserRolePermissions && !parseObject(spec.defaultUserRolePermissions)) {
-      errors.push({
-        field: `${prefix}.defaultUserRolePermissions`,
-        message: 'Default user role permissions must be a valid JSON object',
-        code: 'invalid_json',
-      })
+    if (spec.defaultUserRolePermissions) {
+      const parsed = parseObject(spec.defaultUserRolePermissions)
+      if (!parsed) {
+        errors.push({
+          field: `${prefix}.defaultUserRolePermissions`,
+          message: 'Default user role permissions must be a valid JSON object',
+          code: 'invalid_json',
+        })
+      } else if (spec.permissionGrantPoliciesAssigned.length && 'permissionGrantPoliciesAssigned' in parsed) {
+        warnings.push({
+          field: `${prefix}.permissionGrantPoliciesAssigned`,
+          message:
+            'Both the App Consent Policies picker and a permissionGrantPoliciesAssigned key in the JSON field are set — the picker takes precedence',
+          code: 'picker_overrides_json',
+        })
+      }
     }
   })
 

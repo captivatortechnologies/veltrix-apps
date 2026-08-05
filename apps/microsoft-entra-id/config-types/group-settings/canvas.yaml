@@ -7,8 +7,13 @@
 # templateId and PATCHes (values) or POSTs (create) accordingly. Reconcile only
 # deletes settings this app created.
 #
-# First GET /groupSettingTemplates to discover valid template ids and value names
-# (e.g. the Group.Unified template governs guest owners, naming, classifications).
+# templateId is a live picker sourced from GET /groupSettingTemplates (e.g. the
+# Group.Unified template governs guest owners, naming, classifications) — see
+# ../lib/entraOptions.ts. The `values` name/value pairs a template accepts are
+# NOT independently picker-able: settingTemplateValue is a nested array
+# property of the template resource itself (not a separate directory-object
+# reference), so it stays authored as JSON — GET the chosen template
+# (/groupSettingTemplates/{id}) to see its available value names and defaults.
 #
 # Field keys must match config-types/group-settings/validate.ts.
 # =============================================================================
@@ -31,12 +36,16 @@ item:
       description: "Template and name/value pairs"
       fields:
         - key: "templateId"
-          label: "Template ID"
-          fieldType: "text"
+          label: "Template"
+          fieldType: "remote-select"
+          optionsSource: "groupSettingTemplates"
           required: true
           helpText: >
-            The groupSettingTemplate id (a GUID) this settings object is based on,
-            e.g. the "Group.Unified" template. Discover ids via GET /groupSettingTemplates.
+            The groupSettingTemplate this settings object is based on — pick from
+            the live tenant catalog (e.g. "Group.Unified"). Templates are
+            system-defined and cannot be created, updated or deleted, so this list
+            is always the tenant's full available set. Stores the template's GUID
+            id; a hand-typed id from an older canvas is still accepted as-is.
 
         - key: "values"
           label: "Values (JSON array)"
