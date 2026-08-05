@@ -1,0 +1,9 @@
+# Defaults for a new correlation rule item.
+#
+# Intentionally minimal: the platform no longer seeds most values into a new
+# item — it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (name, description, severity, enabled, testMode,
+# sequencesConfigJson, suppressConfigJson, delayConfigJson, scheduleConfigJson),
+# since a rule's presentational groups share one flat item record. severity
+# already carries a canvas-level defaultValue ("medium"), so it is not repeated
+# here.

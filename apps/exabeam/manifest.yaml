@@ -1,0 +1,145 @@
+id: exabeam
+name: Exabeam
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Exabeam New-Scale Security Operations Platform correlation (real-time
+  detection) rules as code through the Exabeam Correlation Rules API. Auth is
+  an Exabeam API Key (OAuth2 client_credentials grant against the platform's
+  own token endpoint). This first release is intentionally narrow: research
+  against the Exabeam API reference (developers.exabeam.com) found genuinely
+  full create/read/update/delete lifecycle support ONLY for Correlation Rules.
+  Everything else investigated — analytics (UEBA) rules, context tables,
+  watchlists, case/queue/stage workflow config, RBAC roles, log-source/parser
+  config, automation playbooks — is either read-only, create-only with no
+  delete/rollback path, or has no public REST surface at all as of this
+  release. See the README Coverage section for the full, sourced breakdown.
+category: SIEM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/exabeam
+icon: "🧠"
+
+platform:
+  minVersion: "1.0.0"
+
+# Exabeam brand: deep indigo primary, cyan accent.
+branding:
+  primaryColor: "#2B2E83"
+  accentColor: "#00B4D8"
+  logo: ./assets/logo.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: correlation-rules
+      actions: [read, write, delete]
+      description: Manage Exabeam correlation (real-time detection) rules — sequences, severity, suppression/delay/schedule and enablement
+
+pipeline:
+  configurationTypes:
+    - id: correlation-rules
+      group: "Detection"
+      name: Correlation Rules
+      description: >
+        Real-time correlation rules — sequence(s)/query/condition, severity,
+        enablement, test mode, and optional suppression/delay/schedule — via
+        the Exabeam Correlation Rules API (/correlation-rules/v2/rules).
+        Reconciled by rule name (this app's own identity key; the API enforces
+        no native uniqueness). Rules this app created but no longer declares
+        are deleted on reconcile.
+      canvasTemplate: config-types/correlation-rules/canvas.yaml
+      defaultConfig: config-types/correlation-rules/defaults.yaml
+      handlers:
+        validate: config-types/correlation-rules/validate
+        deploy: config-types/correlation-rules/deploy
+        rollback: config-types/correlation-rules/rollback
+        healthCheck: config-types/correlation-rules/healthCheck
+        driftDetect: config-types/correlation-rules/driftDetect
+        getStatus: config-types/correlation-rules/getStatus
+      targets:
+        componentTypes: [exabeam-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/exabeam
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: mints an API Key access token
+# (client_credentials against /auth/v1/token) and confirms it can list
+# correlation rules.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: region
+    type: select
+    label: Region
+    description: >
+      The New-Scale platform region your Exabeam tenant is provisioned in.
+      This is fixed when the tenant is provisioned and determines the
+      api.<region>.exabeam.cloud host - it does not auto-detect.
+    default: us-west
+    required: false
+    options:
+      - label: US West
+        value: us-west
+      - label: US East
+        value: us-east
+      - label: Singapore
+        value: sg
+      - label: Japan
+        value: jp
+      - label: European Union
+        value: eu
+      - label: Australia
+        value: au
+      - label: Canada
+        value: ca
+      - label: Switzerland
+        value: ch
+      - label: South America
+        value: sa
+      - label: United Kingdom
+        value: uk
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Exabeam API calls.
+    default: 30
+    required: false

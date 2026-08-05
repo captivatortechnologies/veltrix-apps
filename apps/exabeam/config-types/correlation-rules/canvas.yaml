@@ -1,0 +1,135 @@
+# =============================================================================
+# Canvas Template — Exabeam Correlation Rules
+#
+# Declares ONE correlation rule — the item. Users add as many as they need.
+# A rule's identity is its NAME (this app's own reconciliation key — the
+# Correlation Rules API itself does not enforce unique names, so deploy lists
+# rules and matches by name, the same convention ping-identity/google-secops
+# use for tools with no native upsert). The API assigns the rule id on create;
+# it is tracked via the canvas item's stable id so a rename in the canvas
+# updates the SAME live rule instead of creating a duplicate.
+#
+# sequencesConfig (and the optional suppressConfig / delayConfig /
+# scheduleConfig) are authored as raw JSON text rather than fully decomposed
+# canvas controls — their shape (nested sequence/condition trees, EQL search
+# strings) varies enormously per rule and mirrors exactly what the API's
+# create/update body expects, the same convention ping-identity uses for its
+# sign-on-policy condition trees. Every JSON field's wire shape is documented
+# in its help text below with a worked example.
+#
+# Field keys must match what config-types/correlation-rules/validate.ts checks.
+# API reference: https://developers.exabeam.com/exabeam/reference/correlation-create-rule
+# =============================================================================
+
+id: "exabeam-correlation-rules"
+name: "Correlation Rule Configuration"
+toolType: "exabeam"
+entityType: "correlation-rules"
+description: "Define Exabeam correlation (real-time detection) rules as code through the Exabeam Correlation Rules API."
+
+item:
+  label: "Correlation Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Rule"
+      icon: "shield"
+      description: "Core rule identity and lifecycle settings"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: >
+            Rule name (max 128 chars). Must be unique within this canvas — it is
+            the logical identity deploy matches on (the API itself does not
+            enforce unique names).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the Exabeam console."
+
+        - key: "severity"
+          label: "Severity"
+          fieldType: "select"
+          required: true
+          defaultValue: "medium"
+          options:
+            - label: "None"
+              value: "none"
+            - label: "Low"
+              value: "low"
+            - label: "Medium"
+              value: "medium"
+            - label: "High"
+              value: "high"
+            - label: "Critical"
+              value: "critical"
+          helpText: "Severity assigned to alerts this rule triggers."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether the rule actively evaluates incoming events. Rules are created disabled by default until you enable them here."
+
+        - key: "testMode"
+          label: "Test Mode"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Run the rule without generating live alerts/cases — useful for validating a new or changed rule before enabling it for real."
+
+    - name: "Detection Logic"
+      icon: "search"
+      description: "The rule's sequence(s), search query/queries and trigger condition(s), as the API's own JSON body"
+      fields:
+        - key: "sequencesConfigJson"
+          label: "Sequences Config (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            Required. The rule's `sequencesConfig` object exactly as the
+            Correlation Rules API expects it: one or more `sequences`, each
+            with an EQL `query` and a trigger `condition`; an optional
+            `outcomes` block (the action taken when the rule triggers — alert,
+            email, or case); and — only when declaring more than one sequence —
+            a `commonProperties` block (`groupBy`, `time`, `unit`) tying the
+            sequences together. Example (single-sequence rule):
+
+            {"sequences":[{"name":"Repeated failed logins","query":"activity_type:\"user-login-failure\"","condition":{"groupByOption":true,"groupBy":["user"],"functionType":"count","operator":"greater_than","value":"5","time":10,"unit":"minutes"}}],"outcomes":{"alert":{}}}
+
+        - key: "suppressConfigJson"
+          label: "Suppression Config (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional `suppressConfig` object — repeat-trigger suppression
+            (a time window during which a re-trigger is suppressed rather than
+            raising a new alert). Leave blank for no suppression. Example:
+
+            {"suppress":true,"time":60,"unit":"minutes"}
+
+        - key: "delayConfigJson"
+          label: "Delay Config (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional `delayConfig` object — delays rule evaluation by a fixed
+            window (7–180 minutes) after an event arrives, to allow for
+            late-arriving related events. Leave blank for no delay. Example:
+
+            {"delay":15,"unit":"minutes"}
+
+        - key: "scheduleConfigJson"
+          label: "Schedule Config (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional `scheduleConfig` object — restricts evaluation to a
+            recurrence window (daily/weekly/monthly/custom) instead of
+            continuous real-time evaluation. Leave blank to evaluate
+            continuously. Example:
+
+            {"recurrences":[{"type":"daily","startTime":"00:00","endTime":"23:59"}]}
