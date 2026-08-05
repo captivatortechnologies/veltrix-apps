@@ -1,0 +1,7 @@
+# Defaults for a new app rule item.
+#
+# Intentionally empty: the platform no longer seeds default values into a new
+# item - it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (appId, name, enabled, match, conditionsJson,
+# actionsJson), since a rule's presentational groups share one flat item
+# record.

@@ -1,0 +1,143 @@
+# =============================================================================
+# Canvas Template - OneLogin Account Brands
+#
+# Declares ONE Account Brand - the item. Users add as many brands as they
+# need. A brand's identity in this config type is its NAME (matched within
+# the account); deploy lists brands, matches by name, then PUTs (partial
+# update - "accepts a partial payload but only updates the provided values")
+# or POSTs (create) - OneLogin has no upsert.
+#
+# NOTE: the Branding API is an OneLogin "Early Preview" feature - it may
+# change, and API credentials created before 2020-10-21 cannot use it. See
+# README.md.
+#
+# The account's MASTER brand (the default, always-present brand every account
+# starts with) is NEVER created or deleted by this app - only a brand this
+# canvas names AFTER an existing master brand would ever match it, and even
+# then only its non-identity fields are updated, never its `master` flag.
+#
+# Logo/background images are intentionally NOT modeled here: OneLogin's write
+# API accepts them as base64 image data, but GET returns CDN URL objects
+# instead (different shape in vs. out) - true declarative round-tripping
+# isn't possible, so asset upload stays a manual admin-console step; this
+# config type manages the brand's TEXT/color/message fields only.
+#
+# Field keys must match what config-types/brands/validate.ts checks.
+# API reference: https://developers.onelogin.com/api-docs/2/branding
+# =============================================================================
+
+id: "onelogin-brands"
+name: "Account Brand Configuration"
+toolType: "onelogin"
+entityType: "brands"
+description: "Define OneLogin Account Brands (Early Preview Branding API) - login-screen label, colors, instructions and messages - as code through the OneLogin API."
+
+item:
+  label: "Brand"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Brand"
+      icon: "palette"
+      description: "Brand name and enablement"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The brand's name - the identity this app uses to find and update
+            it on every deploy. Renaming here is treated as a new brand on
+            the next deploy (matching is by name), not an in-place rename of
+            the old one. This app never creates or deletes the account's
+            MASTER brand, even if a name here happens to match it.
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether this brand is active and selectable for apps/organizations in the account."
+
+    - name: "Colors"
+      icon: "swatch"
+      description: "Login-screen color scheme"
+      fields:
+        - key: "customColor"
+          label: "Primary Color"
+          fieldType: "text"
+          validation:
+            pattern: "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+            message: "A hex color, e.g. #1298b4 or #1a2."
+          helpText: "Primary brand color (hex), e.g. #1298b4."
+
+        - key: "customAccentColor"
+          label: "Accent Color"
+          fieldType: "text"
+          validation:
+            pattern: "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+            message: "A hex color, e.g. #b60012 or #b01."
+          helpText: "Accent color (hex), e.g. #b60012."
+
+        - key: "customMaskingColor"
+          label: "Masking Color"
+          fieldType: "text"
+          validation:
+            pattern: "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+            message: "A hex color, e.g. #beefed."
+          helpText: "Background masking color behind the login panel (hex)."
+
+        - key: "customMaskingOpacity"
+          label: "Masking Opacity"
+          fieldType: "number"
+          validation:
+            min: 0
+            max: 100
+          helpText: "Masking color opacity, 0-100."
+
+    - name: "Login Screen"
+      icon: "log-in"
+      description: "Login-screen label and instructions"
+      fields:
+        - key: "enableCustomLabelForLoginScreen"
+          label: "Use Custom Username Label"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether to replace the default username/email field label on the login screen."
+
+        - key: "customLabelTextForLoginScreen"
+          label: "Custom Username Label Text"
+          fieldType: "text"
+          helpText: "The replacement label text, e.g. \"ACME Username or Email\". Only used when the toggle above is enabled."
+
+        - key: "loginInstructionTitle"
+          label: "Login Instructions Title"
+          fieldType: "text"
+          helpText: "Optional heading shown above the login instructions text."
+
+        - key: "loginInstruction"
+          label: "Login Instructions"
+          fieldType: "textarea"
+          helpText: "Optional instructional text shown on the login screen."
+
+        - key: "hideOneloginFooter"
+          label: "Hide OneLogin Footer"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether to hide the \"Powered by OneLogin\" footer."
+
+    - name: "Messages & Support"
+      icon: "message-square"
+      description: "MFA enrollment message and custom support"
+      fields:
+        - key: "mfaEnrollmentMessage"
+          label: "MFA Enrollment Message"
+          fieldType: "textarea"
+          helpText: "Optional custom message shown when a user is prompted to enroll in MFA."
+
+        - key: "customSupportEnabled"
+          label: "Custom Support Enabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether this brand shows custom support contact information instead of OneLogin's default."

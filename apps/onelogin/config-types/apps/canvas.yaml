@@ -1,0 +1,164 @@
+# =============================================================================
+# Canvas Template - OneLogin Apps
+#
+# Declares ONE App (an SSO connector instance - SAML, OIDC, or any of
+# OneLogin's catalog connectors) - the item. Users add as many apps as they
+# need. An app's identity in OneLogin is its NAME (matched within the
+# account); deploy lists apps, matches by name, then PATCHes (update) or
+# POSTs (create) - OneLogin has no upsert. The underlying `connectorId` is
+# effectively immutable once created (OneLogin has no documented way to
+# re-base an existing app onto a different connector), so it is only sent on
+# create.
+#
+# `configuration` and `parameters` vary enormously by connector (a SAML app's
+# configuration is `{signature_algorithm, certificate_id, provider_arn}`; an
+# OIDC app's is `{redirect_uri, login_url, token_endpoint_auth_method, ...}`;
+# a SaaS-catalog connector's parameters are that app's own provisioning
+# attribute map) - authored here as JSON textareas rather than decomposed
+# fields, the same convention `ping-identity` uses for its sign-on-policy
+# actions. Run a GET on an existing app of the same connector (or check the
+# connector's own onboarding doc) to see its exact configuration/parameter
+# keys.
+#
+# Field keys must match what config-types/apps/validate.ts checks.
+# API reference: https://developers.onelogin.com/api-docs/2/apps
+# =============================================================================
+
+id: "onelogin-apps"
+name: "App Configuration"
+toolType: "onelogin"
+entityType: "apps"
+description: "Define OneLogin Apps (SAML/OIDC SSO connectors and OneLogin's catalog connectors) - identity, visibility, provisioning and connector-specific configuration/parameters - as code through the OneLogin API."
+
+item:
+  label: "App"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "app-window"
+      description: "App name, base connector and description"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The app's name in OneLogin - the identity this app uses to find
+            and update it on every deploy. Renaming here is treated as a new
+            app on the next deploy (matching is by name), not an in-place
+            rename of the old one.
+
+        - key: "connectorId"
+          label: "Connector"
+          fieldType: "remote-select"
+          optionsSource: "connectors"
+          required: true
+          helpText: >
+            The OneLogin connector this app is based on (SAML Custom
+            Connector, OpenId Connect, or any catalog SaaS connector - e.g.
+            Salesforce, Slack). Effectively immutable: OneLogin has no
+            documented way to re-base an existing app onto a different
+            connector, so this is only used when creating a new app - editing
+            it later has no effect on an app that already exists in OneLogin
+            under this name.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the OneLogin admin console."
+
+        - key: "notes"
+          label: "Notes"
+          fieldType: "textarea"
+          helpText: "Optional internal notes (not shown to end users)."
+
+    - name: "Visibility & Access"
+      icon: "eye"
+      description: "Portal visibility, admin impersonation, login policy and portal tab"
+      fields:
+        - key: "visible"
+          label: "Visible in Portal"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether this app appears on end users' OneLogin portal."
+
+        - key: "allowAssumedSignin"
+          label: "Allow Assumed Sign-In"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether an admin can sign in to this app as another user (impersonation) from the admin console."
+
+        - key: "policyId"
+          label: "Login Policy ID"
+          fieldType: "number"
+          helpText: >
+            Optional numeric id of an existing OneLogin login policy to apply
+            to this app. OneLogin's public API has no documented endpoint to
+            list or author login policies, so this app treats the id as an
+            external reference - find it in the admin console under Security
+            > Policies and paste it in. Leave blank to use the account's
+            default policy.
+
+        - key: "tabId"
+          label: "Portal Tab ID"
+          fieldType: "number"
+          helpText: "Optional numeric id of the portal tab this app is grouped under. Leave blank for no tab assignment."
+
+    - name: "Provisioning"
+      icon: "user-check"
+      description: "Whether OneLogin provisioning is enabled for this app"
+      fields:
+        - key: "provisioningEnabled"
+          label: "Provisioning Enabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether OneLogin's provisioning workflow (approve/reject user lifecycle events for this app) is enabled."
+
+    - name: "Configuration & Parameters"
+      icon: "code"
+      description: "Connector-specific configuration and provisioning/attribute parameters (JSON)"
+      fields:
+        - key: "configurationJson"
+          label: "Configuration (JSON object)"
+          fieldType: "textarea"
+          helpText: >
+            The connector-specific `configuration` object, as JSON, verbatim
+            in OneLogin's own wire format. Leave blank to skip (a brand-new
+            app is created with the connector's defaults; an existing app's
+            configuration is left untouched). Two common shapes:
+
+            SAML Custom Connector:
+            {"signature_algorithm":"SHA-256"}
+
+            OpenID Connect:
+            {"redirect_uri":"https://app.example.com/callback","login_url":"https://app.example.com/login","token_endpoint_auth_method":1,"oidc_application_type":0,"access_token_expiration_minutes":10,"refresh_token_expiration_minutes":60}
+
+            token_endpoint_auth_method: 0=none (public client/PKCE), 1=client
+            secret POST, 2=client secret basic. oidc_application_type:
+            0=web, 1=single-page app, 2=native/mobile. A catalog SaaS
+            connector (Salesforce, Slack, ...) has its own connector-specific
+            keys - GET an existing app based on the same connector to see the
+            exact shape before authoring it here.
+
+        - key: "parametersJson"
+          label: "Parameters (JSON object)"
+          fieldType: "textarea"
+          helpText: >
+            The app's `parameters` object - one entry per provisioning /
+            attribute-mapping parameter, keyed by the parameter's OneLogin
+            `param_key_name` (e.g. the SAML attribute name, or a catalog
+            connector's own field name). Each entry may set `label`,
+            `user_attribute_mappings` (a OneLogin user field shortname to map
+            from), `user_attribute_macros`, `attributes_transformations`,
+            `default_values`, `skip_if_blank` and `values` (a literal,
+            non-mapped value). Leave blank to skip (existing parameters are
+            left untouched - this app never deletes a parameter absent from
+            this field, since OneLogin documents no dedicated delete-parameter
+            endpoint). Example:
+
+            {"saml_username":{"user_attribute_mappings":"samaccountname"},"groups":{"user_attribute_mappings":"roles","attributes_transformations":"semicolon_separated_list"}}

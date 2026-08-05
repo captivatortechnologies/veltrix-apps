@@ -1,0 +1,6 @@
+# Defaults for a new role item.
+#
+# Intentionally empty: the platform no longer seeds default values into a new
+# item - it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (name, appIds), since a role's presentational groups
+# share one flat item record.

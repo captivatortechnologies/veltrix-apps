@@ -1,0 +1,109 @@
+# =============================================================================
+# Canvas Template - OneLogin User Mappings
+#
+# Declares ONE user mapping - the item. Users add as many mappings as they
+# need. A mapping's identity in this config type is its NAME (matched within
+# the account's full mapping list); deploy lists mappings, matches by name,
+# then PUTs (update) or POSTs (create) - OneLogin has no upsert.
+#
+# ORDERING: mappings run in ascending `position` order against every user,
+# account-wide. OneLogin's own Bulk Sort endpoint (PUT /api/2/mappings/sort)
+# requires the COMPLETE list of every mapping id in the account on every call
+# - a partial list 422s ("Sorting list must contain all mapping IDs"). Since a
+# canvas may intentionally declare only SOME of the account's mappings, this
+# app reconciles order non-destructively: every mapping NOT declared here
+# keeps its current relative position, and the mappings THIS canvas declares
+# are (re)inserted, in EXACTLY the order authored below, at the position
+# where the first of them already existed (or appended at the end when every
+# declared mapping is brand new). Declared mappings are never scattered
+# arbitrarily among undeclared ones - only their position AS A GROUP, and
+# their order RELATIVE TO EACH OTHER, are under this canvas's control.
+#
+# `conditions`/`actions` vary by the specific condition/action chosen, so they
+# are authored as JSON arrays rather than decomposed fields - the same
+# convention `ping-identity` uses for its sign-on-policy actions. Valid
+# condition sources/operators and action names are enumerated live by
+# GET /api/2/mappings/conditions and GET /api/2/mappings/actions in your
+# account (Delegated Administration-gated feature availability can change
+# this list) - this app does not hard-code a vocabulary.
+#
+# Field keys must match what config-types/mappings/validate.ts checks.
+# API reference: https://developers.onelogin.com/api-docs/2/user-mappings
+# =============================================================================
+
+id: "onelogin-mappings"
+name: "User Mapping Configuration"
+toolType: "onelogin"
+entityType: "mappings"
+description: "Define OneLogin's account-wide, ordered User Mappings (condition + action rules that run against every user), as code through the OneLogin API."
+
+item:
+  label: "User Mapping"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Mapping"
+      icon: "git-branch"
+      description: "Mapping name, match logic and enablement"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The mapping's name - the identity this app uses to find and
+            update it on every deploy, and the label whose declared ORDER
+            (relative to other mappings this canvas declares) is enforced on
+            deploy. Renaming here is treated as a new mapping on the next
+            deploy (matching is by name), not an in-place rename of the old
+            one.
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether this mapping actively runs. A disabled mapping still exists and keeps its position, but its actions do not fire."
+
+        - key: "match"
+          label: "Match"
+          fieldType: "select"
+          defaultValue: "all"
+          options:
+            - label: "All conditions must match"
+              value: "all"
+            - label: "Any condition may match"
+              value: "any"
+          helpText: "Whether every condition below must be true (\"all\"), or just one (\"any\"), for this mapping's actions to run."
+
+    - name: "Conditions & Actions"
+      icon: "list-checks"
+      description: "The condition set that selects users, and the actions applied to them (JSON)"
+      fields:
+        - key: "conditionsJson"
+          label: "Conditions (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A non-empty JSON array of condition objects, each
+            `{"source":"<field>","operator":"<op>","value":"<value>"}`, in
+            OneLogin's own wire format verbatim. See GET
+            /api/2/mappings/conditions in your account for the full list of
+            valid `source` values and the operators each supports. Example -
+            users who haven't logged in for over 90 days:
+
+            [{"source":"last_login","operator":">","value":"90"}]
+
+        - key: "actionsJson"
+          label: "Actions (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A non-empty JSON array of action objects, each
+            `{"action":"<action>","value":["<value>", ...]}`, in OneLogin's
+            own wire format verbatim. See GET /api/2/mappings/actions in your
+            account for the full list of valid `action` values. Example - set
+            the matched users' status to "Suspended" (status code 2):
+
+            [{"action":"set_status","value":["2"]}]

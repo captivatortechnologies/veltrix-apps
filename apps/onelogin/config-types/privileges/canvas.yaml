@@ -1,0 +1,93 @@
+# =============================================================================
+# Canvas Template - OneLogin Privileges
+#
+# Declares ONE custom Delegated Administration Privilege - the item. Users
+# add as many privileges as they need. A privilege's identity in this config
+# type is its NAME (matched within the account); deploy lists privileges,
+# matches by name, then PUTs (update, full document replace) or POSTs
+# (create) - OneLogin has no upsert.
+#
+# NOTE: the Privileges API requires a OneLogin subscription that includes
+# Delegated Administration. Without it, every call in this config type
+# returns an error - see README.md.
+#
+# Role/user assignment is reconciled by DIFF, not full-replace: OneLogin's
+# Assign Roles/Users endpoints ADD to the existing set
+# (POST .../roles {"roles":[...]})  and Remove Role/Remove User endpoints
+# remove ONE id at a time (DELETE .../roles/{role_id}) - there is no
+# single "set" call like Roles' own Set Role Apps. This app computes the
+# difference between what's declared and what's currently assigned, and
+# issues exactly the add/remove calls needed to converge - so the end
+# result is still a full, declarative replace even though the underlying
+# API is incremental.
+#
+# Field keys must match what config-types/privileges/validate.ts checks.
+# API reference: https://developers.onelogin.com/api-docs/1/privileges
+# =============================================================================
+
+id: "onelogin-privileges"
+name: "Privilege Configuration"
+toolType: "onelogin"
+entityType: "privileges"
+description: "Define OneLogin custom Delegated Administration Privileges (a Version/Statement policy document) and their assigned roles/users, as code through the OneLogin API."
+
+item:
+  label: "Privilege"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Privilege"
+      icon: "key"
+      description: "Privilege name, description and policy statement"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The privilege's name - the identity this app uses to find and
+            update it on every deploy. Renaming here is treated as a new
+            privilege on the next deploy (matching is by name), not an
+            in-place rename of the old one.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the OneLogin admin console."
+
+        - key: "statementJson"
+          label: "Statement (JSON object)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The privilege's policy document, as JSON, in OneLogin's own wire
+            format: `{"Version":"2018-05-18","Statement":[{"Effect":"Allow"
+            |"Deny","Action":["<action>", ...],"Scope":["*"] or specific
+            scope ids}]}`. `Action` values look like `users:Get`,
+            `users:Delete`, `users:ResetPassword` - see OneLogin's own
+            Delegated Administration documentation for the full action
+            vocabulary. Example - allow resetting any user's password:
+
+            {"Version":"2018-05-18","Statement":[{"Effect":"Allow","Action":["users:ResetPassword"],"Scope":["*"]}]}
+
+    - name: "Assignment"
+      icon: "users"
+      description: "Roles and users this privilege is granted to"
+      fields:
+        - key: "roleIds"
+          label: "Assigned Roles"
+          fieldType: "remote-multiselect"
+          optionsSource: "roles"
+          optionsMulti: true
+          helpText: "Roles granted this privilege. Reconciled by diff (add/remove) against the account's current assignment - see canvas notes above."
+
+        - key: "userIds"
+          label: "Assigned User IDs"
+          fieldType: "tags"
+          helpText: >
+            OneLogin numeric user ids granted this privilege directly (find
+            them under Users > a user's profile URL, or via the Users API) -
+            no live picker in this release. Reconciled by diff (add/remove)
+            against the account's current assignment.

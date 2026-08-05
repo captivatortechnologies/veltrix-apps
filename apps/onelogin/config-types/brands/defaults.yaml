@@ -1,0 +1,9 @@
+# Defaults for a new brand item.
+#
+# Intentionally empty: the platform no longer seeds default values into a new
+# item - it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (name, enabled, customColor, customAccentColor,
+# customMaskingColor, customMaskingOpacity, enableCustomLabelForLoginScreen,
+# customLabelTextForLoginScreen, loginInstructionTitle, loginInstruction,
+# hideOneloginFooter, mfaEnrollmentMessage, customSupportEnabled), since a
+# brand's presentational groups share one flat item record.

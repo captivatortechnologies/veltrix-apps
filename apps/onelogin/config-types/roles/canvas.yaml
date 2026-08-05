@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template - OneLogin Roles
+#
+# Declares ONE Role - the item. Users add as many roles as they need. A
+# role's identity in OneLogin is its NAME (matched within the account);
+# deploy lists roles, matches by name, then PUTs (update, name-only) or
+# POSTs (create) - OneLogin has no upsert.
+#
+# App assignment (`appIds`) is a SEPARATE sub-resource - PUT
+# /api/2/roles/{id}/apps - and OneLogin documents it explicitly as a FULL
+# REPLACE ("submit the complete list... don't submit a partial list"), so
+# this app always sends the canvas's complete declared set on every deploy,
+# including an EMPTY set (which clears all app assignments from the role).
+#
+# Role membership (which USERS/admins hold a role) is intentionally NOT
+# modeled here - OneLogin's Add/Remove Role Users and Add/Remove Role Admins
+# endpoints are individual add/remove actions (no full-replace "set"), which
+# is closer to a per-user lifecycle action than declarative org config - see
+# README.md Coverage for the full reasoning.
+#
+# Field keys must match what config-types/roles/validate.ts checks.
+# API reference: https://developers.onelogin.com/api-docs/2/roles
+# =============================================================================
+
+id: "onelogin-roles"
+name: "Role Configuration"
+toolType: "onelogin"
+entityType: "roles"
+description: "Define OneLogin Roles and the full set of Apps assigned to each, as code through the OneLogin API."
+
+item:
+  label: "Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Role"
+      icon: "shield-check"
+      description: "Role name and assigned apps"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The role's name - unique within the account and the identity this
+            app uses to find and update it on every deploy. Renaming here is
+            treated as a new role on the next deploy (matching is by name),
+            not an in-place rename of the old one.
+
+        - key: "appIds"
+          label: "Assigned Apps"
+          fieldType: "remote-multiselect"
+          optionsSource: "apps"
+          optionsMulti: true
+          helpText: >
+            The Apps assigned to this role. This is a FULL REPLACE on every
+            deploy (OneLogin's Set Role Apps endpoint requires the complete
+            list) - leave blank to clear all app assignments from this role,
+            not to leave existing assignments untouched.

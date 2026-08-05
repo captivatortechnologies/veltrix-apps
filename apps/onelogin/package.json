@@ -1,0 +1,16 @@
+{
+  "name": "veltrix-app-onelogin",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Veltrix app: manage OneLogin (One Identity cloud IAM) configuration as code - Apps (SAML/OIDC), Roles + app assignment, ordered User Mappings, ordered per-app App Rules, Delegated Administration Privileges, Account Brands - via the OneLogin API",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.0.0",
+    "@veltrixsecops/app-sdk": "^3.7.0",
+    "fastify": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}

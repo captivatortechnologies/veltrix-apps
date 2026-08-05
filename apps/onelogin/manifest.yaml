@@ -1,0 +1,214 @@
+id: onelogin
+name: OneLogin
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage OneLogin (One Identity's cloud IAM platform) configuration as code
+  through the OneLogin API. Covers SSO applications (SAML/OIDC connectors and
+  their provisioning parameters), roles and their assigned applications, the
+  account's ordered user-mapping rules, per-application ordered provisioning
+  rules, custom Delegated Administration privileges, and Account Brands -
+  with validation, drift detection and rollback handled by the
+  Security-as-Code pipeline.
+category: IAM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/onelogin
+icon: "🔑"
+
+platform:
+  minVersion: "1.0.0"
+
+# OneLogin brand: deep indigo primary, bright blue accent.
+branding:
+  primaryColor: "#1A1633"
+  accentColor: "#4A90D9"
+  logo: ./assets/logo.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: apps
+      actions: [read, write, delete]
+      description: Manage OneLogin Apps (SAML/OIDC SSO connectors), their configuration and provisioning parameters
+    - resource: roles
+      actions: [read, write, delete]
+      description: Manage OneLogin Roles and the set of Apps assigned to each
+    - resource: mappings
+      actions: [read, write, delete]
+      description: Manage OneLogin User Mappings (account-wide, ordered rules that act on users matching a condition set)
+    - resource: app-rules
+      actions: [read, write, delete]
+      description: Manage OneLogin App Rules (per-application, ordered provisioning rules)
+    - resource: privileges
+      actions: [read, write, delete]
+      description: Manage OneLogin custom Privileges (Delegated Administration policy statements) and their assigned roles/users
+    - resource: brands
+      actions: [read, write, delete]
+      description: Manage OneLogin Account Brands (Early Preview Branding API) - login-screen text, colors and messages
+
+pipeline:
+  configurationTypes:
+    - id: apps
+      group: "Applications"
+      name: Apps
+      description: SSO application connectors (SAML/OIDC) - identity, visibility, provisioning toggle and connector-specific configuration/parameters
+      canvasTemplate: config-types/apps/canvas.yaml
+      defaultConfig: config-types/apps/defaults.yaml
+      handlers:
+        validate: config-types/apps/validate
+        deploy: config-types/apps/deploy
+        rollback: config-types/apps/rollback
+        healthCheck: config-types/apps/healthCheck
+        driftDetect: config-types/apps/driftDetect
+        getStatus: config-types/apps/getStatus
+        options: config-types/apps/options
+      targets:
+        componentTypes: [onelogin-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: roles
+      group: "Authorization"
+      name: Roles
+      description: Roles and the full set of Apps assigned to each (Set Role Apps is a full replace)
+      canvasTemplate: config-types/roles/canvas.yaml
+      defaultConfig: config-types/roles/defaults.yaml
+      handlers:
+        validate: config-types/roles/validate
+        deploy: config-types/roles/deploy
+        rollback: config-types/roles/rollback
+        healthCheck: config-types/roles/healthCheck
+        driftDetect: config-types/roles/driftDetect
+        getStatus: config-types/roles/getStatus
+        options: config-types/roles/options
+      targets:
+        componentTypes: [onelogin-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: mappings
+      group: "Provisioning"
+      name: User Mappings
+      description: Account-wide, ordered user-mapping rules (conditions + actions) that run against every user, e.g. set status/role/group by attribute
+      canvasTemplate: config-types/mappings/canvas.yaml
+      defaultConfig: config-types/mappings/defaults.yaml
+      handlers:
+        validate: config-types/mappings/validate
+        deploy: config-types/mappings/deploy
+        rollback: config-types/mappings/rollback
+        healthCheck: config-types/mappings/healthCheck
+        driftDetect: config-types/mappings/driftDetect
+        getStatus: config-types/mappings/getStatus
+      targets:
+        componentTypes: [onelogin-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: app-rules
+      group: "Provisioning"
+      name: App Rules
+      description: Per-application, ordered provisioning rules (conditions + actions) - e.g. grant an app role or set a provisioned attribute by condition
+      canvasTemplate: config-types/app-rules/canvas.yaml
+      defaultConfig: config-types/app-rules/defaults.yaml
+      handlers:
+        validate: config-types/app-rules/validate
+        deploy: config-types/app-rules/deploy
+        rollback: config-types/app-rules/rollback
+        healthCheck: config-types/app-rules/healthCheck
+        driftDetect: config-types/app-rules/driftDetect
+        getStatus: config-types/app-rules/getStatus
+        options: config-types/app-rules/options
+      targets:
+        componentTypes: [onelogin-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: privileges
+      group: "Authorization"
+      name: Privileges
+      description: Custom Delegated Administration privileges (a Version/Statement policy document) and their assigned roles/users
+      canvasTemplate: config-types/privileges/canvas.yaml
+      defaultConfig: config-types/privileges/defaults.yaml
+      handlers:
+        validate: config-types/privileges/validate
+        deploy: config-types/privileges/deploy
+        rollback: config-types/privileges/rollback
+        healthCheck: config-types/privileges/healthCheck
+        driftDetect: config-types/privileges/driftDetect
+        getStatus: config-types/privileges/getStatus
+        options: config-types/privileges/options
+      targets:
+        componentTypes: [onelogin-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: brands
+      group: "Branding"
+      name: Account Brands
+      description: Account Brands (Early Preview Branding API) - per-brand login-screen label/colors/instructions and messages; the account's master brand is never created or deleted
+      canvasTemplate: config-types/brands/canvas.yaml
+      defaultConfig: config-types/brands/defaults.yaml
+      handlers:
+        validate: config-types/brands/validate
+        deploy: config-types/brands/deploy
+        rollback: config-types/brands/rollback
+        healthCheck: config-types/brands/healthCheck
+        driftDetect: config-types/brands/driftDetect
+        getStatus: config-types/brands/getStatus
+      targets:
+        componentTypes: [onelogin-account]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/onelogin
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: mints an API-credential access token
+# (client_credentials against /auth/oauth2/v2/token) and confirms it can list
+# Apps via GET /api/2/apps.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for OneLogin API calls.
+    default: 30
+    required: false

@@ -1,0 +1,115 @@
+# =============================================================================
+# Canvas Template - OneLogin App Rules
+#
+# Declares ONE per-application provisioning rule - the item. Users add as
+# many rules as they need, across as many apps as they need. A rule's
+# identity in this config type is the PAIR (appId, name) - matched within
+# that app's own rule list; deploy lists the target app's rules, matches by
+# name, then PUTs (update) or POSTs (create) - OneLogin has no upsert.
+#
+# ORDERING is scoped PER APP (unlike User Mappings, which are account-wide):
+# OneLogin's Bulk Sort for app rules (PUT /api/2/apps/{app_id}/rules/sort)
+# requires the COMPLETE rule-id list for THAT APP on every call (a partial
+# list 422s). This app reconciles order non-destructively PER APP: every rule
+# under an app that this canvas does NOT declare keeps its current relative
+# position, and the rules this canvas DOES declare for that app are
+# (re)inserted, in EXACTLY the order authored below, at the position where
+# the first of them already existed (or appended at the end when every
+# declared rule for that app is brand new).
+#
+# `conditions`/`actions` vary by the specific condition/action chosen, so they
+# are authored as JSON arrays rather than decomposed fields - the same
+# convention `ping-identity` uses for its sign-on-policy actions, and this
+# app's own User Mappings config type. Valid condition sources/operators and
+# action names are enumerated live by GET /api/2/mappings/conditions and
+# GET /api/2/mappings/actions in your account (App Rules share the same
+# condition/action vocabulary as User Mappings) - this app does not hard-code
+# a vocabulary.
+#
+# Field keys must match what config-types/app-rules/validate.ts checks.
+# API reference: https://developers.onelogin.com/api-docs/2/app-rules
+# =============================================================================
+
+id: "onelogin-app-rules"
+name: "App Rule Configuration"
+toolType: "onelogin"
+entityType: "app-rules"
+description: "Define OneLogin's per-application, ordered provisioning rules (condition + action rules scoped to one App), as code through the OneLogin API."
+
+item:
+  label: "App Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Rule"
+      icon: "git-branch"
+      description: "Target app, rule name, match logic and enablement"
+      fields:
+        - key: "appId"
+          label: "App"
+          fieldType: "remote-select"
+          optionsSource: "apps"
+          required: true
+          helpText: "The App this rule belongs to. A rule's identity is the pair (App, Name) - the same rule name may be reused across different apps."
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The rule's name - together with the App above, the identity this
+            app uses to find and update it on every deploy, and the label
+            whose declared ORDER (relative to other rules this canvas
+            declares for the SAME app) is enforced on deploy. Renaming here
+            is treated as a new rule on the next deploy (matching is by
+            name), not an in-place rename of the old one.
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether this rule actively runs. A disabled rule still exists and keeps its position, but its actions do not fire."
+
+        - key: "match"
+          label: "Match"
+          fieldType: "select"
+          defaultValue: "all"
+          options:
+            - label: "All conditions must match"
+              value: "all"
+            - label: "Any condition may match"
+              value: "any"
+          helpText: "Whether every condition below must be true (\"all\"), or just one (\"any\"), for this rule's actions to run."
+
+    - name: "Conditions & Actions"
+      icon: "list-checks"
+      description: "The condition set that selects users, and the actions applied to them for this app (JSON)"
+      fields:
+        - key: "conditionsJson"
+          label: "Conditions (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A non-empty JSON array of condition objects, each
+            `{"source":"<field>","operator":"<op>","value":"<value>"}`, in
+            OneLogin's own wire format verbatim. See GET
+            /api/2/mappings/conditions in your account for the full list of
+            valid `source` values. Example - users whose department is
+            "Engineering":
+
+            [{"source":"department","operator":"=","value":"Engineering"}]
+
+        - key: "actionsJson"
+          label: "Actions (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A non-empty JSON array of action objects, each
+            `{"action":"<action>","value":["<value>", ...]}`, in OneLogin's
+            own wire format verbatim. See GET /api/2/mappings/actions in your
+            account for the full list of valid `action` values. Example -
+            grant the app role "Admin" (role id 12345) to matched users:
+
+            [{"action":"set_role","value":["12345"]}]
