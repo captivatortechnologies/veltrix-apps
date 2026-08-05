@@ -6,12 +6,16 @@
 # item record, which is what config-types/users/deploy.ts reads as
 # `section.fields` for a single user.
 #
-# Users, like roles, are IDENTITY — the ONE class of object (with roles) that
-# ACS cannot manage. They go to the SAME REST API Splunk Enterprise uses,
+# Users go to the classic REST API Splunk Enterprise uses,
 # /services/authentication/users, on the stack's management port 8089.
 # See lib/splunkRest.ts for the two prerequisites (Support must open 8089; the
 # caller's IP must be on the `search-api` allow list, which the "IP Allow Lists"
 # configuration type in this app manages).
+#
+# UNLIKE `roles` (which gained an opt-in ACS transport in v1.12.0 — see
+# config-types/roles/canvas.yaml), this type stays REST-only: ACS's
+# /adminconfig/v2/users schema has NO timezone field, and this type manages
+# `tz`. See the "WHY THIS TYPE STAYS REST-ONLY" note in validate.ts.
 #
 # NO PASSWORD FIELD — by design. Creating a user over REST requires a password,
 # but storing/rotating passwords as canvas config is a secret-handling

@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-splunk-cloud",
   "private": true,
-  "version": "1.11.0",
-  "description": "Veltrix app: manage Splunk Cloud Platform configurations as code \u2014 indexes, HEC tokens, IPv4/IPv6 allow lists and outbound ports, and private/Splunkbase apps via the Admin Config Service (ACS) API, and roles/users via the Splunk Cloud Platform REST API",
+  "version": "1.12.0",
+  "description": "Veltrix app: manage Splunk Cloud Platform configurations as code \u2014 indexes, HEC tokens, IPv4/IPv6 allow lists and outbound ports, and private/Splunkbase apps via the Admin Config Service (ACS) API; roles via REST (default) or an opt-in ACS-native transport; users/SSO/token-auth via the Splunk Cloud Platform REST API",
   "scripts": {
     "typecheck": "tsc --noEmit"
   },

@@ -4,17 +4,37 @@ import type { CanvasSnapshot, PipelineContext, ValidationResult } from '@veltrix
 // Splunk Cloud users — validation + the spec extraction shared by
 // deploy / rollback / healthCheck / driftDetect.
 //
-// Users, like roles, are IDENTITY — and ACS cannot manage identity (it covers
-// indexes, HEC, IP allow lists, ports, limits, maintenance windows, apps and
-// tokens, nothing else). They therefore go to the same REST endpoint Splunk
-// Enterprise uses, /services/authentication/users, on the stack's management
-// port 8089 — NOT ACS. See lib/splunkRest.ts.
+// Users go to the classic REST endpoint Splunk Enterprise uses,
+// /services/authentication/users, on the stack's management port 8089. See
+// lib/splunkRest.ts.
 //
 // PASSWORD IS OUT OF SCOPE. Creating a user over REST requires a `password`,
 // but storing/rotating user passwords as canvas config is a secret-handling
 // anti-pattern. This config type therefore manages ROLE ASSIGNMENT + ATTRIBUTES
 // for EXISTING users only; it never sends a password and never creates a user.
 // (deploy.ts fails clearly if a declared user does not yet exist.)
+//
+// -----------------------------------------------------------------------------
+// WHY THIS TYPE STAYS REST-ONLY (v1.12.0 ACS-identity evaluation)
+// -----------------------------------------------------------------------------
+// ACS has since gained a native /adminconfig/v2/users endpoint (see the
+// `roles` type in this same app, which DOES now offer it as an opt-in
+// transport — lib/acsIdentity.ts, config-types/roles/acsRoles.ts). This type
+// deliberately does NOT: Splunk's own generated ACS client
+// (`terraform-provider-scp` `acs/v2/api.gen.go`) shows ACS's user schema
+// (`UsersResponse` / `PatchUserRequest`) has NO timezone field at all — this
+// type's `tz` attribute has no ACS equivalent to map to. Silently dropping a
+// declared field on write is exactly the kind of surprise this app avoids
+// everywhere else (see e.g. the `roles` canvas's explicit "left blank = not
+// sent" contract) — and unlike a genuinely blank field, an operator who set
+// `tz` would have no way to know it stopped applying. Combined with the SAME
+// search-head-cluster non-replication caveat `roles`' ACS transport carries
+// (see lib/acsIdentity.ts), and the fact that this app's `authentication-tokens`
+// and `sso` types stay REST-only regardless (no ACS equivalent exists for
+// either), migrating `users` would still leave every REST prerequisite in
+// place for a typical deployment — a materially smaller win than migrating
+// `roles`, for a real feature regression. Kept on REST; revisit if ACS ever
+// adds a timezone attribute to its user schema.
 // =============================================================================
 
 /**

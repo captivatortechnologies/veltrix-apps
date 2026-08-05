@@ -26,7 +26,7 @@ Enterprise](#how-cloud-differs-from-enterprise).
 | `app-permissions` | Per-app read/write role permissions (which roles can view/run vs. edit each installed app). Victoria-only | ACS | `GET /permissions/apps`, `GET/PATCH /permissions/apps/{app}` |
 | `apps` | **Private** apps/add-ons authored as files, built to a `.spl`, vetted by AppInspect, installed via ACS. **This is also where every `.conf` file ships** | ACS + AppInspect | Victoria: `GET/POST /apps/victoria`, `GET/DELETE /apps/victoria/{app}` · Classic: `GET/POST /apps`, `GET/DELETE /apps/{app}` |
 | `splunkbase-apps` | **Published** Splunkbase apps installed by catalog id — already vetted by Splunk, so no build/AppInspect step. A separate config type from `apps` (private) | ACS + Splunkbase | `GET/POST/PATCH/DELETE /apps/victoria?splunkbase=true` (Classic: `/apps?splunkbase=true`) |
-| `roles` | Roles: capabilities, inherited roles, searchable indexes, search filters, quotas. Capabilities are picked from a live ACS lookup (`GET /capabilities`) even though the role itself deploys over REST | **Splunk Cloud Platform REST API** (this app does not use ACS's newer identity endpoints — see [Coverage](#coverage)) | `GET/POST /services/authorization/roles`, `GET/POST/DELETE /services/authorization/roles/{role}` |
+| `roles` | Roles: capabilities, inherited roles, searchable indexes, search filters, quotas. Capabilities are picked from a live ACS lookup (`GET /capabilities`) regardless of transport | **REST** (default, unchanged) **or ACS** (opt-in per role, v1.12.0+ — see [Search-head targeting](#search-head-targeting-for-acs-native-roles)) | REST: `GET/POST /services/authorization/roles`, `GET/POST/DELETE /services/authorization/roles/{role}` · ACS: `GET/POST /adminconfig/v2/roles`, `GET/PATCH/DELETE /adminconfig/v2/roles/{role}` |
 | `users` | User role assignment + attributes (roles, email, full name, default app, timezone) for existing users. Passwords out of scope | **REST** (this app does not use ACS's newer `/users` endpoint — see [Coverage](#coverage)) | `GET/POST /services/authentication/users/{user}` |
 | `authentication-tokens` | Stack-wide token-auth settings (enablement, default expiration). ACS exposes only per-token CRUD (secrets) | **REST** | `GET/POST /services/admin/token-auth/tokens_auth` |
 | `sso` | SAML SSO identity-provider config (entity ID, IdP SSO/SLO URLs, role/realName/mail attribute mappings). SAML-only; IdP cert uploaded via Splunk Web | **REST** (ACS has no SAML endpoint) | `GET/POST /services/authentication/providers/SAML/{name}` |
@@ -46,7 +46,7 @@ runs the stack — and that changes only *how* a change is applied:
 | Indexes | REST `/services/data/indexes` | **ACS** `/indexes` |
 | HEC tokens | REST `/servicesNS/…/data/inputs/http` | **ACS** `/inputs/http-event-collectors` |
 | Splunk apps (and all `.conf` files) | build a `.spl` → install | build a `.spl` → **AppInspect vetting** → ACS |
-| Roles | REST `/services/authorization/roles` | **the same REST endpoint**, on the stack's port 8089 |
+| Roles | REST `/services/authorization/roles` | **the same REST endpoint** by default, on the stack's port 8089 — or, opt-in, **ACS** `/adminconfig/v2/roles` (see [Search-head targeting](#search-head-targeting-for-acs-native-roles)) |
 | IP allow lists | n/a (your network is yours) | **ACS** — Cloud-only |
 | BYOL, versions, upgrades, access servers | Enterprise-only | **absent by design** — Splunk owns the infrastructure, the release train and the upgrade window, so there is nothing to model |
 
@@ -57,19 +57,23 @@ Three consequences worth internalizing:
    windows, self storage, app permissions, private apps and Splunkbase apps.
    Historically identity (users, roles) was out of scope entirely; ACS has
    **since gained** `/adminconfig/v2/roles` and `/adminconfig/v2/users`
-   (confirmed via Splunk's official `terraform-provider-scp`) — this app does
-   not yet use them (see [Coverage](#coverage) for why, and what it would take).
+   (confirmed via Splunk's official `terraform-provider-scp`). As of v1.12.0
+   this app uses the roles endpoint as an **opt-in transport** — see
+   [Search-head targeting](#search-head-targeting-for-acs-native-roles) for
+   why it is opt-in rather than a wholesale replacement, and
+   [Coverage](#coverage) for why `users` stays REST-only.
 2. **Apps are vetted, not just installed — unless they already were.** Every
    `.conf` file reaching a Cloud stack inside a *private* app must pass
    AppInspect with `failure == 0 && error == 0 && manual_check == 0`; a
    `manual_check` finding blocks self-service installation *entirely*. A
    *Splunkbase* app skips this step — Splunk already vetted it before
    publication — but still installs through the same ACS collection.
-3. **Roles reach the stack through the REST door this app uses.** They cannot
-   ship inside an app either — `authorize.conf` is on Splunk Cloud's AppInspect
-   deny list, so a package containing it fails vetting. The Splunk Cloud
-   Platform REST API is the route this app takes, and it has prerequisites you
-   must arrange (below).
+3. **Roles can reach the stack through EITHER door.** They cannot ship inside
+   an app either way — `authorize.conf` is on Splunk Cloud's AppInspect deny
+   list, so a package containing it fails vetting regardless of transport. The
+   REST door (default) has prerequisites you must arrange (below); the ACS
+   door (opt-in) trades those for a search-head-targeting concern instead —
+   see [Search-head targeting](#search-head-targeting-for-acs-native-roles).
 
 ## Prerequisites
 
@@ -87,8 +91,8 @@ Three consequences worth internalizing:
    - Tokens expire. For automated rotation, ACS exposes
      `POST /adminconfig/v2/tokens` (supports ephemeral tokens that expire
      after 6 hours — useful for CI/CD-style access).
-4. **For the `roles` type only** — REST API access to the stack, which is *not*
-   enabled by default:
+4. **For a `roles` item on the REST transport (the default)** — REST API
+   access to the stack, which is *not* enabled by default:
    - **Splunk Support must open management port 8089** for your stack. There is
      no self-service way to do this; file a support case.
    - **Your egress IP must be on the stack's `search-api` IP allow list.**
@@ -103,6 +107,10 @@ Three consequences worth internalizing:
      stack token and does **not** authenticate the REST API — if you rotate that
      way, keep a separate credential for `roles`.
    - **Free-trial stacks cannot use the REST API at all.**
+   - A role item with **Transport: ACS** needs NONE of the above — just the
+     same ACS JWT already required for every other type in this app. It has
+     its own concern instead: see
+     [Search-head targeting](#search-head-targeting-for-acs-native-roles).
 5. **For the `apps` and `splunkbase-apps` types only** — a splunk.com account,
    stored in the credential's **username** and **password** fields (the ACS
    JWT stays in **API token**):
@@ -293,13 +301,15 @@ one it *upgraded* is reported for manual handling.
 ### `roles` fields
 
 One item = one role. Field keys are Splunk's own `authorize.conf` / REST
-parameter names, and the role model is **identical to Splunk Enterprise's** —
-only the transport differs.
+parameter names — and, not by accident, ACS's own JSON field names too (see
+[Search-head targeting](#search-head-targeting-for-acs-native-roles) for the
+one field that differs between the two transports on read). The role model is
+**identical to Splunk Enterprise's** — only the transport differs.
 
 | Field | Maps to | Constraint |
 |-------|---------|-----------|
 | `name` | `name` | Required. Lowercase letters, numbers, `_`, `-`; must begin with a letter or number; max 100 chars (Splunk rejects uppercase, spaces, colons, slashes). `sc_admin` and `splunk-system-role` are **reserved by Splunk Cloud** and rejected — inherit from them instead. Redefining a built-in (`admin`, `power`, `user`, …) warns. |
-| `importedRoles` | `imported_roles` | Roles whose capabilities, indexes and quotas are inherited. A role may not inherit from itself. |
+| `importedRoles` | `imported_roles` (REST) / `importedRoles` (ACS) | Roles whose capabilities, indexes and quotas are inherited. A role may not inherit from itself. |
 | `capabilities` | `capabilities` | Capabilities granted directly. A live, searchable **remote-multiselect** backed by ACS's own grantable-capability list (`GET /adminconfig/v2/capabilities?grantableOnly=true`) — this is a pure ACS lookup, so it works even without the REST prerequisites below. Splunk Cloud exposes a **reduced** capability set versus Enterprise; a role with no capabilities *and* no inherited roles warns. |
 | `srchIndexesAllowed` | `srchIndexesAllowed` | Searchable indexes; wildcards supported. `*` warns (least privilege). |
 | `srchIndexesDefault` | `srchIndexesDefault` | Indexes searched when a query names none. Every entry must be covered by `srchIndexesAllowed` (wildcard-aware), or un-qualified searches silently return nothing — this is an **error**. |
@@ -309,6 +319,8 @@ only the transport differs.
 | `defaultApp` | `defaultApp` | App users with this role land in. |
 | `srchJobsQuota`, `rtSrchJobsQuota`, `srchDiskQuota` | same | Per-user quotas. Non-negative integers. |
 | `cumulativeSrchJobsQuota`, `cumulativeRTSrchJobsQuota` | same | Role-wide quotas across all its users. `0` = unlimited. |
+| `transport` | — (selects the API) | `rest` (default, blank = rest) or `acs`. See [Search-head targeting](#search-head-targeting-for-acs-native-roles). |
+| `searchHeadTargets` | — (ACS URL path, not a JSON field) | ACS only. Zero or more search-head-cluster member instance ids (e.g. `sh-i-0910d0dfdb9ed913a`). Ignored on the REST transport. |
 
 A field left blank on the canvas is **not sent**, so the role keeps whatever it
 inherits or already has — this app only manages what the canvas declares.
@@ -321,6 +333,90 @@ Splunk token (not the ACS token) was rejected, and a 403 names the capability
 required (`edit_roles` / `edit_roles_grantable`; `sc_admin` has it). `healthCheck`'s
 first check *is* the reachability probe, so it is the fastest way to confirm
 Support has opened the port and your IP is allow-listed.
+
+### Search-head targeting for ACS-native roles
+
+This is the design this app's 1.11.0 "Future work" note deferred, done as its
+own dedicated pass. It only matters if you set a role's **Transport** to
+`ACS` — the default (`REST`, or the field left blank) is unaffected.
+
+**Why REST "just works" across a cluster and ACS does not.** A production
+Splunk Cloud stack is a search head cluster (SHC); ACS itself "does not
+support single-instance deployments." REST writes to
+`/services/authorization/roles` land on Splunk's classic configuration
+replication mechanism — the same one Splunk Enterprise SHCs use — which
+propagates a role/user change to every cluster member automatically. ACS's
+native identity endpoints are a newer, separate surface that Splunk did **not**
+wire into that replication: its own docs state plainly that role/user writes
+"apply only on the search head on which you create them. ACS does not
+replicate users and roles across the search tier." An untargeted ACS request
+lands on "the first standard search head or search head cluster" — whichever
+member ACS happens to route it to, not necessarily the one you expect, and
+never *every* member.
+
+**How ACS expects you to target a specific member.** There is no separate
+request parameter or header for this. Instead, the STACK PATH SEGMENT itself
+changes: prefix it with that member's instance id and a literal dot —
+
+```
+https://admin.splunk.com/{stack}/adminconfig/v2/roles                         (default/untargeted)
+https://admin.splunk.com/sh-i-0910d0dfdb9ed913a.{stack}/adminconfig/v2/roles   (one specific member)
+```
+
+— and the bearer token used for a targeted request must have been minted ON
+that member (a token from the default member does not authenticate a
+targeted one). This is confirmed against Splunk's own client, not just prose:
+`terraform-provider-scp`'s generated ACS client (`acs/v2/api.gen.go`) treats
+the stack as a bare string interpolated directly into the URL path
+(`fmt.Sprintf("/%s/adminconfig/v2/roles", pathParam0)`), and its
+`TargetStackName` helper (`internal/utils/utils.go`) builds exactly this
+`"<target>.<stack>"` string; the provider's own docs
+(`docs/index.md#targeting-a-search-head`) show the identical pattern via a
+second, aliased `provider "scp" { stack = "sh-i-....<stack>" }` block, used to
+manage "certain resources on specific search heads."
+
+**There is no ACS endpoint to enumerate a stack's search-head-cluster
+members.** The full generated ACS OpenAPI client (`acs/v2/api.gen.go`, ~15,000
+lines) was searched end to end for this pass: no "member", "instance", "search
+head" or "SHC" field or endpoint exists anywhere in it. `GET
+/adminconfig/v2/status` (the client's `DescribeStack`) answers only with
+stack-wide infrastructure/restart status, not a member list. A member's
+instance id is therefore something you already know from your own deployment
+(Splunk Web instance info, or a Support case) — this app cannot discover or
+validate it against ACS.
+
+**The design this app implements.** A role item's **Search Head Targets**
+field (ACS transport only) is a free-text list of instance ids — not a live
+picker, unlike every other object-reference field this app backs with an ACS
+lookup, precisely because no such lookup exists for this one. `deploy`,
+`rollback`, `driftDetect` and `healthCheck` all resolve it the same way:
+
+| Declared targets | Behavior |
+|-------------------|----------|
+| *(empty)* | One write, to ACS's own default/untargeted stack path. `validate` warns (`untargeted_acs_write`) that this reaches exactly one search head, not the whole cluster. |
+| `["sh-i-aaa"]` | One write, to that member specifically. |
+| `["sh-i-aaa", "sh-i-bbb"]` | **One write per target**, sequentially — this role is applied to each named member. `driftDetect`/`healthCheck` report each target's result separately, so a role present on one member and missing on another is a visible, attributable finding rather than a blind spot. |
+
+**Why this lives on the role item, not the component or a connectivity
+provider.** The platform models a `splunk-cloud-stack` component as ONE stack
+(one hostname / one JWT credential) — not a fleet of its individual search
+heads, and there is nothing to enumerate them against (see above). A new
+component type or connectivity provider per search head would invent
+platform-graph machinery for something Splunk itself exposes as an opaque,
+customer-supplied string — this app's existing precedent for exactly that
+situation is a plain canvas field (e.g. `ddss-self-storage`'s
+`selfStorageBucketPath`, `splunkbase-apps`' `licenseAck` URL), not a new
+first-class object. A per-item field also lets different roles in the SAME
+canvas use different transports and different targets — strictly more
+flexible than Terraform's own model, where targeting is a whole aliased
+provider block per stack, not per resource.
+
+**Why REST stays the default rather than ACS.** REST already reaches every
+cluster member with zero configuration, via Splunk's own replication — that is
+categorically safer behavior for a role, a privilege-bearing object, to
+default to. ACS is opt-in specifically so that choosing it is a deliberate,
+informed decision (`validate`'s warning names the exact tradeoff), not a
+silent regression triggered by an app upgrade.
 
 ## Pipeline semantics
 
@@ -391,36 +487,35 @@ FedRAMP stacks use `https://admin.splunkcloudgc.com` (Classic only).
 
 ### `roles` limitations
 
-- **Not self-service.** Port 8089 stays closed until Splunk Support opens it, and
-  the caller's IP must be on the `search-api` allow list. Both are prerequisites
-  this app can *tell* you about (and, for the allow list, *manage*) but cannot
-  grant.
-- **Free-trial stacks cannot use the REST API**, so `roles` cannot be deployed to
-  one at all.
-- Roles are **never deleted by deploy** — removing a role from the canvas leaves
-  it on the stack (rollback only deletes roles the same deployment created).
-- User-to-role assignment is a **separate** configuration type (`users`, also
-  REST) — declaring a role here does not assign anyone to it.
+- **REST transport (default) is not self-service.** Port 8089 stays closed
+  until Splunk Support opens it, and the caller's IP must be on the
+  `search-api` allow list. Both are prerequisites this app can *tell* you
+  about (and, for the allow list, *manage*) but cannot grant. **Free-trial
+  stacks cannot use the REST API at all**, so a REST-transport role cannot be
+  deployed to one.
+- **ACS transport (opt-in) does not replicate across a search head cluster**
+  — see [Search-head targeting](#search-head-targeting-for-acs-native-roles).
+  An ACS role with no declared targets reaches exactly one search head, not
+  the whole cluster; `validate` warns when this is the case.
+- Roles are **never deleted by deploy** on either transport — removing a role
+  from the canvas leaves it on the stack (rollback only deletes roles the same
+  deployment created, per declared target on the ACS transport).
+- User-to-role assignment is a **separate** configuration type (`users`,
+  REST-only — see [Coverage](#coverage)) — declaring a role here does not
+  assign anyone to it.
 - Splunk Cloud exposes a **reduced capability set** versus Enterprise. The live
   Capabilities picker narrows this in practice, but validation still only
   checks capability *syntax* for free-typed values — an unknown capability is
   rejected by the stack at deploy time, with Splunk's own message surfaced
   verbatim.
-- This app manages roles over REST, not ACS's newer `/adminconfig/v2/roles` —
-  see [Coverage](#coverage) for why.
 
 ## Future work
 
-- **Migrate `roles`/`users`/`authentication-tokens`/`sso` from REST to ACS's
-  newer identity endpoints** (`/adminconfig/v2/roles`, `/adminconfig/v2/users`,
-  `/adminconfig/v2/capabilities`) — see [Coverage](#coverage). This would drop
-  the port-8089 / `search-api` allow-list prerequisites entirely (same ACS
-  token used everywhere else in this app), but ACS role/user writes are
-  documented as not automatically replicated across search-head-cluster
-  members without explicit search-head targeting — a real design question,
-  not a drop-in swap, and a breaking transport change to shipped config types.
-  `authentication-tokens` and `sso` have no ACS equivalent found and would stay
-  on REST regardless.
+- **Consider an ACS-native `users` transport IF ACS ever adds a timezone
+  field.** As of this pass, `/adminconfig/v2/users` has no equivalent to this
+  type's `tz` attribute — see [Coverage](#coverage) for the full evaluation.
+  `authentication-tokens` and `sso` have no ACS equivalent found at all and
+  would stay on REST regardless.
 - **Enterprise Managed Encryption Keys (EMEK)** — deliberately excluded (see
   [Coverage](#coverage)): a Splunk-account-rep-gated feature whose key upload
   still needs a manual Splunk Support step to actually take effect, with no
@@ -467,31 +562,38 @@ type, `scp_ip_v6_allowlists`, not a variant of the v4 one — this app follows
 that precedent). `splunkbase-apps` closes this app's own former "Future work"
 backlog entry.
 
-### Managed (Splunk Cloud Platform REST API, port 8089)
+### Managed (REST by default, ACS opt-in) — `roles`
+
+Splunk's official `terraform-provider-scp`
+(`github.com/splunk/terraform-provider-scp`, `docs/resources/roles.md` /
+`users.md`) showed this app's original premise — "ACS cannot manage identity,
+full stop" — was outdated: ACS has native `/adminconfig/v2/roles`,
+`/adminconfig/v2/users` and `/adminconfig/v2/capabilities` endpoints. The
+1.11.0 pass corrected the premise but deliberately deferred acting on it (ACS
+role writes are not replicated across search-head-cluster members, and
+swapping the transport under an already-shipped config type deserved its own
+design pass, not a drive-by rewrite). **This pass is that dedicated design +
+build effort**: `roles` now supports ACS as an opt-in, per-item transport,
+alongside the unchanged REST default — see [Search-head
+targeting](#search-head-targeting-for-acs-native-roles) for the full design
+and citations, and the [`roles` fields](#roles-fields) table for the two new
+canvas fields (`transport`, `searchHeadTargets`). The `capabilities` list
+itself (a pure read, no identity write) has used the native ACS lookup since
+1.11.0 regardless of which transport the role itself deploys through.
+
+### Managed (Splunk Cloud Platform REST API, port 8089, only)
 
 | Type | Why REST, not ACS |
 |------|--------------------|
-| `roles` | Identity — see the ACS-migration note below |
-| `users` | Identity — same as roles |
+| `users` | ACS's native `/adminconfig/v2/users` endpoint has **no timezone field** — this type manages `tz`, a genuine schema gap, not a transport nicety. See the "WHY THIS TYPE STAYS REST-ONLY" note in `config-types/users/validate.ts`. Also carries the same search-head-cluster non-replication caveat `roles`' ACS transport does. |
 | `authentication-tokens` | ACS exposes only per-token CRUD (secrets), not the stack-wide enablement/expiration setting |
 | `sso` | ACS has no SAML endpoint found in the sources reviewed |
 
-These four require Splunk Support to open port 8089 and the caller's IP on the
+These three require Splunk Support to open port 8089 and the caller's IP on the
 `search-api` allow list — the two prerequisites named throughout this README.
-**Important correction to this app's original premise:** Splunk's official
-`terraform-provider-scp` (`github.com/splunk/terraform-provider-scp`,
-`docs/resources/roles.md` / `users.md`) shows ACS has since gained native
-`/adminconfig/v2/roles`, `/adminconfig/v2/users` and
-`/adminconfig/v2/capabilities` endpoints — identity is **not** permanently out
-of ACS's scope, as earlier versions of this app assumed. This app does **not**
-migrate to them in this release: ACS role/user writes are documented as **not**
-automatically replicated across search-head-cluster members and need explicit
-search-head targeting (a capability this app does not model), and swapping the
-transport under two already-shipped, working config types is a breaking change
-that deserves its own dedicated design pass, not a drive-by rewrite. The
-**one** piece of that native surface this app *does* use today is the
-`capabilities` list itself (a pure read, no identity write) — it now backs the
-`roles` type's live Capabilities picker.
+Revisit `users` if ACS's user schema ever gains a timezone attribute; the other
+two have no ACS equivalent found at all regardless of schema evolution (no
+per-token bulk setting, no SAML surface).
 
 ### Excluded, with reasons
 
@@ -549,6 +651,41 @@ that deserves its own dedicated design pass, not a drive-by rewrite. The
   — source for the EMEK exclusion reasoning
 - [Manage Python versions in Splunk Cloud Platform (ACS)](https://help.splunk.com/en/splunk-cloud-platform/administer/admin-config-service-manual/10.3.2512/administer-splunk-cloud-platform-using-the-admin-config-service-acs-api/manage-python-versions-in-splunk-cloud-platform)
   — source for the Python-runtime exclusion reasoning
+
+### Added for the 1.12.0 ACS-native identity + search-head-targeting pass
+
+- [Manage users, roles, and capabilities in Splunk Cloud Platform (ACS)](https://help.splunk.com/en/splunk-cloud-platform/administer/admin-config-service-manual/10.3.2512/administer-splunk-cloud-platform-using-the-admin-config-service-acs-api/manage-users-roles-and-capabilities-in-splunk-cloud-platform)
+  — re-read in full for this pass: the `/adminconfig/v2/roles` and
+  `/adminconfig/v2/users` request/response schemas (including the
+  `Federated-Search-Manage-Ack` header, the default-vs-targeted search-head
+  URL examples, and the "ACS does not replicate users and roles across the
+  search tier" statement this whole design pass is built around)
+- [`splunk/terraform-provider-scp`](https://github.com/splunk/terraform-provider-scp)
+  — read at the SOURCE level (not just its docs) via `gh api`, since this pass
+  needed the exact schema/URL mechanics, not just prose:
+  - [`docs/index.md`](https://github.com/splunk/terraform-provider-scp/blob/main/docs/index.md#targeting-a-search-head)
+    — "Targeting A Search Head": the `sh-i-<id>.<stack>` provider-config
+    example and "not all features support targeting a specific search head"
+  - [`docs/resources/roles.md`](https://github.com/splunk/terraform-provider-scp/blob/main/docs/resources/roles.md) /
+    [`users.md`](https://github.com/splunk/terraform-provider-scp/blob/main/docs/resources/users.md)
+    — each resource's own "Search Head Targeting" section
+  - [`internal/utils/utils.go`](https://github.com/splunk/terraform-provider-scp/blob/main/internal/utils/utils.go)
+    — `TargetStackName()`: `fmt.Sprintf("%s.%s", target, stack)`, confirming the
+    targeted-stack string is built exactly as the docs show, in code
+  - [`acs/v2/api.gen.go`](https://github.com/splunk/terraform-provider-scp/blob/main/acs/v2/api.gen.go)
+    — the generated ACS OpenAPI client (~15,000 lines), searched end to end for
+    this pass: confirms `Stack` is a bare string interpolated directly into the
+    URL path (`fmt.Sprintf("/%s/adminconfig/v2/roles", pathParam0)`); confirms
+    the exact `RolesRequest`/`RolesResponse`/`CreateUserRequest`/`UsersResponse`
+    JSON field names (including the response-only nested `imported.roles` vs
+    the write-only top-level `importedRoles` — a real, easy-to-miss quirk this
+    app's `driftDetect` gets right); confirms **no** endpoint anywhere in the
+    client enumerates a stack's search-head-cluster members (searched for
+    "member", "instance", "search head", "SHC" — zero matches); confirms
+    ACS's user schema (`UsersResponse`/`PatchUserRequest`) has **no timezone
+    field**, the reason `users` was not migrated in this pass; confirms the
+    `Error{code,message}` body shape already assumed by this app's
+    `lib/acs.ts` `acsErrorMessage()`
 
 ## License
 

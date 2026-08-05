@@ -3,6 +3,81 @@
 All notable changes to the Splunk Cloud app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.12.0 — 2026-08-05
+
+Dedicated design + build pass on the ACS-native identity migration the
+1.11.0 exhaustion pass deliberately deferred (see its "Notes" section below).
+Research-first, grounded in Splunk's own `terraform-provider-scp` client
+source (not just its docs) — see the README's new **Search-head targeting**
+section for full citations.
+
+### Added
+- **Roles: opt-in ACS-native transport.** Each role item now carries a
+  **Transport** field — `REST` (the default; identical to pre-1.12.0
+  behavior) or `ACS` (`/adminconfig/v2/roles` — the same JWT this app already
+  requires for everything else, dropping the port-8089-open /
+  `search-api`-allow-list prerequisites for that role). See
+  `config-types/roles/acsRoles.ts` and `lib/acsIdentity.ts`.
+- **Search-head-cluster (SHC) targeting.** A new **Search Head Targets**
+  field (ACS transport only) lists search-head-cluster member instance ids
+  (e.g. `sh-i-0910d0dfdb9ed913a`) a role should be applied to. ACS role writes
+  are **not** replicated across SHC members the way this app's REST transport
+  already is (Splunk's own configuration replication) — declaring targets
+  here makes this app apply the role to each one explicitly, one write per
+  target. Splunk exposes no API to enumerate a stack's SHC members, so this
+  is a free-text field, not a live picker (confirmed by searching the entire
+  generated ACS OpenAPI client for any "member"/"instance"/"search head"
+  surface — none exists).
+- `driftDetect` and `healthCheck` now report per-search-head-target results
+  for an ACS-transport role with more than one declared target — a role
+  present on one cluster member and missing on another is now a visible,
+  attributable finding instead of an unchecked blind spot.
+- New shared transport module `lib/acsIdentity.ts` (SHC-targeting helpers,
+  generic ACS-identity CRUD) and `config-types/roles/acsRoles.ts` (the
+  ACS role schema/payload mapping) — see their file-header comments for the
+  full source trail.
+
+### Changed
+- `roles`' `rollbackData` shape is now transport- and target-aware
+  (`{ name, transport, targets: [...] }` instead of the old flat
+  `{ name, existed, prior }`). **Fully backward compatible**: `rollback.ts`
+  normalizes both shapes through `normalizeRoleRollbackEntry()`, so rolling
+  back a deployment made by the pre-1.12.0 code works exactly as before —
+  no data migration needed.
+- README: `roles` moves from a single-transport "Managed (REST)" listing to
+  documenting BOTH transports; the long-standing "Future work" ACS-identity-
+  migration item is resolved (for roles) and removed.
+
+### Potentially breaking (opt-in only — READ before switching an existing role to ACS)
+- **Default behavior is unchanged**: an existing canvas with no `transport`
+  field deploys exactly as it did in 1.11.0 and earlier (REST, whole
+  cluster). Nothing breaks by upgrading alone.
+- **Switching `transport` to `acs` on a role IS a real behavior change you
+  opt into**, not a transparent transport swap: ACS does not replicate to
+  other search-head-cluster members, and switching does NOT retroactively
+  move a role already created via REST — it only changes where FUTURE
+  deploys of that role land. On a clustered stack, deploying with `acs` and
+  an empty **Search Head Targets** list reaches exactly one search head
+  (whichever ACS's own default routes to), which most operators will not
+  expect coming from REST's whole-cluster behavior. `validate` warns loudly
+  (`untargeted_acs_write`) when this is the case; read the warning before
+  ignoring it.
+
+### Notes — `users` stays REST-only (evaluated, not skipped)
+- ACS's native `/adminconfig/v2/users` endpoint (also confirmed via
+  `terraform-provider-scp`) was evaluated for the same treatment and
+  deliberately NOT adopted this release: its schema has **no timezone
+  field**, and this type manages `tz` — a genuine feature gap, not a
+  transport nicety, and this app does not silently drop a declared field on
+  write anywhere else. Combined with the same SHC non-replication caveat
+  roles' ACS transport carries, and the fact that `authentication-tokens`
+  and `sso` stay REST-only regardless (no ACS equivalent exists for either),
+  migrating `users` would keep every REST prerequisite in place for a
+  typical deployment anyway — a materially smaller win than roles, for a
+  real regression. See the "WHY THIS TYPE STAYS REST-ONLY" note in
+  `config-types/users/validate.ts`. Revisit if ACS ever adds a timezone
+  attribute.
+
 ## 1.11.0 — 2026-08-05
 
 Research-first exhaustion pass against the current ACS API surface (endpoint

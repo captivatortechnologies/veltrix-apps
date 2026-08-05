@@ -1,16 +1,28 @@
 import type { CanvasSnapshot, PipelineContext, ValidationResult } from '@veltrixsecops/app-sdk'
+import { isValidSearchHeadTarget } from '../../lib/acsIdentity'
 
 // =============================================================================
 // Splunk Cloud roles — validation + the spec extraction shared by
 // deploy / rollback / healthCheck / driftDetect.
 //
-// Roles are the one object in this app that ACS cannot manage (ACS covers
-// indexes, HEC, IP allow lists, ports, limits, maintenance windows, apps and
-// tokens — identity is out of scope), and authorize.conf is on Splunk Cloud's
-// AppInspect deny list, so they cannot ship inside a private app either. They
-// therefore go to the same REST endpoint Splunk Enterprise uses,
-// /services/authorization/roles, on the stack's management port 8089.
-// See lib/splunkRest.ts.
+// Roles are managed over TWO possible transports, selectable per role item:
+//
+//   - REST (`transport` omitted or "rest", the DEFAULT — unchanged since this
+//     type shipped): /services/authorization/roles on the stack's management
+//     port 8089. See lib/splunkRest.ts.
+//   - ACS (`transport: "acs"`, opt-in as of v1.12.0): the native
+//     /adminconfig/v2/roles endpoint — same JWT this app already needs for
+//     everything else, no port-8089/search-api-allow-list prerequisites. See
+//     lib/acsIdentity.ts + acsRoles.ts.
+//
+// WHY BOTH STILL EXIST: ACS identity writes are NOT automatically replicated
+// across search-head-cluster members (REST writes ARE — see
+// lib/acsIdentity.ts's header comment and the README's "Search-head targeting"
+// section for the full citation trail). A role deployed over ACS without
+// declaring `searchHeadTargets` lands on exactly one search head. REST remains
+// the safe, zero-configuration default for a clustered stack; ACS is there for
+// operators who want its lower-friction auth model AND are willing to declare
+// which search head(s) matter.
 // =============================================================================
 
 /** Splunk role names are lowercase; no spaces, colons or slashes. */
@@ -46,6 +58,9 @@ export const ROLE_QUOTA_FIELDS = [
 ] as const
 export type RoleQuotaField = (typeof ROLE_QUOTA_FIELDS)[number]
 
+/** Which API a role item deploys through. Missing/unrecognized → 'rest' (the pre-v1.12.0 behavior). */
+export type RoleTransport = 'rest' | 'acs'
+
 export interface RoleSpec {
   sectionName: string
   name: string
@@ -58,6 +73,15 @@ export interface RoleSpec {
   srchTimeEarliest?: number
   defaultApp?: string
   quotas: Partial<Record<RoleQuotaField, number>>
+  /** 'rest' unless the canvas explicitly declares "acs" — see the file header. */
+  transport: RoleTransport
+  /**
+   * ACS-only. Search-head-cluster member instance ids (e.g. "sh-i-...") to
+   * apply this role to. Empty/undefined → ACS's own default: whichever member
+   * an untargeted request happens to route to. Ignored entirely on the REST
+   * transport (REST already reaches the whole cluster).
+   */
+  searchHeadTargets: string[]
 }
 
 /**
@@ -159,6 +183,8 @@ export function extractRoleSpecs(canvas: CanvasSnapshot): RoleSpec[] {
       srchTimeEarliest: toNumber(fields.srchTimeEarliest),
       defaultApp,
       quotas,
+      transport: fields.transport === 'acs' ? 'acs' : 'rest',
+      searchHeadTargets: toList(fields.searchHeadTargets) ?? [],
     }
   })
 }
@@ -365,6 +391,36 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
           code: 'invalid_value',
         })
       }
+    }
+
+    // --- Transport + search-head targeting -------------------------------------
+    // See the file header and lib/acsIdentity.ts for why this exists: ACS role
+    // writes are NOT replicated across search-head-cluster members, unlike REST.
+    if (spec.transport === 'acs') {
+      for (const target of spec.searchHeadTargets) {
+        if (!isValidSearchHeadTarget(target)) {
+          errors.push({
+            field: `${prefix}.searchHeadTargets`,
+            message: `"${target}" is not a valid search-head instance id (lowercase letters, numbers and hyphens, e.g. sh-i-0910d0dfdb9ed913a)`,
+            code: 'invalid_format',
+          })
+        }
+      }
+      if (spec.searchHeadTargets.length === 0) {
+        warnings.push({
+          field: `${prefix}.searchHeadTargets`,
+          message:
+            'ACS does not replicate role writes across search-head-cluster members — this role will be created/updated on the default search head ONLY. Declare each cluster member\'s instance id here to reach more than one, or switch Transport to REST, whose writes already reach the whole cluster via Splunk\'s built-in configuration replication.',
+          code: 'untargeted_acs_write',
+        })
+      }
+    } else if (spec.searchHeadTargets.length > 0) {
+      warnings.push({
+        field: `${prefix}.searchHeadTargets`,
+        message:
+          'Search Head Targets is ignored on the REST transport (REST always reaches the whole search-head cluster) — switch Transport to ACS to use per-search-head targeting, or clear this field.',
+        code: 'ignored_field',
+      })
     }
   }
 

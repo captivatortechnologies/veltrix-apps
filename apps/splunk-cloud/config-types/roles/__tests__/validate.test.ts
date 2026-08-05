@@ -289,4 +289,75 @@ describe('Splunk Cloud Roles Validate Handler', () => {
     expect(result.valid).toBe(true)
     expect(result.errors).toHaveLength(0)
   })
+
+  describe('ACS transport + search-head targeting', () => {
+    it('defaults to REST when transport is omitted (backward compatible)', async () => {
+      const result = await validate(
+        makeCtx([{ name: 'sec1', fields: { name: 'soc-analyst', capabilities: ['search'] } }]),
+      )
+      expect(result.valid).toBe(true)
+      expect(result.warnings.some((w) => w.code === 'untargeted_acs_write')).toBe(false)
+      expect(result.warnings.some((w) => w.code === 'ignored_field')).toBe(false)
+    })
+
+    it('accepts a valid search-head target on the ACS transport', async () => {
+      const result = await validate(
+        makeCtx([
+          {
+            name: 'sec1',
+            fields: {
+              name: 'soc-analyst',
+              capabilities: ['search'],
+              transport: 'acs',
+              searchHeadTargets: ['sh-i-0910d0dfdb9ed913a'],
+            },
+          },
+        ]),
+      )
+      expect(result.valid).toBe(true)
+      expect(result.warnings.some((w) => w.code === 'untargeted_acs_write')).toBe(false)
+    })
+
+    it('rejects an invalid search-head target format', async () => {
+      const result = await validate(
+        makeCtx([
+          {
+            name: 'sec1',
+            fields: { name: 'soc-analyst', capabilities: ['search'], transport: 'acs', searchHeadTargets: ['SH Instance!'] },
+          },
+        ]),
+      )
+      expect(result.valid).toBe(false)
+      expect(result.errors.some((e) => e.field.endsWith('.searchHeadTargets') && e.code === 'invalid_format')).toBe(true)
+    })
+
+    it('warns when the ACS transport declares no search-head targets', async () => {
+      const result = await validate(
+        makeCtx([{ name: 'sec1', fields: { name: 'soc-analyst', capabilities: ['search'], transport: 'acs' } }]),
+      )
+      expect(result.valid).toBe(true)
+      expect(result.warnings.some((w) => w.code === 'untargeted_acs_write')).toBe(true)
+    })
+
+    it('warns when search-head targets are declared but Transport is REST', async () => {
+      const result = await validate(
+        makeCtx([
+          {
+            name: 'sec1',
+            fields: { name: 'soc-analyst', capabilities: ['search'], searchHeadTargets: ['sh-i-0910d0dfdb9ed913a'] },
+          },
+        ]),
+      )
+      expect(result.valid).toBe(true)
+      expect(result.warnings.some((w) => w.code === 'ignored_field')).toBe(true)
+    })
+
+    it('treats an unrecognized transport value as REST (shape-tolerant)', async () => {
+      const result = await validate(
+        makeCtx([{ name: 'sec1', fields: { name: 'soc-analyst', capabilities: ['search'], transport: 'something-else' } }]),
+      )
+      expect(result.valid).toBe(true)
+      expect(result.warnings.some((w) => w.code === 'untargeted_acs_write')).toBe(false)
+    })
+  })
 })

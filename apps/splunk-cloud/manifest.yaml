@@ -1,6 +1,6 @@
 id: splunk-cloud
 name: Splunk Cloud Platform
-version: "1.11.0"
+version: "1.12.0"
 vendor: Veltrix
 description: >
   Manage Splunk Cloud Platform configurations as code through the
@@ -9,10 +9,12 @@ description: >
   private + Splunkbase apps/add-ons (private apps are built to a .spl,
   vetted by AppInspect, and installed through ACS; Splunkbase apps are
   installed directly by catalog id — already vetted by Splunk).
-  Roles, users, SSO and token-auth settings are managed through the
-  Splunk Cloud Platform REST API on the stack's management port 8089
-  in this version — see the README Coverage section for the newer
-  ACS identity endpoints this app does not yet use.
+  Roles now support an OPT-IN ACS-native transport (adminconfig/v2/roles)
+  alongside the classic REST API (the unchanged default) — see the README
+  "Search-head targeting" section before enabling it on a clustered stack.
+  Users, SSO and token-auth settings remain on the Splunk Cloud Platform
+  REST API on the stack's management port 8089 — see the README Coverage
+  section for why.
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-cloud
@@ -65,8 +67,10 @@ permissions:
       actions: [read, write, delete]
       description: >
         Manage Splunk Cloud roles (capabilities, inherited roles, searchable indexes,
-        search filters, quotas) via the Splunk Cloud Platform REST API on port 8089 —
-        ACS cannot manage identity, and authorize.conf is on the AppInspect deny list
+        search filters, quotas) via the Splunk Cloud Platform REST API on port 8089
+        (default) or, opt-in per role, ACS's native adminconfig/v2/roles endpoint —
+        authorize.conf is on the AppInspect deny list either way, so roles cannot ship
+        inside a private app
 
 pipeline:
   configurationTypes:
@@ -309,21 +313,28 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: false
 
-    # Roles are the ONE object here that does not go through ACS: ACS cannot
-    # manage identity, and authorize.conf is on Splunk Cloud's AppInspect deny
-    # list, so roles cannot ship inside a private app either. They therefore use
-    # the SAME endpoint Splunk Enterprise uses — /services/authorization/roles —
-    # on the stack's management port 8089. Two prerequisites, both surfaced in
-    # validate/deploy/healthCheck messages: Splunk Support must open port 8089
-    # (closed by default), and the caller's IP must be on the stack's `search-api`
-    # IP allow list — which the `ip-allowlists` type above manages.
+    # Roles support TWO transports, selected per role item (see
+    # config-types/roles/validate.ts + canvas.yaml "Transport" group):
+    #   - REST (default, unchanged): /services/authorization/roles on the
+    #     stack's management port 8089. Two prerequisites, surfaced in every
+    #     validate/deploy/healthCheck message: Splunk Support must open port
+    #     8089 (closed by default), and the caller's IP must be on the stack's
+    #     `search-api` IP allow list — which the `ip-allowlists` type above
+    #     manages. authorize.conf is on Splunk Cloud's AppInspect deny list, so
+    #     roles cannot ship inside a private app either way.
+    #   - ACS (opt-in, v1.12.0+): adminconfig/v2/roles — the same JWT this app
+    #     already needs everywhere else, no port-8089/allow-list prerequisites,
+    #     BUT ACS does not replicate role writes across search-head-cluster
+    #     members (REST does, via Splunk's own configuration replication) — see
+    #     lib/acsIdentity.ts and the README's "Search-head targeting" section.
     - id: roles
       group: "Access Control"
       name: Roles
       description: >
         Splunk Cloud roles (capabilities, inherited roles, searchable indexes,
         search filters, quotas), managed over the Splunk Cloud Platform REST API
-        on the stack's management port 8089 — ACS cannot manage identity
+        on the stack's management port 8089 (default) or, opt-in per role, ACS's
+        native adminconfig/v2/roles endpoint — see the canvas "Transport" field
       canvasTemplate: config-types/roles/canvas.yaml
       defaultConfig: config-types/roles/defaults.yaml
       handlers:
@@ -345,11 +356,15 @@ pipeline:
         # `search-api` IP allow list, not a tunnel.
         requiresConnectivity: false
 
-    # Users, like roles, are IDENTITY — which ACS cannot manage. They use the
-    # SAME stack REST API (/services/authentication/users) on management port
-    # 8089, with the same two prerequisites (Support opens 8089; caller IP on the
-    # `search-api` allow list). Passwords are intentionally out of scope: this
-    # manages role assignment + attributes for EXISTING users only.
+    # Users stay REST-only (unlike roles above, which gained an opt-in ACS
+    # transport in v1.12.0): ACS's adminconfig/v2/users schema has no timezone
+    # field, and this type manages `tz` — see the "WHY THIS TYPE STAYS
+    # REST-ONLY" note in config-types/users/validate.ts. They use the stack
+    # REST API (/services/authentication/users) on management port 8089, with
+    # the same two prerequisites roles' REST transport has (Support opens
+    # 8089; caller IP on the `search-api` allow list). Passwords are
+    # intentionally out of scope: this manages role assignment + attributes
+    # for EXISTING users only.
     - id: users
       group: "Access Control"
       name: Users

@@ -7,12 +7,17 @@
 # `section.fields` for a single role.
 #
 # Field keys mirror Splunk's own authorize.conf / REST parameter names so the
-# mapping is obvious. Roles are the ONE thing on Splunk Cloud that ACS cannot
-# manage, so they go to the SAME endpoint Splunk Enterprise uses —
-# /services/authorization/roles — on the stack's management port 8089.
-# See lib/splunkRest.ts for the two prerequisites (Support must open 8089; the
-# caller's IP must be on the `search-api` allow list, which the "IP Allow Lists"
-# configuration type in this app manages).
+# mapping is obvious.
+#
+# TRANSPORT (as of v1.12.0): a role deploys over the classic REST API
+# (/services/authorization/roles, stack management port 8089 — the DEFAULT,
+# unchanged since this type shipped) OR, opt-in, ACS's native
+# /adminconfig/v2/roles endpoint (same JWT this app already needs everywhere
+# else, no port-8089/allow-list prerequisites). See config-types/roles/validate.ts
+# and lib/acsIdentity.ts for the full reasoning, and why ACS additionally needs
+# the "Search Head Targets" field below (ACS role writes are NOT replicated
+# across search-head-cluster members; REST writes already are, via Splunk's
+# own configuration replication).
 # =============================================================================
 
 id: "splunk-cloud-roles"
@@ -133,3 +138,22 @@ item:
           validation:
             min: 0
           helpText: "Concurrent real-time searches across ALL users of this role (maps to cumulativeRTSrchJobsQuota). 0 = unlimited."
+
+    - name: "Transport"
+      icon: "network"
+      description: "Which API applies this role, and (ACS only) which search head(s)"
+      fields:
+        - key: "transport"
+          label: "Transport"
+          fieldType: "select"
+          options:
+            - label: "REST API (default — port 8089, reaches the whole search-head cluster)"
+              value: "rest"
+            - label: "ACS (adminconfig/v2/roles — no port-8089 prerequisites, per-search-head)"
+              value: "acs"
+          helpText: "REST (the default, left blank) reaches this app's classic /services/authorization/roles endpoint — Splunk's own configuration replication pushes the change to every search-head-cluster member. ACS reaches the newer /adminconfig/v2/roles endpoint with the same JWT used everywhere else in this app, but ACS does NOT replicate role writes across cluster members — declare Search Head Targets below when using it on a clustered stack."
+
+        - key: "searchHeadTargets"
+          label: "Search Head Targets (ACS only)"
+          fieldType: "tags"
+          helpText: "ACS-only. One or more search-head-cluster member instance ids (e.g. sh-i-0910d0dfdb9ed913a) this role should be applied to — Splunk does not expose an API to look these up, they come from your own deployment (Splunk Web instance info, or a Support case). Leave empty to apply only to whichever search head an untargeted ACS request happens to route to (Splunk's own default, NOT necessarily every member). Ignored when Transport is REST."

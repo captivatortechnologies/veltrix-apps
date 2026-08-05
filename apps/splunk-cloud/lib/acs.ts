@@ -105,12 +105,18 @@ export function acsUrl(opts: AcsRequestOptions, path: string): string {
  * callers inspect `status` so they can distinguish 404 (missing resource),
  * 202 (async provisioning) and hard failures. Throws only on network errors
  * or timeout, which callers surface as deployment/check failures.
+ *
+ * `extraHeaders` layers endpoint-specific acknowledgement headers on top of
+ * the standard auth/content headers (e.g. the roles/users endpoints'
+ * `Federated-Search-Manage-Ack` — see lib/acsIdentity.ts) without every other
+ * caller needing to know they exist.
  */
 export async function acsRequest(
   opts: AcsRequestOptions,
   method: AcsMethod,
   path: string,
   body?: unknown,
+  extraHeaders?: Record<string, string>,
 ): Promise<AcsResponse> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), opts.timeoutMs)
@@ -122,6 +128,7 @@ export async function acsRequest(
         Authorization: `Bearer ${opts.token}`,
         'Content-Type': 'application/json',
         Accept: 'application/json',
+        ...(extraHeaders ?? {}),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: controller.signal,
