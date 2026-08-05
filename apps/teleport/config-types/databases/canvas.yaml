@@ -1,0 +1,105 @@
+# =============================================================================
+# Canvas Template — Teleport Dynamic Database Resources
+#
+# Declares ONE database resource registration — the item. Identity is `name`.
+# Verified against gravitational/teleport@master lib/web/databases.go:
+#   - POST /v1/webapi/sites/{site}/databases              — create (or full
+#     replace when `overwrite: true`, which also handles protocol changes)
+#   - PUT  /v1/webapi/sites/{site}/databases/{name}        — partial update
+#     (caCert / labels / uri / awsRds only - notably NOT protocol)
+#   - GET  /v1/webapi/sites/{site}/databases/{name}        — read
+# `{site}` is the cluster name (see machine-id-bots' canvas.yaml comment on
+# `TeleportClient.resolveSite()`).
+#
+# This registers the DATABASE RESOURCE (what Teleport proxies connections to)
+# - not a running `teleport db start` agent, and not per-user access grants
+# (those come from roles' `db_labels` / `db_names` / `db_users`).
+# =============================================================================
+
+id: "teleport-databases"
+name: "Database Configuration"
+toolType: "teleport"
+entityType: "databases"
+description: "Define Teleport dynamic database resource registrations as code through the Teleport Proxy web API"
+
+item:
+  label: "Database"
+  identityField: "name"
+  repeatable: true
+  minItems: 0
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "database"
+      description: "Database name, protocol and connection URI"
+      fields:
+        - key: "name"
+          label: "Database Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9._-]+$"
+            message: "Letters, numbers, dots, underscores and hyphens only."
+          helpText: "The database resource's name in Teleport. Must be unique within this canvas."
+
+        - key: "protocol"
+          label: "Protocol"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-z0-9-]+$"
+          helpText: "e.g. postgres, mysql, mongodb, redis, sqlserver, snowflake, cassandra, dynamodb, clickhouse, oracle. Cannot be changed later without recreating the database."
+
+        - key: "uri"
+          label: "Connection URI"
+          fieldType: "text"
+          required: true
+          helpText: "host:port the database listens on, e.g. mypostgres.rds.amazonaws.com:5432."
+
+    - name: "Labels"
+      icon: "tag"
+      description: "Labels used by roles' db_labels to grant access"
+      fields:
+        - key: "labels"
+          label: "Labels"
+          fieldType: "keyvalue"
+          required: false
+          helpText: "e.g. env -> production, team -> payments."
+
+    - name: "TLS"
+      icon: "lock"
+      description: "Optional CA certificate for the database's TLS/SSL connection"
+      fields:
+        - key: "caCert"
+          label: "CA Certificate (PEM)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional PEM-encoded CA certificate Teleport uses to verify the
+            database's TLS certificate. Applied via a follow-up update after
+            create - Teleport's create endpoint does not accept it directly.
+
+    - name: "AWS RDS (optional)"
+      icon: "cloud"
+      description: "Fill in only when this database is an AWS RDS/Aurora instance"
+      fields:
+        - key: "awsAccountId"
+          label: "AWS Account ID"
+          fieldType: "text"
+          required: false
+
+        - key: "awsResourceId"
+          label: "AWS RDS Resource ID"
+          fieldType: "text"
+          required: false
+
+        - key: "awsVpcId"
+          label: "AWS VPC ID"
+          fieldType: "text"
+          required: false
+
+        - key: "awsSubnets"
+          label: "AWS Subnets"
+          fieldType: "tags"
+          required: false
+          helpText: "Subnet IDs the database's IAM auth token generation needs."

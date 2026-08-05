@@ -1,0 +1,12 @@
+# Defaults for a new trusted cluster item. Flat map keyed by canvas field keys
+# (name, version, spec) — a trusted cluster's presentational groups are one
+# flat item record.
+version: "v2"
+spec: |
+  enabled: true
+  token: ""
+  tunnel_addr: ""
+  web_proxy_addr: ""
+  role_map:
+    - remote: "admin"
+      local: ["access"]

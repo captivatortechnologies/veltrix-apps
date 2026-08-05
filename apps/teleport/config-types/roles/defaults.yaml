@@ -1,0 +1,10 @@
+# Defaults for a new role item. Intentionally minimal: the platform no longer
+# seeds full system default values into a new item - it starts close to blank.
+# Values here are a FLAT map keyed by the canvas field keys (name, version,
+# spec), since a role's presentational groups are one flat item record.
+version: "v7"
+spec: |
+  allow:
+    logins: []
+  options:
+    max_session_ttl: 8h

@@ -1,0 +1,69 @@
+# =============================================================================
+# Canvas Template — Teleport Trusted Clusters
+#
+# Declares ONE trusted cluster relationship (kind: trusted_cluster) — the item.
+# Identity is the NAME (the trusted cluster's own name); write is a true
+# upsert — POST /v1/webapi/trustedcluster to create, PUT
+# /v1/webapi/trustedcluster/{name} to update (lib/web/resources.go's
+# upsertTrustedClusterHandle backs both routes).
+#
+# The user authors only the `spec:` body (enabled, token, tunnel_addr,
+# web_proxy_addr, role_map) — same pattern as config-types/roles. `token` is
+# the trusted-cluster join secret: sensitive, similar in spirit to
+# github-connectors' client_secret (see that type's canvas.yaml comment).
+# =============================================================================
+
+id: "teleport-trusted-clusters"
+name: "Trusted Cluster Configuration"
+toolType: "teleport"
+entityType: "trusted-clusters"
+description: "Define Teleport trusted cluster federation relationships as code through the Teleport Proxy web API - upsert by name"
+
+item:
+  label: "Trusted Cluster"
+  identityField: "name"
+  repeatable: true
+  minItems: 0
+  maxItems: 100
+  groups:
+    - name: "Identity"
+      icon: "share-2"
+      description: "Trusted cluster name and resource version"
+      fields:
+        - key: "name"
+          label: "Trusted Cluster Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9._-]+$"
+            message: "Letters, numbers, dots, underscores and hyphens only."
+          helpText: >
+            The leaf cluster's name, exactly as it will register itself. Must
+            be unique within this canvas.
+
+        - key: "version"
+          label: "Resource Version"
+          fieldType: "select"
+          required: true
+          defaultValue: "v2"
+          options:
+            - label: "v2 (current)"
+              value: "v2"
+          helpText: "The trusted_cluster resource's schema version."
+
+    - name: "Spec (YAML)"
+      icon: "code"
+      description: "The trusted cluster's spec body - join token, addresses, role mapping"
+      fields:
+        - key: "spec"
+          label: "Spec (YAML)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            Only the trusted cluster's `spec:` body - enabled (true/false),
+            token (the shared join secret from the leaf cluster's own
+            `tctl tokens add --type=trusted_cluster`), tunnel_addr,
+            web_proxy_addr, and role_map (mapping the leaf cluster's roles to
+            this cluster's roles). Do NOT include kind/version/metadata or a
+            leading `spec:` key. token is a one-time-use join secret - treat
+            it as write-only, never displayed in this app's own UI.

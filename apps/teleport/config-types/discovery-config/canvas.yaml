@@ -1,0 +1,99 @@
+# =============================================================================
+# Canvas Template — Teleport Discovery Service Configs
+#
+# Declares ONE DiscoveryConfig — the item. Identity is `name`. Verified against
+# gravitational/teleport@master lib/web/discoveryconfig.go and
+# lib/web/ui/discoveryconfig.go:
+#   - POST   /v1/webapi/sites/{site}/discoveryconfig          — create
+#   - PUT    /v1/webapi/sites/{site}/discoveryconfig/{name}   — update
+#   - GET    /v1/webapi/sites/{site}/discoveryconfig/{name}   — read
+#   - DELETE /v1/webapi/sites/{site}/discoveryconfig/{name}   — delete
+# `{site}` is the cluster name (see machine-id-bots' canvas.yaml comment).
+#
+# Each cloud's matcher list (AWSMatcher / AzureMatcher / GCPMatcher /
+# KubernetesMatcher) has its own rich, cloud-specific schema - authored here as
+# a raw JSON array, same "user authors the body, the app wraps identity"
+# pattern as config-types/roles' YAML spec. The wire keys are NOT symmetric:
+# Azure is `azureMatchers` and GCP is `gcpMatchers` (not `azure`/`gcp`) - a
+# real quirk of `ui.DiscoveryConfig`'s json tags, easy to get wrong by guessing.
+# =============================================================================
+
+id: "teleport-discovery-config"
+name: "Discovery Config Configuration"
+toolType: "teleport"
+entityType: "discovery-config"
+description: "Define Teleport Discovery Service auto-discovery configs as code through the Teleport Proxy web API"
+
+item:
+  label: "Discovery Config"
+  identityField: "name"
+  repeatable: true
+  minItems: 0
+  maxItems: 100
+  groups:
+    - name: "Identity"
+      icon: "search"
+      description: "Config name and the discovery group it belongs to"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9._-]+$"
+            message: "Letters, numbers, dots, underscores and hyphens only."
+          helpText: "The DiscoveryConfig's name in Teleport. Must be unique within this canvas."
+
+        - key: "discoveryGroup"
+          label: "Discovery Group"
+          fieldType: "text"
+          required: true
+          helpText: "The discovery_service.discovery_group of the Discovery Service instance(s) that should run this config."
+
+    - name: "AWS Matchers"
+      icon: "cloud"
+      description: "JSON array of AWSMatcher objects (leave blank if not discovering AWS resources)"
+      fields:
+        - key: "awsMatchersJson"
+          label: "AWS Matchers (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            A JSON array of Teleport AWSMatcher objects, e.g.
+            [{"types": ["rds"], "regions": ["us-east-1"], "tags": {"env": ["prod"]}}].
+
+    - name: "Azure Matchers"
+      icon: "cloud"
+      description: "JSON array of AzureMatcher objects (leave blank if not discovering Azure resources)"
+      fields:
+        - key: "azureMatchersJson"
+          label: "Azure Matchers (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            A JSON array of Teleport AzureMatcher objects, e.g.
+            [{"types": ["aks"], "regions": ["eastus"], "resource_groups": ["*"], "subscriptions": ["*"]}].
+
+    - name: "GCP Matchers"
+      icon: "cloud"
+      description: "JSON array of GCPMatcher objects (leave blank if not discovering GCP resources)"
+      fields:
+        - key: "gcpMatchersJson"
+          label: "GCP Matchers (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            A JSON array of Teleport GCPMatcher objects, e.g.
+            [{"types": ["gke"], "locations": ["*"], "project_ids": ["my-project"]}].
+
+    - name: "Kubernetes Matchers"
+      icon: "layers"
+      description: "JSON array of KubernetesMatcher objects (leave blank if not discovering in-cluster resources)"
+      fields:
+        - key: "kubeMatchersJson"
+          label: "Kubernetes Matchers (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            A JSON array of Teleport KubernetesMatcher objects, e.g.
+            [{"types": ["app"], "namespaces": ["*"]}].

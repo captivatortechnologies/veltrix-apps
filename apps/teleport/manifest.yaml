@@ -1,0 +1,221 @@
+id: teleport
+name: Teleport
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Teleport (Gravitational) infrastructure access & privileged access
+  management configuration as code through the Teleport Proxy's web API - the
+  same JSON+YAML surface the Teleport Web UI itself uses. Covers RBAC roles,
+  GitHub SSO auth connectors, trusted cluster federation, Machine ID bot
+  identities, dynamic database resource registrations, and cloud
+  auto-discovery configs - with validation, drift detection and rollback
+  handled by the Security-as-Code pipeline.
+category: IAM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/teleport
+icon: "🔑"
+
+platform:
+  minVersion: "1.0.0"
+
+# Teleport brand: deep violet primary, brighter violet accent.
+branding:
+  primaryColor: "#1A0F33"
+  accentColor: "#844FEE"
+  logo: ./assets/logo.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: roles
+      actions: [read, write, delete]
+      description: Manage Teleport RBAC roles (kind:role) - the allow/deny rules and options that define what a user or bot can access
+    - resource: github-connectors
+      actions: [read, write, delete]
+      description: Manage Teleport GitHub SSO auth connectors (kind:github) - client id/secret are write-only
+    - resource: trusted-clusters
+      actions: [read, write, delete]
+      description: Manage Teleport trusted cluster federation relationships (kind:trusted_cluster) - the join token is write-only
+    - resource: machine-id-bots
+      actions: [read, write, delete]
+      description: Manage Teleport Machine ID bot identities - a bot's assigned roles, traits and max session TTL
+    - resource: databases
+      actions: [read, write, delete]
+      description: Manage Teleport dynamic database resource registrations (protocol, connection URI, labels, optional AWS RDS metadata)
+    - resource: discovery-config
+      actions: [read, write, delete]
+      description: Manage Teleport Discovery Service auto-discovery configs (AWS/Azure/GCP/Kube matchers) for a discovery group
+
+pipeline:
+  configurationTypes:
+    - id: roles
+      group: "Access Control"
+      name: Roles
+      description: RBAC roles (kind:role) - allow/deny rules and options, authored as the resource's spec body
+      canvasTemplate: config-types/roles/canvas.yaml
+      defaultConfig: config-types/roles/defaults.yaml
+      handlers:
+        validate: config-types/roles/validate
+        deploy: config-types/roles/deploy
+        rollback: config-types/roles/rollback
+        healthCheck: config-types/roles/healthCheck
+        driftDetect: config-types/roles/driftDetect
+        getStatus: config-types/roles/getStatus
+      targets:
+        componentTypes: [teleport-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: github-connectors
+      group: "Single Sign-On"
+      name: GitHub Connectors
+      description: GitHub SSO auth connectors (kind:github) - client id/secret, teams-to-roles mapping
+      canvasTemplate: config-types/github-connectors/canvas.yaml
+      defaultConfig: config-types/github-connectors/defaults.yaml
+      handlers:
+        validate: config-types/github-connectors/validate
+        deploy: config-types/github-connectors/deploy
+        rollback: config-types/github-connectors/rollback
+        healthCheck: config-types/github-connectors/healthCheck
+        driftDetect: config-types/github-connectors/driftDetect
+        getStatus: config-types/github-connectors/getStatus
+      targets:
+        componentTypes: [teleport-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: trusted-clusters
+      group: "Cluster Federation"
+      name: Trusted Clusters
+      description: Trusted cluster relationships (kind:trusted_cluster) - role mapping and tunnel/proxy addresses
+      canvasTemplate: config-types/trusted-clusters/canvas.yaml
+      defaultConfig: config-types/trusted-clusters/defaults.yaml
+      handlers:
+        validate: config-types/trusted-clusters/validate
+        deploy: config-types/trusted-clusters/deploy
+        rollback: config-types/trusted-clusters/rollback
+        healthCheck: config-types/trusted-clusters/healthCheck
+        driftDetect: config-types/trusted-clusters/driftDetect
+        getStatus: config-types/trusted-clusters/getStatus
+      targets:
+        componentTypes: [teleport-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: machine-id-bots
+      group: "Machine & Workload Identity"
+      name: Machine ID Bots
+      description: Bot identities - the roles a bot may impersonate, its traits, description and max session TTL
+      canvasTemplate: config-types/machine-id-bots/canvas.yaml
+      defaultConfig: config-types/machine-id-bots/defaults.yaml
+      handlers:
+        validate: config-types/machine-id-bots/validate
+        deploy: config-types/machine-id-bots/deploy
+        rollback: config-types/machine-id-bots/rollback
+        healthCheck: config-types/machine-id-bots/healthCheck
+        driftDetect: config-types/machine-id-bots/driftDetect
+        getStatus: config-types/machine-id-bots/getStatus
+      targets:
+        componentTypes: [teleport-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: databases
+      group: "Resources"
+      name: Databases
+      description: Dynamic database resource registrations - protocol, connection URI, labels, optional AWS RDS metadata
+      canvasTemplate: config-types/databases/canvas.yaml
+      defaultConfig: config-types/databases/defaults.yaml
+      handlers:
+        validate: config-types/databases/validate
+        deploy: config-types/databases/deploy
+        rollback: config-types/databases/rollback
+        healthCheck: config-types/databases/healthCheck
+        driftDetect: config-types/databases/driftDetect
+        getStatus: config-types/databases/getStatus
+      targets:
+        componentTypes: [teleport-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: discovery-config
+      group: "Resources"
+      name: Discovery Config
+      description: Cloud auto-discovery configs (AWS/Azure/GCP/Kube matchers) for the Teleport Discovery Service
+      canvasTemplate: config-types/discovery-config/canvas.yaml
+      defaultConfig: config-types/discovery-config/defaults.yaml
+      handlers:
+        validate: config-types/discovery-config/validate
+        deploy: config-types/discovery-config/deploy
+        rollback: config-types/discovery-config/rollback
+        healthCheck: config-types/discovery-config/healthCheck
+        driftDetect: config-types/discovery-config/driftDetect
+        getStatus: config-types/discovery-config/getStatus
+      targets:
+        componentTypes: [teleport-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/teleport
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: logs in (POST /v1/webapi/sessions/web)
+# and confirms the session can read the cluster's own identity back
+# (GET /v1/webapi/sites).
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: cluster_name
+    type: string
+    label: Cluster Name
+    description: >
+      Explicit `:site` override for cluster-scoped routes (Machine ID bots,
+      databases, discovery configs). Leave blank to auto-detect the root
+      cluster's name via GET /v1/webapi/sites - the correct choice for the
+      overwhelmingly common single (root) cluster deployment. Set this only to
+      target a specific leaf/trusted cluster by name.
+    default: ""
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for calls to the Teleport Proxy web API.
+    default: 30
+    required: false

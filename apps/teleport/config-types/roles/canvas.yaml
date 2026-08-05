@@ -1,0 +1,80 @@
+# =============================================================================
+# Canvas Template — Teleport RBAC Roles
+#
+# Declares ONE Teleport role (kind: role) — the item. A role's identity is its
+# NAME (write is a true upsert: create via POST /v1/webapi/roles when absent,
+# update via PUT /v1/webapi/roles/{name} when present — see
+# lib/web/resources.go's createRoleHandle/updateRoleHandle).
+#
+# The user authors only the role's `spec:` body (allow/deny/options) — exactly
+# what would appear after `spec:` in a full `tctl create -f role.yaml` manifest
+# — in the same spirit as apps/hashicorp-vault/config-types/policies letting
+# the user author only the HCL policy body. deploy.ts wraps it into the full
+# `kind: role / version / metadata.name / spec` envelope Teleport's web API
+# expects (lib/teleport.ts's buildResourceYaml).
+#
+# Field keys must match what config-types/roles/validate.ts checks.
+# =============================================================================
+
+id: "teleport-roles"
+name: "RBAC Role Configuration"
+toolType: "teleport"
+entityType: "roles"
+description: "Define Teleport RBAC roles as code through the Teleport Proxy web API - upsert by name"
+
+item:
+  label: "Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 0
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "shield"
+      description: "Role name and resource version"
+      fields:
+        - key: "name"
+          label: "Role Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9._-]+$"
+            message: "Letters, numbers, dots, underscores and hyphens only."
+          helpText: >
+            The role's name in Teleport. Must be unique within this canvas.
+            Editing a built-in preset name (e.g. "access", "editor", "auditor")
+            updates that preset in place rather than creating a new role.
+
+        - key: "version"
+          label: "Resource Version"
+          fieldType: "select"
+          required: true
+          defaultValue: "v7"
+          options:
+            - label: "v7 (current)"
+              value: "v7"
+            - label: "v6"
+              value: "v6"
+            - label: "v5"
+              value: "v5"
+            - label: "v4"
+              value: "v4"
+            - label: "v3 (legacy)"
+              value: "v3"
+          helpText: "The role resource's schema version. v7 is current; older clusters may require v3-v6."
+
+    - name: "Spec (YAML)"
+      icon: "code"
+      description: "The role's spec body - allow/deny rules and options"
+      fields:
+        - key: "spec"
+          label: "Spec (YAML)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            Only the role's `spec:` body - e.g. allow: {logins: [...],
+            node_labels: {...}, rules: [...]}, deny: {...}, options:
+            {max_session_ttl: 8h}. Do NOT include kind/version/metadata or a
+            leading `spec:` key - those are added automatically. There is no
+            server-side dry-run - Teleport rejects a malformed role at deploy
+            time.

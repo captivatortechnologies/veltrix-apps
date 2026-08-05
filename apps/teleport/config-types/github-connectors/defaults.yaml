@@ -1,0 +1,9 @@
+# Defaults for a new GitHub connector item. Flat map keyed by canvas field keys
+# (name, version, spec) — a connector's presentational groups are one flat
+# item record.
+version: "v3"
+spec: |
+  client_id: ""
+  client_secret: ""
+  redirect_url: "https://<proxy-address>/v1/webapi/github/callback"
+  teams_to_logins: []

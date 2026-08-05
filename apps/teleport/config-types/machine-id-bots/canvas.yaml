@@ -1,0 +1,77 @@
+# =============================================================================
+# Canvas Template — Teleport Machine ID Bots
+#
+# Declares ONE Machine ID bot identity — the item. Identity is `botName`.
+# Verified against gravitational/teleport@master lib/web/machineid.go:
+#   - POST   /v1/webapi/sites/{site}/machine-id/bot            — create
+#   - GET    /v1/webapi/sites/{site}/machine-id/bot/{name}     — read
+#   - PUT    /v3/webapi/sites/{site}/machine-id/bot/{name}     — update (roles/traits/max_session_ttl/description)
+#   - DELETE /v1/webapi/sites/{site}/machine-id/bot/{name}     — delete
+# `{site}` is the cluster name, resolved via lib/teleport.ts's
+# `TeleportClient.resolveSite()` (the `cluster_name` app setting, or
+# auto-detected from GET /v1/webapi/sites).
+#
+# This deliberately does NOT manage bot JOIN TOKENS (POST .../machine-id/token)
+# — a join token is one-time-use secret material, out of scope the same way
+# HashiCorp Vault and CyberArk apps in this catalog exclude one-shot secrets.
+# =============================================================================
+
+id: "teleport-machine-id-bots"
+name: "Machine ID Bot Configuration"
+toolType: "teleport"
+entityType: "machine-id-bots"
+description: "Define Teleport Machine ID bot identities as code - the roles a bot may impersonate, its traits and session TTL"
+
+item:
+  label: "Bot"
+  identityField: "botName"
+  repeatable: true
+  minItems: 0
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "cpu"
+      description: "Bot name and description"
+      fields:
+        - key: "botName"
+          label: "Bot Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9._-]+$"
+            message: "Letters, numbers, dots, underscores and hyphens only."
+          helpText: "The bot's name in Teleport. Must be unique within this canvas."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          required: false
+          helpText: "Optional human-readable description of what this bot is for."
+
+    - name: "Access"
+      icon: "shield"
+      description: "Roles the bot may impersonate, its traits, and session lifetime"
+      fields:
+        - key: "roles"
+          label: "Roles"
+          fieldType: "tags"
+          required: true
+          helpText: "The Teleport role names this bot may impersonate (must already exist)."
+
+        - key: "traits"
+          label: "Traits"
+          fieldType: "keyvalue"
+          required: false
+          helpText: >
+            Trait name -> value(s) used for role templating. A trait may carry
+            multiple values - separate them with commas in the value field,
+            e.g. logins -> ubuntu,root.
+
+        - key: "maxSessionTtl"
+          label: "Max Session TTL"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^[0-9]+(h|m|s)$"
+            message: "A Go duration string, e.g. 12h, 30m."
+          helpText: "Optional cap on how long a certificate issued to this bot is valid for, e.g. 12h. Leave blank for the cluster default."

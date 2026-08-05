@@ -1,0 +1,68 @@
+# =============================================================================
+# Canvas Template — Teleport GitHub SSO Auth Connectors
+#
+# Declares ONE GitHub auth connector (kind: github) — the item. Identity is the
+# NAME; write is a true upsert (POST /v1/webapi/github to create, PUT
+# /v1/webapi/github/{name} to update — lib/web/resources.go's
+# createGithubConnectorHandle/updateGithubConnectorHandle).
+#
+# The user authors only the connector's `spec:` body (client_id, client_secret,
+# teams_to_logins/teams_to_roles, redirect_url) — same pattern as
+# config-types/roles. `client_secret` is SENSITIVE: Teleport's GET-by-name
+# response DOES include it (the Web UI needs it for edit-in-place), so
+# driftDetect/healthCheck may transiently hold it in memory to compare
+# structural drift — it is never logged, displayed, or persisted beyond that
+# comparison (see README.md's security notes).
+# =============================================================================
+
+id: "teleport-github-connectors"
+name: "GitHub Connector Configuration"
+toolType: "teleport"
+entityType: "github-connectors"
+description: "Define Teleport GitHub SSO auth connectors as code through the Teleport Proxy web API - upsert by name"
+
+item:
+  label: "GitHub Connector"
+  identityField: "name"
+  repeatable: true
+  minItems: 0
+  maxItems: 50
+  groups:
+    - name: "Identity"
+      icon: "key"
+      description: "Connector name and resource version"
+      fields:
+        - key: "name"
+          label: "Connector Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9._-]+$"
+            message: "Letters, numbers, dots, underscores and hyphens only."
+          helpText: "The connector's name in Teleport. Must be unique within this canvas."
+
+        - key: "version"
+          label: "Resource Version"
+          fieldType: "select"
+          required: true
+          defaultValue: "v3"
+          options:
+            - label: "v3 (current)"
+              value: "v3"
+          helpText: "The github connector resource's schema version."
+
+    - name: "Spec (YAML)"
+      icon: "code"
+      description: "The connector's spec body - client id/secret, redirect URL, team mapping"
+      fields:
+        - key: "spec"
+          label: "Spec (YAML)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            Only the connector's `spec:` body - client_id, client_secret (from
+            your GitHub OAuth App), redirect_url, and teams_to_logins or
+            teams_to_roles (mapping GitHub org/team membership to Teleport
+            logins or roles). Do NOT include kind/version/metadata or a
+            leading `spec:` key. client_secret is write-only in spirit - it is
+            never shown in this app's own UI, only sent to Teleport.
