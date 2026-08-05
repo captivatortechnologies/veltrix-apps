@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — Snyk Infrastructure as Code (IaC) Settings
+#
+# A SINGLETON org setting: exactly one item, not repeatable. Configures the
+# org's IaC CUSTOM RULES bundle via the REST settings API
+# (GET/PATCH /orgs/{org_id}/settings/iac, GA since 2021-12-09) — an OCI-hosted
+# rules artifact Snyk IaC evaluates alongside its built-in rules. There is no
+# separate org-level on/off switch for IaC scanning itself; this is the only
+# org-level IaC settings surface Snyk's REST API exposes.
+# Field keys must match config-types/snyk-iac-settings/validate.ts.
+# =============================================================================
+
+id: "snyk-iac-settings"
+name: "Snyk Infrastructure as Code Settings"
+toolType: "snyk"
+entityType: "snyk-iac-settings"
+description: "Configure the organization's Infrastructure as Code (IaC) custom-rules bundle as code via the REST settings API. A singleton org setting."
+
+item:
+  label: "IaC Settings"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Custom Rules"
+      icon: "file-code"
+      description: "An OCI-hosted custom rules bundle Snyk IaC evaluates in addition to its built-in rules"
+      fields:
+        - key: "is_enabled"
+          label: "Enable Custom IaC Rules"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: >
+            When enabled, Snyk IaC evaluates the custom rules bundle configured
+            below (in addition to Snyk's built-in rules) on every scan.
+
+        - key: "inherit_from_parent"
+          label: "Inherit from Parent Group"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: >
+            Use the parent Group's custom-rules bundle instead of the registry
+            below. When enabled, the OCI registry fields are ignored by Snyk.
+
+        - key: "oci_registry_url"
+          label: "OCI Registry URL"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "inherit_from_parent", equals: false }
+          helpText: >
+            The OCI registry URL hosting the custom rules bundle, e.g.
+            https://registry-1.docker.io/account/bundle.
+
+        - key: "oci_registry_tag"
+          label: "OCI Registry Tag"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "inherit_from_parent", equals: false }
+          helpText: "The tag of the OCI artifact to use, e.g. latest."

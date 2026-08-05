@@ -1,0 +1,55 @@
+# =============================================================================
+# Canvas Template — Snyk Org Memberships
+#
+# Declares ONE membership — the item. Users add as many as they need. A
+# membership grants an EXISTING Snyk user a role in this org via the REST API
+# (/orgs/{org_id}/memberships, GA since 2024-08-25). Identity is the user's
+# Snyk user id — there is no email-based create, so a brand-new external user
+# must first be invited into Snyk itself (out of scope here, see README).
+# `email` is optional and purely a human-readable label for the canvas; it is
+# never sent to Snyk. Field keys must match
+# config-types/snyk-org-memberships/validate.ts.
+# =============================================================================
+
+id: "snyk-org-memberships"
+name: "Snyk Org Memberships"
+toolType: "snyk"
+entityType: "snyk-org-memberships"
+description: "Grant, change or revoke an existing Snyk user's role in this org as code via the REST memberships API. Reconciled by user id; a membership not declared here is never touched."
+
+item:
+  label: "Membership"
+  identityField: "user_id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "User"
+      icon: "user"
+      description: "The Snyk user this membership grants access to"
+      fields:
+        - key: "user_id"
+          label: "Snyk User ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The Snyk user UUID to grant a role to (Snyk > Settings > Members —
+            open the member and copy their id from the URL, or find it via
+            another org's membership list). The user must already have a Snyk
+            identity; this is the membership's identity.
+
+        - key: "email"
+          label: "Email (for reference)"
+          fieldType: "text"
+          required: false
+          helpText: "Optional — a human-readable label only. Never sent to Snyk and never used to match the user."
+
+    - name: "Role"
+      icon: "shield"
+      description: "The org role this user is granted"
+      fields:
+        - key: "role_id"
+          label: "Org Role ID"
+          fieldType: "text"
+          required: true
+          helpText: "The Snyk organization role UUID to grant (Snyk > Settings > Members > Roles)."

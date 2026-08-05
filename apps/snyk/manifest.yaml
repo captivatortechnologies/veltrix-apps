@@ -1,16 +1,19 @@
 id: snyk
 name: Snyk
-version: "1.2.0"
+version: "1.3.0"
 vendor: Veltrix
 description: >
   Manage Snyk organization configuration as code across the Snyk REST and v1
-  APIs. Covers Snyk Code (SAST) enablement, notification preferences, SCM
-  integration pull-request and auto-upgrade settings, automation service
-  accounts and outbound webhooks — with validation, drift detection and
-  rollback handled by the Security-as-Code pipeline. Auth is a Snyk API token
-  (a service-account token is recommended); the component hostname is the Snyk
-  region API host (api.snyk.io, api.eu.snyk.io, …) and most configuration is
-  scoped to the Organization ID app setting.
+  APIs. Covers Snyk Code (SAST), Secrets and Infrastructure as Code enablement,
+  notification preferences, SCM integration pull-request and auto-upgrade
+  settings, project attributes (criticality, environment, lifecycle, tags,
+  owner), org-level Snyk Code ignore policies, org membership/role
+  assignments, automation service accounts and outbound webhooks — with
+  validation, drift detection and rollback handled by the Security-as-Code
+  pipeline. Auth is a Snyk API token (a service-account token is recommended);
+  the component hostname is the Snyk region API host (api.snyk.io,
+  api.eu.snyk.io, …) and most configuration is scoped to the Organization ID
+  app setting.
 category: COMPLIANCE
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/snyk
@@ -35,31 +38,47 @@ permissions:
     - resource: snyk-sast-settings
       actions: [read, write]
       description: Manage Snyk Code (SAST) settings
+    - resource: snyk-secrets-settings
+      actions: [read, write]
+      description: Manage Snyk Secrets (secrets-in-code detection) settings (Early Access)
+    - resource: snyk-iac-settings
+      actions: [read, write]
+      description: Manage Snyk Infrastructure as Code custom-rules settings
     - resource: snyk-notification-settings
       actions: [read, write]
       description: Manage Snyk organization notification settings
-    - resource: snyk-integrations
-      actions: [read, write]
-      description: Manage Snyk SCM/registry integration settings
-    - resource: snyk-service-accounts
+    - resource: snyk-org-ignore-policies
       actions: [read, write, delete]
-      description: Manage Snyk service accounts
-    - resource: snyk-webhooks
-      actions: [read, write, delete]
-      description: Manage Snyk outbound webhooks
-    - resource: snyk-project-settings
-      actions: [read, write]
-      description: Manage Snyk project pull-request and auto-upgrade settings
+      description: Manage Snyk org-level Code Consistent-Ignore policies
     - resource: snyk-project-ignores
       actions: [read, write, delete]
       description: Manage Snyk project issue ignores (ignore rules)
+    - resource: snyk-project-settings
+      actions: [read, write]
+      description: Manage Snyk project pull-request and auto-upgrade settings
+    - resource: snyk-project-attributes
+      actions: [read, write]
+      description: Manage Snyk project attributes (criticality, environment, lifecycle, tags, owner)
+    - resource: snyk-integrations
+      actions: [read, write]
+      description: Manage Snyk SCM/registry integration settings
     - resource: snyk-import-targets
       actions: [read, write, delete]
       description: Import source-control repositories into Snyk as projects
+    - resource: snyk-service-accounts
+      actions: [read, write, delete]
+      description: Manage Snyk service accounts
+    - resource: snyk-org-memberships
+      actions: [read, write, delete]
+      description: Manage Snyk organization membership role assignments
+    - resource: snyk-webhooks
+      actions: [read, write, delete]
+      description: Manage Snyk outbound webhooks
 
 pipeline:
   configurationTypes:
     - id: snyk-sast-settings
+      group: "Organization Settings"
       name: Snyk Code (SAST) Settings
       description: Enable or disable Snyk Code (SAST) for the organization (REST settings API); a singleton org setting
       canvasTemplate: config-types/snyk-sast-settings/canvas.yaml
@@ -76,7 +95,44 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: false
 
+    - id: snyk-secrets-settings
+      group: "Organization Settings"
+      name: Snyk Secrets Settings
+      description: Enable or disable Snyk Secrets (secrets-in-code detection) for the organization (REST settings API, Early Access/beta); a singleton org setting
+      canvasTemplate: config-types/snyk-secrets-settings/canvas.yaml
+      defaultConfig: config-types/snyk-secrets-settings/defaults.yaml
+      handlers:
+        validate: config-types/snyk-secrets-settings/validate
+        deploy: config-types/snyk-secrets-settings/deploy
+        rollback: config-types/snyk-secrets-settings/rollback
+        healthCheck: config-types/snyk-secrets-settings/healthCheck
+        driftDetect: config-types/snyk-secrets-settings/driftDetect
+        getStatus: config-types/snyk-secrets-settings/getStatus
+      targets:
+        componentTypes: [snyk-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: snyk-iac-settings
+      group: "Organization Settings"
+      name: Snyk Infrastructure as Code Settings
+      description: Configure the org's Infrastructure as Code custom-rules bundle (REST settings API, GA since 2021-12-09); a singleton org setting
+      canvasTemplate: config-types/snyk-iac-settings/canvas.yaml
+      defaultConfig: config-types/snyk-iac-settings/defaults.yaml
+      handlers:
+        validate: config-types/snyk-iac-settings/validate
+        deploy: config-types/snyk-iac-settings/deploy
+        rollback: config-types/snyk-iac-settings/rollback
+        healthCheck: config-types/snyk-iac-settings/healthCheck
+        driftDetect: config-types/snyk-iac-settings/driftDetect
+        getStatus: config-types/snyk-iac-settings/getStatus
+      targets:
+        componentTypes: [snyk-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: snyk-notification-settings
+      group: "Organization Settings"
       name: Snyk Notification Settings
       description: Organization notification preferences — new-issue alerts, weekly reports and import notices (v1 API); a singleton org setting
       canvasTemplate: config-types/snyk-notification-settings/canvas.yaml
@@ -93,75 +149,26 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: false
 
-    - id: snyk-integrations
-      name: Snyk Integration Settings
-      description: Per-integration pull-request test and automatic dependency-upgrade settings, matched by integration type (v1 API)
-      canvasTemplate: config-types/snyk-integrations/canvas.yaml
-      defaultConfig: config-types/snyk-integrations/defaults.yaml
+    - id: snyk-org-ignore-policies
+      group: "Policies & Ignores"
+      name: Snyk Org Ignore Policies
+      description: Org-level Snyk Code ignore policies (Consistent Ignores) reconciled by name (REST Policies API); requires Code Consistent Ignores enabled for the org
+      canvasTemplate: config-types/snyk-org-ignore-policies/canvas.yaml
+      defaultConfig: config-types/snyk-org-ignore-policies/defaults.yaml
       handlers:
-        validate: config-types/snyk-integrations/validate
-        deploy: config-types/snyk-integrations/deploy
-        rollback: config-types/snyk-integrations/rollback
-        healthCheck: config-types/snyk-integrations/healthCheck
-        driftDetect: config-types/snyk-integrations/driftDetect
-        getStatus: config-types/snyk-integrations/getStatus
-      targets:
-        componentTypes: [snyk-org]
-        requiresCredential: true
-        requiresConnectivity: false
-
-    - id: snyk-service-accounts
-      name: Snyk Service Accounts
-      description: Automation service accounts with an org role (REST API); the generated API token is shown once by Snyk and is never stored
-      canvasTemplate: config-types/snyk-service-accounts/canvas.yaml
-      defaultConfig: config-types/snyk-service-accounts/defaults.yaml
-      handlers:
-        validate: config-types/snyk-service-accounts/validate
-        deploy: config-types/snyk-service-accounts/deploy
-        rollback: config-types/snyk-service-accounts/rollback
-        healthCheck: config-types/snyk-service-accounts/healthCheck
-        driftDetect: config-types/snyk-service-accounts/driftDetect
-        getStatus: config-types/snyk-service-accounts/getStatus
-      targets:
-        componentTypes: [snyk-org]
-        requiresCredential: true
-        requiresConnectivity: false
-
-    - id: snyk-webhooks
-      name: Snyk Webhook Configuration
-      description: Outbound webhooks (v1 API); reconciled by URL, the signing secret is write-only
-      canvasTemplate: config-types/snyk-webhooks/canvas.yaml
-      defaultConfig: config-types/snyk-webhooks/defaults.yaml
-      handlers:
-        validate: config-types/snyk-webhooks/validate
-        deploy: config-types/snyk-webhooks/deploy
-        rollback: config-types/snyk-webhooks/rollback
-        healthCheck: config-types/snyk-webhooks/healthCheck
-        driftDetect: config-types/snyk-webhooks/driftDetect
-        getStatus: config-types/snyk-webhooks/getStatus
-      targets:
-        componentTypes: [snyk-org]
-        requiresCredential: true
-        requiresConnectivity: false
-
-    - id: snyk-project-settings
-      name: Snyk Project Settings
-      description: Per-project pull-request test and automatic dependency-upgrade settings, reconciled by project id (v1 API); updates an existing project in place
-      canvasTemplate: config-types/snyk-project-settings/canvas.yaml
-      defaultConfig: config-types/snyk-project-settings/defaults.yaml
-      handlers:
-        validate: config-types/snyk-project-settings/validate
-        deploy: config-types/snyk-project-settings/deploy
-        rollback: config-types/snyk-project-settings/rollback
-        healthCheck: config-types/snyk-project-settings/healthCheck
-        driftDetect: config-types/snyk-project-settings/driftDetect
-        getStatus: config-types/snyk-project-settings/getStatus
+        validate: config-types/snyk-org-ignore-policies/validate
+        deploy: config-types/snyk-org-ignore-policies/deploy
+        rollback: config-types/snyk-org-ignore-policies/rollback
+        healthCheck: config-types/snyk-org-ignore-policies/healthCheck
+        driftDetect: config-types/snyk-org-ignore-policies/driftDetect
+        getStatus: config-types/snyk-org-ignore-policies/getStatus
       targets:
         componentTypes: [snyk-org]
         requiresCredential: true
         requiresConnectivity: false
 
     - id: snyk-project-ignores
+      group: "Policies & Ignores"
       name: Snyk Project Ignores
       description: Project issue ignores (ignore rules) reconciled by project id + issue id (v1 API); the declared rule replaces that issue's ignores
       canvasTemplate: config-types/snyk-project-ignores/canvas.yaml
@@ -178,7 +185,62 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: false
 
+    - id: snyk-project-settings
+      group: "Projects"
+      name: Snyk Project Settings
+      description: Per-project pull-request test and automatic dependency-upgrade settings, reconciled by project id (v1 API); updates an existing project in place
+      canvasTemplate: config-types/snyk-project-settings/canvas.yaml
+      defaultConfig: config-types/snyk-project-settings/defaults.yaml
+      handlers:
+        validate: config-types/snyk-project-settings/validate
+        deploy: config-types/snyk-project-settings/deploy
+        rollback: config-types/snyk-project-settings/rollback
+        healthCheck: config-types/snyk-project-settings/healthCheck
+        driftDetect: config-types/snyk-project-settings/driftDetect
+        getStatus: config-types/snyk-project-settings/getStatus
+      targets:
+        componentTypes: [snyk-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: snyk-project-attributes
+      group: "Projects"
+      name: Snyk Project Attributes
+      description: Project classification metadata — criticality, environment, lifecycle, tags, owner and test frequency, reconciled by project id (REST API, GA since 2024-05-31); updates an existing project in place
+      canvasTemplate: config-types/snyk-project-attributes/canvas.yaml
+      defaultConfig: config-types/snyk-project-attributes/defaults.yaml
+      handlers:
+        validate: config-types/snyk-project-attributes/validate
+        deploy: config-types/snyk-project-attributes/deploy
+        rollback: config-types/snyk-project-attributes/rollback
+        healthCheck: config-types/snyk-project-attributes/healthCheck
+        driftDetect: config-types/snyk-project-attributes/driftDetect
+        getStatus: config-types/snyk-project-attributes/getStatus
+      targets:
+        componentTypes: [snyk-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: snyk-integrations
+      group: "Integrations & Import"
+      name: Snyk Integration Settings
+      description: Per-integration pull-request test and automatic dependency-upgrade settings, matched by integration type (v1 API)
+      canvasTemplate: config-types/snyk-integrations/canvas.yaml
+      defaultConfig: config-types/snyk-integrations/defaults.yaml
+      handlers:
+        validate: config-types/snyk-integrations/validate
+        deploy: config-types/snyk-integrations/deploy
+        rollback: config-types/snyk-integrations/rollback
+        healthCheck: config-types/snyk-integrations/healthCheck
+        driftDetect: config-types/snyk-integrations/driftDetect
+        getStatus: config-types/snyk-integrations/getStatus
+      targets:
+        componentTypes: [snyk-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: snyk-import-targets
+      group: "Integrations & Import"
       name: Snyk Import Targets
       description: Import source-control repositories into Snyk as projects through a configured integration (v1 Import API); reconciled by target owner/name, existing targets are skipped
       canvasTemplate: config-types/snyk-import-targets/canvas.yaml
@@ -190,6 +252,60 @@ pipeline:
         healthCheck: config-types/snyk-import-targets/healthCheck
         driftDetect: config-types/snyk-import-targets/driftDetect
         getStatus: config-types/snyk-import-targets/getStatus
+      targets:
+        componentTypes: [snyk-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: snyk-service-accounts
+      group: "Access & Automation"
+      name: Snyk Service Accounts
+      description: Automation service accounts with an org role (REST API); the generated API token is shown once by Snyk and is never stored
+      canvasTemplate: config-types/snyk-service-accounts/canvas.yaml
+      defaultConfig: config-types/snyk-service-accounts/defaults.yaml
+      handlers:
+        validate: config-types/snyk-service-accounts/validate
+        deploy: config-types/snyk-service-accounts/deploy
+        rollback: config-types/snyk-service-accounts/rollback
+        healthCheck: config-types/snyk-service-accounts/healthCheck
+        driftDetect: config-types/snyk-service-accounts/driftDetect
+        getStatus: config-types/snyk-service-accounts/getStatus
+      targets:
+        componentTypes: [snyk-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: snyk-org-memberships
+      group: "Access & Automation"
+      name: Snyk Org Memberships
+      description: Grant/change/revoke an existing Snyk user's org role, reconciled by user id (REST API, GA since 2024-08-25); never prunes an unmanaged membership
+      canvasTemplate: config-types/snyk-org-memberships/canvas.yaml
+      defaultConfig: config-types/snyk-org-memberships/defaults.yaml
+      handlers:
+        validate: config-types/snyk-org-memberships/validate
+        deploy: config-types/snyk-org-memberships/deploy
+        rollback: config-types/snyk-org-memberships/rollback
+        healthCheck: config-types/snyk-org-memberships/healthCheck
+        driftDetect: config-types/snyk-org-memberships/driftDetect
+        getStatus: config-types/snyk-org-memberships/getStatus
+      targets:
+        componentTypes: [snyk-org]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: snyk-webhooks
+      group: "Access & Automation"
+      name: Snyk Webhook Configuration
+      description: Outbound webhooks (v1 API); reconciled by URL, the signing secret is write-only
+      canvasTemplate: config-types/snyk-webhooks/canvas.yaml
+      defaultConfig: config-types/snyk-webhooks/defaults.yaml
+      handlers:
+        validate: config-types/snyk-webhooks/validate
+        deploy: config-types/snyk-webhooks/deploy
+        rollback: config-types/snyk-webhooks/rollback
+        healthCheck: config-types/snyk-webhooks/healthCheck
+        driftDetect: config-types/snyk-webhooks/driftDetect
+        getStatus: config-types/snyk-webhooks/getStatus
       targets:
         componentTypes: [snyk-org]
         requiresCredential: true

@@ -1,0 +1,114 @@
+# =============================================================================
+# Canvas Template — Snyk Project Attributes
+#
+# Declares ONE project — the item. Users add as many as they need. Each item
+# targets an EXISTING Snyk project (by its project id) and manages its
+# classification metadata via the REST API
+# (GET/PATCH /orgs/{org_id}/projects/{project_id}, GA since 2024-05-31). This is
+# DISTINCT from Snyk Project Settings (the v1 pull-request-test /
+# auto-dependency-upgrade booleans) — this type manages business criticality,
+# environment, lifecycle, tags, owner and the scheduled test frequency. This
+# config type UPDATES in place; it never creates or deletes a project.
+# Reconciled by project id. Field keys must match
+# config-types/snyk-project-attributes/validate.ts.
+# =============================================================================
+
+id: "snyk-project-attributes"
+name: "Snyk Project Attributes"
+toolType: "snyk"
+entityType: "snyk-project-attributes"
+description: "Manage an existing Snyk project's classification metadata (criticality, environment, lifecycle, tags, owner, test frequency) as code via the REST projects API. Reconciled by project id; updates in place only."
+
+item:
+  label: "Project"
+  identityField: "project_id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Project"
+      icon: "folder"
+      description: "The Snyk project to configure"
+      fields:
+        - key: "project_id"
+          label: "Project ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The Snyk project UUID to configure (Snyk > Projects > the project >
+            Settings, or the project's URL). The project must already exist —
+            this config type only updates attributes, it never creates a
+            project. This is the project's identity.
+
+    - name: "Classification"
+      icon: "tag"
+      description: "How this project is classified for risk and reporting"
+      fields:
+        - key: "business_criticality"
+          label: "Business Criticality"
+          fieldType: "multiselect"
+          required: false
+          options:
+            - { label: "Critical", value: "critical" }
+            - { label: "High", value: "high" }
+            - { label: "Medium", value: "medium" }
+            - { label: "Low", value: "low" }
+          helpText: "Leave empty to clear any previously set business criticality."
+
+        - key: "environment"
+          label: "Environment"
+          fieldType: "multiselect"
+          required: false
+          options:
+            - { label: "Frontend", value: "frontend" }
+            - { label: "Backend", value: "backend" }
+            - { label: "Internal", value: "internal" }
+            - { label: "External", value: "external" }
+            - { label: "Mobile", value: "mobile" }
+            - { label: "SaaS", value: "saas" }
+            - { label: "On-prem", value: "onprem" }
+            - { label: "Hosted", value: "hosted" }
+            - { label: "Distributed", value: "distributed" }
+          helpText: "Leave empty to clear any previously set environment tags."
+
+        - key: "lifecycle"
+          label: "Lifecycle"
+          fieldType: "multiselect"
+          required: false
+          options:
+            - { label: "Production", value: "production" }
+            - { label: "Development", value: "development" }
+            - { label: "Sandbox", value: "sandbox" }
+          helpText: "Leave empty to clear any previously set lifecycle stage."
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "keyvalue"
+          required: false
+          helpText: "Custom key/value tags attached to the project. Leave empty to clear any previously set tags."
+
+    - name: "Ownership & Testing"
+      icon: "user"
+      description: "The project's owner and its scheduled re-test cadence"
+      fields:
+        - key: "owner_user_id"
+          label: "Owner (Snyk User ID)"
+          fieldType: "text"
+          required: false
+          helpText: "Optional Snyk user UUID to set as the project's owner. Leave blank to leave the current owner untouched."
+
+        - key: "test_frequency"
+          label: "Test Frequency"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - { label: "Leave unmanaged", value: "" }
+            - { label: "Daily", value: "daily" }
+            - { label: "Weekly", value: "weekly" }
+            - { label: "Never", value: "never" }
+          helpText: >
+            How often Snyk re-tests this project for new issues. Also controls
+            when automated PRs may be created. Distinct from the pull-request
+            test/auto-upgrade toggles in Snyk Project Settings. Leave on
+            "Leave unmanaged" to never send this field.

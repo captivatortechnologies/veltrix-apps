@@ -1,0 +1,80 @@
+# =============================================================================
+# Canvas Template — Cloudflare Access Identity Providers
+#
+# Declares ONE Zero Trust Access identity provider (IdP) — the item. Users add
+# as many as they need. An identity provider is account-scoped
+# (/accounts/{account_id}/access/identity_providers); Cloudflare assigns a
+# server id, so identity for reconciliation is the IdP `name` — matched by
+# config-types/cloudflare-access-identity-providers/validate.ts.
+#
+# IdPs back the login experience for Access applications (an app's advanced
+# `allowed_idps` field references an IdP by id) and Access policies' rules —
+# this type is what was missing to manage the providers themselves.
+# =============================================================================
+
+id: "cloudflare-cloudflare-access-identity-providers"
+name: "Cloudflare Access Identity Provider Configuration"
+toolType: "cloudflare"
+entityType: "cloudflare-access-identity-providers"
+description: "Define Cloudflare Zero Trust Access identity providers as code (/access/identity_providers). Account-scoped; reconciled by name."
+
+item:
+  label: "Identity Provider"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Identity Provider"
+      icon: "key"
+      description: "Name, type and provider-specific configuration"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "Shown to users on the Access login page — its logical identity; reconciled by name across re-runs."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "onetimepin"
+          options:
+            - { label: "One-Time PIN (email)", value: "onetimepin" }
+            - { label: "Cloudflare (built-in)", value: "cloudflare" }
+            - { label: "Azure AD", value: "azureAD" }
+            - { label: "Okta", value: "okta" }
+            - { label: "Generic OIDC", value: "oidc" }
+            - { label: "SAML 2.0", value: "saml" }
+            - { label: "Google", value: "google" }
+            - { label: "Google Workspace", value: "google-apps" }
+            - { label: "GitHub", value: "github" }
+            - { label: "Facebook", value: "facebook" }
+            - { label: "LinkedIn", value: "linkedin" }
+            - { label: "OneLogin", value: "onelogin" }
+            - { label: "PingOne", value: "pingone" }
+            - { label: "Centrify", value: "centrify" }
+            - { label: "Yandex", value: "yandex" }
+          helpText: "The identity provider type. One-Time PIN and Cloudflare (built-in) need no further config."
+
+        - key: "config_json"
+          label: "Provider Config (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Required for every type except One-Time PIN / Cloudflare (built-in). Shape
+            depends on the type, e.g. OAuth/OIDC:
+            {"client_id":"...","client_secret":"...","auth_url":"https://accounts.google.com/o/oauth2/auth",
+            "token_url":"...","certs_url":"...","scopes":["openid","email","profile"]};
+            SAML: {"issuer_url":"https://idp.example.com","sso_target_url":"https://idp.example.com/sso",
+            "attributes":["group"],"idp_public_certs":["-----BEGIN CERTIFICATE-----..."]};
+            Azure AD adds {"directory_id":"<tenant-uuid>"}. `client_secret` is write-only —
+            Cloudflare never returns it on read, so drift never diffs this field's value.
+
+        - key: "advanced_json"
+          label: "Advanced Fields (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON object merged onto the request body at the top level —
+            currently only `scim_config`, e.g.
+            {"scim_config":{"enabled":true,"user_deprovision":true}}. Leave blank for none.

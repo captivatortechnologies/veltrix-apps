@@ -3,6 +3,92 @@
 All notable changes to the Cloudflare app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.5.0 — 2026-08-05
+
+### Added
+Research pass against the current Cloudflare API v4 (`api.cloudflare.com`, cross-
+checked against Cloudflare's own OpenAPI schema) to close five genuine gaps in
+the app's declarative security surface — all newly added config types, wired
+into their sidebar groups:
+
+- **Cloudflare Access Identity Providers** (`cloudflare-access-identity-providers`,
+  **Zero Trust · Access**). Zero Trust Access identity providers
+  (`/accounts/{account_id}/access/identity_providers`) — the login backends an
+  Access application's `allowed_idps` and an Access policy's `login_method` rule
+  reference by id, which this app had no way to manage until now. Reconciled by
+  name across the 15 supported provider types (Azure AD, Okta, generic OIDC,
+  SAML 2.0, Google, GitHub, One-Time PIN, ...); provider-specific `config` is a
+  JSON object (the same "advanced JSON" convention `app_json` / `rule_json` use
+  elsewhere). `client_secret` and equivalent fields are write-only — Cloudflare
+  marks them `x-sensitive` and never echoes them back — so drift reports
+  presence + type only, never a value diff of the config.
+- **Cloudflare Device Posture Rules** (`cloudflare-device-posture-rules`,
+  **Zero Trust · Access**). Zero Trust device posture rules
+  (`/accounts/{account_id}/devices/posture`) — referenced by an Access policy's
+  `device_posture` rule and a Gateway policy's `identity.device_posture`, both
+  previously pointing at rules this app couldn't create. Reconciled by name
+  across ~20 check types (OS version, disk encryption, domain-joined, and EDR
+  vendor integrations — CrowdStrike, SentinelOne, Tanium, Intune, Kolide, ...);
+  the type-specific `input` object is a JSON field, following the same
+  discriminated-union-as-JSON approach Access applications use for `app_json`.
+- **Cloudflare Turnstile Widgets** (`cloudflare-turnstile-widgets`,
+  **WAF & Security**). Cloudflare's CAPTCHA replacement
+  (`/accounts/{account_id}/challenges/widgets`) — mode, domains, bot-fight-mode,
+  region, clearance level and branding options, reconciled by name. The
+  generated `secret` is write-only (shown once at creation, redacted by
+  Cloudflare on every read after) and is treated exactly like an Access service
+  token's client secret: never read back, diffed or stored — only the
+  server-assigned `sitekey` is kept, to address and delete the widget.
+- **Cloudflare Bot Management** (`cloudflare-bot-management`, **WAF & Security**).
+  The zone's Bot Management configuration (`/zones/{zone_id}/bot_management`) —
+  a singleton read (GET) then updated (PUT), like zone settings, but a distinct
+  endpoint/schema (not one of the `/settings/{id}` keys that type already
+  covers). Exposes the "Shared Config" fields valid on every plan (AI bot/
+  crawler blocking, content-bot blocking, JS detections, latest-model opt-in)
+  directly, plus an `advanced_json` merge field for plan-gated fields (Bot Fight
+  Mode, Super Bot Fight Mode, the Enterprise subscription's session-score/
+  auto-update/cookie controls) — deploy reads the current live object, merges
+  the declared fields on top, and PUTs the merged result so unmanaged /
+  plan-inapplicable fields are never reset.
+- **Cloudflare Access mTLS Certificates** (`cloudflare-access-mtls-certificates`,
+  **Zero Trust · Access**). The root CA certificate an Access policy's
+  `certificate` rule validates a user's client certificate against
+  (`/accounts/{account_id}/access/certificates`) — the certificate-auth
+  counterpart to identity providers, and (unlike a client mTLS identity) a
+  PUBLIC CA cert with no private key involved. Reconciled by name. Cloudflare's
+  API makes the PEM content immutable after creation (`PUT` accepts only
+  `name`/`associated_hostnames`) and never echoes it back on `GET` — an honest,
+  documented limitation rather than a worked-around one; rotating a
+  certificate's content means adding a new item.
+
+### Notes on scope (researched, not added)
+- **IP Access Rules** (`/zones|accounts/.../firewall/access_rules/rules`) —
+  still live on every plan, but Cloudflare's own docs say "create custom rules
+  instead of IP Access rules" for IP/geography blocking; this app's existing
+  WAF Custom Rules + Lists (`ip` kind) already cover that ground on the
+  Rulesets engine Cloudflare is steering customers toward. Adding the legacy
+  mechanism alongside would duplicate, not extend, existing coverage.
+- **DLP profiles** (`/accounts/{account_id}/dlp/profiles`) — a genuine
+  Enterprise-add-on security surface, but its `entries` sub-schema is a deep
+  discriminated union (pattern-match / predefined / exact-data / word-list /
+  document-fingerprint, each with its own detection config) that Cloudflare's
+  own official Terraform provider schema flags as `x-stainless-skip:
+  ["terraform"]` — i.e. even the reference IaC tool doesn't fully model it.
+  Left for a dedicated future pass rather than a shallow partial import here.
+- **mTLS Certificates (general)** (`/accounts/{account_id}/mtls_certificates`),
+  **origin TLS client auth**, and **zone client certificates** — all can
+  require uploading a private key (mTLS *identity*, not just a validating CA),
+  which this app's existing write-only-secret handling is built for but which
+  sit outside this pass's security-policy scope (they're origin/CDN
+  connectivity certificate management, not WAF/Zero Trust policy).
+- **Custom Pages** (block/challenge page branding) — cosmetic (which hosted
+  HTML page a challenge shows), not a security control in itself; out of scope
+  for a security-config-as-code surface.
+- **Notification/alerting policies** (`/accounts/{account_id}/alerting/v3/...`)
+  — genuinely useful, but an operational-notification surface (who gets paged),
+  not a declarative security control; a better fit for a future
+  observability-focused pass than this one.
+
 ## 1.4.0 — 2026-07-26
 
 ### Added

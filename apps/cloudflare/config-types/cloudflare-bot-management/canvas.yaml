@@ -1,0 +1,96 @@
+# =============================================================================
+# Canvas Template — Cloudflare Bot Management
+#
+# Declares the ZONE'S bot management configuration — a singleton object that
+# always exists (/zones/{zone_id}/bot_management), read (GET) then updated
+# (PUT), never created or deleted. There is exactly one per zone, so this item
+# has no natural identity field and is capped at one row (maxItems: 1).
+#
+# Cloudflare's schema is plan-gated: which of fight_mode / the Super Bot Fight
+# Mode (SBFM) fields / the Enterprise Bot Management subscription fields apply
+# depends on the zone's plan. The fields below are the "Shared Config" values
+# valid on every plan; `advanced_json` merges plan-specific fields (fight_mode,
+# sbfm_*, optimize_wordpress, suppress_session_score, auto_update_model,
+# bm_cookie_enabled, ...) on top for accounts entitled to them — the same
+# "advanced JSON" convention used by app_json / rule_json elsewhere in this app.
+# =============================================================================
+
+id: "cloudflare-cloudflare-bot-management"
+name: "Cloudflare Bot Management Configuration"
+toolType: "cloudflare"
+entityType: "cloudflare-bot-management"
+description: "Manage the zone's Bot Management configuration as code (/bot_management). Read then updated (PUT); nothing is created or deleted."
+
+item:
+  label: "Bot Management Settings"
+  repeatable: true
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Bot Management"
+      icon: "shield"
+      description: "Universal bot-mitigation controls, plus an advanced JSON for plan-specific fields"
+      fields:
+        - key: "ai_bots_protection"
+          label: "AI Bots / Scrapers"
+          fieldType: "select"
+          defaultValue: "block"
+          options:
+            - { label: "Block", value: "block" }
+            - { label: "Only on Ad Pages", value: "only_on_ad_pages" }
+            - { label: "Disabled", value: "disabled" }
+          helpText: "Block AI scraper/crawler bots from accessing the zone."
+
+        - key: "crawler_protection"
+          label: "AI Crawler Link Maze"
+          fieldType: "select"
+          defaultValue: "disabled"
+          options:
+            - { label: "Enabled", value: "enabled" }
+            - { label: "Disabled", value: "disabled" }
+          helpText: "Punish AI scrapers/crawlers by serving them a link maze instead of blocking outright."
+
+        - key: "content_bots_protection"
+          label: "Content Bots"
+          fieldType: "select"
+          defaultValue: "disabled"
+          options:
+            - { label: "Block", value: "block" }
+            - { label: "Disabled", value: "disabled" }
+          helpText: "Block automated traffic with a low bot score, excluding verified bot categories. Manage exceptions with skip rules in WAF Custom Rules."
+
+        - key: "cf_robots_variant"
+          label: "Robots Access Control License"
+          fieldType: "select"
+          defaultValue: "off"
+          options:
+            - { label: "Off", value: "off" }
+            - { label: "Policy Only", value: "policy_only" }
+          helpText: "Publish a Cloudflare-managed robots.txt policy variant for the zone."
+
+        - key: "enable_js"
+          label: "JS Detections"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Run the lightweight JavaScript detection Cloudflare uses to improve bot scoring."
+
+        - key: "using_latest_model"
+          label: "Use Latest Bot Detection Model"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Keep the zone on Cloudflare's latest bot-detection model as it improves."
+
+        - key: "advanced_json"
+          label: "Advanced Fields (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON object merged onto the request body at the top level, for
+            plan-specific fields your zone is entitled to — Free/Pro "Bot Fight Mode":
+            {"fight_mode":true}; Pro+ "Super Bot Fight Mode":
+            {"sbfm_definitely_automated":"block","sbfm_likely_automated":"managed_challenge",
+            "sbfm_verified_bots":"allow","sbfm_static_resource_protection":true,
+            "optimize_wordpress":true}; Enterprise Bot Management subscription:
+            {"suppress_session_score":true,"auto_update_model":true,"bm_cookie_enabled":true}.
+            Sending a field your plan doesn't support is rejected by Cloudflare — leave
+            blank if unsure. Read-only fields Cloudflare returns (e.g.
+            stale_zone_configuration) are never sent back.

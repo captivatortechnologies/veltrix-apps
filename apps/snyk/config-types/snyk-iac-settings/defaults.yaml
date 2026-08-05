@@ -1,0 +1,6 @@
+# Defaults for the IaC settings item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item — it starts blank. Any values here would be a flat map keyed by the
+# canvas field keys (is_enabled, inherit_from_parent, oci_registry_url,
+# oci_registry_tag).

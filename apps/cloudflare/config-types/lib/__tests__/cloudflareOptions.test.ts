@@ -25,7 +25,7 @@ const cred = {
   id: 'c1',
   name: 'Prod account',
   username: 'acct-123',
-  password: null,
+  password: '',
   apiToken: 'cf-token',
   certificate: null,
 }

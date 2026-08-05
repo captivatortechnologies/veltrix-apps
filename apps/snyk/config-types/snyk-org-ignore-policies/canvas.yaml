@@ -1,0 +1,76 @@
+# =============================================================================
+# Canvas Template — Snyk Org Ignore Policies
+#
+# Declares ONE org-level ignore policy — the item. Users add as many as they
+# need. This is Snyk's org-level Policy API
+# (/orgs/{org_id}/policies, REST, GA) — documented as available ONLY for use
+# with Code Consistent Ignores, and scoped to a Snyk Code finding identity
+# (field `snyk/asset/finding/v1`, operator `includes`). It is NOT a general
+# security/license policy engine. Identity is the policy name; Snyk generates
+# the policy id on create. Field keys must match
+# config-types/snyk-org-ignore-policies/validate.ts.
+# =============================================================================
+
+id: "snyk-org-ignore-policies"
+name: "Snyk Org Ignore Policies"
+toolType: "snyk"
+entityType: "snyk-org-ignore-policies"
+description: "Define org-level Snyk Code ignore policies (Consistent Ignores) as code via the REST policies API. Reconciled by name; requires Code Consistent Ignores enabled for the org."
+
+item:
+  label: "Ignore Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "shield-off"
+      description: "The policy's identity and the Snyk Code finding it matches"
+      fields:
+        - key: "name"
+          label: "Policy Name"
+          fieldType: "text"
+          required: true
+          helpText: "A descriptive name for this policy — its logical identity for reconciliation."
+
+        - key: "finding_key"
+          label: "Asset Finding Value"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The value to match against a Snyk Code finding's asset-finding
+            identity (`snyk/asset/finding/v1`) — from the issues API's
+            `key_asset` field, or a fingerprint exported via the Snyk CLI's
+            SARIF output. Every finding whose identity includes this value is
+            ignored under this policy.
+
+    - name: "Ignore Rule"
+      icon: "eye-off"
+      description: "Why and how matching findings are ignored"
+      fields:
+        - key: "ignore_type"
+          label: "Ignore Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "not-vulnerable"
+          options:
+            - { label: "Not vulnerable", value: "not-vulnerable" }
+            - { label: "Won't fix", value: "wont-fix" }
+            - { label: "Temporary ignore", value: "temporary-ignore" }
+          helpText: "The classification of the ignore — the same three types used by project-level ignores. A temporary ignore requires an expiry date."
+
+        - key: "reason"
+          label: "Reason"
+          fieldType: "textarea"
+          required: false
+          helpText: "Free-text justification recorded with the policy."
+
+        - key: "expires"
+          label: "Expires (ISO 8601)"
+          fieldType: "text"
+          required: false
+          visibleWhen: { field: "ignore_type", equals: "temporary-ignore" }
+          helpText: >
+            When the ignore stops applying, as an ISO 8601 timestamp
+            (e.g. 2026-12-31T23:59:59.000Z). Required for a temporary ignore.

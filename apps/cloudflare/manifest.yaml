@@ -1,15 +1,16 @@
 id: cloudflare
 name: Cloudflare
-version: "1.4.0"
+version: "1.5.0"
 vendor: Veltrix
 description: >
   Manage Cloudflare configuration as code through the Cloudflare API (v4). Covers
   DNS, the WAF/firewall Rulesets engine (custom rules, rate limiting, redirects,
-  transforms and managed-ruleset overrides), zone settings, account Lists, and
-  Zero Trust (Access applications/policies/groups/service-tokens and Gateway
-  rules/lists) — with validation, drift detection and rollback handled by the
-  Security-as-Code pipeline. The component hostname is the zone domain; the app
-  resolves zone and account ids automatically.
+  transforms and managed-ruleset overrides), Bot Management, Turnstile,
+  zone settings, account Lists, and Zero Trust (Access applications/policies/
+  groups/service-tokens/identity providers/mTLS certificates, device posture
+  rules, and Gateway rules/lists) — with validation, drift detection and
+  rollback handled by the Security-as-Code pipeline. The component hostname is
+  the zone domain; the app resolves zone and account ids automatically.
 category: NETWORK
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cloudflare
@@ -52,6 +53,12 @@ permissions:
     - resource: cloudflare-managed-rulesets
       actions: [read, write, delete]
       description: Manage Cloudflare managed ruleset deployments
+    - resource: cloudflare-bot-management
+      actions: [read, write, delete]
+      description: Manage Cloudflare Bot Management settings
+    - resource: cloudflare-turnstile-widgets
+      actions: [read, write, delete]
+      description: Manage Cloudflare Turnstile widgets
     - resource: cloudflare-zone-settings
       actions: [read, write, delete]
       description: Manage Cloudflare zone settings
@@ -70,6 +77,15 @@ permissions:
     - resource: cloudflare-access-service-tokens
       actions: [read, write, delete]
       description: Manage Cloudflare Access service tokens
+    - resource: cloudflare-access-identity-providers
+      actions: [read, write, delete]
+      description: Manage Cloudflare Access identity providers
+    - resource: cloudflare-access-mtls-certificates
+      actions: [read, write, delete]
+      description: Manage Cloudflare Access mTLS root certificates
+    - resource: cloudflare-device-posture-rules
+      actions: [read, write, delete]
+      description: Manage Cloudflare Zero Trust device posture rules
     - resource: cloudflare-gateway-policies
       actions: [read, write, delete]
       description: Manage Cloudflare Gateway policies
@@ -199,6 +215,44 @@ pipeline:
         requiresConnectivity: false
         zoneScoped: true
 
+    - id: cloudflare-bot-management
+      group: "WAF & Security"
+      name: Cloudflare Bot Management
+      description: The zone's Bot Management configuration (/bot_management) — a singleton, read then updated (PUT)
+      canvasTemplate: config-types/cloudflare-bot-management/canvas.yaml
+      defaultConfig: config-types/cloudflare-bot-management/defaults.yaml
+      handlers:
+        validate: config-types/cloudflare-bot-management/validate
+        deploy: config-types/cloudflare-bot-management/deploy
+        rollback: config-types/cloudflare-bot-management/rollback
+        healthCheck: config-types/cloudflare-bot-management/healthCheck
+        driftDetect: config-types/cloudflare-bot-management/driftDetect
+        getStatus: config-types/cloudflare-bot-management/getStatus
+        options: config-types/cloudflare-bot-management/options
+      targets:
+        componentTypes: [cloudflare-zone]
+        requiresCredential: true
+        requiresConnectivity: false
+        zoneScoped: true
+
+    - id: cloudflare-turnstile-widgets
+      group: "WAF & Security"
+      name: Cloudflare Turnstile Widgets
+      description: CAPTCHA-replacement Turnstile widgets (/challenges/widgets); account-scoped, matched by name
+      canvasTemplate: config-types/cloudflare-turnstile-widgets/canvas.yaml
+      defaultConfig: config-types/cloudflare-turnstile-widgets/defaults.yaml
+      handlers:
+        validate: config-types/cloudflare-turnstile-widgets/validate
+        deploy: config-types/cloudflare-turnstile-widgets/deploy
+        rollback: config-types/cloudflare-turnstile-widgets/rollback
+        healthCheck: config-types/cloudflare-turnstile-widgets/healthCheck
+        driftDetect: config-types/cloudflare-turnstile-widgets/driftDetect
+        getStatus: config-types/cloudflare-turnstile-widgets/getStatus
+      targets:
+        componentTypes: [cloudflare-zone]
+        requiresCredential: true
+        requiresConnectivity: false
+
     - id: cloudflare-zone-settings
       group: "Zone"
       name: Cloudflare Zone Settings
@@ -324,6 +378,60 @@ pipeline:
         healthCheck: config-types/cloudflare-access-service-tokens/healthCheck
         driftDetect: config-types/cloudflare-access-service-tokens/driftDetect
         getStatus: config-types/cloudflare-access-service-tokens/getStatus
+      targets:
+        componentTypes: [cloudflare-zone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloudflare-access-identity-providers
+      group: "Zero Trust · Access"
+      name: Cloudflare Access Identity Providers
+      description: Zero Trust Access identity providers (/access/identity_providers); referenced by allowed_idps
+      canvasTemplate: config-types/cloudflare-access-identity-providers/canvas.yaml
+      defaultConfig: config-types/cloudflare-access-identity-providers/defaults.yaml
+      handlers:
+        validate: config-types/cloudflare-access-identity-providers/validate
+        deploy: config-types/cloudflare-access-identity-providers/deploy
+        rollback: config-types/cloudflare-access-identity-providers/rollback
+        healthCheck: config-types/cloudflare-access-identity-providers/healthCheck
+        driftDetect: config-types/cloudflare-access-identity-providers/driftDetect
+        getStatus: config-types/cloudflare-access-identity-providers/getStatus
+      targets:
+        componentTypes: [cloudflare-zone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloudflare-access-mtls-certificates
+      group: "Zero Trust · Access"
+      name: Cloudflare Access mTLS Certificates
+      description: Access mTLS root CA certificates (/access/certificates); referenced by the certificate policy rule
+      canvasTemplate: config-types/cloudflare-access-mtls-certificates/canvas.yaml
+      defaultConfig: config-types/cloudflare-access-mtls-certificates/defaults.yaml
+      handlers:
+        validate: config-types/cloudflare-access-mtls-certificates/validate
+        deploy: config-types/cloudflare-access-mtls-certificates/deploy
+        rollback: config-types/cloudflare-access-mtls-certificates/rollback
+        healthCheck: config-types/cloudflare-access-mtls-certificates/healthCheck
+        driftDetect: config-types/cloudflare-access-mtls-certificates/driftDetect
+        getStatus: config-types/cloudflare-access-mtls-certificates/getStatus
+      targets:
+        componentTypes: [cloudflare-zone]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: cloudflare-device-posture-rules
+      group: "Zero Trust · Access"
+      name: Cloudflare Device Posture Rules
+      description: Zero Trust device posture rules (/devices/posture); referenced by Access and Gateway policies
+      canvasTemplate: config-types/cloudflare-device-posture-rules/canvas.yaml
+      defaultConfig: config-types/cloudflare-device-posture-rules/defaults.yaml
+      handlers:
+        validate: config-types/cloudflare-device-posture-rules/validate
+        deploy: config-types/cloudflare-device-posture-rules/deploy
+        rollback: config-types/cloudflare-device-posture-rules/rollback
+        healthCheck: config-types/cloudflare-device-posture-rules/healthCheck
+        driftDetect: config-types/cloudflare-device-posture-rules/driftDetect
+        getStatus: config-types/cloudflare-device-posture-rules/getStatus
       targets:
         componentTypes: [cloudflare-zone]
         requiresCredential: true

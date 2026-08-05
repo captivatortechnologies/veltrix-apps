@@ -1,0 +1,92 @@
+# =============================================================================
+# Canvas Template — Cloudflare Turnstile Widgets
+#
+# Declares ONE Turnstile widget — the item. Users add as many as they need. A
+# widget is account-scoped (/accounts/{account_id}/challenges/widgets);
+# Cloudflare assigns a server `sitekey`, so identity for reconciliation is the
+# widget `name` — matched by
+# config-types/cloudflare-turnstile-widgets/validate.ts. Cloudflare notes the
+# name is "not unique"; this app, like every other Access/Gateway type here,
+# treats it as the logical identity for matching.
+#
+# Turnstile is Cloudflare's CAPTCHA replacement — embed the widget's sitekey in
+# a form and verify the token server-side with the secret it returns.
+# =============================================================================
+
+id: "cloudflare-cloudflare-turnstile-widgets"
+name: "Cloudflare Turnstile Widget Configuration"
+toolType: "cloudflare"
+entityType: "cloudflare-turnstile-widgets"
+description: "Define Cloudflare Turnstile widgets as code (/challenges/widgets). Account-scoped; reconciled by name. The generated secret key is write-only and is never read back, diffed or stored."
+
+item:
+  label: "Turnstile Widget"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Turnstile Widget"
+      icon: "shield"
+      description: "Name, mode, domains and options"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "A human-readable name, e.g. \"Login form\". Not unique in Cloudflare — used here as the logical identity to match and update the widget it created."
+
+        - key: "mode"
+          label: "Mode"
+          fieldType: "select"
+          required: true
+          defaultValue: "managed"
+          options:
+            - { label: "Managed", value: "managed" }
+            - { label: "Non-Interactive", value: "non-interactive" }
+            - { label: "Invisible", value: "invisible" }
+          helpText: "Managed lets Cloudflare choose whether to show an interactive check; Non-Interactive always shows a visual indicator with no interaction; Invisible never renders."
+
+        - key: "domains"
+          label: "Domains"
+          fieldType: "textarea"
+          required: true
+          helpText: "One hostname or IP per line — the widget only works on these domains (and their subdomains), e.g. app.example.com."
+
+        - key: "bot_fight_mode"
+          label: "Bot Fight Mode"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Also run Cloudflare's bot detection on requests that solve this widget."
+
+        - key: "region"
+          label: "Region"
+          fieldType: "select"
+          defaultValue: "world"
+          options:
+            - { label: "World", value: "world" }
+            - { label: "China", value: "china" }
+          helpText: "Where the widget can be used. Fixed once the widget is created — Cloudflare does not allow changing it afterward."
+
+        - key: "offlabel"
+          label: "Hide Cloudflare Branding"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Hide the Cloudflare logo on the widget (Enterprise plans only)."
+
+        - key: "ephemeral_id"
+          label: "Ephemeral ID"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Return a non-tracking client identifier alongside the token, for fraud-signal use cases."
+
+        - key: "clearance_level"
+          label: "Clearance Level"
+          fieldType: "select"
+          defaultValue: "no_clearance"
+          options:
+            - { label: "No Clearance", value: "no_clearance" }
+            - { label: "JS Challenge Clearance", value: "jschallenge" }
+            - { label: "Managed Challenge Clearance", value: "managed" }
+            - { label: "Interactive Challenge Clearance", value: "interactive" }
+          helpText: "When this widget is embedded on a Cloudflare-protected site, the challenge clearance it grants."

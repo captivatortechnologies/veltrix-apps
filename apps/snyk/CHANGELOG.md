@@ -3,6 +3,72 @@
 All notable changes to the Snyk app are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## 1.3.0 — 2026-08-05
+
+### Added
+Research-first pass against Snyk's live OpenAPI spec (`GET /rest/openapi/{version}`,
+both the `2024-10-15` and `2026-03-25` dated revisions) and the v1 docs — five
+genuinely new, declarative, round-trippable config types (13 total):
+
+- **Org Ignore Policies config type** (`snyk-org-ignore-policies`). Manages
+  org-level Snyk Code ignore policies as code via the REST Policies API
+  (`GET`/`POST /orgs/{org}/policies`, `PATCH`/`DELETE /orgs/{org}/policies/{id}`).
+  Verified this API is documented as "only available for use with Code
+  Consistent Ignores" — it is scoped to a Snyk Code finding identity
+  (`snyk/asset/finding/v1`), not a general security/license policy engine — and
+  is reconciled by policy **name** (Snyk generates the policy id on create,
+  same convention as `snyk-service-accounts`). Reuses the same three ignore
+  classifications as `snyk-project-ignores` (not-vulnerable, wont-fix,
+  temporary-ignore). The policy **review/approval** field is intentionally
+  never read or written (a human-approval action, not config). Also verified
+  the `2024-10-15` revision of this endpoint is deprecated-by `2026-03-25` and
+  sunset-eligible 2026-09-22 with an **identical** request/response shape
+  across both revisions — validation now warns when the org's `api_version`
+  setting is still on/before the deprecated revision.
+- **Org Memberships config type** (`snyk-org-memberships`). Grants, changes or
+  revokes an **existing** Snyk user's org role as code via the REST API
+  (`GET`/`POST /orgs/{org}/memberships`, `PATCH`/`DELETE /orgs/{org}/memberships/{id}`,
+  GA since `2024-08-25`). Reconciled by the target user's Snyk user id — `POST`
+  requires it and there is no email-based create, so onboarding a brand-new
+  external user remains Snyk's own invite flow (out of scope, documented in the
+  README). Never prunes a membership it did not declare, so a deploy can never
+  lock an operator out of their own org.
+- **Project Attributes config type** (`snyk-project-attributes`). Manages an
+  existing project's classification metadata — business criticality,
+  environment, lifecycle, tags, owner and test frequency — via the REST API
+  (`GET`/`PATCH /orgs/{org}/projects/{project_id}`, GA since `2024-05-31`).
+  Distinct from the existing v1 `snyk-project-settings` (pull-request-test /
+  auto-dependency-upgrade booleans): this is a different REST resource with a
+  different field set. `test_frequency` is written via PATCH's flat shorthand
+  but reported on GET under `settings.recurring_tests.frequency` — verified via
+  the OpenAPI schema and handled accordingly. Declarative: the three
+  classification arrays and tags are always sent (clearing prior values when
+  left empty); `test_frequency` and the owner relationship are sent only when
+  the operator sets them, so an unmanaged value is never touched.
+- **Infrastructure as Code Settings config type** (`snyk-iac-settings`). GET/PATCH
+  `/orgs/{org}/settings/iac` (GA since `2021-12-09`) — this **corrects** a prior
+  README claim that "IaC has no equivalent org-level settings endpoint to
+  SAST." The endpoint exists, but configures an OCI-hosted **custom-rules
+  bundle** IaC evaluates alongside its built-in rules (`is_enabled`,
+  `inherit_from_parent`, `oci_registry_url`, `oci_registry_tag`) — not a simple
+  on/off toggle like SAST. A singleton org setting.
+- **Secrets Settings config type** (`snyk-secrets-settings`). GET/PATCH
+  `/orgs/{org}/settings/secrets`, the same singleton-toggle shape as
+  `snyk-sast-settings`. Snyk's OpenAPI spec tags this operation
+  `x-snyk-api-stability: beta` ("Early Access") — documented plainly in the
+  canvas help text, manifest description and README rather than hidden.
+- Every new type ships the same drift attribution ("who changed it + when")
+  convention as the existing types, reconciliation that never prunes
+  unmanaged objects, and a `group:` sidebar grouping — now applied to all 13
+  config types (Organization Settings / Policies & Ignores / Projects /
+  Integrations & Import / Access & Automation).
+
+### Fixed
+- README's "Out of scope" claim that IaC has no org-level settings endpoint was
+  incorrect (see `snyk-iac-settings` above) — replaced with a verified,
+  sourced **Coverage** section listing every managed and excluded surface with
+  its reason.
+
 ## 1.2.0 — 2026-07-26
 
 ### Added

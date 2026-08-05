@@ -1,8 +1,8 @@
 {
   "name": "veltrix-app-snyk",
   "private": true,
-  "version": "1.2.0",
-  "description": "Veltrix app: manage Snyk (org settings, security policies, integrations) configuration as code",
+  "version": "1.3.0",
+  "description": "Veltrix app: manage Snyk (org settings, security/ignore policies, project attributes, memberships, integrations) configuration as code",
   "scripts": { "typecheck": "tsc --noEmit" },
   "devDependencies": {
     "@types/jest": "^29.5.14",

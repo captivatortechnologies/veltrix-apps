@@ -1,0 +1,105 @@
+# =============================================================================
+# Canvas Template — Cloudflare Device Posture Rules
+#
+# Declares ONE Zero Trust device posture rule — the item. Users add as many as
+# they need. A posture rule is account-scoped
+# (/accounts/{account_id}/devices/posture); Cloudflare assigns a server id, so
+# identity for reconciliation is the rule `name` — matched by
+# config-types/cloudflare-device-posture-rules/validate.ts.
+#
+# Posture rules are referenced elsewhere in this app: an Access policy's
+# include/require/exclude JSON can carry a {"device_posture":{"integration_uid":
+# "<rule-id>"}} rule, and a Gateway policy's rule_json can gate on
+# identity.device_posture. This type is what was missing to manage the rules
+# those references point at.
+# =============================================================================
+
+id: "cloudflare-cloudflare-device-posture-rules"
+name: "Cloudflare Device Posture Rule Configuration"
+toolType: "cloudflare"
+entityType: "cloudflare-device-posture-rules"
+description: "Define Cloudflare Zero Trust device posture rules as code (/devices/posture). Account-scoped; reconciled by name. Referenced by Access policies' device_posture rule and Gateway policies' identity.device_posture."
+
+item:
+  label: "Posture Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Posture Rule"
+      icon: "shield"
+      description: "Name, check type and its parameters"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The rule name — its logical identity; reconciled by name across re-runs."
+
+        - key: "type"
+          label: "Check Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "os_version"
+          options:
+            - { label: "OS Version", value: "os_version" }
+            - { label: "Domain Joined", value: "domain_joined" }
+            - { label: "Disk Encryption", value: "disk_encryption" }
+            - { label: "File Exists", value: "file" }
+            - { label: "Application Running", value: "application" }
+            - { label: "Firewall Enabled", value: "firewall" }
+            - { label: "Client Certificate", value: "client_certificate" }
+            - { label: "Client Certificate v2", value: "client_certificate_v2" }
+            - { label: "Serial Number (list)", value: "serial_number" }
+            - { label: "Unique Client ID", value: "unique_client_id" }
+            - { label: "Antivirus (Vendor API)", value: "antivirus" }
+            - { label: "WARP", value: "warp" }
+            - { label: "Gateway", value: "gateway" }
+            - { label: "CrowdStrike (Vendor API)", value: "crowdstrike_s2s" }
+            - { label: "SentinelOne (Vendor API)", value: "sentinelone_s2s" }
+            - { label: "SentinelOne (agent)", value: "sentinelone" }
+            - { label: "Carbon Black", value: "carbonblack" }
+            - { label: "Microsoft Intune", value: "intune" }
+            - { label: "Workspace ONE", value: "workspace_one" }
+            - { label: "Kolide", value: "kolide" }
+            - { label: "Tanium (Vendor API)", value: "tanium_s2s" }
+            - { label: "Tanium (agent)", value: "tanium" }
+            - { label: "Custom (Vendor API)", value: "custom_s2s" }
+          helpText: "The kind of posture check. Drives the shape of the input parameters below."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "text"
+          helpText: "Optional human-readable description shown in the Zero Trust dashboard."
+
+        - key: "schedule"
+          label: "Schedule"
+          fieldType: "text"
+          helpText: "How often the WARP client re-runs this check, e.g. \"24h\", \"30m\". Leave blank for the Cloudflare default."
+
+        - key: "expiration"
+          label: "Expiration"
+          fieldType: "text"
+          helpText: "How long a passing result is valid before Gateway/Access re-evaluates it, e.g. \"24h\". Leave blank for the Cloudflare default."
+
+        - key: "match_json"
+          label: "Match (JSON array)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON array restricting which client platforms run this check, e.g.
+            [{"platform":"windows"}] or [{"platform":"mac"},{"platform":"linux"}].
+            Leave blank to run on every platform the check type supports.
+
+        - key: "input_json"
+          label: "Input Parameters (JSON)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The check's parameters — required, and shaped by the check type, e.g. OS
+            Version: {"operating_system":"windows","operator":">=","version":"13.3.0"};
+            Domain Joined: {"operating_system":"windows","domain":"example.com"}; File
+            Exists: {"operating_system":"mac","path":"/usr/local/bin/tool","exists":true};
+            Disk Encryption: {"requireAll":true,"checkDisks":["C"]}; a Vendor-API check
+            (CrowdStrike/SentinelOne/Tanium/Intune/...) references the connector via
+            {"connection_id":"<uuid>"} plus its own vendor-specific keys.

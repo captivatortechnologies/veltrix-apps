@@ -1,0 +1,56 @@
+# =============================================================================
+# Canvas Template — Cloudflare Access mTLS Certificates
+#
+# Declares ONE Zero Trust Access mTLS root certificate — the item. Users add as
+# many as they need. A certificate is account-scoped
+# (/accounts/{account_id}/access/certificates); Cloudflare assigns a server id,
+# so identity for reconciliation is the certificate `name` — matched by
+# config-types/cloudflare-access-mtls-certificates/validate.ts.
+#
+# This is the root CA certificate Access validates an end-user's CLIENT
+# certificate against when an Access policy uses a `certificate` rule — the
+# counterpart to cloudflare-access-identity-providers for certificate-based
+# auth. Unlike an mTLS client identity, this is a PUBLIC CA certificate: no
+# private key is ever involved.
+# =============================================================================
+
+id: "cloudflare-cloudflare-access-mtls-certificates"
+name: "Cloudflare Access mTLS Certificate Configuration"
+toolType: "cloudflare"
+entityType: "cloudflare-access-mtls-certificates"
+description: "Define Cloudflare Zero Trust Access mTLS root certificates as code (/access/certificates). Account-scoped; reconciled by name. Referenced by Access policies' certificate rule."
+
+item:
+  label: "mTLS Certificate"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "mTLS Certificate"
+      icon: "key"
+      description: "Name, certificate content and associated hostnames"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The certificate name — its logical identity; reconciled by name across re-runs."
+
+        - key: "certificate"
+          label: "Certificate (PEM)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The root CA certificate content, PEM-encoded, e.g.
+            -----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----. Immutable
+            after creation — Cloudflare's API only allows updating name and
+            associated hostnames once a certificate exists. To rotate the
+            certificate content, remove this item and add a new one (with a new
+            name, since the old certificate id remains until deleted).
+
+        - key: "associated_hostnames"
+          label: "Associated Hostnames"
+          fieldType: "textarea"
+          required: true
+          helpText: "One fully-qualified hostname per line — the Access applications this certificate is used with, e.g. admin.example.com."

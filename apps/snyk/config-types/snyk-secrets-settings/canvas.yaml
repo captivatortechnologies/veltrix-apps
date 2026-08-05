@@ -1,0 +1,35 @@
+# =============================================================================
+# Canvas Template — Snyk Secrets Settings
+#
+# A SINGLETON org setting: exactly one item, not repeatable. Toggles whether
+# Snyk Secrets (secrets-in-code detection) is enabled for the organization via
+# the REST settings API (PATCH /orgs/{org_id}/settings/secrets). This endpoint
+# is tagged EARLY ACCESS (beta) in Snyk's OpenAPI spec — the request/response
+# shape may still change in a future dated API version.
+# Field keys must match config-types/snyk-secrets-settings/validate.ts.
+# =============================================================================
+
+id: "snyk-secrets-settings"
+name: "Snyk Secrets Settings"
+toolType: "snyk"
+entityType: "snyk-secrets-settings"
+description: "Enable or disable Snyk Secrets (secrets-in-code detection) for the organization as code via the REST settings API. Early Access (beta) in Snyk's API."
+
+item:
+  label: "Secrets Settings"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Secrets Detection"
+      icon: "key"
+      description: "Detection of hard-coded secrets and credentials in source code (Early Access)"
+      fields:
+        - key: "secrets_enabled"
+          label: "Enable Snyk Secrets"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: >
+            When enabled, Snyk scans supported repositories for hard-coded
+            secrets and credentials. Early Access — availability depends on the
+            org's Snyk plan.

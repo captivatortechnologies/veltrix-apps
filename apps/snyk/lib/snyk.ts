@@ -123,6 +123,12 @@ export class SnykClient {
     return `/org/${this.orgId}`
   }
 
+  /** The raw org id (no path prefix) — for request bodies that reference the org by id (e.g. a membership's `relationships.org`). Throws when no org id is set. */
+  requireOrgId(): string {
+    if (!this.orgId) throw new Error(MISSING_ORG_MESSAGE)
+    return this.orgId
+  }
+
   /** A REST (JSON:API) request. Adds ?version and the vnd.api+json content type. */
   async rest(
     method: SnykMethod,
