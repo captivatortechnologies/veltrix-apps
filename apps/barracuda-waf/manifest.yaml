@@ -1,0 +1,296 @@
+id: barracuda-waf
+name: Barracuda WAF-as-a-Service
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Barracuda WAF-as-a-Service (Web Application Firewall) security
+  configuration as code through its native REST API (v4, api.waas.
+  barracudanetworks.com). Covers the WAF engine mode, IP/geo reputation
+  blocking, DDoS allow-listing, rate-control pools, header allow/deny rules,
+  parameter and URL protection (injection/attack-type controls, CSRF, upload
+  limits), traffic routing rules and custom violation response pages — driven
+  through the Security-as-Code pipeline (validate, deploy, health check, drift
+  detection and rollback). Each configuration type targets one WAF-as-a-Service
+  Application, addressed by the registered component's hostname.
+category: NETWORK
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/barracuda-waf
+icon: "🛡️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Barracuda brand red.
+branding:
+  primaryColor: "#EE2B2B"
+  accentColor: "#8A1414"
+  logo: ./assets/logo.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: basic-security
+      actions: [read, write]
+      description: Manage the WAF engine's protection mode (Active/Passive)
+    - resource: ip-reputation
+      actions: [read, write]
+      description: Manage IP/GeoIP reputation blocking (Tor, proxies, datacenters, blocked countries) and its exception list
+    - resource: ddos-allow-list
+      actions: [read, write, delete]
+      description: Manage the DDoS engine's IP allow list (bypass entries)
+    - resource: rate-control-pools
+      actions: [read, write, delete]
+      description: Manage rate-control pools (request-rate limiting, optional preferred clients and URL scoping)
+    - resource: header-allow-deny
+      actions: [read, write, delete]
+      description: Manage named Header Allow/Deny rules (per-header attack-type blocking)
+    - resource: parameter-protection
+      actions: [read, write]
+      description: Manage application-wide parameter protection (injection/attack-type controls, upload limits)
+    - resource: url-protection
+      actions: [read, write]
+      description: Manage application-wide URL protection (allowed methods/content types, CSRF prevention, injection/attack-type controls)
+    - resource: traffic-rules
+      actions: [read, write, delete]
+      description: Manage named traffic routing rules (host/URL match to servers/endpoints)
+    - resource: response-pages
+      actions: [read, write, delete]
+      description: Manage named custom violation response pages
+
+pipeline:
+  configurationTypes:
+    - id: basic-security
+      group: "Basic Security"
+      name: Basic Security
+      description: The WAF engine's protection mode (Active enforces, Passive logs only) via /applications/{appName}/basic_security/ (GET/PATCH/PUT); singleton
+      canvasTemplate: config-types/basic-security/canvas.yaml
+      defaultConfig: config-types/basic-security/defaults.yaml
+      handlers:
+        validate: config-types/basic-security/validate
+        deploy: config-types/basic-security/deploy
+        rollback: config-types/basic-security/rollback
+        healthCheck: config-types/basic-security/healthCheck
+        driftDetect: config-types/basic-security/driftDetect
+        getStatus: config-types/basic-security/getStatus
+      targets:
+        componentTypes: [barracuda-waf]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ip-reputation
+      group: "Basic Security"
+      name: IP Reputation
+      description: GeoIP/IP reputation blocking (Tor, anonymous/public proxies, datacenters, attack sources, fake crawlers, blocked countries) and its IP exception list via /applications/{appName}/ip_reputation/ (GET/PATCH/PUT); singleton
+      canvasTemplate: config-types/ip-reputation/canvas.yaml
+      defaultConfig: config-types/ip-reputation/defaults.yaml
+      handlers:
+        validate: config-types/ip-reputation/validate
+        deploy: config-types/ip-reputation/deploy
+        rollback: config-types/ip-reputation/rollback
+        healthCheck: config-types/ip-reputation/healthCheck
+        driftDetect: config-types/ip-reputation/driftDetect
+        getStatus: config-types/ip-reputation/getStatus
+      targets:
+        componentTypes: [barracuda-waf]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: ddos-allow-list
+      group: "Allow / Deny Lists"
+      name: DDoS Allow List
+      description: IP addresses exempted from the DDoS protection engine via /applications/{appName}/ddos/allow_list/ (GET/POST list+create, PATCH/DELETE by id); reconciled by IP address
+      canvasTemplate: config-types/ddos-allow-list/canvas.yaml
+      defaultConfig: config-types/ddos-allow-list/defaults.yaml
+      handlers:
+        validate: config-types/ddos-allow-list/validate
+        deploy: config-types/ddos-allow-list/deploy
+        rollback: config-types/ddos-allow-list/rollback
+        healthCheck: config-types/ddos-allow-list/healthCheck
+        driftDetect: config-types/ddos-allow-list/driftDetect
+        getStatus: config-types/ddos-allow-list/getStatus
+      targets:
+        componentTypes: [barracuda-waf]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: header-allow-deny
+      group: "Allow / Deny Lists"
+      name: Header Allow / Deny Rules
+      description: Named per-header attack-type blocking rules via /applications/{appName}/headers_allow_deny/rules/ (GET/POST list+create, GET/PATCH/PUT/DELETE by rule name); reconciled by rule name
+      canvasTemplate: config-types/header-allow-deny/canvas.yaml
+      defaultConfig: config-types/header-allow-deny/defaults.yaml
+      handlers:
+        validate: config-types/header-allow-deny/validate
+        deploy: config-types/header-allow-deny/deploy
+        rollback: config-types/header-allow-deny/rollback
+        healthCheck: config-types/header-allow-deny/healthCheck
+        driftDetect: config-types/header-allow-deny/driftDetect
+        getStatus: config-types/header-allow-deny/getStatus
+      targets:
+        componentTypes: [barracuda-waf]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: parameter-protection
+      group: "Attack & Content Protection"
+      name: Parameter Protection
+      description: Application-wide parameter protection — value/length/instance limits, file-upload controls and per-attack-type (SQLi, XSS, RFI, LDAP, ...) settings via /applications/{appName}/parameter_protection/ (GET/PATCH/PUT); singleton
+      canvasTemplate: config-types/parameter-protection/canvas.yaml
+      defaultConfig: config-types/parameter-protection/defaults.yaml
+      handlers:
+        validate: config-types/parameter-protection/validate
+        deploy: config-types/parameter-protection/deploy
+        rollback: config-types/parameter-protection/rollback
+        healthCheck: config-types/parameter-protection/healthCheck
+        driftDetect: config-types/parameter-protection/driftDetect
+        getStatus: config-types/parameter-protection/getStatus
+      targets:
+        componentTypes: [barracuda-waf]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: url-protection
+      group: "Attack & Content Protection"
+      name: URL Protection
+      description: Application-wide URL protection — allowed HTTP methods/content types, CSRF prevention, request-size limits and per-attack-type settings via /applications/{appName}/url_protection/ (GET/PATCH/PUT); singleton
+      canvasTemplate: config-types/url-protection/canvas.yaml
+      defaultConfig: config-types/url-protection/defaults.yaml
+      handlers:
+        validate: config-types/url-protection/validate
+        deploy: config-types/url-protection/deploy
+        rollback: config-types/url-protection/rollback
+        healthCheck: config-types/url-protection/healthCheck
+        driftDetect: config-types/url-protection/driftDetect
+        getStatus: config-types/url-protection/getStatus
+      targets:
+        componentTypes: [barracuda-waf]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: traffic-rules
+      group: "Traffic Management"
+      name: Traffic Rules
+      description: Named host/URL-match traffic routing rules to specific backend Servers/Endpoints via /applications/{appName}/traffic_rules/ (GET/POST list+create, GET/PUT/PATCH/DELETE by name); reconciled by rule name
+      canvasTemplate: config-types/traffic-rules/canvas.yaml
+      defaultConfig: config-types/traffic-rules/defaults.yaml
+      handlers:
+        validate: config-types/traffic-rules/validate
+        deploy: config-types/traffic-rules/deploy
+        rollback: config-types/traffic-rules/rollback
+        healthCheck: config-types/traffic-rules/healthCheck
+        driftDetect: config-types/traffic-rules/driftDetect
+        getStatus: config-types/traffic-rules/getStatus
+      targets:
+        componentTypes: [barracuda-waf]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: rate-control-pools
+      group: "Traffic Management"
+      name: Rate Control Pools
+      description: Named rate-control pools (max active requests / unconfigured clients / per-client backlog, optional preferred clients and URL scoping) via /applications/{appName}/rate_control/pools/ (GET/POST list+create, GET/PUT/PATCH/DELETE by name); reconciled by pool name
+      canvasTemplate: config-types/rate-control-pools/canvas.yaml
+      defaultConfig: config-types/rate-control-pools/defaults.yaml
+      handlers:
+        validate: config-types/rate-control-pools/validate
+        deploy: config-types/rate-control-pools/deploy
+        rollback: config-types/rate-control-pools/rollback
+        healthCheck: config-types/rate-control-pools/healthCheck
+        driftDetect: config-types/rate-control-pools/driftDetect
+        getStatus: config-types/rate-control-pools/getStatus
+      targets:
+        componentTypes: [barracuda-waf]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: response-pages
+      group: "Response Pages"
+      name: Response Pages
+      description: Named custom violation/error response pages (status code, headers, body) via /applications/{appName}/response_page_component/pages/ (GET/POST list+create, GET/PATCH/PUT/DELETE by name); reconciled by page name
+      canvasTemplate: config-types/response-pages/canvas.yaml
+      defaultConfig: config-types/response-pages/defaults.yaml
+      handlers:
+        validate: config-types/response-pages/validate
+        deploy: config-types/response-pages/deploy
+        rollback: config-types/response-pages/rollback
+        healthCheck: config-types/response-pages/healthCheck
+        driftDetect: config-types/response-pages/driftDetect
+        getStatus: config-types/response-pages/getStatus
+      targets:
+        componentTypes: [barracuda-waf]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/barracuda-waf
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs a Barracuda WAF-as-a-Service
+    # Application (component, hostname = the Application name) with the
+    # Barracuda Cloud Control admin credentials used to reach it, with a
+    # per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: logs in (POST /api_login/) to verify the
+# admin credentials, then — when a component hostname is set — verifies that
+# Application exists (GET /applications/{appName}/basic_security/).
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: base_url
+    type: string
+    label: API Base URL
+    description: >
+      The Barracuda WAF-as-a-Service API base URL. Override only if your
+      account uses a non-default API host.
+    default: "https://api.waas.barracudanetworks.com/v4/waasapi"
+    required: false
+  - key: account_id
+    type: string
+    label: Account ID (MSP, optional)
+    description: >
+      For a Barracuda partner/MSP account acting on behalf of a managed
+      sub-account: the target sub-account's id, sent as api_login's optional
+      account_id parameter. Leave blank to act as the logged-in account itself.
+    default: ""
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Barracuda WAF-as-a-Service API calls.
+    default: 30
+    required: false

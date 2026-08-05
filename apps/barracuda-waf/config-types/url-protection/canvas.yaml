@@ -1,0 +1,185 @@
+# =============================================================================
+# Canvas Template — Barracuda WAF-as-a-Service URL Protection
+#
+# Application-wide singleton: request-level URL validation (allowed methods
+# and content types, CSRF prevention, request-size limits) plus the
+# per-attack-type (SQLi, OS command injection, XSS, RFI, LDAP injection, ...)
+# severity settings. A dedicated GET/PATCH/PUT sub-resource of the
+# Application:
+#   GET/PATCH/PUT /applications/{appName}/url_protection/
+# Every field below has an explicit default, so a deploy always sends the
+# full managed state (same "always send the full managed state" idiom as IP
+# Reputation). The 9 attack-type fields plus
+# custom_blocked_attack_type_groups are the same shared sub-shape Parameter
+# Protection also declares — see config-types/lib/attackTypeSettings.ts.
+# Field keys must match config-types/url-protection/validate.ts.
+# =============================================================================
+
+id: "barracuda-waf-url-protection"
+name: "Barracuda WAF-as-a-Service URL Protection"
+toolType: "barracuda-waf"
+entityType: "url-protection"
+description: "Manage application-wide URL/request validation (allowed methods and content types, CSRF prevention, request-size limits) and per-attack-type severity via /applications/{appName}/url_protection/. Application-wide singleton."
+
+item:
+  label: "URL Protection"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "General"
+      icon: "shield"
+      fields:
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Master switch for URL protection. When off, the checks below are inactive regardless of their own values."
+
+        - key: "csrf_prevention"
+          label: "CSRF Prevention"
+          fieldType: "select"
+          required: true
+          defaultValue: "Forms"
+          options:
+            - { label: "None — do not enforce CSRF tokens", value: "None" }
+            - { label: "Forms — enforce CSRF tokens on HTML forms", value: "Forms" }
+            - { label: "All — enforce CSRF tokens on every request", value: "All" }
+          helpText: "Cross-site request forgery protection mode. The live API schema shows a 3-value enum (example: \"Forms\"); this exact None/Forms/All 3-mode set is corroborated by Barracuda's on-premises WAF Admin Reference Guide's identical \"CSRF Prevention\" attribute."
+
+        - key: "allow_tilde_in_url"
+          label: "Allow tilde (~) in URL"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Permit a literal tilde character in the request URL, which is otherwise blocked as a common path-traversal/backup-file probe indicator."
+
+        - key: "allow_slash_dot_in_url"
+          label: "Allow slash-dot (/.) in URL"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Permit a literal \"/.\" sequence in the request URL, which is otherwise blocked as a common path-traversal probe indicator."
+
+    - name: "Request Limits"
+      icon: "sliders"
+      fields:
+        - key: "max_content_length"
+          label: "Max Content Length"
+          fieldType: "number"
+          required: true
+          defaultValue: 32768
+          helpText: "Maximum allowed request body size, in bytes. Observed live-API example: 32768."
+
+        - key: "max_parameters"
+          label: "Max Parameters"
+          fieldType: "number"
+          required: true
+          defaultValue: 40
+          helpText: "Maximum number of parameters allowed in a single request. Observed live-API example: 40."
+
+        - key: "maximum_upload_files"
+          label: "Maximum Upload Files"
+          fieldType: "number"
+          required: true
+          defaultValue: 5
+          helpText: "Maximum number of files allowed in a single multipart upload request. Observed live-API example: 5."
+
+        - key: "maximum_parameter_name_length"
+          label: "Maximum Parameter Name Length"
+          fieldType: "number"
+          required: true
+          defaultValue: 64
+          helpText: "Maximum allowed length, in characters, of a parameter name. Observed live-API example: 64."
+
+    - name: "Allowed Methods & Content Types"
+      icon: "list"
+      fields:
+        - key: "allowed_methods"
+          label: "Allowed HTTP Methods"
+          fieldType: "tags"
+          required: false
+          helpText: "HTTP methods permitted on this Application (e.g. GET, POST, PUT, DELETE). A request using any other method is blocked."
+
+        - key: "allowed_content_types"
+          label: "Allowed Content Types"
+          fieldType: "tags"
+          required: false
+          helpText: "Request Content-Type values permitted on this Application (e.g. application/json, application/x-www-form-urlencoded). A request with any other content type is blocked."
+
+        - key: "exception_patterns"
+          label: "Exception Patterns"
+          fieldType: "tags"
+          required: false
+          helpText: "Regex or literal URL patterns exempted from URL protection when matched. Leave empty for no exceptions."
+
+    - name: "Attack Type Severity"
+      icon: "alert-triangle"
+      description: "Per-attack-type detection severity. Shared sub-shape with Parameter Protection — see config-types/lib/attackTypeSettings.ts."
+      fields:
+        - key: "sql_injection"
+          label: "SQL Injection"
+          fieldType: "text"
+          required: false
+          defaultValue: "normal"
+          helpText: "SQL injection detection severity. Observed live-API example: \"normal\". A stricter \"strict\" tier likely also exists (paired block_X/block_X_strict booleans are confirmed elsewhere in this API version) but is not directly confirmed on this string field, so this is left free-text rather than a closed enum."
+
+        - key: "os_command_injection"
+          label: "OS Command Injection"
+          fieldType: "text"
+          required: false
+          defaultValue: "normal"
+          helpText: "OS command injection detection severity. Observed live-API example: \"normal\" (see SQL Injection field for the \"strict\"-tier caveat)."
+
+        - key: "cross_site_scripting"
+          label: "Cross-Site Scripting"
+          fieldType: "text"
+          required: false
+          defaultValue: "normal"
+          helpText: "Cross-site scripting (XSS) detection severity. Same shared attack-type sub-shape as Parameter Protection (see SQL Injection field for the \"strict\"-tier caveat)."
+
+        - key: "remote_file_inclusion"
+          label: "Remote File Inclusion"
+          fieldType: "text"
+          required: false
+          defaultValue: "none"
+          helpText: "Remote file inclusion (RFI) detection severity. Same shared attack-type sub-shape as Parameter Protection (see SQL Injection field for the \"strict\"-tier caveat)."
+
+        - key: "ldap_injection"
+          label: "LDAP Injection"
+          fieldType: "text"
+          required: false
+          defaultValue: "normal"
+          helpText: "LDAP injection detection severity. Same shared attack-type sub-shape as Parameter Protection (see SQL Injection field for the \"strict\"-tier caveat)."
+
+        - key: "python_php_attacks"
+          label: "Python/PHP Attacks"
+          fieldType: "text"
+          required: false
+          defaultValue: "normal"
+          helpText: "Python/PHP injection attack detection severity. Same shared attack-type sub-shape as Parameter Protection (see SQL Injection field for the \"strict\"-tier caveat)."
+
+        - key: "http_specific_injection"
+          label: "HTTP-Specific Injection"
+          fieldType: "text"
+          required: false
+          defaultValue: "normal"
+          helpText: "HTTP-specific injection detection severity. Same shared attack-type sub-shape as Parameter Protection (see SQL Injection field for the \"strict\"-tier caveat)."
+
+        - key: "apache_struts_attacks"
+          label: "Apache Struts Attacks"
+          fieldType: "text"
+          required: false
+          defaultValue: "normal"
+          helpText: "Apache Struts attack detection severity. Same shared attack-type sub-shape as Parameter Protection (see SQL Injection field for the \"strict\"-tier caveat)."
+
+        - key: "directory_traversal"
+          label: "Directory Traversal"
+          fieldType: "text"
+          required: false
+          defaultValue: "none"
+          helpText: "Directory traversal detection severity. Same shared attack-type sub-shape as Parameter Protection (see SQL Injection field for the \"strict\"-tier caveat)."
+
+        - key: "custom_blocked_attack_type_groups"
+          label: "Custom Blocked Attack Type Groups"
+          fieldType: "tags"
+          required: false
+          helpText: "Names of custom attack-type groups (defined elsewhere in the WAF console) to additionally block. Leave empty to use only the built-in categories above."

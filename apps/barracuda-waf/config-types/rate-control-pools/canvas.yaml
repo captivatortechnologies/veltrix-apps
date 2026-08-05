@@ -1,0 +1,104 @@
+# =============================================================================
+# Canvas Template — Barracuda WAF-as-a-Service Rate Control Pools
+#
+# Declares ONE named rate-control pool — the item. Users add as many as they
+# need. This config type OWNS the Application's rate-control pool set: the
+# canvas is the complete desired list, reconciled declaratively (a pool no
+# longer declared is removed) — same "canvas is the full desired state" model
+# this app uses for its Traffic Rules and Header Allow/Deny rules. A dedicated
+# collection resource of the Application:
+#   GET/POST              /applications/{appName}/rate_control/pools/          (list, create — trailing slash)
+#   GET/PUT/PATCH/DELETE  /applications/{appName}/rate_control/pools/{name}/   (both the collection AND the by-name path carry a trailing slash)
+# Identity for reconciliation is the pool NAME (used directly in the URL — no
+# server-assigned id indirection, same as Traffic Rules/Header Allow-Deny
+# rules). `preferred_clients` and `urls` are each an array of nested objects;
+# this canvas schema has no repeatable-sub-object field type, so both are
+# modeled as a JSON-array textarea escape hatch (same convention as IP
+# Reputation's `exceptions_json`) rather than as separate nested config types.
+# Barracuda's API also exposes them as independently addressable nested
+# sub-resources (.../pools/{poolName}/preferred_clients/{clientName}/,
+# .../pools/{poolName}/urls/{urlName}/), but this config type manages them via
+# the pool's own embedded arrays — sent whole in the pool's PUT/POST body —
+# keeping this app's scope at the pool level. Field keys must match
+# config-types/rate-control-pools/validate.ts.
+# =============================================================================
+
+id: "barracuda-waf-rate-control-pools"
+name: "Barracuda WAF-as-a-Service Rate Control Pools"
+toolType: "barracuda-waf"
+entityType: "rate-control-pools"
+description: "Manage the Application's named rate-control pools as code via /applications/{appName}/rate_control/pools/. The canvas is the complete desired pool list; reconciled by pool name."
+
+item:
+  label: "Rate Control Pool"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "signpost"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The pool's name — its identity. Deploy matches the live pool set on it."
+
+    - name: "Limits"
+      icon: "sliders"
+      description: "Request-rate ceilings enforced by this pool"
+      fields:
+        - key: "max_active_requests"
+          label: "Max Active Requests"
+          fieldType: "number"
+          required: false
+          defaultValue: 100
+          helpText: "Maximum number of concurrently active requests this pool allows."
+
+        - key: "max_unconfigured_clients"
+          label: "Max Unconfigured Clients"
+          fieldType: "number"
+          required: false
+          defaultValue: 100
+          helpText: "Maximum number of clients not covered by a Preferred Client entry that this pool tracks at once."
+
+        - key: "max_per_client_backlog"
+          label: "Max Per-Client Backlog"
+          fieldType: "number"
+          required: false
+          defaultValue: 32
+          helpText: "Maximum number of queued (backlogged) requests this pool allows per client."
+
+    - name: "Preferred Clients (JSON)"
+      icon: "list"
+      description: "Clients given their own rate allowance within this pool, as a JSON array"
+      fields:
+        - key: "preferred_clients_json"
+          label: "Preferred Clients (JSON array)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: >
+            JSON array of preferred-client entries: [{"name": "internal-net", "ip_range":
+            "10.0.0.0/8", "weight": 100, "enabled": true}]. Each entry needs a "name"
+            (string); "ip_range" (string), "weight" (number) and "enabled" (boolean) are
+            used when present. Leave blank for no preferred clients.
+
+    - name: "URL Scoping (JSON)"
+      icon: "link"
+      description: "URLs this pool applies to, as a JSON array"
+      fields:
+        - key: "urls_json"
+          label: "URLs (JSON array)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: >
+            JSON array of URL-scope entries: [{"name": "api-paths", "url": "/api/*",
+            "host": "*", "extended_match": "*", "priority": 1}]. Each entry needs "name"
+            and "url" (strings); "host"/"extended_match" (strings, default "*") and
+            "priority" (number, default 1) are used when present. Leave blank to apply
+            this pool to all URLs.

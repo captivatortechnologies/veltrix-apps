@@ -1,0 +1,16 @@
+{
+  "name": "veltrix-app-barracuda-waf",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Veltrix app: manage Barracuda WAF-as-a-Service (Web Application Firewall) configuration as code — basic security mode, IP reputation, DDoS allow list, header allow/deny rules, parameter protection, URL protection, traffic rules, rate-control pools and response pages over the Barracuda WAF-as-a-Service REST API (v4)",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.0.0",
+    "@veltrixsecops/app-sdk": "^3.7.0",
+    "fastify": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}

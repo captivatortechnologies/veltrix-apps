@@ -1,0 +1,92 @@
+# =============================================================================
+# Canvas Template — Barracuda WAF-as-a-Service Traffic Rules
+#
+# Declares ONE traffic rule — the item. Users add as many as they need. This
+# config type OWNS the Application's traffic-rule set: the canvas is the
+# complete desired list, reconciled declaratively (a rule no longer declared
+# is removed). A dedicated collection resource of the Application:
+#   GET/POST                              /applications/{appName}/traffic_rules/            (list, create)
+#   GET/PUT/PATCH/DELETE                  /applications/{appName}/traffic_rules/{name}      (read/update/remove — no trailing slash, unlike the collection path)
+# Identity for reconciliation is the rule NAME (used directly in the URL — no
+# server-assigned id indirection). `endpoints`/`servers` reference numeric
+# Endpoint/Server ids that must already exist in the Application (this app
+# does not manage Endpoints or Servers — see README Coverage); enter their
+# ids as shown in the WAF-as-a-Service console. Field keys must match
+# config-types/traffic-rules/validate.ts.
+# =============================================================================
+
+id: "barracuda-waf-traffic-rules"
+name: "Barracuda WAF-as-a-Service Traffic Rules"
+toolType: "barracuda-waf"
+entityType: "traffic-rules"
+description: "Manage the Application's traffic routing rules as code via /applications/{appName}/traffic_rules/. The canvas is the complete desired rule list; reconciled by rule name."
+
+item:
+  label: "Traffic Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "signpost"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The rule's name — its identity. Deploy matches the live rule set on it."
+
+        - key: "status"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the rule is active (wire field: status)."
+
+    - name: "Matching"
+      icon: "filter"
+      description: "Which requests this rule applies to"
+      fields:
+        - key: "host_match"
+          label: "Host Match"
+          fieldType: "text"
+          required: false
+          defaultValue: "*"
+          helpText: "Host header pattern to match, e.g. \"www.example.com\" or \"*\" for any host."
+
+        - key: "url_match"
+          label: "URL Match"
+          fieldType: "text"
+          required: false
+          defaultValue: "/*"
+          helpText: "URL path pattern to match, e.g. \"/api/*\" or \"/*\" for any path."
+
+        - key: "extended_match"
+          label: "Extended Match"
+          fieldType: "text"
+          required: false
+          defaultValue: "*"
+          helpText: "Additional match expression (headers/query/etc., per the WAF-as-a-Service extended-match syntax). \"*\" matches any."
+
+        - key: "extended_match_sequence"
+          label: "Extended Match Sequence"
+          fieldType: "number"
+          required: false
+          defaultValue: 1
+          helpText: "Evaluation order among rules sharing the same extended match. Lower runs first."
+
+    - name: "Targets"
+      icon: "server"
+      description: "Which backend Endpoints/Servers this rule routes to (existing numeric ids)"
+      fields:
+        - key: "endpoints"
+          label: "Endpoint IDs"
+          fieldType: "tags"
+          required: false
+          helpText: "Numeric ids of existing Application Endpoints this rule applies to. Leave empty to not scope by endpoint."
+
+        - key: "servers"
+          label: "Server IDs"
+          fieldType: "tags"
+          required: false
+          helpText: "Numeric ids of existing Application Servers this rule routes matched traffic to. Leave empty to not override the default server pool."

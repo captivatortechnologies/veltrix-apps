@@ -1,0 +1,127 @@
+# =============================================================================
+# Canvas Template — Barracuda WAF-as-a-Service IP Reputation
+#
+# Application-wide singleton: GeoIP/IP-reputation blocking plus its IP
+# exception list. A dedicated GET/PATCH/PUT sub-resource of the Application:
+#   GET/PATCH/PUT /applications/{appName}/ip_reputation/
+# Every field below has an explicit default, so a deploy always sends the full
+# managed state (same "always send the full managed state" idiom as the
+# Proofpoint Authentication Settings config type). `exceptions` is a JSON-array
+# textarea (this canvas schema has no repeatable-sub-object field type — same
+# escape hatch aqua-security's firewall-policies config type uses for its
+# inbound/outbound network rules). Field keys must match
+# config-types/ip-reputation/validate.ts.
+# =============================================================================
+
+id: "barracuda-waf-ip-reputation"
+name: "Barracuda WAF-as-a-Service IP Reputation"
+toolType: "barracuda-waf"
+entityType: "ip-reputation"
+description: "Manage GeoIP/IP-reputation blocking (Tor, proxies, datacenters, attack sources, blocked countries) and its IP exception list via /applications/{appName}/ip_reputation/. Application-wide singleton."
+
+item:
+  label: "IP Reputation"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "General"
+      icon: "globe"
+      fields:
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Master switch for IP reputation blocking. When off, every category below is inactive regardless of its own value."
+
+        - key: "apply_policy_at"
+          label: "Apply Policy At"
+          fieldType: "text"
+          required: false
+          defaultValue: "Network Layer"
+          helpText: "Where the block is enforced. Observed live-API example value: \"Network Layer\" (an \"Application Layer\" mode is also expected to exist, e.g. to serve a custom Response Page instead of a raw connection drop, but is not directly confirmed against the OpenAPI schema — left free-text rather than a closed enum)."
+
+    - name: "Reputation Categories"
+      icon: "shield"
+      description: "Block traffic sourced from each category"
+      fields:
+        - key: "block_tor_nodes"
+          label: "Block Tor exit nodes"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_anonymous_proxies"
+          label: "Block anonymous proxies"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_satellite_providers"
+          label: "Block satellite providers"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_unclassified_ips"
+          label: "Block unclassified IPs"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_ssh_attack_sources"
+          label: "Block known SSH attack sources"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_datacenter_ip"
+          label: "Block datacenter/hosting-provider IPs"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_public_proxy"
+          label: "Block public proxies"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_http_attack_sources"
+          label: "Block known HTTP attack sources"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_fake_crawler"
+          label: "Block fake search-engine crawlers"
+          fieldType: "checkbox"
+          defaultValue: false
+
+    - name: "Geo Blocking"
+      icon: "map"
+      fields:
+        - key: "blocked_countries"
+          label: "Blocked Countries"
+          fieldType: "tags"
+          required: false
+          helpText: "ISO country codes to block by geolocation (e.g. KP, CN, RU). Leave empty to block none."
+
+        - key: "check_registered_country"
+          label: "Check registered (RIR) country, not just GeoIP"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Also cross-check the IP's registered RIR country against the blocked list, not only its GeoIP-resolved location."
+
+        - key: "geoip_enable_logging"
+          label: "Log GeoIP lookups"
+          fieldType: "checkbox"
+          defaultValue: false
+
+    - name: "Exceptions (JSON)"
+      icon: "list"
+      description: "IP/CIDR entries exempted from (or force-blocked by) the categories above, as a JSON array"
+      fields:
+        - key: "exceptions_json"
+          label: "Exceptions (JSON array)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 20000
+          helpText: >
+            JSON array of exception entries: [{"allow": true, "ip": "108.174.8.0",
+            "netmask": "255.255.255.0", "comment": "Office network"}]. "allow": true exempts the
+            IP/CIDR from reputation blocking; "allow": false force-blocks it regardless of
+            category. Leave blank for no exceptions.

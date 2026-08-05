@@ -1,0 +1,75 @@
+# =============================================================================
+# Canvas Template — Barracuda WAF-as-a-Service Response Pages
+#
+# Declares ONE named custom violation/error response page — the item. Users
+# add as many as they need. This config type OWNS the Application's response
+# page set: the canvas is the complete desired list, reconciled declaratively
+# (a page no longer declared is removed) — same "canvas is the full desired
+# state" model this app uses for its Traffic Rules, Header Allow/Deny rules
+# and Rate Control Pools. A dedicated collection resource of the Application:
+#   GET/POST              /applications/{appName}/response_page_component/pages/          (list, create — trailing slash)
+#   GET/PATCH/PUT/DELETE  /applications/{appName}/response_page_component/pages/{name}/   (both the collection AND the by-name path carry a trailing slash)
+# Identity for reconciliation is the page NAME (used directly in the URL — no
+# server-assigned id indirection, same as Traffic Rules/Header Allow-Deny
+# rules/Rate Control Pools). Field keys must match
+# config-types/response-pages/validate.ts.
+# =============================================================================
+
+id: "barracuda-waf-response-pages"
+name: "Barracuda WAF-as-a-Service Response Pages"
+toolType: "barracuda-waf"
+entityType: "response-pages"
+description: "Manage the Application's named custom violation/error response pages as code via /applications/{appName}/response_page_component/pages/. The canvas is the complete desired page list; reconciled by page name."
+
+item:
+  label: "Response Page"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "signpost"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The page's name — its identity. Deploy matches the live page set on it."
+
+    - name: "Response"
+      icon: "alert-triangle"
+      fields:
+        - key: "status_code"
+          label: "Status Code"
+          fieldType: "text"
+          required: true
+          helpText: "The HTTP status code this page is served with, e.g. \"403\", \"404\", \"503\"."
+
+        - key: "type"
+          label: "Type"
+          fieldType: "text"
+          required: false
+          defaultValue: "Error Pages"
+          helpText: "The response page's category. Observed live-API example value: \"Error Pages\" (other Barracuda WAF response-page categories, e.g. maintenance/redirect pages, may also be valid but are not directly confirmed against the OpenAPI schema — left free-text rather than a closed enum)."
+
+    - name: "Headers"
+      icon: "list"
+      description: "Extra HTTP headers sent with this response"
+      fields:
+        - key: "headers"
+          label: "Headers"
+          fieldType: "tags"
+          required: false
+          helpText: "Full header lines to send with this response, e.g. \"X-Custom-Header: value\". Leave empty to send none beyond the defaults."
+
+    - name: "Body"
+      icon: "file-text"
+      fields:
+        - key: "body"
+          label: "Body"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 50000
+          helpText: "The page's HTML/text content served to the client."

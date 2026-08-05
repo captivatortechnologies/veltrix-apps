@@ -1,0 +1,179 @@
+# =============================================================================
+# Canvas Template — Barracuda WAF-as-a-Service Header Allow/Deny Rules
+#
+# Declares ONE named Header Allow/Deny rule — the item. Users add as many as
+# they need. This config type OWNS the Application's header-rule set: the
+# canvas is the complete desired list, reconciled declaratively (a rule no
+# longer declared is removed) — same "canvas is the full desired state" model
+# this app uses for its Traffic Rules and DDoS Allow List. A dedicated
+# sub-collection resource of the Application:
+#   GET/POST                     /applications/{appName}/headers_allow_deny/rules/        (list, create — trailing slash)
+#   GET/PATCH/PUT/DELETE         /applications/{appName}/headers_allow_deny/rules/{name}/ (both the collection AND the by-name path carry a trailing slash)
+# Identity for reconciliation is the rule NAME (used directly in the URL — no
+# server-assigned id indirection, same as Traffic Rules' `name`).
+#
+# SCOPE NOTE: the PARENT singleton resource
+# /applications/{appName}/headers_allow_deny/ also carries a master `enabled`
+# boolean gating the whole Header Allow/Deny feature (wire shape `{rules:
+# [...], enabled: bool}`). That master toggle is NOT managed by this config
+# type — only the individual named rules under the /rules/ sub-collection are
+# (see README Coverage). Field keys must match
+# config-types/header-allow-deny/validate.ts.
+# =============================================================================
+
+id: "barracuda-waf-header-allow-deny"
+name: "Barracuda WAF-as-a-Service Header Allow/Deny Rules"
+toolType: "barracuda-waf"
+entityType: "header-allow-deny"
+description: "Manage the Application's named Header Allow/Deny rules as code via /applications/{appName}/headers_allow_deny/rules/. The canvas is the complete desired rule list; reconciled by rule name."
+
+item:
+  label: "Header Allow/Deny Rule"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "signpost"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The rule's name — its identity. Deploy matches the live rule set on it."
+
+        - key: "header_name"
+          label: "Header Name"
+          fieldType: "text"
+          required: true
+          helpText: "The HTTP header this rule inspects, e.g. \"Cookie\", \"Authorization\", \"X-Forwarded-For\"."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the rule is enabled."
+
+        - key: "active"
+          label: "Active"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the rule actively enforces (as opposed to logging only)."
+
+    - name: "Limits"
+      icon: "sliders"
+      description: "Length and character constraints on the header's value"
+      fields:
+        - key: "max_header_value_length"
+          label: "Max Header Value Length"
+          fieldType: "number"
+          required: false
+          helpText: "Maximum allowed length of this header's value. Leave blank for no limit (wire value: null)."
+
+        - key: "denied_metacharacters"
+          label: "Denied Metacharacters"
+          fieldType: "text"
+          required: false
+          helpText: "Characters that are always denied in this header's value, e.g. a percent-encoded control character such as \"%7f\". Leave blank to deny none."
+
+    - name: "Attack Blocking"
+      icon: "shield-alert"
+      description: "Per-attack-type blocking for this header's value; each \"Strict\" toggle applies a tighter variant of the same check"
+      fields:
+        - key: "block_sql_injection"
+          label: "Block SQL Injection"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_sql_injection_strict"
+          label: "Block SQL Injection (Strict)"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_os_command_injection"
+          label: "Block OS Command Injection"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_os_command_injection_strict"
+          label: "Block OS Command Injection (Strict)"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_directory_traversal"
+          label: "Block Directory Traversal"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_directory_traversal_strict"
+          label: "Block Directory Traversal (Strict)"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_cross_site_scripting"
+          label: "Block Cross-Site Scripting (XSS)"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_cross_site_scripting_strict"
+          label: "Block Cross-Site Scripting (XSS, Strict)"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_remote_file_inclusion"
+          label: "Block Remote File Inclusion (RFI)"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_remote_file_inclusion_strict"
+          label: "Block Remote File Inclusion (RFI, Strict)"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_ldap_injection"
+          label: "Block LDAP Injection"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_python_php_attacks"
+          label: "Block Python/PHP Code Injection"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_http_specific_injection"
+          label: "Block HTTP-Specific Injection"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_apache_struts_attacks"
+          label: "Block Apache Struts Attacks"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "block_apache_struts_attacks_strict"
+          label: "Block Apache Struts Attacks (Strict)"
+          fieldType: "checkbox"
+          defaultValue: false
+
+    - name: "Exceptions"
+      icon: "list"
+      description: "Patterns and attack-type groups excluded from this rule's blocking, plus a free-text note"
+      fields:
+        - key: "exception_patterns"
+          label: "Exception Patterns"
+          fieldType: "tags"
+          required: false
+          helpText: "Value patterns exempted from this rule's blocking. Leave empty for no exceptions."
+
+        - key: "custom_blocked_attack_type_groups"
+          label: "Custom Blocked Attack-Type Groups"
+          fieldType: "tags"
+          required: false
+          helpText: "Names of custom attack-type groups (defined elsewhere in the WAF-as-a-Service console) to also block for this header. Leave empty to use only the toggles above."
+
+        - key: "comments"
+          label: "Comments"
+          fieldType: "textarea"
+          required: false
+          helpText: "Free-text note, e.g. a ticket reference. Leave blank for none (wire value: null)."

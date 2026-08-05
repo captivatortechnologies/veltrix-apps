@@ -1,0 +1,37 @@
+# =============================================================================
+# Canvas Template — Barracuda WAF-as-a-Service Basic Security
+#
+# Application-wide singleton: the WAF engine's top-level protection mode.
+# Declare this config type at most once per canvas. A dedicated GET/PUT/PATCH
+# sub-resource of the Application:
+#   GET/PATCH/PUT /applications/{appName}/basic_security/  { protection_mode }
+# `appName` is resolved from the registered component's hostname — see
+# lib/barracudaWaf.ts. Field keys must match
+# config-types/basic-security/validate.ts.
+# =============================================================================
+
+id: "barracuda-waf-basic-security"
+name: "Barracuda WAF-as-a-Service Basic Security"
+toolType: "barracuda-waf"
+entityType: "basic-security"
+description: "Manage the Barracuda WAF-as-a-Service Application's protection mode (Active enforces, Passive logs only) via /applications/{appName}/basic_security/. Application-wide singleton."
+
+item:
+  label: "Basic Security"
+  repeatable: false
+  minItems: 1
+  maxItems: 1
+  groups:
+    - name: "Protection Mode"
+      icon: "shield"
+      description: "Whether the WAF engine actively blocks matched requests, or only logs them"
+      fields:
+        - key: "protection_mode"
+          label: "Protection Mode"
+          fieldType: "select"
+          required: true
+          defaultValue: "Passive"
+          options:
+            - { label: "Active — enforce (block matched requests)", value: "Active" }
+            - { label: "Passive — log only (do not block)", value: "Passive" }
+          helpText: "Active enforces every other configured protection (blocks matched requests); Passive logs violations without blocking. Confirmed enum via the live API schema (BasicSecurity.protection_mode: [Passive, Active])."

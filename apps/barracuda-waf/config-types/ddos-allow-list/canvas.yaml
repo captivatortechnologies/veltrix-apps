@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template — Barracuda WAF-as-a-Service DDoS Allow List
+#
+# Declares ONE IP/CIDR exempted from the DDoS protection engine — the item.
+# Users add as many as they need. This config type OWNS the Application's DDoS
+# allow list: the canvas is the complete desired allow list, reconciled
+# declaratively (an entry no longer declared is removed from the live list —
+# same "canvas is the full desired state" model this codebase uses for
+# Cloudflare's WAF custom rules). A dedicated collection resource of the
+# Application:
+#   GET/POST   /applications/{appName}/ddos/allow_list/            (list, create)
+#   PATCH/DELETE /applications/{appName}/ddos/allow_list/{id}/     (update, remove; {id} is server-assigned)
+# Identity for reconciliation is the IP address (deploy resolves the
+# server-assigned {id} by listing and matching on `ip`). The DDoS BLOCK list is
+# NOT managed here — Barracuda's API only exposes read + delete for it (no
+# create/update), since it is populated by the DDoS engine itself, not by an
+# administrator; see README Coverage. Field keys must match
+# config-types/ddos-allow-list/validate.ts.
+# =============================================================================
+
+id: "barracuda-waf-ddos-allow-list"
+name: "Barracuda WAF-as-a-Service DDoS Allow List"
+toolType: "barracuda-waf"
+entityType: "ddos-allow-list"
+description: "Manage the Application's DDoS engine IP allow list as code via /applications/{appName}/ddos/allow_list/. The canvas is the complete desired allow list; reconciled by IP address."
+
+item:
+  label: "Allow List Entry"
+  identityField: "ip"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Allow List Entry"
+      icon: "shield-check"
+      description: "The IP/CIDR exempted from DDoS protection"
+      fields:
+        - key: "ip"
+          label: "IP Address"
+          fieldType: "text"
+          required: true
+          helpText: "The IP address to exempt, e.g. 34.205.44.115. This is the entry's identity — deploy matches the live allow list on it."
+
+        - key: "netmask"
+          label: "Netmask"
+          fieldType: "text"
+          required: false
+          defaultValue: "255.255.255.255"
+          helpText: "Subnet mask for the exemption. 255.255.255.255 exempts only the single IP; a broader mask exempts the whole subnet."
+
+        - key: "note"
+          label: "Note"
+          fieldType: "textarea"
+          required: false
+          helpText: "Free-text note, e.g. \"Barracuda health checker\" or a ticket reference."
+
+        - key: "allow_bypass"
+          label: "Allow Bypass"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, traffic from this IP bypasses DDoS protection entirely rather than only being exempted from blocking decisions."
