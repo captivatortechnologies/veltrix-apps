@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-08-05T19:19:09.663Z",
+  "generatedAt": "2026-08-05T19:24:03.751Z",
   "apps": [
     {
       "appId": "akamai",
@@ -1444,6 +1444,25 @@
       "publishedAt": "2026-08-04T17:34:48.127Z",
       "releaseNotes": "## 0.3.0 — 2026-08-04\n\nExhausted the Tanium REST v2 config-as-code write surface against Tanium's own\npublished Platform REST API reference plus its public integrations (Cortex\nXSOAR `Tanium_v2`, Splunk SOAR `taniumrest`) — one new configuration type\nshipped, one existing type gained a second authoring mode, and everything else\nresearched is documented as an honest exclusion. See README \"Coverage\" for the\nfull audit, citations, and exclusion reasons.\n\n- **Sensors** config type — add / edit / delete Tanium sensors\n  (`/api/v2/sensors`). A sensor is a name plus a primary per-platform script\n  (platform + script type + script), with optional description, category,\n  key/default-value parameters, a result max-age, and extra per-platform\n  scripts (`additionalQueriesJson`) for a multi-platform sensor. Full pipeline:\n  validate / deploy (upsert by name, delete + recreate) / rollback /\n  health-check / drift-detect (primary script + max age) / status. **Flagged:**\n  Tanium's public integrations and its own published Platform REST API\n  reference confirm only `GET` (list, by-name) for sensors — `POST` create and\n  `DELETE` follow the same generic named-entity convention already shipped for\n  packages/saved-questions, but neither verb is independently exercised for\n  sensors anywhere researched. Verify against a live Tanium.\n- **Computer Groups** — added a **Manual** authoring mode alongside the\n  existing filter-expression mode, confirmed by the same public integration\n  that documents the existing type (`tn-create-manual-group`): an explicit\n  `computerNames` / `ipAddresses` list, sent as `computer_specs` to\n  `POST /api/v2/computer_groups` (a different create endpoint from the\n  filter-based `POST /api/v2/groups`) — both modes then read / update / delete\n  through the same `/api/v2/groups` collection. Drift-detect now compares\n  membership (order-insensitive) for manual groups.\n- **Coverage section** added to the README: every confirmed operation with its\n  citation, and an itemized, cited exclusion list — action groups, saved\n  actions, user groups, roles, content sets, content-set roles, filter groups,\n  dashboards and Tanium Connect plugin schedules — each with the specific\n  reason it does not meet this app's bar for a config-as-code type.",
       "releasedAt": "2026-08-04T00:00:00.000Z"
+    },
+    {
+      "appId": "teleport",
+      "name": "Teleport",
+      "version": "0.1.0",
+      "vendor": "Veltrix",
+      "description": "Manage Teleport (Gravitational) infrastructure access & privileged access management configuration as code through the Teleport Proxy's web API - the same JSON+YAML surface the Teleport Web UI itself uses. Covers RBAC roles, GitHub SSO auth connectors, trusted cluster federation, Machine ID bot identities, dynamic database resource registrations, and cloud auto-discovery configs - with validation, drift detection and rollback handled by the Security-as-Code pipeline.",
+      "category": "IAM",
+      "icon": "🔑",
+      "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlRlbGVwb3J0Ij4KICA8cmVjdCB4PSIxIiB5PSIxIiB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIHJ4PSI3IiBmaWxsPSIjMUEwRjMzIi8+CiAgPGNpcmNsZSBjeD0iMTMiIGN5PSIxMyIgcj0iNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjODQ0RkVFIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8cGF0aCBkPSJNMTcuMiAxNy4yTDI1IDI1IiBmaWxsPSJub25lIiBzdHJva2U9IiM4NDRGRUUiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/teleport",
+      "available": true,
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/teleport-v0.1.0/teleport.zip",
+      "sha256": "13cbd4e5e39b112dd6f07884f74159fc9a18382dabefebaf51769298939c3471",
+      "sizeBytes": 167054,
+      "publishedAt": "2026-08-05T19:24:03.737Z",
+      "releaseNotes": "## 0.1.0 — 2026-08-05\n\n### Added — initial release\n\nFirst release of the Teleport (Gravitational) config-as-code app, built research-first directly\nagainst [`gravitational/teleport@master`](https://github.com/gravitational/teleport) source — the\nroute table in `lib/web/apiserver.go` and the handler files it dispatches to, not documentation\nassumptions.\n\nSix configuration types, covering Teleport's clearest declarative, round-trippable surface reachable\nthrough the Teleport **Proxy web API** (the same JSON+YAML surface the Teleport Web UI itself calls —\nsee README.md for why this app deliberately does not use the gRPC/mTLS transport\n`terraform-provider-teleport` and `tctl` use):\n\n- **Roles** (`config-types/roles`) — RBAC roles (`kind: role`) via `/v1/webapi/roles`. Author only the\n  role's `spec:` body; the app wraps it into the full resource envelope.\n- **GitHub Connectors** (`config-types/github-connectors`) — GitHub SSO auth connectors\n  (`kind: github`) via `/v1/webapi/github`. `client_secret` is sensitive — see README's Coverage notes.\n- **Trusted Clusters** (`config-types/trusted-clusters`) — cluster federation (`kind: trusted_cluster`)\n  via `/v1/webapi/trustedcluster`. The join `token` is sensitive.\n- **Machine ID Bots** (`config-types/machine-id-bots`) — bot identities (roles, traits, max session\n  TTL) via `/v1/webapi/sites/{site}/machine-id/bot`.\n- **Databases** (`config-types/databases`) — dynamic database resource registrations (protocol,\n  connection URI, labels, optional AWS RDS metadata) via `/v1/webapi/sites/{site}/databases`. No\n  rollback-delete is possible — the web API has no DELETE route for this resource (see README).\n- **Discovery Config** (`config-types/discovery-config`) — AWS/Azure/GCP/Kubernetes auto-discovery\n  matchers for the Discovery Service via `/v1/webapi/sites/{site}/discoveryconfig`.\n\nAuthentication is a local Teleport user's username/password logged in via\n`POST /v1/webapi/sessions/web` (the Teleport Web UI's own login call), with the TOTP second factor\ncomputed locally via a zero-dependency RFC 6238 implementation (`lib/totp.ts`) from a base32 seed\nbundled into the credential's secret field alongside the password.\n\nSee **Coverage** in `README.md` for the full breakdown of what's covered in this release versus\ndeferred (OIDC/SAML connectors, Access Lists, Login Rules, Access Monitoring Rules, Device Trust,\ncluster-wide singleton configs, Locks, Git Servers, and why).",
+      "releasedAt": "2026-08-05T00:00:00.000Z"
     },
     {
       "appId": "tenable-vm",
