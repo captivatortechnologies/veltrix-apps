@@ -1,0 +1,382 @@
+# =============================================================================
+# Canvas Template - PingOne Applications
+#
+# Declares ONE application - the item. Users add as many as their PingOne
+# environment needs. An application's identity in PingOne is its NAME (unique
+# within the environment); deploy lists applications, matches by name, then
+# PUTs (update) or POSTs (create) - PingOne has no upsert. An application not
+# declared here is never deleted.
+#
+# Two protocols are modelled: OPENID_CONNECT and SAML (EXTERNAL_LINK and
+# WSFED are out of scope). `protocol` plus a protocol-specific `oidcType` /
+# `samlType` together resolve to the API's `type` discriminator on deploy -
+# WORKER (the machine-to-machine app type this very app authenticates as) is
+# intentionally never offered as an option, so this config type can never
+# create, update or touch its own connection's worker application.
+#
+# SENSITIVE / OUT OF SCOPE - the OIDC client secret is NOT a field on the
+# application object at all: PingOne generates it server-side and it is only
+# ever readable through the separate `GET/POST/DELETE
+# /applications/{id}/secret` sub-resource, which this config type does not
+# manage (mirrors how okta-identity's `apps` type treats write-only
+# credentials - excluded entirely rather than modelled write-only). The
+# read-only `clientId` PingOne assigns is not authored here either.
+#
+# Also out of scope, documented for a future enhancement:
+#   - OIDC grant types TOKEN_EXCHANGE and CIBA (only AUTHORIZATION_CODE,
+#     IMPLICIT, REFRESH_TOKEN, CLIENT_CREDENTIALS, DEVICE_CODE are offered)
+#   - tokenEndpointAuthMethod PRIVATE_KEY_JWT is offered but its required JWKS
+#     / JWKS URL is not collected here - configure that in the admin console
+#   - hybrid OIDC response types - `responseTypes` may not combine CODE with
+#     TOKEN or ID_TOKEN
+#   - SAML certificate/key management (PingOne's Key management API is not a
+#     config type in this app) - `idpSigningKeyId` references an existing
+#     certificate id by hand rather than through a live picker
+#
+# Field keys must match what config-types/applications/validate.ts checks.
+# Reference: https://apidocs.pingidentity.com/pingone/platform/v1/api/#applications
+# =============================================================================
+
+id: "ping-identity-applications"
+name: "Application Configuration"
+toolType: "ping-identity"
+entityType: "applications"
+description: "Define PingOne OIDC and SAML application configurations as code through the PingOne Platform API. Matched by name; client secrets are a separate write-only sub-resource this app never manages, and worker applications (this connection's own auth) are never offered as an option."
+
+item:
+  label: "Application"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Application"
+      icon: "grid"
+      description: "Core identity, protocol and portal visibility"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            Name of the application in PingOne (max 256 chars). Must be unique
+            within the environment - it is the logical identity deploy
+            matches on.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the PingOne admin console."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the application can be used to sign users in. Disable rather than delete to temporarily block sign-on."
+
+        - key: "protocol"
+          label: "Protocol"
+          fieldType: "select"
+          required: true
+          defaultValue: "OPENID_CONNECT"
+          options:
+            - label: "OpenID Connect (OIDC)"
+              value: "OPENID_CONNECT"
+            - label: "SAML 2.0"
+              value: "SAML"
+          helpText: >
+            The application's sign-on protocol. Discriminates a very different
+            field set (see the OIDC / SAML groups below); EXTERNAL_LINK and
+            WSFED protocols are intentionally out of scope.
+
+        - key: "loginPageUrl"
+          label: "Custom Login Page URL"
+          fieldType: "text"
+          helpText: "Optional override of PingOne's hosted login page for this application."
+
+        - key: "hiddenFromAppPortal"
+          label: "Hide from Application Portal"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Hide this application's tile from the end-user application portal."
+
+    - name: "OIDC"
+      icon: "key"
+      description: "OpenID Connect settings - visible when Protocol is OpenID Connect"
+      fields:
+        - key: "oidcType"
+          label: "Application Type"
+          fieldType: "select"
+          required: false
+          defaultValue: "WEB_APP"
+          options:
+            - label: "Web Application"
+              value: "WEB_APP"
+            - label: "Native Application"
+              value: "NATIVE_APP"
+            - label: "Single-Page Application"
+              value: "SINGLE_PAGE_APP"
+            - label: "Service (machine-to-machine)"
+              value: "SERVICE"
+          visibleWhen:
+            field: "protocol"
+            equals: "OPENID_CONNECT"
+          helpText: >
+            Required when Protocol is OpenID Connect. Becomes the API's `type`
+            field. Worker apps are not offered here - this app's own
+            connection uses one, and touching it would be self-referential.
+
+        - key: "redirectUris"
+          label: "Redirect URIs"
+          fieldType: "tags"
+          visibleWhen:
+            field: "protocol"
+            equals: "OPENID_CONNECT"
+          helpText: "Allow-listed redirect URIs the authorization/authentication response may be sent to."
+
+        - key: "postLogoutRedirectUris"
+          label: "Post-Logout Redirect URIs"
+          fieldType: "tags"
+          visibleWhen:
+            field: "protocol"
+            equals: "OPENID_CONNECT"
+          helpText: "Allow-listed URIs a user may be redirected to after sign-out."
+
+        - key: "grantTypes"
+          label: "Grant Types"
+          fieldType: "multiselect"
+          required: false
+          options:
+            - label: "Authorization Code"
+              value: "AUTHORIZATION_CODE"
+            - label: "Implicit"
+              value: "IMPLICIT"
+            - label: "Refresh Token"
+              value: "REFRESH_TOKEN"
+            - label: "Client Credentials"
+              value: "CLIENT_CREDENTIALS"
+            - label: "Device Code"
+              value: "DEVICE_CODE"
+          visibleWhen:
+            field: "protocol"
+            equals: "OPENID_CONNECT"
+          helpText: >
+            Required when Protocol is OpenID Connect - at least one grant
+            type. TOKEN_EXCHANGE and CIBA are out of scope.
+
+        - key: "responseTypes"
+          label: "Response Types"
+          fieldType: "multiselect"
+          options:
+            - label: "Authorization Code (code)"
+              value: "CODE"
+            - label: "Access Token (token)"
+              value: "TOKEN"
+            - label: "ID Token (id_token)"
+              value: "ID_TOKEN"
+          visibleWhen:
+            field: "protocol"
+            equals: "OPENID_CONNECT"
+          helpText: >
+            Optional. CODE cannot be combined with TOKEN or ID_TOKEN - this
+            app does not support the hybrid flow.
+
+        - key: "tokenEndpointAuthMethod"
+          label: "Token Endpoint Auth Method"
+          fieldType: "select"
+          required: false
+          defaultValue: "CLIENT_SECRET_BASIC"
+          options:
+            - label: "Client Secret - Basic Auth Header"
+              value: "CLIENT_SECRET_BASIC"
+            - label: "Client Secret - POST Body"
+              value: "CLIENT_SECRET_POST"
+            - label: "None (public client)"
+              value: "NONE"
+            - label: "Private Key JWT"
+              value: "PRIVATE_KEY_JWT"
+          visibleWhen:
+            field: "protocol"
+            equals: "OPENID_CONNECT"
+          helpText: >
+            Required when Protocol is OpenID Connect. PRIVATE_KEY_JWT is
+            offered but its JWKS / JWKS URL is not collected by this app -
+            configure the signing key in the PingOne admin console.
+
+        - key: "pkceEnforcement"
+          label: "PKCE Enforcement"
+          fieldType: "select"
+          defaultValue: "OPTIONAL"
+          options:
+            - label: "Optional"
+              value: "OPTIONAL"
+            - label: "Required"
+              value: "REQUIRED"
+            - label: "Required (S256 only)"
+              value: "S256_REQUIRED"
+          visibleWhen:
+            field: "protocol"
+            equals: "OPENID_CONNECT"
+          helpText: "Whether a PKCE code challenge is required for the authorization code flow."
+
+        - key: "refreshTokenDurationSeconds"
+          label: "Refresh Token Duration (Seconds)"
+          fieldType: "number"
+          defaultValue: 2592000
+          validation:
+            min: 60
+            max: 2147483647
+          visibleWhen:
+            field: "protocol"
+            equals: "OPENID_CONNECT"
+          helpText: "How long a refresh token remains valid, 60 to 2147483647 seconds. Defaults to 30 days (2592000)."
+
+        - key: "homePageUrl"
+          label: "Home Page URL"
+          fieldType: "text"
+          visibleWhen:
+            field: "protocol"
+            equals: "OPENID_CONNECT"
+          helpText: "Optional application home page shown in the application portal."
+
+    - name: "SAML"
+      icon: "shield"
+      description: "SAML 2.0 settings - visible when Protocol is SAML"
+      fields:
+        - key: "samlType"
+          label: "Application Type"
+          fieldType: "select"
+          required: false
+          defaultValue: "WEB_APP"
+          options:
+            - label: "Web Application"
+              value: "WEB_APP"
+            - label: "Custom Application"
+              value: "CUSTOM_APP"
+          visibleWhen:
+            field: "protocol"
+            equals: "SAML"
+          helpText: "Required when Protocol is SAML. Becomes the API's `type` field."
+
+        - key: "acsUrls"
+          label: "Assertion Consumer Service (ACS) URLs"
+          fieldType: "tags"
+          required: false
+          visibleWhen:
+            field: "protocol"
+            equals: "SAML"
+          helpText: "Required when Protocol is SAML - at least one URL the SAML response is posted to."
+
+        - key: "spEntityId"
+          label: "SP Entity ID"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "protocol"
+            equals: "SAML"
+          helpText: "Required when Protocol is SAML - the service provider's entity id (audience)."
+
+        - key: "assertionDurationSeconds"
+          label: "Assertion Duration (Seconds)"
+          fieldType: "number"
+          defaultValue: 3600
+          validation:
+            min: 1
+          visibleWhen:
+            field: "protocol"
+            equals: "SAML"
+          helpText: "Required when Protocol is SAML - how long the SAML assertion remains valid, in seconds."
+
+        - key: "assertionSignedEnabled"
+          label: "Sign Assertion"
+          fieldType: "checkbox"
+          defaultValue: true
+          visibleWhen:
+            field: "protocol"
+            equals: "SAML"
+          helpText: "Whether PingOne signs the SAML assertion."
+
+        - key: "responseIsSigned"
+          label: "Sign Response"
+          fieldType: "checkbox"
+          defaultValue: false
+          visibleWhen:
+            field: "protocol"
+            equals: "SAML"
+          helpText: "Whether PingOne signs the whole SAML response (in addition to, or instead of, the assertion)."
+
+        - key: "nameIdFormat"
+          label: "NameID Format"
+          fieldType: "text"
+          visibleWhen:
+            field: "protocol"
+            equals: "SAML"
+          helpText: >
+            Optional NameID format URI, e.g.
+            urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress.
+
+        - key: "defaultTargetUrl"
+          label: "Default Target URL"
+          fieldType: "text"
+          visibleWhen:
+            field: "protocol"
+            equals: "SAML"
+          helpText: "Optional URL to send the user to after IdP-initiated sign-on."
+
+        - key: "sloBinding"
+          label: "Single Logout Binding"
+          fieldType: "select"
+          defaultValue: "HTTP_POST"
+          options:
+            - label: "HTTP POST"
+              value: "HTTP_POST"
+            - label: "HTTP Redirect"
+              value: "HTTP_REDIRECT"
+          visibleWhen:
+            field: "protocol"
+            equals: "SAML"
+          helpText: "SAML binding used for single logout, when a Single Logout Endpoint is set."
+
+        - key: "sloEndpoint"
+          label: "Single Logout Endpoint"
+          fieldType: "text"
+          visibleWhen:
+            field: "protocol"
+            equals: "SAML"
+          helpText: "Optional URL the single-logout request/response is sent to."
+
+        - key: "idpSigningKeyId"
+          label: "IdP Signing Key ID"
+          fieldType: "text"
+          visibleWhen:
+            field: "protocol"
+            equals: "SAML"
+          helpText: >
+            Optional id of an existing certificate under PingOne's Key /
+            Certificate management (not a config type in this app - find the
+            id in the admin console or via GET /keys). Leave blank to use the
+            environment's default signing key. When set, IdP Signing Key
+            Algorithm must also be set.
+
+        - key: "idpSigningKeyAlgorithm"
+          label: "IdP Signing Key Algorithm"
+          fieldType: "select"
+          options:
+            - label: "SHA256withRSA"
+              value: "SHA256withRSA"
+            - label: "SHA384withRSA"
+              value: "SHA384withRSA"
+            - label: "SHA512withRSA"
+              value: "SHA512withRSA"
+            - label: "SHA256withECDSA"
+              value: "SHA256withECDSA"
+            - label: "SHA384withECDSA"
+              value: "SHA384withECDSA"
+            - label: "SHA512withECDSA"
+              value: "SHA512withECDSA"
+          visibleWhen:
+            field: "protocol"
+            equals: "SAML"
+          helpText: "Required alongside IdP Signing Key ID - the signing algorithm for that certificate."

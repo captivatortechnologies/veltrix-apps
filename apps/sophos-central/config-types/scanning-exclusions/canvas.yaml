@@ -1,0 +1,92 @@
+# =============================================================================
+# Canvas Template — Sophos Central Scanning Exclusions
+#
+# The tenant-wide scanning exclusion list — paths, processes, websites, PUAs,
+# detected exploits, AMSI and behavioral-detection exclusions, and journal
+# hashing exclusions. A per-object resource, reconciled by its (type, value)
+# pair (Sophos assigns the id on create). Applied via the Sophos Central
+# Endpoint API (POST/GET/PATCH/DELETE
+# /settings/exclusions/scanning[/{exclusionId}]).
+# =============================================================================
+
+id: "sophos-central-scanning-exclusions"
+name: "Scanning Exclusion"
+toolType: "sophos-central"
+entityType: "scanning-exclusions"
+description: "Manage the Sophos Central tenant-wide scanning exclusion list as code — paths, processes, websites, PUAs, detected exploits, AMSI, behavioral and journal-hashing exclusions."
+
+item:
+  label: "Scanning Exclusion"
+  identityField: "value"
+  repeatable: true
+  minItems: 1
+  maxItems: 5000
+  groups:
+    - name: "Exclusion"
+      icon: "shield-off"
+      description: "What is excluded, and how"
+      fields:
+        - key: "type"
+          label: "Exclusion Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "path"
+          options:
+            - label: "Path (Windows)"
+              value: "path"
+            - label: "Path (Linux/Mac, POSIX)"
+              value: "posixPath"
+            - label: "Virtual path"
+              value: "virtualPath"
+            - label: "Process"
+              value: "process"
+            - label: "Website"
+              value: "web"
+            - label: "Potentially Unwanted Application (PUA)"
+              value: "pua"
+            - label: "Detected exploit"
+              value: "detectedExploit"
+            - label: "AMSI (Antimalware Scan Interface)"
+              value: "amsi"
+            - label: "Behavioral detection"
+              value: "behavioral"
+            - label: "Journal hashing — process"
+              value: "journalHashingProcess"
+            - label: "Journal hashing — path"
+              value: "journalHashingPath"
+          helpText: "Immutable after creation — delete and recreate to change an exclusion's type."
+
+        - key: "value"
+          label: "Value"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 2048
+          helpText: "The path, process name, website, PUA name, or detected exploit id to exclude. Must be unique per type. Not supported for \"Behavioral detection\" and \"Detected exploit\" exclusions after creation."
+
+        - key: "scanMode"
+          label: "Scan Mode"
+          fieldType: "select"
+          required: false
+          options:
+            - label: "(default for this type)"
+              value: ""
+            - label: "On-demand scans only"
+              value: "onDemand"
+            - label: "On-access scans only"
+              value: "onAccess"
+            - label: "On-demand and on-access scans"
+              value: "onDemandAndOnAccess"
+          helpText: "Defaults to \"onDemandAndOnAccess\" for path/posixPath/virtualPath, \"onAccess\" for process/web/pua/amsi. Behavioral and Detected Exploit exclusions do not support a scan mode."
+
+    - name: "Reason"
+      icon: "note"
+      description: "Why this exclusion exists"
+      fields:
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Optional — why this exclusion was created."

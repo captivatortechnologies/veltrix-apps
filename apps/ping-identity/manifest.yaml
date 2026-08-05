@@ -1,0 +1,300 @@
+id: ping-identity
+name: Ping Identity
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage PingOne (Ping Identity's cloud IAM platform) configuration as code
+  through the PingOne Platform API. Covers sign-on policies and their ordered
+  actions, password policies, populations, groups, applications (OIDC/SAML),
+  custom API resources and their scopes, external identity providers, MFA
+  device authentication policies, and PingOne Protect risk policies - with
+  validation, drift detection and rollback handled by the Security-as-Code
+  pipeline.
+category: IAM
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/ping-identity
+icon: "🪪"
+
+platform:
+  minVersion: "1.0.0"
+
+# Ping Identity brand: deep navy primary, bright blue accent.
+branding:
+  primaryColor: "#0B1F3A"
+  accentColor: "#0072CE"
+  logo: ./assets/logo.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: sign-on-policies
+      actions: [read, write, delete]
+      description: Manage PingOne sign-on policies and their ordered sign-on actions (login, identifier-first, MFA, external IdP, agreement, progressive profiling)
+    - resource: password-policies
+      actions: [read, write, delete]
+      description: Manage PingOne password policies (length, complexity, history, age, lockout, sequence rules)
+    - resource: populations
+      actions: [read, write, delete]
+      description: Manage PingOne populations (user containers with an assignable password policy and default identity provider)
+    - resource: groups
+      actions: [read, write, delete]
+      description: Manage PingOne groups (static or SCIM-filter dynamic), optionally scoped to a population
+    - resource: applications
+      actions: [read, write, delete]
+      description: Manage PingOne OIDC and SAML application configurations (worker applications are protected and never touched)
+    - resource: resources
+      actions: [read, write, delete]
+      description: Manage PingOne custom API resources and their OAuth scopes (the built-in openid and PingOne API resources are protected)
+    - resource: identity-providers
+      actions: [read, write, delete]
+      description: Manage PingOne external identity providers (OIDC, SAML, and social) - client secrets and signing keys are write-only
+    - resource: mfa-device-policies
+      actions: [read, write, delete]
+      description: Manage PingOne MFA device authentication policies (per-authenticator enablement, OTP settings, new-device notification)
+    - resource: risk-policies
+      actions: [read, write, delete]
+      description: Manage PingOne Protect risk policy sets (evaluated predictors, ordered override/mitigation rules, default result)
+
+pipeline:
+  configurationTypes:
+    - id: sign-on-policies
+      group: "Policies"
+      name: Sign-On Policies
+      description: Sign-on policies and their ordered sign-on actions (login/identifier-first/MFA/IdP/agreement/progressive-profiling)
+      canvasTemplate: config-types/sign-on-policies/canvas.yaml
+      defaultConfig: config-types/sign-on-policies/defaults.yaml
+      handlers:
+        validate: config-types/sign-on-policies/validate
+        deploy: config-types/sign-on-policies/deploy
+        rollback: config-types/sign-on-policies/rollback
+        healthCheck: config-types/sign-on-policies/healthCheck
+        driftDetect: config-types/sign-on-policies/driftDetect
+        getStatus: config-types/sign-on-policies/getStatus
+      targets:
+        componentTypes: [pingone-environment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: password-policies
+      group: "Policies"
+      name: Password Policies
+      description: Password complexity, history, age and lockout policies
+      canvasTemplate: config-types/password-policies/canvas.yaml
+      defaultConfig: config-types/password-policies/defaults.yaml
+      handlers:
+        validate: config-types/password-policies/validate
+        deploy: config-types/password-policies/deploy
+        rollback: config-types/password-policies/rollback
+        healthCheck: config-types/password-policies/healthCheck
+        driftDetect: config-types/password-policies/driftDetect
+        getStatus: config-types/password-policies/getStatus
+      targets:
+        componentTypes: [pingone-environment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: mfa-device-policies
+      group: "Policies"
+      name: MFA Device Policies
+      description: MFA device authentication policies - per-authenticator enablement and OTP settings
+      canvasTemplate: config-types/mfa-device-policies/canvas.yaml
+      defaultConfig: config-types/mfa-device-policies/defaults.yaml
+      handlers:
+        validate: config-types/mfa-device-policies/validate
+        deploy: config-types/mfa-device-policies/deploy
+        rollback: config-types/mfa-device-policies/rollback
+        healthCheck: config-types/mfa-device-policies/healthCheck
+        driftDetect: config-types/mfa-device-policies/driftDetect
+        getStatus: config-types/mfa-device-policies/getStatus
+      targets:
+        componentTypes: [pingone-environment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: populations
+      group: "Directory"
+      name: Populations
+      description: User populations, each with an assignable password policy and default identity provider
+      canvasTemplate: config-types/populations/canvas.yaml
+      defaultConfig: config-types/populations/defaults.yaml
+      handlers:
+        validate: config-types/populations/validate
+        deploy: config-types/populations/deploy
+        rollback: config-types/populations/rollback
+        healthCheck: config-types/populations/healthCheck
+        driftDetect: config-types/populations/driftDetect
+        getStatus: config-types/populations/getStatus
+        options: config-types/populations/options
+      targets:
+        componentTypes: [pingone-environment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: groups
+      group: "Directory"
+      name: Groups
+      description: Groups (static, or SCIM-filter dynamic), optionally scoped to a population
+      canvasTemplate: config-types/groups/canvas.yaml
+      defaultConfig: config-types/groups/defaults.yaml
+      handlers:
+        validate: config-types/groups/validate
+        deploy: config-types/groups/deploy
+        rollback: config-types/groups/rollback
+        healthCheck: config-types/groups/healthCheck
+        driftDetect: config-types/groups/driftDetect
+        getStatus: config-types/groups/getStatus
+        options: config-types/groups/options
+      targets:
+        componentTypes: [pingone-environment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: applications
+      group: "Applications"
+      name: Applications
+      description: OIDC and SAML application configurations (worker applications are protected)
+      canvasTemplate: config-types/applications/canvas.yaml
+      defaultConfig: config-types/applications/defaults.yaml
+      handlers:
+        validate: config-types/applications/validate
+        deploy: config-types/applications/deploy
+        rollback: config-types/applications/rollback
+        healthCheck: config-types/applications/healthCheck
+        driftDetect: config-types/applications/driftDetect
+        getStatus: config-types/applications/getStatus
+      targets:
+        componentTypes: [pingone-environment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: resources
+      group: "Authorization"
+      name: Resources & Scopes
+      description: Custom API resources and their OAuth scopes (built-in resources are protected)
+      canvasTemplate: config-types/resources/canvas.yaml
+      defaultConfig: config-types/resources/defaults.yaml
+      handlers:
+        validate: config-types/resources/validate
+        deploy: config-types/resources/deploy
+        rollback: config-types/resources/rollback
+        healthCheck: config-types/resources/healthCheck
+        driftDetect: config-types/resources/driftDetect
+        getStatus: config-types/resources/getStatus
+      targets:
+        componentTypes: [pingone-environment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: identity-providers
+      group: "Authentication"
+      name: Identity Providers
+      description: External identity providers - OIDC, SAML and social (secrets/signing keys write-only)
+      canvasTemplate: config-types/identity-providers/canvas.yaml
+      defaultConfig: config-types/identity-providers/defaults.yaml
+      handlers:
+        validate: config-types/identity-providers/validate
+        deploy: config-types/identity-providers/deploy
+        rollback: config-types/identity-providers/rollback
+        healthCheck: config-types/identity-providers/healthCheck
+        driftDetect: config-types/identity-providers/driftDetect
+        getStatus: config-types/identity-providers/getStatus
+        options: config-types/identity-providers/options
+      targets:
+        componentTypes: [pingone-environment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: risk-policies
+      group: "Security"
+      name: Risk Policies
+      description: PingOne Protect risk policy sets - evaluated predictors + ordered override/mitigation rules
+      canvasTemplate: config-types/risk-policies/canvas.yaml
+      defaultConfig: config-types/risk-policies/defaults.yaml
+      handlers:
+        validate: config-types/risk-policies/validate
+        deploy: config-types/risk-policies/deploy
+        rollback: config-types/risk-policies/rollback
+        healthCheck: config-types/risk-policies/healthCheck
+        driftDetect: config-types/risk-policies/driftDetect
+        getStatus: config-types/risk-policies/getStatus
+        options: config-types/risk-policies/options
+      targets:
+        componentTypes: [pingone-environment]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/ping-identity
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: mints a worker access token
+# (client_credentials against /{environmentId}/as/token) and confirms it can
+# read the environment via GET /v1/environments/{environmentId}.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: pingone_region
+    type: select
+    label: PingOne Region
+    description: >
+      The data-residency region your PingOne environment lives in. This is
+      fixed when the environment is created and determines both the
+      auth.pingone.<region> token endpoint and the api.pingone.<region>
+      management API host - it does not auto-detect.
+    default: NA
+    required: false
+    options:
+      - label: North America (pingone.com)
+        value: NA
+      - label: European Union (pingone.eu)
+        value: EU
+      - label: Canada (pingone.ca)
+        value: CA
+      - label: Asia-Pacific (pingone.asia)
+        value: AP
+      - label: Australia (pingone.com.au)
+        value: AU
+      - label: Singapore (pingone.sg)
+        value: SG
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for PingOne API calls.
+    default: 30
+    required: false

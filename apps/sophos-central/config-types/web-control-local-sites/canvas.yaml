@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template — Sophos Central Web Control Local Sites
+#
+# Custom URL -> category / tag classifications used by Web Control policies —
+# e.g. reclassify an internal site so Web Control's category-based rules apply
+# to it correctly. A per-object resource, reconciled by its `url` (Sophos
+# assigns the id on create). Applied via the Sophos Central Endpoint API
+# (POST/GET/PATCH/DELETE /settings/web-control/local-sites[/{localSiteId}]).
+# =============================================================================
+
+id: "sophos-central-web-control-local-sites"
+name: "Web Control Local Site"
+toolType: "sophos-central"
+entityType: "web-control-local-sites"
+description: "Manage Sophos Central Web Control local site classifications as code — assign a custom URL to a content category and/or tags so Web Control policy rules apply to it correctly."
+
+item:
+  label: "Local Site"
+  identityField: "url"
+  repeatable: true
+  minItems: 1
+  maxItems: 5000
+  groups:
+    - name: "Site"
+      icon: "globe"
+      description: "The URL and how it's classified"
+      fields:
+        - key: "url"
+          label: "URL"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 2048
+          helpText: "The site URL to classify, e.g. https://intranet.example.com. Must be unique."
+
+        - key: "categoryId"
+          label: "Category ID"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+            max: 57
+          helpText: "The Web Control content category id (1-57) to assign to this site — see GET /settings/web-control/categories for the current id -> name mapping. Either Category ID or Tags is required."
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          required: false
+          helpText: "Tags to assign to this site instead of (or in addition to) a category. Either Category ID or Tags is required."
+
+    - name: "Reason"
+      icon: "note"
+      description: "Why this classification exists"
+      fields:
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 300
+          helpText: "Optional — why this site was reclassified."

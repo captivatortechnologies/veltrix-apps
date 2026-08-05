@@ -1,0 +1,65 @@
+# =============================================================================
+# Canvas Template — Sophos Central Blocked Items
+#
+# The tenant-wide SHA256 block list: exempts a file hash from exoneration, so
+# Sophos always convicts a matching file regardless of reputation/allow-list
+# state elsewhere. A per-object resource, reconciled by its SHA256 value
+# (Sophos assigns the id on create). The API supports create + delete only —
+# there is no PATCH — so `deploy` treats any change to fileName/path/comment
+# for an existing hash as delete-then-recreate. Applied via the Sophos Central
+# Endpoint API (POST/GET/DELETE /settings/blocked-items[/{blockedItemId}]).
+# =============================================================================
+
+id: "sophos-central-blocked-items"
+name: "Blocked Item"
+toolType: "sophos-central"
+entityType: "blocked-items"
+description: "Manage the Sophos Central tenant-wide SHA256 block list as code — items here are always convicted, regardless of reputation or the allowed-items list."
+
+item:
+  label: "Blocked Item"
+  identityField: "sha256"
+  repeatable: true
+  minItems: 1
+  maxItems: 5000
+  groups:
+    - name: "Identity"
+      icon: "hash"
+      description: "The file this block applies to"
+      fields:
+        - key: "sha256"
+          label: "SHA256"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Fa-f0-9]{64}$"
+            maxLength: 64
+          helpText: "The SHA256 checksum of the file to always convict. Sophos only supports blocking by SHA256 at this time."
+
+        - key: "fileName"
+          label: "File Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Optional file name, for readability in the Sophos Central console."
+
+        - key: "path"
+          label: "Path"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 2048
+          helpText: "Optional path for the application, e.g. $programfiles\\Acme\\acme.exe."
+
+    - name: "Reason"
+      icon: "note"
+      description: "Why this item is blocked"
+      fields:
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 1000
+          helpText: "Required — explain why this hash is always convicted (e.g. \"Confirmed malware, INC-1234\")."

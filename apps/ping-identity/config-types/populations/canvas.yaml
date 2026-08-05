@@ -1,0 +1,95 @@
+# =============================================================================
+# Canvas Template - PingOne Populations
+#
+# Declares ONE population - the item. Users add as many populations as they
+# need. A population's identity in PingOne is its NAME; deploy lists
+# populations, matches on the name, and PUTs (update) or POSTs (create)
+# accordingly - there is NO upsert. The environment's built-in default
+# population already exists; matching it by name here lets you manage it in
+# place instead of creating a duplicate.
+#
+# Field keys must match what config-types/populations/validate.ts checks.
+# API reference: https://apidocs.pingidentity.com/pingone/platform/v1/api/#populations
+# =============================================================================
+
+id: "ping-identity-populations"
+name: "Population Configuration"
+toolType: "ping-identity"
+entityType: "populations"
+description: "Define PingOne populations (user containers with an assignable password policy and default identity provider) as code through the PingOne Platform API."
+
+item:
+  label: "Population"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Population"
+      icon: "users"
+      description: "Core population identity and lifecycle settings"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: >
+            Name of the population in PingOne (max 128 chars). Must be unique
+            within this canvas - it is the logical identity deploy matches on.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the PingOne admin console."
+
+        - key: "default"
+          label: "Default Population"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: >
+            When enabled, this becomes the environment's default population -
+            PingOne automatically demotes every other population's default flag
+            to false. The environment's built-in default population already
+            exists; matching it by name here lets you manage it in place
+            instead of creating a duplicate.
+
+        - key: "preferredLanguage"
+          label: "Preferred Language"
+          fieldType: "text"
+          placeholder: "en"
+          helpText: >
+            BCP-47 language tag for this population's users, e.g. "en". Leave
+            blank to use the environment's default language.
+
+    - name: "Identifiers"
+      icon: "tag"
+      description: "Alternative identifiers this population's users may sign on with"
+      fields:
+        - key: "alternativeIdentifiers"
+          label: "Alternative Identifiers"
+          fieldType: "tags"
+          helpText: "Additional attribute names users of this population may authenticate with, alongside username/email."
+
+    - name: "Policy assignment"
+      icon: "shield"
+      description: "Optional password policy and default identity provider for this population"
+      fields:
+        - key: "passwordPolicyId"
+          label: "Password Policy"
+          fieldType: "remote-select"
+          optionsSource: "passwordPolicies"
+          helpText: >
+            Assigns a non-default password policy to this population. Pick
+            from the connected environment's live password policies; leave
+            blank to use the environment's default password policy.
+
+        - key: "defaultIdentityProviderId"
+          label: "Default Identity Provider"
+          fieldType: "remote-select"
+          optionsSource: "identityProviders"
+          helpText: >
+            Set-only - PingOne has no API to unset a population's default
+            identity provider once assigned; leaving this blank never touches
+            an existing assignment.

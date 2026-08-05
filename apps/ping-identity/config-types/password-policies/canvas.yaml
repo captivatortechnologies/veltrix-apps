@@ -1,0 +1,205 @@
+# =============================================================================
+# Canvas Template - PingOne Password Policies
+#
+# Declares ONE password policy - the item. Users add as many as their PingOne
+# environment needs. A policy's identity is its NAME (unique in the
+# environment); deploy lists policies, matches on the name, and PUTs (update)
+# or POSTs (create) accordingly - PingOne has no upsert endpoint.
+#
+# minCharacters is modeled as four separate counters (uppercase/lowercase/
+# numeric/special) rather than the raw API map, since PingOne's literal wire
+# keys for that map are themselves character-class strings (e.g.
+# "ABCDEFGHIJKLMNOPQRSTUVWXYZ") - deploy.ts assembles the real map from these
+# four fields. qwertySequenceRule and shiftedNumberRowSequenceRule (both fixed
+# at maxLength 3) are intentionally NOT modeled here - a future enhancement.
+#
+# Field keys must match what config-types/password-policies/validate.ts checks.
+# Reference: https://apidocs.pingidentity.com/pingone/platform/v1/api/#password-policies
+# =============================================================================
+
+id: "ping-identity-password-policies"
+name: "Password Policy Configuration"
+toolType: "ping-identity"
+entityType: "password-policies"
+description: "Define PingOne password policies as code through the PingOne Platform API - length, complexity, history, age, lockout and character-sequence rules. Matched by name; PingOne rejects deleting a policy still assigned to a population with users."
+
+item:
+  label: "Password Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Policy"
+      icon: "key"
+      description: "Policy name and default assignment"
+      fields:
+        - key: "name"
+          label: "Policy Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            Name of the password policy in PingOne (max 256 chars). Must be
+            unique within the environment - it is the logical identity deploy
+            matches on.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional free-text description of this policy's purpose."
+
+        - key: "default"
+          label: "Make Default Policy"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: >
+            WARNING: setting this policy as the environment default demotes
+            every other password policy's "default" flag to false. Only one
+            policy can be the default at a time.
+
+    - name: "Rules"
+      icon: "shield-check"
+      description: "Password composition, history, age, lockout and sequence rules"
+      fields:
+        - key: "excludesCommonlyUsedPasswords"
+          label: "Exclude Commonly Used Passwords"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Reject passwords found on PingOne's commonly-used-password list."
+
+        - key: "excludesProfileData"
+          label: "Exclude Profile Data"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Reject passwords that contain the user's own profile data (name, email, username, ...)."
+
+        - key: "notSimilarToCurrent"
+          label: "Reject Similar to Current Password"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Reject a new password that is too similar to the user's current one."
+
+        - key: "minLength"
+          label: "Minimum Length"
+          fieldType: "number"
+          required: true
+          validation:
+            min: 8
+            max: 32
+          helpText: "Minimum password length, from 8 to 32 characters."
+
+        - key: "maxLength"
+          label: "Maximum Length"
+          fieldType: "number"
+          defaultValue: 255
+          validation:
+            min: 8
+            max: 255
+          helpText: "Maximum password length. PingOne defaults to 255 when omitted."
+
+        - key: "historyCount"
+          label: "History - Prior Passwords Remembered"
+          fieldType: "number"
+          helpText: >
+            Number of prior passwords PingOne remembers to block reuse.
+            Pairs with "History Retention Days" - set both or leave both blank.
+
+        - key: "historyRetentionDays"
+          label: "History - Retention Days"
+          fieldType: "number"
+          helpText: >
+            How many days PingOne retains prior passwords for the reuse check.
+            Pairs with "Prior Passwords Remembered" - set both or leave both blank.
+
+        - key: "maxAgeDays"
+          label: "Maximum Password Age (Days)"
+          fieldType: "number"
+          helpText: >
+            Days before a password expires and must be changed. Per PingOne's
+            API rule this must be greater than the minimum age plus 21 days.
+
+        - key: "minAgeDays"
+          label: "Minimum Password Age (Days)"
+          fieldType: "number"
+          helpText: "Days a password must be in effect before it can be changed again."
+
+        - key: "lockoutFailureCount"
+          label: "Lockout - Failure Count"
+          fieldType: "number"
+          helpText: >
+            Number of consecutive failed authentication attempts before
+            lockout. Pairs with "Lockout Duration" - set both or leave both blank.
+
+        - key: "lockoutDurationSeconds"
+          label: "Lockout - Duration (Seconds)"
+          fieldType: "number"
+          helpText: >
+            How long, in seconds, an account stays locked out.
+            Pairs with "Lockout Failure Count" - set both or leave both blank.
+
+        - key: "minCharUppercase"
+          label: "Minimum Uppercase Characters"
+          fieldType: "number"
+          helpText: "Minimum count of A-Z characters required in the password."
+
+        - key: "minCharLowercase"
+          label: "Minimum Lowercase Characters"
+          fieldType: "number"
+          helpText: "Minimum count of a-z characters required in the password."
+
+        - key: "minCharNumeric"
+          label: "Minimum Numeric Characters"
+          fieldType: "number"
+          helpText: "Minimum count of 0-9 characters required in the password."
+
+        - key: "minCharSpecial"
+          label: "Minimum Special Characters"
+          fieldType: "number"
+          helpText: >
+            Minimum count of special characters (~!@#$%^&*()-_=+[]{}\|;:,.<>/?)
+            required in the password.
+
+        - key: "minComplexity"
+          label: "Minimum Complexity Score"
+          fieldType: "number"
+          helpText: "PingOne currently only accepts the value 7 for this setting. Leave blank to disable."
+
+        - key: "minUniqueCharacters"
+          label: "Minimum Unique Characters"
+          fieldType: "number"
+          helpText: "PingOne currently only accepts the value 5 for this setting. Leave blank to disable."
+
+        - key: "maxRepeatedCharacters"
+          label: "Maximum Repeated Characters"
+          fieldType: "number"
+          helpText: "PingOne currently only accepts the value 2 for this setting. Leave blank to disable."
+
+        - key: "alphabetSequenceMaxLength"
+          label: "Alphabet Sequence Rule - Max Length"
+          fieldType: "select"
+          options:
+            - label: "Disabled"
+              value: ""
+            - label: "2"
+              value: "2"
+            - label: "3"
+              value: "3"
+          helpText: >
+            Rejects alphabetic runs (e.g. "abc") of more than this length.
+            Leave on "Disabled" to omit the rule entirely.
+
+        - key: "numberSequenceMaxLength"
+          label: "Number Sequence Rule - Max Length"
+          fieldType: "select"
+          options:
+            - label: "Disabled"
+              value: ""
+            - label: "2"
+              value: "2"
+            - label: "3"
+              value: "3"
+          helpText: >
+            Rejects numeric runs (e.g. "123") of more than this length.
+            Leave on "Disabled" to omit the rule entirely.

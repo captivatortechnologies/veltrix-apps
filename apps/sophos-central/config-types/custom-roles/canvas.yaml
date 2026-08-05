@@ -1,0 +1,64 @@
+# =============================================================================
+# Canvas Template — Sophos Central Custom Roles
+#
+# Tenant RBAC roles — a name, description and set of permission set grants for
+# either human admins or API service principals. A per-object resource,
+# reconciled by `name` (Sophos assigns the id on create; `principalType` is
+# immutable after creation). Applied via the Sophos Central Common API
+# (POST/GET/PATCH/DELETE /roles[/{roleId}]).
+# =============================================================================
+
+id: "sophos-central-custom-roles"
+name: "Custom Role"
+toolType: "sophos-central"
+entityType: "custom-roles"
+description: "Manage Sophos Central custom tenant roles (RBAC) as code — name, description and permission set grants for admin or service principals."
+
+item:
+  label: "Custom Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "user-check"
+      description: "The role's name and who it's for"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: "The role's name — its logical identity. Must be unique."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Optional description of what this role is for."
+
+        - key: "principalType"
+          label: "Principal Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "user"
+          options:
+            - label: "User (human admin)"
+              value: "user"
+            - label: "Service (API service principal)"
+              value: "service"
+          helpText: "Immutable after creation — delete and recreate to change a role's principal type."
+
+    - name: "Permissions"
+      icon: "key"
+      description: "What this role can do"
+      fields:
+        - key: "permissionSets"
+          label: "Permission Sets"
+          fieldType: "tags"
+          required: true
+          helpText: "One or more Sophos Central permission set ids, e.g. central_admin, endpoint_product_admin. See the Sophos Central Admin role editor for the full list available to your tenant."

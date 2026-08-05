@@ -1,0 +1,11 @@
+# Defaults for a new risk policy set item.
+#
+# Intentionally empty: the platform no longer seeds default values into a new
+# item - it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (name, description, default, evaluatedPredictorIds,
+# riskPoliciesJson), since a risk policy set's presentational groups share one
+# flat item record, e.g.:
+#   default: false
+#
+# Deliberately NOT seeding riskPoliciesJson: there is no safe non-empty default
+# override/mitigation rule to suggest - see canvas.yaml for worked examples.

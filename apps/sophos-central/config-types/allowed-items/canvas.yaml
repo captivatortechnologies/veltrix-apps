@@ -1,0 +1,72 @@
+# =============================================================================
+# Canvas Template — Sophos Central Allowed Items
+#
+# The tenant-wide allow list: exempts an item (a path, a SHA256 hash, a
+# certificate signer, or a POSIX path) from conviction. A per-object resource,
+# reconciled by its (type, value) pair (Sophos assigns the id on create).
+# `comment` is the only field the PATCH endpoint accepts once created — a
+# change to `type`/`value`/`fileName` is delete-then-recreate. Applied via the
+# Sophos Central Endpoint API (POST/GET/PATCH/DELETE
+# /settings/allowed-items[/{allowedItemId}]).
+# =============================================================================
+
+id: "sophos-central-allowed-items"
+name: "Allowed Item"
+toolType: "sophos-central"
+entityType: "allowed-items"
+description: "Manage the Sophos Central tenant-wide allow list as code — items here are exempted from conviction by path, SHA256 hash, certificate signer, or POSIX path."
+
+item:
+  label: "Allowed Item"
+  identityField: "value"
+  repeatable: true
+  minItems: 1
+  maxItems: 5000
+  groups:
+    - name: "Identity"
+      icon: "check-circle"
+      description: "What is allowed, and how it's matched"
+      fields:
+        - key: "type"
+          label: "Match By"
+          fieldType: "select"
+          required: true
+          defaultValue: "sha256"
+          options:
+            - label: "Path"
+              value: "path"
+            - label: "SHA256 hash"
+              value: "sha256"
+            - label: "Certificate signer"
+              value: "certificateSigner"
+            - label: "POSIX path (Linux/Mac)"
+              value: "posixPath"
+          helpText: "Immutable after creation — delete and recreate to change an item's match type."
+
+        - key: "value"
+          label: "Value"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 2048
+          helpText: "The path, SHA256 checksum, or certificate signer name to allow — must match the selected \"Match By\" type. Must be unique per type."
+
+        - key: "fileName"
+          label: "File Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Optional file name, for readability in the Sophos Central console."
+
+    - name: "Reason"
+      icon: "note"
+      description: "Why this item is allowed"
+      fields:
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: true
+          validation:
+            maxLength: 1000
+          helpText: "Required — explain why this item is exempted from conviction."

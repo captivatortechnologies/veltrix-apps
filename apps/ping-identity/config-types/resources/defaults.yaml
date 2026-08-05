@@ -1,0 +1,8 @@
+# Defaults for a new Resource item.
+#
+# Intentionally minimal: the per-field defaultValue in canvas.yaml already
+# seeds accessTokenValiditySeconds, applicationPermissionsClaimEnabled and
+# introspectEndpointAuthMethod. Any values here would be a FLAT map keyed by
+# the canvas field keys (name, description, audience,
+# accessTokenValiditySeconds, applicationPermissionsClaimEnabled,
+# introspectEndpointAuthMethod, scopesJson).

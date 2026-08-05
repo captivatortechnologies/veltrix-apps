@@ -1,0 +1,7 @@
+# Defaults for a new group item.
+#
+# Intentionally empty: the platform no longer seeds default values into a new
+# item - it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (name, description, populationId, userFilter, externalId,
+# customDataJson), since a group's presentational groups share one flat item
+# record.

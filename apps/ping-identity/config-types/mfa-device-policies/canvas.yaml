@@ -1,0 +1,269 @@
+# =============================================================================
+# Canvas Template - PingOne MFA Device Authentication Policies
+#
+# API: https://apidocs.pingidentity.com/pingone/platform/v1/api/#device-authentication-policies
+# (documented under the MFA service; same api.pingone.<region>/v1 host and
+# /environments/{id}/... base path as every other ping-identity config type).
+# Field names verified against patrickcping/pingone-go-sdk-v2's `mfa` package,
+# generated from Ping's own OpenAPI spec.
+#
+# Declares ONE MFA device authentication policy - the item. Users add as many
+# policies as they need. A policy's identity in PingOne is its NAME; deploy
+# lists policies, matches on the name, and PUTs (update) or POSTs (create)
+# accordingly - there is NO upsert.
+#
+# This models the SMS / Voice / Email / TOTP / Mobile / FIDO2 channels - the
+# most commonly configured authenticators. Deliberately NOT modeled (PingOne
+# applies its own defaults when a key is omitted): rememberMe, whatsApp,
+# desktop, yubikey, oathToken, notificationsPolicy. Mobile is exposed as a
+# simple enable/disable - its full schema (push/applications array/pairing
+# keys) is out of scope for this release. FIDO2 Policy CRUD itself (a separate
+# PingOne resource) is not modeled either; fido2PolicyId is a free-text
+# reference to an existing FIDO2 policy, left blank to use the environment
+# default.
+#
+# Field keys must match what config-types/mfa-device-policies/validate.ts checks.
+# =============================================================================
+
+id: "ping-identity-mfa-device-policies"
+name: "MFA Device Policy Configuration"
+toolType: "ping-identity"
+entityType: "mfa-device-policies"
+description: "Define PingOne MFA device authentication policies (per-authenticator enablement, OTP settings, new-device notification) as code through the PingOne Platform API."
+
+item:
+  label: "MFA Device Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Policy identity, default status, new-device notification and device-selection behavior"
+      fields:
+        - key: "name"
+          label: "Policy Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            Name of the policy in PingOne (max 256 chars). Must be unique
+            within this canvas - it is the logical identity deploy matches on.
+
+        - key: "default"
+          label: "Default Policy"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: >
+            When enabled, this becomes the environment's default MFA device
+            policy - PingOne automatically demotes any other policy's default
+            flag to false. Maps to default.
+
+        - key: "newDeviceNotification"
+          label: "New Device Notification"
+          fieldType: "select"
+          defaultValue: "NONE"
+          options:
+            - label: "None"
+              value: "NONE"
+            - label: "Email, then SMS"
+              value: "EMAIL_THEN_SMS"
+            - label: "SMS, then Email"
+              value: "SMS_THEN_EMAIL"
+          helpText: >
+            Whether and how PingOne notifies a user when a new device is
+            paired. Maps to newDeviceNotification.
+
+        - key: "deviceSelection"
+          label: "Device Selection"
+          fieldType: "select"
+          defaultValue: "DEFAULT_TO_FIRST"
+          options:
+            - label: "Default to first available device"
+              value: "DEFAULT_TO_FIRST"
+            - label: "Prompt the user to select a device"
+              value: "PROMPT_TO_SELECT"
+            - label: "Always display every paired device"
+              value: "ALWAYS_DISPLAY_DEVICES"
+          helpText: >
+            How PingOne chooses among a user's paired MFA devices at
+            authentication time. Maps to authentication.deviceSelection.
+
+        - key: "ignoreUserLock"
+          label: "Ignore User Lock"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: >
+            When enabled, a locked user account may still complete MFA. Maps
+            to ignoreUserLock.
+
+    - name: "SMS"
+      icon: "message-square"
+      description: "SMS one-time-passcode authentication"
+      fields:
+        - key: "smsEnabled"
+          label: "Enable SMS"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Maps to sms.enabled."
+
+        - key: "smsOtpLifetimeSeconds"
+          label: "OTP Lifetime (seconds)"
+          fieldType: "number"
+          defaultValue: 180
+          helpText: "How long an SMS OTP remains valid. Maps to sms.otp.lifeTime.duration (timeUnit SECONDS)."
+
+        - key: "smsOtpFailureCount"
+          label: "OTP Failure Count"
+          fieldType: "number"
+          defaultValue: 3
+          helpText: "Number of failed SMS OTP attempts allowed before cool-down. Maps to sms.otp.failure.count."
+
+        - key: "smsOtpCoolDownMinutes"
+          label: "OTP Cool-Down (minutes)"
+          fieldType: "number"
+          defaultValue: 30
+          helpText: "Lockout duration after the SMS failure count is exceeded. Maps to sms.otp.failure.coolDown.duration (timeUnit MINUTES)."
+
+        - key: "smsOtpLength"
+          label: "OTP Length"
+          fieldType: "number"
+          defaultValue: 6
+          validation:
+            min: 6
+            max: 10
+          helpText: "Number of digits in the SMS OTP (6-10). Maps to sms.otp.otpLength."
+
+    - name: "Voice"
+      icon: "phone"
+      description: "Voice-call one-time-passcode authentication"
+      fields:
+        - key: "voiceEnabled"
+          label: "Enable Voice"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Maps to voice.enabled."
+
+        - key: "voiceOtpLifetimeSeconds"
+          label: "OTP Lifetime (seconds)"
+          fieldType: "number"
+          defaultValue: 180
+          helpText: "How long a voice OTP remains valid. Maps to voice.otp.lifeTime.duration (timeUnit SECONDS)."
+
+        - key: "voiceOtpFailureCount"
+          label: "OTP Failure Count"
+          fieldType: "number"
+          defaultValue: 3
+          helpText: "Number of failed voice OTP attempts allowed before cool-down. Maps to voice.otp.failure.count."
+
+        - key: "voiceOtpCoolDownMinutes"
+          label: "OTP Cool-Down (minutes)"
+          fieldType: "number"
+          defaultValue: 30
+          helpText: "Lockout duration after the voice failure count is exceeded. Maps to voice.otp.failure.coolDown.duration (timeUnit MINUTES)."
+
+        - key: "voiceOtpLength"
+          label: "OTP Length"
+          fieldType: "number"
+          defaultValue: 6
+          validation:
+            min: 6
+            max: 10
+          helpText: "Number of digits in the voice OTP (6-10). Maps to voice.otp.otpLength."
+
+    - name: "Email"
+      icon: "mail"
+      description: "Email one-time-passcode authentication"
+      fields:
+        - key: "emailEnabled"
+          label: "Enable Email"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Maps to email.enabled."
+
+        - key: "emailOtpLifetimeSeconds"
+          label: "OTP Lifetime (seconds)"
+          fieldType: "number"
+          defaultValue: 1800
+          helpText: "How long an email OTP remains valid. Maps to email.otp.lifeTime.duration (timeUnit SECONDS)."
+
+        - key: "emailOtpFailureCount"
+          label: "OTP Failure Count"
+          fieldType: "number"
+          defaultValue: 3
+          helpText: "Number of failed email OTP attempts allowed before cool-down. Maps to email.otp.failure.count."
+
+        - key: "emailOtpCoolDownMinutes"
+          label: "OTP Cool-Down (minutes)"
+          fieldType: "number"
+          defaultValue: 30
+          helpText: "Lockout duration after the email failure count is exceeded. Maps to email.otp.failure.coolDown.duration (timeUnit MINUTES)."
+
+        - key: "emailOtpLength"
+          label: "OTP Length"
+          fieldType: "number"
+          defaultValue: 6
+          validation:
+            min: 6
+            max: 10
+          helpText: "Number of digits in the email OTP (6-10). Maps to email.otp.otpLength."
+
+    - name: "Authenticator App (TOTP)"
+      icon: "key"
+      description: "Time-based one-time-passcode authenticator apps"
+      fields:
+        - key: "totpEnabled"
+          label: "Enable Authenticator App"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Maps to totp.enabled."
+
+        - key: "totpFailureCount"
+          label: "Failure Count"
+          fieldType: "number"
+          defaultValue: 3
+          helpText: "Number of failed TOTP attempts allowed before cool-down. Maps to totp.otp.failure.count."
+
+        - key: "totpCoolDownMinutes"
+          label: "Cool-Down (minutes)"
+          fieldType: "number"
+          defaultValue: 30
+          helpText: "Lockout duration after the TOTP failure count is exceeded. Maps to totp.otp.failure.coolDown.duration (timeUnit MINUTES). TOTP has no OTP lifetime - passcodes are time-based, not server-issued."
+
+        - key: "totpPasscodeGracePeriod"
+          label: "Passcode Grace Period (30s windows)"
+          fieldType: "number"
+          defaultValue: 5
+          validation:
+            min: 1
+            max: 10
+          helpText: "Number of 30-second passcode windows (1-10) still accepted after the current one, to tolerate clock drift. Maps to totp.passcodeGracePeriod."
+
+    - name: "Mobile & Security Key"
+      icon: "smartphone"
+      description: "Mobile app push and FIDO2 security key authentication (basic enable/disable only)"
+      fields:
+        - key: "mobileEnabled"
+          label: "Enable Mobile"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: >
+            Basic enable/disable only - per-application push/pairing settings
+            are out of scope for this release. Maps to mobile.enabled.
+
+        - key: "fido2Enabled"
+          label: "Enable FIDO2 Security Keys"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Maps to fido2.enabled. Omitted from the deployed policy entirely when disabled and no FIDO2 Policy ID is set."
+
+        - key: "fido2PolicyId"
+          label: "FIDO2 Policy ID"
+          fieldType: "text"
+          required: false
+          helpText: >
+            Leave blank to use the environment's default FIDO2 policy; FIDO2
+            policy management itself is out of scope for this release. Maps to
+            fido2.fido2PolicyId.

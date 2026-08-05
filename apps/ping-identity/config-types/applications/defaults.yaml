@@ -1,0 +1,16 @@
+# Defaults for a new application item.
+#
+# Intentionally empty: the platform no longer seeds system default values into
+# a new item - it starts blank (per-field defaultValue in canvas.yaml still
+# applies when a new item is added). Any values here would be a FLAT map keyed
+# by the canvas field keys (name, description, enabled, protocol, oidcType,
+# grantTypes, samlType, acsUrls, ...), since an application's presentational
+# groups share one flat item record, e.g.:
+#   protocol: OPENID_CONNECT
+#   enabled: true
+#   oidcType: WEB_APP
+#   grantTypes: [AUTHORIZATION_CODE]
+#   tokenEndpointAuthMethod: CLIENT_SECRET_BASIC
+#
+# Deliberately NOT seeding redirectUris / acsUrls / spEntityId: there is no
+# safe non-empty default for an application's own endpoints.

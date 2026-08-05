@@ -1,0 +1,146 @@
+# =============================================================================
+# Canvas Template - PingOne Sign-On Policies
+#
+# Declares ONE sign-on policy - the item. Users add as many policies as they
+# need. A policy's identity in PingOne is its NAME (unique within the
+# environment); deploy lists policies, matches by name, then PUTs (update) or
+# POSTs (create) - PingOne has no upsert.
+#
+# The ordered sign-on actions under a policy are a separately CRUD'd
+# sub-resource with NO name field (unlike Okta's policy rules), so they are
+# reconciled by their required, policy-unique `priority` integer instead -
+# PingOne evaluates lower priority first. The whole actions array is authored
+# as ONE JSON textarea (actionsJson): an action's shape is a discriminated
+# union on `type` with deeply nested, type-specific and free-form fields
+# (boolean-logic condition trees, discovery rules, profiling attributes), so
+# modelling each as flat fields would either lose fidelity or require dozens
+# of rarely-used inputs. Every action object uses PingOne's real wire-format
+# JSON verbatim (condition/discoveryRules/attributes as normal nested JSON,
+# not re-encoded strings). Reconciliation is non-destructive: an action the
+# array does not mention (e.g. an admin's out-of-band MFA action) is never
+# deleted.
+#
+# Field keys must match what config-types/sign-on-policies/validate.ts checks.
+# =============================================================================
+
+id: "ping-identity-sign-on-policies"
+name: "Sign-On Policy Configuration"
+toolType: "ping-identity"
+entityType: "sign-on-policies"
+description: "Define PingOne sign-on policies and their ordered sign-on actions (login, identifier-first, MFA, external IdP, agreement, progressive profiling) as code through the PingOne Platform API."
+
+item:
+  label: "Sign-On Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Policy identity, description and default flag"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+            pattern: "^[a-zA-Z0-9_.-]+$"
+            message: "Letters, numbers, underscore, period and hyphen only, up to 256 characters."
+          helpText: >
+            The policy's name - unique within the environment and the identity
+            this app uses to find and update the policy on every deploy.
+            PingOne also accepts an absolute URI (containing a colon) for this
+            field; this app's baseline validation keeps to the simpler
+            alnum/underscore/hyphen/period pattern above, so use the PingOne
+            admin console or API directly for a URI-style name. Renaming here
+            is treated as a new policy on the next deploy (matching is by
+            name), not an in-place rename of the old one.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the PingOne admin console."
+
+        - key: "default"
+          label: "Default Policy"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: >
+            WARNING: marking this policy as the environment default demotes
+            every other policy's default flag to false - only one policy per
+            environment can be the default, and PingOne enforces that
+            automatically. PingOne also refuses to delete the environment's
+            current default policy, so make a different policy the default
+            first if you need to remove this one.
+
+    - name: "Actions"
+      icon: "list"
+      description: "Ordered sign-on actions under this policy (JSON array) - reconciled by priority, not by name"
+      fields:
+        - key: "actionsJson"
+          label: "Actions (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The sign-on actions under this policy, as a JSON ARRAY evaluated in
+            ascending `priority` order. Reconciled by priority - an action at a
+            priority that already exists on the live policy is replaced (PUT);
+            a new priority is created (POST). Actions the array does not
+            mention are left untouched (never deleted), so an out-of-band
+            action (e.g. an admin's break-glass MFA step) survives a deploy
+            that does not name it. Every action needs a numeric `priority`
+            (unique within this policy) and a `type`; PingOne's own
+            PINGID_AUTHENTICATION and PINGID_WINLOGIN_PASSWORDLESS_AUTHENTICATION
+            types require the separate PingID workforce product and are not
+            supported here. Six types are supported:
+
+            LOGIN - the base username/password step. Optional `recovery.enabled`
+            and `registration.enabled` booleans (advanced registration config -
+            external URL, population, confirm-attributes - is a documented gap
+            in this release; only the on/off flag is modelled). Example:
+            {"priority":1,"type":"LOGIN","recovery":{"enabled":true},"registration":{"enabled":false}}
+
+            IDENTIFIER_FIRST - collects the identifier before routing to an
+            IdP. Optional `recovery.enabled` and `discoveryRules` (an array of
+            {identityProviderId, attributeContainsText}). Example:
+            {"priority":1,"type":"IDENTIFIER_FIRST","recovery":{"enabled":true},"discoveryRules":[{"identityProviderId":"<idp-id>","attributeContainsText":"@partner.example.com"}]}
+
+            MULTI_FACTOR_AUTHENTICATION - requires `deviceAuthenticationPolicy.id`,
+            the id of an MFA Device Policy (see the separate "MFA Device
+            Policies" config type for the source object - there is no live
+            picker for this id in this release, so paste it in directly, e.g.
+            from GET /deviceAuthenticationPolicies or the admin console).
+            Optional `noDevicesMode` (BYPASS or BLOCK; PingOne defaults to
+            BLOCK) and a `condition` tree. Example:
+            {"priority":2,"type":"MULTI_FACTOR_AUTHENTICATION","deviceAuthenticationPolicy":{"id":"<mfa-device-policy-id>"},"noDevicesMode":"BLOCK","condition":{"lastSignOnOlderThanSeconds":86400}}
+
+            IDENTITY_PROVIDER - routes to an external IdP; requires
+            `identityProvider.id` (see the "Identity Providers" config type for
+            the source object; no live picker here either). Optional
+            `acrValues` and `passUserContext`. Example:
+            {"priority":1,"type":"IDENTITY_PROVIDER","identityProvider":{"id":"<identity-provider-id>"},"acrValues":"urn:mace:pingidentity.com:loa:silver","passUserContext":true}
+
+            AGREEMENT - requires `agreement.id` (PingOne Agreements/Terms of
+            Service are out of scope for this app - not a config type here;
+            find the id in the admin console). Optional `disableDeclineOption`.
+            Example:
+            {"priority":3,"type":"AGREEMENT","agreement":{"id":"<agreement-id>"},"disableDeclineOption":false}
+
+            PROGRESSIVE_PROFILING - requires a non-empty `attributes` array
+            (each {name, required}), `promptText`, `preventMultiplePromptsPerFlow`
+            (boolean, can be false) and a numeric `promptIntervalSeconds`.
+            Example:
+            {"priority":4,"type":"PROGRESSIVE_PROFILING","attributes":[{"name":"name.given","required":true},{"name":"name.family","required":false}],"promptText":"Please complete your profile","preventMultiplePromptsPerFlow":true,"promptIntervalSeconds":7776000}
+
+            Every action also accepts an optional `condition` object (a
+            recursive boolean-logic tree of predicates such as
+            ipReputationHighRisk, geovelocityAnomalyDetected,
+            lastSignOnOlderThanSeconds, userAttributeEquals,
+            userIsMemberOfAnyPopulationId, anonymousNetworkDetected - combined
+            with and/or/not) and, for LOGIN and IDENTITY_PROVIDER,
+            `enforceLockoutForIdentityProviders`. Leave `actionsJson` blank to
+            skip action reconciliation entirely (the policy itself is still
+            created/updated). A full two-step example:
+            [{"priority":1,"type":"LOGIN","recovery":{"enabled":true}},{"priority":2,"type":"MULTI_FACTOR_AUTHENTICATION","deviceAuthenticationPolicy":{"id":"<mfa-device-policy-id>"},"noDevicesMode":"BLOCK"}]

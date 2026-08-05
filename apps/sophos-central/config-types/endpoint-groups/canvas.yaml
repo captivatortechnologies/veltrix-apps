@@ -1,0 +1,69 @@
+# =============================================================================
+# Canvas Template — Sophos Central Endpoint Groups
+#
+# Static endpoint groups — a name, description, endpoint type (computer or
+# server) and an explicit list of member endpoint ids. A per-object resource,
+# reconciled by `name` (Sophos assigns the id on create; `type` is immutable).
+# Membership is a static endpoint-id list — Sophos Central endpoint groups
+# have no dynamic/query-based membership the way some EDR host groups do, so
+# `endpointIds` here must be real endpoint UUIDs (from GET /endpoint/v1/endpoints
+# or the Sophos Central console). Applied via the Sophos Central Endpoint API
+# (POST/GET/PATCH/DELETE /endpoint-groups[/{groupId}], plus its
+# .../endpoints sub-resource for membership).
+# =============================================================================
+
+id: "sophos-central-endpoint-groups"
+name: "Endpoint Group"
+toolType: "sophos-central"
+entityType: "endpoint-groups"
+description: "Manage Sophos Central endpoint groups as code — name, description, endpoint type and static endpoint membership."
+
+item:
+  label: "Endpoint Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Identity"
+      icon: "folder"
+      description: "The group's name, description and endpoint type"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 250
+            pattern: "^[^#,+\"\\\\<>;]+$"
+          helpText: "The group's name — its logical identity. Must be unique. Cannot contain # , + \" \\ < > ;"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: "Optional description of this group's purpose."
+
+        - key: "type"
+          label: "Endpoint Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "computer"
+          options:
+            - label: "Computer (workstation/laptop)"
+              value: "computer"
+            - label: "Server"
+              value: "server"
+          helpText: "Immutable after creation — delete and recreate to change a group's endpoint type."
+
+    - name: "Membership"
+      icon: "users"
+      description: "Static list of member endpoints"
+      fields:
+        - key: "endpointIds"
+          label: "Endpoint IDs"
+          fieldType: "tags"
+          required: false
+          helpText: "Endpoint UUIDs to place in this group (from GET /endpoint/v1/endpoints or the Sophos Central console). Sophos endpoint groups have no dynamic/query-based membership — this is a static list, fully reconciled on every deploy."

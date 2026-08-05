@@ -1,0 +1,415 @@
+# =============================================================================
+# Canvas Template - PingOne Identity Providers
+#
+# Declares ONE external identity provider - the item. Users add as many IdPs
+# as their environment needs. An IdP's identity in PingOne is its NAME; deploy
+# lists identity providers, matches on the name, and PUTs (update) or POSTs
+# (create) accordingly - PingOne has no upsert endpoint.
+#
+# ONE item = ONE IdP of type OPENID_CONNECT | SAML | GOOGLE | MICROSOFT |
+# FACEBOOK | GITHUB | LINKEDIN_OIDC | AMAZON | APPLE | PAYPAL | TWITTER |
+# YAHOO. Every provider-specific credential/endpoint group below is shown only
+# for the type(s) it applies to (visibleWhen on "type"); deploy.ts assembles
+# the exact per-type API body from whichever group the user populated.
+#
+# SENSITIVE - an identity provider governs FEDERATED SIGN-IN. A misconfigured
+# provider can break sign-in for its users. Every secret field (client secret,
+# app secret, Apple's signing key) is WRITE-ONLY: PingOne never returns it, so
+# it is written on every deploy but is NEVER compared during drift detection.
+#
+# Field keys must match what config-types/identity-providers/validate.ts checks.
+# API reference: https://apidocs.pingidentity.com/pingone/platform/v1/api/#identity-providers
+# =============================================================================
+
+id: "ping-identity-identity-providers"
+name: "Identity Provider Configuration"
+toolType: "ping-identity"
+entityType: "identity-providers"
+description: "Define PingOne external identity providers (OIDC, SAML and social) as code through the PingOne Platform API. SENSITIVE: a misconfigured provider can break federated sign-in. Client secrets, app secrets and Apple's signing key are write-only and never drift-checked."
+
+item:
+  label: "Identity Provider"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Provider"
+      icon: "key"
+      description: "Provider kind, name and just-in-time provisioning"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            Name of the identity provider in PingOne (max 256 chars). Must be
+            unique within this canvas - it is the logical identity deploy
+            matches on.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional free-text description of this provider's purpose."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether users can sign on through this identity provider."
+
+        - key: "type"
+          label: "Provider Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "OPENID_CONNECT"
+          options:
+            - label: "Generic OpenID Connect (OIDC)"
+              value: "OPENID_CONNECT"
+            - label: "Generic SAML"
+              value: "SAML"
+            - label: "Google"
+              value: "GOOGLE"
+            - label: "Microsoft"
+              value: "MICROSOFT"
+            - label: "Facebook"
+              value: "FACEBOOK"
+            - label: "GitHub"
+              value: "GITHUB"
+            - label: "LinkedIn (OIDC)"
+              value: "LINKEDIN_OIDC"
+            - label: "Amazon"
+              value: "AMAZON"
+            - label: "Apple"
+              value: "APPLE"
+            - label: "PayPal"
+              value: "PAYPAL"
+            - label: "Twitter"
+              value: "TWITTER"
+            - label: "Yahoo"
+              value: "YAHOO"
+          helpText: >
+            The identity-provider kind. Selects which credential/endpoint group
+            below applies. PingOne's legacy "LINKEDIN" type is not offered here
+            - use LinkedIn (OIDC) instead - and the internal "PING_ONE" type is
+            never user-creatable, so it is omitted too.
+
+        - key: "registrationPopulationId"
+          label: "JIT Registration Population"
+          fieldType: "remote-select"
+          optionsSource: "populations"
+          helpText: >
+            Enables just-in-time provisioning - new external users are created
+            in this population on first sign-in. Leave blank to disable JIT
+            provisioning for this provider.
+
+    - name: "Social / OAuth Credentials"
+      icon: "share-2"
+      description: "OAuth2 client credentials for the social and enterprise providers"
+      fields:
+        - key: "socialClientId"
+          label: "Client ID"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            in: ["GOOGLE", "MICROSOFT", "FACEBOOK", "GITHUB", "LINKEDIN_OIDC", "AMAZON", "PAYPAL", "TWITTER", "YAHOO"]
+          helpText: "OAuth2 client ID issued by the provider. For Facebook, this is the App ID."
+
+        - key: "socialClientSecret"
+          label: "Client Secret"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            in: ["GOOGLE", "MICROSOFT", "FACEBOOK", "GITHUB", "LINKEDIN_OIDC", "AMAZON", "PAYPAL", "TWITTER", "YAHOO"]
+          helpText: >
+            WRITE-ONLY secret - the OAuth2 client secret (for Facebook, the App
+            Secret). PingOne never returns it, so it is written on every deploy
+            but is never compared during drift detection.
+
+        - key: "microsoftTenantId"
+          label: "Microsoft Entra Tenant ID"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "MICROSOFT"
+          helpText: "Optional. Set only when this app registration is restricted to a specific Entra ID tenant."
+
+        - key: "paypalEnvironment"
+          label: "PayPal Environment"
+          fieldType: "select"
+          defaultValue: "live"
+          options:
+            - label: "Live"
+              value: "live"
+            - label: "Sandbox"
+              value: "sandbox"
+          visibleWhen:
+            field: "type"
+            equals: "PAYPAL"
+          helpText: "Whether this PayPal app is registered in PayPal's live or sandbox environment."
+
+    - name: "Apple Credentials"
+      icon: "lock"
+      description: "Sign In with Apple service credentials"
+      fields:
+        - key: "appleClientId"
+          label: "Services ID (Client ID)"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "APPLE"
+          helpText: "The Services ID configured in the Apple Developer portal for Sign In with Apple."
+
+        - key: "appleTeamId"
+          label: "Team ID"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "APPLE"
+          helpText: "Your Apple Developer Team ID."
+
+        - key: "appleKeyId"
+          label: "Key ID"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "APPLE"
+          helpText: "The Key ID of the private key registered for Sign In with Apple."
+
+        - key: "appleClientSecretSigningKey"
+          label: "Private Key (PEM)"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "APPLE"
+          helpText: >
+            WRITE-ONLY secret - the private key (PEM) PingOne uses to sign
+            Apple's client secret. PingOne never returns it, so it is written
+            on every deploy but is never compared during drift detection.
+
+    - name: "OIDC Configuration"
+      icon: "plug"
+      description: "Endpoints, scopes and credentials for a custom OpenID Connect provider"
+      fields:
+        - key: "oidcIssuer"
+          label: "Issuer"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "OPENID_CONNECT"
+          helpText: "The OIDC issuer identifier - an https URL."
+
+        - key: "oidcAuthorizationEndpoint"
+          label: "Authorization Endpoint"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "OPENID_CONNECT"
+          helpText: "The provider's authorization endpoint - an https URL."
+
+        - key: "oidcTokenEndpoint"
+          label: "Token Endpoint"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "OPENID_CONNECT"
+          helpText: "The provider's token endpoint."
+
+        - key: "oidcJwksEndpoint"
+          label: "JWKS Endpoint"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "OPENID_CONNECT"
+          helpText: "The provider's JSON Web Key Set endpoint - an https URL."
+
+        - key: "oidcUserInfoEndpoint"
+          label: "UserInfo Endpoint"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "OPENID_CONNECT"
+          helpText: "Optional. The provider's UserInfo endpoint."
+
+        - key: "oidcDiscoveryEndpoint"
+          label: "Discovery Endpoint"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "OPENID_CONNECT"
+          helpText: "Optional. The provider's OpenID Connect discovery document URL."
+
+        - key: "oidcClientId"
+          label: "Client ID"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "OPENID_CONNECT"
+          helpText: "OAuth2 client ID issued by the OIDC provider."
+
+        - key: "oidcClientSecret"
+          label: "Client Secret"
+          fieldType: "password"
+          visibleWhen:
+            field: "type"
+            equals: "OPENID_CONNECT"
+          helpText: >
+            WRITE-ONLY secret - the OAuth2 client secret. PingOne never
+            returns it, so it is written on every deploy but is never compared
+            during drift detection.
+
+        - key: "oidcScopes"
+          label: "Scopes"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "OPENID_CONNECT"
+          helpText: "OAuth2 scopes requested from the provider, e.g. openid, email, profile."
+
+        - key: "oidcTokenEndpointAuthMethod"
+          label: "Token Endpoint Auth Method"
+          fieldType: "select"
+          defaultValue: "CLIENT_SECRET_BASIC"
+          options:
+            - label: "Client Secret Basic"
+              value: "CLIENT_SECRET_BASIC"
+            - label: "Client Secret Post"
+              value: "CLIENT_SECRET_POST"
+            - label: "None"
+              value: "NONE"
+          visibleWhen:
+            field: "type"
+            equals: "OPENID_CONNECT"
+          helpText: "How the client authenticates when calling the token endpoint."
+
+        - key: "oidcPkceMethod"
+          label: "PKCE Method"
+          fieldType: "select"
+          defaultValue: "NONE"
+          options:
+            - label: "None"
+              value: "NONE"
+            - label: "S256"
+              value: "S256"
+          visibleWhen:
+            field: "type"
+            equals: "OPENID_CONNECT"
+          helpText: "Whether to use PKCE (S256) on the authorization code flow."
+
+    - name: "SAML Configuration"
+      icon: "shield"
+      description: "Endpoints, bindings and signing for a custom SAML 2.0 provider"
+      fields:
+        - key: "samlIdpEntityId"
+          label: "IdP Entity ID"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "SAML"
+          helpText: "The SAML identity provider's entity ID (issuer)."
+
+        - key: "samlSpEntityId"
+          label: "SP Entity ID"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "SAML"
+          helpText: "The service-provider entity ID PingOne presents to this IdP."
+
+        - key: "samlSsoEndpoint"
+          label: "SSO Endpoint"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "SAML"
+          helpText: "The IdP's single sign-on URL."
+
+        - key: "samlSsoBinding"
+          label: "SSO Binding"
+          fieldType: "select"
+          defaultValue: "HTTP_POST"
+          options:
+            - label: "HTTP POST"
+              value: "HTTP_POST"
+            - label: "HTTP Redirect"
+              value: "HTTP_REDIRECT"
+          visibleWhen:
+            field: "type"
+            equals: "SAML"
+          helpText: "The SAML binding used to send the authentication request."
+
+        - key: "samlIdpVerificationCertificateIds"
+          label: "IdP Verification Certificate IDs"
+          fieldType: "tags"
+          visibleWhen:
+            field: "type"
+            equals: "SAML"
+          helpText: >
+            Certificate ids (from PingOne certificate management, out of scope
+            for this app) used to verify this IdP's SAML responses. Paste the
+            existing certificate id(s); at least one is required.
+
+        - key: "samlAuthenticationRequestSigned"
+          label: "Sign Authentication Requests"
+          fieldType: "checkbox"
+          defaultValue: false
+          visibleWhen:
+            field: "type"
+            equals: "SAML"
+          helpText: "Whether PingOne signs the outgoing SAML authentication request."
+
+        - key: "samlSloBinding"
+          label: "SLO Binding"
+          fieldType: "select"
+          defaultValue: "HTTP_POST"
+          options:
+            - label: "HTTP POST"
+              value: "HTTP_POST"
+            - label: "HTTP Redirect"
+              value: "HTTP_REDIRECT"
+          visibleWhen:
+            field: "type"
+            equals: "SAML"
+          helpText: "The SAML binding used for single logout."
+
+        - key: "samlSloEndpoint"
+          label: "SLO Endpoint"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "SAML"
+          helpText: "Optional. The IdP's single logout URL."
+
+        - key: "samlSpSigningKeyId"
+          label: "SP Signing Key ID"
+          fieldType: "text"
+          visibleWhen:
+            field: "type"
+            equals: "SAML"
+          helpText: >
+            Optional. A certificate id (from PingOne certificate management,
+            out of scope for this app) PingOne uses to sign outgoing SAML
+            requests to this IdP.
+
+        - key: "samlSpSigningAlgorithm"
+          label: "SP Signing Algorithm"
+          fieldType: "select"
+          options:
+            - label: "SHA256 with RSA"
+              value: "SHA256withRSA"
+            - label: "SHA384 with RSA"
+              value: "SHA384withRSA"
+            - label: "SHA512 with RSA"
+              value: "SHA512withRSA"
+            - label: "SHA256 with ECDSA"
+              value: "SHA256withECDSA"
+            - label: "SHA384 with ECDSA"
+              value: "SHA384withECDSA"
+            - label: "SHA512 with ECDSA"
+              value: "SHA512withECDSA"
+          visibleWhen:
+            field: "type"
+            equals: "SAML"
+          helpText: "Optional. Only used when an SP Signing Key ID is set."

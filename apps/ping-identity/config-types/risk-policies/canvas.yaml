@@ -1,0 +1,110 @@
+# =============================================================================
+# Canvas Template - PingOne Protect Risk Policies
+#
+# Declares ONE risk policy set - the item. A PingOne environment can hold
+# several sets; a risk evaluation call picks one (or falls back to whichever
+# set has `default: true`). Unlike sign-on-policies/resources, this API has NO
+# child sub-resource endpoints at all: the ordered override/mitigation rules
+# (`riskPolicies`) are an EMBEDDED array sent whole on every create/update, and
+# array ORDER is the evaluation priority - first match wins. That nested shape
+# does not fit flat fields, so it is modelled as a JSON array textarea
+# (`riskPoliciesJson`), the same design choice okta-identity's policies config
+# type uses for its `rulesJson`.
+#
+# A set's identity in PingOne is its NAME; deploy lists sets, matches on the
+# name, and PUTs (update) or POSTs (create) accordingly - there is no upsert.
+#
+# `defaultResult` is NOT a canvas field: PingOne's API currently only accepts
+# `{level:"LOW"}` there, so deploy.ts always sends exactly that fixed value.
+#
+# Field keys must match what config-types/risk-policies/validate.ts checks.
+# API reference: https://apidocs.pingidentity.com/pingone/platform/v1/api/#risk-policies
+# =============================================================================
+
+id: "ping-identity-risk-policies"
+name: "Risk Policy Configuration"
+toolType: "ping-identity"
+entityType: "risk-policies"
+description: "Define PingOne Protect risk policy sets - evaluated predictors and an ordered list of override/mitigation rules - as code through the PingOne Platform API."
+
+item:
+  label: "Risk Policy Set"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 50
+  groups:
+    - name: "Risk Policy Set"
+      icon: "shield-alert"
+      description: "Core identity and default-assignment for this risk policy set"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            Name of the risk policy set in PingOne (max 256 chars). Must be
+            unique within this canvas - it is the logical identity deploy
+            matches on.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the PingOne admin console."
+
+        - key: "default"
+          label: "Default Risk Policy Set"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: >
+            Makes this the environment's default risk policy set; demotes any
+            other set's default flag. Used whenever a risk evaluation call
+            does not specify an explicit risk policy set id.
+
+    - name: "Predictors"
+      icon: "activity"
+      description: "Which risk predictors this set evaluates"
+      fields:
+        - key: "evaluatedPredictorIds"
+          label: "Evaluated Predictors"
+          fieldType: "remote-multiselect"
+          optionsSource: "riskPredictors"
+          optionsMulti: true
+          helpText: >
+            Which risk predictors this set evaluates. Leave empty to evaluate
+            every licensed predictor.
+
+    - name: "Policies (ordered, first match wins)"
+      icon: "list-ordered"
+      description: "The ordered override/mitigation rules evaluated within this set"
+      fields:
+        - key: "riskPoliciesJson"
+          label: "Policies (JSON array)"
+          fieldType: "textarea"
+          helpText: >
+            The ordered override/mitigation rules for this risk policy set, as
+            a JSON ARRAY of policy objects. Array ORDER is the evaluation
+            priority - the first matching policy wins; PingOne assigns and
+            returns a `priority` per entry from that order, it is never sent
+            back. Leave blank for a set with no override rules (every
+            evaluation falls through to the LOW default result).
+
+            Each policy needs a `condition` (a discriminated union on
+            `condition.type`) and a `result`. The two common condition types:
+
+            IP_RANGE - match source IP against CIDR ranges:
+            [{"name":"Block known bad ASN","condition":{"type":"IP_RANGE","contains":"${event.ip}","ipRange":["203.0.113.0/24"]},"result":{"level":"HIGH","type":"VALUE"}}]
+
+            VALUE_COMPARISON - match a named event attribute against a value:
+            [{"name":"Step up on anomalous device","condition":{"type":"VALUE_COMPARISON","equals":{"compactName":"deviceValue","value":"HIGH"}},"result":{"level":"MEDIUM","type":"VALUE"}}]
+
+            Two advanced condition types are also supported for weighted/scored
+            policies (less common - most sets only need IP_RANGE/VALUE_COMPARISON):
+
+            AGGREGATED_WEIGHTS - sum weighted predictor values against a threshold:
+            [{"name":"Weighted composite risk","condition":{"type":"AGGREGATED_WEIGHTS","aggregatedWeights":[{"value":"HIGH","weight":80},{"value":"MEDIUM","weight":40}]},"result":{"level":"MEDIUM","type":"VALUE"}}]
+
+            AGGREGATED_SCORES - sum numeric predictor scores against a threshold:
+            [{"name":"Scored composite risk","condition":{"type":"AGGREGATED_SCORES","aggregatedScores":[{"value":"HIGH","score":90}]},"result":{"level":"HIGH","type":"VALUE"}}]

@@ -1,0 +1,85 @@
+# =============================================================================
+# Canvas Template - PingOne Groups
+#
+# Declares ONE group - the item. Users add as many groups as they need. A
+# group's logical identity in PingOne is the PAIR (name, population.id) - the
+# SAME name may exist once per population, and once more at the environment
+# level (no population assigned). config-types/groups/validate.ts enforces
+# uniqueness across the canvas on that pair (not name alone), and deploy.ts
+# matches live groups the same way.
+#
+# Field keys must match what config-types/groups/validate.ts checks.
+# API reference: https://apidocs.pingidentity.com/pingone/platform/v1/api/#groups
+# =============================================================================
+
+id: "ping-identity-groups"
+name: "Group Configuration"
+toolType: "ping-identity"
+entityType: "groups"
+description: "Define PingOne groups (static, or SCIM-filter dynamic), optionally scoped to a population, as code through the PingOne Platform API."
+
+item:
+  label: "Group"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Group"
+      icon: "users"
+      description: "Group name, description and population scope"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 256
+          helpText: >
+            Name of the group in PingOne (max 256 chars). A group's true
+            uniqueness is the PAIR of name + population - the same name may
+            exist once per population, and once more at the environment
+            level. This canvas enforces uniqueness on that pair, not on the
+            name alone.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the PingOne admin console."
+
+        - key: "populationId"
+          label: "Population"
+          fieldType: "remote-select"
+          optionsSource: "populations"
+          helpText: "Leave blank for an environment-level group not scoped to any population."
+
+    - name: "Dynamic membership"
+      icon: "filter"
+      description: "Optional SCIM filter for dynamic (rule-based) membership"
+      fields:
+        - key: "userFilter"
+          label: "Membership Filter"
+          fieldType: "textarea"
+          helpText: >
+            A SCIM filter that determines this group's membership
+            dynamically, e.g. population.id eq "51d75323-f8b6-4d1e-9a3a-example"
+            or email sw "admin". Leave blank for a static group whose
+            membership is managed some other way (e.g. directly in the
+            PingOne admin console).
+
+    - name: "Advanced"
+      icon: "settings"
+      description: "External id and arbitrary custom data"
+      fields:
+        - key: "externalId"
+          label: "External ID"
+          fieldType: "text"
+          helpText: "Optional identifier correlating this group to a record in an external system."
+
+        - key: "customDataJson"
+          label: "Custom Data (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional arbitrary JSON object stored on the group, e.g.
+            {"department": "Engineering", "costCenter": "1234"}. Must be a
+            JSON object - not an array or a primitive value.

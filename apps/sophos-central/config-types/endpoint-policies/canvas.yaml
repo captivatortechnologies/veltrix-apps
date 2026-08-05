@@ -1,0 +1,136 @@
+# =============================================================================
+# Canvas Template — Sophos Central Endpoint Policies
+#
+# A named policy is a PER-OBJECT resource: Sophos assigns it a server-side
+# `id` on create, and a tenant can hold many per `type`. Reconciled by
+# (name, type) — list, match, update or create. `type` is IMMUTABLE after
+# creation (delete and recreate to change it).
+#
+# The settings schema is large, deeply nested, and type-specific — Sophos's
+# own docs describe it as "keys have specific names documented here" rather
+# than a fixed schema. Following Cisco Meraki's Group Policies precedent
+# (config-types/group-policies in the sibling app), only the well-known
+# scalar fields (name, type, enabled, priority, disableAt) are typed canvas
+# fields; `appliesTo` (who/what the policy targets) and `settings` (the
+# policy's actual configuration) are each authored as one JSON blob and
+# passed through as declared — Sophos validates the nested shape at deploy
+# time. Applied via the Sophos Central Endpoint API
+# (POST/GET/PATCH/DELETE /policies[/{policyId}]).
+# =============================================================================
+
+id: "sophos-central-endpoint-policies"
+name: "Endpoint Policy"
+toolType: "sophos-central"
+entityType: "endpoint-policies"
+description: "Manage Sophos Central endpoint policies as code — threat protection, peripheral control, application control, web control, device encryption, Windows firewall, agent updating, DNS protection, and their server-workload equivalents — reconciled by (name, type) via the Sophos Central Endpoint API."
+
+item:
+  label: "Endpoint Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "shield"
+      description: "The policy's name, type and enablement"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^\\S(?:.*\\S)?$"
+            maxLength: 100
+          helpText: "The policy's name — its logical identity, unique per policy type. Sophos assigns the id on create."
+
+        - key: "type"
+          label: "Policy Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "threat-protection"
+          options:
+            - label: "Threat Protection"
+              value: "threat-protection"
+            - label: "Peripheral Control"
+              value: "peripheral-control"
+            - label: "Application Control"
+              value: "application-control"
+            - label: "Web Control"
+              value: "web-control"
+            - label: "Agent Updating"
+              value: "agent-updating"
+            - label: "Windows Firewall"
+              value: "windows-firewall"
+            - label: "Device Encryption"
+              value: "device-encryption"
+            - label: "Data Collection and Investigation"
+              value: "data-collection-and-investigation"
+            - label: "Endpoint DNS Protection"
+              value: "endpoint-dns-protection"
+            - label: "Server: Threat Protection"
+              value: "server-threat-protection"
+            - label: "Server: Peripheral Control"
+              value: "server-peripheral-control"
+            - label: "Server: Application Control"
+              value: "server-application-control"
+            - label: "Server: Web Control"
+              value: "server-web-control"
+            - label: "Server: Lockdown"
+              value: "server-lockdown"
+            - label: "Server: Agent Updating"
+              value: "server-agent-updating"
+            - label: "Server: Windows Firewall"
+              value: "server-windows-firewall"
+            - label: "Server: File Integrity Monitoring"
+              value: "server-file-integrity-monitoring"
+            - label: "Server: Linux Runtime Detection"
+              value: "server-linux-runtime-detection"
+            - label: "Server: Data Collection and Investigation"
+              value: "server-data-collection-and-investigation"
+          helpText: "Immutable after creation — delete and recreate to change a policy's type. Sophos's public Endpoint Policy API does not currently expose a \"data-loss-prevention\" policy type — see README Coverage."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: true
+          helpText: "Whether the policy is turned on."
+
+        - key: "priority"
+          label: "Priority"
+          fieldType: "number"
+          required: false
+          helpText: "Policy priority (evaluation order among policies of the same type). Leave blank to let Sophos assign it."
+
+        - key: "disableAt"
+          label: "Disable At (UTC)"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^$|^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z?$"
+          helpText: "Optional ISO-8601 UTC timestamp after which the policy turns itself off, e.g. 2026-12-31T00:00:00Z."
+
+    - name: "Scope"
+      icon: "target"
+      description: "Who and what this policy applies to"
+      fields:
+        - key: "appliesTo"
+          label: "Applies To (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 50000
+          helpText: "JSON object scoping the policy — known keys from Sophos's documented examples: \"endpoints\" (array of endpoint UUIDs), \"users\" (array of user UUIDs), \"userGroups\" (array of user-group UUIDs). Leave blank ({}) to apply tenant-wide, subject to priority ordering against other policies of the same type."
+
+    - name: "Settings"
+      icon: "sliders"
+      description: "The policy's actual configuration"
+      fields:
+        - key: "settings"
+          label: "Settings (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 200000
+          helpText: 'The policy-type-specific settings object, e.g. { "endpoint.threat-protection.tamper-protection.enabled": { "value": true } }. Sophos documents the exact keys per policy type; unrecognized keys are rejected by Sophos at deploy time, not by this app.'

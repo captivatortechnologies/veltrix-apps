@@ -1,0 +1,11 @@
+# Defaults for a new sign-on-policy item.
+#
+# Intentionally empty: the platform does not seed system default values into a
+# new item - it starts blank. Any values here would be a FLAT map keyed by the
+# canvas field keys (name, description, default, actionsJson), since a
+# policy's presentational groups share one flat item record.
+#
+# Deliberately NOT seeding actionsJson: the correct action set is entirely
+# deployment-specific (there is no safe generic starting policy to suggest),
+# and an empty/omitted actionsJson is a valid, meaningful choice - it means
+# "create/update the policy but skip action reconciliation".

@@ -1,0 +1,305 @@
+# =============================================================================
+# Sophos Central (Veltrix app) — Manifest
+#
+# v0.1.0 — first release. Eight configuration types across the genuinely
+# declarative, round-trippable write surface of the Sophos Central public API
+# (developer.sophos.com), researched against the live OAS 3.0 documentation:
+#   - endpoint-policies                 — named endpoint policies (threat
+#     protection, peripheral/application/web control, device encryption,
+#     Windows firewall, agent updating, DNS protection, plus their server-
+#     workload equivalents), reconciled by (name, type).
+#   - endpoint-groups                   — static endpoint groups (name,
+#     description, type, member endpoint ids), reconciled by name.
+#   - scanning-exclusions               — the tenant-wide scanning exclusion
+#     list (path/process/web/pua/AMSI/behavioral/journal-hashing), reconciled
+#     by (type, value).
+#   - allowed-items                     — the tenant-wide allow list (path,
+#     SHA256, certificate signer, POSIX path), reconciled by (type, value).
+#   - blocked-items                     — the tenant-wide SHA256 block list,
+#     reconciled by SHA256 (create/delete only — Sophos has no PATCH here).
+#   - web-control-local-sites           — custom URL -> category/tag
+#     classifications for Web Control, reconciled by URL.
+#   - exploit-mitigation-applications   — custom Exploit Mitigation
+#     (HitmanPro.Alert) application path exclusions, reconciled by path.
+#   - custom-roles                      — tenant RBAC roles (name,
+#     description, principal type, permission set grants), reconciled by name.
+#
+# See README.md's "Coverage" section for what is deliberately NOT managed
+# (per-endpoint actions, read-only alerts/detections, agent installers,
+# Firewall Management's whole-config export/import model, Organization/
+# Partner-level resources, licensing) and why.
+#
+# Every configuration type shares lib/sophosCentral.ts (OAuth2 client-
+# credentials auth against the global id.sophos.com token endpoint, Who-Am-I
+# tenant/data-region discovery, request/retry/pagination) and
+# lib/sophosApi.ts (typed per-resource wrappers) plus lib/sophosCommon.ts
+# (canvas field parsing, drift comparison, shared getStatus).
+# =============================================================================
+
+id: sophos-central
+name: Sophos Central
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Sophos Central endpoint configuration as code through the Sophos
+  Central public APIs: endpoint policies (threat protection, application/
+  peripheral/web control, device encryption, Windows firewall, agent
+  updating, DNS protection, and their server-workload equivalents), endpoint
+  groups, the tenant-wide scanning exclusion / allowed-item / blocked-item
+  lists, Web Control local site classifications, Exploit Mitigation
+  application exclusions, and custom RBAC roles. Validation, drift detection
+  and rollback are handled by the Security-as-Code pipeline. Authenticates
+  with an OAuth2 client-credentials service principal against the global
+  Sophos ID token endpoint, then resolves the tenant and its data-region API
+  host via the Who-Am-I API. See README.md "Coverage" for what is managed vs.
+  intentionally excluded.
+category: EDR
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/sophos-central
+icon: "🛡️"
+
+platform:
+  minVersion: "1.0.0"
+
+# Sophos's brand navy — used as an accent in defined slots only, never as a
+# page-wide theme.
+branding:
+  primaryColor: "#00205B"
+  accentColor: "#00A88E"
+  logo: ./assets/logo.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: endpoint-policies
+      actions: [read, write, delete]
+      description: Manage Sophos Central endpoint policies (threat protection, application/peripheral/web control, device encryption, Windows firewall, agent updating, DNS protection, and server-workload equivalents)
+    - resource: endpoint-groups
+      actions: [read, write, delete]
+      description: Manage Sophos Central endpoint groups and their static endpoint membership
+    - resource: scanning-exclusions
+      actions: [read, write, delete]
+      description: Manage the Sophos Central tenant-wide scanning exclusion list
+    - resource: allowed-items
+      actions: [read, write, delete]
+      description: Manage the Sophos Central tenant-wide allowed-items (allow) list
+    - resource: blocked-items
+      actions: [read, write, delete]
+      description: Manage the Sophos Central tenant-wide blocked-items (SHA256 block) list
+    - resource: web-control-local-sites
+      actions: [read, write, delete]
+      description: Manage Sophos Central Web Control local site (custom URL category/tag) classifications
+    - resource: exploit-mitigation-applications
+      actions: [read, write, delete]
+      description: Manage Sophos Central Exploit Mitigation custom application path exclusions
+    - resource: custom-roles
+      actions: [read, write, delete]
+      description: Manage Sophos Central custom tenant RBAC roles
+
+pipeline:
+  configurationTypes:
+    - id: endpoint-policies
+      group: "Endpoint Policies"
+      name: Endpoint Policy Configuration
+      description: Sophos Central endpoint policies — threat protection, peripheral/application/web control, device encryption, Windows firewall, agent updating, DNS protection, and their server-workload equivalents — reconciled by (name, type)
+      canvasTemplate: config-types/endpoint-policies/canvas.yaml
+      defaultConfig: config-types/endpoint-policies/defaults.yaml
+      handlers:
+        validate: config-types/endpoint-policies/validate
+        deploy: config-types/endpoint-policies/deploy
+        rollback: config-types/endpoint-policies/rollback
+        healthCheck: config-types/endpoint-policies/healthCheck
+        driftDetect: config-types/endpoint-policies/driftDetect
+        getStatus: config-types/endpoint-policies/getStatus
+      targets:
+        componentTypes: [sophos-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: endpoint-groups
+      group: "Endpoint Management"
+      name: Endpoint Group Configuration
+      description: Sophos Central static endpoint groups (name, description, endpoint type, member endpoint ids), reconciled by name
+      canvasTemplate: config-types/endpoint-groups/canvas.yaml
+      defaultConfig: config-types/endpoint-groups/defaults.yaml
+      handlers:
+        validate: config-types/endpoint-groups/validate
+        deploy: config-types/endpoint-groups/deploy
+        rollback: config-types/endpoint-groups/rollback
+        healthCheck: config-types/endpoint-groups/healthCheck
+        driftDetect: config-types/endpoint-groups/driftDetect
+        getStatus: config-types/endpoint-groups/getStatus
+      targets:
+        componentTypes: [sophos-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: scanning-exclusions
+      group: "Exclusions"
+      name: Scanning Exclusion Configuration
+      description: The Sophos Central tenant-wide scanning exclusion list (path/process/web/PUA/AMSI/behavioral/journal-hashing), reconciled by (type, value)
+      canvasTemplate: config-types/scanning-exclusions/canvas.yaml
+      defaultConfig: config-types/scanning-exclusions/defaults.yaml
+      handlers:
+        validate: config-types/scanning-exclusions/validate
+        deploy: config-types/scanning-exclusions/deploy
+        rollback: config-types/scanning-exclusions/rollback
+        healthCheck: config-types/scanning-exclusions/healthCheck
+        driftDetect: config-types/scanning-exclusions/driftDetect
+        getStatus: config-types/scanning-exclusions/getStatus
+      targets:
+        componentTypes: [sophos-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: allowed-items
+      group: "Exclusions"
+      name: Allowed Item Configuration
+      description: The Sophos Central tenant-wide allow list (path, SHA256, certificate signer, POSIX path), reconciled by (type, value)
+      canvasTemplate: config-types/allowed-items/canvas.yaml
+      defaultConfig: config-types/allowed-items/defaults.yaml
+      handlers:
+        validate: config-types/allowed-items/validate
+        deploy: config-types/allowed-items/deploy
+        rollback: config-types/allowed-items/rollback
+        healthCheck: config-types/allowed-items/healthCheck
+        driftDetect: config-types/allowed-items/driftDetect
+        getStatus: config-types/allowed-items/getStatus
+      targets:
+        componentTypes: [sophos-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: blocked-items
+      group: "Exclusions"
+      name: Blocked Item Configuration
+      description: The Sophos Central tenant-wide SHA256 block list, reconciled by SHA256 (create/delete only — Sophos has no PATCH for this resource)
+      canvasTemplate: config-types/blocked-items/canvas.yaml
+      defaultConfig: config-types/blocked-items/defaults.yaml
+      handlers:
+        validate: config-types/blocked-items/validate
+        deploy: config-types/blocked-items/deploy
+        rollback: config-types/blocked-items/rollback
+        healthCheck: config-types/blocked-items/healthCheck
+        driftDetect: config-types/blocked-items/driftDetect
+        getStatus: config-types/blocked-items/getStatus
+      targets:
+        componentTypes: [sophos-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: exploit-mitigation-applications
+      group: "Exclusions"
+      name: Exploit Mitigation Exclusion Configuration
+      description: Sophos Central Exploit Mitigation (HitmanPro.Alert) custom application path exclusions, reconciled by path
+      canvasTemplate: config-types/exploit-mitigation-applications/canvas.yaml
+      defaultConfig: config-types/exploit-mitigation-applications/defaults.yaml
+      handlers:
+        validate: config-types/exploit-mitigation-applications/validate
+        deploy: config-types/exploit-mitigation-applications/deploy
+        rollback: config-types/exploit-mitigation-applications/rollback
+        healthCheck: config-types/exploit-mitigation-applications/healthCheck
+        driftDetect: config-types/exploit-mitigation-applications/driftDetect
+        getStatus: config-types/exploit-mitigation-applications/getStatus
+      targets:
+        componentTypes: [sophos-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: web-control-local-sites
+      group: "Web Control"
+      name: Local Site Configuration
+      description: Sophos Central Web Control local site (custom URL -> category/tag) classifications, reconciled by URL
+      canvasTemplate: config-types/web-control-local-sites/canvas.yaml
+      defaultConfig: config-types/web-control-local-sites/defaults.yaml
+      handlers:
+        validate: config-types/web-control-local-sites/validate
+        deploy: config-types/web-control-local-sites/deploy
+        rollback: config-types/web-control-local-sites/rollback
+        healthCheck: config-types/web-control-local-sites/healthCheck
+        driftDetect: config-types/web-control-local-sites/driftDetect
+        getStatus: config-types/web-control-local-sites/getStatus
+      targets:
+        componentTypes: [sophos-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: custom-roles
+      group: "Platform Administration"
+      name: Custom Role Configuration
+      description: Sophos Central custom tenant RBAC roles (name, description, principal type, permission set grants), reconciled by name
+      canvasTemplate: config-types/custom-roles/canvas.yaml
+      defaultConfig: config-types/custom-roles/defaults.yaml
+      handlers:
+        validate: config-types/custom-roles/validate
+        deploy: config-types/custom-roles/deploy
+        rollback: config-types/custom-roles/rollback
+        healthCheck: config-types/custom-roles/healthCheck
+        driftDetect: config-types/custom-roles/driftDetect
+        getStatus: config-types/custom-roles/getStatus
+      targets:
+        componentTypes: [sophos-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/sophos-central
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — app-level Settings item (Settings nav group). Holds the
+    # OAuth2 service-principal credential used to reach the Sophos Central APIs.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+      order: 1
+      layout: standard
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: verifies a Connection's service-
+# principal credential against Sophos ID (OAuth2 token exchange) and the
+# Who-Am-I API (tenant + data-region resolution).
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: API Request Timeout (seconds)
+    description: Timeout applied to each Sophos Central API request
+    default: 30
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated

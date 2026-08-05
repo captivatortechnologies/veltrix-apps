@@ -1,0 +1,13 @@
+# Defaults for a new MFA-device-policy item.
+#
+# Intentionally empty: the platform no longer seeds system default values into a
+# new item - it starts blank (the canvas.yaml `defaultValue` on each field
+# supplies the initial values shown in the UI). Any values here would be a FLAT
+# map keyed by the canvas field keys (name, default, newDeviceNotification,
+# deviceSelection, ignoreUserLock, smsEnabled, smsOtpLifetimeSeconds, ...),
+# since a policy's presentational groups share one flat item record, e.g.:
+#   name: "Default MFA Policy"
+#   default: true
+#   newDeviceNotification: NONE
+#   smsEnabled: true
+#   smsOtpLifetimeSeconds: 180

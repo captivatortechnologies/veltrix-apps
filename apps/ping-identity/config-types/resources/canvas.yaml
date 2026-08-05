@@ -1,0 +1,107 @@
+# =============================================================================
+# Canvas Template - PingOne Resources & Scopes
+#
+# Declares ONE custom API resource (the item), with its OAuth scopes authored
+# as a nested JSON array. Reconciled by resource NAME; scopes within a
+# resource are reconciled by scope name and are FULLY SYNCED - a live scope
+# no longer declared here is DELETED on the next deploy (the same "fully
+# declare, fully replace" nested-list pattern this repo uses for Datadog's
+# Sensitive Data Scanner groups + rules).
+#
+# PROTECTED BUILT-INS: every PingOne environment already has non-CUSTOM
+# resources (OPENID_CONNECT, PINGONE_API) that this app can never create,
+# alter or delete. If a declared name happens to match one of those live
+# resources, deploy treats it as read-only/protected and leaves it - and its
+# scopes - completely alone.
+#
+# Field keys must match config-types/resources/_shared.ts.
+# API reference: https://apidocs.pingidentity.com/pingone/platform/v1/api/#resources
+#                https://apidocs.pingidentity.com/pingone/platform/v1/api/#resource-scopes
+# =============================================================================
+
+id: "ping-identity-resources"
+name: "Resource Configuration"
+toolType: "ping-identity"
+entityType: "resources"
+description: "Define PingOne custom API resources and their OAuth scopes as code through the PingOne Platform API. Reconciled by resource name; scopes within a resource are fully synced to what's declared. Built-in resources (OPENID_CONNECT, PINGONE_API) are protected and never altered."
+
+item:
+  label: "Resource"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Resource"
+      icon: "server"
+      description: "Identity and token settings"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 100
+          helpText: >
+            The resource name - this app's logical identity for the resource
+            (matched case-insensitively against PingOne's live resources on
+            every deploy). If this matches one of PingOne's built-in
+            resources (e.g. the default OpenID Connect or PingOne API
+            resource), it is treated as protected/read-only and left
+            untouched, scopes included.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+
+        - key: "audience"
+          label: "Audience"
+          fieldType: "text"
+          required: false
+          helpText: >
+            A URL-shaped identifier, e.g. https://api.example.com - must not
+            contain "pingone" or "pingidentity"; defaults to the resource
+            name when left blank.
+
+        - key: "accessTokenValiditySeconds"
+          label: "Access Token Validity (Seconds)"
+          fieldType: "number"
+          defaultValue: 3600
+          validation:
+            min: 300
+            max: 2592000
+          helpText: "How long access tokens issued for this resource are valid, from 300 to 2,592,000 seconds (30 days)."
+
+        - key: "applicationPermissionsClaimEnabled"
+          label: "Include Application Permissions Claim"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Adds application-permission claims to access tokens issued for this resource."
+
+        - key: "introspectEndpointAuthMethod"
+          label: "Introspection Endpoint Auth Method"
+          fieldType: "select"
+          defaultValue: "CLIENT_SECRET_BASIC"
+          options:
+            - label: "Client Secret (HTTP Basic)"
+              value: "CLIENT_SECRET_BASIC"
+            - label: "Client Secret (POST body)"
+              value: "CLIENT_SECRET_POST"
+            - label: "None"
+              value: "NONE"
+          helpText: "How a client authenticates to this resource's token introspection endpoint."
+
+    - name: "Scopes"
+      icon: "list"
+      description: "The resource's OAuth scopes, as JSON - fully synced on every deploy"
+      fields:
+        - key: "scopesJson"
+          label: "Scopes (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            OAuth scopes for this resource, reconciled by name - a scope no
+            longer listed here IS DELETED. Leave as [] or blank for a
+            resource with no custom scopes. Example:
+            [{"name":"read:orders","description":"Read order data"},{"name":"write:orders","description":"Modify order data"}]
