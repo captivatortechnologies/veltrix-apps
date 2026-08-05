@@ -1,0 +1,221 @@
+# =============================================================================
+# Canvas Template - F5 Distributed Cloud TCP Load Balancers
+#
+# Declares ONE tcp_loadbalancer object - the item. A TCP Load Balancer's
+# identity in F5 XC is its NAME; deploy GETs by name, PUTs (update) or POSTs
+# (create) accordingly - there is no upsert endpoint.
+#
+# Field keys must match what config-types/tcp-load-balancers/validate.ts
+# checks. API reference: https://docs.cloud.f5.com/docs-v2/api/views-tcp-loadbalancer
+#
+# Customer-uploaded TLS certificates (tls_tcp), a specific pre-allocated
+# Public IP (advertise_on_public) and site-scoped placement
+# (advertise_custom) are intentionally NOT modeled here - see README.md
+# Coverage.
+# =============================================================================
+
+id: "f5xc-tcp-load-balancers"
+name: "TCP Load Balancer Configuration"
+toolType: "f5-distributed-cloud"
+entityType: "tcp-load-balancers"
+description: "Define F5 Distributed Cloud TCP load balancers as code through the F5 XC public config API."
+
+item:
+  label: "TCP Load Balancer"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "tag"
+      description: "Core TCP Load Balancer identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+            maxLength: 63
+          helpText: >
+            DNS-1035 name (lowercase alphanumeric and hyphens, must start
+            with a letter). Unique within the namespace - it is the logical
+            identity deploy matches on.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the F5 XC Console."
+
+        - key: "disable"
+          label: "Disable"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Administratively disable this load balancer without deleting it."
+
+        - key: "domains"
+          label: "Domains"
+          fieldType: "tags"
+          helpText: "DNS names for which F5 XC will automatically resolve to this load balancer's VIP."
+
+    - name: "Listener"
+      icon: "radio"
+      description: "The port this load balancer listens on, and how it is exposed"
+      fields:
+        - key: "listenPortMode"
+          label: "Listen Port"
+          fieldType: "select"
+          required: true
+          defaultValue: "listen_port"
+          options:
+            - label: "Single port"
+              value: "listen_port"
+            - label: "Port range(s)"
+              value: "port_ranges"
+          helpText: "One of listen_port/port_ranges must be set."
+
+        - key: "listenPort"
+          label: "Port Number"
+          fieldType: "number"
+          validation:
+            min: 1
+            max: 65535
+          visibleWhen:
+            field: "listenPortMode"
+            equals: "listen_port"
+          helpText: "Required when Listen Port is set to Single Port."
+
+        - key: "portRanges"
+          label: "Port Ranges"
+          fieldType: "text"
+          placeholder: "8080-8192"
+          visibleWhen:
+            field: "listenPortMode"
+            equals: "port_ranges"
+          helpText: 'A single port or two ports separated by "-", e.g. "8080-8192".'
+
+        - key: "advertiseMode"
+          label: "Advertise"
+          fieldType: "select"
+          required: true
+          defaultValue: "do_not_advertise"
+          options:
+            - label: "Do not advertise (internal use only)"
+              value: "do_not_advertise"
+            - label: "Advertise on public network (F5-assigned default VIP)"
+              value: "advertise_on_public_default_vip"
+          helpText: >
+            One of advertise_custom/advertise_on_public/
+            advertise_on_public_default_vip/do_not_advertise must be set. A
+            specific pre-allocated Public IP (advertise_on_public) and
+            site-scoped placement (advertise_custom) require infrastructure
+            objects this app does not manage - see README.md Coverage.
+
+        - key: "retractCluster"
+          label: "Retract on Backend Failure"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, this load balancer's route is withdrawn if the origin pool has no healthy endpoints."
+
+    - name: "TLS"
+      icon: "lock"
+      description: "Whether this is a plain TCP listener or terminates/passes through TLS"
+      fields:
+        - key: "tlsMode"
+          label: "TLS Mode"
+          fieldType: "select"
+          required: true
+          defaultValue: "tcp"
+          options:
+            - label: "Plain TCP (no TLS)"
+              value: "tcp"
+            - label: "TLS terminated with an F5-managed certificate"
+              value: "tls_tcp_auto_cert"
+          helpText: >
+            One of tcp/tls_tcp/tls_tcp_auto_cert must be set. A
+            customer-uploaded certificate (tls_tcp) is not modeled here -
+            see README.md Coverage.
+
+    - name: "Backend"
+      icon: "server"
+      description: "Which origin pool(s) serve this load balancer's traffic"
+      fields:
+        - key: "originPools"
+          label: "Origin Pools"
+          fieldType: "remote-multiselect"
+          required: true
+          optionsSource: "originPools"
+          helpText: "One or more Origin Pools to load-balance across. Each is attached with equal weight - per-pool weight/priority tuning is deferred, see README.md Coverage."
+
+        - key: "loadBalancingAlgorithm"
+          label: "Hash / Load Balancing Policy"
+          fieldType: "select"
+          required: true
+          defaultValue: "round_robin"
+          options:
+            - label: "Round Robin"
+              value: "round_robin"
+            - label: "Random"
+              value: "random"
+            - label: "Least Active Connections"
+              value: "least_active"
+            - label: "Source IP Stickiness"
+              value: "source_ip_stickiness"
+          helpText: "One of hash_policy_choice_least_active/hash_policy_choice_random/hash_policy_choice_round_robin/hash_policy_choice_source_ip_stickiness must be set."
+
+    - name: "Policies"
+      icon: "shield"
+      description: "Service policy attachment and SNI"
+      fields:
+        - key: "servicePoliciesMode"
+          label: "Service Policies"
+          fieldType: "select"
+          required: true
+          defaultValue: "no_service_policies"
+          options:
+            - label: "None"
+              value: "no_service_policies"
+            - label: "Namespace default service policy set"
+              value: "service_policies_from_namespace"
+            - label: "Specific policies"
+              value: "active_service_policies"
+          helpText: "One of active_service_policies/no_service_policies/service_policies_from_namespace must be set."
+
+        - key: "activeServicePolicies"
+          label: "Attached Service Policies"
+          fieldType: "remote-multiselect"
+          optionsSource: "servicePolicies"
+          visibleWhen:
+            field: "servicePoliciesMode"
+            equals: "active_service_policies"
+          helpText: "Required when Service Policies is set to Specific Policies."
+
+        - key: "sniMode"
+          label: "Server Name Indication (SNI)"
+          fieldType: "select"
+          required: true
+          defaultValue: "no_sni"
+          options:
+            - label: "No SNI support"
+              value: "no_sni"
+            - label: "Also serve as the default LB for non-SNI clients"
+              value: "default_lb_with_sni"
+            - label: "Specific SNI value"
+              value: "sni"
+          helpText: "One of default_lb_with_sni/no_sni/sni must be set."
+
+        - key: "sniValue"
+          label: "SNI Value"
+          fieldType: "text"
+          visibleWhen:
+            field: "sniMode"
+            equals: "sni"
+          helpText: "Required when SNI is set to Specific SNI Value."
+
+        - key: "idleTimeoutMs"
+          label: "Idle Timeout (ms)"
+          fieldType: "number"
+          validation:
+            min: 1
+          helpText: "How long a stream may exist without upstream or downstream activity. Leave blank to use F5's default."

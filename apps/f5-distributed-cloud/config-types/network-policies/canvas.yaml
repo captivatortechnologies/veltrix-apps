@@ -1,0 +1,121 @@
+# =============================================================================
+# Canvas Template - F5 Distributed Cloud Network Policies
+#
+# Declares ONE network_policy object - the item: an L3/L4 ingress/egress ACL
+# scoped to a set of endpoints. A Network Policy's identity in F5 XC is its
+# NAME; deploy GETs by name, PUTs (update) or POSTs (create) accordingly -
+# there is no upsert endpoint.
+#
+# NOTE the irregular plural: this object's REST path is
+# "/config/namespaces/{namespace}/network_policys" (not "..._policies") -
+# confirmed from F5's own generated grpc-gateway route literal in
+# pbgo/extschema/schema/network_policy/public_crudapi.pb.gw.go
+# (https://github.com/volterraedge/terraform-provider-volterra) - do not
+# "fix" the spelling.
+#
+# Field keys must match what config-types/network-policies/validate.ts
+# checks. API reference: https://docs.cloud.f5.com/docs-v2/api/network-policy
+#
+# Ingress/egress rule lists are authored as JSON fields, since each rule's
+# endpoint + traffic matchers are a discriminated union - the same convention
+# ping-identity/okta-identity use for deeply nested policy rule trees.
+# =============================================================================
+
+id: "f5xc-network-policies"
+name: "Network Policy Configuration"
+toolType: "f5-distributed-cloud"
+entityType: "network-policies"
+description: "Define F5 Distributed Cloud network policies (L3/L4 ingress/egress ACLs) as code through the F5 XC public config API."
+
+item:
+  label: "Network Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "tag"
+      description: "Core network policy identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+            maxLength: 63
+          helpText: >
+            DNS-1035 name (lowercase alphanumeric and hyphens, must start
+            with a letter). Unique within the namespace - it is the logical
+            identity deploy matches on.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the F5 XC Console."
+
+        - key: "disable"
+          label: "Disable"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Administratively disable this network policy without deleting it."
+
+    - name: "Endpoint scope"
+      icon: "target"
+      description: "The set of endpoints this policy's rules apply to (connections to or from them)"
+      fields:
+        - key: "endpointMode"
+          label: "Endpoint Scope"
+          fieldType: "select"
+          required: true
+          defaultValue: "any"
+          options:
+            - label: "Any endpoint (0.0.0.0/0)"
+              value: "any"
+            - label: "Inside-network endpoints"
+              value: "inside_endpoints"
+            - label: "Outside-network endpoints"
+              value: "outside_endpoints"
+            - label: "By label selector"
+              value: "label_selector"
+          helpText: "One of any/inside_endpoints/interface/label_selector/namespace/outside_endpoints/prefix_list must be set. This app supports the four most common scopes."
+
+        - key: "endpointExpressions"
+          label: "Label Expressions"
+          fieldType: "tags"
+          visibleWhen:
+            field: "endpointMode"
+            equals: "label_selector"
+          helpText: 'Kubernetes-style label match expressions, e.g. env=production, tier!=frontend.'
+
+    - name: "Rules"
+      icon: "list-checks"
+      description: "Ordered ingress and egress ACL rules"
+      fields:
+        - key: "ingressRulesJson"
+          label: "Ingress Rules (JSON array)"
+          fieldType: "textarea"
+          helpText: >
+            Ordered list of rules applied to connections TO the scoped
+            endpoints. A JSON array, each entry:
+              {
+                "metadata": { "name": "allow-https-inbound" },
+                "action": "ALLOW",
+                "endpoint": { "any": true },
+                "traffic": { "protocol_port_range": { "protocol": "tcp", "port_ranges": ["443"] } }
+              }
+            "action" is "ALLOW" or "DENY". "endpoint" (the remote side)
+            supports any/inside_endpoints/outside_endpoints/label_selector
+            (expressions) the same way as the policy's own Endpoint Scope
+            above. "traffic" is one of all_traffic/all_tcp_traffic/
+            all_udp_traffic/applications (list of names)/protocol_port_range
+            (protocol + port_ranges). Leave blank for no ingress rules.
+
+        - key: "egressRulesJson"
+          label: "Egress Rules (JSON array)"
+          fieldType: "textarea"
+          helpText: >
+            Ordered list of rules applied to connections FROM the scoped
+            endpoints. Same shape as Ingress Rules above. Leave blank for no
+            egress rules.

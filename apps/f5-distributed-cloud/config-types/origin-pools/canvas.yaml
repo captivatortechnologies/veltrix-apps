@@ -1,0 +1,187 @@
+# =============================================================================
+# Canvas Template - F5 Distributed Cloud Origin Pools
+#
+# Declares ONE origin_pool object - the item. Referenced BY NAME from an HTTP
+# or TCP Load Balancer's "Origin Pools" field. An Origin Pool's identity in F5
+# XC is its NAME; deploy GETs by name, PUTs (update) or POSTs (create)
+# accordingly - there is no upsert endpoint.
+#
+# Field keys must match what config-types/origin-pools/validate.ts checks.
+# API reference: https://docs.cloud.f5.com/docs-v2/api/views-origin-pool
+# Enum values (endpoint_selection, loadbalancer_algorithm) confirmed against
+# F5's own generated Go constants: pbgo/extschema/schema/cluster/types.pb.go
+# (EndpointSelectionPolicy_name / LoadbalancerAlgorithm_name) in
+# https://github.com/volterraedge/terraform-provider-volterra
+#
+# origin_servers is a 10-way oneof (public IP/name, private IP/name + site,
+# K8s/Consul service + site, custom endpoint object, virtual-network IP/name)
+# authored as a single JSON field, since its shape varies enormously by
+# origin type and F5's own documentation expresses it as a discriminated
+# union - the same convention ping-identity/okta-identity use for deeply
+# nested policy rule trees. Its exact wire shape is documented in the field's
+# help text below.
+# =============================================================================
+
+id: "f5xc-origin-pools"
+name: "Origin Pool Configuration"
+toolType: "f5-distributed-cloud"
+entityType: "origin-pools"
+description: "Define F5 Distributed Cloud origin pools as code through the F5 XC public config API."
+
+item:
+  label: "Origin Pool"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "tag"
+      description: "Core origin pool identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+            maxLength: 63
+          helpText: >
+            DNS-1035 name (lowercase alphanumeric and hyphens, must start with
+            a letter). Unique within the namespace - it is the logical
+            identity deploy matches on, and what a Load Balancer's "Origin
+            Pools" field references.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the F5 XC Console."
+
+        - key: "disable"
+          label: "Disable"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Administratively disable this origin pool without deleting it."
+
+    - name: "Load balancing"
+      icon: "shuffle"
+      description: "How endpoints are selected and load-balanced across sites"
+      fields:
+        - key: "endpointSelection"
+          label: "Endpoint Selection"
+          fieldType: "select"
+          required: true
+          defaultValue: "LOCAL_PREFERRED"
+          options:
+            - label: "Local site preferred (fall back to remote sites)"
+              value: "LOCAL_PREFERRED"
+            - label: "Local site only"
+              value: "LOCAL_ONLY"
+            - label: "Distributed across sites"
+              value: "DISTRIBUTED"
+          helpText: "Policy for selecting endpoints from the local site, a remote site, or both."
+
+        - key: "loadbalancerAlgorithm"
+          label: "Load Balancing Algorithm"
+          fieldType: "select"
+          required: true
+          defaultValue: "ROUND_ROBIN"
+          options:
+            - label: "Round Robin"
+              value: "ROUND_ROBIN"
+            - label: "Least Request"
+              value: "LEAST_REQUEST"
+            - label: "Ring Hash"
+              value: "RING_HASH"
+            - label: "Random"
+              value: "RANDOM"
+            - label: "LB Override (set per-route)"
+              value: "LB_OVERRIDE"
+          helpText: "Algorithm used to determine which origin server is selected."
+
+        - key: "healthChecks"
+          label: "Health Checks"
+          fieldType: "remote-multiselect"
+          optionsSource: "healthChecks"
+          helpText: "Health check probes attached to this pool. Leave blank to health-check nothing (all origins considered healthy)."
+
+    - name: "Port and TLS"
+      icon: "lock"
+      description: "Which port the origin servers listen on, and whether F5 XC connects to them over TLS"
+      fields:
+        - key: "portMode"
+          label: "Port"
+          fieldType: "select"
+          required: true
+          defaultValue: "port"
+          options:
+            - label: "Fixed port"
+              value: "port"
+            - label: "Automatic (443 if TLS enabled, else 80)"
+              value: "automatic_port"
+            - label: "Same as the Load Balancer's port"
+              value: "lb_port"
+          helpText: "One of automatic_port/lb_port/port must be set."
+
+        - key: "port"
+          label: "Port Number"
+          fieldType: "number"
+          defaultValue: 443
+          validation:
+            min: 1
+            max: 65535
+          visibleWhen:
+            field: "portMode"
+            equals: "port"
+          helpText: "Required when Port is set to Fixed Port."
+
+        - key: "tlsMode"
+          label: "TLS to Origin"
+          fieldType: "select"
+          required: true
+          defaultValue: "no_tls"
+          options:
+            - label: "Disabled - plain-text to origin"
+              value: "no_tls"
+            - label: "Enabled - TLS to origin"
+              value: "use_tls"
+          helpText: "One of no_tls/use_tls must be set."
+
+        - key: "tlsServerVerification"
+          label: "Origin Certificate Verification"
+          fieldType: "select"
+          defaultValue: "volterra_trusted_ca"
+          options:
+            - label: "F5 XC default trusted CA bundle"
+              value: "volterra_trusted_ca"
+            - label: "Skip verification (not recommended)"
+              value: "skip_server_verification"
+          visibleWhen:
+            field: "tlsMode"
+            equals: "use_tls"
+          helpText: "How the origin server's certificate is validated when TLS to origin is enabled."
+
+    - name: "Origin servers"
+      icon: "server"
+      description: "The backend servers in this pool"
+      fields:
+        - key: "originServersJson"
+          label: "Origin Servers (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A JSON array of origin server objects. Each entry is a
+            discriminated union - set exactly ONE of the following shapes per
+            entry (matching F5 XC's origin_servers oneof):
+              - Public IP:    { "public_ip": { "ip": "203.0.113.10" } }
+              - Public name:  { "public_name": { "dns_name": "api.example.com" } }
+              - Private IP + site:
+                  { "private_ip": { "ip": "10.0.0.5", "site_locator": { "site": { "name": "my-site" } }, "inside_network": true } }
+              - Private name + site:
+                  { "private_name": { "dns_name": "backend.internal", "site_locator": { "virtual_site": { "name": "my-vsite" } }, "outside_network": true } }
+              - K8s service + site:
+                  { "k8s_service": { "service_name": "svc.ns", "site_locator": { "site": { "name": "my-site" } }, "vk8s_networks": true } }
+              - Consul service + site:
+                  { "consul_service": { "service_name": "svc:cluster-1", "site_locator": { "site": { "name": "my-site" } }, "inside_network": true } }
+            An optional "labels" map may be added to any entry to scope subset
+            load balancing. See README.md for the full reference.

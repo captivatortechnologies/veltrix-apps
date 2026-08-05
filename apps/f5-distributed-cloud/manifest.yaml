@@ -1,0 +1,264 @@
+id: f5-distributed-cloud
+name: F5 Distributed Cloud
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage F5 Distributed Cloud (XC) - F5's multi-cloud networking and security
+  SaaS - configuration as code through its public config API. Covers HTTP and
+  TCP load balancers, origin pools, health checks, App Firewall (WAF)
+  policies, service policies (L7 allow/deny), malicious user (bot/fraud)
+  mitigation, and network policies (L3/L4 ACLs) - with validation, drift
+  detection and rollback handled by the Security-as-Code pipeline.
+category: NETWORK
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/f5-distributed-cloud
+icon: "🌐"
+
+platform:
+  minVersion: "1.0.0"
+
+# F5 brand: signature red primary, dark charcoal accent.
+branding:
+  primaryColor: "#E31937"
+  accentColor: "#1D1D1D"
+  logo: ./assets/logo.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: http-load-balancers
+      actions: [read, write, delete]
+      description: Manage F5 XC HTTP load balancers (domains, TLS mode, default route pools, routes, WAF/bot-defense/rate-limit/CORS attachment)
+    - resource: tcp-load-balancers
+      actions: [read, write, delete]
+      description: Manage F5 XC TCP load balancers (listen port, origin pool weighting, TLS passthrough/termination, advertise mode)
+    - resource: origin-pools
+      actions: [read, write, delete]
+      description: Manage F5 XC origin pools (backend servers, load balancing algorithm, health check attachment, TLS-to-origin)
+    - resource: health-checks
+      actions: [read, write, delete]
+      description: Manage F5 XC health checks (HTTP/TCP/UDP-ICMP probes, interval, timeout, thresholds)
+    - resource: app-firewalls
+      actions: [read, write, delete]
+      description: Manage F5 XC App Firewall (WAF) policies - detection mode, blocking vs monitoring, response-code and anonymization settings
+    - resource: service-policies
+      actions: [read, write, delete]
+      description: Manage F5 XC service policies - L7 allow/deny rules scoped by ASN, country, IP prefix, or a custom rule list
+    - resource: malicious-user-mitigations
+      actions: [read, write, delete]
+      description: Manage F5 XC malicious user (bot/fraud) mitigation policies - per-threat-level mitigation actions
+    - resource: network-policies
+      actions: [read, write, delete]
+      description: Manage F5 XC network policies - L3/L4 ingress/egress ACLs scoped to a set of endpoints
+
+pipeline:
+  configurationTypes:
+    - id: health-checks
+      group: "Backend"
+      name: Health Checks
+      description: HTTP/TCP/UDP-ICMP health check probes referenced by Origin Pools
+      canvasTemplate: config-types/health-checks/canvas.yaml
+      defaultConfig: config-types/health-checks/defaults.yaml
+      handlers:
+        validate: config-types/health-checks/validate
+        deploy: config-types/health-checks/deploy
+        rollback: config-types/health-checks/rollback
+        healthCheck: config-types/health-checks/healthCheck
+        driftDetect: config-types/health-checks/driftDetect
+        getStatus: config-types/health-checks/getStatus
+      targets:
+        componentTypes: [f5xc-namespace]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: origin-pools
+      group: "Backend"
+      name: Origin Pools
+      description: Backend server pools - load balancing algorithm, health check attachment, TLS-to-origin
+      canvasTemplate: config-types/origin-pools/canvas.yaml
+      defaultConfig: config-types/origin-pools/defaults.yaml
+      handlers:
+        validate: config-types/origin-pools/validate
+        deploy: config-types/origin-pools/deploy
+        rollback: config-types/origin-pools/rollback
+        healthCheck: config-types/origin-pools/healthCheck
+        driftDetect: config-types/origin-pools/driftDetect
+        getStatus: config-types/origin-pools/getStatus
+        options: config-types/origin-pools/options
+      targets:
+        componentTypes: [f5xc-namespace]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: app-firewalls
+      group: "Security"
+      name: App Firewalls (WAF)
+      description: WAF policies - detection mode, blocking vs monitoring, allowed response codes, anonymization
+      canvasTemplate: config-types/app-firewalls/canvas.yaml
+      defaultConfig: config-types/app-firewalls/defaults.yaml
+      handlers:
+        validate: config-types/app-firewalls/validate
+        deploy: config-types/app-firewalls/deploy
+        rollback: config-types/app-firewalls/rollback
+        healthCheck: config-types/app-firewalls/healthCheck
+        driftDetect: config-types/app-firewalls/driftDetect
+        getStatus: config-types/app-firewalls/getStatus
+      targets:
+        componentTypes: [f5xc-namespace]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: service-policies
+      group: "Security"
+      name: Service Policies
+      description: L7 allow/deny rules scoped by ASN, country, IP prefix, or a custom rule list
+      canvasTemplate: config-types/service-policies/canvas.yaml
+      defaultConfig: config-types/service-policies/defaults.yaml
+      handlers:
+        validate: config-types/service-policies/validate
+        deploy: config-types/service-policies/deploy
+        rollback: config-types/service-policies/rollback
+        healthCheck: config-types/service-policies/healthCheck
+        driftDetect: config-types/service-policies/driftDetect
+        getStatus: config-types/service-policies/getStatus
+      targets:
+        componentTypes: [f5xc-namespace]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: malicious-user-mitigations
+      group: "Security"
+      name: Malicious User Mitigation
+      description: Per-threat-level mitigation actions for bot/fraud/malicious-user detection
+      canvasTemplate: config-types/malicious-user-mitigations/canvas.yaml
+      defaultConfig: config-types/malicious-user-mitigations/defaults.yaml
+      handlers:
+        validate: config-types/malicious-user-mitigations/validate
+        deploy: config-types/malicious-user-mitigations/deploy
+        rollback: config-types/malicious-user-mitigations/rollback
+        healthCheck: config-types/malicious-user-mitigations/healthCheck
+        driftDetect: config-types/malicious-user-mitigations/driftDetect
+        getStatus: config-types/malicious-user-mitigations/getStatus
+      targets:
+        componentTypes: [f5xc-namespace]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: network-policies
+      group: "Security"
+      name: Network Policies
+      description: L3/L4 ingress/egress ACLs scoped to a set of endpoints
+      canvasTemplate: config-types/network-policies/canvas.yaml
+      defaultConfig: config-types/network-policies/defaults.yaml
+      handlers:
+        validate: config-types/network-policies/validate
+        deploy: config-types/network-policies/deploy
+        rollback: config-types/network-policies/rollback
+        healthCheck: config-types/network-policies/healthCheck
+        driftDetect: config-types/network-policies/driftDetect
+        getStatus: config-types/network-policies/getStatus
+      targets:
+        componentTypes: [f5xc-namespace]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: tcp-load-balancers
+      group: "Load Balancing"
+      name: TCP Load Balancers
+      description: TCP load balancers - listen port, origin pool weighting, TLS passthrough/termination, advertise mode
+      canvasTemplate: config-types/tcp-load-balancers/canvas.yaml
+      defaultConfig: config-types/tcp-load-balancers/defaults.yaml
+      handlers:
+        validate: config-types/tcp-load-balancers/validate
+        deploy: config-types/tcp-load-balancers/deploy
+        rollback: config-types/tcp-load-balancers/rollback
+        healthCheck: config-types/tcp-load-balancers/healthCheck
+        driftDetect: config-types/tcp-load-balancers/driftDetect
+        getStatus: config-types/tcp-load-balancers/getStatus
+        options: config-types/tcp-load-balancers/options
+      targets:
+        componentTypes: [f5xc-namespace]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: http-load-balancers
+      group: "Load Balancing"
+      name: HTTP Load Balancers
+      description: HTTP load balancers - domains, TLS mode, default route pools, routes, WAF/bot-defense/rate-limit/CORS attachment
+      canvasTemplate: config-types/http-load-balancers/canvas.yaml
+      defaultConfig: config-types/http-load-balancers/defaults.yaml
+      handlers:
+        validate: config-types/http-load-balancers/validate
+        deploy: config-types/http-load-balancers/deploy
+        rollback: config-types/http-load-balancers/rollback
+        healthCheck: config-types/http-load-balancers/healthCheck
+        driftDetect: config-types/http-load-balancers/driftDetect
+        getStatus: config-types/http-load-balancers/getStatus
+        options: config-types/http-load-balancers/options
+      targets:
+        componentTypes: [f5xc-namespace]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/f5-distributed-cloud
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: lists the healthchecks collection in the
+# connection's namespace (GET /config/namespaces/{namespace}/healthchecks) to
+# confirm the API Token is accepted and the namespace exists.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: f5xc_namespace
+    type: string
+    label: F5 XC Namespace
+    description: >
+      The F5 Distributed Cloud namespace this connection manages (a
+      tenant-internal partition, e.g. "default" or "staging"). This app
+      manages exactly one namespace per connection - create another
+      connection/component to manage a second namespace.
+    default: default
+    required: false
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for F5 Distributed Cloud API calls.
+    default: 30
+    required: false

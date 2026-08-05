@@ -1,0 +1,117 @@
+# =============================================================================
+# Canvas Template - F5 Distributed Cloud Malicious User Mitigation
+#
+# Declares ONE malicious_user_mitigation object - the item. Referenced BY NAME
+# from an HTTP Load Balancer's "Malicious User Mitigation" field to control
+# what happens to users F5 XC's malicious-user/bot/fraud detection has scored
+# into each of its three fixed threat levels (low/medium/high). A mitigation's
+# identity in F5 XC is its NAME; deploy GETs by name, PUTs (update) or POSTs
+# (create) accordingly - there is no upsert endpoint.
+#
+# Field keys must match what config-types/malicious-user-mitigations/validate.ts
+# checks. API reference: https://docs.cloud.f5.com/docs-v2/api/malicious-user-mitigation
+# =============================================================================
+
+id: "f5xc-malicious-user-mitigations"
+name: "Malicious User Mitigation Configuration"
+toolType: "f5-distributed-cloud"
+entityType: "malicious-user-mitigations"
+description: "Define F5 Distributed Cloud malicious user (bot/fraud) mitigation policies as code through the F5 XC public config API."
+
+item:
+  label: "Malicious User Mitigation"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Identity"
+      icon: "tag"
+      description: "Core mitigation policy identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+            maxLength: 63
+          helpText: >
+            DNS-1035 name (lowercase alphanumeric and hyphens, must start with
+            a letter). Unique within the namespace - it is the logical
+            identity deploy matches on, and what an HTTP Load Balancer's
+            "Malicious User Mitigation" field references.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the F5 XC Console."
+
+        - key: "disable"
+          label: "Disable"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Administratively disable this mitigation policy without deleting it."
+
+    - name: "Threat-level actions"
+      icon: "alert-triangle"
+      description: >
+        The mitigation action taken for a user determined to be at each of F5
+        XC's three fixed threat levels (evaluated by its malicious-user
+        detection). Every rule the API requires is one (threat_level,
+        mitigation_action) pair - since there are only three possible threat
+        levels, each gets its own field here rather than an open-ended list.
+      fields:
+        - key: "lowThreatAction"
+          label: "Low Threat Level Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "alert_only"
+          options:
+            - label: "Alert only (log, no invasive action)"
+              value: "alert_only"
+            - label: "Block temporarily"
+              value: "block_temporarily"
+            - label: "CAPTCHA challenge"
+              value: "captcha_challenge"
+            - label: "JavaScript challenge"
+              value: "javascript_challenge"
+            - label: "None"
+              value: "none"
+          helpText: "Mitigation action for users scored at the low threat level."
+
+        - key: "mediumThreatAction"
+          label: "Medium Threat Level Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "javascript_challenge"
+          options:
+            - label: "Alert only (log, no invasive action)"
+              value: "alert_only"
+            - label: "Block temporarily"
+              value: "block_temporarily"
+            - label: "CAPTCHA challenge"
+              value: "captcha_challenge"
+            - label: "JavaScript challenge"
+              value: "javascript_challenge"
+            - label: "None"
+              value: "none"
+          helpText: "Mitigation action for users scored at the medium threat level."
+
+        - key: "highThreatAction"
+          label: "High Threat Level Action"
+          fieldType: "select"
+          required: true
+          defaultValue: "block_temporarily"
+          options:
+            - label: "Alert only (log, no invasive action)"
+              value: "alert_only"
+            - label: "Block temporarily"
+              value: "block_temporarily"
+            - label: "CAPTCHA challenge"
+              value: "captcha_challenge"
+            - label: "JavaScript challenge"
+              value: "javascript_challenge"
+            - label: "None"
+              value: "none"
+          helpText: "Mitigation action for users scored at the high threat level."

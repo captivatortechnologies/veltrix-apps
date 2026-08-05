@@ -1,0 +1,8 @@
+# Defaults for a new Origin Pool item.
+#
+# Intentionally empty: the platform no longer seeds default values into a new
+# item - it starts blank (the canvas field-level `defaultValue`s above still
+# apply when a field is first rendered). Any values here would be a FLAT map
+# keyed by the canvas field keys (name, endpointSelection,
+# loadbalancerAlgorithm, ...), since this item's presentational groups share
+# one flat item record.

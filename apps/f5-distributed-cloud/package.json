@@ -1,0 +1,16 @@
+{
+  "name": "veltrix-app-f5-distributed-cloud",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Veltrix app: manage F5 Distributed Cloud (XC) configuration as code - HTTP/TCP load balancers, origin pools, health checks, App Firewall (WAF) policies, service policies, malicious user mitigation, network policies - via the F5 XC public config API",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.0.0",
+    "@veltrixsecops/app-sdk": "^3.7.0",
+    "fastify": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}

@@ -1,0 +1,181 @@
+# =============================================================================
+# Canvas Template - F5 Distributed Cloud Service Policies
+#
+# Declares ONE service_policy object - the item. Attached to an HTTP/TCP Load
+# Balancer's "Service Policies" field (active_service_policies), or scoped
+# directly to a named server via serverScope below. A Service Policy's
+# identity in F5 XC is its NAME; deploy GETs by name, PUTs (update) or POSTs
+# (create) accordingly - there is no upsert endpoint.
+#
+# NOTE the irregular plural: this object's REST path is
+# "/config/namespaces/{namespace}/service_policys" (not "..._policies") -
+# confirmed from F5's own generated grpc-gateway route literal in
+# pbgo/extschema/schema/service_policy/public_crudapi.pb.gw.go
+# (https://github.com/volterraedge/terraform-provider-volterra) - do not
+# "fix" the spelling.
+#
+# Field keys must match what config-types/service-policies/validate.ts
+# checks. API reference: https://docs.cloud.f5.com/docs/api/service-policy
+#
+# A fully custom rule_list (per-rule client/ASN/country/header/path matchers
+# with an ALLOW/DENY action) is authored as a single JSON field, since its
+# matcher shape is a large discriminated union - the same convention
+# ping-identity/okta-identity use for deeply nested policy rule trees.
+# =============================================================================
+
+id: "f5xc-service-policies"
+name: "Service Policy Configuration"
+toolType: "f5-distributed-cloud"
+entityType: "service-policies"
+description: "Define F5 Distributed Cloud service policies (L7 allow/deny rules) as code through the F5 XC public config API."
+
+item:
+  label: "Service Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "tag"
+      description: "Core service policy identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+            maxLength: 63
+          helpText: >
+            DNS-1035 name (lowercase alphanumeric and hyphens, must start with
+            a letter). Unique within the namespace - it is the logical
+            identity deploy matches on, and what a Load Balancer's "Service
+            Policies" field references.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the F5 XC Console."
+
+        - key: "disable"
+          label: "Disable"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Administratively disable this service policy without deleting it."
+
+    - name: "Scope"
+      icon: "target"
+      description: "Which rule-combining algorithm applies, and which server(s) this policy evaluates"
+      fields:
+        - key: "algo"
+          label: "Rule Combining Algorithm"
+          fieldType: "select"
+          required: true
+          defaultValue: "FIRST_MATCH"
+          options:
+            - label: "First match - rules evaluated in order until one matches"
+              value: "FIRST_MATCH"
+            - label: "Allow overrides - ALLOW rules evaluated before DENY rules"
+              value: "ALLOW_OVERRIDES"
+            - label: "Deny overrides - DENY rules evaluated before ALLOW rules"
+              value: "DENY_OVERRIDES"
+          helpText: "How this policy's rules combine when more than one could match a request."
+
+        - key: "serverScope"
+          label: "Server Scope"
+          fieldType: "select"
+          required: true
+          defaultValue: "any_server"
+          options:
+            - label: "Any server this policy is attached to"
+              value: "any_server"
+            - label: "A specific server name"
+              value: "server_name"
+          helpText: "One of any_server/server_name/server_name_matcher/server_selector must be set. This app supports the two most common: any (the usual case for an attached policy) or one exact server name."
+
+        - key: "serverName"
+          label: "Server Name"
+          fieldType: "text"
+          visibleWhen:
+            field: "serverScope"
+            equals: "server_name"
+          helpText: "Exact server name (HTTP Host header / virtual_host name) this policy evaluates."
+
+    - name: "Rules"
+      icon: "list-checks"
+      description: "What this policy allows or denies"
+      fields:
+        - key: "mode"
+          label: "Mode"
+          fieldType: "select"
+          required: true
+          defaultValue: "allow_list"
+          options:
+            - label: "Allow all requests"
+              value: "allow_all_requests"
+            - label: "Deny all requests"
+              value: "deny_all_requests"
+            - label: "Allow list (by ASN / country / IP prefix)"
+              value: "allow_list"
+            - label: "Deny list (by ASN / country / IP prefix)"
+              value: "deny_list"
+            - label: "Custom rule list (JSON)"
+              value: "rule_list"
+          helpText: "One of allow_all_requests/deny_all_requests/allow_list/deny_list/rule_list must be set."
+
+        - key: "listPrefixes"
+          label: "IPv4 Prefixes"
+          fieldType: "tags"
+          visibleWhen:
+            field: "mode"
+            in: ["allow_list", "deny_list"]
+          helpText: "CIDR prefixes covered by this list, e.g. 192.168.20.0/24."
+
+        - key: "listCountries"
+          label: "Country Codes"
+          fieldType: "tags"
+          visibleWhen:
+            field: "mode"
+            in: ["allow_list", "deny_list"]
+          helpText: "ISO country codes covered by this list (from a GeoIP lookup on the source IP), e.g. US, CA, GB."
+
+        - key: "listDefaultAction"
+          label: "Default Action (no match)"
+          fieldType: "select"
+          defaultValue: "default_action_next_policy"
+          options:
+            - label: "Evaluate the next service policy"
+              value: "default_action_next_policy"
+            - label: "Allow"
+              value: "default_action_allow"
+            - label: "Deny"
+              value: "default_action_deny"
+          visibleWhen:
+            field: "mode"
+            in: ["allow_list", "deny_list"]
+          helpText: "What happens when a request matches neither the prefixes nor the countries above."
+
+        - key: "ruleListJson"
+          label: "Custom Rules (JSON array)"
+          fieldType: "textarea"
+          visibleWhen:
+            field: "mode"
+            equals: "rule_list"
+          helpText: >
+            A JSON array of custom rules, evaluated per the Rule Combining
+            Algorithm above. Each entry:
+              {
+                "metadata": { "name": "allow-internal-admins" },
+                "spec": {
+                  "action": "ALLOW",
+                  "client_selector": { "any_client": true },
+                  "path": { "prefix_values": ["/admin"] }
+                }
+              }
+            "action" is "ALLOW" or "DENY". Common matcher keys under "spec"
+            include any_client/ip_matcher/ip_prefix_list (client IP),
+            asn_matcher/asn_list (source ASN), country_list (GeoIP country),
+            path (prefix_values/exact_values/regex_values), http_method
+            (methods), headers (name + exact_values/regex_values). See
+            README.md for the full matcher reference.

@@ -1,0 +1,357 @@
+# =============================================================================
+# Canvas Template - F5 Distributed Cloud HTTP Load Balancers
+#
+# Declares ONE http_loadbalancer object - the item. An HTTP Load Balancer's
+# identity in F5 XC is its NAME; deploy GETs by name, PUTs (update) or POSTs
+# (create) accordingly - there is no upsert endpoint.
+#
+# Field keys must match what config-types/http-load-balancers/validate.ts
+# checks. API reference: https://docs.cloud.f5.com/docs-v2/api/views-http-loadbalancer
+#
+# The following are intentionally NOT modeled here - see README.md Coverage:
+#   - a customer-uploaded TLS certificate (the "https" choice - only
+#     "http" and F5-managed "https_auto_cert" are supported)
+#   - cookie_stickiness / ring_hash load-balancing algorithms (each needs an
+#     additional hash-key sub-configuration)
+#   - Bot Defense (bot_defense/bot_defense_advanced both REQUIRE a nested
+#     "policy"/regional endpoint config this app does not model)
+#   - API Definition/Discovery/Testing, GraphQL/DDoS/data-guard/sensitive-data
+#     rules, client-side defense, malware protection, a specific
+#     pre-allocated Public IP or site-scoped advertise placement
+#
+# default_route_pools / routes are authored partly as fields, partly as a
+# JSON field for the route-matching detail - the same convention
+# ping-identity/okta-identity use for deeply nested policy rule trees.
+# =============================================================================
+
+id: "f5xc-http-load-balancers"
+name: "HTTP Load Balancer Configuration"
+toolType: "f5-distributed-cloud"
+entityType: "http-load-balancers"
+description: "Define F5 Distributed Cloud HTTP load balancers as code through the F5 XC public config API."
+
+item:
+  label: "HTTP Load Balancer"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "tag"
+      description: "Core HTTP Load Balancer identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+            maxLength: 63
+          helpText: >
+            DNS-1035 name (lowercase alphanumeric and hyphens, must start
+            with a letter). Unique within the namespace - it is the logical
+            identity deploy matches on.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the F5 XC Console."
+
+        - key: "disable"
+          label: "Disable"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Administratively disable this load balancer without deleting it."
+
+        - key: "domains"
+          label: "Domains"
+          fieldType: "tags"
+          required: true
+          helpText: "DNS names this load balancer serves. Also indicates the names F5 XC will automatically resolve to this load balancer's VIP."
+
+    - name: "TLS"
+      icon: "lock"
+      description: "Plain HTTP, or HTTPS with an F5-managed certificate"
+      fields:
+        - key: "tlsMode"
+          label: "TLS Mode"
+          fieldType: "select"
+          required: true
+          defaultValue: "https_auto_cert"
+          options:
+            - label: "HTTPS with an F5-managed certificate"
+              value: "https_auto_cert"
+            - label: "Plain HTTP (no TLS)"
+              value: "http"
+          helpText: >
+            One of http/https/https_auto_cert must be set. A
+            customer-uploaded certificate ("https") is not modeled here -
+            see README.md Coverage.
+
+        - key: "httpPort"
+          label: "HTTP Port"
+          fieldType: "number"
+          defaultValue: 80
+          validation:
+            min: 1
+            max: 65535
+          visibleWhen:
+            field: "tlsMode"
+            equals: "http"
+          helpText: "HTTP port to listen on."
+
+        - key: "httpsPort"
+          label: "HTTPS Port"
+          fieldType: "number"
+          defaultValue: 443
+          validation:
+            min: 1
+            max: 65535
+          visibleWhen:
+            field: "tlsMode"
+            equals: "https_auto_cert"
+          helpText: "HTTPS port to listen on."
+
+        - key: "httpRedirect"
+          label: "Redirect HTTP to HTTPS"
+          fieldType: "checkbox"
+          defaultValue: true
+          visibleWhen:
+            field: "tlsMode"
+            equals: "https_auto_cert"
+          helpText: "When enabled, plain HTTP requests are redirected to HTTPS."
+
+    - name: "Backend"
+      icon: "server"
+      description: "Which origin pool(s) handle this load balancer's traffic, and optional per-path routing"
+      fields:
+        - key: "defaultRoutePools"
+          label: "Default Route Pools"
+          fieldType: "remote-multiselect"
+          required: true
+          optionsSource: "originPools"
+          helpText: "Origin Pool(s) used when no route below matches (the default route). Each is attached with equal weight - per-pool weight/priority tuning is deferred, see README.md Coverage."
+
+        - key: "loadBalancingAlgorithm"
+          label: "Load Balancing Algorithm"
+          fieldType: "select"
+          required: true
+          defaultValue: "round_robin"
+          options:
+            - label: "Round Robin"
+              value: "round_robin"
+            - label: "Least Active Requests"
+              value: "least_active"
+            - label: "Random"
+              value: "random"
+            - label: "Source IP Stickiness"
+              value: "source_ip_stickiness"
+          helpText: >
+            One of cookie_stickiness/least_active/random/ring_hash/
+            round_robin/source_ip_stickiness must be set. Cookie stickiness
+            and ring hash (each need an additional hash-key configuration)
+            are not modeled here.
+
+        - key: "routesJson"
+          label: "Routes (JSON array, optional)"
+          fieldType: "textarea"
+          helpText: >
+            Optional per-path routing, evaluated before the Default Route
+            Pools above. A JSON array of simple routes:
+              {
+                "path": { "prefix": "/api" },
+                "origin_pools": [{ "pool": { "name": "api-pool" } }],
+                "http_method": "GET"
+              }
+            "path" is one of path (exact) / prefix / regex. "http_method" is
+            optional (omit to match any method). Leave blank to route
+            everything to Default Route Pools.
+
+    - name: "Security"
+      icon: "shield"
+      description: "WAF, malicious user mitigation, and simple rate limiting"
+      fields:
+        - key: "wafMode"
+          label: "App Firewall (WAF)"
+          fieldType: "select"
+          required: true
+          defaultValue: "disable_waf"
+          options:
+            - label: "None"
+              value: "disable_waf"
+            - label: "Attach a policy"
+              value: "app_firewall"
+          helpText: "One of app_firewall/disable_waf must be set."
+
+        - key: "appFirewallName"
+          label: "App Firewall Policy"
+          fieldType: "remote-select"
+          optionsSource: "appFirewalls"
+          visibleWhen:
+            field: "wafMode"
+            equals: "app_firewall"
+          helpText: "Required when App Firewall is set to Attach a Policy."
+
+        - key: "maliciousUserDetectionMode"
+          label: "Malicious User Detection"
+          fieldType: "select"
+          required: true
+          defaultValue: "disable_malicious_user_detection"
+          options:
+            - label: "Disabled"
+              value: "disable_malicious_user_detection"
+            - label: "Enabled"
+              value: "enable_malicious_user_detection"
+          helpText: "One of disable_malicious_user_detection/enable_malicious_user_detection must be set."
+
+        - key: "maliciousUserMitigationName"
+          label: "Malicious User Mitigation Policy"
+          fieldType: "remote-select"
+          optionsSource: "maliciousUserMitigations"
+          visibleWhen:
+            field: "maliciousUserDetectionMode"
+            equals: "enable_malicious_user_detection"
+          helpText: >
+            Optional. F5's own API marks this attachment field
+            (malicious_user_mitigation) as deprecated in favor of newer
+            mitigation configuration, but it remains functional - leave
+            blank to enable detection without a custom mitigation policy.
+
+        - key: "rateLimitMode"
+          label: "Rate Limiting"
+          fieldType: "select"
+          required: true
+          defaultValue: "disable_rate_limit"
+          options:
+            - label: "Disabled"
+              value: "disable_rate_limit"
+            - label: "Simple rate limit"
+              value: "rate_limit"
+          helpText: >
+            One of api_rate_limit/disable_rate_limit/rate_limit must be set.
+            Per-API-endpoint rate limiting (api_rate_limit) is not modeled
+            here.
+
+        - key: "rateLimitThreshold"
+          label: "Requests Allowed"
+          fieldType: "number"
+          validation:
+            min: 1
+          visibleWhen:
+            field: "rateLimitMode"
+            equals: "rate_limit"
+          helpText: "Required when Rate Limiting is enabled. The total number of allowed requests per period."
+
+        - key: "rateLimitUnit"
+          label: "Per"
+          fieldType: "select"
+          defaultValue: "MINUTE"
+          options:
+            - label: "Second"
+              value: "SECOND"
+            - label: "Minute"
+              value: "MINUTE"
+            - label: "Hour"
+              value: "HOUR"
+          visibleWhen:
+            field: "rateLimitMode"
+            equals: "rate_limit"
+          helpText: "Unit for the rate-limiting period."
+
+    - name: "CORS"
+      icon: "globe"
+      description: "Cross-Origin Resource Sharing response headers"
+      fields:
+        - key: "corsEnabled"
+          label: "Enable CORS"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, this load balancer adds Access-Control-* response headers."
+
+        - key: "corsAllowOrigin"
+          label: "Allowed Origins"
+          fieldType: "tags"
+          visibleWhen:
+            field: "corsEnabled"
+            equals: true
+          helpText: "Content for the access-control-allow-origin header."
+
+        - key: "corsAllowMethods"
+          label: "Allowed Methods"
+          fieldType: "tags"
+          visibleWhen:
+            field: "corsEnabled"
+            equals: true
+          helpText: "Content for the access-control-allow-methods header, e.g. GET, POST, PUT."
+
+        - key: "corsAllowHeaders"
+          label: "Allowed Headers"
+          fieldType: "tags"
+          visibleWhen:
+            field: "corsEnabled"
+            equals: true
+          helpText: "Content for the access-control-allow-headers header."
+
+        - key: "corsAllowCredentials"
+          label: "Allow Credentials"
+          fieldType: "checkbox"
+          defaultValue: false
+          visibleWhen:
+            field: "corsEnabled"
+            equals: true
+          helpText: "Whether the resource allows credentials (access-control-allow-credentials)."
+
+        - key: "corsMaxAge"
+          label: "Max Age (seconds)"
+          fieldType: "number"
+          validation:
+            min: 0
+            max: 86400
+          visibleWhen:
+            field: "corsEnabled"
+            equals: true
+          helpText: "Content for the access-control-max-age header. Maximum permitted value is 86400 (24 hours)."
+
+    - name: "Traffic policy"
+      icon: "route"
+      description: "Service policy attachment and public advertisement"
+      fields:
+        - key: "servicePoliciesMode"
+          label: "Service Policies"
+          fieldType: "select"
+          required: true
+          defaultValue: "no_service_policies"
+          options:
+            - label: "None"
+              value: "no_service_policies"
+            - label: "Namespace default service policy set"
+              value: "service_policies_from_namespace"
+            - label: "Specific policies"
+              value: "active_service_policies"
+          helpText: "One of active_service_policies/no_service_policies/service_policies_from_namespace must be set."
+
+        - key: "activeServicePolicies"
+          label: "Attached Service Policies"
+          fieldType: "remote-multiselect"
+          optionsSource: "servicePolicies"
+          visibleWhen:
+            field: "servicePoliciesMode"
+            equals: "active_service_policies"
+          helpText: "Required when Service Policies is set to Specific Policies."
+
+        - key: "advertiseMode"
+          label: "Advertise"
+          fieldType: "select"
+          required: true
+          defaultValue: "do_not_advertise"
+          options:
+            - label: "Do not advertise (internal use only)"
+              value: "do_not_advertise"
+            - label: "Advertise on public network (F5-assigned default VIP)"
+              value: "advertise_on_public_default_vip"
+          helpText: >
+            One of advertise_custom/advertise_on_public/
+            advertise_on_public_default_vip/do_not_advertise must be set. A
+            specific pre-allocated Public IP and site-scoped placement are
+            not modeled here - see README.md Coverage.

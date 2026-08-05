@@ -1,0 +1,153 @@
+# =============================================================================
+# Canvas Template - F5 Distributed Cloud App Firewall (WAF) Policies
+#
+# Declares ONE app_firewall object - the item. Referenced BY NAME from an HTTP
+# Load Balancer's "App Firewall" field to attach WAF protection. An App
+# Firewall's identity in F5 XC is its NAME; deploy GETs by name, PUTs (update)
+# or POSTs (create) accordingly - there is no upsert endpoint.
+#
+# Field keys must match what config-types/app-firewalls/validate.ts checks.
+# API reference: https://docs.cloud.f5.com/docs-v2/api/app-firewall
+#
+# Custom per-signature/per-violation tuning (detection_settings.violations_view,
+# custom anonymization lists) is intentionally NOT modeled here - see README.md
+# Coverage for why.
+# =============================================================================
+
+id: "f5xc-app-firewalls"
+name: "App Firewall (WAF) Configuration"
+toolType: "f5-distributed-cloud"
+entityType: "app-firewalls"
+description: "Define F5 Distributed Cloud App Firewall (WAF) policies as code through the F5 XC public config API."
+
+item:
+  label: "App Firewall"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "tag"
+      description: "Core WAF policy identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+            maxLength: 63
+          helpText: >
+            DNS-1035 name (lowercase alphanumeric and hyphens, must start with
+            a letter). Unique within the namespace - it is the logical
+            identity deploy matches on, and what an HTTP Load Balancer's "App
+            Firewall" field references.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the F5 XC Console."
+
+        - key: "disable"
+          label: "Disable"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Administratively disable this WAF policy without deleting it."
+
+    - name: "Enforcement"
+      icon: "shield"
+      description: "Overall enforcement posture and detection profile"
+      fields:
+        - key: "enforcementMode"
+          label: "Enforcement Mode"
+          fieldType: "select"
+          required: true
+          defaultValue: "blocking"
+          options:
+            - label: "Blocking - log and block detected threats"
+              value: "blocking"
+            - label: "Monitoring - log threats only, never block"
+              value: "monitoring"
+            - label: "Use the attached Load Balancer's setting"
+              value: "use_loadbalancer_setting"
+          helpText: "One of blocking/monitoring/use_loadbalancer_setting must be set."
+
+        - key: "detectionMode"
+          label: "Detection Profile"
+          fieldType: "select"
+          required: true
+          defaultValue: "default_detection_settings"
+          options:
+            - label: "F5 Default (all attack types, high/medium accuracy signatures, threat campaigns and violations enabled)"
+              value: "default_detection_settings"
+          helpText: >
+            One of ai_risk_based_blocking/default_detection_settings/detection_settings
+            must be set. Custom per-signature and per-violation tuning
+            (detection_settings.violations_view) requires the tenant's live
+            violation catalog and is not modeled here - see README.md
+            Coverage. This app always uses F5's default, all-enabled
+            detection profile.
+
+        - key: "enableBotProtection"
+          label: "Default Bot Protection"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "When enabled, malicious bots are blocked and suspicious/good bots are reported (default_bot_setting)."
+
+    - name: "Response codes"
+      icon: "list"
+      description: "Which HTTP response status codes are considered valid"
+      fields:
+        - key: "responseCodesMode"
+          label: "Allowed Response Codes"
+          fieldType: "select"
+          required: true
+          defaultValue: "allow_all_response_codes"
+          options:
+            - label: "Allow all response codes"
+              value: "allow_all_response_codes"
+            - label: "Restrict to a specific list"
+              value: "allowed_response_codes"
+          helpText: "One of allow_all_response_codes/allowed_response_codes must be set."
+
+        - key: "allowedResponseCodes"
+          label: "Allowed Status Codes"
+          fieldType: "tags"
+          visibleWhen:
+            field: "responseCodesMode"
+            equals: "allowed_response_codes"
+          helpText: 'List of HTTP response status codes that are allowed, e.g. 200, 201, 204, 301, 302, 400, 403, 404, 500.'
+
+    - name: "Blocking page"
+      icon: "file-text"
+      description: "The response shown to clients whose requests are blocked"
+      fields:
+        - key: "blockingPageMode"
+          label: "Blocking Page"
+          fieldType: "select"
+          required: true
+          defaultValue: "use_default_blocking_page"
+          options:
+            - label: "Use the system default page"
+              value: "use_default_blocking_page"
+            - label: "Custom page"
+              value: "blocking_page"
+          helpText: "One of blocking_page/use_default_blocking_page must be set."
+
+        - key: "customBlockingPageHtml"
+          label: "Custom Blocking Page HTML"
+          fieldType: "textarea"
+          visibleWhen:
+            field: "blockingPageMode"
+            equals: "blocking_page"
+          helpText: "HTML content returned to blocked clients (roughly 3070 bytes max as plain text)."
+
+        - key: "customBlockingResponseCode"
+          label: "Custom Blocking Response Code"
+          fieldType: "text"
+          placeholder: "403"
+          visibleWhen:
+            field: "blockingPageMode"
+            equals: "blocking_page"
+          helpText: "HTTP status code sent for blocked requests, e.g. 403."

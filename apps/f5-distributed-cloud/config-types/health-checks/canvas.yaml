@@ -1,0 +1,195 @@
+# =============================================================================
+# Canvas Template - F5 Distributed Cloud Health Checks
+#
+# Declares ONE healthcheck object - the item. Users add as many as they need,
+# then reference them BY NAME from an Origin Pool's "Health Checks" field. A
+# healthcheck's identity in F5 XC is its NAME (unique within the namespace);
+# deploy GETs by name, PUTs (update) or POSTs (create) accordingly - there is
+# no upsert endpoint.
+#
+# Field keys must match what config-types/health-checks/validate.ts checks.
+# API reference: https://docs.cloud.f5.com/docs-v2/api/healthcheck
+# =============================================================================
+
+id: "f5xc-health-checks"
+name: "Health Check Configuration"
+toolType: "f5-distributed-cloud"
+entityType: "health-checks"
+description: "Define F5 Distributed Cloud health check probes as code through the F5 XC public config API."
+
+item:
+  label: "Health Check"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Identity"
+      icon: "tag"
+      description: "Core health check identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+            maxLength: 63
+          helpText: >
+            DNS-1035 name (lowercase alphanumeric and hyphens, must start with
+            a letter). Unique within the namespace - it is the logical
+            identity deploy matches on, and what an Origin Pool's "Health
+            Checks" field references.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          helpText: "Optional description shown in the F5 XC Console."
+
+        - key: "disable"
+          label: "Disable"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Administratively disable this health check without deleting it."
+
+    - name: "Probe"
+      icon: "activity"
+      description: "Which protocol probe to run, and its type-specific settings"
+      fields:
+        - key: "checkType"
+          label: "Check Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "http"
+          options:
+            - label: "HTTP"
+              value: "http"
+            - label: "TCP"
+              value: "tcp"
+            - label: "UDP / ICMP (ping)"
+              value: "udp_icmp"
+          helpText: >
+            One of "http_health_check", "tcp_health_check" or
+            "udp_icmp_health_check" must be set on the object - this field
+            picks which. DNS-based probes (dns_health_check,
+            dns_proxy_tcp/udp_health_check) are deprecated upstream and
+            omitted here.
+
+        - key: "httpPath"
+          label: "HTTP Path"
+          fieldType: "text"
+          defaultValue: "/"
+          placeholder: "/healthz"
+          visibleWhen:
+            field: "checkType"
+            equals: "http"
+          helpText: "Required for HTTP checks. The HTTP path requested during health checking."
+
+        - key: "httpExpectedStatusCodes"
+          label: "Expected Status Codes"
+          fieldType: "text"
+          placeholder: "200 or 200-299"
+          visibleWhen:
+            field: "checkType"
+            equals: "http"
+          helpText: >
+            A single HTTP status code or a range separated by "-" (e.g.
+            "200-299"). Leave blank to not evaluate the status code.
+
+        - key: "httpExpectedResponse"
+          label: "Expected Response Body"
+          fieldType: "text"
+          visibleWhen:
+            field: "checkType"
+            equals: "http"
+          helpText: "Optional. If left empty, the response body is not considered for evaluating health."
+
+        - key: "httpUseOriginServerName"
+          label: "Use Origin Server Name as Host Header"
+          fieldType: "checkbox"
+          defaultValue: true
+          visibleWhen:
+            field: "checkType"
+            equals: "http"
+          helpText: "One of host_header/use_origin_server_name must be set. When off, set a custom Host header below."
+
+        - key: "httpHostHeader"
+          label: "Host Header"
+          fieldType: "text"
+          visibleWhen:
+            field: "httpUseOriginServerName"
+            equals: false
+          helpText: "Custom value of the HTTP Host header to send, used only when not using the origin server name."
+
+        - key: "httpUseHttp2"
+          label: "Use HTTP/2"
+          fieldType: "checkbox"
+          defaultValue: false
+          visibleWhen:
+            field: "checkType"
+            equals: "http"
+          helpText: "If set, health checks are made using HTTP/2 instead of HTTP/1.1."
+
+        - key: "tcpSendPayload"
+          label: "Send Payload (hex)"
+          fieldType: "text"
+          visibleWhen:
+            field: "checkType"
+            equals: "tcp"
+          helpText: "Hex-encoded payload sent in the TCP health check request. Leave blank to just check the connection opens."
+
+        - key: "tcpExpectedResponse"
+          label: "Expected Response (hex)"
+          fieldType: "text"
+          visibleWhen:
+            field: "checkType"
+            equals: "tcp"
+          helpText: "Hex-encoded payload expected in the TCP health check response. Leave blank to not evaluate the response."
+
+    - name: "Timing"
+      icon: "clock"
+      description: "Interval, timeout and pass/fail thresholds"
+      fields:
+        - key: "interval"
+          label: "Interval (seconds)"
+          fieldType: "number"
+          required: true
+          defaultValue: 15
+          validation:
+            min: 1
+          helpText: "Time interval in seconds between two healthcheck requests."
+
+        - key: "timeout"
+          label: "Timeout (seconds)"
+          fieldType: "number"
+          required: true
+          defaultValue: 3
+          validation:
+            min: 1
+          helpText: "How long to wait for a response before the healthcheck attempt is considered a failure."
+
+        - key: "healthyThreshold"
+          label: "Healthy Threshold"
+          fieldType: "number"
+          required: true
+          defaultValue: 2
+          validation:
+            min: 1
+          helpText: "Number of consecutive successful checks required to mark a host healthy."
+
+        - key: "unhealthyThreshold"
+          label: "Unhealthy Threshold"
+          fieldType: "number"
+          required: true
+          defaultValue: 2
+          validation:
+            min: 1
+          helpText: "Number of consecutive failed checks required to mark a host unhealthy."
+
+        - key: "jitterPercent"
+          label: "Jitter Percent"
+          fieldType: "number"
+          validation:
+            min: 0
+            max: 100
+          helpText: "Adds a random amount of time, as a percent of the interval, between successive healthcheck requests."
