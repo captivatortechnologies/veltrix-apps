@@ -1,0 +1,78 @@
+# =============================================================================
+# Canvas Template — Google SecOps Findings Refinement Deployments
+#
+# Declares the DEPLOYMENT state of ONE findings refinement — the item. Users add
+# as many as they need. Identity is the refinement's DISPLAY NAME (the same
+# identity the Findings Refinements type uses). The refinement must already
+# exist (declare it with that type first); this type reconciles its deployment
+# sub-resource ({parent}/findingsRefinements/{id}/deployment):
+#   - enabled: apply this exclusion continuously against incoming findings
+#   - archived: archive the deployment (requires enabled=false)
+#   - detectionExclusionApplication: which detectors the exclusion is scoped to
+#     (rule display names, plus raw curated-rule-set / curated-rule resource
+#     paths — Google-owned curated content has no display-name lookup in this
+#     app, matching the Curated Rule Set Deployments type's raw-id convention)
+#
+# A findings refinement deployment is a singleton and is never created or
+# deleted — only reconciled. When a spec is removed the deployment is left at
+# its last-set state; an explicit rollback restores the prior state.
+#
+# Source: google_chronicle_findings_refinement_deployment in Google's own
+# terraform-provider-google (GoogleCloudPlatform/magic-modules
+# mmv1/products/chronicle/FindingsRefinementDeployment.yaml).
+#
+# Field keys must match config-types/findings-refinement-deployments/validate.ts.
+# =============================================================================
+
+id: "google-secops-findings-refinement-deployments"
+name: "Findings Refinement Deployment Configuration"
+toolType: "google-secops"
+entityType: "findings-refinement-deployments"
+description: "Manage the deployment state (enabled, archived and detector scope) of Google Security Operations (Chronicle) findings refinements as code through the SecOps API."
+
+item:
+  label: "Findings Refinement Deployment"
+  identityField: "refinementName"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Findings Refinement Deployment"
+      icon: "toggle-right"
+      description: "Target findings refinement and its deployment state"
+      fields:
+        - key: "refinementName"
+          label: "Findings Refinement Name (displayName)"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The displayName of an existing findings refinement. The refinement
+            must already be declared via the Findings Refinements config type.
+
+        - key: "enabled"
+          label: "Enabled (apply continuously)"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Apply this detection exclusion continuously against incoming findings."
+
+        - key: "archived"
+          label: "Archived"
+          fieldType: "checkbox"
+          required: false
+          helpText: >
+            Archive this deployment. Cannot be set together with Enabled — a
+            deployment must be disabled before it can be archived.
+
+        - key: "detectionExclusionApplication"
+          label: "Detection Exclusion Application (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional JSON object narrowing which detectors this exclusion
+            applies to: {"ruleNames":["My Detection Rule"],"curatedRuleSets":
+            ["projects/p/locations/us/instances/i/curatedRuleSetCategories/c/curatedRuleSets/s"],
+            "curatedRules":["projects/p/locations/us/instances/i/curatedRules/r"]}.
+            ruleNames are resolved by display name against the Detection Rules
+            config type; curatedRuleSets/curatedRules are full resource paths
+            (Google-owned curated content has no display name to resolve).
+            Leave empty to apply the exclusion to all detectors.

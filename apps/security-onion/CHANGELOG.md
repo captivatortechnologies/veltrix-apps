@@ -2,6 +2,32 @@
 
 All notable changes to the Security Onion app are documented here.
 
+## 0.6.0 — 2026-08-05
+
+Research-first exhaustion pass: two more config types on the generic Elastic
+Stack REST surface this app already uses (the same non-SO-specific Kibana/
+Elasticsearch APIs `detections` and `elastic-ilm` already reach), plus a
+documented Coverage section.
+
+- **Elasticsearch Index Templates** — index patterns, shard/replica counts,
+  and the ILM policy attached to new indices, via
+  `PUT/GET/DELETE _index_template/<name>` on the Elasticsearch REST API
+  (9200); the natural pairing for `elastic-ilm` (an index template's
+  `index.lifecycle.name` is what attaches a custom retention policy to new
+  indices). Manages CUSTOM templates for third-party/custom log sources, not
+  Security Onion's own built-in templates.
+- **Kibana Data Views** — the index patterns backing Discover, Dashboards and
+  Hunt, via Kibana's own Data Views API (`/api/data_views/data_view`) reached
+  at the SOC console's HTTPS port (443), the same way `detections` already
+  reaches Kibana's Detection Engine API.
+- Added a README **Coverage** section documenting what's managed, the
+  Salt-pillar/BYOL boundary, and — after auditing SO 2.4's `so-user` CLI, the
+  free NIDS "Tuning Overrides" UI, and the Pro/Hydra-licensed Connect API
+  (`so-api-reference.html`) — exactly why detection tuning (threshold/
+  suppress/modify), ruleset sources, and SOC user creation/roles are
+  intentionally excluded rather than silently dropped.
+- No CLI or Salt pillar surface was touched; `remoteCommands` is unchanged.
+
 ## 0.5.0 — 2026-07-30
 
 Generic topology: BYOL dialog shows Security Onion tiers (Search nodes / Heavy

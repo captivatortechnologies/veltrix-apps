@@ -2,7 +2,7 @@
 
 > How a request is routed through the system — from the moment you act to when it reaches completion. **Auto-generated** from `manifest.yaml` (regenerate via `scripts/dataflow/generate.mjs`).
 
-**App:** `sailpoint` · **Category:** IAM · **Version:** 0.5.0  
+**App:** `sailpoint` · **Category:** IAM · **Version:** 0.6.0  
 **Operations:** Deploy a configuration · Detect drift · Roll back · Test connection  
 Talks to **SailPoint API** · credentials via the Credential Vault (`ctx.resolveConnection`).
 
@@ -62,7 +62,7 @@ flowchart LR
 ### Deploy a configuration
 
 *You publish or change a config (e.g. a policy, rule, or exclusion).*  
-<sub>Applies to: 30 config types · 1 API families.</sub>
+<sub>Applies to: 31 config types · 1 API families.</sub>
 
 ```mermaid
 sequenceDiagram
@@ -101,7 +101,7 @@ sequenceDiagram
 ### Detect drift
 
 *A scheduled sweep or on-demand check reconciles live state against the canvas.*  
-<sub>Applies to: 30 config types · 1 API families.</sub>
+<sub>Applies to: 31 config types · 1 API families.</sub>
 
 ```mermaid
 sequenceDiagram
@@ -132,7 +132,7 @@ sequenceDiagram
 ### Roll back
 
 *Revert a config to its previously-deployed state using the stored rollbackData.*  
-<sub>Applies to: 30 config types · 1 API families.</sub>
+<sub>Applies to: 31 config types · 1 API families.</sub>
 
 ```mermaid
 sequenceDiagram

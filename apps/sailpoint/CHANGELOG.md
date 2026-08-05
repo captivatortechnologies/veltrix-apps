@@ -8,6 +8,31 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.6.0 — 2026-08-05
+
+### Added
+- **Entitlements** configuration type — governance-metadata overlay on
+  SailPoint ISC entitlements (`/beta/entitlements`): owner, requestable,
+  privileged, description and segment assignments, plus the aggregation locks
+  that protect a declared name/description from being overwritten by a later
+  source aggregation. Entitlements are discovered by source aggregation, never
+  created or deleted through the API, so this type only ever patches an
+  already-existing entitlement — matched within a Source (resolved by name) by
+  the entitlement's own name, optionally disambiguated by its schema attribute,
+  with the id cached after the first match for rename-safety. Reconcile
+  reverts the overlay on an undeclared item rather than deleting anything, the
+  same non-destructive pattern used by MFA Configuration and Tenant
+  Configuration. Takes the app to 31 managed ISC configuration types.
+
+### Documentation
+- Added a README **Coverage** section: the full grouped list of what this app
+  manages, versus what's intentionally out of scope (one-shot
+  campaign/certification runs, read-only reference data, secret material that
+  can't round-trip, and per-user non-employee records) with a one-line reason
+  for each. The README previously only documented the original Transforms
+  release and had not been updated across the twenty-four-type wave 0.5.0
+  shipped.
+
 ## 0.5.0 — 2026-07-26
 
 ### Added

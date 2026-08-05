@@ -1,0 +1,8 @@
+# Defaults for a new findings refinement deployment item.
+#
+# A FLAT map keyed by the canvas field keys. A new deployment defaults to
+# enabled and unarchived, applied to all detectors (an empty application
+# scope); refinementName is left blank for a deliberate choice per item.
+enabled: true
+archived: false
+detectionExclusionApplication: "{}"

@@ -1,12 +1,13 @@
 id: security-onion
 name: Security Onion
-version: "0.5.0"
+version: "0.6.0"
 vendor: Veltrix
 description: >
   Manage Security Onion (open-source NSM / SIEM) as code. Author Suricata NIDS
   rules, firewall & analyst access, SOC users, Elastic detections and index
-  lifecycle, and Zeek — with BYOL infrastructure provisioning. Grid configuration
-  is applied on the manager via Salt (over managed ZTNA) and the SOC / Elasticsearch
+  lifecycle, Zeek, Elasticsearch index templates, and Kibana data views — with
+  BYOL infrastructure provisioning. Grid configuration is applied on the
+  manager via Salt (over managed ZTNA) and the SOC / Elasticsearch / Kibana
   REST APIs, with validation, drift detection, and rollback handled by the
   Security-as-Code pipeline.
 category: SIEM
@@ -47,6 +48,12 @@ permissions:
     - resource: elastic-ilm
       actions: [read, write, delete]
       description: Manage Elasticsearch index lifecycle (ILM) policies
+    - resource: elastic-index-templates
+      actions: [read, write, delete]
+      description: Manage Elasticsearch index templates (patterns, shards/replicas, attached ILM policy)
+    - resource: kibana-data-views
+      actions: [read, write, delete]
+      description: Manage Kibana data views (index patterns) for Discover, Dashboards and Hunt
     - resource: byol
       actions: [read, write, delete]
       description: Manage BYOL Security Onion grid infrastructure
@@ -203,6 +210,42 @@ pipeline:
         healthCheck: config-types/elastic-ilm/healthCheck
         driftDetect: config-types/elastic-ilm/driftDetect
         getStatus: config-types/elastic-ilm/getStatus
+      targets:
+        componentTypes: [manager, manager-search, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: elastic-index-templates
+      group: "Data Management"
+      name: Elasticsearch Index Templates
+      description: Elasticsearch index templates — index patterns, shard/replica settings and the ILM policy applied to new indices (via the Elasticsearch REST API on 9200)
+      canvasTemplate: config-types/elastic-index-templates/canvas.yaml
+      defaultConfig: config-types/elastic-index-templates/defaults.yaml
+      handlers:
+        validate: config-types/elastic-index-templates/validate
+        deploy: config-types/elastic-index-templates/deploy
+        rollback: config-types/elastic-index-templates/rollback
+        healthCheck: config-types/elastic-index-templates/healthCheck
+        driftDetect: config-types/elastic-index-templates/driftDetect
+        getStatus: config-types/elastic-index-templates/getStatus
+      targets:
+        componentTypes: [manager, manager-search, standalone]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: kibana-data-views
+      group: "Data Management"
+      name: Kibana Data Views
+      description: Kibana data views (index patterns) for Discover, Dashboards and Hunt (via the Kibana REST API on the SOC console, 443)
+      canvasTemplate: config-types/kibana-data-views/canvas.yaml
+      defaultConfig: config-types/kibana-data-views/defaults.yaml
+      handlers:
+        validate: config-types/kibana-data-views/validate
+        deploy: config-types/kibana-data-views/deploy
+        rollback: config-types/kibana-data-views/rollback
+        healthCheck: config-types/kibana-data-views/healthCheck
+        driftDetect: config-types/kibana-data-views/driftDetect
+        getStatus: config-types/kibana-data-views/getStatus
       targets:
         componentTypes: [manager, manager-search, standalone]
         requiresCredential: true

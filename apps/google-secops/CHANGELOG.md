@@ -8,6 +8,56 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.6.0 — 2026-08-05
+
+### Added
+- **Findings Refinement Deployments** configuration type — manage the
+  deployment state of a findings refinement (detection exclusion) as code: `enabled`
+  (apply continuously), `archived` (cannot be set together with enabled), and
+  `detectionExclusionApplication` — which detectors (detection rules by
+  display name, plus raw curated-rule-set / curated-rule resource paths) the
+  exclusion is scoped to. Identity is the refinement's `displayName` — the
+  same identity the Findings Refinements type uses; the refinement must
+  already exist. A deployment is a singleton sub-resource (never created or
+  deleted), so there is no reconcile-delete — a removed spec is left at its
+  last-set state and rollback restores the prior state (the same
+  content-vs-state split already used by Rule Deployments). Verified against
+  `google_chronicle_findings_refinement_deployment` in Google's own
+  `terraform-provider-google` (`GoogleCloudPlatform/magic-modules`
+  `mmv1/products/chronicle/FindingsRefinementDeployment.yaml`) — this app's
+  Findings Refinements type previously only disabled + archived a refinement's
+  deployment as a reconcile side effect; it did not expose deployment state or
+  detector scoping as a first-class, user-declared config surface.
+- **Native Dashboards** configuration type — manage Chronicle SIEM "Native
+  Dashboards" as code: the dashboard container (display name, description,
+  `access` — DASHBOARD_PRIVATE/DASHBOARD_PUBLIC, pinned) plus its global
+  filters (time-range and entity/UDM filters shared across the dashboard's
+  charts). Identity is the display name (the dashboardId is server-assigned);
+  created/updated/deleted, with app-created dashboards deleted on reconcile. A
+  matched dashboard whose type is not `CUSTOM` (Google-curated, marketplace, or
+  legacy Looker-era PUBLIC/PRIVATE dashboards) is reported and left untouched.
+  SCOPE: chart CONTENT (the visualization/query definitions behind each tile)
+  is intentionally out of scope this pass — charts have their own
+  create/update/delete lifecycle via custom `addChart`/`editChart`/`removeChart`
+  RPCs on the dashboard, backed by an extremely deep and still-evolving
+  visualization schema (per-axis/series/legend/table/button/markdown/map/
+  drill-down configuration, confirmed via the same magic-modules source).
+  Verified against `google_chronicle_native_dashboard` /
+  `google_chronicle_dashboard_chart` in the same `terraform-provider-google`
+  source (`NativeDashboard.yaml`, `DashboardChart.yaml`).
+- README **Coverage** section — every configuration type this app manages
+  (grouped) plus every genuinely-excluded Chronicle/SecOps surface, each with
+  a sourced reason: SOAR (Siemplify) case-management resources (cases,
+  environments, integrations, legacy SOAR users, SOAR domains/networks, `SOC
+  Roles` RBAC, custom lists, alert grouping) are out of scope for this
+  SIEM-only app; one-shot execution resources (retrohunts, data exports);
+  read-only/reference data (ingestion log labels/namespaces, feed source-type
+  schemas, execution errors, coverage details); user-preference/transient
+  state (saved column sets, search queries, ad-hoc dashboard-query execution);
+  and a small set of confirmed-but-unverified-schema resources (entities
+  blocklists, enrichment controls, property schema definitions) deliberately
+  not guessed at.
+
 ## 0.5.0 — 2026-07-26
 
 ### Added

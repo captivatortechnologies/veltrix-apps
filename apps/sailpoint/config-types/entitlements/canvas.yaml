@@ -1,0 +1,106 @@
+# =============================================================================
+# Canvas Template — SailPoint ISC Entitlements
+#
+# Declares ONE entitlement governance overlay — the item. Entitlements are
+# discovered by source aggregation, never created or deleted through this API:
+# each item is matched to an already-existing entitlement on a Source (resolved
+# by name), by the entitlement's own name (optionally disambiguated by its
+# schema Attribute), and its id is cached after the first match for
+# rename-safety. Updates use JSON-Patch. Undeclaring an item reverts its
+# overlay to the prior values rather than deleting anything.
+#
+# Field keys must match config-types/entitlements/validate.ts.
+# =============================================================================
+
+id: "sailpoint-entitlements"
+name: "Entitlement Governance"
+toolType: "sailpoint"
+entityType: "entitlements"
+description: "Overlay governance metadata (owner, requestable, privileged, description, segments) onto SailPoint Identity Security Cloud entitlements discovered from a source, as code through the ISC API."
+
+item:
+  label: "Entitlement"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Match"
+      icon: "target"
+      description: "Which existing entitlement this item manages"
+      fields:
+        - key: "sourceName"
+          label: "Source Name"
+          fieldType: "text"
+          required: true
+          helpText: "Name of the Source the entitlement was discovered on (resolved to its id at deploy time)."
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: >
+            The entitlement's current name as shown in ISC. Matches a live
+            entitlement on this source; the id is cached after the first match,
+            so changing this later renames the entitlement instead of losing
+            the match.
+
+        - key: "attribute"
+          label: "Attribute"
+          fieldType: "text"
+          required: false
+          helpText: >
+            Optional schema attribute (e.g. memberOf) to disambiguate when more
+            than one entitlement on the source shares this name.
+
+    - name: "Governance"
+      icon: "shield"
+      description: "Ownership, request/risk flags and description"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          helpText: "Business-friendly description of what this entitlement grants."
+
+        - key: "ownerId"
+          label: "Owner Identity ID"
+          fieldType: "text"
+          required: false
+          helpText: "Id of the accountable ISC Identity. Left untouched when blank."
+
+        - key: "requestable"
+          label: "Requestable"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether the entitlement can be requested through access request."
+
+        - key: "privileged"
+          label: "Privileged"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Flags the entitlement as privileged/high-risk access."
+
+        - key: "segments"
+          label: "Segment IDs"
+          fieldType: "tags"
+          required: false
+          helpText: "Ids of segments this entitlement is scoped to, if any."
+
+        - key: "lockDisplayName"
+          label: "Lock Name"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Prevents a later source aggregation from overwriting the declared Name."
+
+        - key: "lockDescription"
+          label: "Lock Description"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Prevents a later source aggregation from overwriting the declared Description."

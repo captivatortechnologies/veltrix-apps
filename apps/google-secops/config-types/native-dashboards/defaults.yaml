@@ -1,0 +1,8 @@
+# Defaults for a new native dashboard item.
+#
+# A FLAT map keyed by the canvas field keys. A new dashboard starts private,
+# unpinned, and with no filters; name and description are left blank for a
+# deliberate choice per dashboard.
+access: "DASHBOARD_PRIVATE"
+isPinned: false
+filters: "[]"

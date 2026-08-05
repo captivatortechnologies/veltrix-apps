@@ -1,14 +1,14 @@
 id: sailpoint
 name: SailPoint
-version: "0.5.0"
+version: "0.6.0"
 vendor: Veltrix
 description: >
   Manage SailPoint Identity Security Cloud (ISC, formerly IdentityNow)
   configuration as code through the ISC API — connectivity (Sources, Source
   Schemas, Provisioning Policies, Correlation Configs, Managed Clusters),
   identity governance (Identity Profiles, Lifecycle States, Identity Attributes,
-  Search Attributes, Roles, Access Profiles, Role Dimensions, Segments,
-  Governance Groups), policy & compliance (SOD Policies, Password Policies,
+  Search Attributes, Roles, Access Profiles, Role Dimensions, Entitlements,
+  Segments, Governance Groups), policy & compliance (SOD Policies, Password Policies,
   Password Sync Groups, Campaign Templates, MFA and tenant auth/security
   singletons), automation & integration (Workflows, Trigger Subscriptions,
   Connector Rules, Service Desk / SIM Integrations, Notification Templates,
@@ -47,6 +47,9 @@ permissions:
     - resource: access-profiles
       actions: [read, write, delete]
       description: Manage SailPoint ISC access profiles (name, owner, source, entitlements, enabled/requestable)
+    - resource: entitlements
+      actions: [read, write, delete]
+      description: Overlay governance metadata onto SailPoint ISC entitlements discovered from a source (owner, requestable, privileged, description, segments; never creates or deletes the underlying entitlement — "delete" reverts the overlay)
     - resource: roles
       actions: [read, write, delete]
       description: Manage SailPoint ISC roles (name, owner, bundled access profiles, enabled/requestable)
@@ -140,6 +143,23 @@ pipeline:
         healthCheck: config-types/access-profiles/healthCheck
         driftDetect: config-types/access-profiles/driftDetect
         getStatus: config-types/access-profiles/getStatus
+      targets:
+        componentTypes: [sailpoint-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: entitlements
+      name: Entitlements
+      description: ISC entitlement governance overlay — owner, requestable, privileged, description, segments and aggregation locks on an already-discovered entitlement (matched within a source by name, optionally disambiguated by attribute; id cached for rename-safety; JSON-Patch updates only — never creates or deletes the underlying entitlement, reconcile reverts the overlay)
+      canvasTemplate: config-types/entitlements/canvas.yaml
+      defaultConfig: config-types/entitlements/defaults.yaml
+      handlers:
+        validate: config-types/entitlements/validate
+        deploy: config-types/entitlements/deploy
+        rollback: config-types/entitlements/rollback
+        healthCheck: config-types/entitlements/healthCheck
+        driftDetect: config-types/entitlements/driftDetect
+        getStatus: config-types/entitlements/getStatus
       targets:
         componentTypes: [sailpoint-tenant]
         requiresCredential: true

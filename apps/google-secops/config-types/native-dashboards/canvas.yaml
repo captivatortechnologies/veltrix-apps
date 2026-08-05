@@ -1,0 +1,92 @@
+# =============================================================================
+# Canvas Template — Google SecOps Native Dashboards
+#
+# Declares ONE Native Dashboard — the item. Users add as many as they need. A
+# dashboard's id is server-assigned, so its identity here is the DISPLAY NAME
+# you own; deploy lists dashboards, matches by the dashboardId stored last
+# deploy (rename-safe) or the display name, then creates or PATCHes the
+# dashboard. Dashboards this app created but no longer declares are deleted.
+# A matched dashboard whose type is not CUSTOM (e.g. a Google-curated or
+# marketplace dashboard) is reported and left untouched.
+#
+# SCOPE: this manages the dashboard SHELL (display name, description, access,
+# pinned) and its dashboard-level FILTERS only. Chart CONTENT (the
+# visualization/query definitions behind each tile) is out of scope — charts
+# have their own create/update/delete lifecycle via custom addChart / editChart
+# / removeChart RPCs backed by a deep, still-evolving visualization schema. Add
+# charts in the SecOps console after creating the dashboard shell here.
+#
+# Source: google_chronicle_native_dashboard in Google's own
+# terraform-provider-google (GoogleCloudPlatform/magic-modules
+# mmv1/products/chronicle/NativeDashboard.yaml).
+#
+# Field keys must match config-types/native-dashboards/validate.ts.
+# =============================================================================
+
+id: "google-secops-native-dashboards"
+name: "Native Dashboard Configuration"
+toolType: "google-secops"
+entityType: "native-dashboards"
+description: "Define Google Security Operations (Chronicle) Native Dashboards (a dashboard container plus its global filters) as code through the SecOps API."
+
+item:
+  label: "Dashboard"
+  identityField: "displayName"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Dashboard"
+      icon: "layout-dashboard"
+      description: "Dashboard identity and sharing"
+      fields:
+        - key: "displayName"
+          label: "Display Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The dashboard's display name — its identity here (the dashboardId
+            is server-assigned). Must be unique within the canvas.
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          helpText: "What this dashboard shows — displayed in the SecOps console."
+
+        - key: "access"
+          label: "Access"
+          fieldType: "select"
+          required: false
+          defaultValue: "DASHBOARD_PRIVATE"
+          options:
+            - label: "Private"
+              value: "DASHBOARD_PRIVATE"
+            - label: "Public (shared with the instance)"
+              value: "DASHBOARD_PUBLIC"
+          helpText: "Whether the dashboard is private to its owner or shared with the whole SecOps instance."
+
+        - key: "isPinned"
+          label: "Pinned"
+          fieldType: "checkbox"
+          required: false
+          helpText: "Pin this dashboard for its owner in the SecOps console."
+
+    - name: "Filters"
+      icon: "filter"
+      description: "Global dashboard filters"
+      fields:
+        - key: "filters"
+          label: "Filters (JSON)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional JSON array of global dashboard filters, each needing at
+            least an "id", e.g. [{"id":"GlobalTimeFilter","displayName":"Global
+            Time Filter","dataSource":"GLOBAL","isStandardTimeRangeFilter":true,
+            "isStandardTimeRangeFilterEnabled":true,"filterOperatorAndFieldValues":
+            [{"filterOperator":"PAST","fieldValues":["1","DAY"]}]}]. dataSource
+            is one of UDM, ENTITY, INGESTION_METRICS, RULE_DETECTIONS, RULESETS,
+            GLOBAL, IOC_MATCHES, RULES, SOAR_CASES, SOAR_PLAYBOOKS,
+            SOAR_CASE_HISTORY, DATA_TABLE, INVESTIGATION, INVESTIGATION_FEEDBACK.
+            Reconciled to exactly this list on every deploy.

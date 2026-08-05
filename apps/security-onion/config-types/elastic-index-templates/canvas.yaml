@@ -1,0 +1,102 @@
+# =============================================================================
+# Canvas Template — Security Onion Elasticsearch Index Templates
+#
+# Declares ONE Elasticsearch index template (the item). Users add as many as
+# they need. Field keys must match config-types/elastic-index-templates/validate.ts.
+# Applied via the Elasticsearch REST API (_index_template) on port 9200 — the
+# same generic Elastic Stack surface already used by elastic-ilm, and the
+# natural pairing for it: an index template's `index.lifecycle.name` is what
+# attaches a custom ILM policy to new indices. Manages CUSTOM templates for
+# third-party/custom log sources — not Security Onion's own built-in
+# templates (see README Coverage).
+# =============================================================================
+
+id: "security-onion-elastic-index-templates"
+name: "Elasticsearch Index Templates"
+toolType: "security-onion"
+entityType: "elastic-index-templates"
+description: "Manage Elasticsearch index templates — index patterns, shard/replica settings and the ILM policy applied to new indices — via the Elasticsearch REST API (9200)"
+
+item:
+  label: "Index Template"
+  identityField: "templateName"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Template"
+      icon: "layers"
+      description: "Index template identity"
+      fields:
+        - key: "templateName"
+          label: "Template Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[a-zA-Z0-9._-]+$"
+            maxLength: 255
+          helpText: "The index template name, e.g. so-custom-syslog"
+
+        - key: "comment"
+          label: "Comment"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 500
+          helpText: "Why this template exists — recorded for audit"
+
+    - name: "Pattern & Priority"
+      icon: "target"
+      description: "Which indices this template applies to"
+      fields:
+        - key: "indexPatterns"
+          label: "Index Patterns"
+          fieldType: "tags"
+          required: true
+          helpText: "Wildcard index/data-stream patterns this template matches, e.g. so-custom-syslog-*"
+
+        - key: "priority"
+          label: "Priority"
+          fieldType: "number"
+          required: false
+          defaultValue: 100
+          validation:
+            min: 0
+          helpText: "Higher priority wins when more than one template matches a new index — keep above Security Onion's built-in templates only if you intend to override them"
+
+    - name: "Settings"
+      icon: "database"
+      description: "Shard/replica counts and the ILM policy applied to new indices"
+      fields:
+        - key: "numberOfShards"
+          label: "Number of Shards"
+          fieldType: "number"
+          required: true
+          defaultValue: 1
+          validation:
+            min: 1
+          helpText: "Primary shard count for new indices created from this template"
+
+        - key: "numberOfReplicas"
+          label: "Number of Replicas"
+          fieldType: "number"
+          required: true
+          defaultValue: 0
+          validation:
+            min: 0
+          helpText: "Replica shard count for new indices — 0 for single-node grids, 1+ once you have search nodes"
+
+        - key: "ilmPolicyName"
+          label: "ILM Policy Name"
+          fieldType: "text"
+          required: false
+          validation:
+            pattern: "^[a-zA-Z0-9._-]+$"
+            maxLength: 255
+          helpText: "Optional — an existing ILM policy (e.g. one declared in this app's Elasticsearch ILM Policies config) to attach via index.lifecycle.name"
+
+        - key: "composedOf"
+          label: "Composed-Of Component Templates"
+          fieldType: "tags"
+          required: false
+          helpText: "Optional — names of EXISTING component templates to compose into this index template, in precedence order"

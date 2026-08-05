@@ -1,15 +1,15 @@
 id: google-secops
 name: Google SecOps
-version: "0.5.0"
+version: "0.6.0"
 vendor: Veltrix
 description: >
   Manage Google Security Operations (Chronicle) configuration as code through the
   SecOps REST API — Reference Lists, Data Tables, Detection Rules, Rule
   Deployments, Data Access Labels and Scopes, Data Feeds, Forwarders and their
-  Collectors, Entity Watchlists, Findings Refinements, Curated Rule Set
-  Deployments, Custom Parsers and Parser Extensions, Log Processing Pipelines and
-  BigQuery Export — with validation, drift detection and rollback handled by the
-  Security-as-Code pipeline.
+  Collectors, Entity Watchlists, Findings Refinements and their Deployments,
+  Curated Rule Set Deployments, Custom Parsers and Parser Extensions, Log
+  Processing Pipelines, Native Dashboards and BigQuery Export — with validation,
+  drift detection and rollback handled by the Security-as-Code pipeline.
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/google-secops
@@ -78,6 +78,12 @@ permissions:
     - resource: bigquery-export
       actions: [read, write, delete]
       description: Manage Google SecOps BigQuery Export per-data-source settings (instance singleton; get + patch)
+    - resource: findings-refinement-deployments
+      actions: [read, write, delete]
+      description: Manage the deployment state (enabled, archived and detector scope) of Google SecOps findings refinements
+    - resource: native-dashboards
+      actions: [read, write, delete]
+      description: Manage Google SecOps Native Dashboards (dashboard shell and global filters; chart content is out of scope)
 
 pipeline:
   configurationTypes:
@@ -348,6 +354,40 @@ pipeline:
         healthCheck: config-types/bigquery-export/healthCheck
         driftDetect: config-types/bigquery-export/driftDetect
         getStatus: config-types/bigquery-export/getStatus
+      targets:
+        componentTypes: [google-secops]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: findings-refinement-deployments
+      name: Findings Refinement Deployments
+      description: Findings refinement deployments — the enabled / archived state and detector scope (curated rule sets, curated rules, detection rules) of a findings refinement (identity is the parent refinement's displayName; the refinement must already exist; nested findingsRefinements/{id}/deployment sub-resource reconciled by PATCH; never created/deleted, rollback restores prior state; refinement content is out of scope)
+      canvasTemplate: config-types/findings-refinement-deployments/canvas.yaml
+      defaultConfig: config-types/findings-refinement-deployments/defaults.yaml
+      handlers:
+        validate: config-types/findings-refinement-deployments/validate
+        deploy: config-types/findings-refinement-deployments/deploy
+        rollback: config-types/findings-refinement-deployments/rollback
+        healthCheck: config-types/findings-refinement-deployments/healthCheck
+        driftDetect: config-types/findings-refinement-deployments/driftDetect
+        getStatus: config-types/findings-refinement-deployments/getStatus
+      targets:
+        componentTypes: [google-secops]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: native-dashboards
+      name: Native Dashboards
+      description: Native Dashboards — the dashboard container (display name, description, access, pinned) and its global filters (identity is the display name; the dashboardId is server-assigned; created/updated/deleted; app-created dashboards are deleted on reconcile; only CUSTOM-type dashboards are managed; chart content is out of scope — added via addChart/editChart/removeChart in the SecOps console)
+      canvasTemplate: config-types/native-dashboards/canvas.yaml
+      defaultConfig: config-types/native-dashboards/defaults.yaml
+      handlers:
+        validate: config-types/native-dashboards/validate
+        deploy: config-types/native-dashboards/deploy
+        rollback: config-types/native-dashboards/rollback
+        healthCheck: config-types/native-dashboards/healthCheck
+        driftDetect: config-types/native-dashboards/driftDetect
+        getStatus: config-types/native-dashboards/getStatus
       targets:
         componentTypes: [google-secops]
         requiresCredential: true
