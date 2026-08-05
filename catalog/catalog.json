@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/captivatortechnologies/veltrix-apps",
-  "generatedAt": "2026-08-05T19:25:39.893Z",
+  "generatedAt": "2026-08-05T19:28:25.142Z",
   "apps": [
     {
       "appId": "akamai",
@@ -165,6 +165,25 @@
       "sizeBytes": 262780,
       "publishedAt": "2026-08-05T16:28:29.872Z",
       "releaseNotes": "## 0.6.1 — 2026-08-05\n\nGrouped all configuration types in the Configurations sidebar. Organization-only —\nno change to any deploy/rollback/drift behavior.\n\n- **Config sidebar groups** — Enterprise EDR (threat feeds / reports / watchlists /\n  watchlist reports), Endpoint Prevention (policies / prevention rules / reputation\n  overrides), Device Control (USB approvals / blocks), Data & Assets (data forwarders /\n  asset groups), and Access & Identity (access grants). Previously only Access Grants\n  was grouped; the other eleven types rendered as a flat list.",
+      "releasedAt": "2026-08-05T00:00:00.000Z"
+    },
+    {
+      "appId": "cato-networks",
+      "name": "Cato Networks",
+      "version": "0.1.0",
+      "vendor": "Veltrix",
+      "description": "Manage Cato Networks (SASE/SSE) configuration as code through the Cato Management Application (CMA) GraphQL API. Covers Internet Firewall rules and sections, WAN Firewall rules and sections, Application Control (CASB) rules, TLS Inspection rules, Anti-Malware file-hash exceptions, Custom Applications and Global IP Range network objects - with validation, drift detection and rollback handled by the Security-as-Code pipeline. Internet/WAN Firewall, Application Control and TLS Inspection changes are staged into a private draft revision and published as a batch on deploy, mirroring Cato's own change-management workflow.",
+      "category": "NETWORK",
+      "icon": "🧭",
+      "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IkNhdG8gTmV0d29ya3MiPgogIDxyZWN0IHg9IjEiIHk9IjEiIHdpZHRoPSIzMCIgaGVpZ2h0PSIzMCIgcng9IjciIGZpbGw9IiMwQTIzNDIiLz4KICA8Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSI4IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMEI3QzMiIHN0cm9rZS13aWR0aD0iMi41Ii8+CiAgPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMi41IiBmaWxsPSIjMDBCN0MzIi8+Cjwvc3ZnPgo=",
+      "license": "Apache-2.0",
+      "homepage": "https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/cato-networks",
+      "available": true,
+      "downloadUrl": "https://github.com/captivatortechnologies/veltrix-apps/releases/download/cato-networks-v0.1.0/cato-networks.zip",
+      "sha256": "aac41cb6a61abb765b44dac32bb6a47dcc61ee93fe7cc52fedf581e1bdcfae73",
+      "sizeBytes": 190468,
+      "publishedAt": "2026-08-05T19:28:25.056Z",
+      "releaseNotes": "## 0.1.0 — 2026-08-05\n\n### Added — initial release\n\nFirst release of the Cato Networks (SASE/SSE) config-as-code app, built research-first against\n`cato_api.graphqls` - the GraphQL schema Cato's own generated Go SDK\n([`catonetworks/cato-go-sdk`](https://github.com/catonetworks/cato-go-sdk)) and Terraform provider\n(`catonetworks/terraform-provider-cato`) are both built from/against, and the same schema behind\n[api.catonetworks.com/documentation](https://api.catonetworks.com/documentation/).\n\nNine configuration types, covering the core declarative surface of the Cato Management Application\n(CMA) GraphQL API:\n\n- **Internet Firewall Sections / Rules** (`config-types/internet-firewall-{sections,rules}`) -\n  outbound internet-bound traffic policy, full section + rule lifecycle, via\n  `policy(accountId).internetFirewall`.\n- **WAN Firewall Sections / Rules** (`config-types/wan-firewall-{sections,rules}`) -\n  site-to-site/datacenter traffic policy (adds `direction`), via `policy(accountId).wanFirewall`.\n- **Application Control Rules** (`config-types/application-control-rules`) - CASB-style\n  application/data/file rule kinds via `policy(accountId).applicationControl`.\n- **TLS Inspection Rules** (`config-types/tls-inspection-rules`) - which traffic gets decrypted and\n  untrusted-certificate handling, via `policy(accountId).tlsInspect`.\n- **Anti-Malware File Hash Rules** (`config-types/anti-malware-file-hash-rules`) - per-file\n  block/bypass exceptions by SHA-256, via `policy(accountId).antiMalwareFileHash` - the one\n  genuinely declarative slice of Cato's broader IPS/anti-malware/threat-prevention surface.\n- **Custom Applications** (`config-types/custom-applications`) - reusable destination +\n  port/protocol objects referenced by name from policy rules, via `customAppData(accountId)`.\n- **Network Ranges** (`config-types/network-ranges`) - account-wide Global IP Range network\n  objects referenced by name from policy rules, via `object(accountId)`.\n\n**Staged config model**: Internet/WAN Firewall, Application Control, TLS Inspection and Anti-Malware\nFile Hash all write into the calling admin's private draft revision; deploy performs every\nadd/update/remove/move mutation then calls `publishPolicyRevision` once. Rollback replays the\nprevious canvas version's own declared spec (never a live re-read - Cato's read/write ref shapes\ndiffer) and republishes, mirroring `wiz-integrations`'s handling of the same problem elsewhere in\nthis codebase. Custom Applications and Network Ranges apply immediately (no publish step exists for\neither in the schema).\n\nAuthentication is a single Cato API Key (`x-api-key` header), with the connection's Cato Account ID\nstored as the `cato-account` component hostname and sent both as `x-account-id` and the `accountId`\nGraphQL argument - verified directly against `cato-go-sdk`'s `cato.go`/`client.go`.\n\nSee **Coverage** in `README.md` for the full breakdown of what's covered in this release versus\ndeferred to a future pass (Application Control/TLS Inspection/Anti-Malware section lifecycle, Site\nLAN network ranges + DHCP, static hosts, the other ~10 structurally-identical staged policy areas,\ncustom categories - no write API exists for them).",
       "releasedAt": "2026-08-05T00:00:00.000Z"
     },
     {
