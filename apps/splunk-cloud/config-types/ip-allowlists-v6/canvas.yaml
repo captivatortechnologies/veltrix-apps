@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template — Splunk Cloud IPv6 Allow Lists (ACS)
+#
+# Declares the IPv6 allow list for ONE feature — the item. This is a SEPARATE
+# ACS resource from the IPv4 "IP Allow Lists" type (ipallowlists-v6, not a
+# variant of ipallowlists) — Splunk's own terraform-provider-scp models it as
+# its own resource (scp_ip_v6_allowlists) for the same reason. Field keys must
+# match what config-types/ip-allowlists-v6/validate.ts checks.
+# =============================================================================
+
+id: "splunk-cloud-ip-allowlists-v6"
+name: "IPv6 Allow List Configuration"
+toolType: "splunk-cloud"
+entityType: "ip-allowlists-v6"
+description: "Define per-feature IPv6 allow lists (search-api, hec, s2s, ...) as code via the ACS API"
+
+item:
+  label: "IPv6 Allow List"
+  identityField: "feature"
+  repeatable: true
+  minItems: 1
+  # One allow list per ACS feature — there are exactly seven, and duplicates
+  # are rejected by validate.ts
+  maxItems: 7
+  groups:
+    - name: "General"
+      icon: "shield"
+      description: "Feature and its allowed IPv6 subnets"
+      fields:
+        - key: "feature"
+          label: "Feature"
+          fieldType: "select"
+          required: true
+          options:
+            - label: "Search API (search-api)"
+              value: "search-api"
+            - label: "HTTP Event Collector (hec)"
+              value: "hec"
+            - label: "Splunk-to-Splunk Forwarding (s2s)"
+              value: "s2s"
+            - label: "Search UI (search-ui)"
+              value: "search-ui"
+            - label: "IDM UI (idm-ui)"
+              value: "idm-ui"
+            - label: "IDM API (idm-api)"
+              value: "idm-api"
+            - label: "Admin Config Service (acs)"
+              value: "acs"
+          helpText: "Splunk Cloud feature this IPv6 allow list applies to"
+
+        - key: "subnets"
+          label: "Allowed Subnets (IPv6 CIDR)"
+          fieldType: "tags"
+          required: true
+          helpText: "IPv6 subnets in CIDR notation, e.g. 2001:db8::/32 (use /128 for a single host). ACS cannot replace every subnet in one request — keep at least one existing subnet when shrinking a list."
+
+        - key: "removeUndeclared"
+          label: "Remove Undeclared Subnets"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, live subnets not declared here are removed on deploy (full reconcile). Never applied to the \"acs\" feature — lockout protection. ACS may hold back one subnet if this would remove them all at once (redeploy to finish)."

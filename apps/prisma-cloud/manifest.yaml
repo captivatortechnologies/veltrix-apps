@@ -1,15 +1,16 @@
 id: prisma-cloud
 name: Prisma Cloud
-version: "0.5.0"
+version: "0.6.0"
 vendor: Veltrix
 description: >
   Manage Palo Alto Prisma Cloud (CSPM) configuration as code through the Prisma
   Cloud REST API — Custom Compliance Standards, Compliance Requirements,
-  Compliance Sections, Account Groups, User Roles, Resource Lists, Custom
+  Compliance Sections, Account Groups, User Roles, Users, Resource Lists, Custom
   Policies, Saved Searches, Alert Rules, Login IP Allow Lists, Permission Groups,
-  Collections, Anomaly Trusted Lists, Trusted Alert IPs, Notification Templates,
-  Reports and tenant Enterprise Settings — with validation, drift detection and
-  rollback handled by the Security-as-Code pipeline.
+  Collections, Anomaly Trusted Lists, Anomaly Settings, Trusted Alert IPs,
+  Notification Templates, Integrations, Reports and tenant Enterprise Settings —
+  with validation, drift detection and rollback handled by the Security-as-Code
+  pipeline.
 category: CLOUD
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/prisma-cloud
@@ -81,6 +82,15 @@ permissions:
     - resource: enterprise-settings
       actions: [read, write]
       description: Manage Prisma Cloud tenant-wide enterprise settings (singleton, GET-merge-PUT of declared fields only)
+    - resource: users
+      actions: [read, write, delete]
+      description: Manage Prisma Cloud console users (email, name, time zone, role assignment); matched by email, no password is ever set or stored
+    - resource: integrations
+      actions: [read, write, delete]
+      description: Manage Prisma Cloud integrations (AWS Security Hub, Google Cloud SCC only — the 2 of 15 integration types with no embedded secret); matched by name
+    - resource: anomaly-settings
+      actions: [read, write]
+      description: Tune built-in Prisma Cloud anomaly-detection policies (alert disposition, training model threshold); no create/delete
 
 pipeline:
   configurationTypes:
@@ -368,6 +378,60 @@ pipeline:
         healthCheck: config-types/enterprise-settings/healthCheck
         driftDetect: config-types/enterprise-settings/driftDetect
         getStatus: config-types/enterprise-settings/getStatus
+      targets:
+        componentTypes: [prisma-cloud]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: users
+      group: "Identity & Access"
+      name: Users
+      description: Console users — email, name, time zone, role assignment (matched by email, Prisma's own identity key for this resource; no password is ever set — new profiles are provisioned with no credential; reconcile only deletes users this app created)
+      canvasTemplate: config-types/users/canvas.yaml
+      defaultConfig: config-types/users/defaults.yaml
+      handlers:
+        validate: config-types/users/validate
+        deploy: config-types/users/deploy
+        rollback: config-types/users/rollback
+        healthCheck: config-types/users/healthCheck
+        driftDetect: config-types/users/driftDetect
+        getStatus: config-types/users/getStatus
+      targets:
+        componentTypes: [prisma-cloud]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: integrations
+      group: "Integrations"
+      name: Integrations
+      description: Integrations — name, type, non-secret config (scoped to AWS Security Hub and Google Cloud SCC, the only 2 of 15 Prisma Cloud integration types with no embedded secret; matched by name; integrationType is immutable after creation; reconcile only deletes integrations this app created)
+      canvasTemplate: config-types/integrations/canvas.yaml
+      defaultConfig: config-types/integrations/defaults.yaml
+      handlers:
+        validate: config-types/integrations/validate
+        deploy: config-types/integrations/deploy
+        rollback: config-types/integrations/rollback
+        healthCheck: config-types/integrations/healthCheck
+        driftDetect: config-types/integrations/driftDetect
+        getStatus: config-types/integrations/getStatus
+      targets:
+        componentTypes: [prisma-cloud]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: anomaly-settings
+      group: "Anomalies"
+      name: Anomaly Settings
+      description: Tuning for built-in anomaly-detection policies — alertDisposition and trainingModelThreshold per policy id (GET-merge-POST of only the declared fields; blanks leave live values untouched; no create/delete — every anomaly policy already has settings)
+      canvasTemplate: config-types/anomaly-settings/canvas.yaml
+      defaultConfig: config-types/anomaly-settings/defaults.yaml
+      handlers:
+        validate: config-types/anomaly-settings/validate
+        deploy: config-types/anomaly-settings/deploy
+        rollback: config-types/anomaly-settings/rollback
+        healthCheck: config-types/anomaly-settings/healthCheck
+        driftDetect: config-types/anomaly-settings/driftDetect
+        getStatus: config-types/anomaly-settings/getStatus
       targets:
         componentTypes: [prisma-cloud]
         requiresCredential: true

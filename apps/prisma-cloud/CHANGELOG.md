@@ -8,6 +8,63 @@ All notable changes to this app are documented here. This project adheres to
 > changed without a matching `## <version>` heading here. Keep `package.json`
 > `version` equal to `manifest.yaml` `version`.
 
+## 0.6.0 — 2026-08-05
+
+### Added
+- **Users** configuration type — manage Prisma Cloud console users (email,
+  first/last name, time zone, role assignment, access-key permission) as code
+  via `/v2/user` and `/user/{email}`. Matched by email (Prisma's own identity
+  key — there is no surrogate id for this resource); no password is ever set
+  or read — a new profile is provisioned with no credential and Prisma emails
+  the user its own setup link. `enabled` is toggled through the dedicated
+  `PATCH /user/{email}/status/{enabled}` endpoint (it is read-only on the
+  profile object itself). Prisma's read API only ever returns a user's single
+  active role id, never the full multi-role `roleIds` set it was created
+  with — drift detection and rollback are scoped to what is actually
+  readable, and the full `roleIds` list is carried forward from what this app
+  last applied rather than guessed from a live read. Reconcile only deletes
+  users this app created.
+- **Integrations** configuration type — manage Prisma Cloud integrations
+  (name, type, non-secret config) via `/integrations`. Scoped to
+  `aws_security_hub` and `google_cscc`, the only 2 of 15 documented
+  integration types with zero embedded secret material (the other 13 —
+  Slack, Splunk, PagerDuty, webhook, Jira, ServiceNow, Okta, Qualys, Tenable,
+  Snowflake, Cortex XSOAR, Microsoft Teams, Amazon SQS/S3/Security Lake,
+  Azure Service Bus — each embed a real API key, token, password, private key,
+  or a Terraform-provider-`Sensitive`-flagged externalId, and are deferred).
+  Matched by name (the id is stored for rename-safety); `integrationType` is
+  immutable after creation (Prisma's update endpoint does not accept it) — a
+  live/declared mismatch is flagged as a deploy failure rather than silently
+  ignored. Feeds the `integrationId` some Notification Templates reference.
+  Reconcile only deletes integrations this app created.
+- **Anomaly Settings** configuration type — tune Prisma Cloud's built-in,
+  per-policy anomaly-detection models (`alertDisposition`,
+  `trainingModelThreshold`) via `GET`/`POST /anomalies/settings/{policyId}`.
+  Distinct from the existing Anomaly Trusted List type (which manages
+  suppression entries, not model tuning). No create/delete — every anomaly
+  policy already has settings; this is a declared-fields-only overlay (blank
+  = leave unchanged), matching the Enterprise Settings type's GET-merge-PUT
+  convention. `policyId` is a raw id, consistent with how this app already
+  references anomaly policies elsewhere (Anomaly Trusted List's
+  `applicablePolicies`) — not resolved from a name.
+- `lib/prismacloud.ts` — added a `PATCH` method/verb to `PcClient` (needed by
+  the Users type's enable/disable endpoint, whose value is a path segment,
+  not a body).
+
+### Notes
+- Re-verified all 17 existing configuration types against the current CSPM
+  API (via the authoritative per-resource OpenAPI specs published in
+  `PaloAltoNetworks/pan.dev`) — no drift found in any previously-modeled
+  path or body shape.
+- Researched Prisma Cloud Compute (CWPP) and Data Security (DSPM) as
+  candidate surfaces per the app's own README Coverage guidance; both remain
+  out of scope as separate product surfaces/API dialects — see README
+  Coverage for the full, cited reasoning (including why Cloud Accounts, SSO,
+  and Compute's Collections/Custom Rules were researched but not built this
+  pass).
+- Added a `## Coverage` section to the README documenting every managed and
+  intentionally-excluded surface, cited against the source API docs.
+
 ## 0.5.0 — 2026-07-26
 
 ### Added

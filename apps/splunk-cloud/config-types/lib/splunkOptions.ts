@@ -20,7 +20,10 @@ import {
 // (admin.splunk.com) with the stack JWT the whole app already requires, so the
 // pickers are reliable. Object types ACS cannot manage (roles, users) live
 // behind the management-port REST API, whose availability is gated on Splunk
-// Support opening port 8089 and an IP allow list, so those fields stay text.
+// Support opening port 8089 and an IP allow list, so those fields stay text —
+// EXCEPT the "capabilities" lookup below, which is a pure ACS reference list
+// (GET /adminconfig/v2/capabilities) usable even though the role/user objects
+// it describes are themselves deployed over REST.
 //
 // The OptionItem / OptionsProviderContext contract is declared locally: the
 // platform passes a context object and consumes the returned OptionItem[]
@@ -87,6 +90,18 @@ function unwrap(key: string): (parsed: unknown) => Array<Record<string, unknown>
   }
 }
 
+/**
+ * ACS `/capabilities` — the exact response shape is not confirmed in the
+ * sources reviewed for this app (it may answer with a bare array of
+ * capability name strings, or an array of `{ name, description? }` objects),
+ * so extraction is defensive: a string row is normalized to `{ name: row }`
+ * before the usual object mapping runs.
+ */
+function asCapabilityRows(parsed: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(parsed)) return []
+  return parsed.map((row) => (typeof row === 'string' ? { name: row } : (row as Record<string, unknown>)))
+}
+
 const ACS_SOURCES: Record<string, AcsSource> = {
   indexes: {
     path: `/indexes?count=${ALL_RESULTS}`,
@@ -99,6 +114,13 @@ const ACS_SOURCES: Record<string, AcsSource> = {
     path: `/permissions/apps?count=${ALL_RESULTS}`,
     extract: unwrap('apps'),
     toOption: (a) => opt(a.name, a.name, a.label),
+  },
+  capabilities: {
+    // Grantable-only: ACS-side capabilities a role may actually be given,
+    // rather than every capability the stack merely recognizes.
+    path: '/capabilities?grantableOnly=true',
+    extract: asCapabilityRows,
+    toOption: (c) => opt(c.name ?? c.capability, c.name ?? c.capability, c.description),
   },
 }
 

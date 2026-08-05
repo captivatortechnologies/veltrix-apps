@@ -1,14 +1,18 @@
 id: splunk-cloud
 name: Splunk Cloud Platform
-version: "1.10.12"
+version: "1.11.0"
 vendor: Veltrix
 description: >
   Manage Splunk Cloud Platform configurations as code through the
   Admin Config Service (ACS) API. Includes index management, HTTP Event
-  Collector (HEC) tokens, IP allow lists, and private apps/add-ons
-  (built to a .spl, vetted by AppInspect, installed through ACS).
-  Roles are managed through the Splunk Cloud Platform REST API on the
-  stack's management port 8089 — ACS cannot manage identity.
+  Collector (HEC) tokens, IPv4/IPv6 allow lists and outbound ports, and
+  private + Splunkbase apps/add-ons (private apps are built to a .spl,
+  vetted by AppInspect, and installed through ACS; Splunkbase apps are
+  installed directly by catalog id — already vetted by Splunk).
+  Roles, users, SSO and token-auth settings are managed through the
+  Splunk Cloud Platform REST API on the stack's management port 8089
+  in this version — see the README Coverage section for the newer
+  ACS identity endpoints this app does not yet use.
 category: SIEM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/splunk-cloud
@@ -44,10 +48,19 @@ permissions:
     - resource: ip-allowlists
       actions: [read, write, delete]
       description: Manage Splunk Cloud IP allow lists via ACS
+    - resource: ip-allowlists-v6
+      actions: [read, write, delete]
+      description: Manage Splunk Cloud IPv6 allow lists via ACS (a separate ACS resource from IPv4)
+    - resource: outbound-ports-v6
+      actions: [read, write, delete]
+      description: Manage Splunk Cloud IPv6 outbound connectivity rules via ACS
     - resource: apps
       actions: [read, write, delete]
       description: >
         Build, AppInspect-vet and install Splunk Cloud private apps/add-ons via ACS
+    - resource: splunkbase-apps
+      actions: [read, write, delete]
+      description: Install and manage published Splunkbase apps via ACS
     - resource: roles
       actions: [read, write, delete]
       description: >
@@ -125,6 +138,45 @@ pipeline:
         healthCheck: config-types/outbound-ports/healthCheck
         driftDetect: config-types/outbound-ports/driftDetect
         getStatus: config-types/outbound-ports/getStatus
+      targets:
+        componentTypes: [splunk-cloud-stack]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    # A SEPARATE ACS resource from ip-allowlists (v4), not a variant of it —
+    # ipallowlists-v6 is its own endpoint and Splunk's own terraform-provider-scp
+    # models it as its own resource (scp_ip_v6_allowlists) for the same reason.
+    - id: ip-allowlists-v6
+      group: "Network & Access"
+      name: IPv6 Allow Lists
+      description: Per-feature IPv6 allow lists (search-api, hec, s2s, search-ui, idm-ui, idm-api, acs) — a separate ACS resource from the IPv4 allow lists
+      canvasTemplate: config-types/ip-allowlists-v6/canvas.yaml
+      defaultConfig: config-types/ip-allowlists-v6/defaults.yaml
+      handlers:
+        validate: config-types/ip-allowlists-v6/validate
+        deploy: config-types/ip-allowlists-v6/deploy
+        rollback: config-types/ip-allowlists-v6/rollback
+        healthCheck: config-types/ip-allowlists-v6/healthCheck
+        driftDetect: config-types/ip-allowlists-v6/driftDetect
+        getStatus: config-types/ip-allowlists-v6/getStatus
+      targets:
+        componentTypes: [splunk-cloud-stack]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: outbound-ports-v6
+      group: "Network & Access"
+      name: IPv6 Outbound Ports
+      description: Outbound IPv6 connectivity rules — the destination subnets the stack may open connections to from a given port. A separate ACS resource from the IPv4 outbound ports
+      canvasTemplate: config-types/outbound-ports-v6/canvas.yaml
+      defaultConfig: config-types/outbound-ports-v6/defaults.yaml
+      handlers:
+        validate: config-types/outbound-ports-v6/validate
+        deploy: config-types/outbound-ports-v6/deploy
+        rollback: config-types/outbound-ports-v6/rollback
+        healthCheck: config-types/outbound-ports-v6/healthCheck
+        driftDetect: config-types/outbound-ports-v6/driftDetect
+        getStatus: config-types/outbound-ports-v6/getStatus
       targets:
         componentTypes: [splunk-cloud-stack]
         requiresCredential: true
@@ -233,6 +285,30 @@ pipeline:
         requiresCredential: true
         requiresConnectivity: false
 
+    # SEPARATE from "apps" above: a Splunkbase app is already vetted by Splunk
+    # before publication, so there is no build/AppInspect step — only an ACS
+    # install by catalog id. Shares the same apps/apps-victoria ACS collection,
+    # switched to Splunkbase mode with ?splunkbase=true (see deploy.ts).
+    - id: splunkbase-apps
+      group: "Apps"
+      name: Splunkbase Apps
+      description: >
+        Published Splunkbase apps installed on Splunk Cloud by catalog id via ACS —
+        no build or AppInspect step (Splunkbase apps are already vetted by Splunk)
+      canvasTemplate: config-types/splunkbase-apps/canvas.yaml
+      defaultConfig: config-types/splunkbase-apps/defaults.yaml
+      handlers:
+        validate: config-types/splunkbase-apps/validate
+        deploy: config-types/splunkbase-apps/deploy
+        rollback: config-types/splunkbase-apps/rollback
+        healthCheck: config-types/splunkbase-apps/healthCheck
+        driftDetect: config-types/splunkbase-apps/driftDetect
+        getStatus: config-types/splunkbase-apps/getStatus
+      targets:
+        componentTypes: [splunk-cloud-stack]
+        requiresCredential: true
+        requiresConnectivity: false
+
     # Roles are the ONE object here that does not go through ACS: ACS cannot
     # manage identity, and authorize.conf is on Splunk Cloud's AppInspect deny
     # list, so roles cannot ship inside a private app either. They therefore use
@@ -257,6 +333,10 @@ pipeline:
         healthCheck: config-types/roles/healthCheck
         driftDetect: config-types/roles/driftDetect
         getStatus: config-types/roles/getStatus
+        # Capabilities are a pure ACS reference lookup (GET /capabilities),
+        # reachable with the same stack JWT this app already requires, even
+        # though the role itself deploys over the REST API below.
+        options: config-types/roles/options
       targets:
         componentTypes: [splunk-cloud-stack]
         requiresCredential: true
@@ -356,7 +436,7 @@ client:
   entry: client/index
   # Tab layout (the platform default): the top strip keeps Overview / Setup Guide
   # / Pipeline / Configurations / Settings. Under the tab layout the platform now
-  # renders the active group's members — the 13 configuration types — as a left
+  # renders the active group's members — the 16 configuration types — as a left
   # sub-nav sidebar beside the surface (see AppShell), so they no longer overflow
   # a horizontal sub-tab strip.
   pages:

@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — Splunk Cloud Splunkbase Apps (ACS)
+#
+# Declares ONE published Splunkbase app to install/manage — the item. This is
+# SEPARATE from the "Splunk Apps" (private app) configuration type: that one
+# BUILDS a package from files you author and vets it with AppInspect; this one
+# installs an app someone else already published on Splunkbase, referenced by
+# its numeric catalog id — no files, no vetting.
+#
+# Field keys must match what config-types/splunkbase-apps/validate.ts checks.
+# =============================================================================
+
+id: "splunk-cloud-splunkbase-apps"
+name: "Splunkbase App Configuration"
+toolType: "splunk-cloud"
+entityType: "splunkbase-apps"
+description: "Install and manage published Splunkbase apps on Splunk Cloud as code via the ACS API"
+
+item:
+  label: "Splunkbase App"
+  identityField: "appName"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Identity"
+      icon: "package"
+      description: "Which Splunkbase app this is"
+      fields:
+        - key: "appName"
+          label: "App Name (technical id)"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z][A-Za-z0-9._-]*$"
+            maxLength: 100
+            message: "Letters, digits, '.', '_' and '-' only; must start with a letter."
+          helpText: "The app's technical id, e.g. \"SplunkforPaloAltoNetworks\" — shown on the app's Splunkbase listing page and used by ACS to describe/upgrade/uninstall it after install. Not the same as the numeric Splunkbase id below."
+
+        - key: "splunkbaseId"
+          label: "Splunkbase App ID"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[0-9]+$"
+            message: "Numeric Splunkbase app id only"
+          helpText: "The number in the app's Splunkbase URL, e.g. 491 for splunkbase.splunk.com/app/491. Used only at install/upgrade time."
+
+        - key: "version"
+          label: "Version (optional)"
+          fieldType: "text"
+          required: false
+          helpText: "Specific version to install. Leave blank to always install the latest cloud-compatible, self-service version. ACS can only UPGRADE an installed app — it cannot downgrade."
+
+        - key: "licenseAck"
+          label: "License Acknowledgement URL"
+          fieldType: "text"
+          required: true
+          helpText: "The app's license URL, found on its Splunkbase listing (e.g. an OSI license page). ACS refuses to install a Splunkbase app without acknowledging its license via this URL."

@@ -1,0 +1,98 @@
+# =============================================================================
+# Canvas Template — Prisma Cloud Users
+#
+# Declares ONE console user or service-account profile — the item. Users are
+# matched by EMAIL, Prisma's own identity key for this resource (there is no
+# surrogate id — GET/PUT/DELETE all address a user by email directly).
+#
+# Role assignment is by raw role id (this app's roles config type stores the id
+# after deploy — copy it from there, or from Settings > Access Control > Roles).
+# Prisma's read API only ever returns the single ACTIVE role id, never the full
+# multi-role set, so only the default role is drift-checked; the full roleIds
+# list is carried forward from what this app last applied, not re-derived from
+# a live read. No password is ever set or stored here — a new profile is
+# provisioned with no credential and Prisma emails the user a setup link.
+#
+# Field keys must match config-types/users/validate.ts.
+# =============================================================================
+
+id: "prisma-cloud-users"
+name: "User Configuration"
+toolType: "prisma-cloud"
+entityType: "users"
+description: "Define Prisma Cloud console users (name, time zone, role assignment) as code through the Prisma Cloud CSPM API. No password is ever set — new profiles are provisioned with no credential."
+
+item:
+  label: "User"
+  identityField: "email"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "user"
+      description: "The user's identity — email is immutable and used to match this item to a live profile"
+      fields:
+        - key: "email"
+          label: "Email"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The user's email address. Matches this item to a live profile — Prisma has no other id for a user."
+
+        - key: "firstName"
+          label: "First Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 300
+
+        - key: "lastName"
+          label: "Last Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 300
+
+        - key: "timeZone"
+          label: "Time Zone"
+          fieldType: "text"
+          required: true
+          helpText: "IANA time zone, e.g. America/Los_Angeles, Europe/London, UTC."
+
+    - name: "Role & Access"
+      icon: "shield"
+      description: "Role assignment and access-key permission"
+      fields:
+        - key: "defaultRoleId"
+          label: "Default Role ID"
+          fieldType: "text"
+          required: true
+          helpText: "The role id used as this user's active/default role. Must also appear in Role IDs below."
+
+        - key: "roleIds"
+          label: "Role IDs (one per line)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            All role ids this user should hold, one per line — must include the
+            Default Role ID. Prisma's API cannot return this full list on read,
+            so it is not drift-checked beyond the default role; this app
+            re-applies the declared set on every deploy.
+
+        - key: "accessKeysAllowed"
+          label: "Access Keys Allowed"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Whether this user is permitted to create their own API access keys."
+
+    - name: "Status"
+      icon: "toggle-right"
+      description: "Account activation"
+      fields:
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the account is active. Applied via the dedicated enable/disable endpoint."

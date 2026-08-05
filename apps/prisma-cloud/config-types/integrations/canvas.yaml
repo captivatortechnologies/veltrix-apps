@@ -1,0 +1,110 @@
+# =============================================================================
+# Canvas Template — Prisma Cloud Integrations
+#
+# Declares ONE integration — the item. Users add as many as they need.
+# Prisma Cloud documents 15 integration types; this canvas is intentionally
+# scoped to the 2 with NO embedded secret material — aws_security_hub and
+# google_cscc. The other 13 (Slack, Splunk, PagerDuty, webhook, Jira,
+# ServiceNow, ...) each embed a real API key/token/password/private key in
+# integrationConfig and are out of scope for this config type (see the app
+# README's Coverage section).
+#
+# Integrations are id-addressed; the app matches a declared integration to a
+# live one by NAME (storing the id for rename-safety). integrationType is
+# IMMUTABLE after creation — Prisma's update endpoint does not accept it, so
+# changing it here requires deleting and recreating under a new name. Feeds
+# the `integrationId` some Notification Templates reference.
+#
+# Field keys must match config-types/integrations/validate.ts.
+# =============================================================================
+
+id: "prisma-cloud-integrations"
+name: "Integration Configuration"
+toolType: "prisma-cloud"
+entityType: "integrations"
+description: "Define Prisma Cloud integrations (AWS Security Hub, Google Cloud SCC) as code through the Prisma Cloud CSPM API. Scoped to the 2 of 15 integration types with no embedded secret material."
+
+item:
+  label: "Integration"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Integration"
+      icon: "plug"
+      description: "Identity and channel"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: >
+            The integration name. Must be unique within this canvas — the app
+            matches live integrations on it (the id is stored after deploy for
+            rename-safety).
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+
+        - key: "integrationType"
+          label: "Integration Type"
+          fieldType: "select"
+          required: true
+          defaultValue: "aws_security_hub"
+          options:
+            - { label: "AWS Security Hub", value: "aws_security_hub" }
+            - { label: "Google Cloud SCC", value: "google_cscc" }
+          helpText: "The only 2 Prisma Cloud integration types with no embedded secret. IMMUTABLE after creation."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+
+    - name: "AWS Security Hub"
+      icon: "cloud"
+      description: "Used when Integration Type = AWS Security Hub"
+      fields:
+        - key: "accountId"
+          label: "AWS Account ID"
+          fieldType: "text"
+          required: false
+          helpText: "The AWS account id onboarded to Prisma Cloud that owns this Security Hub."
+
+        - key: "regions"
+          label: "Regions (JSON array)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            JSON array of {"name","apiIdentifier"} objects, e.g.
+            [{"name":"AWS Virginia","apiIdentifier":"us-east-1"}].
+
+        - key: "defaultRegion"
+          label: "Default Region (JSON object)"
+          fieldType: "textarea"
+          required: false
+          helpText: >
+            Optional single {"name","apiIdentifier"} object for global-resource
+            alerts, e.g. {"name":"AWS Virginia","apiIdentifier":"us-east-1"}.
+
+    - name: "Google Cloud SCC"
+      icon: "cloud"
+      description: "Used when Integration Type = Google Cloud SCC"
+      fields:
+        - key: "orgId"
+          label: "GCP Organization ID"
+          fieldType: "text"
+          required: false
+
+        - key: "sourceId"
+          label: "GCP Source ID"
+          fieldType: "text"
+          required: false
+          helpText: "The source id for the service account used to onboard the GCP organization."

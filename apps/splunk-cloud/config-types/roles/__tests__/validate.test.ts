@@ -49,6 +49,7 @@ describe('Splunk Cloud Roles Validate Handler', () => {
             srchIndexesDefault: ['security'],
             srchFilter: 'host=web*',
             srchTimeWin: 86400,
+            srchTimeEarliest: 604800,
             defaultApp: 'search',
             srchJobsQuota: 5,
             rtSrchJobsQuota: 2,
@@ -211,6 +212,28 @@ describe('Splunk Cloud Roles Validate Handler', () => {
   it('accepts -1 as an unlimited search time window', async () => {
     const result = await validate(
       makeCtx([{ name: 'sec1', fields: { name: 'soc-analyst', capabilities: ['search'], srchTimeWin: -1 } }]),
+    )
+    expect(result.valid).toBe(true)
+  })
+
+  it('rejects a maximum search age below -1', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'sec1', fields: { name: 'soc-analyst', capabilities: ['search'], srchTimeEarliest: -5 } }]),
+    )
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.code === 'invalid_value')).toBe(true)
+  })
+
+  it('accepts 0 as an unlimited maximum search age', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'sec1', fields: { name: 'soc-analyst', capabilities: ['search'], srchTimeEarliest: 0 } }]),
+    )
+    expect(result.valid).toBe(true)
+  })
+
+  it('accepts a positive maximum search age in seconds', async () => {
+    const result = await validate(
+      makeCtx([{ name: 'sec1', fields: { name: 'soc-analyst', capabilities: ['search'], srchTimeEarliest: 604800 } }]),
     )
     expect(result.valid).toBe(true)
   })

@@ -55,6 +55,7 @@ export interface RoleSpec {
   srchIndexesDefault?: string[]
   srchFilter?: string
   srchTimeWin?: number
+  srchTimeEarliest?: number
   defaultApp?: string
   quotas: Partial<Record<RoleQuotaField, number>>
 }
@@ -71,6 +72,7 @@ export interface LiveRole {
   srchIndexesDefault?: string[]
   srchFilter?: string
   srchTimeWin?: number | string
+  srchTimeEarliest?: number | string
   defaultApp?: string
   srchJobsQuota?: number | string
   rtSrchJobsQuota?: number | string
@@ -154,6 +156,7 @@ export function extractRoleSpecs(canvas: CanvasSnapshot): RoleSpec[] {
       srchIndexesDefault: toList(fields.srchIndexesDefault),
       srchFilter,
       srchTimeWin: toNumber(fields.srchTimeWin),
+      srchTimeEarliest: toNumber(fields.srchTimeEarliest),
       defaultApp,
       quotas,
     }
@@ -326,6 +329,17 @@ export default async function validate(ctx: PipelineContext): Promise<Validation
         errors.push({
           field: `${prefix}.srchTimeWin`,
           message: 'Search time window must be an integer number of seconds (-1 = unlimited)',
+          code: 'invalid_value',
+        })
+      }
+    }
+
+    // -1 = unset (inherits), 0 = unlimited, >0 = seconds before now.
+    if (spec.srchTimeEarliest !== undefined) {
+      if (!isInt(spec.srchTimeEarliest) || spec.srchTimeEarliest < -1) {
+        errors.push({
+          field: `${prefix}.srchTimeEarliest`,
+          message: 'Maximum search age must be an integer number of seconds (-1 = unset, 0 = unlimited)',
           code: 'invalid_value',
         })
       }

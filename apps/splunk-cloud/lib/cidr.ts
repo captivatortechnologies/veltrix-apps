@@ -1,11 +1,14 @@
 // =============================================================================
-// Shared IPv4 CIDR + port helpers.
+// Shared IPv4/IPv6 CIDR + port helpers.
 //
-// Used by ACS config types that manage subnet/port lists (outbound-ports and
-// future types). Kept in lib/ so config types depend on a shared module rather
-// than importing one another's validate.ts. The ip-allowlists type predates this
-// and keeps its own local copies; new types use these.
+// Used by ACS config types that manage subnet/port lists (outbound-ports,
+// ip-allowlists-v6, outbound-ports-v6 and future types). Kept in lib/ so config
+// types depend on a shared module rather than importing one another's
+// validate.ts. The ip-allowlists (v4) type predates this and keeps its own
+// local copies; new types use these.
 // =============================================================================
+
+import { isIPv6 } from 'node:net'
 
 const CIDR_V4_RE = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\/(\d{1,2})$/
 
@@ -16,6 +19,25 @@ export function isValidIpv4Cidr(value: string): boolean {
   const octets = match.slice(1, 5).map(Number)
   const prefix = Number(match[5])
   return octets.every((o) => o >= 0 && o <= 255) && prefix >= 0 && prefix <= 32
+}
+
+/**
+ * Validate an IPv6 CIDR (address/prefix, prefix 0–128).
+ *
+ * The address itself is validated with Node's built-in `net.isIPv6` rather
+ * than a hand-rolled regex — IPv6's compressed (`::`) and mixed notations are
+ * easy to get subtly wrong with a regex, and the platform runtime already
+ * ships a correct, maintained parser for exactly this.
+ */
+export function isValidIpv6Cidr(value: string): boolean {
+  const slash = value.lastIndexOf('/')
+  if (slash < 0) return false
+  const address = value.slice(0, slash)
+  const prefixRaw = value.slice(slash + 1)
+  if (!/^\d{1,3}$/.test(prefixRaw)) return false
+  const prefix = Number(prefixRaw)
+  if (prefix < 0 || prefix > 128) return false
+  return isIPv6(address)
 }
 
 /** Normalize a subnet from an ACS response (strips list markers/whitespace). */

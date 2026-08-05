@@ -1,0 +1,7 @@
+# Defaults for a new anomaly settings item.
+#
+# Any values here would be a FLAT map keyed by the canvas field keys (policyId,
+# alertDisposition, trainingModelThreshold). Left blank so a new item is a
+# no-op until you explicitly set a value.
+alertDisposition: ""
+trainingModelThreshold: ""

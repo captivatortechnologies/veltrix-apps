@@ -16,15 +16,18 @@ Enterprise](#how-cloud-differs-from-enterprise).
 |------|-----------------|-----|-----------|
 | `indexes` | Event/metric indexes: searchable retention, size caps, DDAA/DDSS archival | ACS | `GET/POST /indexes`, `GET/PATCH/DELETE /indexes/{name}` |
 | `hec-tokens` | HTTP Event Collector tokens: default/allowed indexes, source/sourcetype, acknowledgement, enablement | ACS | `GET/POST /inputs/http-event-collectors`, `GET/PATCH/DELETE /inputs/http-event-collectors/{name}` |
-| `ip-allowlists` | Per-feature IP allow lists (`search-api`, `hec`, `s2s`, `search-ui`, `idm-ui`, `idm-api`, `acs`). Cloud-only — there is no Enterprise equivalent | ACS | `GET/POST/DELETE /access/{feature}/ipallowlists` |
+| `ip-allowlists` | Per-feature IPv4 allow lists (`search-api`, `hec`, `s2s`, `search-ui`, `idm-ui`, `idm-api`, `acs`). Cloud-only — there is no Enterprise equivalent | ACS | `GET/POST/DELETE /access/{feature}/ipallowlists` |
+| `ip-allowlists-v6` | The IPv6 counterpart — a **separate** ACS resource, not a variant of `ip-allowlists` (Splunk's own `terraform-provider-scp` models it as its own resource too) | ACS | `GET/POST/DELETE /access/{feature}/ipallowlists-v6` |
 | `outbound-ports` | Outbound connectivity rules: destination subnets the stack may open connections to from a given port (e.g. 8089 for federated search / S2S) | ACS | `GET/POST /access/outbound-ports`, `DELETE /access/outbound-ports/{port}` |
+| `outbound-ports-v6` | The IPv6 counterpart — a separate ACS resource | ACS | `GET/POST /access/outbound-ports-v6`, `DELETE /access/outbound-ports-v6/{port}` |
 | `limits` | Editable `limits.conf` settings (`join`, `kv`, `pdf`, `scheduler`, `searchresults`, `spath`, `subsearch`) within ACS min/max bounds | ACS | `GET /limits`, `GET/POST /limits/{stanza}` |
 | `maintenance-windows` | Customer change-freeze policy (a UTC date range holding Splunk- and/or customer-initiated changes). Splunk-scheduled windows are view-only | ACS | `GET/PUT /maintenance-windows/preferences`, `GET /maintenance-windows/schedules` |
 | `ddss-self-storage` | Dynamic Data Self Storage locations: register customer-owned S3/GCS buckets for frozen index data (create-only) | ACS | `GET/POST /cloud-resources/self-storage-locations/buckets` |
 | `app-permissions` | Per-app read/write role permissions (which roles can view/run vs. edit each installed app). Victoria-only | ACS | `GET /permissions/apps`, `GET/PATCH /permissions/apps/{app}` |
-| `apps` | Private apps/add-ons authored as files, built to a `.spl`, vetted by AppInspect, installed via ACS. **This is also where every `.conf` file ships** | ACS + AppInspect | Victoria: `GET/POST /apps/victoria`, `GET/DELETE /apps/victoria/{app}` · Classic: `GET/POST /apps`, `GET/DELETE /apps/{app}` |
-| `roles` | Roles: capabilities, inherited roles, searchable indexes, search filters, quotas | **Splunk Cloud Platform REST API** (ACS cannot manage identity) | `GET/POST /services/authorization/roles`, `GET/POST/DELETE /services/authorization/roles/{role}` |
-| `users` | User role assignment + attributes (roles, email, full name, default app, timezone) for existing users. Passwords out of scope | **REST** (ACS cannot manage identity) | `GET/POST /services/authentication/users/{user}` |
+| `apps` | **Private** apps/add-ons authored as files, built to a `.spl`, vetted by AppInspect, installed via ACS. **This is also where every `.conf` file ships** | ACS + AppInspect | Victoria: `GET/POST /apps/victoria`, `GET/DELETE /apps/victoria/{app}` · Classic: `GET/POST /apps`, `GET/DELETE /apps/{app}` |
+| `splunkbase-apps` | **Published** Splunkbase apps installed by catalog id — already vetted by Splunk, so no build/AppInspect step. A separate config type from `apps` (private) | ACS + Splunkbase | `GET/POST/PATCH/DELETE /apps/victoria?splunkbase=true` (Classic: `/apps?splunkbase=true`) |
+| `roles` | Roles: capabilities, inherited roles, searchable indexes, search filters, quotas. Capabilities are picked from a live ACS lookup (`GET /capabilities`) even though the role itself deploys over REST | **Splunk Cloud Platform REST API** (this app does not use ACS's newer identity endpoints — see [Coverage](#coverage)) | `GET/POST /services/authorization/roles`, `GET/POST/DELETE /services/authorization/roles/{role}` |
+| `users` | User role assignment + attributes (roles, email, full name, default app, timezone) for existing users. Passwords out of scope | **REST** (this app does not use ACS's newer `/users` endpoint — see [Coverage](#coverage)) | `GET/POST /services/authentication/users/{user}` |
 | `authentication-tokens` | Stack-wide token-auth settings (enablement, default expiration). ACS exposes only per-token CRUD (secrets) | **REST** | `GET/POST /services/admin/token-auth/tokens_auth` |
 | `sso` | SAML SSO identity-provider config (entity ID, IdP SSO/SLO URLs, role/realName/mail attribute mappings). SAML-only; IdP cert uploaded via Splunk Web | **REST** (ACS has no SAML endpoint) | `GET/POST /services/authentication/providers/SAML/{name}` |
 
@@ -49,18 +52,24 @@ runs the stack — and that changes only *how* a change is applied:
 
 Three consequences worth internalizing:
 
-1. **ACS is not a REST proxy.** It covers indexes, HEC, IP allow lists, outbound
-   ports, limits, maintenance windows, private apps and tokens — and nothing
-   else. Identity (users, roles) is out of scope, permanently.
-2. **Apps are vetted, not just installed.** Every `.conf` file reaches a Cloud
-   stack inside a private app, and every private app must pass AppInspect with
-   `failure == 0 && error == 0 && manual_check == 0`. A `manual_check` finding
-   blocks self-service installation *entirely*.
-3. **Roles reach the stack through the only door left open.** ACS cannot manage
-   them, and they cannot ship inside an app either — `authorize.conf` is on
-   Splunk Cloud's AppInspect deny list, so a package containing it fails
-   vetting. The Splunk Cloud Platform REST API is the only supported route, and
-   it has prerequisites you must arrange (below).
+1. **ACS is broader than a REST proxy, and still growing.** It covers indexes,
+   HEC, IPv4/IPv6 allow lists, IPv4/IPv6 outbound ports, limits, maintenance
+   windows, self storage, app permissions, private apps and Splunkbase apps.
+   Historically identity (users, roles) was out of scope entirely; ACS has
+   **since gained** `/adminconfig/v2/roles` and `/adminconfig/v2/users`
+   (confirmed via Splunk's official `terraform-provider-scp`) — this app does
+   not yet use them (see [Coverage](#coverage) for why, and what it would take).
+2. **Apps are vetted, not just installed — unless they already were.** Every
+   `.conf` file reaching a Cloud stack inside a *private* app must pass
+   AppInspect with `failure == 0 && error == 0 && manual_check == 0`; a
+   `manual_check` finding blocks self-service installation *entirely*. A
+   *Splunkbase* app skips this step — Splunk already vetted it before
+   publication — but still installs through the same ACS collection.
+3. **Roles reach the stack through the REST door this app uses.** They cannot
+   ship inside an app either — `authorize.conf` is on Splunk Cloud's AppInspect
+   deny list, so a package containing it fails vetting. The Splunk Cloud
+   Platform REST API is the route this app takes, and it has prerequisites you
+   must arrange (below).
 
 ## Prerequisites
 
@@ -94,6 +103,14 @@ Three consequences worth internalizing:
      stack token and does **not** authenticate the REST API — if you rotate that
      way, keep a separate credential for `roles`.
    - **Free-trial stacks cannot use the REST API at all.**
+5. **For the `apps` and `splunkbase-apps` types only** — a splunk.com account,
+   stored in the credential's **username** and **password** fields (the ACS
+   JWT stays in **API token**):
+   - `apps` uses it to authenticate to AppInspect (vetting a private package).
+   - `splunkbase-apps` uses the SAME fields to authenticate to Splunkbase
+     itself (`POST https://splunkbase.splunk.com/api/account:login`), since a
+     splunk.com account is also a Splunkbase account. One credential serves
+     both types, the same way one ACS token serves both ACS and REST above.
 
 ## App settings
 
@@ -154,6 +171,33 @@ changed after creation.
 feature's allow list, even with `removeUndeclared` — deleting the wrong ACS
 subnet can permanently lock you (and this app) out of the ACS API, requiring
 Splunk Support to recover.
+
+### `ip-allowlists-v6` fields
+
+A **separate ACS resource** from `ip-allowlists` (`ipallowlists-v6`, not a
+variant) — Splunk's own `terraform-provider-scp` models it as its own resource
+(`scp_ip_v6_allowlists`) for the same reason.
+
+| Field | Constraint |
+|-------|-----------|
+| `feature` | Same seven features as `ip-allowlists`. One section per feature. |
+| `subnets` | IPv6 CIDR list (use `/128` for single hosts). ACS does not publish an explicit subnet cap for this endpoint (unlike v4's documented 200); a very large list warns rather than blocks. `::/0` is rejected; prefixes broader than `/32` warn. |
+| `removeUndeclared` | Same reconcile semantics as `ip-allowlists`, plus one v6-specific quirk (below). |
+
+**Lockout protection** for the `acs` feature is identical to `ip-allowlists`.
+**Cannot-empty-in-one-call quirk:** Splunk's `terraform-provider-scp` documents
+that ACS rejects a request that would remove every subnet from a v6 allow list
+at once — "keep at least one original subnet in the list." This app's deploy
+handler enforces the same rule itself: if a reconcile would remove every live
+subnet, one is held back and reported, and a second deploy (with nothing left
+declared) finishes the removal.
+
+### `outbound-ports-v6` fields
+
+The IPv6 counterpart to `outbound-ports` — a separate ACS resource
+(`/access/outbound-ports-v6`), same fields and reconcile model, IPv6 CIDR
+destinations instead of IPv4 (`::/0` warns instead of erroring, prefixes
+broader than `/32` warn).
 
 ### `apps` fields
 
@@ -219,6 +263,33 @@ and write access that omits `sc_admin`. `web.conf` is allowed only for
 `[endpoint:*]`/`[expose:*]`, `server.conf` only for `[shclustering]
 conf_replication_include.*` and `[diag] EXCLUDE-*`.
 
+### `splunkbase-apps` fields
+
+One item = one **published** Splunkbase app — a different thing from `apps`
+above (which builds and vets a *private* app you authored). No files, no
+AppInspect: Splunk already vetted the package before publishing it.
+
+| Field | Constraint |
+|-------|-----------|
+| `appName` | Required. The app's **technical id** (e.g. `SplunkforPaloAltoNetworks`), found on its Splunkbase listing. Used for describe/upgrade/uninstall after install — NOT the same as `splunkbaseId`. |
+| `splunkbaseId` | Required. The numeric id in the app's Splunkbase URL (`splunkbase.splunk.com/app/<id>`). Used only at install/upgrade time. |
+| `version` | Optional. Omit to always install the latest cloud-compatible, self-service version. |
+| `licenseAck` | Required. The app's license URL from its Splunkbase listing — ACS refuses to install without acknowledging it (`ACS-Licensing-Ack` header). |
+
+**Two tokens, two identities** — same shape as `apps`' AppInspect requirement:
+
+| Purpose | Credential field | Used as |
+|---------|------------------|---------|
+| ACS (stack) | **API token** — the Splunk Cloud JWT (`sc_admin`) | `Authorization: Bearer` |
+| Splunkbase | **Username** + **Password** — the SAME splunk.com account `apps` uses for AppInspect | Exchanged for a session id → `X-Splunkbase-Authorization` |
+
+**Not every Splunkbase app is self-service installable.** ACS rejects an app
+that requires Splunk's review; a Support case is then the only route —
+`validate` surfaces this as a standing reminder, and a deploy-time rejection
+names it. **No downgrade**, same as `apps`: ACS can only upgrade an installed
+Splunkbase app, so `rollback` uninstalls only apps this deployment *created*;
+one it *upgraded* is reported for manual handling.
+
 ### `roles` fields
 
 One item = one role. Field keys are Splunk's own `authorize.conf` / REST
@@ -229,11 +300,12 @@ only the transport differs.
 |-------|---------|-----------|
 | `name` | `name` | Required. Lowercase letters, numbers, `_`, `-`; must begin with a letter or number; max 100 chars (Splunk rejects uppercase, spaces, colons, slashes). `sc_admin` and `splunk-system-role` are **reserved by Splunk Cloud** and rejected — inherit from them instead. Redefining a built-in (`admin`, `power`, `user`, …) warns. |
 | `importedRoles` | `imported_roles` | Roles whose capabilities, indexes and quotas are inherited. A role may not inherit from itself. |
-| `capabilities` | `capabilities` | Capabilities granted directly. Splunk Cloud exposes a **reduced** capability set — a capability the stack does not know is rejected by the stack at deploy. A role with no capabilities *and* no inherited roles warns. |
+| `capabilities` | `capabilities` | Capabilities granted directly. A live, searchable **remote-multiselect** backed by ACS's own grantable-capability list (`GET /adminconfig/v2/capabilities?grantableOnly=true`) — this is a pure ACS lookup, so it works even without the REST prerequisites below. Splunk Cloud exposes a **reduced** capability set versus Enterprise; a role with no capabilities *and* no inherited roles warns. |
 | `srchIndexesAllowed` | `srchIndexesAllowed` | Searchable indexes; wildcards supported. `*` warns (least privilege). |
 | `srchIndexesDefault` | `srchIndexesDefault` | Indexes searched when a query names none. Every entry must be covered by `srchIndexesAllowed` (wildcard-aware), or un-qualified searches silently return nothing — this is an **error**. |
 | `srchFilter` | `srchFilter` | SPL fragment ANDed into every search the role runs — the primary row-level access control on Cloud. |
-| `srchTimeWin` | `srchTimeWin` | Max search time span, seconds. `-1` = unlimited. |
+| `srchTimeWin` | `srchTimeWin` | Max search **span** a single search may cover, seconds. `-1` = unlimited. |
+| `srchTimeEarliest` | `srchTimeEarliest` | Max **age** — how far back in time a search may reach, seconds before now. `-1` = unset (inherits), `0` = unlimited. Distinct from `srchTimeWin`. |
 | `defaultApp` | `defaultApp` | App users with this role land in. |
 | `srchJobsQuota`, `rtSrchJobsQuota`, `srchDiskQuota` | same | Per-user quotas. Non-negative integers. |
 | `cumulativeSrchJobsQuota`, `cumulativeRTSrchJobsQuota` | same | Role-wide quotas across all its users. `0` = unlimited. |
@@ -283,7 +355,6 @@ FedRAMP stacks use `https://admin.splunkcloudgc.com` (Classic only).
 
 ## Limitations (v1)
 
-- IPv4 allow lists only (`ipallowlists-v6` is not yet managed).
 - Indexes are never deleted by deploy — removal from a canvas leaves the
   index in place (deletion destroys data; rollback only deletes indexes the
   same deployment created).
@@ -303,10 +374,20 @@ FedRAMP stacks use `https://admin.splunkcloudgc.com` (Classic only).
 - **`manual_check` blocks everything.** A package that trips even one AppInspect
   manual check cannot be self-installed through ACS by any means; Splunk Support
   must review and install it.
-- Splunkbase apps are not installed by this type (it manages *private* apps);
-  ACS supports them via `splunkbaseID` + `X-Splunkbase-Authorization`.
 - Vetting is slow and rate-limited: every deploy of an app re-submits the package
   to AppInspect.
+
+### `splunkbase-apps` limitations
+
+- **No downgrade**, same reasoning as `apps`: ACS upgrades an installed
+  Splunkbase app in place but cannot revert it, so `rollback` only uninstalls
+  apps this deployment *created*.
+- **Not every app is self-service.** An app that needs Splunk's review cannot
+  be installed through ACS by any means; a Support case is the only route.
+- The **license acknowledgement URL** must be found manually on the app's
+  Splunkbase listing — ACS validates it is *provided*, not that it is the
+  *correct* URL for that specific app; a wrong URL surfaces as an ACS rejection
+  at deploy time.
 
 ### `roles` limitations
 
@@ -318,28 +399,112 @@ FedRAMP stacks use `https://admin.splunkcloudgc.com` (Classic only).
   one at all.
 - Roles are **never deleted by deploy** — removing a role from the canvas leaves
   it on the stack (rollback only deletes roles the same deployment created).
-- **Users are not managed** (ACS cannot, and this app does not yet reach
-  `/services/authentication/users`), so a role deployed here has no members until
-  someone is assigned to it in Splunk Web or via your IdP/SAML group mapping.
-- Splunk Cloud exposes a **reduced capability set** versus Enterprise. Validation
-  checks capability *syntax*, not existence — an unknown capability is rejected by
-  the stack at deploy time, with Splunk's own message surfaced verbatim.
+- User-to-role assignment is a **separate** configuration type (`users`, also
+  REST) — declaring a role here does not assign anyone to it.
+- Splunk Cloud exposes a **reduced capability set** versus Enterprise. The live
+  Capabilities picker narrows this in practice, but validation still only
+  checks capability *syntax* for free-typed values — an unknown capability is
+  rejected by the stack at deploy time, with Splunk's own message surfaced
+  verbatim.
+- This app manages roles over REST, not ACS's newer `/adminconfig/v2/roles` —
+  see [Coverage](#coverage) for why.
 
 ## Future work
 
-Natural next configuration types, all ACS-manageable:
+- **Migrate `roles`/`users`/`authentication-tokens`/`sso` from REST to ACS's
+  newer identity endpoints** (`/adminconfig/v2/roles`, `/adminconfig/v2/users`,
+  `/adminconfig/v2/capabilities`) — see [Coverage](#coverage). This would drop
+  the port-8089 / `search-api` allow-list prerequisites entirely (same ACS
+  token used everywhere else in this app), but ACS role/user writes are
+  documented as not automatically replicated across search-head-cluster
+  members without explicit search-head targeting — a real design question,
+  not a drop-in swap, and a breaking transport change to shipped config types.
+  `authentication-tokens` and `sso` have no ACS equivalent found and would stay
+  on REST regardless.
+- **Enterprise Managed Encryption Keys (EMEK)** — deliberately excluded (see
+  [Coverage](#coverage)): a Splunk-account-rep-gated feature whose key upload
+  still needs a manual Splunk Support step to actually take effect, with no
+  supported rotation via ACS at all.
+- **Python runtime version** (`/adminconfig/v2/python-runtime`) — deliberately
+  excluded (see [Coverage](#coverage)): a legacy Python-2-era migration switch
+  that takes up to 24 hours to apply via a Splunk-triggered nightly restart,
+  a poor fit for this pipeline's synchronous validate → deploy → health-check
+  model, and risks breaking every installed app if set incorrectly.
 
-- **Outbound ports** — `GET/POST /access/outbound-ports`,
-  `GET/DELETE /access/outbound-ports/{port}`
-- **Maintenance windows** — `GET/POST /maintenance-windows/schedules`,
-  `GET/PATCH/DELETE /maintenance-windows/schedules/{scheduleID}`
-- **Splunkbase app installation** — `POST /apps/victoria` with `splunkbaseID`
-  and an `X-Splunkbase-Authorization` token (the `apps` type covers private apps)
-- **App permissions/export** (Victoria only) — `GET/PATCH /apps/victoria/{app}/permissions`
-- **limits.conf** (Victoria only) — `/limits`, `/limits/{stanza}`
-- **Users** — like `roles`, ACS cannot manage them; they would go through the
-  stack REST API (`/services/authentication/users`) with the same two
-  prerequisites as `roles`
+## Coverage
+
+What this app manages, what it deliberately does not, and why — see also the
+[Configuration types](#configuration-types) table above for the endpoint each
+type calls.
+
+**The ACS-vs-REST-vs-Cloud-restriction boundary.** Splunk Cloud restricts the
+classic management REST API (`/services/...`) that Enterprise apps use freely:
+it answers only on the stack's management port 8089, which is **closed by
+default** and requires a Splunk Support case to open, plus the caller's IP on
+the stack's `search-api` ACS-managed allow list. The **Admin Config Service
+(ACS)**, reachable over the public internet with just a stack JWT, is Splunk's
+supported answer to that restriction — but it is a purpose-built API, not a
+REST proxy: it exposes a curated set of Cloud-safe operations, not arbitrary
+`.conf` writes. Every type in this app declares which side of that boundary it
+uses, and why, in its own manifest description.
+
+### Managed (ACS)
+
+| Group | Types |
+|-------|-------|
+| Data | `indexes`, `hec-tokens`, `ddss-self-storage` |
+| Network & Access | `ip-allowlists`, `ip-allowlists-v6`, `outbound-ports`, `outbound-ports-v6` |
+| System Settings | `limits`, `maintenance-windows` |
+| Apps | `app-permissions`, `apps` (private, AppInspect-vetted), `splunkbase-apps` (published, pre-vetted) |
+
+All ten cover a genuinely distinct, declarative, round-trippable ACS resource:
+a GET to read live state, a POST/PATCH to converge it, captured prior state for
+rollback. `ip-allowlists-v6` and `outbound-ports-v6` close this app's own
+previously-documented "IPv4/only" limitation, confirmed as real, separate ACS
+resources via the ACS API endpoint reference **and** Splunk's official
+`terraform-provider-scp` (which models the v6 allow list as its own resource
+type, `scp_ip_v6_allowlists`, not a variant of the v4 one — this app follows
+that precedent). `splunkbase-apps` closes this app's own former "Future work"
+backlog entry.
+
+### Managed (Splunk Cloud Platform REST API, port 8089)
+
+| Type | Why REST, not ACS |
+|------|--------------------|
+| `roles` | Identity — see the ACS-migration note below |
+| `users` | Identity — same as roles |
+| `authentication-tokens` | ACS exposes only per-token CRUD (secrets), not the stack-wide enablement/expiration setting |
+| `sso` | ACS has no SAML endpoint found in the sources reviewed |
+
+These four require Splunk Support to open port 8089 and the caller's IP on the
+`search-api` allow list — the two prerequisites named throughout this README.
+**Important correction to this app's original premise:** Splunk's official
+`terraform-provider-scp` (`github.com/splunk/terraform-provider-scp`,
+`docs/resources/roles.md` / `users.md`) shows ACS has since gained native
+`/adminconfig/v2/roles`, `/adminconfig/v2/users` and
+`/adminconfig/v2/capabilities` endpoints — identity is **not** permanently out
+of ACS's scope, as earlier versions of this app assumed. This app does **not**
+migrate to them in this release: ACS role/user writes are documented as **not**
+automatically replicated across search-head-cluster members and need explicit
+search-head targeting (a capability this app does not model), and swapping the
+transport under two already-shipped, working config types is a breaking change
+that deserves its own dedicated design pass, not a drive-by rewrite. The
+**one** piece of that native surface this app *does* use today is the
+`capabilities` list itself (a pure read, no identity write) — it now backs the
+`roles` type's live Capabilities picker.
+
+### Excluded, with reasons
+
+| Surface | ACS endpoint | Why excluded |
+|---------|--------------|--------------|
+| ACS stack tokens | `GET/POST/DELETE /tokens` | **Secret material**, not declarative config — a token *value* is a credential, not state to diff/redeploy. Same reasoning already applied to HEC token values. Also carries a real self-lockout risk: deleting the token a deployment is currently authenticating with would cut off ACS access mid-pipeline. |
+| Enterprise Managed Encryption Keys (EMEK) | `GET /emek/waiver`, `GET/PUT /emek/key-policy`, `PUT /emek/key` | **Gated feature** — requires a Splunk account representative to activate before the endpoints answer at all. Uploading a key is a **one-way bootstrap**: Splunk's own docs say "contact Splunk support to use this EMEK key to re-key your stack" (upload alone does not activate it) and "you cannot use ACS to rotate KMS keys — to change keys, you must contact Splunk Support." Not round-trippable, not safely redeployable/rollback-able, and a misconfigured key is a severe, hard-to-reverse blast radius for a customer-managed-encryption feature. |
+| Python runtime version | `GET/POST /python-runtime` | A stack-wide interpreter pin (`force_python3`/`python3`/`python3.7`/`python3.9`) from the Python 2→3 migration era. Applying a change is **asynchronous over up to 24 hours** via a Splunk-triggered nightly restart — a poor fit for this pipeline's synchronous validate → deploy → health-check model — and a wrong value can break every installed app on the stack. Most Cloud stacks already run `python3`/`force_python3` by default; low ongoing utility for the risk. |
+| Granular `limits.conf` setting/reset | `GET/PATCH /limits/{stanza}/{setting}`, `DELETE /limits/{stanza}/{reset}` | Not a new surface — the existing `limits` type already achieves the same effect via the bulk `GET /limits` + `POST /limits/{stanza}` shape (idempotent apply, prior value captured for rollback). |
+| App export/download | `GET /apps/victoria/export/download/{app_id}` | **One-shot read**, not declarative config — already exposed as the `export-app` **operation** (Operations page), not a config type. |
+| Restart / restart status | `POST /restart-now`, `GET /restart/status` | **One-shot action**, already the `restart` **operation**. |
+| Retry failed operation / deployment status | `POST /deployment/retry`, `GET /deployment/status` | **One-shot action**, already the `retry-failed` **operation**. |
+| Observability Cloud SSO pairing | (referenced in some ACS material reviewed) | Could not be independently corroborated with the same rigor applied to the rest of this pass (unlike roles/users/capabilities, confirmed via Splunk's own `terraform-provider-scp`) — left out rather than shipped on an unverified claim. Worth revisiting if a future pass can confirm it directly against a live stack or a corroborating second source. |
 
 ## Research sources
 
@@ -359,6 +524,31 @@ Natural next configuration types, all ACS-manageable:
   caller's IP on the `search-api` allow list, token auth, no free-trial stacks
 - [REST API reference: authorization/roles](https://help.splunk.com/en/splunk-enterprise/rest-api-reference/9.4/access-control-endpoint-descriptions/access-control-endpoint-descriptions#authorization-roles)
 - [Define roles on the Splunk platform with capabilities](https://help.splunk.com/en/splunk-cloud-platform/administer/manage-splunk-cloud-platform-users-and-roles/9.3.2408/manage-splunk-cloud-platform-users-and-roles/define-roles-on-the-splunk-platform-with-capabilities)
+
+### Added for the 1.11.0 exhaustion pass
+
+- [Configure outbound ports for Splunk Cloud Platform (ACS)](https://help.splunk.com/en/splunk-cloud-platform/administer/admin-config-service-manual/10.3.2512/administer-splunk-cloud-platform-using-the-admin-config-service-acs-api/configure-outbound-ports-for-splunk-cloud-platform)
+  — source for `outbound-ports-v6` (`/access/outbound-ports-v6`)
+- [Manage Splunkbase apps in Splunk Cloud Platform (ACS)](https://help.splunk.com/en/splunk-cloud-platform/administer/admin-config-service-manual/10.3.2512/administer-splunk-cloud-platform-using-the-admin-config-service-acs-api/manage-splunkbase-apps-in-splunk-cloud-platform)
+  — source for `splunkbase-apps`: install/list/describe/upgrade/uninstall paths,
+  the `X-Splunkbase-Authorization` / `ACS-Licensing-Ack` headers, and the
+  Splunkbase session-login endpoint
+- [Manage users, roles, and capabilities in Splunk Cloud Platform (ACS)](https://help.splunk.com/en/splunk-cloud-platform/administer/admin-config-service-manual/10.3.2512/administer-splunk-cloud-platform-using-the-admin-config-service-acs-api/manage-users-roles-and-capabilities-in-splunk-cloud-platform)
+  — documents ACS's newer native `/adminconfig/v2/roles`, `/adminconfig/v2/users`
+  and `/adminconfig/v2/capabilities` endpoints (see [Coverage](#coverage));
+  the `capabilities` lookup is the one piece of this surface this app now uses
+- [`splunk/terraform-provider-scp`](https://github.com/splunk/terraform-provider-scp)
+  ([`docs/resources/roles.md`](https://github.com/splunk/terraform-provider-scp/blob/main/docs/resources/roles.md),
+  [`users.md`](https://github.com/splunk/terraform-provider-scp/blob/main/docs/resources/users.md),
+  [`ipv6_allowlists.md`](https://github.com/splunk/terraform-provider-scp/blob/main/docs/resources/ipv6_allowlists.md))
+  — Splunk's own official Terraform provider; independently corroborates the
+  ACS roles/users/IPv6-allowlist endpoints (exact field names, headers, and the
+  IPv6 "cannot empty in one call" and search-head-targeting quirks) against a
+  second, primary source
+- [Provision Enterprise Managed Encryption Keys (EMEK) for Splunk Cloud Platform (ACS)](https://help.splunk.com/en/splunk-cloud-platform/administer/admin-config-service-manual/10.3.2512/administer-splunk-cloud-platform-using-the-admin-config-service-acs-api/provision-enterprise-managed-encryption-keys-emek-for-splunk-cloud-platform)
+  — source for the EMEK exclusion reasoning
+- [Manage Python versions in Splunk Cloud Platform (ACS)](https://help.splunk.com/en/splunk-cloud-platform/administer/admin-config-service-manual/10.3.2512/administer-splunk-cloud-platform-using-the-admin-config-service-acs-api/manage-python-versions-in-splunk-cloud-platform)
+  — source for the Python-runtime exclusion reasoning
 
 ## License
 

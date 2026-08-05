@@ -1,0 +1,61 @@
+# =============================================================================
+# Canvas Template — Prisma Cloud Anomaly Settings
+#
+# Declares the tuning for ONE built-in anomaly-detection policy — the item.
+# Distinct from the Anomaly Trusted List type (which manages suppression
+# entries): this manages the alertDisposition (sensitivity) and
+# trainingModelThreshold (ML training bar) of a Prisma-BUILT-IN UEBA policy.
+# There is no create/delete — every anomaly policy already has settings; this
+# is a GET-merge-POST of only the two fields you set here (blank = leave
+# unchanged). Find a policy's id via the Prisma Cloud Policies page filtered to
+# policyType=anomaly, or GET /v2/policy.
+#
+# Field keys must match config-types/anomaly-settings/validate.ts.
+# =============================================================================
+
+id: "prisma-cloud-anomaly-settings"
+name: "Anomaly Settings Configuration"
+toolType: "prisma-cloud"
+entityType: "anomaly-settings"
+description: "Tune Prisma Cloud's built-in anomaly-detection policies (alert disposition, training model threshold) as code through the Prisma Cloud CSPM API."
+
+item:
+  label: "Anomaly Policy Setting"
+  identityField: "policyId"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Anomaly Policy"
+      icon: "activity"
+      description: "Which built-in anomaly policy, and its tuning (blank = leave unchanged)"
+      fields:
+        - key: "policyId"
+          label: "Policy ID"
+          fieldType: "text"
+          required: true
+          helpText: "The built-in anomaly policy's id — from the Policies page (filter: policyType=anomaly) or GET /v2/policy."
+
+        - key: "alertDisposition"
+          label: "Alert Disposition"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - { label: "Leave unchanged", value: "" }
+            - { label: "Aggressive", value: "Aggressive" }
+            - { label: "Moderate", value: "Moderate" }
+            - { label: "Conservative", value: "Conservative" }
+          helpText: "Controls alert sensitivity for this policy."
+
+        - key: "trainingModelThreshold"
+          label: "Training Model Threshold"
+          fieldType: "select"
+          required: false
+          defaultValue: ""
+          options:
+            - { label: "Leave unchanged", value: "" }
+            - { label: "Low", value: "Low" }
+            - { label: "Medium", value: "Medium" }
+            - { label: "High", value: "High" }
+          helpText: "The bar the ML model must clear before it starts alerting."

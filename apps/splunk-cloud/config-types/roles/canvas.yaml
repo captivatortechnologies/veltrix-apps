@@ -49,8 +49,10 @@ item:
 
         - key: "capabilities"
           label: "Capabilities"
-          fieldType: "tags"
-          helpText: "Capabilities granted directly to this role, e.g. search, schedule_search, rest_properties_get. Splunk Cloud exposes a reduced capability set — a capability the stack does not know is rejected at deploy."
+          fieldType: "remote-multiselect"
+          optionsSource: "capabilities"
+          optionsMulti: true
+          helpText: "Capabilities granted directly to this role. Search the stack's live, grantable capability list via ACS (GET /capabilities?grantableOnly=true) and select one or more — Splunk Cloud exposes a reduced set versus Enterprise, so this avoids typing a name the stack will reject at deploy. Falls back cleanly if the ACS token is not yet configured."
 
         - key: "defaultApp"
           label: "Default App"
@@ -85,6 +87,13 @@ item:
           validation:
             min: -1
           helpText: "Longest time span a search may cover. -1 = unlimited (maps to srchTimeWin)."
+
+        - key: "srchTimeEarliest"
+          label: "Maximum Search Age (seconds)"
+          fieldType: "number"
+          validation:
+            min: -1
+          helpText: "How far back in time a search by this role may reach, in seconds before now. -1 = unset (inherits), 0 = unlimited (maps to srchTimeEarliest). Distinct from Maximum Search Time Window, which limits a search's SPAN rather than how far back it may start."
 
     - name: "Quotas"
       icon: "gauge"

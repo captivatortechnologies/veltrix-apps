@@ -31,6 +31,7 @@ import { ROLE_QUOTA_FIELDS, extractRoleSpecs, normalizeLiveList, type RoleSpec }
  *   srchIndexesDefault        → srchIndexesDefault          (multi-value)
  *   srchFilter                → srchFilter
  *   srchTimeWin               → srchTimeWin
+ *   srchTimeEarliest          → srchTimeEarliest
  *   defaultApp                → defaultApp
  *   srchJobsQuota             → srchJobsQuota
  *   rtSrchJobsQuota           → rtSrchJobsQuota
@@ -52,6 +53,7 @@ const ROLLBACK_KEYS = [
   'srchIndexesDefault',
   'srchFilter',
   'srchTimeWin',
+  'srchTimeEarliest',
   'defaultApp',
   ...ROLE_QUOTA_FIELDS,
 ] as const
@@ -148,6 +150,7 @@ export function buildRolePayload(
   if (spec.srchIndexesDefault) payload.srchIndexesDefault = spec.srchIndexesDefault
   if (spec.srchFilter !== undefined) payload.srchFilter = spec.srchFilter
   if (spec.srchTimeWin !== undefined) payload.srchTimeWin = spec.srchTimeWin
+  if (spec.srchTimeEarliest !== undefined) payload.srchTimeEarliest = spec.srchTimeEarliest
   if (spec.defaultApp !== undefined) payload.defaultApp = spec.defaultApp
 
   for (const key of ROLE_QUOTA_FIELDS) {
@@ -175,7 +178,7 @@ export function buildRestorePayload(
     payload[key] = list.length > 0 ? list : ''
   }
 
-  for (const key of ['srchFilter', 'defaultApp', 'srchTimeWin', ...ROLE_QUOTA_FIELDS] as const) {
+  for (const key of ['srchFilter', 'defaultApp', 'srchTimeWin', 'srchTimeEarliest', ...ROLE_QUOTA_FIELDS] as const) {
     const value = prior[key]
     if (value === undefined || value === null) continue
     payload[key] = String(value)

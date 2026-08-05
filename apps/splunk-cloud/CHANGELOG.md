@@ -3,6 +3,58 @@
 All notable changes to the Splunk Cloud app are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.11.0 — 2026-08-05
+
+Research-first exhaustion pass against the current ACS API surface (endpoint
+reference + Splunk's official `terraform-provider-scp`), closing every
+genuinely untapped, declarative gap found. See the README's new **Coverage**
+section for the full managed/excluded breakdown and sources.
+
+### Added
+- **IPv6 Allow Lists** (`ip-allowlists-v6`) — the IPv4 allow-lists type's
+  documented v1 limitation ("IPv4 allow lists only") is resolved. A separate
+  ACS resource from the v4 type (`/access/{feature}/ipallowlists-v6`), same
+  seven features. Implements the documented ACS quirk that a reconcile cannot
+  remove every live subnet from a feature in one request — one is held back
+  and reported so a follow-up deploy finishes the removal.
+- **IPv6 Outbound Ports** (`outbound-ports-v6`) — the IPv6 counterpart to
+  Outbound Ports (`/access/outbound-ports-v6`), same reconcile model as v4.
+- **Splunkbase Apps** (`splunkbase-apps`) — install, upgrade and uninstall
+  *published* Splunkbase apps by catalog id via ACS
+  (`POST/PATCH/GET/DELETE .../apps/victoria?splunkbase=true`), separate from
+  the existing "Splunk Apps" type (which builds and AppInspect-vets *private*
+  apps from authored files). Closes this app's own long-standing "Future work"
+  backlog item. Needs a Splunkbase session id in addition to the ACS token —
+  reuses the same splunk.com username/password credential fields the private
+  app type already asks for (see `lib/splunkbase.ts`).
+- **Roles: Maximum Search Age** (`srchTimeEarliest`) — the one standard
+  Splunk role attribute this type was missing (distinct from the existing
+  Maximum Search Time Window / `srchTimeWin`, which limits a search's span
+  rather than how far back it may start).
+- **Roles: live Capabilities picker** — the Capabilities field is now a
+  searchable `remote-multiselect` backed by ACS's own grantable-capability
+  list (`GET /adminconfig/v2/capabilities?grantableOnly=true`), instead of
+  free text. This is a pure ACS lookup, so it works even though roles
+  themselves still deploy over the REST API (ACS cannot manage the role
+  object itself) — no new prerequisites.
+- **README Coverage section** documenting every managed vs. excluded ACS/REST
+  surface with sourced reasons, and the ACS-vs-REST / Cloud-restriction
+  boundary this app operates within.
+
+### Changed
+- Manifest/README description updated to name IPv6 and Splunkbase coverage.
+
+### Notes (not implemented — flagged for a dedicated follow-up)
+- Splunk's `terraform-provider-scp` shows ACS has gained NATIVE identity
+  management (`/adminconfig/v2/roles`, `/adminconfig/v2/users`,
+  `/adminconfig/v2/capabilities`) since this app's `roles`/`users` types were
+  built on "ACS cannot manage identity." Migrating is deliberately **out of
+  scope for this release**: it is a breaking transport change to two already-
+  shipped, working config types, and ACS role/user writes are documented as
+  NOT automatically replicated across search-head-cluster members (they
+  require explicit search-head targeting) — a real design question, not a
+  drop-in swap. See README Coverage for detail.
+
 ## 1.10.12 — 2026-07-23
 
 ### Changed

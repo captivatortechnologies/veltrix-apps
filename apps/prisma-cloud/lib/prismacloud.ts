@@ -70,7 +70,7 @@ export interface PcResponse {
   transportError?: string
 }
 
-export type PcMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
+export type PcMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 export class PcClient {
   private readonly cred: PcCredential
@@ -137,6 +137,10 @@ export class PcClient {
   }
   put(path: string, body: unknown): Promise<PcResponse> {
     return this.request('PUT', path, body)
+  }
+  /** Some endpoints (e.g. the user enable/disable toggle) take the value as a path segment, not a body. */
+  patch(path: string, body?: unknown): Promise<PcResponse> {
+    return this.request('PATCH', path, body)
   }
   delete(path: string): Promise<PcResponse> {
     return this.request('DELETE', path)

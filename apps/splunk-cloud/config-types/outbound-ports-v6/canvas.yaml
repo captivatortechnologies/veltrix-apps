@@ -1,0 +1,48 @@
+# =============================================================================
+# Canvas Template — Splunk Cloud IPv6 Outbound Ports (ACS)
+#
+# Declares the IPv6 destination subnets the stack may open outbound
+# connections to from ONE source port — the item. A SEPARATE ACS resource from
+# the IPv4 "Outbound Ports" type (outbound-ports-v6, not a variant). Field keys
+# must match what config-types/outbound-ports-v6/validate.ts checks.
+# =============================================================================
+
+id: "splunk-cloud-outbound-ports-v6"
+name: "IPv6 Outbound Port Configuration"
+toolType: "splunk-cloud"
+entityType: "outbound-ports-v6"
+description: "Allow the stack to open outbound IPv6 connections from a port to specific destination subnets, via the ACS API"
+
+item:
+  label: "IPv6 Outbound Port Rule"
+  identityField: "port"
+  repeatable: true
+  minItems: 1
+  groups:
+    - name: "General"
+      icon: "network"
+      description: "Source port and permitted IPv6 destination subnets"
+      fields:
+        - key: "port"
+          label: "Port"
+          fieldType: "number"
+          required: true
+          helpText: "Source port the stack opens outbound connections from (1–65535), e.g. 8089 for federated search / S2S."
+
+        - key: "subnets"
+          label: "Destination Subnets (IPv6 CIDR)"
+          fieldType: "tags"
+          required: true
+          helpText: "Destination IPv6 subnets in CIDR notation, e.g. 2001:db8::/32. Use /128 for a single host."
+
+        - key: "reason"
+          label: "Reason (optional)"
+          fieldType: "text"
+          required: false
+          helpText: "Optional note recorded with the ACS request, e.g. \"federated search to partner stack\"."
+
+        - key: "removeUndeclared"
+          label: "Remove Undeclared Destinations"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "When enabled, live destinations not declared here are removed on deploy (full reconcile for this port)."
