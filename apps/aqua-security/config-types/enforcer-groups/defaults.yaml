@@ -1,0 +1,13 @@
+# Defaults for a new enforcer group item — a standard Kubernetes Enforcer
+# group with the most common protections enabled, audit-only until reviewed.
+type: "agent"
+enforce: false
+orchestratorType: "kubernetes"
+containerActivityProtection: true
+networkProtection: true
+imageAssurance: true
+hostProtection: false
+hostAssurance: false
+admissionControl: false
+autoDiscoveryEnabled: false
+scheduleScanDisabled: false

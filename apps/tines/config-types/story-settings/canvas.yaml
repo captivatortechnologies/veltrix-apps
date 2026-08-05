@@ -1,0 +1,114 @@
+# =============================================================================
+# Canvas Template — Tines Story Settings
+#
+# Declares the SETTINGS (the item) of ONE Tines Story that ALREADY EXISTS —
+# this config type NEVER creates, deletes, or edits the story's graph (its
+# agents/links, the automation logic itself). The graph is versioned
+# automation code exported/imported as JSON, not flat canvas config — see the
+# README Coverage section for why it's out of scope, same treatment as
+# apps/splunk-soar's playbooks.
+#
+# Applied via the Tines REST API: the story is found by name (GET
+# /api/v1/stories, optionally scoped to a Team) and its settings are updated
+# (PUT /api/v1/stories/{id}). Deploy FAILS with a clear message if no story
+# with this name exists yet — author the story in the Tines Story editor (or
+# import its graph) first, then declare its settings here.
+# =============================================================================
+
+id: "tines-story-settings"
+name: "Story Settings"
+toolType: "tines"
+entityType: "story-settings"
+description: "Manage settings (enabled/disabled, change control, priority, tags, retention, folder) of an EXISTING Tines Story via the Tines REST API (/api/v1/stories). Never creates, deletes, or edits the story graph itself. Reconciled by story name."
+
+item:
+  label: "Story Settings"
+  identityField: "story_name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Story"
+      icon: "workflow"
+      description: "Which existing story this configures"
+      fields:
+        - key: "story_name"
+          label: "Story"
+          fieldType: "remote-select"
+          optionsSource: "stories"
+          required: true
+          helpText: "The EXISTING Tines Story to configure, by name. The story and its graph must already exist — this config type never creates one. Used as the stable identity for drift."
+
+        - key: "team_id"
+          label: "Team (disambiguation only)"
+          fieldType: "remote-select"
+          optionsSource: "teams"
+          required: false
+          helpText: "Optional. Narrows the story lookup when more than one team has a story with this name. This app never MOVES a story between teams — team_id here is a search filter only."
+
+        - key: "folder_name"
+          label: "Folder Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Optional. The NAME of an existing Story-type folder in the story's team (see the Folders config type). Leave blank to leave the story's current folder unchanged."
+
+    - name: "Lifecycle"
+      icon: "toggle"
+      description: "Enabled state, priority and change control"
+      fields:
+        - key: "disabled"
+          label: "Disabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When checked, the story stops processing events (equivalent to the Story editor's enable/disable toggle)."
+
+        - key: "priority"
+          label: "High Priority"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Marks the story as high priority, giving its Action runs precedence under load."
+
+        - key: "change_control_enabled"
+          label: "Change Control Enabled"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "When enabled, edits to this story's graph go through a draft/publish review flow in Tines. This app never manages drafts — see the README."
+
+        - key: "monitor_failures"
+          label: "Monitor Failures"
+          fieldType: "checkbox"
+          required: false
+          defaultValue: false
+          helpText: "Whether Tines actively monitors this story's actions for failures."
+
+    - name: "Retention & Classification"
+      icon: "tag"
+      description: "Event retention, description and tags"
+      fields:
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "User-defined description shown on the story."
+
+        - key: "keep_events_for_days"
+          label: "Keep Events For (days)"
+          fieldType: "number"
+          required: false
+          validation:
+            min: 1
+            max: 365
+          helpText: "How long the story retains its Event history, in days (converted to seconds — Tines accepts 3,600 to 31,536,000). Leave blank to leave unchanged."
+
+        - key: "tags"
+          label: "Tags"
+          fieldType: "tags"
+          required: false
+          helpText: "The full desired tag list for this story. Deploy computes the add/remove diff against the story's current live tags — tags in this list but not live are added; live tags not in this list are removed."

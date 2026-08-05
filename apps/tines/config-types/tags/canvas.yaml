@@ -1,0 +1,72 @@
+# =============================================================================
+# Canvas Template — Tines Tags
+#
+# Declares ONE Tines tag (the item) — a labeled, colored marker teams attach to
+# Stories for classification/filtering. Field keys must match
+# config-types/tags/_shared.ts. Applied via the Tines REST API
+# (POST/PUT/GET/DELETE /api/v1/tags).
+#
+# Tines assigns the server id. Since February 2025 a tag belongs to exactly one
+# team, so identity for reconciliation is (team, name).
+# =============================================================================
+
+id: "tines-tags"
+name: "Tags"
+toolType: "tines"
+entityType: "tags"
+description: "Manage Tines tags — labeled, colored markers Stories are classified with — via the Tines REST API (/api/v1/tags). Reconciled by name, scoped to Team."
+
+item:
+  label: "Tag"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Tag"
+      icon: "tag"
+      description: "Tag identity and color"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The tag name shown in Tines. Combined with Team, this is the stable identity used for upsert and drift."
+
+        - key: "team_id"
+          label: "Team"
+          fieldType: "remote-select"
+          optionsSource: "teams"
+          required: true
+          helpText: "The Tines Team this tag belongs to. Tags created since February 2025 can only belong to a single team."
+
+        - key: "color"
+          label: "Color"
+          fieldType: "select"
+          required: true
+          defaultValue: "blue"
+          options:
+            - { label: "Purple", value: "purple" }
+            - { label: "Blue", value: "blue" }
+            - { label: "Gold", value: "gold" }
+            - { label: "Green", value: "green" }
+            - { label: "Magenta", value: "magenta" }
+            - { label: "Red", value: "red" }
+            - { label: "Orange", value: "orange" }
+            - { label: "Mint", value: "mint" }
+            - { label: "Custom hex...", value: "custom" }
+          helpText: "One of Tines' named palette colors, or Custom to set an exact #RRGGBB value below."
+
+        - key: "custom_color"
+          label: "Custom Color (hex)"
+          fieldType: "text"
+          required: false
+          visibleWhen:
+            field: "color"
+            equals: "custom"
+          validation:
+            pattern: "^#[0-9a-fA-F]{6}$"
+            maxLength: 7
+          helpText: "A #RRGGBB hex color, used only when Color is set to Custom hex."

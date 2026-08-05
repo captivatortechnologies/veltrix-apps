@@ -1,0 +1,275 @@
+id: aqua-security
+name: Aqua Security
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Aqua Security (CNAPP) as code — image, host, function and Kubernetes
+  assurance policies, container and host runtime policies, firewall policies,
+  application scopes and Enforcer Group protection configuration. Author each
+  and drive it through the Security-as-Code pipeline (validate, deploy, health
+  check, drift detection and rollback) over the Aqua CSP/Enterprise Console
+  REST API with a dedicated Aqua user (session-token auth).
+category: CLOUD
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/aqua-security
+icon: "💧"
+
+platform:
+  minVersion: "1.0.0"
+
+# Aqua Security brand blue. Assets are placeholders until the official
+# lockup is added.
+branding:
+  primaryColor: "#0091ea"
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - configuration-canvas:write
+    - component:read
+    - credential:read
+  app:
+    - resource: image-assurance-policies
+      actions: [read, write, delete]
+      description: Manage Aqua image assurance policies (create / edit / remove)
+    - resource: host-assurance-policies
+      actions: [read, write, delete]
+      description: Manage Aqua host assurance policies (create / edit / remove)
+    - resource: function-assurance-policies
+      actions: [read, write, delete]
+      description: Manage Aqua function (serverless) assurance policies (create / edit / remove)
+    - resource: kubernetes-assurance-policies
+      actions: [read, write, delete]
+      description: Manage Aqua Kubernetes assurance policies (create / edit / remove)
+    - resource: container-runtime-policies
+      actions: [read, write, delete]
+      description: Manage Aqua container runtime policies (create / edit / remove)
+    - resource: host-runtime-policies
+      actions: [read, write, delete]
+      description: Manage Aqua host runtime policies (create / edit / remove)
+    - resource: firewall-policies
+      actions: [read, write, delete]
+      description: Manage Aqua firewall (network micro-segmentation) policies (create / edit / remove)
+    - resource: application-scopes
+      actions: [read, write, delete]
+      description: Manage Aqua application scopes (create / edit / remove)
+    - resource: enforcer-groups
+      actions: [read, write, delete]
+      description: Manage Aqua Enforcer Group protection configuration (create / edit / remove)
+
+pipeline:
+  configurationTypes:
+    - id: image-assurance-policies
+      group: "Assurance Policies"
+      name: Image Assurance Policies
+      description: Aqua image assurance policies — vulnerability, malware, license, secrets and CIS compliance gates for container images — applied over the Aqua Console REST API (/api/v2/assurance_policy/image)
+      canvasTemplate: config-types/image-assurance-policies/canvas.yaml
+      defaultConfig: config-types/image-assurance-policies/defaults.yaml
+      handlers:
+        validate: config-types/image-assurance-policies/validate
+        deploy: config-types/image-assurance-policies/deploy
+        rollback: config-types/image-assurance-policies/rollback
+        healthCheck: config-types/image-assurance-policies/healthCheck
+        driftDetect: config-types/image-assurance-policies/driftDetect
+        getStatus: config-types/image-assurance-policies/getStatus
+      targets:
+        componentTypes: [aqua-security]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: host-assurance-policies
+      group: "Assurance Policies"
+      name: Host Assurance Policies
+      description: Aqua host assurance policies — CIS benchmark, vulnerability and hardening gates for the underlying host OS — applied over the Aqua Console REST API (/api/v2/assurance_policy/host)
+      canvasTemplate: config-types/host-assurance-policies/canvas.yaml
+      defaultConfig: config-types/host-assurance-policies/defaults.yaml
+      handlers:
+        validate: config-types/host-assurance-policies/validate
+        deploy: config-types/host-assurance-policies/deploy
+        rollback: config-types/host-assurance-policies/rollback
+        healthCheck: config-types/host-assurance-policies/healthCheck
+        driftDetect: config-types/host-assurance-policies/driftDetect
+        getStatus: config-types/host-assurance-policies/getStatus
+      targets:
+        componentTypes: [aqua-security]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: function-assurance-policies
+      group: "Assurance Policies"
+      name: Function Assurance Policies
+      description: Aqua function (serverless/FaaS) assurance policies — vulnerability, malware, license and secrets gates for function packages — applied over the Aqua Console REST API (/api/v2/assurance_policy/function)
+      canvasTemplate: config-types/function-assurance-policies/canvas.yaml
+      defaultConfig: config-types/function-assurance-policies/defaults.yaml
+      handlers:
+        validate: config-types/function-assurance-policies/validate
+        deploy: config-types/function-assurance-policies/deploy
+        rollback: config-types/function-assurance-policies/rollback
+        healthCheck: config-types/function-assurance-policies/healthCheck
+        driftDetect: config-types/function-assurance-policies/driftDetect
+        getStatus: config-types/function-assurance-policies/getStatus
+      targets:
+        componentTypes: [aqua-security]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: kubernetes-assurance-policies
+      group: "Assurance Policies"
+      name: Kubernetes Assurance Policies
+      description: Aqua Kubernetes assurance policies — image, label and CIS benchmark gates for Kubernetes-orchestrated workloads — applied over the Aqua Console REST API (/api/v2/assurance_policy/kubernetes)
+      canvasTemplate: config-types/kubernetes-assurance-policies/canvas.yaml
+      defaultConfig: config-types/kubernetes-assurance-policies/defaults.yaml
+      handlers:
+        validate: config-types/kubernetes-assurance-policies/validate
+        deploy: config-types/kubernetes-assurance-policies/deploy
+        rollback: config-types/kubernetes-assurance-policies/rollback
+        healthCheck: config-types/kubernetes-assurance-policies/healthCheck
+        driftDetect: config-types/kubernetes-assurance-policies/driftDetect
+        getStatus: config-types/kubernetes-assurance-policies/getStatus
+      targets:
+        componentTypes: [aqua-security]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: container-runtime-policies
+      group: "Runtime Policies"
+      name: Container Runtime Policies
+      description: Aqua container runtime policies — drift prevention, executable/registry allow-lists, malware scanning and reverse-shell/network controls for running containers — applied over the Aqua Console REST API (/api/v2/runtime_policies, type=container)
+      canvasTemplate: config-types/container-runtime-policies/canvas.yaml
+      defaultConfig: config-types/container-runtime-policies/defaults.yaml
+      handlers:
+        validate: config-types/container-runtime-policies/validate
+        deploy: config-types/container-runtime-policies/deploy
+        rollback: config-types/container-runtime-policies/rollback
+        healthCheck: config-types/container-runtime-policies/healthCheck
+        driftDetect: config-types/container-runtime-policies/driftDetect
+        getStatus: config-types/container-runtime-policies/getStatus
+      targets:
+        componentTypes: [aqua-security]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: host-runtime-policies
+      group: "Runtime Policies"
+      name: Host Runtime Policies
+      description: Aqua host runtime policies — executable/OS-user allow-lists, malware scanning, file-integrity monitoring and reverse-shell detection for the underlying host — applied over the Aqua Console REST API (/api/v2/runtime_policies, type=host)
+      canvasTemplate: config-types/host-runtime-policies/canvas.yaml
+      defaultConfig: config-types/host-runtime-policies/defaults.yaml
+      handlers:
+        validate: config-types/host-runtime-policies/validate
+        deploy: config-types/host-runtime-policies/deploy
+        rollback: config-types/host-runtime-policies/rollback
+        healthCheck: config-types/host-runtime-policies/healthCheck
+        driftDetect: config-types/host-runtime-policies/driftDetect
+        getStatus: config-types/host-runtime-policies/getStatus
+      targets:
+        componentTypes: [aqua-security]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: firewall-policies
+      group: "Network Security"
+      name: Firewall Policies
+      description: Aqua firewall policies — ICMP/metadata-service blocking and inbound/outbound network rules for Enforcer-protected workloads — applied over the Aqua Console REST API (/api/v2/firewall_policies)
+      canvasTemplate: config-types/firewall-policies/canvas.yaml
+      defaultConfig: config-types/firewall-policies/defaults.yaml
+      handlers:
+        validate: config-types/firewall-policies/validate
+        deploy: config-types/firewall-policies/deploy
+        rollback: config-types/firewall-policies/rollback
+        healthCheck: config-types/firewall-policies/healthCheck
+        driftDetect: config-types/firewall-policies/driftDetect
+        getStatus: config-types/firewall-policies/getStatus
+      targets:
+        componentTypes: [aqua-security]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: application-scopes
+      group: "Access & Scope"
+      name: Application Scopes
+      description: Aqua application scopes — named image/workload/infrastructure filters referenced by assurance and runtime policies — applied over the Aqua Console REST API (/api/v2/access_management/scopes)
+      canvasTemplate: config-types/application-scopes/canvas.yaml
+      defaultConfig: config-types/application-scopes/defaults.yaml
+      handlers:
+        validate: config-types/application-scopes/validate
+        deploy: config-types/application-scopes/deploy
+        rollback: config-types/application-scopes/rollback
+        healthCheck: config-types/application-scopes/healthCheck
+        driftDetect: config-types/application-scopes/driftDetect
+        getStatus: config-types/application-scopes/getStatus
+      targets:
+        componentTypes: [aqua-security]
+        requiresCredential: true
+        requiresConnectivity: true
+
+    - id: enforcer-groups
+      group: "Enforcers"
+      name: Enforcer Groups
+      description: Aqua Enforcer Group protection configuration — runtime/network/host/image protections, orchestrator targeting and allow-lists — applied over the Aqua Console REST API (/api/v1/hostsbatch)
+      canvasTemplate: config-types/enforcer-groups/canvas.yaml
+      defaultConfig: config-types/enforcer-groups/defaults.yaml
+      handlers:
+        validate: config-types/enforcer-groups/validate
+        deploy: config-types/enforcer-groups/deploy
+        rollback: config-types/enforcer-groups/rollback
+        healthCheck: config-types/enforcer-groups/healthCheck
+        driftDetect: config-types/enforcer-groups/driftDetect
+        getStatus: config-types/enforcer-groups/getStatus
+      targets:
+        componentTypes: [aqua-security]
+        requiresCredential: true
+        requiresConnectivity: true
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/aqua-security
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs the Aqua Console base URL with
+    # an Aqua user credential, with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+# Connection-level connectivity test: verifies a Connection's Console base URL
+# + Aqua user credential against the Aqua Console REST API (session login +
+# GET /api/v2/access_management/scopes/<probe>).
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request timeout (seconds)
+    description: Per-request timeout for calls to the Aqua Console REST API.
+    default: 30
+    required: false
+
+events:
+  - component:created
+  - component:deleted
+  - credential:updated

@@ -1,0 +1,69 @@
+# =============================================================================
+# Canvas Template — Tines Folders
+#
+# Declares ONE Tines folder (the item) — a container for Stories, Credentials
+# or Global Resources within a Team. Field keys must match
+# config-types/folders/_shared.ts. Applied via the Tines REST API
+# (POST/PUT/GET/DELETE /api/v1/folders).
+#
+# Tines assigns the server id. A folder's true identity is the tuple (team,
+# content type, parent folder, name) — Tines allows same-named folders in
+# different scopes — so `name` alone is declared as the canvas identityField
+# (the platform requires one key) but reconciliation in deploy.ts additionally
+# scopes the live lookup by team_id + content_type + resolved parent.
+# =============================================================================
+
+id: "tines-folders"
+name: "Folders"
+toolType: "tines"
+entityType: "folders"
+description: "Manage Tines folders — containers for Stories, Credentials and Global Resources within a Team — via the Tines REST API (/api/v1/folders). Reconciled by name, scoped to team + content type + parent folder."
+
+item:
+  label: "Folder"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Folder"
+      icon: "folder"
+      description: "Folder identity and scope"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The folder name shown in Tines. Combined with Team + Content Type + Parent Folder, this is the stable identity used for upsert and drift."
+
+        - key: "team_id"
+          label: "Team"
+          fieldType: "remote-select"
+          optionsSource: "teams"
+          required: true
+          helpText: "The Tines Team that owns this folder."
+
+        - key: "content_type"
+          label: "Content Type"
+          fieldType: "select"
+          required: true
+          options:
+            - { label: "Stories", value: "STORY" }
+            - { label: "Credentials", value: "CREDENTIAL" }
+            - { label: "Global Resources", value: "RESOURCE" }
+          helpText: "What kind of item this folder holds. Tines gives each content type its own folder namespace within a team."
+
+        - key: "parent_folder_name"
+          label: "Parent Folder Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: >
+            Optional. The NAME of an existing parent folder in the same Team +
+            Content Type (nests this folder inside it). Leave blank to place
+            this folder at the root. A parent declared earlier in the same
+            canvas (with no parent of its own) resolves in the same deploy;
+            deeper multi-level chains should be deployed one level at a time.

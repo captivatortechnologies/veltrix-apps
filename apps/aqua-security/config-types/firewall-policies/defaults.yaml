@@ -1,0 +1,4 @@
+# Defaults for a new firewall policy item — block ICMP and cloud metadata
+# service access, with no explicit network rules until the operator adds them.
+blockIcmpPing: true
+blockMetadataService: true

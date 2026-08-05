@@ -1,0 +1,13 @@
+{
+  "name": "veltrix-app-tines",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Veltrix app: manage Tines security automation configuration as code — Teams, Folders, Tags, Global Resources (Shared Values), Credentials (metadata only), Story Settings and Team Members — through the Tines REST API",
+  "scripts": { "typecheck": "tsc --noEmit" },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@veltrixsecops/app-sdk": "^3.7.0",
+    "fastify": "^5.0.0",
+    "typescript": "^5.6.0"
+  }
+}

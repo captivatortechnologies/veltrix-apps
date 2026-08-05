@@ -1,0 +1,89 @@
+# =============================================================================
+# Canvas Template — Aqua Security Firewall Policies
+#
+# Declares ONE firewall policy — the item. Aqua firewall policies are network
+# micro-segmentation rules applied to containers/hosts running Aqua Enforcers:
+# ICMP/metadata-service blocking plus explicit inbound/outbound network rules.
+# Applied via the Aqua Console REST API (/api/v2/firewall_policies — see
+# lib/aquasec.ts for the endpoint citation against the official Aqua
+# Terraform provider).
+#
+# inboundNetworks/outboundNetworks are each a LIST of rule objects
+# ({allow, resourceType, portRange, resource}) — there is no repeatable
+# sub-group field type in this canvas schema (see other apps' `_json`
+# escape-hatch convention, e.g. rapid7's report_config_json), so each
+# direction is authored as a JSON array in a textarea and parsed/validated in
+# validate.ts. Field keys must match config-types/firewall-policies/_shared.ts.
+# =============================================================================
+
+id: "aqua-security-firewall-policies"
+name: "Firewall Policies"
+toolType: "aqua-security"
+entityType: "firewall-policies"
+description: "Manage Aqua Security firewall policies — ICMP/metadata-service blocking and inbound/outbound network rules for Enforcer-protected workloads — via the Aqua Console REST API (/api/v2/firewall_policies)"
+
+item:
+  label: "Firewall Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "shield"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "Unique policy name — the stable identity used for upsert and drift, e.g. prod-network-lockdown"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+
+    - name: "Baseline Protections"
+      icon: "lock"
+      fields:
+        - key: "blockIcmpPing"
+          label: "Block ICMP Ping"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Block incoming 'ping' (ICMP echo) requests."
+
+        - key: "blockMetadataService"
+          label: "Block Cloud Metadata Service"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Block access to the cloud provider's instance metadata service (e.g. 169.254.169.254) — a common SSRF/credential-theft target."
+
+    - name: "Network Rules"
+      icon: "network"
+      description: "Inbound and outbound network rules, as JSON arrays"
+      fields:
+        - key: "inboundNetworksJson"
+          label: "Inbound Rules (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 8000
+          helpText: >
+            JSON array of inbound rules: [{"allow": false, "resourceType": "anywhere",
+            "portRange": "0-1000"}]. resourceType is one of "anywhere", "custom" (with a
+            CIDR/host in "resource") or "vpc". Leave blank for no inbound rules.
+
+        - key: "outboundNetworksJson"
+          label: "Outbound Rules (JSON)"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 8000
+          helpText: >
+            JSON array of outbound rules, same shape as inbound, e.g.
+            [{"allow": false, "resourceType": "custom", "portRange": "0-1000",
+            "resource": "192.168.1.5/32"}]. Leave blank for no outbound rules.

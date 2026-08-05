@@ -1,0 +1,36 @@
+# =============================================================================
+# Canvas Template — Tines Teams
+#
+# Declares ONE Tines team (the item). Users add as many as they need. Field
+# keys must match config-types/teams/_shared.ts. Applied via the Tines REST
+# API (POST/PUT/GET/DELETE /api/v1/teams).
+#
+# Tines assigns the server id, so identity for reconciliation is the team
+# `name`. A team is Tines' top-level scoping unit — stories, folders,
+# credentials, resources and tags all belong to one.
+# =============================================================================
+
+id: "tines-teams"
+name: "Teams"
+toolType: "tines"
+entityType: "teams"
+description: "Manage Tines teams — the top-level scoping unit stories, folders, credentials and resources belong to — via the Tines REST API (/api/v1/teams). Reconciled by name."
+
+item:
+  label: "Team"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Team"
+      icon: "users"
+      description: "Team identity"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The team name shown in Tines. Used as the stable identity for upsert and drift."

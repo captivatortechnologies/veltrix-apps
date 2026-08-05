@@ -1,0 +1,59 @@
+# =============================================================================
+# Canvas Template — Tines Team Members (RBAC)
+#
+# Declares ONE (Team, User) membership binding (the item) — an email invited
+# onto a Team with a role. Field keys must match
+# config-types/team-members/_shared.ts. Applied via the Tines REST API
+# (POST /api/v1/teams/{team_id}/invite_member,
+#  POST /api/v1/teams/{team_id}/remove_member,
+#  GET  /api/v1/teams/{team_id}/members).
+#
+# Tines gives NO update-role endpoint, so this config type is ADDITIVE ONLY:
+# deploy invites a missing member; it never removes a member absent from the
+# canvas (avoids accidentally deprovisioning access from a stale canvas), and
+# a role that no longer matches is reported as drift rather than silently
+# corrected (removing + re-inviting would reset invitation state and re-send
+# an email — a surprising side effect for a routine reconcile). See the
+# README Coverage section.
+# =============================================================================
+
+id: "tines-team-members"
+name: "Team Members"
+toolType: "tines"
+entityType: "team-members"
+description: "Manage Tines Team membership (RBAC) — who is invited onto a Team and with what role — via the Tines REST API (/api/v1/teams/{team_id}/invite_member). Additive only; reconciled by (team, email)."
+
+item:
+  label: "Team Member"
+  identityField: "email"
+  repeatable: true
+  minItems: 1
+  maxItems: 1000
+  groups:
+    - name: "Membership"
+      icon: "user-plus"
+      description: "Which team, which user, and their role"
+      fields:
+        - key: "team_id"
+          label: "Team"
+          fieldType: "remote-select"
+          optionsSource: "teams"
+          required: true
+          helpText: "The Tines Team this membership applies to."
+
+        - key: "email"
+          label: "Email"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 320
+            pattern: "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"
+          helpText: "The user's email address. Combined with Team, this is the stable identity used for upsert and drift. If the user doesn't yet exist in this Tines tenant, inviting them here sends a tenant invitation."
+
+        - key: "role"
+          label: "Role"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 100
+          helpText: "A Tines role name — a standard role (e.g. TEAM_ADMIN, EDITOR, VIEWER) or a custom role configured in this tenant. Leave blank to accept Tines' default role for a new invite. Tines has no API to change a role in place — a mismatch here is reported as drift, not auto-corrected (see the app README)."

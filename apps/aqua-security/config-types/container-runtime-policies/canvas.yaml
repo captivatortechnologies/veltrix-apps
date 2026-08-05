@@ -1,0 +1,226 @@
+# =============================================================================
+# Canvas Template — Aqua Security Container Runtime Policies
+#
+# Declares ONE container runtime policy — the item. Runtime policies protect
+# CONTAINERS while they run: drift prevention, executable/registry allow-lists,
+# malware scanning, file-integrity monitoring, reverse-shell and network
+# controls. Applied via the Aqua Console REST API (/api/v2/runtime_policies —
+# see lib/aquasec.ts for the endpoint citation against the official Aqua
+# Terraform provider; `type: "container"` distinguishes this from the Host
+# Runtime Policies config type, which shares the same endpoint).
+#
+# Field keys must match config-types/lib/runtimePolicy.ts
+# (extractRuntimePolicySpecs / buildRuntimePolicyBody) — shared by both
+# runtime-policy config types (container/host).
+# =============================================================================
+
+id: "aqua-security-container-runtime-policies"
+name: "Container Runtime Policies"
+toolType: "aqua-security"
+entityType: "container-runtime-policies"
+description: "Manage Aqua Security container runtime policies — drift prevention, executable/registry allow-lists, malware scanning and reverse-shell/network controls for running containers — via the Aqua Console REST API (/api/v2/runtime_policies, type=container)"
+
+item:
+  label: "Container Runtime Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity & Scope"
+      icon: "shield"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "Unique policy name — the stable identity used for upsert and drift, e.g. prod-container-lockdown"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+
+        - key: "applicationScopes"
+          label: "Application Scopes"
+          fieldType: "tags"
+          required: true
+          defaultValue: ["Global"]
+          helpText: "Application Scope names this policy applies to (must already exist in Aqua). Defaults to Global."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "When on, the policy is active in Aqua. When off, this app removes it (disabled = absent)."
+
+        - key: "enforce"
+          label: "Enforce"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Enforce mode blocks violating behavior at runtime. Off means audit-only."
+
+    - name: "Drift Prevention"
+      icon: "lock"
+      description: "Block new executables/images from appearing inside a running container"
+      fields:
+        - key: "driftPreventionEnabled"
+          label: "Enable Drift Prevention"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "execLockdown"
+          label: "Lock Down New Executables"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Block execution of any binary not present in the original image."
+
+        - key: "imageLockdown"
+          label: "Lock Down Image Filesystem"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Block writes that would change the container's image filesystem at runtime."
+
+    - name: "Allow / Block Lists"
+      icon: "list"
+      fields:
+        - key: "allowedExecutablesEnabled"
+          label: "Restrict Executables"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "allowedExecutables"
+          label: "Allowed Executable Paths"
+          fieldType: "tags"
+          helpText: "Only these executable paths may run inside the container, e.g. /usr/bin/curl"
+
+        - key: "allowedRegistriesEnabled"
+          label: "Restrict Registries"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "allowedRegistries"
+          label: "Allowed Registries"
+          fieldType: "tags"
+          helpText: "Only images pulled from these registry names may run"
+
+        - key: "blacklistedOsUsersEnabled"
+          label: "Block OS Users"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "userBlackList"
+          label: "Blocked OS Users"
+          fieldType: "tags"
+          helpText: "OS user names that may not run processes in the container"
+
+        - key: "whitelistedOsUsersEnabled"
+          label: "Restrict OS Users"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "userWhiteList"
+          label: "Allowed OS Users"
+          fieldType: "tags"
+          helpText: "Only these OS user names may run processes in the container"
+
+    - name: "Malware & File Integrity"
+      icon: "alert-triangle"
+      fields:
+        - key: "malwareScanEnabled"
+          label: "Enable Runtime Malware Scanning"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "malwareScanAction"
+          label: "Malware Action"
+          fieldType: "select"
+          defaultValue: "alert"
+          options:
+            - label: "Alert only"
+              value: "alert"
+            - label: "Block"
+              value: "block"
+
+        - key: "fileIntegrityMonitoringEnabled"
+          label: "Enable File Integrity Monitoring"
+          fieldType: "checkbox"
+          defaultValue: false
+
+    - name: "Network & Process Controls"
+      icon: "network"
+      fields:
+        - key: "containerExecEnabled"
+          label: "Monitor Container Exec"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "blockContainerExec"
+          label: "Block Container Exec"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Block interactive `exec` sessions into the container."
+
+        - key: "reverseShellEnabled"
+          label: "Monitor Reverse Shells"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "blockReverseShell"
+          label: "Block Reverse Shells"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "portBlockEnabled"
+          label: "Enable Port Blocking"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "blockInboundPorts"
+          label: "Blocked Inbound Ports"
+          fieldType: "tags"
+          helpText: "Port numbers or ranges to block for inbound connections"
+
+        - key: "blockOutboundPorts"
+          label: "Blocked Outbound Ports"
+          fieldType: "tags"
+          helpText: "Port numbers or ranges to block for outbound connections"
+
+    - name: "Auditing"
+      icon: "file-text"
+      fields:
+        - key: "auditAllProcesses"
+          label: "Audit All Process Activity"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "auditAllNetwork"
+          label: "Audit All Network Activity"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "auditOnFailure"
+          label: "Audit On Failure"
+          fieldType: "checkbox"
+          defaultValue: true
+
+    - name: "Scope Expression"
+      icon: "filter"
+      description: "Advanced targeting — an Aqua boolean expression over named variables"
+      fields:
+        - key: "scopeExpression"
+          label: "Expression"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: 'Optional Aqua scope expression, e.g. "v1 && v2" combining the variables below.'
+
+        - key: "scopeVariables"
+          label: "Variables"
+          fieldType: "keyvalue"
+          helpText: 'Aqua attribute -> value pairs, e.g. kubernetes.namespace -> prod. Bound to v1, v2, ... in alphabetical-by-attribute order.'

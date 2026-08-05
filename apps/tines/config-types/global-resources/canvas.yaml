@@ -1,0 +1,94 @@
+# =============================================================================
+# Canvas Template — Tines Global Resources (Shared Values)
+#
+# Declares ONE Tines Global Resource (the item) — a named, team-scoped value
+# (text or JSON) Stories reference as `${{ RESOURCE.<name> }}`. Field keys
+# must match config-types/global-resources/_shared.ts. Applied via the Tines
+# REST API (POST/PUT/GET/DELETE /api/v1/global_resources).
+#
+# Tines assigns the server id, so identity for reconciliation is (team, name).
+# File-type resources (base64-encoded binary contents) are intentionally NOT
+# modeled — see the README Coverage section for why.
+# =============================================================================
+
+id: "tines-global-resources"
+name: "Global Resources"
+toolType: "tines"
+entityType: "global-resources"
+description: "Manage Tines Global Resources (Shared Values) — named, team-scoped text/JSON values Stories reference — via the Tines REST API (/api/v1/global_resources). Reconciled by name, scoped to Team. File-type resources are out of scope."
+
+item:
+  label: "Global Resource"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "database"
+      description: "Resource identity and scope"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 255
+          helpText: "The resource name shown in Tines, referenced from a Story as ${{ RESOURCE.<name> }}. Combined with Team, this is the stable identity used for upsert and drift."
+
+        - key: "team_id"
+          label: "Team"
+          fieldType: "remote-select"
+          optionsSource: "teams"
+          required: true
+          helpText: "The Tines Team that owns this resource."
+
+        - key: "folder_name"
+          label: "Folder Name"
+          fieldType: "text"
+          required: false
+          validation:
+            maxLength: 255
+          helpText: "Optional. The NAME of an existing Resource-type folder in this Team to file this resource under (see the Folders config type). Leave blank for the team root."
+
+    - name: "Value"
+      icon: "code"
+      description: "The stored content"
+      fields:
+        - key: "value"
+          label: "Value"
+          fieldType: "textarea"
+          required: true
+          helpText: "Plain text, or a JSON-parseable string (Tines auto-detects and stores it as a typed JSON value — an object, array, number or boolean)."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: "What this resource holds and where it's used — shown in the Tines UI."
+
+    - name: "Sharing"
+      icon: "share"
+      description: "Which teams can use this resource"
+      fields:
+        - key: "read_access"
+          label: "Read Access"
+          fieldType: "select"
+          required: false
+          defaultValue: "TEAM"
+          options:
+            - { label: "This team only", value: "TEAM" }
+            - { label: "Every team in the tenant", value: "GLOBAL" }
+            - { label: "Specific teams", value: "SPECIFIC_TEAMS" }
+          helpText: "Which teams besides the owning team can reference this resource."
+
+        - key: "shared_team_slugs"
+          label: "Shared Team Slugs"
+          fieldType: "tags"
+          required: false
+          visibleWhen:
+            field: "read_access"
+            equals: "SPECIFIC_TEAMS"
+          helpText: "Team slugs allowed to reference this resource, used only when Read Access is Specific teams."

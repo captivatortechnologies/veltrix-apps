@@ -1,0 +1,274 @@
+id: tines
+name: Tines
+version: "0.1.0"
+vendor: Veltrix
+description: >
+  Manage Tines security-automation configuration as code through the Tines
+  REST API (https://<tenant-domain>/api/v1). Covers Teams, Folders, Tags,
+  Global Resources (Shared Values), Credential metadata, Story Settings
+  (enabled/disabled, change control, priority, tags, retention — of a Story
+  that already exists) and Team Members (RBAC) — each driven through the
+  Security-as-Code pipeline: validate, deploy (upsert), health check, drift
+  detection and rollback. Auth is a Tines API key
+  (Authorization: Bearer <key>) against your tenant's own domain. The Story
+  GRAPH (agents/links — the automation logic itself) is intentionally NOT
+  managed here — see the README Coverage section for why.
+category: SOAR
+license: Apache-2.0
+homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/tines
+icon: "⚡"
+
+platform:
+  minVersion: "1.0.0"
+
+# Approximate placeholder colors (Tines' dark navy + lime-yellow accent) —
+# not yet verified against an official brand kit. Logo is an original
+# abstract mark (see assets/logo.svg), not the trademarked Tines logo.
+branding:
+  primaryColor: "#0B0E1A"
+  accentColor: "#C6F135"
+  logo: ./assets/logo.svg
+
+permissions:
+  platform:
+    - configuration-canvas:read
+    - component:read
+    - credential:read
+  app:
+    - resource: teams
+      actions: [read, write, delete]
+      description: Manage Tines Teams (create / rename / delete)
+    - resource: folders
+      actions: [read, write, delete]
+      description: Manage Tines Folders (create / rename / move / delete)
+    - resource: tags
+      actions: [read, write, delete]
+      description: Manage Tines Tags (create / recolor / delete)
+    - resource: global-resources
+      actions: [read, write, delete]
+      description: Manage Tines Global Resources / Shared Values (create / edit / delete)
+    - resource: credentials
+      actions: [read, write, delete]
+      description: Manage Tines Credential metadata (create / edit / delete) — secret values are write-only
+    - resource: story-settings
+      actions: [read, write]
+      description: Manage settings of an existing Tines Story (enabled state, priority, change control, tags, retention, folder) — never the Story graph
+    - resource: team-members
+      actions: [read, write, delete]
+      description: Manage Tines Team membership and role assignment (invite / remove)
+
+pipeline:
+  configurationTypes:
+    - id: teams
+      group: "Organization"
+      name: Teams
+      description: >
+        Tines teams — the top-level scoping unit stories, folders, credentials
+        and resources belong to — applied over the Tines REST API
+        (/api/v1/teams). Reconciled by name.
+      canvasTemplate: config-types/teams/canvas.yaml
+      defaultConfig: config-types/teams/defaults.yaml
+      handlers:
+        validate: config-types/teams/validate
+        deploy: config-types/teams/deploy
+        rollback: config-types/teams/rollback
+        healthCheck: config-types/teams/healthCheck
+        driftDetect: config-types/teams/driftDetect
+        getStatus: config-types/teams/getStatus
+      targets:
+        componentTypes: [tines-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: folders
+      group: "Organization"
+      name: Folders
+      description: >
+        Tines folders — containers for Stories, Credentials and Global
+        Resources within a Team — applied over the Tines REST API
+        (/api/v1/folders). Reconciled by name, scoped to team + content type +
+        parent folder.
+      canvasTemplate: config-types/folders/canvas.yaml
+      defaultConfig: config-types/folders/defaults.yaml
+      handlers:
+        validate: config-types/folders/validate
+        deploy: config-types/folders/deploy
+        rollback: config-types/folders/rollback
+        healthCheck: config-types/folders/healthCheck
+        driftDetect: config-types/folders/driftDetect
+        getStatus: config-types/folders/getStatus
+        options: config-types/folders/options
+      targets:
+        componentTypes: [tines-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: tags
+      group: "Classification"
+      name: Tags
+      description: >
+        Tines tags — labeled, colored markers Stories are classified with —
+        applied over the Tines REST API (/api/v1/tags). Reconciled by name,
+        scoped to Team.
+      canvasTemplate: config-types/tags/canvas.yaml
+      defaultConfig: config-types/tags/defaults.yaml
+      handlers:
+        validate: config-types/tags/validate
+        deploy: config-types/tags/deploy
+        rollback: config-types/tags/rollback
+        healthCheck: config-types/tags/healthCheck
+        driftDetect: config-types/tags/driftDetect
+        getStatus: config-types/tags/getStatus
+        options: config-types/tags/options
+      targets:
+        componentTypes: [tines-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: global-resources
+      group: "Data"
+      name: Global Resources
+      description: >
+        Tines Global Resources (Shared Values) — named, team-scoped text/JSON
+        values Stories reference — applied over the Tines REST API
+        (/api/v1/global_resources). Reconciled by name, scoped to Team.
+        File-type resources are out of scope — see the README.
+      canvasTemplate: config-types/global-resources/canvas.yaml
+      defaultConfig: config-types/global-resources/defaults.yaml
+      handlers:
+        validate: config-types/global-resources/validate
+        deploy: config-types/global-resources/deploy
+        rollback: config-types/global-resources/rollback
+        healthCheck: config-types/global-resources/healthCheck
+        driftDetect: config-types/global-resources/driftDetect
+        getStatus: config-types/global-resources/getStatus
+        options: config-types/global-resources/options
+      targets:
+        componentTypes: [tines-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: credentials
+      group: "Data"
+      name: Credentials
+      description: >
+        Tines Credential METADATA (name, mode, sharing, non-secret metadata,
+        expiry) applied over the Tines REST API (/api/v1/user_credentials).
+        Secret material is write-only and never read back. Reconciled by
+        name, scoped to Team. HTTP Request and Multi Request modes are out of
+        scope — see the README.
+      canvasTemplate: config-types/credentials/canvas.yaml
+      defaultConfig: config-types/credentials/defaults.yaml
+      handlers:
+        validate: config-types/credentials/validate
+        deploy: config-types/credentials/deploy
+        rollback: config-types/credentials/rollback
+        healthCheck: config-types/credentials/healthCheck
+        driftDetect: config-types/credentials/driftDetect
+        getStatus: config-types/credentials/getStatus
+        options: config-types/credentials/options
+      targets:
+        componentTypes: [tines-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: story-settings
+      group: "Stories"
+      name: Story Settings
+      description: >
+        Settings (enabled/disabled, high priority, change control, monitor
+        failures, description, event retention, tags, folder) of an EXISTING
+        Tines Story — applied over the Tines REST API (GET /api/v1/stories,
+        PUT /api/v1/stories/{id}). NEVER creates, deletes, or edits the
+        Story's graph (agents/links) — see the README Coverage section.
+        Reconciled by story name.
+      canvasTemplate: config-types/story-settings/canvas.yaml
+      defaultConfig: config-types/story-settings/defaults.yaml
+      handlers:
+        validate: config-types/story-settings/validate
+        deploy: config-types/story-settings/deploy
+        rollback: config-types/story-settings/rollback
+        healthCheck: config-types/story-settings/healthCheck
+        driftDetect: config-types/story-settings/driftDetect
+        getStatus: config-types/story-settings/getStatus
+        options: config-types/story-settings/options
+      targets:
+        componentTypes: [tines-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: team-members
+      group: "Organization"
+      name: Team Members
+      description: >
+        Tines Team membership and role assignment (RBAC) — applied over the
+        Tines REST API (/api/v1/teams/{team_id}/invite_member,
+        /remove_member). Additive only — a member absent from the canvas is
+        never removed, and a role mismatch is reported as drift rather than
+        auto-corrected (Tines has no update-role endpoint). Reconciled by
+        (team, email).
+      canvasTemplate: config-types/team-members/canvas.yaml
+      defaultConfig: config-types/team-members/defaults.yaml
+      handlers:
+        validate: config-types/team-members/validate
+        deploy: config-types/team-members/deploy
+        rollback: config-types/team-members/rollback
+        healthCheck: config-types/team-members/healthCheck
+        driftDetect: config-types/team-members/driftDetect
+        getStatus: config-types/team-members/getStatus
+        options: config-types/team-members/options
+      targets:
+        componentTypes: [tines-tenant]
+        requiresCredential: true
+        requiresConnectivity: false
+
+  pipelineEvents:
+    - canvas:validated
+    - canvas:deployed
+    - canvas:rollback
+    - drift:detected
+
+server:
+  entry: server/index
+  routes:
+    prefix: /api/apps/tines
+
+client:
+  entry: client/index
+  navLayout: sidebar
+  pages:
+    - path: /overview
+      component: OverviewPage
+      label: Overview
+      icon: shield
+      nav: sidebar
+    - path: /setup
+      component: SetupGuidePage
+      label: Setup Guide
+      icon: book
+      nav: sidebar
+    # Connections — Settings nav group. Pairs a Tines tenant (component) with
+    # the API key (credential), with a per-row connectivity test.
+    - path: /connections
+      component: ConnectionsPage
+      label: Connections
+      icon: link
+      nav: sidebar
+      group: settings
+
+hooks:
+  onInstall: hooks/onInstall
+  onUninstall: hooks/onUninstall
+
+# Connection-level connectivity test: verifies the tenant domain + API key via
+# GET /api/v1/teams.
+connectivity:
+  testHandler: handlers/testConnection
+
+settings:
+  - key: request_timeout_seconds
+    type: number
+    label: Request Timeout (seconds)
+    description: Per-request timeout for Tines REST API calls.
+    default: 30
+    required: false

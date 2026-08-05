@@ -1,0 +1,12 @@
+# Defaults for a new image assurance policy item — a sane audit-only starting
+# point (not enforcing) with the common vulnerability gate pre-selected.
+applicationScopes: ["Global"]
+enabled: true
+enforce: false
+blockFailed: true
+failCicd: true
+auditOnFailure: true
+enforceAfterDays: 0
+cvssSeverityEnabled: true
+cvssSeverity: "high"
+maximumScore: 7

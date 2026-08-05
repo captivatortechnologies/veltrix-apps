@@ -1,0 +1,12 @@
+# Defaults for a new container runtime policy item — audit-only starting
+# point with the most common runtime protections pre-selected.
+applicationScopes: ["Global"]
+enabled: true
+enforce: false
+driftPreventionEnabled: true
+execLockdown: true
+imageLockdown: true
+reverseShellEnabled: true
+malwareScanEnabled: true
+malwareScanAction: "alert"
+auditOnFailure: true

@@ -1,0 +1,309 @@
+# =============================================================================
+# Canvas Template — Aqua Security Host Assurance Policies
+#
+# Declares ONE host assurance policy — the item. Host Assurance covers the
+# underlying VM/bare-metal host running Aqua Enforcers: CIS benchmark
+# compliance, installed-package vulnerabilities and OS hardening posture —
+# independent of any container image running on that host.
+# Applied via the Aqua Console REST API
+# (/api/v2/assurance_policy/host — see lib/aquasec.ts for the endpoint
+# citation against the official Aqua Terraform provider).
+#
+# Field keys must match config-types/lib/assurancePolicy.ts
+# (extractAssurancePolicySpecs / buildAssurancePolicyBody) — shared by all
+# four assurance-policy config types (image/host/function/kubernetes).
+# =============================================================================
+
+id: "aqua-security-host-assurance-policies"
+name: "Host Assurance Policies"
+toolType: "aqua-security"
+entityType: "host-assurance-policies"
+description: "Manage Aqua Security host assurance policies — CIS benchmark, vulnerability and hardening gates for the underlying host OS — via the Aqua Console REST API (/api/v2/assurance_policy/host)"
+
+item:
+  label: "Host Assurance Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity & Scope"
+      icon: "shield"
+      description: "Policy identity and what it applies to"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "Unique policy name — the stable identity used for upsert and drift, e.g. prod-hosts-cis-baseline"
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+
+        - key: "applicationScopes"
+          label: "Application Scopes"
+          fieldType: "tags"
+          required: true
+          defaultValue: ["Global"]
+          helpText: "Application Scope names this policy applies to (must already exist in Aqua — see the Application Scopes config type). Defaults to Global."
+
+        - key: "registries"
+          label: "Registries"
+          fieldType: "tags"
+          required: false
+          helpText: "Registry names this policy is limited to. Leave empty to apply across all registries in scope."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "When on, the policy is active in Aqua. When off, this app removes it (disabled = absent)."
+
+    - name: "Enforcement"
+      icon: "gavel"
+      description: "What happens when a host fails this policy"
+      fields:
+        - key: "enforce"
+          label: "Enforce"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Enforce mode blocks non-compliant hosts. Off means audit-only (violations are recorded but not blocked)."
+
+        - key: "blockFailed"
+          label: "Block Failed Hosts"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "failCicd"
+          label: "Fail CI/CD Pipeline"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Fail the CI/CD pipeline scan step when a host fails this policy."
+
+        - key: "auditOnFailure"
+          label: "Audit On Failure"
+          fieldType: "checkbox"
+          defaultValue: true
+
+        - key: "enforceAfterDays"
+          label: "Enforce After (Days)"
+          fieldType: "number"
+          defaultValue: 0
+          validation:
+            min: 0
+            max: 3650
+          helpText: "Grace period in days before enforcement begins for a newly-failing host (0 = immediate)."
+
+    - name: "Vulnerabilities"
+      icon: "bug"
+      description: "CVE severity, score and allow/deny list gates"
+      fields:
+        - key: "cvssSeverityEnabled"
+          label: "Gate On Severity"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "cvssSeverity"
+          label: "Maximum Allowed Severity"
+          fieldType: "select"
+          defaultValue: "high"
+          options:
+            - label: "Negligible"
+              value: "negligible"
+            - label: "Low"
+              value: "low"
+            - label: "Medium"
+              value: "medium"
+            - label: "High"
+              value: "high"
+            - label: "Critical"
+              value: "critical"
+          helpText: "Hosts with a vulnerability more severe than this fail the policy."
+
+        - key: "cvssSeverityExcludeNoFix"
+          label: "Exclude Vulnerabilities With No Fix"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "maximumScoreEnabled"
+          label: "Gate On CVSS Score"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "maximumScore"
+          label: "Maximum CVSS Score"
+          fieldType: "number"
+          defaultValue: 7
+          validation:
+            min: 0
+            max: 10
+
+        - key: "maximumScoreExcludeNoFix"
+          label: "Exclude No-Fix From Score Gate"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "cvesBlackListEnabled"
+          label: "Gate On CVE Denylist"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "cvesBlackList"
+          label: "CVE Denylist"
+          fieldType: "tags"
+          helpText: "Specific CVE IDs that always fail the policy, e.g. CVE-2022-6754"
+
+        - key: "cvesWhiteListEnabled"
+          label: "Gate On CVE Allowlist"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "cvesWhiteList"
+          label: "CVE Allowlist"
+          fieldType: "tags"
+          helpText: "Specific CVE IDs that are always ignored, regardless of severity/score gates"
+
+        - key: "ignoreRecentlyPublishedVln"
+          label: "Ignore Recently Published Vulnerabilities"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "ignoreRecentlyPublishedVlnPeriod"
+          label: "Grace Period (Days)"
+          fieldType: "number"
+          defaultValue: 0
+          validation:
+            min: 0
+            max: 365
+
+    - name: "Malware & Sensitive Data"
+      icon: "alert-triangle"
+      fields:
+        - key: "disallowMalware"
+          label: "Disallow Malware"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "scanSensitiveData"
+          label: "Scan For Sensitive Data"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Fail the policy when secrets/keys/sensitive data are found on the host."
+
+    - name: "Packages & Licenses"
+      icon: "package"
+      fields:
+        - key: "packagesBlackListEnabled"
+          label: "Gate On Package Denylist"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "packagesBlackList"
+          label: "Package Denylist"
+          fieldType: "tags"
+          helpText: "Package names that always fail the policy (matched by name; version/format constraints are not modeled — see README)."
+
+        - key: "whitelistedLicensesEnabled"
+          label: "Gate On License Allowlist"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "whitelistedLicenses"
+          label: "License Allowlist"
+          fieldType: "tags"
+          helpText: "Only these OSS license identifiers are allowed, e.g. MIT, Apache-2.0"
+
+        - key: "blacklistedLicensesEnabled"
+          label: "Gate On License Denylist"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "blacklistedLicenses"
+          label: "License Denylist"
+          fieldType: "tags"
+          helpText: "These OSS license identifiers always fail the policy, e.g. GPL, LGPL"
+
+    - name: "Compliance Benchmarks"
+      icon: "check-circle"
+      fields:
+        - key: "dockerCisEnabled"
+          label: "Docker CIS Benchmark"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "kubeCisEnabled"
+          label: "Kubernetes CIS Benchmark"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "linuxCisEnabled"
+          label: "Linux CIS Benchmark"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "windowsCisEnabled"
+          label: "Windows CIS Benchmark"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "openshiftHardeningEnabled"
+          label: "OpenShift Hardening"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "onlyNoneRootUsers"
+          label: "Require Non-Root User"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "trustedBaseImagesEnabled"
+          label: "Require Trusted Base Images"
+          fieldType: "checkbox"
+          defaultValue: false
+
+    - name: "Labels"
+      icon: "tag"
+      description: "Host labels this policy requires or forbids"
+      fields:
+        - key: "requiredLabelsEnabled"
+          label: "Require Labels"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "requiredLabels"
+          label: "Required Labels"
+          fieldType: "keyvalue"
+          helpText: "Label key/value pairs the host must carry."
+
+        - key: "forbiddenLabelsEnabled"
+          label: "Forbid Labels"
+          fieldType: "checkbox"
+          defaultValue: false
+
+        - key: "forbiddenLabels"
+          label: "Forbidden Labels"
+          fieldType: "keyvalue"
+          helpText: "Label key/value pairs the host must NOT carry."
+
+    - name: "Scope Expression"
+      icon: "filter"
+      description: "Advanced targeting — an Aqua boolean expression over named variables"
+      fields:
+        - key: "scopeExpression"
+          label: "Expression"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 2000
+          helpText: 'Optional Aqua scope expression, e.g. "v1 && v2" combining the variables below. Leave blank to skip additional scoping.'
+
+        - key: "scopeVariables"
+          label: "Variables"
+          fieldType: "keyvalue"
+          helpText: 'Aqua attribute -> value pairs, e.g. image.repo -> nginx. Bound to v1, v2, ... in the expression above in alphabetical-by-attribute order.'

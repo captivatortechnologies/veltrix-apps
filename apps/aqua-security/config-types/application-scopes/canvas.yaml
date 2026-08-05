@@ -1,0 +1,109 @@
+# =============================================================================
+# Canvas Template — Aqua Security Application Scopes
+#
+# Declares ONE application scope — the item. An Application Scope is a named,
+# reusable filter over images/workloads/infrastructure, referenced by every
+# other Aqua policy type in this app (assurance and runtime policies scope
+# themselves to one or more named Application Scopes). Applied via the Aqua
+# Console REST API (/api/v2/access_management/scopes — see lib/aquasec.ts for
+# the endpoint citation against the official Aqua Terraform provider).
+#
+# Aqua's full category tree covers artifacts (image/function/cf/codebuild),
+# workloads (kubernetes/os/cf) and infrastructure (kubernetes/os). This app
+# models the three highest-value dimensions for a container/CNAPP scope —
+# image artifacts, Kubernetes workloads and Kubernetes infrastructure — as a
+# focused first release; the remaining category leaves (serverless functions,
+# Tanzu/CF, bare VM workloads) are a documented future addition (see README).
+#
+# Each expression/variables pair mirrors client.CommonStruct: a boolean
+# expression (e.g. "v1 && v2") over the attribute/value variables below it,
+# bound positionally in alphabetical-by-attribute order.
+#
+# Field keys must match config-types/application-scopes/_shared.ts.
+# =============================================================================
+
+id: "aqua-security-application-scopes"
+name: "Application Scopes"
+toolType: "aqua-security"
+entityType: "application-scopes"
+description: "Manage Aqua Security application scopes — named image/workload/infrastructure filters referenced by assurance and runtime policies — via the Aqua Console REST API (/api/v2/access_management/scopes)"
+
+item:
+  label: "Application Scope"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "shield"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          validation:
+            maxLength: 128
+          helpText: "Unique scope name — the stable identity used for upsert and drift, and referenced by name from every policy config type."
+
+        - key: "description"
+          label: "Description"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+
+        - key: "ownerEmail"
+          label: "Owner Email"
+          fieldType: "text"
+          required: false
+          helpText: "Optional owner contact recorded on the scope in Aqua."
+
+    - name: "Image Artifacts"
+      icon: "package"
+      description: "Which container images belong to this scope"
+      fields:
+        - key: "imageExpression"
+          label: "Expression"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+          helpText: 'Aqua scope expression, e.g. "v1 && v2". Leave blank to skip image-artifact scoping.'
+
+        - key: "imageVariables"
+          label: "Variables"
+          fieldType: "keyvalue"
+          helpText: 'Aqua attribute -> value pairs, e.g. image.repo -> nginx, aqua.registry -> docker.io'
+
+    - name: "Kubernetes Workloads"
+      icon: "network"
+      description: "Which running Kubernetes workloads belong to this scope"
+      fields:
+        - key: "kubernetesWorkloadExpression"
+          label: "Expression"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+
+        - key: "kubernetesWorkloadVariables"
+          label: "Variables"
+          fieldType: "keyvalue"
+          helpText: 'e.g. kubernetes.cluster -> prod, kubernetes.namespace -> payments'
+
+    - name: "Kubernetes Infrastructure"
+      icon: "server"
+      description: "Which Kubernetes clusters belong to this scope"
+      fields:
+        - key: "kubernetesInfraExpression"
+          label: "Expression"
+          fieldType: "textarea"
+          required: false
+          validation:
+            maxLength: 1000
+
+        - key: "kubernetesInfraVariables"
+          label: "Variables"
+          fieldType: "keyvalue"
+          helpText: 'e.g. kubernetes.cluster -> prod'
