@@ -4,7 +4,9 @@
 // Auth is a Vault token sent on every request as `X-Vault-Token`. All routes are
 // under `/v1`. Vault treats POST and PUT as synonyms for writes, and returns
 // EITHER 200 or 204 on success (204 = no body) — both are OK. Errors carry
-// `{ "errors": [ ... ] }`.
+// `{ "errors": [ ... ] }`. PATCH is the one exception: it is a real JSON MERGE
+// PATCH (RFC 7396), used only by /sys/namespaces, and needs its own content type
+// (handled below) — never conflate it with POST/PUT.
 //
 // Handlers run in-process in the platform's Node runtime, so this uses fetch
 // with an AbortController timeout and no external HTTP dependency. It never
@@ -48,8 +50,10 @@ export function resolveVaultToken(credential: CredentialRef | null): string | nu
 
 export const MISSING_CREDENTIAL_MESSAGE =
   'No Vault token available — store a Vault token in the credential "API token" field. The token ' +
-  'must have a policy granting sudo on the sys/ paths this app manages (sys/policies/acl, sys/auth, ' +
-  'sys/mounts, sys/audit).'
+  'must have a policy granting sudo on the sys/ paths this app manages (sys/policies/acl, sys/policies/rgp, ' +
+  'sys/policies/egp, sys/auth, sys/mounts, sys/audit, sys/namespaces, sys/quotas/lease-count) plus create/' +
+  'update/delete/list on the roles/keys paths of any PKI or Transit mounts it manages (e.g. pki/roles/*, ' +
+  'transit/keys/*).'
 
 export interface VaultResponse {
   status: number
@@ -57,7 +61,7 @@ export interface VaultResponse {
   body: string
 }
 
-export type VaultMethod = 'GET' | 'LIST' | 'POST' | 'PUT' | 'DELETE'
+export type VaultMethod = 'GET' | 'LIST' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 export class VaultClient {
   private readonly baseUrl: string
@@ -90,7 +94,9 @@ export class VaultClient {
 
     const headers: Record<string, string> = {
       'X-Vault-Token': this.token,
-      'Content-Type': 'application/json',
+      // A JSON MERGE PATCH (RFC 7396 — used only by /sys/namespaces) requires
+      // this exact content type; every other write is a plain JSON body.
+      'Content-Type': method === 'PATCH' ? 'application/merge-patch+json' : 'application/json',
       Accept: 'application/json',
     }
     if (this.namespace) headers['X-Vault-Namespace'] = this.namespace

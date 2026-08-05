@@ -1,0 +1,231 @@
+# =============================================================================
+# Canvas Template — Vault PKI Roles
+#
+# Declares ONE PKI secrets engine role — the item. Users add as many as they
+# need. A role's identity is the composite (mount, name); config-types/
+# pki-roles/deploy.ts upserts at POST {mount}/roles/{name}. The mount itself is
+# NOT created here — enable the PKI engine via the "Secret Engines" config type
+# first, then declare its roles here.
+#
+# A PKI ROLE IS THE CERTIFICATE-ISSUANCE POLICY — the constraints a
+# `vault write {mount}/issue/{role}` call is checked against. It is pure
+# config: the certificates and private keys actually ISSUED under a role are
+# SECRET DATA and are never touched by this config type.
+#
+# `POST {mount}/roles/{name}` is a FULL REPLACE, not a partial merge — a field
+# this canvas does not set is written using Vault's own built-in default, not
+# left at whatever a live role currently has. Adopting an existing role here
+# means every field takes its value from THIS canvas from the first deploy on.
+#
+# Field keys must match what config-types/pki-roles/validate.ts checks.
+# =============================================================================
+
+id: "hashicorp-vault-pki-roles"
+name: "PKI Role Configuration"
+toolType: "hashicorp-vault"
+entityType: "pki-roles"
+description: "Define Vault PKI secrets engine roles (certificate issuance policy) as code through the {mount}/roles API. Issued certificates and keys are secret data and are never managed here."
+
+item:
+  label: "PKI Role"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Role"
+      icon: "certificate"
+      description: "PKI mount and role name"
+      fields:
+        - key: "mount"
+          label: "PKI Mount Path"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_./-]+$"
+            message: "Mount path may contain only letters, digits, and the characters _ . / -"
+          helpText: >
+            The PKI secrets engine's mount path (e.g. "pki" or "pki_int"),
+            managed by the Secret Engines config type. Part of this role's
+            identity — {mount}/roles/{name}.
+
+        - key: "name"
+          label: "Role Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_.-]+$"
+            message: "Role name may contain only letters, digits, and the characters _ . -"
+          helpText: >
+            The role's name — callers request certificates via
+            {mount}/issue/{name}. Must be unique per mount within this canvas.
+
+    - name: "Certificate Policy"
+      icon: "clock"
+      description: "TTLs, key algorithm and issuer selection"
+      fields:
+        - key: "ttl"
+          label: "TTL"
+          fieldType: "text"
+          helpText: >
+            Requested certificate TTL as a Vault duration (e.g. "720h"). Blank
+            uses the PKI mount's default lease TTL.
+
+        - key: "maxTtl"
+          label: "Max TTL"
+          fieldType: "text"
+          helpText: >
+            Maximum certificate TTL as a Vault duration (e.g. "8760h"). Blank
+            uses the PKI mount's max lease TTL.
+
+        - key: "keyType"
+          label: "Key Type"
+          fieldType: "select"
+          defaultValue: "rsa"
+          options:
+            - label: "RSA"
+              value: "rsa"
+            - label: "EC"
+              value: "ec"
+            - label: "Ed25519"
+              value: "ed25519"
+            - label: "Any (caller chooses)"
+              value: "any"
+          helpText: "The type of key to generate for issued certificates."
+
+        - key: "keyBits"
+          label: "Key Bits"
+          fieldType: "number"
+          helpText: >
+            Key size in bits (e.g. 2048 or 4096 for RSA; 256 for EC P-256).
+            Blank uses Vault's default for the chosen key type.
+
+        - key: "keyUsage"
+          label: "Key Usage"
+          fieldType: "tags"
+          helpText: >
+            X.509 key usage constraints, one per tag (e.g. DigitalSignature,
+            KeyEncipherment, KeyAgreement). Blank uses Vault's default set.
+
+        - key: "issuerRef"
+          label: "Issuer Reference"
+          fieldType: "text"
+          defaultValue: "default"
+          helpText: >
+            Which CA issuer signs certificates from this role — an issuer name
+            or ID, or "default" to use the mount's default issuer.
+
+        - key: "notBeforeDuration"
+          label: "Not-Before Duration"
+          fieldType: "text"
+          defaultValue: "30s"
+          helpText: >
+            How far to backdate a certificate's NotBefore field, as a Vault
+            duration (e.g. "30s"), to tolerate clock skew.
+
+    - name: "Domain Constraints"
+      icon: "globe"
+      description: "Which names a certificate from this role may carry"
+      fields:
+        - key: "allowedDomains"
+          label: "Allowed Domains"
+          fieldType: "tags"
+          helpText: >
+            Domain names permitted in the common name / SANs, one per tag.
+            Combine with Allow Subdomains / Allow Glob Domains for wildcarding.
+            Blank permits any domain (unless Allow Any Name is also off, in
+            which case no domain is permitted).
+
+        - key: "allowBareDomains"
+          label: "Allow Bare Domains"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Permit issuing certificates for the allowed domains themselves (not just subdomains)."
+
+        - key: "allowSubdomains"
+          label: "Allow Subdomains"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Permit issuing certificates for subdomains of the allowed domains."
+
+        - key: "allowGlobDomains"
+          label: "Allow Glob Domains"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: 'Allow Allowed Domains entries to contain a "*" glob.'
+
+        - key: "allowWildcardCertificates"
+          label: "Allow Wildcard Certificates"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: 'Permit issuing certificates with a wildcard common name (e.g. "*.example.com").'
+
+        - key: "allowLocalhost"
+          label: "Allow Localhost"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: '"localhost" and "127.0.0.1" are permitted regardless of Allowed Domains.'
+
+        - key: "allowAnyName"
+          label: "Allow Any Name"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Permit ANY common name, bypassing Allowed Domains entirely. Use with care."
+
+        - key: "enforceHostnames"
+          label: "Enforce Hostnames"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Require the common name and DNS SANs to be valid hostnames (RFC 952/1123)."
+
+        - key: "allowIpSans"
+          label: "Allow IP SANs"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Permit IP address Subject Alternative Names in issued certificates."
+
+    - name: "Usage & Issuance"
+      icon: "shield-check"
+      description: "Extended key usage flags and issuance behavior"
+      fields:
+        - key: "serverFlag"
+          label: "Server Flag"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Mark issued certificates valid for server authentication (TLS)."
+
+        - key: "clientFlag"
+          label: "Client Flag"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Mark issued certificates valid for client authentication (mTLS)."
+
+        - key: "codeSigningFlag"
+          label: "Code Signing Flag"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Mark issued certificates valid for code signing."
+
+        - key: "requireCn"
+          label: "Require Common Name"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Require a common name on every issuance request against this role."
+
+        - key: "useCsrCommonName"
+          label: "Use CSR Common Name"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "When signing a CSR, use the common name from the CSR itself rather than the request parameter."
+
+        - key: "noStore"
+          label: "No Store"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Do not store issued certificates in Vault's storage (reduces storage growth; disables certificate listing/revocation lookup by serial for these issuances)."
+
+        - key: "generateLease"
+          label: "Generate Lease"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Attach a Vault lease to each issued certificate so `vault lease revoke` can revoke it (in addition to the PKI-native revoke-by-serial)."

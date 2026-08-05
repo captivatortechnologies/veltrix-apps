@@ -1,0 +1,69 @@
+# =============================================================================
+# Canvas Template — Vault Namespaces (Vault ENTERPRISE only)
+#
+# Declares ONE namespace — the item. Users add as many as they need. A
+# namespace's logical identity is its PATH; config-types/namespaces/deploy.ts
+# creates it at POST /sys/namespaces/{path} and converges its custom_metadata
+# at PATCH /sys/namespaces/{path} (a real JSON merge patch).
+#
+# A namespace is an isolated Vault "tenant" — its own mounts, policies, auth
+# methods and identity store. This config type manages a namespace's EXISTENCE
+# and custom_metadata ONLY; everything created INSIDE a namespace (its mounts,
+# policies, ...) is managed by every OTHER config type in this app, scoped to
+# that namespace via the app's "Vault Namespace" setting.
+#
+# DELETING a namespace PERMANENTLY DESTROYS everything inside it — see the
+# README's Safety section. Namespace management calls run in whatever
+# namespace context the app's "Vault Namespace" setting specifies (blank =
+# root) — leave it blank to manage TOP-LEVEL namespaces from root.
+#
+# Field keys must match what config-types/namespaces/validate.ts checks.
+# =============================================================================
+
+id: "hashicorp-vault-namespaces"
+name: "Namespace Configuration"
+toolType: "hashicorp-vault"
+entityType: "namespaces"
+description: "Define Vault namespaces (path + custom metadata) as code through the /sys/namespaces API (Vault Enterprise only). Everything created inside a namespace is managed by this app's other config types, scoped via the Vault Namespace setting."
+
+item:
+  label: "Namespace"
+  identityField: "path"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Namespace"
+      icon: "layers"
+      description: "Namespace path"
+      fields:
+        - key: "path"
+          label: "Path"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*$"
+            message: >
+              Letters, digits, underscores and hyphens per segment, "/"-separated
+              for nesting (e.g. "team-a" or "team-a/dev").
+          helpText: >
+            The namespace's path — its identity. Must be unique within this
+            canvas. For a nested namespace ("parent/child"), the parent
+            namespace must already exist. Namespace management calls run in
+            whatever namespace context the app's "Vault Namespace" setting
+            specifies — leave that setting blank to manage top-level
+            namespaces from root.
+
+    - name: "Metadata"
+      icon: "tag"
+      description: "Optional custom metadata (a flat JSON object of string values)"
+      fields:
+        - key: "customMetadataJson"
+          label: "Custom Metadata (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional custom metadata as a flat JSON object of string values,
+            e.g. {"team":"platform","cost-center":"1234"}. Deploy converges
+            the namespace's metadata to exactly this set — leaving it blank
+            removes all custom metadata keys from an existing namespace (a
+            newly-created namespace simply has none).

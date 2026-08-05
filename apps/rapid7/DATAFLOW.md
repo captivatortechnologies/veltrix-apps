@@ -2,7 +2,7 @@
 
 > How a request is routed through the system — from the moment you act to when it reaches completion. **Auto-generated** from `manifest.yaml` (regenerate via `scripts/dataflow/generate.mjs`).
 
-**App:** `rapid7` · **Category:** COMPLIANCE · **Version:** 1.2.0  
+**App:** `rapid7` · **Category:** COMPLIANCE · **Version:** 1.3.0  
 **Operations:** Deploy a configuration · Detect drift · Roll back · Test connection  
 Talks to **Rapid7 InsightVM API** · credentials via the Credential Vault (`ctx.resolveConnection`).
 
@@ -62,7 +62,7 @@ flowchart LR
 ### Deploy a configuration
 
 *You publish or change a config (e.g. a policy, rule, or exclusion).*  
-<sub>Applies to: 11 config types · 5 API families.</sub>
+<sub>Applies to: 15 config types · 7 API families.</sub>
 
 ```mermaid
 sequenceDiagram
@@ -101,7 +101,7 @@ sequenceDiagram
 ### Detect drift
 
 *A scheduled sweep or on-demand check reconciles live state against the canvas.*  
-<sub>Applies to: 11 config types · 5 API families.</sub>
+<sub>Applies to: 15 config types · 7 API families.</sub>
 
 ```mermaid
 sequenceDiagram
@@ -132,7 +132,7 @@ sequenceDiagram
 ### Roll back
 
 *Revert a config to its previously-deployed state using the stored rollbackData.*  
-<sub>Applies to: 11 config types · 5 API families.</sub>
+<sub>Applies to: 15 config types · 7 API families.</sub>
 
 ```mermaid
 sequenceDiagram

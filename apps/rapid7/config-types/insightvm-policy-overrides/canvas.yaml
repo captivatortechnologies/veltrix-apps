@@ -1,0 +1,83 @@
+# =============================================================================
+# Canvas Template — Rapid7 InsightVM Policy Overrides
+#
+# Declares ONE policy (compliance) rule override — the item. An override changes
+# the result of a Policy Manager rule (a CIS/DISA/USGCB benchmark check) for
+# every asset it applies to, or for one specific asset. InsightVM assigns a
+# numeric id, so identity for reconciliation is the natural key (rule, scope
+# type, asset). This config type is CREATE/skip only — the console API offers no
+# in-place update for an override's scope/result (only its expiration and review
+# status can change, which are workflow actions, not declarative config, and are
+# intentionally not managed here). Field keys must match
+# config-types/insightvm-policy-overrides/validate.ts.
+# =============================================================================
+
+id: "rapid7-insightvm-policy-overrides"
+name: "InsightVM Policy Override Configuration"
+toolType: "rapid7"
+entityType: "insightvm-policy-overrides"
+description: "Define Rapid7 InsightVM policy (compliance) rule overrides as code through the Console API (/policy_overrides). Reconciled by rule + scope; created when missing, never updated in place."
+
+item:
+  label: "Policy Override"
+  identityField: "rule_id"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Override"
+      icon: "shield-check"
+      description: "Rule, scope and the overridden result"
+      fields:
+        - key: "rule_id"
+          label: "Policy Rule Id"
+          fieldType: "number"
+          required: true
+          helpText: >
+            The numeric identifier of the policy rule being overridden (its
+            `surrogate_id`). Look it up via GET /api/3/policies/{policyId}/rules
+            on the console, or from the rule's detail page in the console UI.
+            Part of the logical identity with the scope.
+
+        - key: "scope_type"
+          label: "Scope"
+          fieldType: "select"
+          required: true
+          defaultValue: "specific-asset"
+          options:
+            - { label: "All Assets", value: "all-assets" }
+            - { label: "Specific Asset", value: "specific-asset" }
+            - { label: "Specific Asset (Until Next Scan)", value: "specific-asset-until-next-scan" }
+          helpText: >
+            Whether the override applies to every asset the rule evaluates, or
+            to one specific asset (optionally only until that asset is next
+            scanned, after which the override lapses).
+
+        - key: "asset_id"
+          label: "Asset Id"
+          fieldType: "number"
+          helpText: "The numeric asset id the override targets. Required for both specific-asset scope types; ignored for All Assets."
+
+        - key: "new_result"
+          label: "New Result"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The compliance result to apply once the override is in effect — the
+            exact value your console API expects (typically Pass or Fail; check
+            an existing override or the rule's live result via GET
+            /api/3/policies/{policyId}/rules/{ruleId}/assets/{assetId} for the
+            exact casing).
+
+        - key: "original_result"
+          label: "Original Result"
+          fieldType: "text"
+          helpText: "Optional — the result the rule produced before the override, recorded for reference."
+
+        - key: "expires"
+          label: "Expires"
+          fieldType: "text"
+          helpText: >
+            Optional ISO-8601 expiration date/time (e.g. 2026-12-31T00:00:00.000Z).
+            Leave blank for an override that never expires — flagged as a warning
+            since indefinite overrides should generally carry a review date.

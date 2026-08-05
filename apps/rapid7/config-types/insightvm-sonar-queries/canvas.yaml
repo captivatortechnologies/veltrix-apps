@@ -1,0 +1,47 @@
+# =============================================================================
+# Canvas Template — Rapid7 InsightVM Sonar Queries
+#
+# Declares ONE Sonar query — the item. A Sonar query is a saved search against
+# Rapid7's Project Sonar internet-wide scan dataset, used to discover assets
+# matching the criteria (e.g. exposed services on a given domain/CIDR). This
+# manages the saved QUERY only — running it (POST /sonar_queries/search) and
+# reading its discovered-asset results (GET /sonar_queries/{id}/assets) are
+# one-shot/read actions, not declarative config. InsightVM assigns a numeric id,
+# so identity for reconciliation is the natural key (name). Field keys must
+# match config-types/insightvm-sonar-queries/validate.ts.
+# =============================================================================
+
+id: "rapid7-insightvm-sonar-queries"
+name: "InsightVM Sonar Query Configuration"
+toolType: "rapid7"
+entityType: "insightvm-sonar-queries"
+description: "Define Rapid7 InsightVM Sonar queries as code through the Console API (/sonar_queries). Reconciled by name; running the query and reading its results are not managed here."
+
+item:
+  label: "Sonar Query"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Sonar Query"
+      icon: "search"
+      description: "Name and search criteria"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The Sonar query name — its logical identity for reconciliation."
+
+        - key: "criteria_json"
+          label: "Criteria Filters (JSON array)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            A JSON array of filter objects — the same filter shape as
+            InsightVM's asset-search / dynamic-asset-group criteria
+            ({"field":...,"operator":...,"value":...}), applied against Sonar's
+            internet-scan dataset. Confirm exact field names for your console
+            version in the console's Sonar Query editor. e.g.
+            [{"field":"host-name","operator":"contains","value":"example.com"}].

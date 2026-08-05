@@ -1,0 +1,106 @@
+# =============================================================================
+# Canvas Template — Vault Sentinel Policies (RGP / EGP, Vault ENTERPRISE only)
+#
+# Declares ONE Sentinel policy — the item. Users add as many as they need. The
+# policy's identity is the composite (scope, name); config-types/
+# sentinel-policies/deploy.ts upserts at POST /sys/policies/{scope}/{name}.
+#
+# RGP (Role Governance Policy) applies to the ACTING IDENTITY regardless of
+# which path it hits — no `paths` field. EGP (Endpoint Governance Policy)
+# applies to specific request PATHS regardless of who hits them — `paths` is
+# REQUIRED. rgp and egp are SEPARATE Vault namespaces, so the same name may
+# exist in both.
+#
+# Sentinel is HashiCorp's policy-as-code language — DISTINCT from an ACL
+# policy's HCL (config-types/policies) and a password policy's HCL
+# (config-types/password-policies). There is no server-side dry-run; Vault
+# rejects a malformed policy at write time.
+#
+# Field keys must match what config-types/sentinel-policies/validate.ts checks.
+# =============================================================================
+
+id: "hashicorp-vault-sentinel-policies"
+name: "Sentinel Policy Configuration"
+toolType: "hashicorp-vault"
+entityType: "sentinel-policies"
+description: "Define Vault RGP (identity-based) and EGP (path-based) Sentinel governance policies as code through the Vault Policies API (Vault Enterprise only)."
+
+item:
+  label: "Sentinel Policy"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Policy"
+      icon: "shield"
+      description: "Scope, name and enforcement level"
+      fields:
+        - key: "scope"
+          label: "Scope"
+          fieldType: "select"
+          required: true
+          options:
+            - label: "RGP — Role Governance Policy (identity-based)"
+              value: "rgp"
+            - label: "EGP — Endpoint Governance Policy (path-based)"
+              value: "egp"
+          helpText: >
+            RGP evaluates against the ACTING IDENTITY (attached to a token,
+            entity, or group) for every request regardless of path. EGP
+            evaluates against specific request PATHS regardless of who makes
+            the request, and requires Paths below.
+
+        - key: "name"
+          label: "Policy Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_-]+$"
+            message: "Letters, numbers, underscores and hyphens only."
+          helpText: >
+            Name of the Sentinel policy in Vault. Must be unique within its
+            scope in this canvas (rgp and egp are separate namespaces, so the
+            same name may exist in both).
+
+        - key: "enforcementLevel"
+          label: "Enforcement Level"
+          fieldType: "select"
+          required: true
+          defaultValue: "advisory"
+          options:
+            - label: "Advisory (log only, never blocks)"
+              value: "advisory"
+            - label: "Soft-mandatory (blocks, but an override is possible)"
+              value: "soft-mandatory"
+            - label: "Hard-mandatory (always blocks — cannot be overridden)"
+              value: "hard-mandatory"
+          helpText: "How strictly Vault enforces a failing policy evaluation."
+
+        - key: "paths"
+          label: "Paths (EGP only)"
+          fieldType: "tags"
+          visibleWhen:
+            field: "scope"
+            equals: "egp"
+          helpText: >
+            REQUIRED for EGP. The request paths this policy applies to, one per
+            tag — supports a trailing "*" glob (e.g. "secret/*"), and a single
+            "*" applies to every authenticated and login request. Not valid for
+            RGP.
+
+    - name: "Sentinel Code"
+      icon: "code"
+      description: "The Sentinel policy body"
+      fields:
+        - key: "policy"
+          label: "Policy (Sentinel)"
+          fieldType: "textarea"
+          required: true
+          helpText: >
+            The Sentinel policy body. Must declare a top-level "main" rule or
+            variable that evaluates to true/false, e.g.
+            import "strings"
+            main = rule { true }.
+            There is no server-side dry-run — Vault rejects a malformed policy
+            at deploy time.

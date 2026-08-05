@@ -1,0 +1,98 @@
+# =============================================================================
+# Canvas Template — Vault Identity Aliases (entity-alias / group-alias)
+#
+# Declares ONE identity alias — the item. Users add as many as they need. An
+# alias binds an EXTERNAL identity (a login from a specific auth mount) to a
+# Vault identity ENTITY or GROUP (managed by the Identity Entities / Identity
+# Groups config types).
+#
+# An alias has NO addressable name-in-path — its real identity is a
+# server-assigned `id`. Like a login-MFA method, config-types/identity-aliases/
+# deploy.ts reconciles on a LABEL instead: the (mountAccessor, name) pair Vault
+# itself enforces uniqueness on. Changing canonicalId re-points an existing
+# alias at a different entity/group; changing name or mountAccessor creates a
+# NEW alias (they are the identity, not mutable fields of one).
+#
+# Field keys must match what config-types/identity-aliases/validate.ts checks.
+# =============================================================================
+
+id: "hashicorp-vault-identity-aliases"
+name: "Identity Alias Configuration"
+toolType: "hashicorp-vault"
+entityType: "identity-aliases"
+description: "Bind external logins (by auth mount accessor + name) to Vault identity entities or groups as code through the /identity/entity-alias and /identity/group-alias APIs."
+
+item:
+  label: "Identity Alias"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Alias"
+      icon: "link"
+      description: "Which kind of alias, and the external identity it maps"
+      fields:
+        - key: "kind"
+          label: "Alias Kind"
+          fieldType: "select"
+          required: true
+          options:
+            - label: "Entity alias"
+              value: "entity"
+            - label: "Group alias"
+              value: "group"
+          helpText: >
+            "Entity alias" binds a login to an identity ENTITY
+            (/identity/entity-alias). "Group alias" binds an externally-managed
+            group name to an identity GROUP (/identity/group-alias) — normally
+            paired with an "external" group from the Identity Groups config
+            type.
+
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The external identity's login/subject/group-name exactly as the
+            auth mount presents it (an LDAP username, an OIDC subject, an
+            Okta group name, ...). Together with Mount Accessor, this is the
+            RECONCILIATION KEY deploy uses to find this alias on every run —
+            Vault has no other addressable name for it.
+
+        - key: "mountAccessor"
+          label: "Mount Accessor"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The accessor of the auth mount this alias belongs to (e.g.
+            "auth_userpass_1a2b3c4d" or "auth_ldap_9f8e7d6c") — visible on the
+            Auth Methods config type or `vault auth list -detailed`. The other
+            half of the reconciliation key.
+
+        - key: "canonicalId"
+          label: "Canonical ID"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The entity_id (kind=entity) or group_id (kind=group) this alias
+            resolves to — from the Identity Entities / Identity Groups config
+            type, or `vault read identity/entity/name/{name}` /
+            `identity/group/name/{name}`. Deploy converges the alias to point
+            here on every run.
+
+    - name: "Metadata (entity aliases only)"
+      icon: "tag"
+      description: "Optional custom metadata — entity aliases only"
+      fields:
+        - key: "customMetadataJson"
+          label: "Custom Metadata (JSON)"
+          fieldType: "textarea"
+          visibleWhen:
+            field: "kind"
+            equals: "entity"
+          helpText: >
+            Optional custom metadata as a flat JSON object of string values,
+            e.g. {"source":"okta"}. Only supported for ENTITY aliases — Vault's
+            group-alias API has no custom metadata input, so this is ignored
+            for a group alias. Leave blank to not manage metadata.

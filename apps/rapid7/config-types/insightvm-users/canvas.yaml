@@ -1,0 +1,127 @@
+# =============================================================================
+# Canvas Template — Rapid7 InsightVM Console Users
+#
+# Declares ONE console user — the item. InsightVM assigns a numeric id, so
+# identity for reconciliation is the natural key (login). Site and asset group
+# access are declared by name and resolved to ids at deploy time; they are
+# ignored by the console when the role already grants all-sites /
+# all-asset-groups access.
+#
+# ⚠ SECRET-BEARING: the `password` field is WRITE-ONLY (fieldType: password).
+# The console API requires a password on every create AND update — there is no
+# partial-update path that omits it — so it is re-sent on every deploy. It is
+# NEVER read back, diffed, or stored in rollback state / artifacts / logs.
+# Redeploying an unchanged canvas resets the user's password every time. Field
+# keys must match config-types/insightvm-users/validate.ts.
+# =============================================================================
+
+id: "rapid7-insightvm-users"
+name: "InsightVM Console User Configuration"
+toolType: "rapid7"
+entityType: "insightvm-users"
+description: "Define Rapid7 InsightVM console users as code through the Console API (/users). Reconciled by login; the password is write-only and always re-sent on deploy."
+
+item:
+  label: "User"
+  identityField: "login"
+  repeatable: true
+  minItems: 1
+  maxItems: 500
+  groups:
+    - name: "Identity"
+      icon: "user"
+      description: "Login, name and account state"
+      fields:
+        - key: "login"
+          label: "Login"
+          fieldType: "text"
+          required: true
+          helpText: "The user's login name — its logical identity for reconciliation."
+
+        - key: "name"
+          label: "Full Name"
+          fieldType: "text"
+          required: true
+          helpText: "The user's full display name."
+
+        - key: "email"
+          label: "Email"
+          fieldType: "text"
+          helpText: "Optional email address."
+
+        - key: "enabled"
+          label: "Enabled"
+          fieldType: "checkbox"
+          defaultValue: true
+          helpText: "Whether the account can log in. Disable rather than delete to preserve audit history."
+
+        - key: "password"
+          label: "Password"
+          fieldType: "password"
+          required: true
+          helpText: >
+            ⚠ WRITE-ONLY. Required by the console on every create AND update — it
+            is re-sent on every deploy and never read back, diffed or stored.
+            Redeploying resets the user's password to this value every time.
+
+        - key: "password_reset_on_login"
+          label: "Require Password Reset On Next Login"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Force the user to choose a new password the next time they log in."
+
+    - name: "Role & Access"
+      icon: "shield"
+      description: "Role assignment and site/asset group access"
+      fields:
+        - key: "role_id"
+          label: "Role Id"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The id of an existing role — a console built-in (e.g. global-admin,
+            system-admin, user-admin, controls-inheritor, site-admin, user) or a
+            custom role created in the console UI. See GET /api/3/roles for the
+            roles available on your console.
+
+        - key: "all_sites"
+          label: "All Sites"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Grant access to every site, present and future. When enabled, Site Names below is ignored."
+
+        - key: "site_names"
+          label: "Site Names"
+          fieldType: "textarea"
+          helpText: "Sites this user can access, one name per line. Each site must already exist. Ignored when All Sites is enabled."
+
+        - key: "all_asset_groups"
+          label: "All Asset Groups"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "Grant access to every asset group, present and future. When enabled, Asset Group Names below is ignored."
+
+        - key: "asset_group_names"
+          label: "Asset Group Names"
+          fieldType: "textarea"
+          helpText: "Asset groups this user can access, one name per line. Each group must already exist. Ignored when All Asset Groups is enabled."
+
+        - key: "superuser"
+          label: "Superuser"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: "⚠ Grants unrestricted administrative privileges, overriding the assigned role. Reserve for a small number of trusted administrators."
+
+    - name: "Authentication Source"
+      icon: "key"
+      description: "Optional external authentication (leave blank for local Rapid7 authentication)"
+      fields:
+        - key: "auth_source_type"
+          label: "Authentication Source Type"
+          fieldType: "text"
+          helpText: "Optional — the type of an external authentication source (e.g. an LDAP or SAML source already configured on the console). Leave blank for local Rapid7 authentication (the default)."
+
+        - key: "auth_source_id"
+          label: "Authentication Source Id"
+          fieldType: "number"
+          helpText: "Optional — the numeric id of a specific authentication source of the type above. Leave blank to use the console's one configured source of that type."

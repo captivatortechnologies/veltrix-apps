@@ -1,12 +1,13 @@
 id: rapid7
 name: Rapid7 InsightVM
-version: "1.2.0"
+version: "1.3.0"
 vendor: Veltrix
 description: >
   Manage Rapid7 configuration as code. On the on-prem Security Console API (v3):
   scan sites, asset groups, tags, scan templates, scan engine pools, shared and
-  site credentials, scan schedules and vulnerability exceptions (console
-  host:3780, HTTP Basic auth). On the InsightIDR cloud (Insight Platform
+  site credentials, scan schedules, vulnerability exceptions, policy (compliance)
+  overrides, report configurations, Sonar discovery queries and console users
+  (console host:3780, HTTP Basic auth). On the InsightIDR cloud (Insight Platform
   Detection Rules API v1, region-scoped, X-Api-Key auth): detection rule
   exceptions and detection rule settings (action/priority). Validation, drift
   detection and rollback are handled by the Security-as-Code pipeline.
@@ -58,6 +59,18 @@ permissions:
     - resource: insightvm-site-credentials
       actions: [read, write, delete]
       description: Manage Rapid7 InsightVM site credentials
+    - resource: insightvm-policy-overrides
+      actions: [read, write, delete]
+      description: Manage Rapid7 InsightVM policy (compliance) rule overrides
+    - resource: insightvm-report-configs
+      actions: [read, write, delete]
+      description: Manage Rapid7 InsightVM report configurations
+    - resource: insightvm-sonar-queries
+      actions: [read, write, delete]
+      description: Manage Rapid7 InsightVM Sonar queries
+    - resource: insightvm-users
+      actions: [read, write, delete]
+      description: Manage Rapid7 InsightVM console users
 
 pipeline:
   configurationTypes:
@@ -218,6 +231,78 @@ pipeline:
         healthCheck: config-types/insightvm-site-credentials/healthCheck
         driftDetect: config-types/insightvm-site-credentials/driftDetect
         getStatus: config-types/insightvm-site-credentials/getStatus
+      targets:
+        componentTypes: [insightvm-console]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: insightvm-policy-overrides
+      group: "Findings"
+      name: InsightVM Policy Overrides
+      description: Policy (compliance) rule overrides (/policy_overrides) with scope, result and expiration
+      canvasTemplate: config-types/insightvm-policy-overrides/canvas.yaml
+      defaultConfig: config-types/insightvm-policy-overrides/defaults.yaml
+      handlers:
+        validate: config-types/insightvm-policy-overrides/validate
+        deploy: config-types/insightvm-policy-overrides/deploy
+        rollback: config-types/insightvm-policy-overrides/rollback
+        healthCheck: config-types/insightvm-policy-overrides/healthCheck
+        driftDetect: config-types/insightvm-policy-overrides/driftDetect
+        getStatus: config-types/insightvm-policy-overrides/getStatus
+      targets:
+        componentTypes: [insightvm-console]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: insightvm-report-configs
+      group: "Reporting"
+      name: InsightVM Report Configurations
+      description: Report configurations (/reports) — template, format, scope and schedule, without triggering generation
+      canvasTemplate: config-types/insightvm-report-configs/canvas.yaml
+      defaultConfig: config-types/insightvm-report-configs/defaults.yaml
+      handlers:
+        validate: config-types/insightvm-report-configs/validate
+        deploy: config-types/insightvm-report-configs/deploy
+        rollback: config-types/insightvm-report-configs/rollback
+        healthCheck: config-types/insightvm-report-configs/healthCheck
+        driftDetect: config-types/insightvm-report-configs/driftDetect
+        getStatus: config-types/insightvm-report-configs/getStatus
+      targets:
+        componentTypes: [insightvm-console]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: insightvm-sonar-queries
+      group: "Assets"
+      name: InsightVM Sonar Queries
+      description: Saved Project Sonar search queries (/sonar_queries) used to discover assets
+      canvasTemplate: config-types/insightvm-sonar-queries/canvas.yaml
+      defaultConfig: config-types/insightvm-sonar-queries/defaults.yaml
+      handlers:
+        validate: config-types/insightvm-sonar-queries/validate
+        deploy: config-types/insightvm-sonar-queries/deploy
+        rollback: config-types/insightvm-sonar-queries/rollback
+        healthCheck: config-types/insightvm-sonar-queries/healthCheck
+        driftDetect: config-types/insightvm-sonar-queries/driftDetect
+        getStatus: config-types/insightvm-sonar-queries/getStatus
+      targets:
+        componentTypes: [insightvm-console]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: insightvm-users
+      group: "Administration"
+      name: InsightVM Console Users
+      description: Console users (/users) — login, role, site/asset group access; the password is write-only
+      canvasTemplate: config-types/insightvm-users/canvas.yaml
+      defaultConfig: config-types/insightvm-users/defaults.yaml
+      handlers:
+        validate: config-types/insightvm-users/validate
+        deploy: config-types/insightvm-users/deploy
+        rollback: config-types/insightvm-users/rollback
+        healthCheck: config-types/insightvm-users/healthCheck
+        driftDetect: config-types/insightvm-users/driftDetect
+        getStatus: config-types/insightvm-users/getStatus
       targets:
         componentTypes: [insightvm-console]
         requiresCredential: true

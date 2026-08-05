@@ -1,0 +1,86 @@
+# =============================================================================
+# Canvas Template — Vault Lease Count Quotas (Vault ENTERPRISE only)
+#
+# Declares ONE lease count quota — the item. Users add as many as they need.
+# A quota's logical identity is its NAME (config-types/lease-count-quotas/
+# deploy.ts UPSERTs at POST /sys/quotas/lease-count/{name} and keys rollback on
+# the name). Distinct from Rate Limit Quotas: a lease count quota caps the
+# number of LEASES held concurrently, not the request rate.
+#
+# `maxLeases` is REQUIRED — the maximum number of leases permitted concurrently.
+# An EMPTY `path` is the GLOBAL lease-count limiter for the entire Vault
+# cluster: it caps concurrent leases for every mount, a HIGH-BLAST-RADIUS
+# setting. This endpoint does not exist on Vault OSS — deploy surfaces a clear
+# message if the cluster returns 404.
+#
+# Field keys must match what config-types/lease-count-quotas/validate.ts checks.
+# =============================================================================
+
+id: "hashicorp-vault-lease-count-quotas"
+name: "Lease Count Quota Configuration"
+toolType: "hashicorp-vault"
+entityType: "lease-count-quotas"
+description: "Define Vault lease count quotas (max concurrent leases, scope path, inheritance) as code through the Vault /sys/quotas/lease-count API (Vault Enterprise only). An empty path is the cluster-wide global limiter."
+
+item:
+  label: "Lease Count Quota"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 100
+  groups:
+    - name: "Quota"
+      icon: "gauge"
+      description: "Quota name, scope path and lease cap"
+      fields:
+        - key: "name"
+          label: "Quota Name"
+          fieldType: "text"
+          required: true
+          validation:
+            pattern: "^[A-Za-z0-9_-]+$"
+            message: >
+              Quota name may contain only letters, digits, and the characters
+              _ and - (e.g. "global-leases" or "kv_prod_cap").
+          helpText: >
+            The quota's name — its identity, and the {name} in
+            /sys/quotas/lease-count/{name}. Must be unique within this canvas.
+            This is an Enterprise-only Vault feature.
+
+        - key: "path"
+          label: "Scope Path"
+          fieldType: "text"
+          helpText: >
+            mount/namespace path; blank = GLOBAL, high blast radius; trailing *
+            glob allowed. Leave blank to cap concurrent leases for the ENTIRE
+            Vault cluster. Set a path such as "secret/" or "database/" to scope
+            the limiter, optionally ending in "*".
+
+        - key: "maxLeases"
+          label: "Max Leases"
+          fieldType: "number"
+          required: true
+          validation:
+            min: 1
+          helpText: >
+            REQUIRED. The maximum number of leases permitted to be outstanding
+            at once within the scope path, as a positive whole number (e.g.
+            1000). Once the cap is reached, further lease-generating requests
+            are rejected until a lease expires or is revoked.
+
+        - key: "role"
+          label: "Role"
+          fieldType: "text"
+          helpText: >
+            Optional. Only meaningful for a login lease count quota on an auth
+            mount path (e.g. an AppRole role name). Leave blank for an ordinary
+            mount-scoped quota.
+
+        - key: "inheritable"
+          label: "Inheritable"
+          fieldType: "checkbox"
+          defaultValue: false
+          helpText: >
+            When true and the scope path is a NAMESPACE, this quota also
+            applies to every child namespace beneath it. Ignored for a mount
+            path. Defaults to false.

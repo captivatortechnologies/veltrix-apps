@@ -1,12 +1,13 @@
 id: hashicorp-vault
 name: HashiCorp Vault
-version: "1.3.0"
+version: "1.4.0"
 vendor: Veltrix
 description: >
   Manage HashiCorp Vault configuration as code through the Vault HTTP API.
-  Covers ACL policies (HCL), auth methods, secret engine mounts, and audit
-  devices, with validation, drift detection and rollback handled by the
-  Security-as-Code pipeline.
+  Covers ACL/Sentinel policies, auth methods, secret engine mounts (plus PKI
+  role and Transit key configuration), audit devices, namespaces, identity
+  (entities/groups/aliases) and quotas, with validation, drift detection and
+  rollback handled by the Security-as-Code pipeline.
 category: IAM
 license: Apache-2.0
 homepage: https://github.com/captivatortechnologies/veltrix-apps/tree/main/apps/hashicorp-vault
@@ -61,6 +62,24 @@ permissions:
     - resource: plugins
       actions: [read, write, delete]
       description: Manage Vault external plugin registrations
+    - resource: lease-count-quotas
+      actions: [read, write, delete]
+      description: Manage Vault lease count quotas (Vault Enterprise)
+    - resource: pki-roles
+      actions: [read, write, delete]
+      description: Manage Vault PKI secrets engine role definitions
+    - resource: transit-keys
+      actions: [read, write, delete]
+      description: Manage Vault Transit key existence and configuration (never the key material)
+    - resource: identity-aliases
+      actions: [read, write, delete]
+      description: Manage Vault identity entity and group aliases
+    - resource: sentinel-policies
+      actions: [read, write, delete]
+      description: Manage Vault RGP/EGP Sentinel policies (Vault Enterprise)
+    - resource: namespaces
+      actions: [read, write, delete]
+      description: Manage Vault namespaces (Vault Enterprise)
 
 pipeline:
   configurationTypes:
@@ -258,6 +277,114 @@ pipeline:
         healthCheck: config-types/plugins/healthCheck
         driftDetect: config-types/plugins/driftDetect
         getStatus: config-types/plugins/getStatus
+      targets:
+        componentTypes: [vault-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: lease-count-quotas
+      group: "Operations"
+      name: Lease Count Quotas
+      description: Request lease-count quotas (max concurrent leases per mount/namespace); path="" is the global limiter (Vault Enterprise)
+      canvasTemplate: config-types/lease-count-quotas/canvas.yaml
+      defaultConfig: config-types/lease-count-quotas/defaults.yaml
+      handlers:
+        validate: config-types/lease-count-quotas/validate
+        deploy: config-types/lease-count-quotas/deploy
+        rollback: config-types/lease-count-quotas/rollback
+        healthCheck: config-types/lease-count-quotas/healthCheck
+        driftDetect: config-types/lease-count-quotas/driftDetect
+        getStatus: config-types/lease-count-quotas/getStatus
+      targets:
+        componentTypes: [vault-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: namespaces
+      group: "Operations"
+      name: Namespaces
+      description: Vault namespaces (path + custom metadata); deleting one destroys everything provisioned inside it (Vault Enterprise)
+      canvasTemplate: config-types/namespaces/canvas.yaml
+      defaultConfig: config-types/namespaces/defaults.yaml
+      handlers:
+        validate: config-types/namespaces/validate
+        deploy: config-types/namespaces/deploy
+        rollback: config-types/namespaces/rollback
+        healthCheck: config-types/namespaces/healthCheck
+        driftDetect: config-types/namespaces/driftDetect
+        getStatus: config-types/namespaces/getStatus
+      targets:
+        componentTypes: [vault-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: pki-roles
+      group: "Secrets"
+      name: PKI Roles
+      description: PKI secrets engine role definitions (certificate issuance policy); issued certs/keys are secret data and are never managed here
+      canvasTemplate: config-types/pki-roles/canvas.yaml
+      defaultConfig: config-types/pki-roles/defaults.yaml
+      handlers:
+        validate: config-types/pki-roles/validate
+        deploy: config-types/pki-roles/deploy
+        rollback: config-types/pki-roles/rollback
+        healthCheck: config-types/pki-roles/healthCheck
+        driftDetect: config-types/pki-roles/driftDetect
+        getStatus: config-types/pki-roles/getStatus
+      targets:
+        componentTypes: [vault-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: transit-keys
+      group: "Secrets"
+      name: Transit Keys
+      description: Transit key existence and configuration (type, derivation, exportability, deletion policy, rotation); the key material itself is never read, written or exported
+      canvasTemplate: config-types/transit-keys/canvas.yaml
+      defaultConfig: config-types/transit-keys/defaults.yaml
+      handlers:
+        validate: config-types/transit-keys/validate
+        deploy: config-types/transit-keys/deploy
+        rollback: config-types/transit-keys/rollback
+        healthCheck: config-types/transit-keys/healthCheck
+        driftDetect: config-types/transit-keys/driftDetect
+        getStatus: config-types/transit-keys/getStatus
+      targets:
+        componentTypes: [vault-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: identity-aliases
+      group: "Identity"
+      name: Identity Aliases
+      description: Bind external logins (auth mount accessor + name) to identity entities or groups via entity-alias / group-alias
+      canvasTemplate: config-types/identity-aliases/canvas.yaml
+      defaultConfig: config-types/identity-aliases/defaults.yaml
+      handlers:
+        validate: config-types/identity-aliases/validate
+        deploy: config-types/identity-aliases/deploy
+        rollback: config-types/identity-aliases/rollback
+        healthCheck: config-types/identity-aliases/healthCheck
+        driftDetect: config-types/identity-aliases/driftDetect
+        getStatus: config-types/identity-aliases/getStatus
+      targets:
+        componentTypes: [vault-cluster]
+        requiresCredential: true
+        requiresConnectivity: false
+
+    - id: sentinel-policies
+      group: "Policies"
+      name: Sentinel Policies
+      description: RGP (identity-based) and EGP (path-based) Sentinel governance policies (Vault Enterprise)
+      canvasTemplate: config-types/sentinel-policies/canvas.yaml
+      defaultConfig: config-types/sentinel-policies/defaults.yaml
+      handlers:
+        validate: config-types/sentinel-policies/validate
+        deploy: config-types/sentinel-policies/deploy
+        rollback: config-types/sentinel-policies/rollback
+        healthCheck: config-types/sentinel-policies/healthCheck
+        driftDetect: config-types/sentinel-policies/driftDetect
+        getStatus: config-types/sentinel-policies/getStatus
       targets:
         componentTypes: [vault-cluster]
         requiresCredential: true

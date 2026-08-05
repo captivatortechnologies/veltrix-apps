@@ -1,0 +1,93 @@
+# =============================================================================
+# Canvas Template — Rapid7 InsightVM Report Configurations
+#
+# Declares ONE report configuration — the item. This manages the report's
+# CONFIGURATION (name, template, format, scope, and any schedule/distribution
+# settings) via /reports; it never triggers generation
+# (POST /reports/{id}/generate) or downloads output
+# (GET /reports/{id}/history/*), which are one-shot runtime actions, not
+# declarative config. Report TEMPLATES themselves (/report_templates) are
+# read-only in the console API — reference an existing built-in or console-authored
+# template by id. InsightVM assigns a numeric id to the report, so identity for
+# reconciliation is the natural key (name). Field keys must match
+# config-types/insightvm-report-configs/validate.ts.
+# =============================================================================
+
+id: "rapid7-insightvm-report-configs"
+name: "InsightVM Report Configuration"
+toolType: "rapid7"
+entityType: "insightvm-report-configs"
+description: "Define Rapid7 InsightVM report configurations as code through the Console API (/reports). Reconciled by name; never triggers generation or reads output."
+
+item:
+  label: "Report"
+  identityField: "name"
+  repeatable: true
+  minItems: 1
+  maxItems: 200
+  groups:
+    - name: "Report"
+      icon: "file-text"
+      description: "Name, template and format"
+      fields:
+        - key: "name"
+          label: "Name"
+          fieldType: "text"
+          required: true
+          helpText: "The report name — its logical identity for reconciliation."
+
+        - key: "template_id"
+          label: "Template Id"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The id of an existing report template (built-in, e.g. audit-report,
+            baseline-comparison, or one authored in the console UI). Report
+            templates are read-only via the console API and cannot be created
+            here — see GET /api/3/report_templates for the ids available on
+            your console.
+
+        - key: "format"
+          label: "Format"
+          fieldType: "text"
+          required: true
+          helpText: >
+            The output format — e.g. pdf, html, rtf, text, csv-export,
+            database-export or xml-export-v2. See GET /api/3/report_formats on
+            your console for the exact list your license supports.
+
+    - name: "Scope"
+      icon: "target"
+      description: "Sites, asset groups and tags to include (resolved by name at deploy time)"
+      fields:
+        - key: "site_names"
+          label: "Site Names"
+          fieldType: "textarea"
+          helpText: "Sites to include, one name per line. Each site must already exist."
+
+        - key: "asset_group_names"
+          label: "Asset Group Names"
+          fieldType: "textarea"
+          helpText: "Asset groups to include, one name per line. Each group must already exist."
+
+        - key: "tag_names"
+          label: "Tag Names"
+          fieldType: "textarea"
+          helpText: >
+            Tags to include, one name per line. Matched by tag name only — if
+            multiple tags share a name across types, every matching tag id is
+            included. Leave every scope field blank for a report the console
+            defaults to every site its owner can access.
+
+    - name: "Advanced"
+      icon: "settings"
+      description: "Frequency, distribution and any other report fields"
+      fields:
+        - key: "report_config_json"
+          label: "Report Config (JSON)"
+          fieldType: "textarea"
+          helpText: >
+            Optional JSON object merged over name / format / template / scope —
+            e.g. frequency, email, storage, baseline, filters, users. Example:
+            {"frequency":{"type":"schedule","start":"2026-08-01T02:00:00.000Z","repeat":{"type":"week","interval":1}}}.
+            Leave blank for a report with no automatic (re)generation schedule.
